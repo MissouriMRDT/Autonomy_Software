@@ -10,6 +10,7 @@
 
 #include "NavigatingState.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -107,11 +108,20 @@ namespace statemachine
         // Check if we are at the goal waypoint. (only if we aren't waiting for a goal waypoint)
         if (!m_bFetchNewWaypoint)
         {
+            geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
+
             // Get Current rover pose.
             geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+
+             geoops::GeoMeasurement stErrorMeasurement =
+                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
+
             // Calculate distance and bearing from goal waypoint.
             geoops::GeoMeasurement stGoalWaypointMeasurement =
                 geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+            LOG_INFO(logging::g_qSharedLogger, "Distance from target: {} and Bearing to target: {}", stGoalWaypointMeasurement.dDistanceMeters, stGoalWaypointMeasurement.dStartRelativeBearing);
+            LOG_INFO(logging::g_qSharedLogger, "Distance from Rover: {} and Bearing to Rover: {}", stErrorMeasurement.dDistanceMeters, stErrorMeasurement.dStartRelativeBearing);
+
             // Check if we are at the goal waypoint.
             if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
             {
@@ -135,7 +145,7 @@ namespace statemachine
                     case geoops::WaypointType::eNavigationWaypoint:
                     {
                         // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, true);
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
                         break;
                     }
                     // Goal waypoint is marker.
@@ -216,8 +226,7 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-                // Set toggle to get new waypoint.
-                m_bFetchNewWaypoint = true;
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eVerifyingPosition;
                 break;

@@ -224,7 +224,7 @@ namespace statemachine
     States ApproachingMarkerState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState       = States::eIdle;
+        States eNextState       = States::eApproachingMarker;
         bool bCompleteStateExit = true;
 
         switch (eEvent)
@@ -232,7 +232,7 @@ namespace statemachine
             case Event::eReachedMarker:
             {
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
-                eNextState = States::eIdle;
+                eNextState = States::eVerifyingMarker;
                 break;
             }
             case Event::eStart:
@@ -267,7 +267,7 @@ namespace statemachine
             }
         }
 
-        if (eNextState != States::eIdle)
+        if (eNextState != States::eApproachingMarker)
         {
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
