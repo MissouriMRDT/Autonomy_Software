@@ -149,7 +149,7 @@ namespace statemachine
             diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_POWER),
                                                                                      m_stStartRoverPose.GetCompassHeading(),
                                                                                      stCurrentRoverPose.GetCompassHeading(),
-                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
+                                                                                     diffdrive::DifferentialControlMethod::eCurvatureDrive);
             // Send drive powers.
             globals::g_pDriveBoard->SendDrive(stReverse);
         }
