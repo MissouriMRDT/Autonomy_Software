@@ -65,7 +65,6 @@ class StateMachineHandler : private AutonomyThread<void>
         void SaveCurrentState();
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
-        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
 
         /******************************************************************************
          * @brief Callback function used to trigger the start of autonomy. No matter what
@@ -176,6 +175,8 @@ class StateMachineHandler : private AutonomyThread<void>
         void ClearSavedStates();
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
+
+        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
 
         using AutonomyThread::GetIPS;
 };
