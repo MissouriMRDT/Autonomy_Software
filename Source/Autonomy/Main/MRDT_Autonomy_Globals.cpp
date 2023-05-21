@@ -9,8 +9,8 @@
 
 #include "MRDT_Autonomy_Globals.h"
 
-plog::RollingFileAppender<plog::TxtFormatter> pFileAppender("file.log", 1000000000, 10);
-plog::ConsoleAppender<plog::TxtFormatter> pConsoleAppender;
+plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender("file.log", 1000000000, 10);
+plog::ConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
 
 void InitializeAutonomyLoggers() {
 
@@ -28,14 +28,15 @@ void InitializeAutonomyLoggers() {
     szFilenameWithExtension +=  ".log";
 
     // Assign the file logger the file name that was just created
-    pFileAppender.setFileName(szFilenameWithExtension.c_str());
+    g_pFileAppender.setFileName(szFilenameWithExtension.c_str());
 
     // Initialize file logger
-    plog::init<AutonomyLogger::AL_FileLogger>(plog::debug, &pFileAppender);
+    plog::init<AutonomyLogger::AL_FileLogger>(plog::debug, &g_pFileAppender);
 
     // Initialize console logger so that it also sends to the file logger
-    plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &pConsoleAppender)
-            .addAppender(&pFileAppender);
+    plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &g_pConsoleAppender)
+            .addAppender(&g_pFileAppender);
 }
 
-MRDT_Autonomy_IdentitySoftware pIdentifySoftware;
+MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;
+
