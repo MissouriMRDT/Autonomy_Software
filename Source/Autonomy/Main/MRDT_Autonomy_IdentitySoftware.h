@@ -1,5 +1,5 @@
 /*
-   MRDTAutonomyIdentitySoftware.h
+   MRDT_Autonomy_IdentitySoftware.h
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
    Date:             5/20/2023
@@ -17,14 +17,14 @@
 #ifndef MRDTAUTONOMYIDENTITYSOFTWARE_H
 #define MRDTAUTONOMYIDENTITYSOFTWARE_H
 
-class MRDTAutonomyIdentitySoftware {
+class MRDT_Autonomy_IdentitySoftware {
 private:
     std::string szMajorVersion;
     std::string szMinorVersion;
     std::string szPatchVersion;
     std::string szBuildVersion;
 public:
-    MRDTAutonomyIdentitySoftware();
+    MRDT_Autonomy_IdentitySoftware();
 
     std::string GetVersionNumber();
     std::string GetBuildNumber();

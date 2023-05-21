@@ -7,7 +7,7 @@
    Description:      Defines global defines, variables, and functions for MRDT Software.
 */
 
-#include "MRDTAutonomyGlobals.h"
+#include "MRDT_Autonomy_Globals.h"
 
 int main() {
 
