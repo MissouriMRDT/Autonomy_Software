@@ -4,7 +4,7 @@
 
    Date:             5/20/2023
    Author:           Eli Byrd and Clayton Cowen
-   Description:      Defines global defines, variables, and functions for MRDT Software.
+   Description:      The Autonomy Software Version Handler.
 */
 
 #include <string>
@@ -14,8 +14,8 @@
 #define PATCH_VERSION   0
 #define BUILD_VERSION   0
 
-#ifndef MRDTAUTONOMYIDENTITYSOFTWARE_H
-#define MRDTAUTONOMYIDENTITYSOFTWARE_H
+#ifndef MRDT_AUTONOMY_IDENTITYSOFTWARE_H
+#define MRDT_AUTONOMY_IDENTITYSOFTWARE_H
 
 class MRDT_Autonomy_IdentitySoftware {
 private:
@@ -31,4 +31,4 @@ public:
     std::string GetVersionBuildComboNumber();
 };
 
-#endif // MRDTAUTONOMYIDENTITYSOFTWARE_H
+#endif // MRDT_AUTONOMY_IDENTITYSOFTWARE_H
