@@ -14,6 +14,10 @@
 #include <plog/Initializers/ConsoleInitializer.h>
 
 #include "MRDT_Autonomy_IdentitySoftware.h"
+#include "../Communication/MRDT_DriveBoard.h"
+
+#define MAX_DRIVE_POWER     250
+#define MIN_DRIVE_POWER     50
 
 #ifndef MRDT_AUTONOMY_GLOBALS_H
 #define MRDT_AUTONOMY_GLOBALS_H
@@ -28,5 +32,8 @@ void InitializeAutonomyLoggers();                                       // Metho
 
 // Versioning:
 extern MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;              // Global Version Handler
+
+// Board Interfaces:
+extern MRDT_DriveBoard      g_pDriveBoardInterface;                     // Global Drive Board Interface
 
 #endif // MRDT_AUTONOMY_GLOBALS_H
