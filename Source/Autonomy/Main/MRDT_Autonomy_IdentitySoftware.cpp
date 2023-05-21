@@ -12,43 +12,43 @@
 MRDT_Autonomy_IdentitySoftware::MRDT_Autonomy_IdentitySoftware() {
 
     // Force extra characters to the version numbers for '0' padding
-    szMajorVersion = "000";
-    szMinorVersion = "000";
-    szPatchVersion = "000";
-    szBuildVersion = "000";
+    m_szMajorVersion = "000";
+    m_szMinorVersion = "000";
+    m_szPatchVersion = "000";
+    m_szBuildVersion = "000";
 
     // Append the versions after the forced extra characters
-    szMajorVersion += std::to_string(MAJOR_VERSION);
-    szMinorVersion += std::to_string(MINOR_VERSION);
-    szPatchVersion += std::to_string(PATCH_VERSION);
-    szBuildVersion += std::to_string(BUILD_VERSION);
+    m_szMajorVersion += std::to_string(MAJOR_VERSION);
+    m_szMinorVersion += std::to_string(MINOR_VERSION);
+    m_szPatchVersion += std::to_string(PATCH_VERSION);
+    m_szBuildVersion += std::to_string(BUILD_VERSION);
 
     // Shorten the strings down to the appropriate lengths
-    if (szMajorVersion.length() > 2) {
-        szMajorVersion.erase(0, szMajorVersion.length() - 2);
+    if (m_szMajorVersion.length() > 2) {
+        m_szMajorVersion.erase(0, m_szMajorVersion.length() - 2);
     }
 
-    if (szMinorVersion.length() > 2) {
-        szMinorVersion.erase(0, szMinorVersion.length() - 2);
+    if (m_szMinorVersion.length() > 2) {
+        m_szMinorVersion.erase(0, m_szMinorVersion.length() - 2);
     }
 
-    if (szPatchVersion.length() > 2) {
-        szPatchVersion.erase(0, szPatchVersion.length() - 2);
+    if (m_szPatchVersion.length() > 2) {
+        m_szPatchVersion.erase(0, m_szPatchVersion.length() - 2);
     }
 
-    if (szBuildVersion.length() > 3) {
-        szBuildVersion.erase(0, szBuildVersion.length() - 3);
+    if (m_szBuildVersion.length() > 3) {
+        m_szBuildVersion.erase(0, m_szBuildVersion.length() - 3);
     }
 }
 
 std::string MRDT_Autonomy_IdentitySoftware::GetVersionNumber() {
-    return "v" + szMajorVersion + "." + szMinorVersion + "." + szPatchVersion;
+    return "v" + m_szMajorVersion + "." + m_szMinorVersion + "." + m_szPatchVersion;
 }
 
 std::string MRDT_Autonomy_IdentitySoftware::GetBuildNumber() {
-    return  "Build " + szBuildVersion;
+    return "Build " + m_szBuildVersion;
 }
 
 std::string MRDT_Autonomy_IdentitySoftware::GetVersionBuildComboNumber() {
-    return  "v" + szMajorVersion + "." + szMinorVersion + "." + szPatchVersion + " Build " + szBuildVersion;
+    return "v" + m_szMajorVersion + "." + m_szMinorVersion + "." + m_szPatchVersion + " Build " + m_szBuildVersion;
 }

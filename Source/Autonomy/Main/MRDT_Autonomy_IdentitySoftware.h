@@ -19,10 +19,10 @@
 
 class MRDT_Autonomy_IdentitySoftware {
 private:
-    std::string szMajorVersion;
-    std::string szMinorVersion;
-    std::string szPatchVersion;
-    std::string szBuildVersion;
+    std::string m_szMajorVersion;
+    std::string m_szMinorVersion;
+    std::string m_szPatchVersion;
+    std::string m_szBuildVersion;
 public:
     MRDT_Autonomy_IdentitySoftware();
 
