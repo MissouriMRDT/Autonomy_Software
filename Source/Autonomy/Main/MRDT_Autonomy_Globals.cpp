@@ -41,4 +41,5 @@ void InitializeAutonomyLoggers() {
 MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;
 
 MRDT_DriveBoard g_pDriveBoardInterface;
+MRDT_MultimediaBoard g_pMultimediaBoard;
 MRDT_NavigationBoard g_pNavigationBoard;

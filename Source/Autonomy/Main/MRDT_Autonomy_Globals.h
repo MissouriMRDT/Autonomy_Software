@@ -15,6 +15,7 @@
 
 #include "MRDT_Autonomy_IdentitySoftware.h"
 #include "../Communication/MRDT_DriveBoard.h"
+#include "../Communication/MRDT_MultimediaBoard.h"
 #include "../Communication/MRDT_NavigationBoard.h"
 
 #define MAX_DRIVE_POWER     250
@@ -36,6 +37,7 @@ extern MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;              // Globa
 
 // Board Interfaces:
 extern MRDT_DriveBoard      g_pDriveBoardInterface;                     // Global Drive Board Interface
+extern MRDT_MultimediaBoard g_pMultimediaBoardInterface;                // Global Multimedia Board Interface
 extern MRDT_NavigationBoard g_pNavigationBoardInterface;                // Global Navigation Board Interface
 
 #endif // MRDT_AUTONOMY_GLOBALS_H
