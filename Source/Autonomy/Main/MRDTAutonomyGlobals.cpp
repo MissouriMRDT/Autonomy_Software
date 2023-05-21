@@ -37,3 +37,5 @@ void InitializeAutonomyLoggers() {
     plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &pConsoleAppender)
             .addAppender(&pFileAppender);
 }
+
+MRDTAutonomyIdentitySoftware pIdentifySoftware;

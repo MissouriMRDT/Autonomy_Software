@@ -13,6 +13,8 @@
 #include <plog/Initializers/RollingFileInitializer.h>
 #include <plog/Initializers/ConsoleInitializer.h>
 
+#include "MRDTAutonomyIdentitySoftware.h"
+
 #ifndef MRDTAUTONOMYGLOBALS_H
 #define MRDTAUTONOMYGLOBALS_H
 
@@ -24,4 +26,7 @@ extern plog::ConsoleAppender<plog::TxtFormatter> pConsoleAppender;   // Sends lo
 
 void InitializeAutonomyLoggers();                                    // Method to set up the loggers
 
-#endif
+// Versioning:
+extern MRDTAutonomyIdentitySoftware pIdentifySoftware;
+
+#endif // MRDTAUTONOMYGLOBALS_H
