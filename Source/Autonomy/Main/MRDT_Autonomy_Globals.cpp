@@ -1,5 +1,5 @@
 /*
-   MRDTAutonomyGlobals.cpp
+   MRDT_Autonomy_Globals.cpp
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
    Date:             5/20/2023
@@ -7,7 +7,7 @@
    Description:      Defines global defines, variables, and functions for MRDT Software.
 */
 
-#include "MRDTAutonomyGlobals.h"
+#include "MRDT_Autonomy_Globals.h"
 
 plog::RollingFileAppender<plog::TxtFormatter> pFileAppender("file.log", 1000000000, 10);
 plog::ConsoleAppender<plog::TxtFormatter> pConsoleAppender;
@@ -38,4 +38,4 @@ void InitializeAutonomyLoggers() {
             .addAppender(&pFileAppender);
 }
 
-MRDTAutonomyIdentitySoftware pIdentifySoftware;
+MRDT_Autonomy_IdentitySoftware pIdentifySoftware;

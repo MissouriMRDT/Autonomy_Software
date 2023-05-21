@@ -1,5 +1,5 @@
 /*
-   MRDTAutonomyIdentitySoftware.cpp
+   MRDT_Autonomy_IdentitySoftware.cpp
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
    Date:             5/20/2023
@@ -7,9 +7,9 @@
    Description:      Defines global defines, variables, and functions for MRDT Software.
 */
 
-#include "MRDTAutonomyIdentitySoftware.h"
+#include "MRDT_Autonomy_IdentitySoftware.h"
 
-MRDTAutonomyIdentitySoftware::MRDTAutonomyIdentitySoftware() {
+MRDT_Autonomy_IdentitySoftware::MRDT_Autonomy_IdentitySoftware() {
 
     // Force extra characters to the version numbers for '0' padding
     szMajorVersion = "000";
@@ -41,14 +41,14 @@ MRDTAutonomyIdentitySoftware::MRDTAutonomyIdentitySoftware() {
     }
 }
 
-std::string MRDTAutonomyIdentitySoftware::GetVersionNumber() {
+std::string MRDT_Autonomy_IdentitySoftware::GetVersionNumber() {
     return "v" + szMajorVersion + "." + szMinorVersion + "." + szPatchVersion;
 }
 
-std::string MRDTAutonomyIdentitySoftware::GetBuildNumber() {
+std::string MRDT_Autonomy_IdentitySoftware::GetBuildNumber() {
     return  "Build " + szBuildVersion;
 }
 
-std::string MRDTAutonomyIdentitySoftware::GetVersionBuildComboNumber() {
+std::string MRDT_Autonomy_IdentitySoftware::GetVersionBuildComboNumber() {
     return  "v" + szMajorVersion + "." + szMinorVersion + "." + szPatchVersion + " Build " + szBuildVersion;
 }

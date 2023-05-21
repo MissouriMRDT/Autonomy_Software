@@ -1,5 +1,5 @@
 /*
-   MRDTAutonomyGlobals.h
+   MRDT_Autonomy_Globals.h
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
    Date:             5/20/2023
@@ -13,7 +13,7 @@
 #include <plog/Initializers/RollingFileInitializer.h>
 #include <plog/Initializers/ConsoleInitializer.h>
 
-#include "MRDTAutonomyIdentitySoftware.h"
+#include "MRDT_Autonomy_IdentitySoftware.h"
 
 #ifndef MRDTAUTONOMYGLOBALS_H
 #define MRDTAUTONOMYGLOBALS_H
@@ -27,6 +27,6 @@ extern plog::ConsoleAppender<plog::TxtFormatter> pConsoleAppender;   // Sends lo
 void InitializeAutonomyLoggers();                                    // Method to set up the loggers
 
 // Versioning:
-extern MRDTAutonomyIdentitySoftware pIdentifySoftware;
+extern MRDT_Autonomy_IdentitySoftware pIdentifySoftware;
 
 #endif // MRDTAUTONOMYGLOBALS_H
