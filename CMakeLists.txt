@@ -1,7 +1,7 @@
 ####################################################################################################################
-##                                              Autonomy Software                                                 ##
-##                                                   v23.0.0                                                      ##
-##                                           Mars Rover Design Team                                               ##
+##                                            Autonomy Software                                                   ##
+##                                            v23.00.00 Build 000                                                 ##
+##                                          Mars Rover Design Team                                                ##
 ##                                   Copyright 2023 - All Rights Reserved                                         ##
 ####################################################################################################################
 
@@ -10,7 +10,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
 
 ## Project Name and Software Version Number
-PROJECT("Autonomy_Software" VERSION 23.0.0)
+PROJECT('Autonomy_Software' VERSION 23.00.00)
 
 ## Include Required CMake Packages
 INCLUDE(CTest)                                                                      # CMake Testing Framework
