@@ -4,7 +4,7 @@
 
    Date:             5/20/2023
    Author:           Eli Byrd and Clayton Cowen
-   Description:      Defines global defines, variables, and functions for MRDT Software.
+   Description:      Defines the entry point for the application.
 */
 
 #include "MRDT_Autonomy_Globals.h"

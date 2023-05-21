@@ -4,7 +4,7 @@
 
    Date:             5/20/2023
    Author:           Eli Byrd and Clayton Cowen
-   Description:      Defines global defines, variables, and functions for MRDT Software.
+   Description:      The Autonomy Software Version Handler.
 */
 
 #include "MRDT_Autonomy_IdentitySoftware.h"
