@@ -50,17 +50,24 @@ ADD_COMPILE_DEFINITIONS(PLOG_ENABLE_WCHAR_INPUT)
 ENABLE_TESTING()
 
 ## Search Project Directories for CPP Files
-FILE(GLOB Communication_SRC         CONFIGURE_DEPENDS   "Source/Autonomy/Communication/*.cpp")
-FILE(GLOB DataAndComputation_SRC    CONFIGURE_DEPENDS   "Source/Autonomy/DataAndComputation/Algorithms/*.cpp"
-                                                        "Source/Autonomy/DataAndComputation/Hardware/*.cpp"
-                                                        "Source/Autonomy/DataAndComputation/Math/*.cpp"
+FILE(GLOB Communication_SRC       CONFIGURE_DEPENDS  "Source/Autonomy/Communication/*.cpp")
+FILE(GLOB DataAndComputation_SRC  CONFIGURE_DEPENDS  "Source/Autonomy/DataAndComputation/Algorithms/*.cpp"
+                                                     "Source/Autonomy/DataAndComputation/Hardware/*.cpp"
+                                                     "Source/Autonomy/DataAndComputation/Math/*.cpp"
     )
-FILE(GLOB Main_SRC                  CONFIGURE_DEPENDS   "Source/Autonomy/Main/*.cpp")
-FILE(GLOB SetUp_SRC                 CONFIGURE_DEPENDS   "Source/Autonomy/SetUp/*.cpp")
-FILE(GLOB Vision_SRC                CONFIGURE_DEPENDS   "Source/Autonomy/Vision/*.cpp")
+FILE(GLOB Main_SRC                CONFIGURE_DEPENDS  "Source/Autonomy/Main/*.cpp")
+FILE(GLOB Networking_SRC          CONFIGURE_DEPENDS  "Source/Autonomy/Networking/*.cpp")
+FILE(GLOB SetUp_SRC               CONFIGURE_DEPENDS  "Source/Autonomy/SetUp/*.cpp")
+FILE(GLOB Vision_SRC              CONFIGURE_DEPENDS  "Source/Autonomy/Vision/*.cpp")
 
 ## Create Executable File
-ADD_EXECUTABLE(Autonomy_Software ${Communication_SRC} ${DataAndComputation_SRC} ${Main_SRC} ${SetUp_SRC} ${Vision_SRC})
+ADD_EXECUTABLE(Autonomy_Software ${Communication_SRC}
+                                 ${DataAndComputation_SRC}
+                                 ${Main_SRC}
+                                 ${Networking_SRC}
+                                 ${SetUp_SRC}
+                                 ${Vision_SRC}
+    )
 
 ## Link Libraries to Executable
 TARGET_LINK_LIBRARIES(Autonomy_Software PRIVATE gtest_main
