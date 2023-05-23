@@ -25,19 +25,19 @@
 #define MRDT_AUTONOMY_GLOBALS_H
 
 // Logging:
-enum AutonomyLogger { AL_FileLogger, AL_ConsoleLogger };                // Enum to specify logging location
+enum AutonomyLogger { AL_FileLogger, AL_ConsoleLogger };                    // Enum to specify logging location
 
-extern plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender;   // Sends log message to file
-extern plog::ConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;    // Sends log message to file and console
+extern plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender;       // Sends log message to file
+extern plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;   // Sends log message to file and console
 
-void InitializeAutonomyLoggers();                                       // Method to set up the loggers
+void InitializeAutonomyLoggers();                                           // Method to set up the loggers
 
 // Versioning:
-extern MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;              // Global Version Handler
+extern MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;                  // Global Version Handler
 
 // Board Interfaces:
-extern MRDT_DriveBoard      g_pDriveBoardInterface;                     // Global Drive Board Interface
-extern MRDT_MultimediaBoard g_pMultimediaBoardInterface;                // Global Multimedia Board Interface
-extern MRDT_NavigationBoard g_pNavigationBoardInterface;                // Global Navigation Board Interface
+extern MRDT_DriveBoard      g_pDriveBoardInterface;                         // Global Drive Board Interface
+extern MRDT_MultimediaBoard g_pMultimediaBoardInterface;                    // Global Multimedia Board Interface
+extern MRDT_NavigationBoard g_pNavigationBoardInterface;                    // Global Navigation Board Interface
 
 #endif // MRDT_AUTONOMY_GLOBALS_H

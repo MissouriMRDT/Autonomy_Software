@@ -10,7 +10,7 @@
 #include "MRDT_Autonomy_Globals.h"
 
 plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender("file.log", 1000000000, 10);
-plog::ConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
+plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
 
 void InitializeAutonomyLoggers() {
 
