@@ -13,12 +13,16 @@
 #include "RoveCommPacket.h"
 #include "RoveCommEthernetUDP.h"
 #include "RoveCommEthernetTCP.h"
+#include "RoveCommManifestHandler.h"
 
 #ifndef ROVECOMM_H
 #define ROVECOMM_H
 
 class RoveComm {
-
+private:
+    RoveCommManifestHandler pManifestHandler;
+public:
+    RoveComm();
 };
 
 #endif // ROVECOMM_H
