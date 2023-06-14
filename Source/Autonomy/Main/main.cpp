@@ -7,17 +7,18 @@
    Description:      Defines the entry point for the application.
 */
 
-#include "MRDT_Autonomy_Globals.h"
 #include "../Networking/RoveComm.h"
+#include "MRDT_Autonomy_Globals.h"
 
-int main() {
+int main()
+{
 
-    InitializeAutonomyLoggers();            // Initialize loggers for Autonomy Software
+	InitializeAutonomyLoggers();	// Initialize loggers for Autonomy Software
 
-    RoveCommPacket<double_t> test;
+	RoveCommPacket<double_t> test;
 
-    RoveCommEthernetUDP<int8_t> test2(3543);
-    test2.Write(test);
+	RoveCommEthernetUDP<int8_t> test2(3543);
+	test2.Write(test);
 
-    return 0;
+	return 0;
 }

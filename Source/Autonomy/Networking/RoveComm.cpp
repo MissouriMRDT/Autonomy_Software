@@ -4,16 +4,17 @@
 
    Date:             5/21/2023
    Author:           Eli Byrd and Clayton Cowen
-   Description:      
+   Description:
 */
 
 #include "RoveComm.h"
 
-RoveComm::RoveComm() {
-    pManifestHandler = RoveCommManifestHandler();
-    pManifestHandler.SetupBoard(RoveCommManifestIdentifiers::RCMI_CORE);
-    pManifestHandler.SetupBoard(RoveCommManifestIdentifiers::RCMI_NAV);
+RoveComm::RoveComm()
+{
+	pManifestHandler = RoveCommManifestHandler();
+	pManifestHandler.SetupBoard(RoveCommManifestIdentifiers::RCMI_CORE);
+	pManifestHandler.SetupBoard(RoveCommManifestIdentifiers::RCMI_NAV);
 
-    std::cout   << pManifestHandler.GetIPAddress(RoveCommManifestIdentifiers::RCMI_CORE)    << "\n"
-                << pManifestHandler.GetIPAddress(RoveCommManifestIdentifiers::RCMI_NAV)     << std::endl;
+	std::cout << pManifestHandler.GetIPAddress(RoveCommManifestIdentifiers::RCMI_CORE) << "\n"
+			  << pManifestHandler.GetIPAddress(RoveCommManifestIdentifiers::RCMI_NAV) << std::endl;
 }

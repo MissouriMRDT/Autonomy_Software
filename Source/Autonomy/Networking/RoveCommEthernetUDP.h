@@ -4,46 +4,46 @@
 
    Date:             5/23/2023
    Author:           Eli Byrd and Clayton Cowen
-   Description:      
+   Description:
 */
+
+#include "NetworkAddress.h"
+#include "RoveCommPacket.h"
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "NetworkAddress.h"
-#include "RoveCommPacket.h"
-
 #ifndef ROVECOMMETHERNETUDP_H
-#define ROVECOMMETHERNETUDP_H
+#	define ROVECOMMETHERNETUDP_H
 
-template <typename T>
-class RoveCommEthernetUDP {
-private:
-    NetworkAddress m_pNetworkAddress;
-    // TODO: Subscribers
+template<typename T> class RoveCommEthernetUDP
+{
+  private:
+	NetworkAddress m_pNetworkAddress;
+	// TODO: Subscribers
 
-public:
-    RoveCommEthernetUDP();
-    RoveCommEthernetUDP(int iPort);
+  public:
+	RoveCommEthernetUDP();
+	RoveCommEthernetUDP(int iPort);
 
-    int Subscribe(NetworkAddress pSubscribeToIP);
+	int Subscribe(NetworkAddress pSubscribeToIP);
 
-    int Write(RoveCommPacket<int8_t> pPacket);
-    int Write(RoveCommPacket<uint8_t> pPacket);
-    int Write(RoveCommPacket<int16_t> pPacket);
-    int Write(RoveCommPacket<uint16_t> pPacket);
-    int Write(RoveCommPacket<int32_t> pPacket);
-    int Write(RoveCommPacket<uint32_t> pPacket);
-    int Write(RoveCommPacket<float_t> pPacket);
-    int Write(RoveCommPacket<double_t> pPacket);
-    int Write(RoveCommPacket<char> pPacket);
+	int Write(RoveCommPacket<int8_t> pPacket);
+	int Write(RoveCommPacket<uint8_t> pPacket);
+	int Write(RoveCommPacket<int16_t> pPacket);
+	int Write(RoveCommPacket<uint16_t> pPacket);
+	int Write(RoveCommPacket<int32_t> pPacket);
+	int Write(RoveCommPacket<uint32_t> pPacket);
+	int Write(RoveCommPacket<float_t> pPacket);
+	int Write(RoveCommPacket<double_t> pPacket);
+	int Write(RoveCommPacket<char> pPacket);
 
-    RoveCommPacket<T> ReadPacket();
+	RoveCommPacket<T> ReadPacket();
 
-    void CloseSocket();
+	void CloseSocket();
 };
 
-#include "RoveCommEthernetUDP.hpp"
+#	include "RoveCommEthernetUDP.hpp"
 
-#endif // ROVECOMMETHERNETUDP_H
+#endif	  // ROVECOMMETHERNETUDP_H

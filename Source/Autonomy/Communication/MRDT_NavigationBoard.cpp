@@ -8,65 +8,69 @@
 */
 
 #include "MRDT_NavigationBoard.h"
+
 #include "../Main/MRDT_Autonomy_Globals.h"
 
-MRDT_NavigationBoard::MRDT_NavigationBoard() {
-    m_dPitch    = 0;
-    m_dRoll     = 0;
-    m_dHeading  = 0;
+MRDT_NavigationBoard::MRDT_NavigationBoard()
+{
+	m_dPitch   = 0;
+	m_dRoll	   = 0;
+	m_dHeading = 0;
 
-    m_sLocation = {0, 0};
+	m_sLocation = {0, 0};
 
-    m_iDistanceToGround = 0;
-    m_iLidarQuality     = 0;
+	m_iDistanceToGround = 0;
+	m_iLidarQuality		= 0;
 
-    m_tLastTime = time(nullptr);
+	m_tLastTime = time(nullptr);
 }
 
-void MRDT_NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet) {
-    m_dPitch    = packet.dPitch;
-    m_dRoll     = packet.dRoll;
-    m_dHeading  = packet.dHeading;
+void MRDT_NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
+{
+	m_dPitch   = packet.dPitch;
+	m_dRoll	   = packet.dRoll;
+	m_dHeading = packet.dHeading;
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming IMU Data: ("
-                                  << m_dPitch   << ", "
-                                  << m_dRoll    << ", "
-                                  << m_dHeading << ")";
+	PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming IMU Data: (" << m_dPitch << ", " << m_dRoll << ", " << m_dHeading << ")";
 }
 
-void MRDT_NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet) {
-    m_sLocation.dLatitude  = packet.dLatitude;
-    m_sLocation.dLongitude = packet.dLongitude;
+void MRDT_NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
+{
+	m_sLocation.dLatitude  = packet.dLatitude;
+	m_sLocation.dLongitude = packet.dLongitude;
 
-    m_tLastTime = time(nullptr);
+	m_tLastTime = time(nullptr);
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: ("
-                                  << m_sLocation.dLatitude  << ", "
-                                  << m_sLocation.dLongitude << ")";
+	PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude
+								  << ")";
 }
 
-double MRDT_NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const {
+double MRDT_NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
+{
 
-    double dValue = 0.0;
+	double dValue = 0.0;
 
-    switch (eKey) {
-        case NBPC_PITCH     : dValue = m_dPitch     ;   break;
-        case NBPC_ROLL      : dValue = m_dRoll      ;   break;
-        case NBPC_HEADING   : dValue = m_dHeading   ;   break;
-        default             :                           break;
-    }
+	switch (eKey)
+	{
+		case NBPC_PITCH: dValue = m_dPitch; break;
+		case NBPC_ROLL: dValue = m_dRoll; break;
+		case NBPC_HEADING: dValue = m_dHeading; break;
+		default: break;
+	}
 
-    return dValue;
+	return dValue;
 }
 
-NavBoardPacket_GPS MRDT_NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const {
+NavBoardPacket_GPS MRDT_NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
+{
 
-    NavBoardPacket_GPS sValue = NavBoardPacket_GPS();
+	NavBoardPacket_GPS sValue = NavBoardPacket_GPS();
 
-    switch (eKey) {
-        case NBPCC_LOCATION : sValue = m_sLocation  ;   break;
-        default             :                           break;
-    }
+	switch (eKey)
+	{
+		case NBPCC_LOCATION: sValue = m_sLocation; break;
+		default: break;
+	}
 
-    return sValue;
+	return sValue;
 }
