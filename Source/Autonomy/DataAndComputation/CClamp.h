@@ -10,11 +10,10 @@
 #include <algorithm>
 
 #ifndef CCLAMP_H
-#define CCLAMP_H
+#	define CCLAMP_H
 
-template <typename T>
-T Clamp(T tValue, T tMin, T tMax);
+template<typename T> T Clamp(T tValue, T tMin, T tMax);
 
-#include "CClamp.hpp"
+#	include "CClamp.hpp"
 
-#endif // CCLAMP_H
+#endif	  // CCLAMP_H

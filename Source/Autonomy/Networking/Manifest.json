@@ -11,7 +11,17 @@
     "DOUBLE_T": 7,
     "CHAR": 8
   },
-  "dataSizes": [1, 1, 2, 2, 4, 4, 4, 8, 1],
+  "dataSizes": [
+    1,
+    1,
+    2,
+    2,
+    4,
+    4,
+    4,
+    8,
+    1
+  ],
   "SystemPackets": {
     "PING": 1,
     "PING_REPLY": 2,
@@ -23,15 +33,16 @@
   "updateRate": 100,
   "ethernetUDPPort": 11000,
   "ethernetTCPPort": 12000,
-  "MACaddressPrefix": [222, 173],
+  "MACaddressPrefix": [
+    222,
+    173
+  ],
   "headerLength": 6,
   "RovecommManifest": {
     "Drive": {
       "Ip": "192.168.2.103",
-      "Commands": {
-      },
-      "Telemetry": {
-      },
+      "Commands": {},
+      "Telemetry": {},
       "Error": {}
     },
     "BMS": {
@@ -261,19 +272,16 @@
     },
     "Gimbal": {
       "Ip": "192.168.2.106",
-      "Commands": {
-      },
+      "Commands": {},
       "Telemetry": {},
       "Error": {}
     },
     "Multimedia": {
       "Ip": "192.168.2.105",
-      "Commands": {
-      },
+      "Commands": {},
       "Telemetry": {},
       "Error": {},
-      "Enums": {
-      }
+      "Enums": {}
     },
     "Arm": {
       "Ip": "192.168.2.107",
@@ -675,7 +683,7 @@
           "dataCount": 1,
           "comments": "Bitmask (1-ON, 0-OFF)"
         },
-        "HeaterSetTemp" :{
+        "HeaterSetTemp": {
           "dataId": 15001,
           "dataType": "FLOAT_T",
           "dataCount": 12,
@@ -729,8 +737,7 @@
           "comments": "[Heading] [ 0, 360 ]"
         }
       },
-      "Error": {
-      }
+      "Error": {}
     },
     "Core": {
       "Ip": "192.168.2.110",
@@ -828,8 +835,7 @@
           "comments": "[LF, LM, LR, RF, RM, RR] (-1000, 1000)-> (-100%, 100%)"
         }
       },
-      "Error": {
-      },
+      "Error": {},
       "Enums": {
         "DISPLAYSTATE": {
           "Teleop": 0,
@@ -849,13 +855,29 @@
     }
   },
   "NetworkDevices": {
-    "BasestationSwitch": { "Ip": "192.168.126.1" },
-    "RoverSwitch": { "Ip": "192.168.126.2" },
-    "Rover900MHzRocket": { "Ip": "192.168.126.11" },
-    "Basestation900MHzRocket": { "Ip": "192.168.126.10" },
-    "Rover5GHzRocket": { "Ip": "192.168.126.31" },
-    "Basestation5GHzRocket": { "Ip": "192.168.126.30" },
-    "Rover2_4GHzRocket": { "Ip": "192.168.126.21" },
-    "Basestation2_4GHzRocket": { "Ip": "192.168.126.20"}
+    "BasestationSwitch": {
+      "Ip": "192.168.126.1"
+    },
+    "RoverSwitch": {
+      "Ip": "192.168.126.2"
+    },
+    "Rover900MHzRocket": {
+      "Ip": "192.168.126.11"
+    },
+    "Basestation900MHzRocket": {
+      "Ip": "192.168.126.10"
+    },
+    "Rover5GHzRocket": {
+      "Ip": "192.168.126.31"
+    },
+    "Basestation5GHzRocket": {
+      "Ip": "192.168.126.30"
+    },
+    "Rover2_4GHzRocket": {
+      "Ip": "192.168.126.21"
+    },
+    "Basestation2_4GHzRocket": {
+      "Ip": "192.168.126.20"
+    }
   }
 }

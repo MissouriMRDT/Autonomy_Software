@@ -10,18 +10,20 @@
 #include "../DataAndComputation/CClamp.h"
 
 #ifndef MRDT_DRIVEBOARD_H
-#define MRDT_DRIVEBOARD_H
+#	define MRDT_DRIVEBOARD_H
 
-class MRDT_DriveBoard {
-private:
-    int m_iTargetSpeedLeft;
-    int m_iTargetSpeedRight;
-public:
-    MRDT_DriveBoard();
+class MRDT_DriveBoard
+{
+  private:
+	int m_iTargetSpeedLeft;
+	int m_iTargetSpeedRight;
 
-    std::vector<int> CalculateMove(float fSpeed, float fAngle);
-    void SendDrive(int iLeftTarget, int iRightTarget);
-    void SendStop();
+  public:
+	MRDT_DriveBoard();
+
+	std::vector<int> CalculateMove(float fSpeed, float fAngle);
+	void SendDrive(int iLeftTarget, int iRightTarget);
+	void SendStop();
 };
 
-#endif // MRDT_DRIVEBOARD_H
+#endif	  // MRDT_DRIVEBOARD_H
