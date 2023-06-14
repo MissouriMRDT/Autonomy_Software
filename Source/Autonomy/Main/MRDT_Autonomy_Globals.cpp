@@ -12,30 +12,30 @@
 plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender("file.log", 1000000000, 10);
 plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
 
-void InitializeAutonomyLoggers() {
+void InitializeAutonomyLoggers()
+{
 
-    // Retrieve the current time for the log file name
-    time_t     tCurrentTime = time(nullptr);
-    struct tm  sTimeStruct = *localtime(&tCurrentTime);
-    char       cCurrentTime[80];
+	// Retrieve the current time for the log file name
+	time_t tCurrentTime	  = time(nullptr);
+	struct tm sTimeStruct = *localtime(&tCurrentTime);
+	char cCurrentTime[80];
 
-    // Format the current time in a format that can be used as a file name
-    std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", &sTimeStruct);
+	// Format the current time in a format that can be used as a file name
+	std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", &sTimeStruct);
 
-    // Turn the current time into a file name
-    std::string szFilenameWithExtension;
-    szFilenameWithExtension =   cCurrentTime;
-    szFilenameWithExtension +=  ".log";
+	// Turn the current time into a file name
+	std::string szFilenameWithExtension;
+	szFilenameWithExtension = cCurrentTime;
+	szFilenameWithExtension += ".log";
 
-    // Assign the file logger the file name that was just created
-    g_pFileAppender.setFileName(szFilenameWithExtension.c_str());
+	// Assign the file logger the file name that was just created
+	g_pFileAppender.setFileName(szFilenameWithExtension.c_str());
 
-    // Initialize file logger
-    plog::init<AutonomyLogger::AL_FileLogger>(plog::debug, &g_pFileAppender);
+	// Initialize file logger
+	plog::init<AutonomyLogger::AL_FileLogger>(plog::debug, &g_pFileAppender);
 
-    // Initialize console logger so that it also sends to the file logger
-    plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &g_pConsoleAppender)
-            .addAppender(&g_pFileAppender);
+	// Initialize console logger so that it also sends to the file logger
+	plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &g_pConsoleAppender).addAppender(&g_pFileAppender);
 }
 
 MRDT_Autonomy_IdentitySoftware g_pIdentifySoftware;
