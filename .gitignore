@@ -1,6 +1,6 @@
 ### Autonomy Specific ###
 # FileSystem
-FileSystem/
+build/
 
 ### C++ ###
 # Prerequisites
