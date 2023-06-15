@@ -25,15 +25,27 @@ SET(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 FETCHCONTENT_DECLARE(plog                                                           # C++ Logging Library
         GIT_REPOSITORY https://github.com/SergiusTheBest/plog.git                   # Source Code URL
         GIT_TAG        f47149410a4c927643148b96799f28b2d80d451b                     # Version 1.1.9
+        GIT_SHALLOW TRUE                                                            # Download only tip of branch without rest of its history.       
+        GIT_PROGRESS TRUE                                                           # Forces progress status.
         )
 FETCHCONTENT_DECLARE(googletest                                                     # Google C++ Testing Framework
         GIT_REPOSITORY https://github.com/google/googletest.git                     # Source Code URL
         GIT_TAG        b796f7d44681514f58a683a3a71ff17c94edb0c1                     # Version 1.13.0
+        GIT_SHALLOW TRUE                                                            # Download only tip of branch without rest of its history.       
+        GIT_PROGRESS TRUE                                                           # Forces progress status.
+        )
+FETCHCONTENT_DECLARE(opencv                                                         # OpenCV C++ Library
+        GIT_REPOSITORY https://github.com/opencv/opencv.git                         # Source Code URL
+        GIT_TAG 4.7.0                                                               # Version 4.7.0
+        GIT_SHALLOW TRUE                                                            # Download only tip of branch without rest of its history.       
+        GIT_PROGRESS TRUE                                                           # Forces progress status.
         )
 
 ## Make Dependencies Available
 FETCHCONTENT_MAKEAVAILABLE(plog)
 FETCHCONTENT_MAKEAVAILABLE(googletest)
+FETCHCONTENT_MAKEAVAILABLE(opencv)
+
 
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
@@ -50,27 +62,35 @@ ADD_COMPILE_DEFINITIONS(PLOG_ENABLE_WCHAR_INPUT)
 ENABLE_TESTING()
 
 ## Search Project Directories for CPP Files
-FILE(GLOB Communication_SRC       CONFIGURE_DEPENDS  "Source/Autonomy/Communication/*.cpp")
-FILE(GLOB DataAndComputation_SRC  CONFIGURE_DEPENDS  "Source/Autonomy/DataAndComputation/Algorithms/*.cpp"
-                                                     "Source/Autonomy/DataAndComputation/Hardware/*.cpp"
-                                                     "Source/Autonomy/DataAndComputation/Math/*.cpp"
-    )
-FILE(GLOB Main_SRC                CONFIGURE_DEPENDS  "Source/Autonomy/Main/*.cpp")
-FILE(GLOB Networking_SRC          CONFIGURE_DEPENDS  "Source/Autonomy/Networking/*.cpp")
-FILE(GLOB SetUp_SRC               CONFIGURE_DEPENDS  "Source/Autonomy/SetUp/*.cpp")
-FILE(GLOB Vision_SRC              CONFIGURE_DEPENDS  "Source/Autonomy/Vision/*.cpp")
+FILE(GLOB Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+FILE(GLOB Interfaces_SRC        CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
+FILE(GLOB States_SRC            CONFIGURE_DEPENDS  "src/states/*.cpp")
+FILE(GLOB Util_SRC              CONFIGURE_DEPENDS  "src/util/*.cpp")
+FILE(GLOB Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
+FILE(GLOB Main_SRC              CONFIGURE_DEPENDS  "src/*.cpp")
+FILE(GLOB Examples_SRC          CONFIGURE_DEPENDS  "examples/*.cpp")
+FILE(GLOB External_SRC          CONFIGURE_DEPENDS  "external/src/*.cpp")
+FILE(GLOB Tests_SRC             CONFIGURE_DEPENDS  "tests/*.cpp")
+FILE(GLOB Tools_SRC             CONFIGURE_DEPENDS  "tools/*.cpp")
+
 
 ## Create Executable File
-ADD_EXECUTABLE(Autonomy_Software ${Communication_SRC}
-                                 ${DataAndComputation_SRC}
-                                 ${Main_SRC}
-                                 ${Networking_SRC}
-                                 ${SetUp_SRC}
+ADD_EXECUTABLE(Autonomy_Software ${Algorithms_SRC}
+                                 ${Interfaces_SRC}
+                                 ${States_SRC}
+                                 ${Util_SRC}
                                  ${Vision_SRC}
+                                 ${Main_SRC}
+                                 ${Examples_SRC}
+                                 ${External_SRC}
+                                 ${Tests_SRC}
+                                 ${Tools_SRC}
     )
 
 ## Link Libraries to Executable
 TARGET_LINK_LIBRARIES(Autonomy_Software PRIVATE gtest_main
                                                 plog::plog
                                                 Threads::Threads
+                                                opencv_core 
+                                                opencv_highgui
     )
