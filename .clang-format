@@ -39,6 +39,9 @@ IndentCaseLabels: 'true'
 IndentPPDirectives: AfterHash
 IndentWidth: '4'
 IndentWrappedFunctionNames: 'false'
+IndentAccessModifiers: 'true'
+AccessModifierOffset: '-4'
+EmptyLineBeforeAccessModifier: Always
 Language: Cpp
 NamespaceIndentation: All
 PointerAlignment: Left
