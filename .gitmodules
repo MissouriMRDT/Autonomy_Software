@@ -1,0 +1,6 @@
+[submodule "external/RoveComm_CPP"]
+	path = external/RoveComm_CPP
+	url = https://github.com/MissouriMRDT/RoveComm_CPP.git
+[submodule "external/opencv"]
+	path = external/opencv
+	url = https://github.com/opencv/opencv.git
