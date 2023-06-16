@@ -20,8 +20,7 @@
 				"ms-vscode.cmake-tools",
 				"ms-vscode.cpptools-extension-pack",
 				"ZainChen.json",
-				"redhat.vscode-yaml",
-				"mitaki28.vscode-clang"
+                "redhat.vscode-yaml"
 			]
         }
     }

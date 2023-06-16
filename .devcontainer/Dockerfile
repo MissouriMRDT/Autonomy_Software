@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     python3 \
-    libboost-dev
+    libboost-dev \
+    clang
 
 # Optionally install the cmake for vcpkg
 ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.22.2"
