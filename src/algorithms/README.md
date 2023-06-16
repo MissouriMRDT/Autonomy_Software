@@ -1,4 +1,4 @@
-f# Algorithms Directory
+# Algorithms Directory
 
 The **Algorithms** directory is intended to store Python files related to algorithm implementations and data structures. This directory focuses on the logic and computational aspects of the project.
 
