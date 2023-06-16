@@ -6,8 +6,9 @@
    Author:           Eli Byrd and Clayton Cowen
    Description:      Interfaces with the Drive Board over the RoveComm Protocol.
 */
-
 #include "../util/CClamp.h"
+
+#include <vector>
 
 #ifndef DRIVEBOARD_H
 #	define DRIVEBOARD_H

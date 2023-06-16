@@ -7,7 +7,7 @@
 
 
 ## Set CMake Minimum Version
-CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.22.2)
 
 ## Project Name and Software Version Number
 PROJECT(Autonomy_Software VERSION 23.00.00)
