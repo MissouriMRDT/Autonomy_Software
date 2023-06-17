@@ -18,8 +18,11 @@
 #include <plog/Initializers/RollingFileInitializer.h>
 #include <plog/Log.h>
 
-#define MAX_DRIVE_POWER 250
-#define MIN_DRIVE_POWER 50
+namespace constants
+{
+	const int MAX_DRIVE_POWER 250;
+	const int MIN_DRIVE_POWER 50;
+}	 // namespace constants
 
 #ifndef AUTONOMY_GLOBALS_H
 #	define AUTONOMY_GLOBALS_H

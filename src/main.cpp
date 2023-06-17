@@ -13,12 +13,12 @@
 int main()
 {
 
-	InitializeAutonomyLoggers();	// Initialize loggers for Autonomy Software
+	// InitializeAutonomyLoggers();	// Initialize loggers for Autonomy Software
 
-	RoveCommPacket<double_t> test;
+	// RoveCommPacket<double_t> test;
 
-	RoveCommEthernetUDP<int8_t> test2(3543);
-	test2.Write(test);
+	// RoveCommEthernetUDP<int8_t> test2(3543);
+	// test2.Write(test);
 
 	return 0;
 }
