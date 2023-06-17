@@ -2,9 +2,9 @@
    Autonomy_IdentitySoftware.cpp
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
-   Date:             5/20/2023
-   Author:           Eli Byrd and Clayton Cowen
-   Description:      The Autonomy Software Version Handler.
+   Date:			 5/20/2023
+   Author:		   Eli Byrd and Clayton Cowen
+   Description:	  The Autonomy Software Version Handler.
 */
 
 #include "Autonomy_IdentitySoftware.h"
@@ -34,10 +34,7 @@ Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
 	if (m_szBuildVersion.length() > 3) { m_szBuildVersion.erase(0, m_szBuildVersion.length() - 3); }
 }
 
-std::string Autonomy_IdentitySoftware::GetVersionNumber()
-{
-	return "v" + m_szMajorVersion + "." + m_szMinorVersion + "." + m_szPatchVersion;
-}
+std::string Autonomy_IdentitySoftware::GetVersionNumber() { return "v" + m_szMajorVersion + "." + m_szMinorVersion + "." + m_szPatchVersion; }
 
 std::string Autonomy_IdentitySoftware::GetBuildNumber() { return "Build " + m_szBuildVersion; }
 

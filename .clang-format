@@ -27,7 +27,7 @@ BreakBeforeTernaryOperators: "true"
 BreakConstructorInitializers: AfterColon
 BreakInheritanceList: AfterColon
 BreakStringLiterals: "false"
-ColumnLimit: "170"
+ColumnLimit: 170
 CompactNamespaces: "false"
 ConstructorInitializerAllOnOneLineOrOnePerLine: "false"
 Cpp11BracedListStyle: "true"
@@ -37,10 +37,8 @@ FixNamespaceComments: "true"
 IncludeBlocks: Regroup
 IndentCaseLabels: "true"
 IndentPPDirectives: AfterHash
-IndentWidth: "4"
 IndentWrappedFunctionNames: "false"
 IndentAccessModifiers: "true"
-AccessModifierOffset: "-4"
 EmptyLineBeforeAccessModifier: Always
 Language: Cpp
 NamespaceIndentation: All
@@ -57,12 +55,13 @@ SpaceBeforeInheritanceColon: "true"
 SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: "true"
 SpaceInEmptyParentheses: "false"
-SpacesBeforeTrailingComments: "4"
+SpacesBeforeTrailingComments: 4
 SpacesInAngles: "false"
 SpacesInCStyleCastParentheses: "false"
 SpacesInContainerLiterals: "false"
 SpacesInParentheses: "false"
 SpacesInSquareBrackets: "false"
 Standard: Auto
-TabWidth: "4"
 UseTab: Always
+IndentWidth: 4
+TabWidth: 4
