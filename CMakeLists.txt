@@ -14,7 +14,6 @@ PROJECT(Autonomy_Software VERSION 23.00.00)
 
 ## Include Required CMake Packages
 INCLUDE(CTest)                                                                      # CMake Testing Framework
-INCLUDE(CPack)                                                                      # CMake Packaging Framework
 INCLUDE(FetchContent)                                                               # CMake Dependency Framework
 
 ## Define Project Name and Version Number for CPack
@@ -49,8 +48,6 @@ FETCHCONTENT_DECLARE(boost                                                      
 
 ## Make Dependencies Available
 FETCHCONTENT_MAKEAVAILABLE(plog googletest opencv boost)
-FETCHCONTENT_MAKEAVAILABLE(googletest)
-FETCHCONTENT_MAKEAVAILABLE(opencv)
 
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
