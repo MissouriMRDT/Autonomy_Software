@@ -74,7 +74,7 @@ FILE(GLOB Tools_SRC             CONFIGURE_DEPENDS  "tools/*.cpp")
 
 
 ## Create Executable File
-ADD_EXECUTABLE(Autonomy_Software ${External_SRC}
+ADD_EXECUTABLE(${PROJECT_NAME} ${External_SRC}
                                  ${Util_SRC}
                                  ${Algorithms_SRC}
                                  ${Interfaces_SRC}
@@ -88,12 +88,12 @@ ADD_EXECUTABLE(Autonomy_Software ${External_SRC}
 
 ## Set Compile Options for Autonomy Software.
 IF(MSVC)
-  TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE /W4 /WX)
+  TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE /W4 /WX)
 ELSE()
-  TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+  TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 ENDIF()
 ## Set Compile Options for OpenCV
-TARGET_COMPILE_OPTIONS(Autonomy_Software INTERFACE
+TARGET_COMPILE_OPTIONS(${PROJECT_NAME} INTERFACE
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=/opt
         -DBUILD_PNG=OFF
@@ -127,7 +127,7 @@ TARGET_COMPILE_OPTIONS(Autonomy_Software INTERFACE
     )
 
 ## Link Libraries to Executable
-TARGET_LINK_LIBRARIES(Autonomy_Software PRIVATE gtest_main
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE gtest_main
                                                 plog::plog
                                                 Threads::Threads
                                                 #opencv_core 
