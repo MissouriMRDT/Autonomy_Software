@@ -6,8 +6,6 @@
    Author:           Eli Byrd and Clayton Cowen
    Description:      Interfaces with the Drive Board over the RoveComm Protocol.
 */
-#include "../util/CClamp.h"
-
 #include <vector>
 
 #ifndef DRIVEBOARD_H
@@ -15,16 +13,16 @@
 
 class DriveBoard
 {
-  private:
-	int m_iTargetSpeedLeft;
-	int m_iTargetSpeedRight;
+	private:
+		int m_iTargetSpeedLeft;
+		int m_iTargetSpeedRight;
 
-  public:
-	DriveBoard();
+	public:
+		DriveBoard();
 
-	std::vector<int> CalculateMove(float fSpeed, float fAngle);
-	void SendDrive(int iLeftTarget, int iRightTarget);
-	void SendStop();
+		std::vector<int> CalculateMove(float fSpeed, float fAngle);
+		void SendDrive(int iLeftTarget, int iRightTarget);
+		void SendStop();
 };
 
 #endif	  // MRDT_DRIVEBOARD_H
