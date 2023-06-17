@@ -1,8 +1,8 @@
 ####################################################################################################################
-##											Autonomy Software												   ##
-##											v23.00.00 Build 000												 ##
-##										  Mars Rover Design Team												##
-##								   Copyright 2023 - All Rights Reserved										 ##
+##											Autonomy Software												   	  ##
+##											v23.00.00 Build 000												 	  ##
+##										  Mars Rover Design Team												  ##
+##								   Copyright 2023 - All Rights Reserved										 	  ##
 ####################################################################################################################
 
 
@@ -90,7 +90,7 @@ ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
 	)
 
 ## Set Compile Options for Autonomy Software.
-IF(MSVC)
+IF(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.
 	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE /W4 /WX)
 ELSE()
 	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
