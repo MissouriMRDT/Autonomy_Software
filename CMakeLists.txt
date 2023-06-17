@@ -87,7 +87,11 @@ ADD_EXECUTABLE(Autonomy_Software ${External_SRC}
     )
 
 ## Set Compile Options for Autonomy Software.
-TARGET_COMPILE_OPTIONS(Autonomy_Software PRIVATE -Wall -Wextra -Wpedantic)
+IF(MSVC)
+  TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE /W4 /WX)
+ELSE()
+  TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+ENDIF()
 ## Set Compile Options for OpenCV
 TARGET_COMPILE_OPTIONS(Autonomy_Software INTERFACE
         -DCMAKE_BUILD_TYPE=Release
