@@ -7,7 +7,7 @@
 
 
 ## Set CMake Minimum Version
-CMAKE_MINIMUM_REQUIRED(VERSION 3.22.2)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
 
 ## Project Name and Software Version Number
 PROJECT(Autonomy_Software VERSION 23.00.00)
@@ -25,20 +25,20 @@ SET(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 FETCHCONTENT_DECLARE(plog                                                           # C++ Logging Library
         GIT_REPOSITORY https://github.com/SergiusTheBest/plog.git                   # Source Code URL
         GIT_TAG        f47149410a4c927643148b96799f28b2d80d451b                     # Version 1.1.9
-        GIT_SHALLOW TRUE                                                            # Download only tip of branch without rest of its history.       
-        GIT_PROGRESS TRUE                                                           # Forces progress status.
+        GIT_SHALLOW    TRUE                                                         # Download only without history
+        GIT_PROGRESS   TRUE                                                         # Forces progress status.
         )
 FETCHCONTENT_DECLARE(googletest                                                     # Google C++ Testing Framework
         GIT_REPOSITORY https://github.com/google/googletest.git                     # Source Code URL
         GIT_TAG        b796f7d44681514f58a683a3a71ff17c94edb0c1                     # Version 1.13.0
-        GIT_SHALLOW TRUE                                                            # Download only tip of branch without rest of its history.       
-        GIT_PROGRESS TRUE                                                           # Forces progress status.
+        GIT_SHALLOW    TRUE                                                         # Download only without history
+        GIT_PROGRESS   TRUE                                                         # Forces progress status.
         )
 FETCHCONTENT_DECLARE(opencv                                                         # OpenCV C++ Library
         GIT_REPOSITORY https://github.com/opencv/opencv.git                         # Source Code URL
-        GIT_TAG 4.7.0                                                               # Version 4.7.0
-        GIT_SHALLOW TRUE                                                            # Download only tip of branch without rest of its history.       
-        GIT_PROGRESS TRUE                                                           # Forces progress status.
+        GIT_TAG        725e440d278aca07d35a5e8963ef990572b07316                     # Version 4.7.0
+        GIT_SHALLOW    TRUE                                                         # Download only without history
+        GIT_PROGRESS   TRUE                                                         # Forces progress status.
         )
 
 ## Make Dependencies Available
