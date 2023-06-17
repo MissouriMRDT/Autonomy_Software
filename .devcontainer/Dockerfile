@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 	libboost-dev \
 	clang
 
-# Set linux environment variable for make threads.
-RUN export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))
+# Set linux environment variable for make threads. Runs everytime a terminal is opened.
+RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
 
 # Optionally install the cmake for vcpkg
 ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
@@ -29,9 +29,9 @@ RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
 RUN git clone https://github.com/Byrdman32/Autonomy_Software.git
 
 # Set the working directory TO BUILD
-WORKDIR Autonomy_Software/
-RUN mkdir build; \
-	cd build
+WORKDIR /Autonomy_Software/
+# RUN mkdir build; \
+# 	cd build
 
 # # Create and move into build dir. Autodetect GPU compatibility, and run cmake.
 # RUN mkdir build; \
