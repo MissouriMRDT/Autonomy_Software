@@ -1,12 +1,12 @@
 {
-    "editor.acceptSuggestionOnEnter": "off",
-    "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "file",
-    "editor.tabSize": 4,
-    "editor.insertSpaces": false,
-    "editor.detectIndentation": false
-    "files.associations": {
-        "*.ipp": "cpp",
-        "bitset": "cpp"
-    }
+	"editor.acceptSuggestionOnEnter": "off",
+	"editor.formatOnSave": true,
+	"editor.formatOnSaveMode": "file",
+	"editor.tabSize": 4,
+	"editor.insertSpaces": false,
+	"editor.detectIndentation": false,
+	"files.associations": {
+		"*.ipp": "cpp",
+		"bitset": "cpp"
+	}
 }
