@@ -1,5 +1,6 @@
 # Base image
-FROM nvidia/cuda:11.6.2-base-ubuntu20.04
+# FROM nvidia/cuda:11.6.2-base-ubuntu20.04
+FROM mcr.microsoft.com/devcontainers/cpp:0-ubuntu-22.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install necessary packages
@@ -11,6 +12,9 @@ RUN apt-get update && apt-get install -y \
     python3 \
     libboost-dev \
     clang
+
+# Set linux environment variable for make threads.
+RUN export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))
 
 # Optionally install the cmake for vcpkg
 ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.22.2"
