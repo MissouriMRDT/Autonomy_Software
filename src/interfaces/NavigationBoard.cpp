@@ -2,9 +2,9 @@
    NavigationBoard.cpp
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
-   Date:             5/20/2023
-   Author:           Eli Byrd and Clayton Cowen
-   Description:      Interfaces with the Navigation Board over the RoveComm Protocol.
+   Date:			 5/20/2023
+   Author:		   Eli Byrd and Clayton Cowen
+   Description:	  Interfaces with the Navigation Board over the RoveComm Protocol.
 */
 
 #include "NavigationBoard.h"
@@ -41,8 +41,7 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 
 	m_tLastTime = time(nullptr);
 
-	PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude
-								  << ")";
+	PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude << ")";
 }
 
 double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const

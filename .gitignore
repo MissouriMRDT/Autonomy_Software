@@ -1,6 +1,8 @@
 ### Autonomy Specific ###
 # FileSystem
 build/
+# Compiled Program
+Autonomy_Software
 
 ### C++ ###
 # Prerequisites

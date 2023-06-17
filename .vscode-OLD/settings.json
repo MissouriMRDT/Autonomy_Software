@@ -1,7 +1,10 @@
 {
     "editor.acceptSuggestionOnEnter": "off",
     "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "modificationsIfAvailable",
+    "editor.formatOnSaveMode": "file",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": false
     "files.associations": {
         "*.ipp": "cpp",
         "bitset": "cpp"
