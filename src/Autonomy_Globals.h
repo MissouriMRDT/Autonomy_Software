@@ -20,8 +20,9 @@
 
 namespace constants
 {
-	const int MAX_DRIVE_POWER 250;
-	const int MIN_DRIVE_POWER 50;
+	// Drive constants.
+	const int MAX_DRIVE_POWER = 250;
+	const int MIN_DRIVE_POWER = 50;
 }	 // namespace constants
 
 #ifndef AUTONOMY_GLOBALS_H
