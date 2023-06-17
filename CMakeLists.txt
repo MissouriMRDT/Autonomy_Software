@@ -46,7 +46,6 @@ FETCHCONTENT_MAKEAVAILABLE(plog)
 FETCHCONTENT_MAKEAVAILABLE(googletest)
 FETCHCONTENT_MAKEAVAILABLE(opencv)
 
-
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
 
@@ -75,26 +74,20 @@ FILE(GLOB Tools_SRC             CONFIGURE_DEPENDS  "tools/*.cpp")
 
 
 ## Create Executable File
-ADD_EXECUTABLE(Autonomy_Software ${Algorithms_SRC}
+ADD_EXECUTABLE(Autonomy_Software ${External_SRC}
+                                 ${Util_SRC}
+                                 ${Algorithms_SRC}
                                  ${Interfaces_SRC}
                                  ${States_SRC}
-                                 ${Util_SRC}
                                  ${Vision_SRC}
                                  ${Main_SRC}
                                  ${Examples_SRC}
-                                 ${External_SRC}
                                  ${Tests_SRC}
                                  ${Tools_SRC}
     )
 
-## Link Libraries to Executable
-TARGET_LINK_LIBRARIES(Autonomy_Software PRIVATE gtest_main
-                                                plog::plog
-                                                Threads::Threads
-                                                opencv_core 
-                                                opencv_highgui
-    )
-
+## Set Compile Options for Autonomy Software.
+TARGET_COMPILE_OPTIONS(Autonomy_Software PRIVATE -Wall -Wextra -Wpedantic)
 ## Set Compile Options for OpenCV
 TARGET_COMPILE_OPTIONS(Autonomy_Software INTERFACE
         -DCMAKE_BUILD_TYPE=Release
@@ -127,4 +120,12 @@ TARGET_COMPILE_OPTIONS(Autonomy_Software INTERFACE
         -DINSTALL_C_EXAMPLES=ON
         -DINSTALL_TESTS=OFF
         -DOPENCV_TEST_DATA_PATH=../opencv_extra/testdata
+    )
+
+## Link Libraries to Executable
+TARGET_LINK_LIBRARIES(Autonomy_Software PRIVATE gtest_main
+                                                plog::plog
+                                                Threads::Threads
+                                                #opencv_core 
+                                                #opencv_highgui
     )
