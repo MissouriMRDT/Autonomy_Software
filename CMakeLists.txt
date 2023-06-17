@@ -40,9 +40,15 @@ FETCHCONTENT_DECLARE(opencv                                                     
         GIT_SHALLOW    TRUE                                                         # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
         )
+FETCHCONTENT_DECLARE(boost                                                         # Boost Framework Library
+        GIT_REPOSITORY https://github.com/boostorg/boost.git                       # Source Code URL
+        GIT_TAG        b6928ae5c92e21a04bbe17a558e6e066dbe632f6                    # Version 1.82.0
+        GIT_SHALLOW    TRUE                                                        # Download only without history
+        GIT_PROGRESS   TRUE                                                        # Forces progress status.
+        )
 
 ## Make Dependencies Available
-FETCHCONTENT_MAKEAVAILABLE(plog)
+FETCHCONTENT_MAKEAVAILABLE(plog googletest opencv boost)
 FETCHCONTENT_MAKEAVAILABLE(googletest)
 FETCHCONTENT_MAKEAVAILABLE(opencv)
 
@@ -132,4 +138,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE gtest_main
                                                 Threads::Threads
                                                 #opencv_core 
                                                 #opencv_highgui
+                                                Boost::filesystem
     )
