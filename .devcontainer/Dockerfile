@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 RUN export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))
 
 # Optionally install the cmake for vcpkg
-ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.22.2"
+ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
 COPY ./reinstall-cmake.sh /tmp/
 
 RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
