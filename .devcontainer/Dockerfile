@@ -11,6 +11,7 @@ RUN apt-get update || true && apt-get upgrade -y && \
     yasm libatlas-base-dev gfortran libpq-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev libavutil-dev libpostproc-dev \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev tzdata \
+    libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Linux Environment Variable for Make Threads. Runs everytime a terminal is opened.
