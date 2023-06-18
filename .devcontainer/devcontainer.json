@@ -26,15 +26,26 @@
 				"ZainChen.json",
 				"redhat.vscode-yaml",
 				"jbockle.jbockle-format-files",
-				"codezombiech.gitignore"
+				"codezombiech.gitignore",
+				"cschlosser.doxdocgen"
 			],
 			"settings": {
+				// VSCode settings.
 				"editor.acceptSuggestionOnEnter": "off",
-				"C_Cpp.formatting": "clangFormat",
 				"editor.formatOnPaste": true,
 				"editor.formatOnSave": true,
 				"editor.formatOnSaveMode": "file",
 				"editor.formatOnType": true,
+				"editor.tabCompletion": "on",
+				"editor.tabSize": 4,
+				"editor.insertSpaces": false,
+				"editor.detectIndentation": false,
+				"extensions.ignoreRecommendations": true,
+				// C/C++ extension settings.
+				"C_Cpp.formatting": "clangFormat",
+				// CMAKE extension settings.
+				"cmake.configureOnOpen": false,
+				// Format Files extension settings.
 				"formatFiles.excludedFolders": [
 					"node_modules",
 					".vscode",
@@ -47,10 +58,51 @@
 					".devcontainer",
 					"README.md"
 				],
-				"editor.tabCompletion": "on",
-				"editor.tabSize": 4,
-				"editor.insertSpaces": false,
-				"editor.detectIndentation": false
+				// Doxygen Document Generator extension settings.
+				"doxdocgen.c.firstLine": "/******************************************************************************",
+				"doxdocgen.c.lastLine": "******************************************************************************/",
+				"doxdocgen.c.triggerSequence": "/**",
+				"doxdocgen.c.getterText": "Accessor for the {name} private member.",
+				"doxdocgen.c.setterText": "Mutator for the {name} private member",
+				"doxdocgen.cpp.ctorText": "Construct a new {name} object.",
+				"doxdocgen.cpp.dtorText": "Destroy the {name} object.",
+				"doxdocgen.cpp.tparamTemplate": "@tparam {param} - ",
+				"doxdocgen.file.fileTemplate": "@file {name}",
+				"doxdocgen.generic.paramTemplate": "@param {param}  - ",
+				"doxdocgen.generic.returnTemplate": "@return {type} - ",
+				"doxdocgen.generic.authorEmail": "",
+				"doxdocgen.generic.authorName": "",
+				"doxdocgen.generic.briefTemplate": "@brief {text}",
+				"doxdocgen.generic.dateFormat": "YYYY-MMDD",
+				"doxdocgen.generic.dateTemplate": "@date {date}",
+				"doxdocgen.file.copyrightTag": [
+					"@copyright Copyright MRDT {year} - All Rights Reserved"
+				],
+				// The order to use for the file comment.
+				"doxdocgen.file.fileOrder": [
+					"brief",
+					"empty",
+					"file",
+					"author",
+					"date",
+					"empty",
+					"copyright"
+				],
+				// The order to use for the comment generation.
+				"doxdocgen.generic.order": [
+					"brief",
+					"empty",
+					"tparam",
+					"param",
+					"return",
+					"empty",
+					"author",
+					"date"
+				],
+				// Additional file documentation.
+				"doxdocgen.file.customTag": [],
+				"doxdocgen.generic.useGitUserEmail": true,
+				"doxdocgen.generic.useGitUserName": true
 			}
 		}
 	},
