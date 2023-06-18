@@ -1,12 +1,12 @@
 # Tests Directory
 
-The **Tests** directory is intended to store c++ files containing test cases and unit tests for the rover project. This directory focuses on ensuring the correctness and reliability of the code through systematic testing.
+The **Tests** directory is intended to store C++ files containing test cases and unit tests for the rover project. This directory focuses on ensuring the correctness and reliability of the code through systematic testing.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Tests** directory:
 
-1. Each c++ file should contain one or more test cases or unit tests for specific functionalities, modules, or components of the rover project.
+1. Each C++ file should contain one or more test cases or unit tests for specific functionalities, modules, or components of the rover project.
 2. Use descriptive names for the files that reflect the purpose or functionality being tested.
 3. Ensure that the test files are properly documented with comments explaining the test cases, their expected outcomes, and any relevant details.
 4. Include a README file in the **Tests** directory to provide an overview of the testing framework used, instructions for running the tests, and any additional information.
