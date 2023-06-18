@@ -1,5 +1,9 @@
 {
 	"name": "MRDT Autonomy C++",
+	"runArgs": [
+		"--name",
+		"Autonomy_Software_devcontainer"
+	],
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
@@ -21,10 +25,10 @@
 				"ms-vscode.cpptools-extension-pack",
 				"ZainChen.json",
 				"redhat.vscode-yaml",
-				"jbockle.jbockle-format-files"
+				"jbockle.jbockle-format-files",
+				"codezombiech.gitignore"
 			],
 			"settings": {
-				"java.home": "/docker-java-home",
 				"editor.acceptSuggestionOnEnter": "off",
 				"C_Cpp.formatting": "clangFormat",
 				"editor.formatOnPaste": true,
