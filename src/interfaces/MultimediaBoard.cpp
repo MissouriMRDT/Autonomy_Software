@@ -2,9 +2,9 @@
    MultimediaBoard.cpp
    Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
 
-   Date:             5/20/2023
-   Author:           Eli Byrd and Clayton Cowen
-   Description:      Interfaces with the Multimedia Board over the RoveComm
+   Date:			 5/20/2023
+   Author:		   Eli Byrd and Clayton Cowen
+   Description:	  Interfaces with the Multimedia Board over the RoveComm
    Protocol.
 */
 

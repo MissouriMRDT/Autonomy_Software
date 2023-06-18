@@ -1,23 +1,51 @@
-/*
-   DriveBoard.cpp
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:             5/20/2023
-   Author:           Eli Byrd and Clayton Cowen
-   Description:      Interfaces with the Drive Board over the RoveComm Protocol.
-*/
-
+/******************************************************************************
+ * @brief Implements the interface for sending commands to the drive board on
+ * 		the Rover.
+ *
+ * @file DriveBoard.cpp
+ * @author Byrdman32 (eli@byrdneststudios.com)
+ * @date 2023-0618
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 #include "DriveBoard.h"
 
 #include "../Autonomy_Globals.h"
 #include "../util/NumberOperations.h"
 
+/******************************************************************************
+ * @brief Construct a new Drive Board:: Drive Board object.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com)
+ * @date 2023-0618
+ ******************************************************************************/
 DriveBoard::DriveBoard()
 {
 	m_iTargetSpeedLeft	= 0;
 	m_iTargetSpeedRight = 0;
 }
 
+/******************************************************************************
+ * @brief Destroy the Drive Board:: Drive Board object.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com)
+ * @date 2023-0618
+ ******************************************************************************/
+DriveBoard::~DriveBoard() {}
+
+/******************************************************************************
+ * @brief This method determines drive powers to make the Rover drive towards a
+ * 		given heading at a given speed
+ *
+ * @param fSpeed - The speed to drive at (-1 to 1)
+ * @param fAngle - The angle to drive towards.
+ * @return std::vector<int> - 1D vector with two values. (left power, right power)
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com)
+ * @date 2023-0618
+ ******************************************************************************/
 std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
 {
 	double dSpeedLeft  = fSpeed;
@@ -34,6 +62,22 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
 	return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
 }
 
-void DriveBoard::SendDrive(int iLeftTarget, int iRightTarget) {}
+/******************************************************************************
+ * @brief Sets the left and right drive powers of the drive board.
+ *
+ * @param nLeftTarget - Left drive speed (-1 to 1)
+ * @param nRightTarget - Right drive speed (-1 to 1)
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com)
+ * @date 2023-0618
+ ******************************************************************************/
+void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
 
+/******************************************************************************
+ * @brief Stop the drivetrain of the Rover.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com)
+ * @date 2023-0618
+ ******************************************************************************/
 void DriveBoard::SendStop() {}
