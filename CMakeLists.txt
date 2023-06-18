@@ -33,21 +33,9 @@ FETCHCONTENT_DECLARE(googletest                                                 
         GIT_SHALLOW    TRUE                                                         # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
         )
-FETCHCONTENT_DECLARE(opencv                                                         # OpenCV C++ Library
-        GIT_REPOSITORY https://github.com/opencv/opencv.git                         # Source Code URL
-        GIT_TAG        725e440d278aca07d35a5e8963ef990572b07316                     # Version 4.7.0
-        GIT_SHALLOW    TRUE                                                         # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-        )
-FETCHCONTENT_DECLARE(boost                                                         # Boost Framework Library
-        GIT_REPOSITORY https://github.com/boostorg/boost.git                       # Source Code URL
-        GIT_TAG        b6928ae5c92e21a04bbe17a558e6e066dbe632f6                    # Version 1.82.0
-        GIT_SHALLOW    TRUE                                                        # Download only without history
-        GIT_PROGRESS   TRUE                                                        # Forces progress status.
-        )
 
 ## Make Dependencies Available
-FETCHCONTENT_MAKEAVAILABLE(plog googletest opencv boost)
+FETCHCONTENT_MAKEAVAILABLE(plog googletest)
 
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
@@ -57,8 +45,8 @@ INCLUDE_DIRECTORIES(${plog_SOURCE_DIR}/include)
 ADD_COMPILE_DEFINITIONS(PLOG_ENABLE_WCHAR_INPUT)
 
 ## Find OpenCV
-#FIND_PACKAGE( OpenCV REQUIRED )
-#INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
+FIND_PACKAGE( OpenCV REQUIRED )
+INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
 
 ## Enable to CTest and Google Test Frameworks
 ENABLE_TESTING()
@@ -95,39 +83,6 @@ IF(MSVC)
 ELSE()
   TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 ENDIF()
-## Set Compile Options for OpenCV
-TARGET_COMPILE_OPTIONS(${PROJECT_NAME} INTERFACE
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=/opt
-        -DBUILD_PNG=OFF
-        -DBUILD_TIFF=OFF
-        -DBUILD_TBB=OFF
-        -DBUILD_JPEG=OFF
-        -DBUILD_JASPER=OFF
-        -DBUILD_ZLIB=OFF
-        -DBUILD_EXAMPLES=OFF
-        -DBUILD_JAVA=OFF
-        -DBUILD_opencv_python2=OFF
-        -DBUILD_opencv_python3=ON
-        -DENABLE_PRECOMPILED_HEADERS=OFF
-        -DWITH_OPENCL=OFF
-        -DWITH_OPENMP=OFF
-        -DWITH_FFMPEG=ON
-        -DWITH_GSTREAMER=OFF
-        -DWITH_GSTREAMER_0_10=OFF
-        -DWITH_CUDA=ON
-        -DWITH_GTK=OFF
-        -DWITH_VTK=OFF
-        -DWITH_TBB=ON
-        -DWITH_1394=OFF
-        -DWITH_OPENEXR=OFF
-        -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.2
-        -DCUDA_ARCH_BIN=5.3
-        -DCUDA_ARCH_PTX=""
-        -DINSTALL_C_EXAMPLES=ON
-        -DINSTALL_TESTS=OFF
-        -DOPENCV_TEST_DATA_PATH=../opencv_extra/testdata
-    )
 
 ## Link Libraries to Executable
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE gtest_main
@@ -135,5 +90,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE gtest_main
                                                 Threads::Threads
                                                 #opencv_core 
                                                 #opencv_highgui
-                                                Boost::filesystem
+                                                #Boost::filesystem
     )
