@@ -68,7 +68,7 @@
 				"doxdocgen.cpp.dtorText": "Destroy the {name} object.",
 				"doxdocgen.cpp.tparamTemplate": "@tparam {param} - ",
 				"doxdocgen.file.fileTemplate": "@file {name}",
-				"doxdocgen.generic.paramTemplate": "@param {param}  - ",
+				"doxdocgen.generic.paramTemplate": "@param {param} - ",
 				"doxdocgen.generic.returnTemplate": "@return {type} - ",
 				"doxdocgen.generic.authorEmail": "",
 				"doxdocgen.generic.authorName": "",
