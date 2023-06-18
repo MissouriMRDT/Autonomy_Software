@@ -39,8 +39,8 @@ DriveBoard::~DriveBoard() {}
  * @brief This method determines drive powers to make the Rover drive towards a
  * 		given heading at a given speed
  *
- * @param fSpeed  - The speed to drive at (-1 to 1)
- * @param fAngle  - The angle to drive towards.
+ * @param fSpeed - The speed to drive at (-1 to 1)
+ * @param fAngle - The angle to drive towards.
  * @return std::vector<int> - 1D vector with two values. (left power, right power)
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -65,8 +65,8 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
 /******************************************************************************
  * @brief Sets the left and right drive powers of the drive board.
  *
- * @param nLeftTarget  - Left drive speed (-1 to 1)
- * @param nRightTarget  - Right drive speed (-1 to 1)
+ * @param nLeftTarget - Left drive speed (-1 to 1)
+ * @param nRightTarget - Right drive speed (-1 to 1)
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0618

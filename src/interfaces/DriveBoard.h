@@ -1,11 +1,13 @@
-/*
-   DriveBoard.h
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  Interfaces with the Drive Board over the RoveComm Protocol.
-*/
+/******************************************************************************
+ * @brief Defines the interface for sending commands to the drive board on
+ * 		the Rover.
+ *
+ * @file DriveBoard.h
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0618
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 #include <vector>
 
 #ifndef DRIVEBOARD_H
