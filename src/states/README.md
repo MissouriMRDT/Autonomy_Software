@@ -1,12 +1,12 @@
 # States Directory
 
-The **States** directory is intended to store Python files related to the implementation of state machines in the rover project. This directory focuses on managing the different states and transitions within the project's logic.
+The **States** directory is intended to store c++ files related to the implementation of state machines in the rover project. This directory focuses on managing the different states and transitions within the project's logic.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **States** directory:
 
-1. Each Python file should represent a specific state machine or a set of related states and transitions.
+1. Each c++ file should represent a specific state machine or a set of related states and transitions.
 2. Use descriptive names for the files that reflect the purpose or functionality of the state machine.
 3. Ensure that the files are properly documented with comments explaining the states, transitions, and overall behavior of the state machine.
 4. Include a README file in any subdirectories within the **States** directory to provide additional information if necessary.
