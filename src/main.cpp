@@ -12,7 +12,7 @@
 
 int main()
 {
-	std::cout << "Hello Autonomy Software!" << endl;
+	std::cout << "Hello Autonomy Software!" << std::endl;
 	// InitializeAutonomyLoggers();	// Initialize loggers for Autonomy Software
 
 	// RoveCommPacket<double_t> test;
