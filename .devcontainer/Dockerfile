@@ -63,7 +63,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
 	-D WITH_GSTREAMER=ON \
 	-D OPENCV_GENERATE_PKGCONFIG=ON \
 	-D OPENCV_ENABLE_NONFREE=ON \
-	-D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules \
+	-D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/aruco \
 	-D INSTALL_PYTHON_EXAMPLES=OFF \
 	-D INSTALL_C_EXAMPLES=OFF \
 	-D BUILD_EXAMPLES=OFF .. && \
