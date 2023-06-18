@@ -1,5 +1,6 @@
 # Base Image
 FROM stereolabs/zed:4.0-devel-jetson-jp5.1.1
+LABEL authors="Missouri S&T Mars Rover Design Team"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
