@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
-	build-essential gcc g++ \
+	build-essential gcc g++ gdb \
 	cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev \
 	libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev \
     yasm libatlas-base-dev gfortran libpq-dev \
