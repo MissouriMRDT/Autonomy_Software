@@ -73,6 +73,6 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
 RUN git clone https://github.com/Byrdman32/Autonomy_Software.git
 
 # Set the working directory TO BUILD
-WORKDIR Autonomy_Software/
-RUN mkdir build; \
-    cd build
+WORKDIR /Autonomy_Software/
+# RUN mkdir build; \
+# 	cd build

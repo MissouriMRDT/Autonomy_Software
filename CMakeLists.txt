@@ -1,8 +1,8 @@
 ####################################################################################################################
-##                                            Autonomy Software                                                   ##
-##                                            v23.00.00 Build 000                                                 ##
-##                                          Mars Rover Design Team                                                ##
-##                                   Copyright 2023 - All Rights Reserved                                         ##
+##											Autonomy Software												   	  ##
+##											v23.00.00 Build 000												 	  ##
+##										  Mars Rover Design Team												  ##
+##								   Copyright 2023 - All Rights Reserved										 	  ##
 ####################################################################################################################
 
 
@@ -13,8 +13,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
 PROJECT(Autonomy_Software VERSION 23.00.00)
 
 ## Include Required CMake Packages
-INCLUDE(CTest)                                                                      # CMake Testing Framework
-INCLUDE(FetchContent)                                                               # CMake Dependency Framework
+INCLUDE(CTest)																	  # CMake Testing Framework
+INCLUDE(FetchContent)															   # CMake Dependency Framework
 
 ## Define Project Name and Version Number for CPack
 SET(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -52,36 +52,36 @@ INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
 ENABLE_TESTING()
 
 ## Search Project Directories for CPP Files
-FILE(GLOB Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-FILE(GLOB Interfaces_SRC        CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
-FILE(GLOB States_SRC            CONFIGURE_DEPENDS  "src/states/*.cpp")
-FILE(GLOB Util_SRC              CONFIGURE_DEPENDS  "src/util/*.cpp")
-FILE(GLOB Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
-FILE(GLOB Main_SRC              CONFIGURE_DEPENDS  "src/*.cpp")
-FILE(GLOB Examples_SRC          CONFIGURE_DEPENDS  "examples/*.cpp")
-FILE(GLOB External_SRC          CONFIGURE_DEPENDS  "external/src/*.cpp")
-FILE(GLOB Tests_SRC             CONFIGURE_DEPENDS  "tests/*.cpp")
-FILE(GLOB Tools_SRC             CONFIGURE_DEPENDS  "tools/*.cpp")
+FILE(GLOB Algorithms_SRC		CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+FILE(GLOB Interfaces_SRC		CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
+FILE(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
+FILE(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
+FILE(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
+FILE(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
+FILE(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*.cpp")
+FILE(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
+FILE(GLOB Tests_SRC			 	CONFIGURE_DEPENDS  "tests/*.cpp")
+FILE(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 
 ## Create Executable File
-ADD_EXECUTABLE(${PROJECT_NAME} ${External_SRC}
-                                 ${Util_SRC}
-                                 ${Algorithms_SRC}
-                                 ${Interfaces_SRC}
-                                 ${States_SRC}
-                                 ${Vision_SRC}
-                                 ${Main_SRC}
-                                 ${Examples_SRC}
-                                 ${Tests_SRC}
-                                 ${Tools_SRC}
-    )
+ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
+								 ${Util_SRC}
+								 ${Algorithms_SRC}
+								 ${Interfaces_SRC}
+								 ${States_SRC}
+								 ${Vision_SRC}
+								 ${Main_SRC}
+								 ${Examples_SRC}
+								 ${Tests_SRC}
+								 ${Tools_SRC}
+	)
 
 ## Set Compile Options for Autonomy Software.
-IF(MSVC)
-  TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE /W4 /WX)
+IF(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.
+	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE /W4 /WX)
 ELSE()
-  TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+	TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 ENDIF()
 
 ## Link Libraries to Executable

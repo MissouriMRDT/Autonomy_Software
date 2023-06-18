@@ -1,6 +1,9 @@
 ### Autonomy Specific ###
 # FileSystem
 build/
+.vscode/
+# Compiled Program
+Autonomy_Software
 
 ### C++ ###
 # Prerequisites
