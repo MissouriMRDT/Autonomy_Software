@@ -14,7 +14,7 @@
 #include "../util/NumberOperations.h"
 
 /******************************************************************************
- * @brief Construct a new Drive Board:: Drive Board object.
+ * @brief Construct a new Drive Board::DriveBoard object.
  *
  *
  * @author Byrdman32 (eli@byrdneststudios.com)
@@ -27,7 +27,7 @@ DriveBoard::DriveBoard()
 }
 
 /******************************************************************************
- * @brief Destroy the Drive Board:: Drive Board object.
+ * @brief Destroy the Drive Board::DriveBoard object.
  *
  *
  * @author Byrdman32 (eli@byrdneststudios.com)

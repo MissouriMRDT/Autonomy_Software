@@ -1,12 +1,12 @@
 # Util Directory
 
-The **Util** directory is intended to store Python files that provide utility functions and helper classes for the rover project. This directory focuses on reusable code snippets and functionalities that can be used across different modules.
+The **Util** directory is intended to store c++ files that provide utility functions and helper classes for the rover project. This directory focuses on reusable code snippets and functionalities that can be used across different modules.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Util** directory:
 
-1. Each Python file should contain one or more utility functions, helper classes, or modules that provide common functionalities.
+1. Each c++ file should contain one or more utility functions, helper classes, or modules that provide common functionalities.
 2. Use descriptive names for the files that reflect the purpose or functionality of the utilities.
 3. Ensure that the files are properly documented with comments explaining the usage, input/output specifications, and any relevant details.
 4. Include a README file in any subdirectories within the **Util** directory to provide additional information if necessary.
