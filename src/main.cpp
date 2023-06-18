@@ -7,18 +7,11 @@
    Description:	  Defines the entry point for the application.
 */
 
-#include "../external/RoveComm_CPP/src/RoveComm.h"
-#include "Autonomy_Globals.h"
+#include "../tests/opencv_test.h"
 
 int main()
 {
-	std::cout << "Hello Autonomy Software!" << std::endl;
-	// InitializeAutonomyLoggers();	// Initialize loggers for Autonomy Software
+    TEST_OpenCV();
 
-	// RoveCommPacket<double_t> test;
-
-	// RoveCommEthernetUDP<int8_t> test2(3543);
-	// test2.Write(test);
-
-	return 0;
+    return 0;
 }

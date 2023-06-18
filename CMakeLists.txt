@@ -63,7 +63,6 @@ FILE(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 FILE(GLOB Tests_SRC			 	CONFIGURE_DEPENDS  "tests/*.cpp")
 FILE(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
-
 ## Create Executable File
 ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
 								 ${Util_SRC}
@@ -85,10 +84,9 @@ ELSE()
 ENDIF()
 
 ## Link Libraries to Executable
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE gtest_main
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 plog::plog
                                                 Threads::Threads
-                                                #opencv_core 
-                                                #opencv_highgui
+												${OpenCV_LIBS}
                                                 #Boost::filesystem
     )
