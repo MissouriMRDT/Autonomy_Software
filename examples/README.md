@@ -1,12 +1,12 @@
 # Examples Directory
 
-The **Examples** directory is intended to store Python files that provide example code snippets, demos, or sample implementations related to the rover project. This directory focuses on showcasing usage scenarios, best practices, or specific functionalities of the project.
+The **Examples** directory is intended to store c++ files that provide example code snippets, demos, or sample implementations related to the rover project. This directory focuses on showcasing usage scenarios, best practices, or specific functionalities of the project.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Examples** directory:
 
-1. Each Python file should contain a self-contained example or demo related to a specific aspect or functionality of the rover project.
+1. Each c++ file should contain a self-contained example or demo related to a specific aspect or functionality of the rover project.
 2. Use descriptive names for the files that reflect the purpose or functionality of the example.
 3. Ensure that the files are properly documented with comments explaining the example, its purpose, input/output specifications, and any relevant details.
 4. Include a README file in the **Examples** directory to provide an overview of the available examples, instructions for running them, and any additional information.

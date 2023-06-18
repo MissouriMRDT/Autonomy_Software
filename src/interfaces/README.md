@@ -1,12 +1,12 @@
 # Interfaces Directory
 
-The **Interfaces** directory is intended to store Python files related to the physical systems, boards, microcontrollers, or sensors used in the rover project. This directory focuses on the communication and interaction with these external interfaces.
+The **Interfaces** directory is intended to store c++ files related to the physical systems, boards, microcontrollers, or sensors used in the rover project. This directory focuses on the communication and interaction with these external interfaces.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Interfaces** directory:
 
-1. Each Python file should represent a specific interface or device used in the rover project.
+1. Each c++ file should represent a specific interface or device used in the rover project.
 2. Use descriptive names for the files that reflect the purpose or functionality of the interface.
 3. Ensure that the files are properly documented with comments explaining the interface's usage, input/output specifications, and any relevant details.
 4. Include a README file in any subdirectories within the **Interfaces** directory to provide additional information if necessary.
