@@ -2,8 +2,14 @@
 	"name": "MRDT Autonomy C++",
 	"runArgs": [
 		"--name",
-		"Autonomy_Software_devcontainer"
+		"Autonomy_Software_devcontainer",
+		// "--gpus all", // add all available GPUs
+		// "--runtime nvidia", // Use the NVIDIA container runtime.
+		// "--privileged" // grants permission to the container to access USBs
+		// "-e DISPLAY", // Makes DISPLAY environment variable available in the container.
+		// "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
 	],
+	// "image": "",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
@@ -107,5 +113,5 @@
 		}
 	},
 	// Connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	"remoteUser": "root"
+	//"remoteUser": "root"
 }

@@ -10,8 +10,8 @@
 #include <opencv2/opencv.hpp>
 
 #ifndef OPENCV_TEST
-#define OPENCV_TEST
+#	define OPENCV_TEST
 
 void TEST_OpenCV();
 
-#endif // OPENCV_TEST
+#endif	  // OPENCV_TEST
