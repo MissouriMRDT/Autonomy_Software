@@ -5,12 +5,12 @@
 		"Autonomy_Software_devcontainer",
 		// "--gpus all", // add all available GPUs
 		// "--runtime nvidia", // Use the NVIDIA container runtime.
-		// "--privileged" // grants permission to the container to access USBs
-		// "-e DISPLAY", // Makes DISPLAY environment variable available in the container.
+		"--privileged", // grants permission to the container to access USBs
+		"-e DISPLAY", // Makes DISPLAY environment variable available in the container.
 		// "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
 	],
 	"image": "missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-ubuntu20.04",
-	//	"image": "missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1",
+	// "image": "missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1",
 	//	"build": {
 	//		"dockerfile": "Dockerfile_Ubuntu"
 	//		"dockerfile": "Dockerfile_JetPack"
