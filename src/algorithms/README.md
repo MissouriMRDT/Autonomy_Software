@@ -1,12 +1,12 @@
 # Algorithms Directory
 
-The **Algorithms** directory is intended to store c++ files related to algorithm implementations and data structures. This directory focuses on the logic and computational aspects of the project.
+The **Algorithms** directory is intended to store C++ files related to algorithm implementations and data structures. This directory focuses on the logic and computational aspects of the project.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Algorithms** directory:
 
-1. Each c++ file should contain one or more algorithm implementations or data structures.
+1. Each C++ file should contain one or more algorithm implementations or data structures.
 2. Use clear and descriptive names for the files, reflecting the purpose or algorithm implemented.
 3. Ensure that the files are properly documented with comments explaining the algorithm's logic, input/output specifications, and any relevant details.
 4. Include a README file in any subdirectories within the **Algorithms** directory to provide additional information if necessary.

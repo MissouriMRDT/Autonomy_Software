@@ -1,12 +1,12 @@
 # Tools Directory
 
-The **Tools** directory is intended to store c++ files that provide utility scripts, development tools, or miscellaneous functionalities for the rover project. This directory focuses on supporting tasks related to development, debugging, or project management.
+The **Tools** directory is intended to store C++ files that provide utility scripts, development tools, or miscellaneous functionalities for the rover project. This directory focuses on supporting tasks related to development, debugging, or project management.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Tools** directory:
 
-1. Each c++ file should represent a specific tool, utility script, or functionality that supports the development or management of the rover project.
+1. Each C++ file should represent a specific tool, utility script, or functionality that supports the development or management of the rover project.
 2. Use descriptive names for the files that reflect the purpose or functionality of the tool.
 3. Ensure that the files are properly documented with comments explaining the usage, functionality, and any relevant details.
 4. Include a README file in any subdirectories within the **Tools** directory to provide additional information if necessary.
