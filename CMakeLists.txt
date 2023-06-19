@@ -44,6 +44,9 @@ FIND_PACKAGE(Threads REQUIRED)
 INCLUDE_DIRECTORIES(${plog_SOURCE_DIR}/include)
 ADD_COMPILE_DEFINITIONS(PLOG_ENABLE_WCHAR_INPUT)
 
+## Find Eigen
+FIND_PACKAGE(Eigen3 3.3 REQUIRED NO_MODULE)
+
 ## Find OpenCV
 FIND_PACKAGE( OpenCV REQUIRED )
 INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
@@ -87,6 +90,7 @@ ENDIF()
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 plog::plog
                                                 Threads::Threads
+												Eigen3::Eigen
 												${OpenCV_LIBS}
                                                 #Boost::filesystem
     )
