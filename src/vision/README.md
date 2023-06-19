@@ -1,12 +1,12 @@
 # Vision Directory
 
-The **Vision** directory is intended to store c++ files related to computer vision and image processing functionalities in the rover project. This directory focuses on algorithms and techniques used for visual perception and analysis.
+The **Vision** directory is intended to store C++ files related to computer vision and image processing functionalities in the rover project. This directory focuses on algorithms and techniques used for visual perception and analysis.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Vision** directory:
 
-1. Each c++ file should contain one or more computer vision algorithms, image processing techniques, or related functionalities.
+1. Each C++ file should contain one or more computer vision algorithms, image processing techniques, or related functionalities.
 2. Use descriptive names for the files that reflect the purpose or functionality of the vision-related code.
 3. Ensure that the files are properly documented with comments explaining the algorithms, techniques, or methods used, as well as input/output specifications and any relevant details.
 4. Include a README file in any subdirectories within the **Vision** directory to provide additional information if necessary.
