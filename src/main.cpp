@@ -1,17 +1,26 @@
-/*
-   main.cpp
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
+/******************************************************************************
+ * @brief Main program file. Sets up classes and runs main program functions.
+ *
+ * @file main.cpp
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  Defines the entry point for the application.
-*/
+#include "../tests/opencv_test.hpp"
 
-#include "../tests/opencv_test.h"
-
+/******************************************************************************
+ * @brief Autonomy main function.
+ *
+ * @return int - Exit status number.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 int main()
 {
-    TEST_OpenCV();
+	TEST_OpenCV();
 
-    return 0;
+	return 0;
 }

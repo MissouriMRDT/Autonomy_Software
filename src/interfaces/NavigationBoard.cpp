@@ -1,16 +1,24 @@
-/*
-   NavigationBoard.cpp
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  Interfaces with the Navigation Board over the RoveComm Protocol.
-*/
+/******************************************************************************
+ * @brief Implements NavigationBoard class.
+ *
+ * @file NavigationBoard.cpp
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
 #include "NavigationBoard.h"
 
 #include "../Autonomy_Globals.h"
 
+/******************************************************************************
+ * @brief Construct a new Navigation Board:: Navigation Board object.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 NavigationBoard::NavigationBoard()
 {
 	m_dPitch   = 0;
@@ -25,6 +33,23 @@ NavigationBoard::NavigationBoard()
 	m_tLastTime = time(nullptr);
 }
 
+/******************************************************************************
+ * @brief Destroy the Navigation Board:: Navigation Board object.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
+NavigationBoard::~NavigationBoard() {}
+
+/******************************************************************************
+ * @brief Unpack and store data from an IMU packet.
+ *
+ * @param packet - The special nav board packet containing IMU data.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
 {
 	m_dPitch   = packet.dPitch;
@@ -34,6 +59,14 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
 	PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming IMU Data: (" << m_dPitch << ", " << m_dRoll << ", " << m_dHeading << ")";
 }
 
+/******************************************************************************
+ * @brief Unpack and store data from a GPS packet.
+ *
+ * @param packet - The special nav board packet containing GPS data.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 {
 	m_sLocation.dLatitude  = packet.dLatitude;
@@ -44,6 +77,15 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 	PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude << ")";
 }
 
+/******************************************************************************
+ * @brief Get stored nav board IMU data.
+ *
+ * @param eKey - Enum detailing which component to retrieve.
+ * @return double - The Roll, Pitch, or Heading data.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
 {
 
@@ -60,6 +102,15 @@ double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) con
 	return dValue;
 }
 
+/******************************************************************************
+ * @brief Get stored GPS data.
+ *
+ * @param eKey - Enum detailing which data to retrieve.
+ * @return NavBoardPacket_GPS - Struct storing GPS data.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
 {
 
