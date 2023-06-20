@@ -1,11 +1,12 @@
-/*
-   NavigationBoard.h
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  Interfaces with the Navigation Board over the RoveComm Protocol.
-*/
+/******************************************************************************
+ * @brief Defines the NavigationBoard class.
+ *
+ * @file NavigationBoard.h
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
 #include <chrono>
 #include <ctime>
@@ -85,6 +86,7 @@ class NavigationBoard
 
 	public:
 		NavigationBoard();
+		~NavigationBoard();
 
 		void ProcessIMUData(NavBoardPacket_IMU packet);
 		void ProcessGPSData(NavBoardPacket_GPS packet);

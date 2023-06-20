@@ -1,14 +1,23 @@
-/*
-   Autonomy_IdentitySoftware.cpp
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  The Autonomy Software Version Handler.
-*/
+/******************************************************************************
+ * @brief Implements the Autonomy_IdentitySoftware class.
+ * 		Handler for incrementing and tracking software version/build numbers.
+ *
+ * @file Autonomy_IdentitySoftware.cpp
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
 #include "Autonomy_IdentitySoftware.h"
 
+/******************************************************************************
+ * @brief Construct a new Autonomy_IdentitySoftware::Autonomy_IdentitySoftware object.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
 {
 
@@ -34,10 +43,34 @@ Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
 	if (m_szBuildVersion.length() > 3) { m_szBuildVersion.erase(0, m_szBuildVersion.length() - 3); }
 }
 
+/******************************************************************************
+ * @brief Gets the version number of project.
+ *
+ * @return std::string - The version number.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 std::string Autonomy_IdentitySoftware::GetVersionNumber() { return "v" + m_szMajorVersion + "." + m_szMinorVersion + "." + m_szPatchVersion; }
 
+/******************************************************************************
+ * @brief Gets the build number of project.
+ *
+ * @return std::string - The build number.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 std::string Autonomy_IdentitySoftware::GetBuildNumber() { return "Build " + m_szBuildVersion; }
 
+/******************************************************************************
+ * @brief Gets the combo number container version and build info.
+ *
+ * @return std::string - The combo number.
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 std::string Autonomy_IdentitySoftware::GetVersionBuildComboNumber()
 {
 	return "v" + m_szMajorVersion + "." + m_szMinorVersion + "." + m_szPatchVersion + " Build " + m_szBuildVersion;

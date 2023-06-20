@@ -3,7 +3,7 @@
  * 		the Rover.
  *
  * @file DriveBoard.h
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0618
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved

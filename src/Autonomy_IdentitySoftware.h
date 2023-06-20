@@ -1,11 +1,12 @@
-/*
-   Autonomy_IdentitySoftware.h
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  The Autonomy Software Version Handler.
-*/
+/******************************************************************************
+ * @brief Defines the Autonomy_IdentitySoftware class.
+ *
+ * @file Autonomy_IdentitySoftware.h
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
 #include <string>
 
