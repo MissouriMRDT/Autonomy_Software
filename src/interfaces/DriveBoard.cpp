@@ -11,7 +11,7 @@
 #include "DriveBoard.h"
 
 #include "../Autonomy_Globals.h"
-#include "../util/NumberOperations.h"
+#include "../util/NumberOperations.hpp"
 
 /******************************************************************************
  * @brief Construct a new Drive Board::DriveBoard object.

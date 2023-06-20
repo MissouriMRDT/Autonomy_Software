@@ -1,17 +1,25 @@
-/*
-   MRDT_Autonomy_Globals.cpp
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
-
-   Date:			 5/20/2023
-   Author:		   Eli Byrd and Clayton Cowen
-   Description:	  Defines global defines, variables, and functions for MRDT Software.
-*/
+/******************************************************************************
+ * @brief Sets up functions and classes used project wide.
+ *
+ * @file Autonomy_Globals.cpp
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
 #include "Autonomy_Globals.h"
 
 plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender("file.log", 1000000000, 10);
 plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
 
+/******************************************************************************
+ * @brief Sets up project wide logger.
+ *
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0620
+ ******************************************************************************/
 void InitializeAutonomyLoggers()
 {
 
