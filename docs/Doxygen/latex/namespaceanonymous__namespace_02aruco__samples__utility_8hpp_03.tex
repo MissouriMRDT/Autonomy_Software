@@ -1,0 +1,80 @@
+\hypertarget{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03}{}\doxysection{anonymous\+\_\+namespace\{aruco\+\_\+samples\+\_\+utility.\+hpp\} Namespace Reference}
+\label{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03}\index{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}@{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}}}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+static bool \mbox{\hyperlink{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03_a40b4b17ae0e17098cb16b302bcf2ae37}{read\+Camera\+Parameters}} (std\+::string filename, cv\+::\+Mat \&cam\+Matrix, cv\+::\+Mat \&dist\+Coeffs)
+\begin{DoxyCompactList}\small\item\em Reads camera params given info about the camera and its precalculated camera matrix and distortion coefficients. Stores it in given mats. \end{DoxyCompactList}\item 
+static bool \mbox{\hyperlink{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03_a1b6ac9b579a66345e7a1fb99aad3e81f}{save\+Camera\+Params}} (const std\+::string \&filename, cv\+::\+Size image\+Size, float aspect\+Ratio, int flags, const cv\+::\+Mat \&camera\+Matrix, const cv\+::\+Mat \&dist\+Coeffs, double total\+Avg\+Err)
+\begin{DoxyCompactList}\small\item\em Given a bunch of camera info, this function will write it to a file at the given path. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03_a40b4b17ae0e17098cb16b302bcf2ae37}\label{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03_a40b4b17ae0e17098cb16b302bcf2ae37}} 
+\index{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}@{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}}!readCameraParameters@{readCameraParameters}}
+\index{readCameraParameters@{readCameraParameters}!anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}@{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}}}
+\doxysubsubsection{\texorpdfstring{readCameraParameters()}{readCameraParameters()}}
+{\footnotesize\ttfamily static bool anonymous\+\_\+namespace\{aruco\+\_\+samples\+\_\+utility.\+hpp\}\+::read\+Camera\+Parameters (\begin{DoxyParamCaption}\item[{std\+::string}]{filename,  }\item[{cv\+::\+Mat \&}]{cam\+Matrix,  }\item[{cv\+::\+Mat \&}]{dist\+Coeffs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Reads camera params given info about the camera and its precalculated camera matrix and distortion coefficients. Stores it in given mats. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & -\/ String containing path to calibration file. \\
+\hline
+{\em cam\+Matrix} & -\/ Mat for storing cam matrix. \\
+\hline
+{\em dist\+Coeffs} & -\/ Mat for storing distortion coefficients. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+true -\/ Config properly read and stored. 
+
+false -\/ Config was unable to be read.
+\end{DoxyReturn}
+\begin{DoxyAuthor}{Author}
+Byrdman32 (\href{mailto:eli@byrdneststudios.com}{\texttt{ eli@byrdneststudios.\+com}}), Clay\+Jay3 (\href{mailto:claytonraycowen@gmail.com}{\texttt{ claytonraycowen@gmail.\+com}}) 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+2023-\/0620 
+\end{DoxyDate}
+\mbox{\Hypertarget{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03_a1b6ac9b579a66345e7a1fb99aad3e81f}\label{namespaceanonymous__namespace_02aruco__samples__utility_8hpp_03_a1b6ac9b579a66345e7a1fb99aad3e81f}} 
+\index{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}@{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}}!saveCameraParams@{saveCameraParams}}
+\index{saveCameraParams@{saveCameraParams}!anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}@{anonymous\_namespace\lcurly{}aruco\_samples\_utility.hpp\rcurly{}}}
+\doxysubsubsection{\texorpdfstring{saveCameraParams()}{saveCameraParams()}}
+{\footnotesize\ttfamily static bool anonymous\+\_\+namespace\{aruco\+\_\+samples\+\_\+utility.\+hpp\}\+::save\+Camera\+Params (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{filename,  }\item[{cv\+::\+Size}]{image\+Size,  }\item[{float}]{aspect\+Ratio,  }\item[{int}]{flags,  }\item[{const cv\+::\+Mat \&}]{camera\+Matrix,  }\item[{const cv\+::\+Mat \&}]{dist\+Coeffs,  }\item[{double}]{total\+Avg\+Err }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Given a bunch of camera info, this function will write it to a file at the given path. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em filename} & -\/ Path to write file to. \\
+\hline
+{\em image\+Size} & -\/ The resolution of the camera. \\
+\hline
+{\em aspect\+Ratio} & -\/ Aspect ration of the camera. \\
+\hline
+{\em flags} & -\/ Special flags camera was intialized with. \\
+\hline
+{\em camera\+Matrix} & -\/ Calculated camera matrix. \\
+\hline
+{\em dist\+Coeffs} & -\/ Calculated distortion coefficients. \\
+\hline
+{\em total\+Avg\+Err} & -\/ Accuracy of calculated values. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+true -\/ Config was written succesfully. 
+
+false -\/ Config was unable to be written.
+\end{DoxyReturn}
+\begin{DoxyAuthor}{Author}
+Byrdman32 (\href{mailto:eli@byrdneststudios.com}{\texttt{ eli@byrdneststudios.\+com}}), Clay\+Jay3 (\href{mailto:claytonraycowen@gmail.com}{\texttt{ claytonraycowen@gmail.\+com}}) 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+2023-\/0620 
+\end{DoxyDate}
