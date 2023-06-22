@@ -16,22 +16,22 @@
 #define BUILD_VERSION 0
 
 #ifndef AUTONOMY_IDENTITYSOFTWARE_H
-#	define AUTONOMY_IDENTITYSOFTWARE_H
+#define AUTONOMY_IDENTITYSOFTWARE_H
 
 class Autonomy_IdentitySoftware
 {
-	private:
-		std::string m_szMajorVersion;
-		std::string m_szMinorVersion;
-		std::string m_szPatchVersion;
-		std::string m_szBuildVersion;
+    private:
+        std::string m_szMajorVersion;
+        std::string m_szMinorVersion;
+        std::string m_szPatchVersion;
+        std::string m_szBuildVersion;
 
-	public:
-		Autonomy_IdentitySoftware();
+    public:
+        Autonomy_IdentitySoftware();
 
-		std::string GetVersionNumber();
-		std::string GetBuildNumber();
-		std::string GetVersionBuildComboNumber();
+        std::string GetVersionNumber();
+        std::string GetBuildNumber();
+        std::string GetVersionBuildComboNumber();
 };
 
-#endif	  // AUTONOMY_IDENTITYSOFTWARE_H
+#endif  // AUTONOMY_IDENTITYSOFTWARE_H
