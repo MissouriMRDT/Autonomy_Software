@@ -8,7 +8,8 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../examples/OpenCV/Tag_Generator.h"
+// #include "../examples/OpenCV/Tag_Generator.h"
+#include <opencv2/highgui.hpp>
 
 /******************************************************************************
  * @brief Autonomy main function.
@@ -20,7 +21,8 @@
  ******************************************************************************/
 int main()
 {
-    GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
+    // GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
+    cv::Mat test;
 
     return 0;
 }
