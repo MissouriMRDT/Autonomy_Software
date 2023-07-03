@@ -20,7 +20,6 @@
  ******************************************************************************/
 int main()
 {
-
     GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
 
     return 0;

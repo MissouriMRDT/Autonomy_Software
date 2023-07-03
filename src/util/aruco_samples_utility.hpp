@@ -53,8 +53,13 @@ namespace
         return true;
     }
 
-    inline static bool saveCameraParams(const std::string& filename, cv::Size imageSize, float aspectRatio, int flags, const cv::Mat& cameraMatrix,
-                                        const cv::Mat& distCoeffs, double totalAvgErr)
+    inline static bool saveCameraParams(const std::string& filename,
+                                        cv::Size imageSize,
+                                        float aspectRatio,
+                                        int flags,
+                                        const cv::Mat& cameraMatrix,
+                                        const cv::Mat& distCoeffs,
+                                        double totalAvgErr)
     {
         cv::FileStorage fs(filename, cv::FileStorage::WRITE);
         if (!fs.isOpened())
@@ -73,9 +78,13 @@ namespace
         if (flags & cv::CALIB_FIX_ASPECT_RATIO)
             fs << "aspectRatio" << aspectRatio;
 
-        if (flags != 0) {
-            sprintf(buf, "flags: %s%s%s%s", flags & cv::CALIB_USE_INTRINSIC_GUESS ? "+use_intrinsic_guess" : "",
-                    flags & cv::CALIB_FIX_ASPECT_RATIO ? "+fix_aspectRatio" : "", flags & cv::CALIB_FIX_PRINCIPAL_POINT ? "+fix_principal_point" : "",
+        if (flags != 0)
+        {
+            sprintf(buf,
+                    "flags: %s%s%s%s",
+                    flags & cv::CALIB_USE_INTRINSIC_GUESS ? "+use_intrinsic_guess" : "",
+                    flags & cv::CALIB_FIX_ASPECT_RATIO ? "+fix_aspectRatio" : "",
+                    flags & cv::CALIB_FIX_PRINCIPAL_POINT ? "+fix_principal_point" : "",
                     flags & cv::CALIB_ZERO_TANGENT_DIST ? "+zero_tangent_dist" : "");
         }
         fs << "flags" << flags;
@@ -85,4 +94,4 @@ namespace
         return true;
     }
 
-}  // namespace
+}    // namespace

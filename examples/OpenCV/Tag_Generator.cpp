@@ -11,13 +11,14 @@
 
 void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, unsigned short sMarker)
 {
-
-    switch (eDictionary) {
+    switch (eDictionary)
+    {
         case cv::aruco::DICT_4X4_50:
         case cv::aruco::DICT_5X5_50:
         case cv::aruco::DICT_6X6_50:
         case cv::aruco::DICT_7X7_50:
-            if (sMarker > 49) {
+            if (sMarker > 49)
+            {
                 return;
             }
             break;
@@ -25,7 +26,8 @@ void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, 
         case cv::aruco::DICT_5X5_100:
         case cv::aruco::DICT_6X6_100:
         case cv::aruco::DICT_7X7_100:
-            if (sMarker > 99) {
+            if (sMarker > 99)
+            {
                 return;
             }
             break;
@@ -33,7 +35,8 @@ void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, 
         case cv::aruco::DICT_5X5_250:
         case cv::aruco::DICT_6X6_250:
         case cv::aruco::DICT_7X7_250:
-            if (sMarker > 249) {
+            if (sMarker > 249)
+            {
                 return;
             }
             break;
@@ -41,7 +44,8 @@ void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, 
         case cv::aruco::DICT_5X5_1000:
         case cv::aruco::DICT_6X6_1000:
         case cv::aruco::DICT_7X7_1000:
-            if (sMarker > 999) {
+            if (sMarker > 999)
+            {
                 return;
             }
             break;

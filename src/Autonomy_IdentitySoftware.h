@@ -34,4 +34,4 @@ class Autonomy_IdentitySoftware
         std::string GetVersionBuildComboNumber();
 };
 
-#endif  // AUTONOMY_IDENTITYSOFTWARE_H
+#endif    // AUTONOMY_IDENTITYSOFTWARE_H
