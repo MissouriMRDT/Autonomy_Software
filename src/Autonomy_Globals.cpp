@@ -22,7 +22,6 @@ plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
  ******************************************************************************/
 void InitializeAutonomyLoggers()
 {
-
     // Retrieve the current time for the log file name
     time_t tCurrentTime   = time(nullptr);
     struct tm sTimeStruct = *localtime(&tCurrentTime);

@@ -51,10 +51,12 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
     double dSpeedLeft  = fSpeed;
     double dSpeedRight = fSpeed;
 
-    if (fAngle > 0) {
+    if (fAngle > 0)
+    {
         dSpeedRight = dSpeedRight * (1 - (fAngle / 180.0));
     }
-    else if (fAngle < 0) {
+    else if (fAngle < 0)
+    {
         dSpeedLeft = dSpeedLeft * (1 + (fAngle / 180.0));
     }
 
