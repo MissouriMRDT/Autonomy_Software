@@ -67,16 +67,16 @@ FILE(GLOB Tests_SRC			 	CONFIGURE_DEPENDS  "tests/*.cpp")
 FILE(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
-								 ${Util_SRC}
-								 ${Algorithms_SRC}
+ADD_EXECUTABLE(${PROJECT_NAME}   #${External_SRC}
+								 #${Util_SRC}
+								 #${Algorithms_SRC}
 								 ${Interfaces_SRC}
-								 ${States_SRC}
-								 ${Vision_SRC}
+								 #${States_SRC}
+								 #${Vision_SRC}
 								 ${Main_SRC}
-								 ${Examples_SRC}
-								 ${Tests_SRC}
-								 ${Tools_SRC}
+								 #${Examples_SRC}
+								 #${Tests_SRC}
+								 #${Tools_SRC}
 	)
 
 ## Set Compile Options for Autonomy Software.
