@@ -88,21 +88,14 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
  ******************************************************************************/
 double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
 {
-
     double dValue = 0.0;
 
-    switch (eKey) {
-        case NBPC_PITCH:
-            dValue = m_dPitch;
-            break;
-        case NBPC_ROLL:
-            dValue = m_dRoll;
-            break;
-        case NBPC_HEADING:
-            dValue = m_dHeading;
-            break;
-        default:
-            break;
+    switch (eKey)
+    {
+        case NBPC_PITCH: dValue = m_dPitch; break;
+        case NBPC_ROLL: dValue = m_dRoll; break;
+        case NBPC_HEADING: dValue = m_dHeading; break;
+        default: break;
     }
 
     return dValue;
@@ -119,15 +112,12 @@ double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) con
  ******************************************************************************/
 NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
 {
-
     NavBoardPacket_GPS sValue = NavBoardPacket_GPS();
 
-    switch (eKey) {
-        case NBPCC_LOCATION:
-            sValue = m_sLocation;
-            break;
-        default:
-            break;
+    switch (eKey)
+    {
+        case NBPCC_LOCATION: sValue = m_sLocation; break;
+        default: break;
     }
 
     return sValue;

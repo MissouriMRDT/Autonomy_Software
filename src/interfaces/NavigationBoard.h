@@ -95,4 +95,4 @@ class NavigationBoard
         NavBoardPacket_GPS GetSData(NavigationBoardPacketCoordinateComponents eKey) const;
 };
 
-#endif  // NAVIGATIONBOARD_H
+#endif    // NAVIGATIONBOARD_H

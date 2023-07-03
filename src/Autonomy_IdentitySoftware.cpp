@@ -20,7 +20,6 @@
  ******************************************************************************/
 Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
 {
-
     // Force extra characters to the version numbers for '0' padding
     m_szMajorVersion = "000";
     m_szMinorVersion = "000";
@@ -34,19 +33,23 @@ Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
     m_szBuildVersion += std::to_string(BUILD_VERSION);
 
     // Shorten the strings down to the appropriate lengths
-    if (m_szMajorVersion.length() > 2) {
+    if (m_szMajorVersion.length() > 2)
+    {
         m_szMajorVersion.erase(0, m_szMajorVersion.length() - 2);
     }
 
-    if (m_szMinorVersion.length() > 2) {
+    if (m_szMinorVersion.length() > 2)
+    {
         m_szMinorVersion.erase(0, m_szMinorVersion.length() - 2);
     }
 
-    if (m_szPatchVersion.length() > 2) {
+    if (m_szPatchVersion.length() > 2)
+    {
         m_szPatchVersion.erase(0, m_szPatchVersion.length() - 2);
     }
 
-    if (m_szBuildVersion.length() > 3) {
+    if (m_szBuildVersion.length() > 3)
+    {
         m_szBuildVersion.erase(0, m_szBuildVersion.length() - 3);
     }
 }
