@@ -22,7 +22,7 @@
 int main()
 {
     // GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
-    cv::Mat test;
+    cv::Mat test = cv::Mat(1, 1, CV_64F, 0.0);
 
     return 0;
 }
