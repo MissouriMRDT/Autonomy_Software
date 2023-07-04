@@ -20,6 +20,7 @@
  ******************************************************************************/
 int main()
 {
+    // This leaks memory when the generateImageMarker function is called lol. Damn OpenCV, never knew it was so bad.
     GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
 
     return 0;
