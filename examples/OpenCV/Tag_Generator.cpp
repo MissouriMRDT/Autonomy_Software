@@ -58,6 +58,6 @@ void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, 
 
     cv::Mat cvMarkerImage;
     cv::aruco::Dictionary cvDictionary = cv::aruco::getPredefinedDictionary(eDictionary);
-    cv::aruco::generateImageMarker(cvDictionary, sMarker, 200, cvMarkerImage, 1);
-    cv::imwrite(szMarkerFilename.c_str(), cvMarkerImage);
+    // cv::aruco::generateImageMarker(cvDictionary, sMarker, 200, cvMarkerImage, 1);
+    // cv::imwrite(szMarkerFilename.c_str(), cvMarkerImage);
 }
