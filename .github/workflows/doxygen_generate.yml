@@ -42,8 +42,6 @@ jobs:
         with:
           # Path to Doxyfile
           doxyfile-path: ./Doxyfile
-          # Working directory
-          working-directory: docs/Doxygen
           # Generate latex documentation
           enable-latex: false
           # Extra alpine packages for the build environment
