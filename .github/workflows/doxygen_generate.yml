@@ -36,6 +36,18 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
+        
+      - name: Run Doxygen
+        uses: mattnotmitt/doxygen-action@1.9.5
+        with:
+          # Path to Doxyfile
+          doxyfile-path: ./Doxyfile
+          # Working directory
+          working-directory: docs/Doxygen
+          # Generate latex documentation
+          enable-latex: false
+          # Extra alpine packages for the build environment
+          additional-packages: graphviz
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
