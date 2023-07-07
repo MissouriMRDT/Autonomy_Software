@@ -4,10 +4,10 @@ on:
   # Runs workflow 'automatically' when a pull request
   # for the development branch is made
   pull_request:
-    branches: ['development']
+    branches: ["development"]
     # Don't apply gitignore rules, this allows us to push the generated docs.
     paths-ignore:
-      - '.gitignore'
+      - ".gitignore"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -30,16 +30,16 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
-        
+
       - name: Run Doxygen
-        uses: mattnotmitt/doxygen-action@1.8.18
+        uses: mattnotmitt/doxygen-action@1.9.5
         with:
           # Path to Doxyfile
           doxyfile-path: ./Doxyfile
@@ -51,7 +51,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: 'docs/Doxygen'
+          path: "docs/Doxygen"
 
       - name: Deploy to GitHub Pages
         id: deployment
