@@ -1,5 +1,5 @@
 # Simple workflow for deploying static content to GitHub Pages
-name: Deploy API docs to gh-pages
+name: Generate API Docs
 
 on:
   # Runs on pushes targeting the default branch
