@@ -19,7 +19,7 @@ RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> 
 
 # Install CMake
 ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
-COPY ./reinstall-cmake.sh /tmp/
+COPY ../tools/reinstall-cmake.sh /tmp/
 
 RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
         chmod +x /tmp/reinstall-cmake.sh && /tmp/reinstall-cmake.sh ${REINSTALL_CMAKE_VERSION_FROM_SOURCE}; \
