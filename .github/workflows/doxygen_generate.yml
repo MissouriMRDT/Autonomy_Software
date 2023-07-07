@@ -5,6 +5,7 @@ on:
   # for the development branch is made
   pull_request:
     branches: ['development']
+    # Don't apply gitignore rules, this allows us to push the generated docs.
     paths-ignore:
       - '.gitignore'
 
@@ -38,7 +39,7 @@ jobs:
         uses: actions/configure-pages@v3
         
       - name: Run Doxygen
-        uses: mattnotmitt/doxygen-action@1.9.5
+        uses: mattnotmitt/doxygen-action@1.8.17
         with:
           # Path to Doxyfile
           doxyfile-path: ./Doxyfile
