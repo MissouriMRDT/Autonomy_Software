@@ -41,7 +41,7 @@ To get started with our autonomy software development, follow these steps:
 
 2. Navigate to the cloned directory:
    ```
-   cd autonomy-software
+   cd autonomy_software
    ```
 
 3. Explore the different directories to understand the structure and purpose of each.
