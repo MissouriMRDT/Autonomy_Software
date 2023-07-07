@@ -5,6 +5,11 @@ on:
     paths: ['.devcontainer/Dockerfile_JetPack']
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 jobs:
   build-and-push-docker-image:
     name: Build Docker image and push to repository
