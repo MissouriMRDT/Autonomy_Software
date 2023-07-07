@@ -1,0 +1,93 @@
+\hypertarget{Autonomy__Globals_8h}{}\doxysection{src/\+Autonomy\+\_\+\+Globals.h File Reference}
+\label{Autonomy__Globals_8h}\index{src/Autonomy\_Globals.h@{src/Autonomy\_Globals.h}}
+
+
+Defines functions and objects used project wide.  
+
+
+{\ttfamily \#include \char`\"{}Autonomy\+\_\+\+Identity\+Software.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}interfaces/\+Drive\+Board.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}interfaces/\+Multimedia\+Board.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}interfaces/\+Navigation\+Board.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$chrono$>$}\newline
+{\ttfamily \#include $<$ctime$>$}\newline
+{\ttfamily \#include $<$plog/\+Initializers/\+Console\+Initializer.\+h$>$}\newline
+{\ttfamily \#include $<$plog/\+Initializers/\+Rolling\+File\+Initializer.\+h$>$}\newline
+{\ttfamily \#include $<$plog/\+Log.\+h$>$}\newline
+Include dependency graph for Autonomy\+\_\+\+Globals.\+h\+:
+% FIG 0
+This graph shows which files directly or indirectly include this file\+:
+% FIG 1
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_a41d98fd56071a454f6aa962d0863057c}\label{Autonomy__Globals_8h_a41d98fd56071a454f6aa962d0863057c}} 
+enum {\bfseries Autonomy\+Logger} \{ {\bfseries A\+L\+\_\+\+File\+Logger}, 
+{\bfseries A\+L\+\_\+\+Console\+Logger}
+ \}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{Autonomy__Globals_8h_a29f92215e31b0985a6a179800e03de1a}{Initialize\+Autonomy\+Loggers}} ()
+\begin{DoxyCompactList}\small\item\em Sets up project wide logger. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_a0d64139fa7c49b8fc3a8df5996d1c6c5}\label{Autonomy__Globals_8h_a0d64139fa7c49b8fc3a8df5996d1c6c5}} 
+const int {\bfseries constants\+::\+M\+A\+X\+\_\+\+D\+R\+I\+V\+E\+\_\+\+P\+O\+W\+ER} = 250
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_a6729afae7ab96069e6d688f455e4fa2f}\label{Autonomy__Globals_8h_a6729afae7ab96069e6d688f455e4fa2f}} 
+const int {\bfseries constants\+::\+M\+I\+N\+\_\+\+D\+R\+I\+V\+E\+\_\+\+P\+O\+W\+ER} = 50
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_ad3fd61d1a9bdcb926ea5d658a297bd2c}\label{Autonomy__Globals_8h_ad3fd61d1a9bdcb926ea5d658a297bd2c}} 
+plog\+::\+Rolling\+File\+Appender$<$ plog\+::\+Txt\+Formatter $>$ {\bfseries g\+\_\+p\+File\+Appender}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_a941db6aa29000c2417ac4645212ab7cb}\label{Autonomy__Globals_8h_a941db6aa29000c2417ac4645212ab7cb}} 
+plog\+::\+Color\+Console\+Appender$<$ plog\+::\+Txt\+Formatter $>$ {\bfseries g\+\_\+p\+Console\+Appender}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_a18da58a35b0c8bcc6bc63d4b51c4ff01}\label{Autonomy__Globals_8h_a18da58a35b0c8bcc6bc63d4b51c4ff01}} 
+\mbox{\hyperlink{classAutonomy__IdentitySoftware}{Autonomy\+\_\+\+Identity\+Software}} {\bfseries g\+\_\+p\+Identify\+Software}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_afb879d10d44d80c266ab1343f6d25865}\label{Autonomy__Globals_8h_afb879d10d44d80c266ab1343f6d25865}} 
+\mbox{\hyperlink{classDriveBoard}{Drive\+Board}} {\bfseries g\+\_\+p\+Drive\+Board\+Interface}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_aeb1656db14b62c6a76a472489166dbe2}\label{Autonomy__Globals_8h_aeb1656db14b62c6a76a472489166dbe2}} 
+\mbox{\hyperlink{classMultimediaBoard}{Multimedia\+Board}} {\bfseries g\+\_\+p\+Multimedia\+Board\+Interface}
+\item 
+\mbox{\Hypertarget{Autonomy__Globals_8h_ad9600333a1019c7458af15c49684cc59}\label{Autonomy__Globals_8h_ad9600333a1019c7458af15c49684cc59}} 
+\mbox{\hyperlink{classNavigationBoard}{Navigation\+Board}} {\bfseries g\+\_\+p\+Navigation\+Board\+Interface}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Defines functions and objects used project wide. 
+
+\begin{DoxyAuthor}{Author}
+Byrdman32 (\href{mailto:eli@byrdneststudios.com}{\texttt{ eli@byrdneststudios.\+com}}), Clay\+Jay3 (\href{mailto:claytonraycowen@gmail.com}{\texttt{ claytonraycowen@gmail.\+com}}) 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+2023-\/0620
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+Copyright M\+R\+DT 2023 -\/ All Rights Reserved 
+\end{DoxyCopyright}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{Autonomy__Globals_8h_a29f92215e31b0985a6a179800e03de1a}\label{Autonomy__Globals_8h_a29f92215e31b0985a6a179800e03de1a}} 
+\index{Autonomy\_Globals.h@{Autonomy\_Globals.h}!InitializeAutonomyLoggers@{InitializeAutonomyLoggers}}
+\index{InitializeAutonomyLoggers@{InitializeAutonomyLoggers}!Autonomy\_Globals.h@{Autonomy\_Globals.h}}
+\doxysubsubsection{\texorpdfstring{InitializeAutonomyLoggers()}{InitializeAutonomyLoggers()}}
+{\footnotesize\ttfamily void Initialize\+Autonomy\+Loggers (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Sets up project wide logger. 
+
+\begin{DoxyAuthor}{Author}
+Byrdman32 (\href{mailto:eli@byrdneststudios.com}{\texttt{ eli@byrdneststudios.\+com}}), Clay\+Jay3 (\href{mailto:claytonraycowen@gmail.com}{\texttt{ claytonraycowen@gmail.\+com}}) 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+2023-\/0620 
+\end{DoxyDate}
