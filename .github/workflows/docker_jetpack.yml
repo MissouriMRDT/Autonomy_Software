@@ -8,8 +8,9 @@ on:
 permissions:
   contents: read
   packages: write
+  deployments: write
   id-token: write
-
+    
 jobs:
   build-and-push-docker-image:
     name: Build Docker image and push to repository
