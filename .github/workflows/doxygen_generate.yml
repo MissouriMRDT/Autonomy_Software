@@ -1,10 +1,10 @@
-# Simple workflow for deploying static content to GitHub Pages
 name: Generate API Docs
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["development"]
+  # Runs workflow 'automatically' when a pull request
+  # for the development branch is made
+  pull_request:
+    branches: ['development']
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -22,21 +22,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
   run-doxygen:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
           path: 'docs/Doxygen'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2

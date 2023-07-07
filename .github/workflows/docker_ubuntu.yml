@@ -1,7 +1,10 @@
 name: Build and Publish Ubuntu Dockerfile
 
 on:
-  push:
+  # Runs workflow 'automatically' when a pull request for the development
+  # branch is made and documentaion files have been edited.
+  pull_request:
+    branches: ['development']
     paths: ['.devcontainer/Dockerfile_Ubuntu']
   workflow_dispatch:
 
