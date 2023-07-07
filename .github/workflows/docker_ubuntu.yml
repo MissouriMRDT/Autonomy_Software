@@ -5,11 +5,7 @@ on:
     paths: ['.devcontainer/Dockerfile_Ubuntu']
   workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: write
-  deployments: write
-  id-token: write
+permissions: write-all
     
 jobs:
   build-and-push-docker-image:
