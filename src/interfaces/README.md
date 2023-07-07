@@ -1,4 +1,11 @@
+<details><summary></summary>
+<p>
+~Doxygen flag/marks~
+  
 \dir src/interfaces
+</p>
+</details>
+
 # Interfaces Directory
 
 The **Interfaces** directory is intended to store C++ files related to the physical systems, boards, microcontrollers, or sensors used in the rover project. This directory focuses on the communication and interaction with these external interfaces.

@@ -1,4 +1,11 @@
+<details><summary></summary>
+<p>
+~Doxygen flag/marks~
+  
 \dir docs
+</p>
+</details>
+
 # Docs Directory
 
 The **Docs** directory is intended to store documentation files and resources for the rover project. This directory focuses on providing comprehensive and accessible documentation to guide developers, users, and contributors.
