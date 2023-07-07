@@ -39,7 +39,7 @@ jobs:
         uses: actions/configure-pages@v3
         
       - name: Run Doxygen
-        uses: mattnotmitt/doxygen-action@1.8.17
+        uses: mattnotmitt/doxygen-action@1.8.18
         with:
           # Path to Doxyfile
           doxyfile-path: ./Doxyfile
