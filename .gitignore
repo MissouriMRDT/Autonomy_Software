@@ -2,8 +2,13 @@
 # FileSystem
 build/
 .vscode/
+
 # Compiled Program
 Autonomy_Software
+
+# Documentation.
+docs/*
+!docs/Doxygen/resources
 
 ### C++ ###
 # Prerequisites

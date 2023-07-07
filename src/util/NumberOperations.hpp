@@ -14,6 +14,14 @@
 #ifndef NUMBEROPERATIONS_H
 #define NUMBEROPERATIONS_H
 
+/******************************************************************************
+ * @brief Namespace containing functions related to operations on numbers and
+ * 		other datatypes.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0706
+ ******************************************************************************/
 namespace numops
 {
     /******************************************************************************
