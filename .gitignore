@@ -6,8 +6,10 @@ build/
 # Compiled Program
 Autonomy_Software
 
-# Documentation.
+# Documentation. This is a special rule that uses ! negations.
 docs/*
+!docs/Doxygen
+docs/Doxygen/*
 !docs/Doxygen/resources
 
 ### C++ ###
