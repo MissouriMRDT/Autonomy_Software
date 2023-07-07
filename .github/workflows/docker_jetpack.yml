@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: ".devcontainer/Dockerfile_JetPack"
-          tags: missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1
+          tags: ghcr.io/missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1
           push: true
 
       - name: Image digest
