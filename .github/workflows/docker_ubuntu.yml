@@ -28,7 +28,7 @@ jobs:
       - name: Build Ubuntu Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
-          file: "{{defaultContext}}:.devcontainer/Dockerfile_Ubuntu"
+          file: ".devcontainer/Dockerfile_Ubuntu"
           tags: missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-ubuntu20.04
           push: true
 
