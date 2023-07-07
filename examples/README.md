@@ -1,4 +1,11 @@
+<details><summary></summary>
+<p>
+~Doxygen flag/marks~
+  
 \dir examples
+</p>
+</details>
+
 # Examples Directory
 
 The **Examples** directory is intended to store C++ files that provide example code snippets, demos, or sample implementations related to the rover project. This directory focuses on showcasing usage scenarios, best practices, or specific functionalities of the project.
