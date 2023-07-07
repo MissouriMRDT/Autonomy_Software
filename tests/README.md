@@ -1,3 +1,4 @@
+\dir tests
 # Tests Directory
 
 The **Tests** directory is intended to store C++ files containing test cases and unit tests for the rover project. This directory focuses on ensuring the correctness and reliability of the code through systematic testing.

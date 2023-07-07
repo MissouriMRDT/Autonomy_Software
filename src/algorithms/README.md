@@ -1,3 +1,4 @@
+\dir src/algorithms
 # Algorithms Directory
 
 The **Algorithms** directory is intended to store C++ files related to algorithm implementations and data structures. This directory focuses on the logic and computational aspects of the project.
