@@ -1,4 +1,4 @@
-\page
+\dir docs
 # Docs Directory
 
 The **Docs** directory is intended to store documentation files and resources for the rover project. This directory focuses on providing comprehensive and accessible documentation to guide developers, users, and contributors.

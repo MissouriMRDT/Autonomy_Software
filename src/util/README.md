@@ -1,3 +1,4 @@
+\dir src/util
 # Util Directory
 
 The **Util** directory is intended to store C++ files that provide utility functions and helper classes for the rover project. This directory focuses on reusable code snippets and functionalities that can be used across different modules.
