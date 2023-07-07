@@ -1,4 +1,4 @@
-\dir src
+( \dir src )
 # SRC Directory
 
 The **src** directory is the main source code directory of the rover project. It contains several subdirectories that organize the different components and functionalities of the project.
