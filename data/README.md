@@ -1,3 +1,4 @@
+\page
 # Data Directory
 
 The **Data** directory is intended to store data files and resources used in the rover project. This directory focuses on organizing and managing various types of data that are essential for the project's functionality, analysis, or training.
