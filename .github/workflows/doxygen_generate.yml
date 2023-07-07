@@ -5,6 +5,8 @@ on:
   # for the development branch is made
   pull_request:
     branches: ['development']
+    paths-ignore:
+      - '.gitignore'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -31,9 +33,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        
-      - name: Remove gitignore for docs directory
-        run: rm -f .gitignore
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
