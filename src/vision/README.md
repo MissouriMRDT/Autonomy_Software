@@ -1,3 +1,4 @@
+\dir src/vision
 # Vision Directory
 
 The **Vision** directory is intended to store C++ files related to computer vision and image processing functionalities in the rover project. This directory focuses on algorithms and techniques used for visual perception and analysis.

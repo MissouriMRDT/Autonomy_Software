@@ -1,3 +1,4 @@
+\dir src/states
 # States Directory
 
 The **States** directory is intended to store C++ files related to the implementation of state machines in the rover project. This directory focuses on managing the different states and transitions within the project's logic.
