@@ -9,12 +9,12 @@
 		"-e DISPLAY", // Makes DISPLAY environment variable available in the container.
 		// "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
 	],
-	"image": "missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-ubuntu20.04",
-	// "image": "missourimrdt/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1",
-	// "build": {
-	// 	"dockerfile": "Dockerfile_Ubuntu"
-	// 	// "dockerfile": "Dockerfile_JetPack"
-	// },
+	// "image": "ghcr.io/byrdman32/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-ubuntu20.04",
+	// "image": "ghcr.io/byrdman32/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1",
+	"build": {
+		// "dockerfile": "Dockerfile_Ubuntu"
+		"dockerfile": "Dockerfile_JetPack"
+	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
