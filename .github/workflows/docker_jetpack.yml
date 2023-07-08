@@ -43,7 +43,7 @@ jobs:
           fi
 
       - name: Print Commit Message
-        run: echo '${LAST_MSG}'
+        run: echo "$LAST_MSG"
 
   build-and-push-docker-image:
     name: Build Docker image and push to repository
