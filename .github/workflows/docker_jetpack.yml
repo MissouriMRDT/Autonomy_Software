@@ -22,12 +22,11 @@ jobs:
   get-commit-message:
     name: 'Get commit message'
     runs-on: ubuntu-latest
-    if: ${{(github.event_name != 'workflow_dispatch') }}
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     
     steps:
       - name: Get commits
         env:
-          # github URL to list commits
           COMMITS_URL: ${{ github.event.pull_request.commits_url }}
         run: |
           if [ "${COMMITS_URL}x" != "x" ]; then
@@ -44,7 +43,7 @@ jobs:
             echo 'LAST_MSG=' >> "${GITHUB_ENV}"
           fi
     outputs: 
-      commit-message: ${LAST_MSG}
+      commit-message: ${env.LAST_MSG}
 
   print-message:
     name: 'Print Last Commit Message'
@@ -53,14 +52,14 @@ jobs:
     steps:
       - name: Print Commit Message
         run: |
-          echo ${{needs.get-commit-message.outputs.commit-message}}
-          echo ${{(needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **')}}
+          echo ${{ needs.get-commit-message.outputs.commit-message }}
+          echo ${{ needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **' }}
 
   package-docker-image-pr-commit:
     name: Build Docker image and push to repository (called from PR with Commit Message)
     needs: [get-commit-message, print-message]
     runs-on: ubuntu-latest
-    if: ${{ (needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **') }}
+    if: ${{ needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **' }}
 
     steps:
       - name: Checkout code
