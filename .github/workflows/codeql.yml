@@ -2,11 +2,12 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "development" ]
+    branches: [ "topic/move-docker-images", "development" ]
   pull_request:
-    branches: [ "development" ]
+    # The branches below must be a subset of the branches above
+    branches: [ "topic/move-docker-images" ]
   schedule:
-    - cron: '37 5 * * 4'
+    - cron: '41 20 * * 0'
 
 jobs:
   analyze:
