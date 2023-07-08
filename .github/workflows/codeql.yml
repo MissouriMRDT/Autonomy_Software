@@ -7,6 +7,14 @@ on:
     branches: [ "development" ]
   schedule:
     - cron: '41 20 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+  packages: read
+  id-token: write
 
 concurrency:
   group: "codeql"
@@ -16,12 +24,12 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-    container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-06
+    container: 
+      image: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-06
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 360
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
 
     strategy:
       fail-fast: false
