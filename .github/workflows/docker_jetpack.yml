@@ -5,7 +5,7 @@ on:
   # branch is made and documentaion files have been edited.
   pull_request:
     branches: ['development']
-    paths: ['.devcontainer/Dockerfile_Ubuntu']
+    paths: ['.devcontainer/Dockerfile_JetPack']
   workflow_dispatch:
 
 permissions:
@@ -22,6 +22,8 @@ jobs:
   get-commit-message:
     name: 'Get commit message'
     runs-on: ubuntu-latest
+    if: ${{(github.event_name != 'workflow_dispatch') }}
+    
     steps:
       - name: Get commits
         env:
@@ -54,11 +56,52 @@ jobs:
           echo ${{needs.get-commit-message.outputs.commit-message}}
           echo ${{(needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **')}}
 
-  build-and-push-docker-image:
-    name: Build Docker image and push to repository
+  package-docker-image-pr-commit:
+    name: Build Docker image and push to repository (called from PR with Commit Message)
     needs: [get-commit-message, print-message]
     runs-on: ubuntu-latest
-    if: ${{ (needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **') || (github.event_name == 'workflow_dispatch') }}
+    if: ${{ (needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64'
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Get repository owner/repository and convert to lowercase string
+        id: repo-name-string
+        uses: ASzc/change-string-case-action@v5
+        with:
+          string: ${{ github.repository }}
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build JetPack Image and push to GitHub Container Registry
+        uses: docker/build-push-action@v2
+        with:
+          file: ".devcontainer/Dockerfile_JetPack"
+          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1"
+          push: true
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  package-docker-image-manual:
+    name: Build Docker image and push to repository (called from button on actions page)
+    runs-on: ubuntu-latest
+    if: ${{(github.event_name == 'workflow_dispatch') }}
 
     steps:
       - name: Checkout code
