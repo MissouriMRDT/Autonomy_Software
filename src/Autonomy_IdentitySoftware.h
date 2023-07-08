@@ -10,7 +10,7 @@
 
 #include <string>
 
-#define MAJOR_VERSION 23
+#define MAJOR_VERSION 24
 #define MINOR_VERSION 0
 #define PATCH_VERSION 0
 #define BUILD_VERSION 0
