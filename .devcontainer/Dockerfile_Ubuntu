@@ -1,7 +1,7 @@
 # Base Image
 FROM stereolabs/zed:4.0-gl-devel-cuda11.4-ubuntu20.04
 LABEL authors="Missouri S&T Mars Rover Design Team"
-LABEL org.opencontainers.image.source=https://github.com/byrdman32/autonomy_software
+LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
@@ -58,7 +58,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     rm -rf opencv_contrib && rm -rf opencv
 
 # Clone your C++ project repository
-RUN git clone https://github.com/Byrdman32/Autonomy_Software.git
+RUN git clone https://github.com/MissouriMRDT/Autonomy_Software.git
 
 # Set the working directory TO BUILD
 WORKDIR /Autonomy_Software/
