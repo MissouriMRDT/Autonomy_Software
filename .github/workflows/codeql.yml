@@ -16,7 +16,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-    container: ghcr.io/byrdman32/autonomy-ubuntu:2023-07-06
+    container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-06
     timeout-minutes: 360
     permissions:
       actions: read
