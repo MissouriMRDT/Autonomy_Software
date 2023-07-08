@@ -55,8 +55,8 @@ jobs:
     steps:
       - name: Print Commit Message
         run: |
-          echo ${{ needs.get-commit-message.outputs.commit-message }}
-          echo ${{ needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **' }}
+          echo "Commit Message: ${{ needs.get-commit-message.outputs.commit-message }}"
+          echo "Build: ${{ needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **' }}"
 
   package-docker-image-pr-commit:
     name: Build Docker image and push to repository (called from PR with Commit Message)
