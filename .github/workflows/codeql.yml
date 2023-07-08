@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '41 20 * * 0'
 
+concurrency:
+  group: "codeql"
+  cancel-in-progress: false
+    
 jobs:
   analyze:
     name: Analyze
