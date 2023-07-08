@@ -52,7 +52,7 @@ jobs:
       - name: Print Commit Message
         run: |
           echo ${{needs.get-commit-message.outputs.commit-message}}
-          echo ${{(needs.get-commit-message.outputs.commit-message == '** Build and Publish Ubuntu Image **')}}
+          echo ${{(needs.get-commit-message.outputs.commit-message == '** Build and Publish JetPack Image **')}}
 
   build-and-push-docker-image:
     name: Build Docker image and push to repository
