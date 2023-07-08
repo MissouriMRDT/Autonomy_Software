@@ -62,7 +62,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     rm -rf opencv_contrib && rm -rf opencv
 
 # Clone your C++ project repository
-RUN git clone https://github.com/missourimrdt/Autonomy_Software.git
+RUN git clone https://github.com/MissouriMRDT/Autonomy_Software.git
 
 # Set the working directory TO BUILD
 WORKDIR /Autonomy_Software/
