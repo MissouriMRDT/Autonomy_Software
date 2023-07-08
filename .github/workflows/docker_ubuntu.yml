@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   packages: write
   id-token: write
 
@@ -18,10 +19,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  get_message:
+    name: 'Get commit message'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get commits
+        env:
+          # github URL to list commits
+          COMMITS_URL: ${{ github.event.pull_request.commits_url }}
+        run: |
+          if [ "${COMMITS_URL}x" != "x" ]; then
+            # get commits list and pick up last one by jq
+            # caution: only 100 commits will be taken by curl
+            # if your PR has more than 100 commits
+            # you have to set page query parameter
+            # and request last page commits
+            # API URL details: https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#list-commits-on-a-pull-request
+            LAST_MSG=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "${COMMITS_URL}?per_page=100" | jq -r .[-1].commit.message)
+            # set environment variable
+            echo "LAST_MSG=${LAST_MSG}" >> "${GITHUB_ENV}"
+          else
+            echo 'LAST_MSG=' >> "${GITHUB_ENV}"
+          fi
+
   build-and-push-docker-image:
     name: Build Docker image and push to repository
     runs-on: ubuntu-latest
-    
+    if: ${{ contains('$LAST_MSG', '** Build and Publish JetPack Image **') || (github.event_name == 'workflow_dispatch') }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
