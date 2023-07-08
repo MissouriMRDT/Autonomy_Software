@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_dispatch' }}
     
+    env:
+      LAST_MSG: ""
+    
     steps:
       - name: Get commits
         env:
@@ -43,8 +46,8 @@ jobs:
           else
             echo 'LAST_MSG=' >> "${GITHUB_ENV}"
           fi
-    outputs: 
-      commit-message: ${LAST_MSG}
+    outputs:
+      commit-message: ${{ env.LAST_MSG }}
 
   print-message:
     name: 'Print Last Commit Message'
