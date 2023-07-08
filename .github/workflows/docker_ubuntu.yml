@@ -43,12 +43,12 @@ jobs:
           fi
 
       - name: Print Commit Message
-        run: echo "$LAST_MSG"
+        run: echo ${{(env.LAST_MSG == '** Build and Publish Ubuntu Image **')}}
 
   build-and-push-docker-image:
     name: Build Docker image and push to repository
     runs-on: ubuntu-latest
-    if: ${{ contains('$LAST_MSG', '** Build and Publish JetPack Image **') || (github.event_name == 'workflow_dispatch') }}
+    if: ${{ (env.LAST_MSG == '** Build and Publish Ubuntu Image **') || (github.event_name == 'workflow_dispatch') }}
 
     steps:
       - name: Checkout code
