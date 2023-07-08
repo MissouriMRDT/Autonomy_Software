@@ -44,7 +44,7 @@ jobs:
             echo 'LAST_MSG=' >> "${GITHUB_ENV}"
           fi
     outputs: 
-      commit-message: "$LAST_MSG"
+      commit-message: ${LAST_MSG}
 
   print-message:
     name: 'Print Last Commit Message'
