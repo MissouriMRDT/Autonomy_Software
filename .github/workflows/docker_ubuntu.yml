@@ -72,6 +72,14 @@ jobs:
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
+        
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Get repository owner and convert to lowercase string
         id: repo-name-string
@@ -96,7 +104,18 @@ jobs:
           context: .devcontainer
           file: .devcontainer/Dockerfile_Ubuntu
           tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-ubuntu:${{ steps.date.outputs.date }}"
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
+          
+      # This bit is necessary if you don't want your cache to grow forever
+      # until it hits GitHub's limit of 5GB.
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   package-docker-image-manual:
     name: Build Docker image and push to repository (called from button on actions page)
@@ -110,6 +129,14 @@ jobs:
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
+        
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Get repository owner and convert to lowercase string
         id: repo-name-string
@@ -134,4 +161,15 @@ jobs:
           context: .devcontainer
           file: .devcontainer/Dockerfile_Ubuntu
           tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-ubuntu:${{ steps.date.outputs.date }}"
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
+          
+      # This bit is necessary if you don't want your cache to grow forever
+      # until it hits GitHub's limit of 5GB.
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
