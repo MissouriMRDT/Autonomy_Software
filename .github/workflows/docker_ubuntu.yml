@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  get_message:
+  get-commit-message:
     name: 'Get commit message'
     runs-on: ubuntu-latest
     steps:
@@ -41,14 +41,22 @@ jobs:
           else
             echo 'LAST_MSG=' >> "${GITHUB_ENV}"
           fi
+    outputs: 
+      commit-message: ${{ env.LAST_MSG }}
 
+  print-message:
+    name: 'Print Last Commit Message'
+    runs-on: ubuntu-latest
+    steps:
       - name: Print Commit Message
-        run: echo ${{(env.LAST_MSG == '** Build and Publish Ubuntu Image **')}}
+        run: |
+          echo ${{needs.get-commit-message.outputs.commit-message}}
+          echo ${{(needs.get-commit-message.outputs.commit-message == '** Build and Publish Ubuntu Image **')}}
 
   build-and-push-docker-image:
     name: Build Docker image and push to repository
     runs-on: ubuntu-latest
-    if: ${{ (env.LAST_MSG == '** Build and Publish Ubuntu Image **') || (github.event_name == 'workflow_dispatch') }}
+    if: ${{ (needs.get-commit-message.outputs.commit-message == '** Build and Publish Ubuntu Image **') || (github.event_name == 'workflow_dispatch') }}
 
     steps:
       - name: Checkout code
