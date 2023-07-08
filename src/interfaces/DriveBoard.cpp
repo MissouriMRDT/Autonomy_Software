@@ -22,8 +22,8 @@
  ******************************************************************************/
 DriveBoard::DriveBoard()
 {
-	m_iTargetSpeedLeft	= 0;
-	m_iTargetSpeedRight = 0;
+    m_iTargetSpeedLeft  = 0;
+    m_iTargetSpeedRight = 0;
 }
 
 /******************************************************************************
@@ -48,18 +48,24 @@ DriveBoard::~DriveBoard() {}
  ******************************************************************************/
 std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
 {
-	double dSpeedLeft  = fSpeed;
-	double dSpeedRight = fSpeed;
+    double dSpeedLeft  = fSpeed;
+    double dSpeedRight = fSpeed;
 
-	if (fAngle > 0) { dSpeedRight = dSpeedRight * (1 - (fAngle / 180.0)); }
-	else if (fAngle < 0) { dSpeedLeft = dSpeedLeft * (1 + (fAngle / 180.0)); }
+    if (fAngle > 0)
+    {
+        dSpeedRight = dSpeedRight * (1 - (fAngle / 180.0));
+    }
+    else if (fAngle < 0)
+    {
+        dSpeedLeft = dSpeedLeft * (1 + (fAngle / 180.0));
+    }
 
-	m_iTargetSpeedLeft	= int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
-	m_iTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
+    m_iTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
+    m_iTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
 
-	PLOG_DEBUG_(AL_ConsoleLogger) << "Driving at (" << m_iTargetSpeedLeft << ", " << m_iTargetSpeedRight << ")";
+    PLOG_DEBUG_(AL_ConsoleLogger) << "Driving at (" << m_iTargetSpeedLeft << ", " << m_iTargetSpeedRight << ")";
 
-	return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
+    return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
 }
 
 /******************************************************************************

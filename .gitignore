@@ -2,8 +2,16 @@
 # FileSystem
 build/
 .vscode/
+
 # Compiled Program
 Autonomy_Software
+
+# Documentation. This is a special rule that uses ! negations.
+docs/*
+!docs/*.md
+!docs/Doxygen
+docs/Doxygen/*
+!docs/Doxygen/resources
 
 ### C++ ###
 # Prerequisites

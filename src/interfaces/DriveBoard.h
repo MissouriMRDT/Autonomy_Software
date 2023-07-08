@@ -11,21 +11,21 @@
 #include <vector>
 
 #ifndef DRIVEBOARD_H
-#	define DRIVEBOARD_H
+#define DRIVEBOARD_H
 
 class DriveBoard
 {
-	private:
-		int m_iTargetSpeedLeft;
-		int m_iTargetSpeedRight;
+    private:
+        int m_iTargetSpeedLeft;
+        int m_iTargetSpeedRight;
 
-	public:
-		DriveBoard();
-		~DriveBoard();
+    public:
+        DriveBoard();
+        ~DriveBoard();
 
-		std::vector<int> CalculateMove(float fSpeed, float fAngle);
-		void SendDrive(int iLeftTarget, int iRightTarget);
-		void SendStop();
+        std::vector<int> CalculateMove(float fSpeed, float fAngle);
+        void SendDrive(int iLeftTarget, int iRightTarget);
+        void SendStop();
 };
 
-#endif	  // MRDT_DRIVEBOARD_H
+#endif    // DRIVEBOARD_H

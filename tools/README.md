@@ -1,3 +1,11 @@
+<details><summary></summary>
+<p>
+~Doxygen flag/marks~
+  
+\dir tools
+</p>
+</details>
+
 # Tools Directory
 
 The **Tools** directory is intended to store C++ files that provide utility scripts, development tools, or miscellaneous functionalities for the rover project. This directory focuses on supporting tasks related to development, debugging, or project management.
