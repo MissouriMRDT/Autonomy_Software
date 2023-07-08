@@ -7,6 +7,7 @@ on:
     branches: [ "development" ]
   schedule:
     - cron: '41 20 * * 0'
+  workflow_dispatch:
 
 concurrency:
   group: "codeql"
