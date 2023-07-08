@@ -97,8 +97,8 @@ jobs:
       - name: Build JetPack Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
-          context: ".devcontainer"
-          file: "{context}/Dockerfile_JetPack"
+          context: "{{defaultContext}}:.devcontainer"
+          file: "{context}:Dockerfile_JetPack"
           tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
           push: true
 
@@ -140,7 +140,7 @@ jobs:
       - name: Build JetPack Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
-          context: ".devcontainer"
-          file: "{context}/Dockerfile_JetPack"
+          context: "{{defaultContext}}:.devcontainer"
+          file: "{context}:Dockerfile_JetPack"
           tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
           push: true
