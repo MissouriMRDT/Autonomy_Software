@@ -77,11 +77,15 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Get repository owner/repository and convert to lowercase string
+      - name: Get repository owner and convert to lowercase string
         id: repo-name-string
         uses: ASzc/change-string-case-action@v5
         with:
           string: ${{ github.repository }}
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
 
       - name: Login to Github Packages
         uses: docker/login-action@v2
@@ -93,8 +97,9 @@ jobs:
       - name: Build JetPack Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
-          file: ".devcontainer/Dockerfile_JetPack"
-          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1"
+          context: ".devcontainer"
+          file: "{context}/Dockerfile_JetPack"
+          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
           push: true
 
   package-docker-image-manual:
@@ -115,11 +120,15 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Get repository owner/repository and convert to lowercase string
+      - name: Get repository owner and convert to lowercase string
         id: repo-name-string
         uses: ASzc/change-string-case-action@v5
         with:
           string: ${{ github.repository }}
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
 
       - name: Login to Github Packages
         uses: docker/login-action@v2
@@ -131,6 +140,7 @@ jobs:
       - name: Build JetPack Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
-          file: ".devcontainer/Dockerfile_JetPack"
-          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1"
+          context: ".devcontainer"
+          file: "{context}/Dockerfile_JetPack"
+          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
           push: true
