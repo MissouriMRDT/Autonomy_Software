@@ -44,7 +44,7 @@ jobs:
             echo 'LAST_MSG=' >> "${GITHUB_ENV}"
           fi
     outputs: 
-      commit-message: ${{ env.LAST_MSG }}
+      commit-message: "$LAST_MSG"
 
   print-message:
     name: 'Print Last Commit Message'
@@ -95,9 +95,6 @@ jobs:
           tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1"
           push: true
 
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
-
   package-docker-image-manual:
     name: Build Docker image and push to repository (called from button on actions page)
     runs-on: ubuntu-latest
@@ -135,6 +132,3 @@ jobs:
           file: ".devcontainer/Dockerfile_JetPack"
           tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}:zed4.0-cuda11.4-opencv4.7.0-jp5.1.1"
           push: true
-
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
