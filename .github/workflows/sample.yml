@@ -13,6 +13,7 @@ jobs:
       - name: Update Docker Image Tags
         run: |
           cd tools/docker
+          ls
           chmod 777 increment_jetpack.sh
           ./increment_jetpack.sh
 
