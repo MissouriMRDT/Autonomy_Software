@@ -1,6 +1,7 @@
 # Base Image
 FROM stereolabs/zed:4.0-gl-devel-cuda11.4-ubuntu20.04
 LABEL authors="Missouri S&T Mars Rover Design Team"
+LABEL org.opencontainers.image.source=https://github.com/byrdman32/autonomy_software
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
