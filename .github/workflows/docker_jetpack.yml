@@ -42,6 +42,9 @@ jobs:
             echo 'LAST_MSG=' >> "${GITHUB_ENV}"
           fi
 
+      - name: Print Commit Message
+        run: echo '$LAST_MSG'
+
   build-and-push-docker-image:
     name: Build Docker image and push to repository
     runs-on: ubuntu-latest
