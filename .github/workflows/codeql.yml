@@ -16,7 +16,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-    container: ghcr.io/byrdman32/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-ubuntu20.04
+    container: ghcr.io/byrdman32/autonomy-ubuntu:2023-07-06
     timeout-minutes: 360
     permissions:
       actions: read
