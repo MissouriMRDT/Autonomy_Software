@@ -19,6 +19,7 @@ jobs:
   CodeQL-Build:
     # CodeQL runs on ubuntu-latest, windows-latest, and macos-latest
     runs-on: ubuntu-latest
+    container: ghcr.io/byrdman32/autonomy_software:zed4.0-cuda11.4-opencv4.7.0-ubuntu20.04
 
     permissions:
       # required for all workflows
