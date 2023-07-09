@@ -29,39 +29,79 @@ jobs:
     container: ${{ matrix.container }}
 
     steps:
-      - name: Build Executable for AMD64
+      - name: Build artifact (AMD64)
+        uses: uraimo/run-on-arch-action@v2
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
-        run: |
-          cd /opt/Autonomy_Software/
-          mkdir -p build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug ..
-          cmake --build .
-          mv Autonomy_Software Autonomy_Software_AMD64
+        id: build
+        with:
+          arch: none
+          distro: none
+          base_image: ${{ matrix.container }}
 
-      - name: Build Executable for ARM64
-        if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        run: |
-          cd /opt/Autonomy_Software/
-          mkdir -p build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug ..
-          cmake --build .
-          mv Autonomy_Software Autonomy_Software_ARM64
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+          setup: |
+            mkdir -p "${PWD}/artifacts"
+
+          dockerRunArgs: |
+            --volume "${PWD}/artifacts:/artifacts"
+
+          env: |
+            artifact_name: Autonomy_Software_AMD64
+
+          shell: /bin/sh
+
+          run: |
+            cd /opt/Autonomy_Software/
+            mkdir -p build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=Debug ..
+            cmake --build .
+            cp Autonomy_Software "/artifacts/${artifact_name}"
 
       - name: Upload Artifact for AMD64
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
         uses: actions/upload-artifact@v3
         with:
           name: Autonomy-AMD64
-          path: /opt/Autonomy_Software/build/Autonomy_Software_AMD64
+          path: "${PWD}/artifacts/**"
+
+      - name: Build artifact (ARM64)
+        uses: uraimo/run-on-arch-action@v2
+        if: contains(${{ matrix.container }}, "autonomy-jetpack")
+        id: build
+        with:
+          arch: none
+          distro: none
+          base_image: ${{ matrix.container }}
+
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+          setup: |
+            mkdir -p "${PWD}/artifacts"
+
+          dockerRunArgs: |
+            --volume "${PWD}/artifacts:/artifacts"
+
+          env: |
+            artifact_name: Autonomy_Software_ARM64
+
+          shell: /bin/sh
+
+          run: |
+            cd /opt/Autonomy_Software/
+            mkdir -p build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=Debug ..
+            cmake --build .
+            cp Autonomy_Software "/artifacts/${artifact_name}"
 
       - name: Upload Artifact for ARM64
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
         uses: actions/upload-artifact@v3
         with:
           name: Autonomy-ARM64
-          path: /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+          path: "${PWD}/artifacts/**"
 
   create-release:
     runs-on: ubuntu-latest
