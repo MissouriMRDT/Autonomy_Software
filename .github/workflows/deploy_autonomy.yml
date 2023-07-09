@@ -24,7 +24,7 @@ jobs:
         container:
           [
             "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08",
-            "ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18",
+            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08",
           ]
     container: ${{ matrix.container }}
 
