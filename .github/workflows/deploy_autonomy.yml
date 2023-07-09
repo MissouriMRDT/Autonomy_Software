@@ -33,6 +33,7 @@ jobs:
         uses: docker/setup-qemu-action@v1
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
         with:
+          image: ${{ matrix.container }}
           platforms: arm64
 
       - name: Run in Docker
