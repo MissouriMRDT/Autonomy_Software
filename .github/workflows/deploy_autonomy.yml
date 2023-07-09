@@ -34,15 +34,20 @@ jobs:
         with:
           source-dir: /opt/Autonomy_Software/
           build-dir: /opt/Autonomy_Software/build
-          run-build: true
 
-      - name: Rename Executable for AMD64
+      - name: Build Executable for AMD64
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
-        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_AMD64
+        run: |
+          cd /opt/Autonomy_Software/build
+          cmake --build .
+          mv Autonomy_Software Autonomy_Software_AMD64
 
-      - name: Rename Executable for ARM64
+      - name: Build Executable for ARM64
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+        run: |
+          cd /opt/Autonomy_Software/build
+          cmake --build .
+          mv Autonomy_Software Autonomy_Software_ARM64
 
       - name: Upload Artifact for AMD64
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
