@@ -71,6 +71,7 @@ jobs:
 
       - name: Download Artifacts
         uses: actions/download-artifact@v3
+        id: download
         with:
           path: /opt/Autonomy_Software/build/
 
@@ -82,10 +83,17 @@ jobs:
         uses: ncipollo/release-action@v1
         id: create_release
         with:
+          artifacts: "/opt/Autonomy_Software/build/Autonomy_Software_AMD64"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
           draft: false
           prerelease: false
-          name: "Autonomy Software ${{ steps.version.outputs.version }}"
           tag: ${{ github.ref }}
-          artifacts: "/opt/Autonomy_Software/build/Autonomy_Software_AMD64"
+          name: "Autonomy Software ${{ steps.version.outputs.version }}"
+          files: ${{steps.download.outputs.download-path}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
