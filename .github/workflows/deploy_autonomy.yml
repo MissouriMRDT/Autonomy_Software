@@ -61,27 +61,14 @@ jobs:
           build-dir: /opt/Autonomy_Software/build
           run-build: true
 
-      - name: Rename Executable for AMD64
-        if: contains(${{ matrix.container }}, "autonomy-ubuntu")
-        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_AMD64
+      - name: Rename Executable
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.container }}
 
-      - name: Rename Executable for ARM64
-        if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_ARM64
-
-      - name: Upload Artifact for AMD64
-        if: contains(${{ matrix.container }}, "autonomy-ubuntu")
+      - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Autonomy-AMD64
-          path: /opt/Autonomy_Software/build/Autonomy_Software_AMD64
-
-      - name: Upload Artifact for ARM64
-        if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        uses: actions/upload-artifact@v3
-        with:
-          name: Autonomy-ARM64
-          path: /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+          name: Autonomy-${{ matrix.container }}
+          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.container }}
 
   create-release:
     runs-on: ubuntu-latest
