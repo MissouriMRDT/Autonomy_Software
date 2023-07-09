@@ -32,7 +32,6 @@ jobs:
       - name: Build artifact (AMD64)
         uses: uraimo/run-on-arch-action@v2
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
-        id: build
         with:
           arch: none
           distro: none
@@ -69,7 +68,6 @@ jobs:
       - name: Build artifact (ARM64)
         uses: uraimo/run-on-arch-action@v2
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        id: build
         with:
           arch: none
           distro: none
