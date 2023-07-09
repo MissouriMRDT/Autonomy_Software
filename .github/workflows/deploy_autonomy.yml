@@ -56,16 +56,12 @@ jobs:
     steps:
       - name: Build Executable
         run: |
-          cd Autonomy_Software
-          mkdir -p build
           ls
-          ls ..
+          echo "Make Executable"
+          mkdir -p build
           cd build
           cmake ..
           cmake --build .
-          ls
-          cd
-          ls
 
       - name: Test Access to URL
         run: echo ${{ needs.create-release.outputs.upload_url }}
