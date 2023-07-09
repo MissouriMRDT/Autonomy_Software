@@ -18,32 +18,17 @@ concurrency:
 
 jobs:
   build-and-upload:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        container:
-          [
-            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08",
-            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08",
-          ]
+        includes:
+          - container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08"
+            os: ubuntu-latest
+          - container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
+            os: [self-hosted, linux, ARM64]
+    runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
 
     steps:
-      - name: Set up QEMU
-        if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        run: sudo apt-get install qemu binfmt-support qemu-user-static
-
-      - name: Run in Docker
-        if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        run: |
-          docker run \
-            --rm \
-            -v $(pwd):/${{ github.workspace }} \
-            -w ${{ github.workspace }} \
-            --platform linux/arm64 \
-            ${{ matrix.container }} \
-            uname -a
-
       - name: Configure the project
         uses: threeal/cmake-action@v1.2.0
         with:
