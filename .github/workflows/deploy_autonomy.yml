@@ -17,34 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Determine Version
-        id: version
-        run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        id: create_release
-        with:
-          draft: false
-          prerelease: false
-          name: "Autonomy Software ${{ steps.version.outputs.version }}"
-          tag: ${{ github.ref }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build-and-upload:
     runs-on: ubuntu-latest
-    needs: create-release
     strategy:
       matrix:
         container: [
@@ -61,13 +35,57 @@ jobs:
           build-dir: /opt/Autonomy_Software/build
           run-build: true
 
-      - name: Print Files
-        run: |
-          echo "Repo Scope:"
-          ls /opt/Autonomy_Software
-          echo ""
-          echo "Build Scope:"
-          ls /opt/Autonomy_Software/build
+      - name: Rename Executable for AMD64
+        if: contains(${{ matrix.container }}, "autonomy-ubuntu")
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_AMD64
 
-      - name: Test Access to URL
-        run: echo ${{ needs.create-release.outputs.upload_url }}
+      - name: Rename Executable for ARM64
+        if: contains(${{ matrix.container }}, "autonomy-jetpack")
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+
+      - name: Upload Artifact for AMD64
+        if: contains(${{ matrix.container }}, "autonomy-ubuntu")
+        uses: actions/upload-artifact@v3
+        with:
+          name: Autonomy-AMD64
+          path: /opt/Autonomy_Software/build/Autonomy_Software_AMD64
+
+      - name: Upload Artifact for ARM64
+        if: contains(${{ matrix.container }}, "autonomy-jetpack")
+        uses: actions/upload-artifact@v3
+        with:
+          name: Autonomy-ARM64
+          path: /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: build-and-upload
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Determine Version
+        id: version
+        run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: /opt/Autonomy_Software/build/
+
+      - name: Display Structure
+        run: ls
+        working-directory: /opt/Autonomy_Software/build/
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          name: "Autonomy Software ${{ steps.version.outputs.version }}"
+          tag: ${{ github.ref }}
+          artifacts: "/opt/Autonomy_Software/build/Autonomy_Software_AMD64"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
