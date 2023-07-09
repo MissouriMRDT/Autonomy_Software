@@ -20,11 +20,18 @@ jobs:
   build-and-upload:
     strategy:
       matrix:
-        includes:
-          - container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08"
-            os: ubuntu-latest
-          - container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
-            os: [self-hosted, linux, ARM64]
+        os: [ubuntu-latest, [self-hosted, linux, ARM64]]
+        container:
+          [
+            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08",
+            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08",
+          ]
+        exclude:
+          - os: ubuntu-latest
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
+          - os: [self-hosted, linux, ARM64]
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08"
+
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
 
