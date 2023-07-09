@@ -94,6 +94,6 @@ jobs:
           prerelease: false
           tag: ${{ github.ref }}
           name: "Autonomy Software ${{ steps.version.outputs.version }}"
-          files: ${{steps.download.outputs.download-path}}
+          files: "/opt/Autonomy_Software/build/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
