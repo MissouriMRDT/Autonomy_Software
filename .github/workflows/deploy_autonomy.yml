@@ -92,7 +92,6 @@ jobs:
         with:
           draft: false
           prerelease: false
-          tag: ${{ github.ref }}
           name: "Autonomy Software ${{ steps.version.outputs.version }}"
           files: "/opt/Autonomy_Software/build/**"
         env:
