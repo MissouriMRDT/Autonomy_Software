@@ -63,12 +63,9 @@ jobs:
           make
           make package
           make package_source
-          echo ""
-          echo "Files:"
-          ls
 
       - name: Rename Executable
-        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
