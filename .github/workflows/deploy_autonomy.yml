@@ -21,9 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        container: [
+        container:
+          [
             "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08",
-            # "ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18",
+            "ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18",
           ]
     container: ${{ matrix.container }}
 
@@ -39,9 +40,9 @@ jobs:
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
         run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_AMD64
 
-      # - name: Rename Executable for ARM64
-      #   if: contains(${{ matrix.container }}, "autonomy-jetpack")
-      #   run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+      - name: Rename Executable for ARM64
+        if: contains(${{ matrix.container }}, "autonomy-jetpack")
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_ARM64
 
       - name: Upload Artifact for AMD64
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
@@ -50,12 +51,12 @@ jobs:
           name: Autonomy-AMD64
           path: /opt/Autonomy_Software/build/Autonomy_Software_AMD64
 
-      # - name: Upload Artifact for ARM64
-      #   if: contains(${{ matrix.container }}, "autonomy-jetpack")
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: Autonomy-ARM64
-      #     path: /opt/Autonomy_Software/build/Autonomy_Software_ARM64
+      - name: Upload Artifact for ARM64
+        if: contains(${{ matrix.container }}, "autonomy-jetpack")
+        uses: actions/upload-artifact@v3
+        with:
+          name: Autonomy-ARM64
+          path: /opt/Autonomy_Software/build/Autonomy_Software_ARM64
 
   create-release:
     runs-on: ubuntu-latest
@@ -80,14 +81,6 @@ jobs:
         working-directory: /opt/Autonomy_Software/build/
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
-        id: create_release
-        with:
-          artifacts: "/opt/Autonomy_Software/build/Autonomy_Software_AMD64"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release
         uses: softprops/action-gh-release@v1
         with:
           draft: false
@@ -96,3 +89,10 @@ jobs:
           files: "/opt/Autonomy_Software/build/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete Artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            Autonomy-AMD64
+            Autonomy-ARM64
