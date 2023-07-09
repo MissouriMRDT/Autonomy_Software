@@ -54,6 +54,13 @@ jobs:
     container: ${{ matrix.container }}
 
     steps:
+      - name: Checkout Tag
+        run: |
+          git fetch --tags
+          tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo $tag
+          git checkout $tag
+
       - name: Configure the project
         run: |
           cd /opt/Autonomy_Software/
