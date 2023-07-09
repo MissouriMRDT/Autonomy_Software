@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Autonomy-${{ matrix.architecture }}
-          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}
+          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
   create-release:
     runs-on: ubuntu-latest
