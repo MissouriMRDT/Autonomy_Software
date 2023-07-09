@@ -30,11 +30,8 @@ jobs:
 
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
-        with:
-          image: ${{ matrix.container }}
-          platforms: arm64
+        run: sudo apt-get install qemu binfmt-support qemu-user-static
 
       - name: Run in Docker
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
