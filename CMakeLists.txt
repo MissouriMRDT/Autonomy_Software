@@ -96,4 +96,12 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 #Boost::filesystem
     )
 
-INSTALL(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+INSTALL(TARGETS ${PROJECT_NAME}
+		RUNTIME DESTINATION bin
+		IMPORTED_RUNTIME_ARTIFACTS gtest_main
+								   plog::plog
+								   Threads::Threads
+								   Eigen3::Eigen
+								   ${OpenCV_LIBS}
+								   #Boost::filesystem
+	)
