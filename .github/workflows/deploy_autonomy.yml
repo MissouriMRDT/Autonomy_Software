@@ -55,11 +55,11 @@ jobs:
     container: ${{ matrix.container }}
 
     steps:
-      - name: Build ARM64 Executable
+      - name: Build Executable
         run: |
-          mkdir build-arm64
-          cd build-arm64
-          cmake -G -DCMAKE_BUILD_TYPE_Debug ..
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE_Debug ..
           cmake --build .
           ls
           cd
