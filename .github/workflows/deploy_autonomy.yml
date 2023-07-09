@@ -24,8 +24,8 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Determine Version
         id: version
