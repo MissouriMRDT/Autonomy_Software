@@ -62,13 +62,13 @@ jobs:
           run-build: true
 
       - name: Rename Executable
-        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.container }}
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: Autonomy-${{ matrix.container }}
-          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.container }}
+          name: Autonomy-${{ matrix.architecture }}
+          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}
 
   create-release:
     runs-on: ubuntu-latest
