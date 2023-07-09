@@ -54,14 +54,11 @@ jobs:
     container: ${{ matrix.container }}
 
     steps:
+      - name: Configure the project
+        uses: threeal/cmake-action@v1.2.0
+
       - name: Build Executable
-        run: |
-          ls
-          echo "Make Executable"
-          mkdir -p build
-          cd build
-          cmake ..
-          cmake --build .
+        run: cmake --build build
 
       - name: Test Access to URL
         run: echo ${{ needs.create-release.outputs.upload_url }}
