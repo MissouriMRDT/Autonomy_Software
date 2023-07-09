@@ -13,6 +13,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
 PROJECT(Autonomy_Software VERSION 24.00.00)
 
 ## Include Required CMake Packages
+INCLUDE(CPack)																		# CMake Packaging Library
 INCLUDE(CTest)																	  	# CMake Testing Framework
 INCLUDE(FetchContent)															   	# CMake Dependency Framework
 
@@ -94,3 +95,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
 												${OpenCV_LIBS}
                                                 #Boost::filesystem
     )
+
+INSTALL(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
