@@ -17,8 +17,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-release-autonomy:
+  create-release:
     runs-on: ubuntu-latest
+
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
 
     steps:
       - name: Checkout Code
@@ -39,8 +42,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  build-and-upload:
+    runs-on: ubuntu-latest
+    needs: create-release
+    strategy:
+      matrix:
+        container:
+          [
+            ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-06,
+            ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18,
+          ]
+    container: ${{ matrix.container }}
+
+    steps:
       - name: Build ARM64 Executable
-        uses: docker://ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18
         run: |
           mkdir build-arm64
           cd build-arm64
@@ -49,3 +64,6 @@ jobs:
           ls
           cd
           ls
+
+      - name: Test Access to URL
+        run: echo ${{ needs.create-release.outputs.upload_url }}
