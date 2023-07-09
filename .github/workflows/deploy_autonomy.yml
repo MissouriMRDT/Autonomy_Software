@@ -59,6 +59,7 @@ jobs:
         run: |
           mkdir -p build
           ls
+          ls ..
           cd build
           cmake ..
           cmake --build .
