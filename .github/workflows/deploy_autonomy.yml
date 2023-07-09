@@ -1,0 +1,51 @@
+name: Build and Create Autonomy Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  packages: read
+  id-token: write
+
+concurrency:
+  group: "create-release"
+  cancel-in-progress: false
+
+jobs:
+  build-and-release-autonomy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@2
+
+      - name: Determine Version
+        id: version
+        run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
+
+      - name: Create Draft Release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          release_name: "Autonomy Software ${{ steps.version.outputs.version }}"
+          tag_name: ${{ github.ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ARM64 Executable
+        uses: docker://ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18
+        run: |
+          mkdir build-arm64
+          cd build-arm64
+          cmake -G -DCMAKE_BUILD_TYPE_Debug ..
+          cmake --build .
+          ls
+          cd
+          ls
