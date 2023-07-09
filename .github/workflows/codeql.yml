@@ -2,11 +2,11 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "development" ]
+    branches: ["development"]
   pull_request:
-    branches: [ "development" ]
+    branches: ["development"]
   schedule:
-    - cron: '41 20 * * 0'
+    - cron: "41 20 * * 0"
   workflow_dispatch:
 
 permissions:
@@ -19,13 +19,13 @@ permissions:
 concurrency:
   group: "codeql"
   cancel-in-progress: false
-    
+
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-    container: 
-      image: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-06
+    container:
+      image: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -34,22 +34,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp', 'python' ]
+        language: ["cpp", "python"]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-        
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
