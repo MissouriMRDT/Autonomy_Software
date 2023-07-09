@@ -1,27 +1,34 @@
 {
 	"name": "MRDT Autonomy C++",
+
 	"runArgs": [
 		"--name",
 		"Autonomy_Software_devcontainer",
 		// "--gpus all", // add all available GPUs
 		// "--runtime nvidia", // Use the NVIDIA container runtime.
 		"--privileged", // grants permission to the container to access USBs
-		"-e DISPLAY", // Makes DISPLAY environment variable available in the container.
+		"-e DISPLAY" // Makes DISPLAY environment variable available in the container.
 		// "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
 	],
-	// "image": "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08",
-	// "image": "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08",
-	"build": {
-		// "dockerfile": "Dockerfile_Ubuntu"
-		"dockerfile": "Dockerfile_JetPack"
-	},
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "gcc -v",
-	// Configure tool-specific properties.
+
+	"image": "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-06",
+//	"image": "ghcr.io/missourimrdt/autonomy-jetpack:2023-06-18",
+
+//	"build": {
+//		"dockerfile": "Dockerfile_Ubuntu"
+//		"dockerfile": "Dockerfile_JetPack"
+//	},
+
+//	Features to add to the dev container. More info: https://containers.dev/features.
+//  "features": {},
+
+//  Use 'forwardPorts' to make a list of ports inside the container available locally.
+//  "forwardPorts": [],
+
+//  Use 'postCreateCommand' to run commands after the container is created.
+//  "postCreateCommand": "gcc -v",
+
+//  Configure tool-specific properties.
 	"customizations": {
 		// Configure properties specific to VS Code.
 		"vscode": {
@@ -117,7 +124,8 @@
 				"doxdocgen.generic.useGitUserName": true
 			}
 		}
-	},
-	// Connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	//"remoteUser": "root"
+	}
+
+//  Connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+//  "remoteUser": "root"
 }
