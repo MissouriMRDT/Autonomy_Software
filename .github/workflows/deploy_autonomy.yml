@@ -57,9 +57,10 @@ jobs:
     steps:
       - name: Build Executable
         run: |
-          mkdir build
+          mkdir -p build
+          ls
           cd build
-          cmake -DCMAKE_BUILD_TYPE_Debug ..
+          cmake ..
           cmake --build .
           ls
           cd
