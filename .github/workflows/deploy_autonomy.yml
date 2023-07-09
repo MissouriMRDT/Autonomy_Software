@@ -55,11 +55,17 @@ jobs:
 
     steps:
       - name: Configure the project
-        uses: threeal/cmake-action@v1.2.0
-        with:
-          source-dir: /opt/Autonomy_Software/
-          build-dir: /opt/Autonomy_Software/build
-          run-build: true
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make
+          make package
+          make package_source
+          echo ""
+          echo "Files:"
+          ls
 
       - name: Rename Executable
         run: mv /opt/Autonomy_Software/build/Autonomy_Software /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}
