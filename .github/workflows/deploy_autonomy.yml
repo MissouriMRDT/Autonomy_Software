@@ -56,9 +56,18 @@ jobs:
     steps:
       - name: Configure the project
         uses: threeal/cmake-action@v1.2.0
+        with:
+          source-dir: /opt/Autonomy_Software/
+          build-dir: /opt/Autonomy_Software/build
+          run-build: true
 
-      - name: Build Executable
-        run: cmake --build build
+      - name: Print Files
+        run: |
+          echo "Repo Scope:"
+          ls /opt/Autonomy_Software
+          echo ""
+          echo "Build Scope:"
+          ls /opt/Autonomy_Software/build
 
       - name: Test Access to URL
         run: echo ${{ needs.create-release.outputs.upload_url }}
