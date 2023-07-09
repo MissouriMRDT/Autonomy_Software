@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
   packages: read
   id-token: write
@@ -31,14 +31,14 @@ jobs:
         id: version
         run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
 
-      - name: Create Draft Release
-        uses: actions/create-release@v1
+      - name: Create Release
+        uses: ncipollo/release-action@v1
         id: create_release
         with:
           draft: false
           prerelease: false
-          release_name: "Autonomy Software ${{ steps.version.outputs.version }}"
-          tag_name: ${{ github.ref }}
+          name: "Autonomy Software ${{ steps.version.outputs.version }}"
+          tag: ${{ github.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
