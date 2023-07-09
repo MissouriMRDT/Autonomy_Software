@@ -29,23 +29,23 @@ jobs:
     container: ${{ matrix.container }}
 
     steps:
-      - name: Configure the project
-        uses: threeal/cmake-action@v1.2.0
-        with:
-          source-dir: /opt/Autonomy_Software/
-          build-dir: /opt/Autonomy_Software/build
-
       - name: Build Executable for AMD64
         if: contains(${{ matrix.container }}, "autonomy-ubuntu")
         run: |
-          cd /opt/Autonomy_Software/build
+          cd /opt/Autonomy_Software/
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
           cmake --build .
           mv Autonomy_Software Autonomy_Software_AMD64
 
       - name: Build Executable for ARM64
         if: contains(${{ matrix.container }}, "autonomy-jetpack")
         run: |
-          cd /opt/Autonomy_Software/build
+          cd /opt/Autonomy_Software/
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
           cmake --build .
           mv Autonomy_Software Autonomy_Software_ARM64
 
