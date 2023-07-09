@@ -12,8 +12,8 @@
 	// "image": "ghcr.io/byrdman32/autonomy-ubuntu:2023-07-06",
 	// "image": "ghcr.io/byrdman32/autonomy-jetpack:2023-06-18",
 	"build": {
-		// "dockerfile": "Dockerfile_Ubuntu"
-		"dockerfile": "Dockerfile_JetPack"
+		"dockerfile": "Dockerfile_Ubuntu"
+		// "dockerfile": "Dockerfile_JetPack"
 	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
