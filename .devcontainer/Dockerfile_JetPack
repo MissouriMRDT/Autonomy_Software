@@ -1,7 +1,10 @@
 # Base Image
 FROM stereolabs/zed:4.0-devel-jetson-jp5.1.1
 LABEL authors="Missouri S&T Mars Rover Design Team"
+LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
+LABEL org.opencontainers.image.licenses=GPL-3.0-only
+LABEL org.opencontainers.image.description="v24.0.0"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
