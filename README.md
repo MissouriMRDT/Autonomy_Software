@@ -44,7 +44,7 @@ To get started with our autonomy software development, follow these steps:
 
 1. Clone the repository to your local machine using the command:
    ```
-   git clone https://github.com/MissouriMRDT/Autonomy_Software.git
+   git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
    ```
 
 2. Navigate to the cloned directory:
