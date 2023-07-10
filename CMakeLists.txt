@@ -97,5 +97,9 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 #Boost::filesystem
     )
 
-INSTALL(TARGETS /usr/local/lib/libopencv** ARCHIVE DESTINATION lib)
 INSTALL(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+INSTALL(
+  DIRECTORY "/usr/local/lib"
+  TYPE LIB
+  FILES_MATCHING REGEX ".*.so$"
+)
