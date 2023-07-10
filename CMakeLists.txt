@@ -97,5 +97,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 #Boost::filesystem
     )
 
-INSTALL(TARGETS ${OpenCV_LIBS} ARCHIVE DESTINATION lib)
+INSTALL(TARGETS /usr/local/lib/libopencv** ARCHIVE DESTINATION lib)
 INSTALL(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
