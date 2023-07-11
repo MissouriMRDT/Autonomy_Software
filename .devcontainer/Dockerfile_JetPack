@@ -1,7 +1,10 @@
 # Base Image
 FROM stereolabs/zed:4.0-devel-jetson-jp5.1.1
 LABEL authors="Missouri S&T Mars Rover Design Team"
-LABEL org.opencontainers.image.source=https://github.com/byrdman32/autonomy_software
+LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
+LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
+LABEL org.opencontainers.image.licenses=GPL-3.0-only
+LABEL org.opencontainers.image.description="v24.0.0"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
@@ -60,7 +63,8 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     ###
     -D WITH_CUBLAS=1 \
     -D WITH_FFMPEG=ON \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules \
+    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/aruco \
+    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/cudev \
     -D HAVE_opencv_python3=ON .. && \
     cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j && \
     make install && ldconfig && \
@@ -71,7 +75,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
 
 # Clone your C++ project repository
-RUN git clone https://github.com/Byrdman32/Autonomy_Software.git
+RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
 
 # Set the working directory TO BUILD
 WORKDIR /Autonomy_Software/
