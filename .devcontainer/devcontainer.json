@@ -47,7 +47,7 @@
 				"editor.formatOnType": true,
 				"editor.tabCompletion": "on",
 				"editor.tabSize": 4,
-				"editor.insertSpaces": false,
+				"editor.insertSpaces": true,
 				"editor.detectIndentation": false,
 				"search.exclude": {
 					"**/docs": true
