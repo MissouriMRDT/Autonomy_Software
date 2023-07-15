@@ -62,7 +62,7 @@ jobs:
           echo $tag
           git checkout $tag
 
-      - name: Configure the project
+      - name: Build and Create Executable
         run: |
           cd /opt/Autonomy_Software/
           mkdir build
