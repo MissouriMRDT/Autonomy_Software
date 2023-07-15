@@ -20,6 +20,9 @@ INCLUDE(FetchContent)															   	# CMake Dependency Framework
 ## Define Project Name and Version Number for CPack
 SET(CPACK_PROJECT_NAME ${PROJECT_NAME})
 SET(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+SET(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
+SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+SET(CPACK_GENERATOR "SH")
 
 ## Fetch Dependencies
 FETCHCONTENT_DECLARE(plog                                                           # C++ Logging Library
@@ -96,12 +99,4 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 #Boost::filesystem
     )
 
-# Build the executable installer
-INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES    gtest_main
-                                                                    plog::plog
-                                                                    Threads::Threads
-                                                                    Eigen3::Eigen
-                                                                    ${OpenCV_LIBS}
-                                                                    #Boost::filesystem
-                                RUNTIME DESTINATION bin 
-    )
+INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} RUNTIME DESTINATION bin )
