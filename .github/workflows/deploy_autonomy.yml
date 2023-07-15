@@ -70,7 +70,6 @@ jobs:
           cmake ..
           make
           make package
-          make package_source
 
       - name: Rename Executable
         run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
