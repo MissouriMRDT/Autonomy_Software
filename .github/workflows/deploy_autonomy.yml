@@ -23,7 +23,7 @@ jobs:
         os: [ubuntu-latest, [self-hosted, linux, ARM64]]
         container:
           [
-            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08",
+            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-15",
             "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08",
           ]
         architecture: [AMD64, ARM64]
