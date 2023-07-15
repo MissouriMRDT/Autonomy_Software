@@ -32,16 +32,16 @@ jobs:
             container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-15"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-08"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
             container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-15"
