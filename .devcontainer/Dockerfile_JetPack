@@ -24,9 +24,9 @@ ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
 COPY reinstall-cmake.sh /tmp/
 
 RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
-	chmod +x /tmp/reinstall-cmake.sh && /tmp/reinstall-cmake.sh ${REINSTALL_CMAKE_VERSION_FROM_SOURCE}; \
-	fi && \
-	rm -f /tmp/reinstall-cmake.sh
+    chmod +x /tmp/reinstall-cmake.sh && /tmp/reinstall-cmake.sh ${REINSTALL_CMAKE_VERSION_FROM_SOURCE}; \
+    fi && \
+    rm -f /tmp/reinstall-cmake.sh
 
 # Set Working Directory
 WORKDIR /opt
@@ -43,6 +43,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     -D CMAKE_INSTALL_PREFIX=/usr/local \
     -D INSTALL_PYTHON_EXAMPLES=OFF \
     -D INSTALL_C_EXAMPLES=OFF \
+    -D BUILD_SHARED_LIBS=OFF \
     -D BUILD_EXAMPLES=OFF \
     -D BUILD_PERF_TESTS=OFF \
     -D BUILD_TESTS=OFF \
