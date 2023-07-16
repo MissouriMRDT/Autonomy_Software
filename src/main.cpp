@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../examples/OpenCV/Tag_Generator.h"
+#include "../examples/OpenCV/TagGenerator.hpp"
 
 /******************************************************************************
  * @brief Autonomy main function.
