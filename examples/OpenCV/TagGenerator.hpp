@@ -1,14 +1,25 @@
-/*
-   Tag_Generator.cpp
-   Copyright (c) 2023 Mars Rover Design Team. All rights reserved.
+/******************************************************************************
+ * @brief Defines the OpenCV ArUco Generator
+ *
+ * @file TagGenerator.hpp
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0709
+ *
+ * @copyright Copyright MRDT 2023 - All Rights Reserved
+ ******************************************************************************/
 
-   Date:            6/18/2023
-   Author:          Eli Byrd and Clayton Cowen
-   Description:     Generates an Aruco Tag of your choice and saves to the location of your executable
-*/
+#include <opencv2/opencv.hpp>
+#include <string>
 
-#include "Tag_Generator.h"
-
+/******************************************************************************
+ * @brief Generate an ArUco Tag
+ *
+ * @param eDictionary - The OpenCV Dictonary to pull from
+ * @param sMarker - The id of the marker to generate
+ *
+ * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0709
+ ******************************************************************************/
 void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, unsigned short sMarker)
 {
     switch (eDictionary)
