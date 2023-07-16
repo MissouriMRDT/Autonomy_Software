@@ -2,7 +2,7 @@
  * @brief Implements the MultimediaBoard class.
  *
  * @file MultimediaBoard.cpp
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Byrdman32 (eli@byrdneststudios.com)
  * @date 2023-0620
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
@@ -16,7 +16,7 @@
  * @brief Construct a new Multimedia Board:: Multimedia Board object.
  *
  *
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Byrdman32 (eli@byrdneststudios.com)
  * @date 2023-0620
  ******************************************************************************/
 MultimediaBoard::MultimediaBoard() {}
@@ -25,7 +25,7 @@ MultimediaBoard::MultimediaBoard() {}
  * @brief Destroy the Multimedia Board:: Multimedia Board object.
  *
  *
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Byrdman32 (eli@byrdneststudios.com)
  * @date 2023-0620
  ******************************************************************************/
 MultimediaBoard::~MultimediaBoard() {}
@@ -36,7 +36,7 @@ MultimediaBoard::~MultimediaBoard() {}
  * @param eState - The lighting state. Enum defined in header file for
  * 					MultimediaBoard.h
  *
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Byrdman32 (eli@byrdneststudios.com)
  * @date 2023-0620
  ******************************************************************************/
 void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState) {}
@@ -47,7 +47,7 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState) {}
  * @param rgbVal - RGB struct containing color information. Struct defined in
  * 					MultimediaBoard.h
  *
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Byrdman32 (eli@byrdneststudios.com)
  * @date 2023-0620
  ******************************************************************************/
 void MultimediaBoard::SendRGB(RGB rgbVal) {}

@@ -29,9 +29,6 @@ The **src** directory serves as the main source code directory and contains the 
 - **tools**: Contains files that provide utility scripts, development tools, or miscellaneous functionalities for our project. These files assist in various development tasks, such as data analysis, visualization, or simulation, enhancing the overall development experience.
 
 
-
-
-
 ## Getting Started
 
 To get started with our autonomy software development, follow these steps:
