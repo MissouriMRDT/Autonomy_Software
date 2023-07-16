@@ -3,7 +3,7 @@
  * 		the Rover.
  *
  * @file DriveBoard.cpp
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0618
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
@@ -17,7 +17,7 @@
  * @brief Construct a new Drive Board::DriveBoard object.
  *
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0618
  ******************************************************************************/
 DriveBoard::DriveBoard()
@@ -30,7 +30,7 @@ DriveBoard::DriveBoard()
  * @brief Destroy the Drive Board::DriveBoard object.
  *
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0618
  ******************************************************************************/
 DriveBoard::~DriveBoard() {}
@@ -43,7 +43,7 @@ DriveBoard::~DriveBoard() {}
  * @param fAngle - The angle to drive towards.
  * @return std::vector<int> - 1D vector with two values. (left power, right power)
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0618
  ******************************************************************************/
 std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
@@ -74,7 +74,7 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
  * @param nLeftTarget - Left drive speed (-1 to 1)
  * @param nRightTarget - Right drive speed (-1 to 1)
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0618
  ******************************************************************************/
 void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
@@ -83,7 +83,7 @@ void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
  * @brief Stop the drivetrain of the Rover.
  *
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0618
  ******************************************************************************/
 void DriveBoard::SendStop() {}
