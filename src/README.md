@@ -16,9 +16,13 @@ The **src** directory is structured as follows:
 
 - **algorithms**: This directory contains the C++ files related to the algorithms used in the rover project. Refer to the [algorithms/README.md](algorithms/README.md) for more details on organizing files within this directory.
 
-- **interfaces**: This directory contains the C++ files related to physical systems, boards, microcontrollers, or sensors used in the rover project. Refer to the [interfaces/README.md](interfaces/README.md) for more details on organizing files within this directory.
+- **drivers**: This directory contains the C++ files related to physical systems, boards, microcontrollers, or sensors used in the rover project. Refer to the [drivers/README.md](drivers/README.md) for more details on organizing files within this directory.
+
+- **interfaces**: This directory stores files representing the abstract classes or interfaces that define the contract for specific functionalities or modules within the project. Refer to the [interfaces/README.md](interfaces/README.md) for more details on organizing files within this directory.
 
 - **states**: This directory contains the C++ files related to the state machine code of the rover project. Refer to the [states/README.md](states/README.md) for more details on organizing files within this directory.
+
+- **threads**: This directory stores files representing the main classes of different modules, each of which will spawn its own thread for parallel execution. Refer to the [threads/README.md](threads/README.md) for more details on organizing files within this directory.
 
 - **util**: This directory contains utility scripts and helper functions used in the rover project. Refer to the [util/README.md](util/README.md) for more details on organizing files within this directory.
 
