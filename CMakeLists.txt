@@ -9,6 +9,10 @@
 ## Set CMake Minimum Version
 CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
 
+## C++ Version
+SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 ## Project Name and Software Version Number
 PROJECT(Autonomy_Software VERSION 24.00.00)
 
