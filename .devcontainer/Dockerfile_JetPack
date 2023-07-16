@@ -1,5 +1,5 @@
 # Base Image
-FROM stereolabs/zed:4.0-devel-jetson-jp5.1.1
+FROM stereolabs/zed:4.0-tools-devel-jetson-jp5.1.1
 LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
@@ -48,7 +48,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     -D BUILD_TESTS=OFF \
     -D WITH_CUDA=ON \
     -D WITH_CUDNN=ON \
-    #-D OPENCV_DNN_CUDA=ON \
+    -D OPENCV_DNN_CUDA=ON \
     -D WITH_VTK=OFF \
     -D WITH_TBB=ON \
     -D ENABLE_FAST_MATH=1 \
