@@ -1,7 +1,7 @@
 /******************************************************************************
  * @brief
  *
- * @file StateMachine.hpp
+ * @file StateMachine.h
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-0716
  *
@@ -47,10 +47,7 @@ struct ClimbState;
 struct TakeoffState;
 
 // Forward Declared State Machine
-struct StateMachine : sc::state_machine<StateMachine, IdleState>
-{
-        StateMachine() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "Starting State Machine...\n"; }
-};
+struct StateMachine;
 
 // Idle Transitions
 struct Idle_AbortTransition;
