@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "Autonomy_Globals.h"
+#include "./Autonomy_Globals.h"
 
 plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender("file.log", 1000000000, 10);
 plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
@@ -39,10 +39,10 @@ void InitializeAutonomyLoggers()
     g_pFileAppender.setFileName(szFilenameWithExtension.c_str());
 
     // Initialize file logger
-    plog::init<AutonomyLogger::AL_FileLogger>(plog::debug, &g_pFileAppender);
+    plog::init<AutonomyLogger::AL_FileLogger>(plog::info, &g_pFileAppender);
 
     // Initialize console logger so that it also sends to the file logger
-    plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &g_pConsoleAppender).addAppender(&g_pFileAppender);
+    plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::info, &g_pConsoleAppender).addAppender(&g_pFileAppender);
 }
 
 Autonomy_IdentitySoftware g_pIdentifySoftware;

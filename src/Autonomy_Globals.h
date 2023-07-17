@@ -8,10 +8,10 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "Autonomy_IdentitySoftware.h"
-#include "interfaces/DriveBoard.h"
-#include "interfaces/MultimediaBoard.h"
-#include "interfaces/NavigationBoard.h"
+#include "./Autonomy_IdentitySoftware.h"
+#include "./drivers/DriveBoard.h"
+#include "./drivers/MultimediaBoard.h"
+#include "./drivers/NavigationBoard.h"
 
 #include <chrono>
 #include <ctime>

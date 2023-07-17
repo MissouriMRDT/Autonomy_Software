@@ -64,8 +64,9 @@ ENABLE_TESTING()
 
 ## Search Project Directories for CPP Files
 FILE(GLOB Algorithms_SRC		CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+FILE(GLOB Drivers_SRC		    CONFIGURE_DEPENDS  "src/drivers/*.cpp")
 FILE(GLOB Interfaces_SRC		CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
-FILE(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
+## FILE(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
 FILE(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
 FILE(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
 FILE(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
@@ -78,6 +79,7 @@ FILE(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
 								 ${Util_SRC}
 								 ${Algorithms_SRC}
+                                 ${Drivers_SRC}
 								 ${Interfaces_SRC}
 								 ${States_SRC}
 								 ${Vision_SRC}
@@ -100,7 +102,6 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
                                                 Threads::Threads
 												Eigen3::Eigen
 												${OpenCV_LIBS}
-                                                #Boost::filesystem
     )
 
 INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} RUNTIME DESTINATION bin )
