@@ -1,18 +1,23 @@
 /******************************************************************************
- * @brief
- *
- * @file StuckState.cpp
+ * @brief 
+ * 
+ * @file StuckState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0716
- *
+ * @date 07-17-2023
+ * 
  * @copyright Copyright MRDT 2023 - All Rights Reserved
+******************************************************************************/
+
+/******************************************************************************
+ * @brief Stuck State
+ *
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 07-17-2023
  ******************************************************************************/
-
-#include "./StateMachine.hpp"
-
 struct StuckState : sc::simple_state<StuckState, StateMachine>
 {
-        StuckState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Stuck\n"; }
+        StuckState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Stuck"; }
 
         typedef mpl::list<sc::custom_reaction<Stuck_AbortTransition>, sc::custom_reaction<Stuck_ReverseTransition>> reactions;
 
@@ -23,10 +28,10 @@ struct StuckState : sc::simple_state<StuckState, StateMachine>
 
 struct Stuck_AbortTransition : sc::event<Stuck_AbortTransition>
 {
-        Stuck_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Stuck (Abort)\n"; }
+        Stuck_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Stuck (Abort)"; }
 };
 
 struct Stuck_ReverseTransition : sc::event<Stuck_ReverseTransition>
 {
-        Stuck_ReverseTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Stuck (Reverse)\n"; }
+        Stuck_ReverseTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Stuck (Reverse)"; }
 };

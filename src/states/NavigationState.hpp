@@ -1,18 +1,23 @@
 /******************************************************************************
- * @brief
- *
- * @file NavigationState.cpp
+ * @brief 
+ * 
+ * @file NavigationState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0716
- *
+ * @date 07-17-2023
+ * 
  * @copyright Copyright MRDT 2023 - All Rights Reserved
+******************************************************************************/
+
+/******************************************************************************
+ * @brief Navigation State
+ *
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 07-17-2023
  ******************************************************************************/
-
-#include "./StateMachine.hpp"
-
 struct NavigationState : sc::simple_state<NavigationState, StateMachine>
 {
-        NavigationState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Navigation\n"; }
+        NavigationState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Navigation"; }
 
         typedef mpl::list<sc::custom_reaction<Navigation_NewWaypointTransition>,
                           sc::custom_reaction<Navigation_AbortTransition>,
@@ -55,30 +60,30 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
 
 struct Navigation_NewWaypointTransition : sc::event<Navigation_NewWaypointTransition>
 {
-        Navigation_NewWaypointTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (New Waypoint)\n"; }
+        Navigation_NewWaypointTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (New Waypoint)"; }
 };
 
 struct Navigation_AbortTransition : sc::event<Navigation_AbortTransition>
 {
-        Navigation_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Abort)\n"; }
+        Navigation_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Abort)"; }
 };
 
 struct Navigation_StuckTransition : sc::event<Navigation_StuckTransition>
 {
-        Navigation_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Stuck)\n"; }
+        Navigation_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Stuck)"; }
 };
 
 struct Navigation_ReachedGPSTransition : sc::event<Navigation_ReachedGPSTransition>
 {
-        Navigation_ReachedGPSTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Reached GPS)\n"; }
+        Navigation_ReachedGPSTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Reached GPS)"; }
 };
 
 struct Navigation_SeenTagTransition : sc::event<Navigation_SeenTagTransition>
 {
-        Navigation_SeenTagTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Seen Tag)\n"; }
+        Navigation_SeenTagTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Seen Tag)"; }
 };
 
 struct Navigation_ObstacleAvoidanceTransition : sc::event<Navigation_ObstacleAvoidanceTransition>
 {
-        Navigation_ObstacleAvoidanceTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Obstacle Avoidance)\n"; }
+        Navigation_ObstacleAvoidanceTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Navigation (Obstacle Avoidance)"; }
 };

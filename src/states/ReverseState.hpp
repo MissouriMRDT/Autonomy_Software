@@ -1,18 +1,23 @@
 /******************************************************************************
- * @brief
- *
- * @file ReverseState.cpp
+ * @brief 
+ * 
+ * @file ReverseState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0716
- *
+ * @date 07-17-2023
+ * 
  * @copyright Copyright MRDT 2023 - All Rights Reserved
+******************************************************************************/
+
+/******************************************************************************
+ * @brief Reverse State
+ *
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 07-17-2023
  ******************************************************************************/
-
-#include "./StateMachine.hpp"
-
 struct ReverseState : sc::simple_state<ReverseState, StateMachine>
 {
-        ReverseState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Reverse\n"; }
+        ReverseState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Reverse"; }
 
         typedef mpl::list<sc::custom_reaction<Reverse_ContinueTransition>, sc::custom_reaction<Reverse_AbortTransition>, sc::custom_reaction<Reverse_StuckTransition>>
             reactions;
@@ -47,15 +52,15 @@ struct ReverseState : sc::simple_state<ReverseState, StateMachine>
 
 struct Reverse_ContinueTransition : sc::event<Reverse_ContinueTransition>
 {
-        Reverse_ContinueTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Continue)\n"; }
+        Reverse_ContinueTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Continue)"; }
 };
 
 struct Reverse_AbortTransition : sc::event<Reverse_AbortTransition>
 {
-        Reverse_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Abort)\n"; }
+        Reverse_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Abort)"; }
 };
 
 struct Reverse_StuckTransition : sc::event<Reverse_StuckTransition>
 {
-        Reverse_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Stuck)\n"; }
+        Reverse_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Stuck)"; }
 };
