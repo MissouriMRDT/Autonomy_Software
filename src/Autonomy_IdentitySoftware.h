@@ -2,7 +2,7 @@
  * @brief Defines the Autonomy_IdentitySoftware class.
  *
  * @file Autonomy_IdentitySoftware.h
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0620
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved

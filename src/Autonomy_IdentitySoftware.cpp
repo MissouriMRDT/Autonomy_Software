@@ -3,7 +3,7 @@
  * 		Handler for incrementing and tracking software version/build numbers.
  *
  * @file Autonomy_IdentitySoftware.cpp
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0620
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
@@ -15,7 +15,7 @@
  * @brief Construct a new Autonomy_IdentitySoftware::Autonomy_IdentitySoftware object.
  *
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0620
  ******************************************************************************/
 Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
@@ -59,7 +59,7 @@ Autonomy_IdentitySoftware::Autonomy_IdentitySoftware()
  *
  * @return std::string - The version number.
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0620
  ******************************************************************************/
 std::string Autonomy_IdentitySoftware::GetVersionNumber()
@@ -72,7 +72,7 @@ std::string Autonomy_IdentitySoftware::GetVersionNumber()
  *
  * @return std::string - The build number.
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0620
  ******************************************************************************/
 std::string Autonomy_IdentitySoftware::GetBuildNumber()
@@ -85,7 +85,7 @@ std::string Autonomy_IdentitySoftware::GetBuildNumber()
  *
  * @return std::string - The combo number.
  *
- * @author Byrdman32 (eli@byrdneststudios.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0620
  ******************************************************************************/
 std::string Autonomy_IdentitySoftware::GetVersionBuildComboNumber()
