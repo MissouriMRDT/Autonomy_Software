@@ -61,9 +61,11 @@ ENABLE_TESTING()
 ## Search Project Directories for CPP Files
 FILE(GLOB Algorithms_SRC		CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
 FILE(GLOB Interfaces_SRC		CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
+FILE(GLOB Drivers_SRC		    CONFIGURE_DEPENDS  "src/drivers/*.cpp")
 FILE(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
 FILE(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
 FILE(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
+FILE(GLOB Threads_SRC			CONFIGURE_DEPENDS  "src/threads/*.cpp")
 FILE(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
 FILE(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
 FILE(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
@@ -75,8 +77,10 @@ ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
 								 ${Util_SRC}
 								 ${Algorithms_SRC}
 								 ${Interfaces_SRC}
+                                 ${Drivers_SRC}
 								 ${States_SRC}
 								 ${Vision_SRC}
+                                 ${Threads_SRC}
 								 ${Main_SRC}
 								 ${Examples_SRC}
 								 ${Tests_SRC}
