@@ -85,7 +85,7 @@
                 "doxdocgen.generic.authorEmail": "",
                 "doxdocgen.generic.authorName": "",
                 "doxdocgen.generic.briefTemplate": "@brief {text}",
-                "doxdocgen.generic.dateFormat": "YYYY-MMDD",
+                "doxdocgen.generic.dateFormat": "MM-DD-YYYY",
                 "doxdocgen.generic.dateTemplate": "@date {date}",
                 "doxdocgen.file.copyrightTag": [
                     "@copyright Copyright MRDT {year} - All Rights Reserved"
