@@ -10,16 +10,19 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
+#include <atomic>
+#include <thread>
 
-class AutonomyThread : public std::thread
+#ifndef AUTONOMYTHREAD_H
+#define AUTONOMYTHREAD_H
+
+class AutonomyThread : public std::jthread
 {
     private:
         // Define interface member object and variables.
 
     public:
         // Define interface methods.
-        bool StartThread();
-        bool StopThread();
-        bool RestartThread();
-        void Run();
 };
+
+#endif
