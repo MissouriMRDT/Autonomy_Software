@@ -11,11 +11,15 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-class AutonomyThread
+class AutonomyThread : public std::thread
 {
     private:
         // Define interface member object and variables.
 
     public:
         // Define interface methods.
+        bool StartThread();
+        bool StopThread();
+        bool RestartThread();
+        void Run();
 };
