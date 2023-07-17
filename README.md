@@ -14,29 +14,20 @@ Everytime a commit is made to the development branch, a GitHub Action is ran tha
 
 The Autonomy Software project is organized into different directories, each serving a specific purpose. Here's a brief overview of the directories:
 
-- **algorithms**: Contains C++ files related to the algorithms used in our rover project. These files implement the core functionality and logic necessary for autonomous navigation, perception, and decision-making.
+- **data**: Contains data files and resources used in our rover project. These files include sensor data, training data, configuration files, map data, simulation data, and log files, facilitating the development, testing, and analysis of our autonomy algorithms.
 
-- **interfaces**: Contains C++ files related to the physical systems, boards, microcontrollers, or sensors on our rover. These files handle the communication and interaction with external hardware components, ensuring seamless integration and data exchange.
+- **docs**: Contains documentation files and resources for our rover project. These files provide comprehensive and accessible documentation to guide developers, users, and contributors in understanding, configuring, and extending the autonomy software.
 
-- **states**: Contains C++ files related to the state machine code of our rover. These files define the different states and transitions that govern the rover's behavior, allowing for efficient task execution and adaptability to changing conditions.
+- **examples**: Contains example code snippets, demos, or sample implementations related to our rover project. These files showcase specific functionalities, best practices, or usage scenarios, helping us understand and leverage the capabilities of our autonomy software effectively.
 
-- **util**: Contains utility scripts and helper functions used in our rover project. These files provide various tools and functionalities to support development, debugging, and project management tasks, increasing overall efficiency and code reusability.
+- **external**: Contains external dependencies, libraries, or third-party modules used in our rover project. These files are essential for the project's functionality and are organized based on their purpose or source, ensuring proper integration and compliance with licensing requirements.
 
-- **vision**: Contains C++ files related to vision processing or computer vision algorithms used in our rover. These files enable the rover to process visual data, such as images or videos, and extract meaningful information for autonomous navigation and object recognition.
+The **src** directory serves as the main source code directory and contains the algorithms, interfaces, states, util, vision, and other folders related to the main codebase. 
 
 - **tests**: Contains test cases and test scripts to ensure the correctness and reliability of our autonomy software. These files help validate the functionality and performance of our code, ensuring robustness and accuracy in real-world scenarios.
 
 - **tools**: Contains files that provide utility scripts, development tools, or miscellaneous functionalities for our project. These files assist in various development tasks, such as data analysis, visualization, or simulation, enhancing the overall development experience.
 
-- **external**: Contains external dependencies, libraries, or third-party modules used in our rover project. These files are essential for the project's functionality and are organized based on their purpose or source, ensuring proper integration and compliance with licensing requirements.
-
-- **examples**: Contains example code snippets, demos, or sample implementations related to our rover project. These files showcase specific functionalities, best practices, or usage scenarios, helping us understand and leverage the capabilities of our autonomy software effectively.
-
-- **docs**: Contains documentation files and resources for our rover project. These files provide comprehensive and accessible documentation to guide developers, users, and contributors in understanding, configuring, and extending the autonomy software.
-
-- **data**: Contains data files and resources used in our rover project. These files include sensor data, training data, configuration files, map data, simulation data, and log files, facilitating the development, testing, and analysis of our autonomy algorithms.
-
-The **src** directory serves as the main source code directory and contains the algorithms, interfaces, states, util, and vision directories mentioned above.
 
 ## Getting Started
 
