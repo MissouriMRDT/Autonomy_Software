@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../examples/OpenCV/TagGenerator.hpp"
+#include "interfaces/AutonomyThread.h"
 
 /******************************************************************************
  * @brief Autonomy main function.
