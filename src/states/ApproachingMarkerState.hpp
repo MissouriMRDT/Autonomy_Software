@@ -1,18 +1,23 @@
 /******************************************************************************
- * @brief
- *
- * @file ApproachingMarkerState.cpp
+ * @brief 
+ * 
+ * @file ApproachingMarkerState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0716
- *
+ * @date 07-17-2023
+ * 
  * @copyright Copyright MRDT 2023 - All Rights Reserved
+******************************************************************************/
+
+/******************************************************************************
+ * @brief Approaching Marker State
+ *
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 07-17-2023
  ******************************************************************************/
-
-#include "./StateMachine.hpp"
-
 struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMachine>
 {
-        ApproachingMarkerState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Approaching Marker\n"; }
+        ApproachingMarkerState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Approaching Marker"; }
 
         typedef mpl::list<sc::custom_reaction<ApproachingMarker_MarkerLostTransition>,
                           sc::custom_reaction<ApproachingMarker_AbortTransition>,
@@ -28,15 +33,15 @@ struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMa
 
 struct ApproachingMarker_MarkerLostTransition : sc::event<ApproachingMarker_MarkerLostTransition>
 {
-        ApproachingMarker_MarkerLostTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Marker Lost)\n"; }
+        ApproachingMarker_MarkerLostTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Marker Lost)"; }
 };
 
 struct ApproachingMarker_AbortTransition : sc::event<ApproachingMarker_AbortTransition>
 {
-        ApproachingMarker_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Abort)\n"; }
+        ApproachingMarker_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Abort)"; }
 };
 
 struct ApproachingMarker_ReachedMarkerTransition : sc::event<ApproachingMarker_ReachedMarkerTransition>
 {
-        ApproachingMarker_ReachedMarkerTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Reached Marker)\n"; }
+        ApproachingMarker_ReachedMarkerTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Reached Marker)"; }
 };
