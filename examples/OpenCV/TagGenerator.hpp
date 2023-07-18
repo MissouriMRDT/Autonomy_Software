@@ -3,7 +3,7 @@
  *
  * @file TagGenerator.hpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 07-09-2023
+ * @date 2023-07-09
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -18,7 +18,7 @@
  * @param sMarker - The id of the marker to generate
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 07-09-2023
+ * @date 2023-07-09
  ******************************************************************************/
 void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, unsigned short sMarker)
 {
