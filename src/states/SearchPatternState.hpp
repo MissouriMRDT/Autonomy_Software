@@ -3,7 +3,7 @@
  *
  * @file SearchPatternState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -13,7 +13,7 @@
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
 {
@@ -42,7 +42,7 @@ struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SeachPattern_GateSeenTransition : sc::event<SeachPattern_GateSeenTransition>
 {
@@ -54,7 +54,7 @@ struct SeachPattern_GateSeenTransition : sc::event<SeachPattern_GateSeenTransiti
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SeachPattern_ObstacleAvoidanceTransition : sc::event<SeachPattern_ObstacleAvoidanceTransition>
 {
@@ -66,7 +66,7 @@ struct SeachPattern_ObstacleAvoidanceTransition : sc::event<SeachPattern_Obstacl
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SeachPattern_MarkerSeenTransition : sc::event<SeachPattern_MarkerSeenTransition>
 {
@@ -78,7 +78,7 @@ struct SeachPattern_MarkerSeenTransition : sc::event<SeachPattern_MarkerSeenTran
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
 {
@@ -90,7 +90,7 @@ struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SeachPattern_StuckTransition : sc::event<SeachPattern_StuckTransition>
 {

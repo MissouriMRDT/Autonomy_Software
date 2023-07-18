@@ -3,7 +3,7 @@
  *
  * @file StateMachine.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -28,7 +28,7 @@ namespace mpl = boost::mpl;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct IdleState;
 struct NavigationState;
@@ -45,7 +45,7 @@ struct StuckState;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct StateMachine : sc::state_machine<StateMachine, IdleState>
 {
@@ -57,7 +57,7 @@ struct StateMachine : sc::state_machine<StateMachine, IdleState>
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct Idle_AbortTransition;
 struct Idle_NavigatingTransition;
@@ -70,7 +70,7 @@ struct Idle_ReverseTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct Navigation_NewWaypointTransition;
 struct Navigation_AbortTransition;
@@ -86,7 +86,7 @@ struct Navigation_ObstacleAvoidanceTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct SeachPattern_GateSeenTransition;
 struct SeachPattern_ObstacleAvoidanceTransition;
@@ -101,7 +101,7 @@ struct SeachPattern_StuckTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct Avoidance_EndAvoidanceTransition;
 struct Avoidance_AbortTransition;
@@ -114,7 +114,7 @@ struct Avoidance_StuckTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct ApproachingMarker_MarkerLostTransition;
 struct ApproachingMarker_AbortTransition;
@@ -127,7 +127,7 @@ struct ApproachingMarker_ReachedMarkerTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct ApproachingGate_MarkerLostTransition;
 struct ApproachingGate_AbortTransition;
@@ -140,7 +140,7 @@ struct ApproachingGate_ReachedMarkerTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct Abort_RestartTransition;
 struct Abort_ExitTransition;
@@ -152,7 +152,7 @@ struct Abort_ExitTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct Reverse_ContinueTransition;
 struct Reverse_AbortTransition;
@@ -165,7 +165,7 @@ struct Reverse_StuckTransition;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct Stuck_AbortTransition;
 struct Stuck_ReverseTransition;

@@ -3,7 +3,7 @@
  *
  * @file AbortState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -14,7 +14,7 @@
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 07-17-2023
+ * @date 2023-07-17
  ******************************************************************************/
 struct AbortState : sc::simple_state<AbortState, StateMachine>
 {
