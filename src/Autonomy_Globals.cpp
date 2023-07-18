@@ -2,8 +2,8 @@
  * @brief Sets up functions and classes used project wide.
  *
  * @file Autonomy_Globals.cpp
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0620
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -17,8 +17,8 @@ plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
  * @brief Sets up project wide logger.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0620
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-06-20
  ******************************************************************************/
 void InitializeAutonomyLoggers()
 {
