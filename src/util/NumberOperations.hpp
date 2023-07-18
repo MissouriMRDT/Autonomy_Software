@@ -3,8 +3,8 @@
  * 		the numops namespace.
  *
  * @file NumberOperations.hpp
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0620
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -20,7 +20,7 @@
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0706
+ * @date 2023-07-06
  ******************************************************************************/
 namespace numops
 {
@@ -33,8 +33,8 @@ namespace numops
      * @param tMax - Maximum value quantity.
      * @return T - The clamped value.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2023-0620
+     * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+     * @date 2023-06-20
      ******************************************************************************/
     template<typename T>
     T Clamp(T tValue, T tMin, T tMax)
