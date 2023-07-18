@@ -3,7 +3,7 @@
  *
  * @file MultimediaBoard.h
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0620
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
