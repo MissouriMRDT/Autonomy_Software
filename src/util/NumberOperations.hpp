@@ -4,7 +4,7 @@
  *
  * @file NumberOperations.hpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 06-20-2023
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -20,7 +20,7 @@
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 07-06-2023
+ * @date 2023-07-06
  ******************************************************************************/
 namespace numops
 {
@@ -34,7 +34,7 @@ namespace numops
      * @return T - The clamped value.
      *
      * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
-     * @date 06-20-2023
+     * @date 2023-06-20
      ******************************************************************************/
     template<typename T>
     T Clamp(T tValue, T tMin, T tMax)
