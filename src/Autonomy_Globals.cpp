@@ -3,7 +3,7 @@
  *
  * @file Autonomy_Globals.cpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -18,7 +18,7 @@ plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 void InitializeAutonomyLoggers()
 {

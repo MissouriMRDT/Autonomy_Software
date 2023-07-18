@@ -4,7 +4,7 @@
  *
  * @file DriveBoard.h
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0618
+ * @date 06-18-2023
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
