@@ -3,7 +3,7 @@
  *
  * @file NavigationBoard.cpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -17,7 +17,7 @@
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 NavigationBoard::NavigationBoard()
 {
@@ -38,7 +38,7 @@ NavigationBoard::NavigationBoard()
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 NavigationBoard::~NavigationBoard() {}
 
@@ -48,7 +48,7 @@ NavigationBoard::~NavigationBoard() {}
  * @param packet - The special nav board packet containing IMU data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
 {
@@ -65,7 +65,7 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
  * @param packet - The special nav board packet containing GPS data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 {
@@ -84,7 +84,7 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
  * @return double - The Roll, Pitch, or Heading data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
 {
@@ -108,7 +108,7 @@ double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) con
  * @return NavBoardPacket_GPS - Struct storing GPS data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 06-20-2023
  ******************************************************************************/
 NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
 {
