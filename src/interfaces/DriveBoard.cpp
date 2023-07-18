@@ -4,7 +4,7 @@
  *
  * @file DriveBoard.cpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 06-18-2023
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -18,7 +18,7 @@
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 06-18-2023
  ******************************************************************************/
 DriveBoard::DriveBoard()
 {
@@ -31,7 +31,7 @@ DriveBoard::DriveBoard()
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 06-18-2023
  ******************************************************************************/
 DriveBoard::~DriveBoard() {}
 
@@ -44,7 +44,7 @@ DriveBoard::~DriveBoard() {}
  * @return std::vector<int> - 1D vector with two values. (left power, right power)
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 06-18-2023
  ******************************************************************************/
 std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
 {
@@ -75,7 +75,7 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
  * @param nRightTarget - Right drive speed (-1 to 1)
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 06-18-2023
  ******************************************************************************/
 void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
 
@@ -84,6 +84,6 @@ void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 06-18-2023
  ******************************************************************************/
 void DriveBoard::SendStop() {}
