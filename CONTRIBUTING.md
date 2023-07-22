@@ -103,9 +103,9 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - String    > `sz` > Example: `string szExampleString`
 - Pointer   > `p`  > Example: `string* pExamplePointer`
 - Enum      > `e`  > Example: `ExampleEnum eExampleUseOfEnum`
-- Time      > `tm`  > Example: `time_t tmExampleUseOfTime`
-- Tuple      > `tp`  > Example: `tuple tpExampleUseOfTuple`
-- Thread      > `th`  > Example: `jthread thExampleUseOfThread`
+- Time      > `tm` > Example: `time_t tmExampleUseOfTime`
+- Tuple     > `tp` > Example: `tuple tpExampleUseOfTuple`
+- Thread    > `th` > Example: `jthread thExampleUseOfThread`
 
 #### External Types
 - OpenCV > `cv`  > Example: `bool bExampleBoolean`
