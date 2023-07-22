@@ -108,7 +108,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Thread    > `th` > Example: `jthread thExampleUseOfThread`
 
 #### External Types
-- OpenCV > `cv`  > Example: `bool bExampleBoolean`
+- OpenCV > `cv`  > Example: `cv::Mat cvExampleMat`
 - Boost:
     - State Chart > `sc`  > Example: `sc::simple_state<IdleState, StateMachine>`
 
