@@ -2,7 +2,7 @@
 <p>
 ~Doxygen flag/marks~
 
-\page <name> Contributing Guide
+\page CONTRIBUTING Contributing Guide
 </p>
 </details>
 
