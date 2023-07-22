@@ -35,6 +35,7 @@ class AutonomyThread
          ******************************************************************************/
         void RunThread(std::stop_token& sToken)
         {
+            std::cout << sToken.stop_requested() << std::endl;
             while (!sToken.stop_requested())
             {
                 // Call method containing user code.
