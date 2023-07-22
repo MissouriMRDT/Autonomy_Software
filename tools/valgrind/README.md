@@ -1,3 +1,11 @@
+<details><summary></summary>
+<p>
+~Doxygen flag/marks~
+
+\dir tools/valgrind
+</p>
+</details>
+
 # Valgrind Leak Suppression and .supp Files
 
 This directory contains suppression files for the Valgrind memory leak detection tool. These suppression files play a crucial role in ignoring leaks that are outside our control, improving the debugging process and focusing on our project-specific memory issues.
