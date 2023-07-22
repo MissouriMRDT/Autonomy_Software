@@ -173,8 +173,8 @@ int RunExample()
     ThreadedPrimeCalculator4.SetPrimeCount(500);
     ThreadedPrimeCalculator4.Start();
 
-    // Calc 5.
-    ThreadedPrimeCalculator5.SetPrimeCount(100000);
+    // Calc 5. Example of a thread that takes to long.
+    ThreadedPrimeCalculator5.SetPrimeCount(99999999);
     ThreadedPrimeCalculator5.Start();
 
     // Wait for threads to finish.
@@ -182,6 +182,8 @@ int RunExample()
     ThreadedPrimeCalculator2.Join();
     ThreadedPrimeCalculator3.Join();
     ThreadedPrimeCalculator4.Join();
+    // This thread will take took long, stop it prematurely.
+    ThreadedPrimeCalculator5.Stop();
     ThreadedPrimeCalculator5.Join();
 
     // Print length of calculated primes vectors.
