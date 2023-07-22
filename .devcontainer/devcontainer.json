@@ -9,12 +9,12 @@
         "-e DISPLAY", // Makes DISPLAY environment variable available in the container.
         // "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-16",
+    // "image": "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-16",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15",
-    // "build": {
-    // "dockerfile": "Dockerfile_Ubuntu"
-    // "dockerfile": "Dockerfile_JetPack"
-    // },
+    "build": {
+        "dockerfile": "Dockerfile_Ubuntu"
+        // "dockerfile": "Dockerfile_JetPack"
+    },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
