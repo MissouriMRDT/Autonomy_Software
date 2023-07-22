@@ -1,6 +1,6 @@
 ### Autonomy Specific ###
 # FileSystem
-build/
+*build*/
 .vscode/
 
 # Compiled Program
