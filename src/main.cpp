@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include "../examples/OpenCV/TagGenerator.hpp"
-#include "interfaces/AutonomyThread.h"
+#include "../examples/threading/PrimeNumbers.hpp"
 
 /******************************************************************************
  * @brief Autonomy main function.
@@ -23,6 +23,9 @@ int main()
 {
     // This leaks memory when the generateImageMarker function is called lol. Damn OpenCV, never knew it was so bad.
     GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
+
+    // Run threading example.
+    RunExample();
 
     return 0;
 }
