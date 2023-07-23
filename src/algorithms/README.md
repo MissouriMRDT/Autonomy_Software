@@ -1,9 +1,4 @@
-<details><summary></summary></details>
-<p>
-~Doxygen flag/marks~
-  
 \dir src/algorithms
-</p>
 
 # Algorithms Directory
 

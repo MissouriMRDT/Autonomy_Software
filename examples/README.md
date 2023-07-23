@@ -1,9 +1,4 @@
-<details><summary></summary></details>
-<p>
-~Doxygen flag/marks~
-  
 \dir examples
-</p>
 
 # Examples Directory
 

@@ -1,9 +1,4 @@
-<details><summary></summary></details>
-<p>
-~Doxygen flag/marks~
-
 \dir tools/valgrind
-</p>
 
 # Valgrind Leak Suppression and .supp Files
 
