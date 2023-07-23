@@ -9,7 +9,7 @@ A good bug report shouldn't leave others needing to chase you down for more info
 
 - Make sure that you are using the latest version.
 - Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://missourimrdt.github.io/Autonomy_Software/)).
-- To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/MissouriMRDT/Autonomy_Softwareissues).
+- To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/MissouriMRDT/Autonomy_Software/issues).
 - Collect information about the bug:
   - Backtrace
   - OS, Platform and Version
