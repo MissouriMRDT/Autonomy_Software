@@ -11,8 +11,8 @@
 #include <chrono>
 #include <ctime>
 
-#ifndef NAVIGATIONBOARD_H
-#define NAVIGATIONBOARD_H
+#ifndef NAVIGATION_BOARD_H
+#define NAVIGATION_BOARD_H
 
 struct NavBoardPacket_IMU
 {
@@ -95,4 +95,4 @@ class NavigationBoard
         NavBoardPacket_GPS GetSData(NavigationBoardPacketCoordinateComponents eKey) const;
 };
 
-#endif    // NAVIGATIONBOARD_H
+#endif    // NAVIGATION_BOARD_H
