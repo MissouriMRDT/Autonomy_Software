@@ -2,7 +2,7 @@
  * @brief This interface defines the base functions needed to multi-thread a
  *      class in Autonomy_Software. Some methods contain default implementations
  *      and others are pure virtual methods that need to be implemented by the
- *      inheriter.
+ *      inheritor.
  *
  * @file AutonomyThread.h
  * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -19,7 +19,11 @@
 class AutonomyThread
 {
     private:
-        // Declare interface class pure virtual functions. (These must be overriden be inheriter.)
+        // Declare interface class private member variables.
+        std::jthread m_tThread;
+        bool m_bThreadStarted = false;
+
+        // Declare interface class pure virtual functions. (These must be overriden be inheritor.)
         virtual void RunCode() = 0;
 
         // Declare and define private interface methods.
@@ -35,22 +39,37 @@ class AutonomyThread
          ******************************************************************************/
         void RunThread(std::stop_token& sToken)
         {
-            std::cout << sToken.stop_requested() << std::endl;
             while (!sToken.stop_requested())
             {
                 // Call method containing user code.
-                // this->RunCode();
+                this->RunCode();
             }
         }
 
-        // Declare interface class private member variables.
-        std::jthread m_tThread;
-
     public:
-        // Declare interface class virtual functions. (These can be overidden, but not required.)
-        virtual ~AutonomyThread() = default;
+        /******************************************************************************
+         * @brief Destroy the Autonomy Thread object. If the parent object or main thread
+         *      is destroyed or exited, a race condition will occur. Stopping and joining
+         *      the thread here insures that the main program can't exit if the user
+         *      forgot to stop and join the thread.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0723
+         ******************************************************************************/
+        ~AutonomyThread()
+        {
+            // Check if thread is still started.
+            if (m_bThreadStarted)
+            {
+                // Print warning log.
 
-        // Declare and define other public interface methods.
+                // Rejoin thread before destroying this object.
+                RequestStop();
+                Join();
+            }
+        }
+
         /******************************************************************************
          * @brief When this method is called, is starts a new thread and runs
          *
@@ -60,21 +79,43 @@ class AutonomyThread
          ******************************************************************************/
         void Start()
         {
-            // Start new thread that runs the RunThread method.
-            m_tThread = std::jthread([this](std::stop_token sToken) { this->RunThread(sToken); });
+            // Check if the thread has already been started.
+            if (!m_bThreadStarted)
+            {
+                // Start new thread that runs the RunThread method.
+                m_tThread = std::jthread([this](std::stop_token sToken) { this->RunThread(sToken); });
+
+                // Set toggle.
+                m_bThreadStarted = true;
+
+                // Print debug log.
+            }
         }
 
         /******************************************************************************
-         * @brief Signals thread to stop executing user code, terminate, and join.
+         * @brief Signals thread to stop executing user code, terminate. DOES NOT JOIN.
+         *      This method will not force the thread to exit, if the user code is not
+         *      written properly and contains WHILE statement or any other long-executing
+         *      or blocking code, then the thread will not exit until the next iteration.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        void Stop()
+        void RequestStop()
         {
-            // Signal thread to stop.
-            m_tThread.request_stop();
+            // Make sure thread has been started.
+            if (m_bThreadStarted)
+            {
+                // Signal thread to stop.
+                m_tThread.request_stop();
+
+                // Check if a stop was requested while thread is still running.
+                if (!m_tThread.joinable())
+                {
+                    // Print info log.
+                }
+            }
         }
 
         /******************************************************************************
@@ -87,8 +128,15 @@ class AutonomyThread
          ******************************************************************************/
         void Join()
         {
-            // Wait for thread to finish and then join.
-            m_tThread.join();
+            // Make sure thread has been started.
+            if (m_bThreadStarted)
+            {
+                // Wait for thread to finish and then join.
+                m_tThread.join();
+
+                // Once thread has joined, reset start toggle.
+                m_bThreadStarted = false;
+            }
         }
 
         /******************************************************************************
@@ -103,14 +151,23 @@ class AutonomyThread
          ******************************************************************************/
         bool Joinable()
         {
-            // Check if the thread code is finished executing.
-            return m_tThread.joinable();
+            // Make sure thread has been started.
+            if (m_bThreadStarted)
+            {
+                // Check if the thread code is finished executing.
+                return m_tThread.joinable();
+            }
+            else
+            {
+                return false;
+            }
         }
 
         /******************************************************************************
          * @brief Detach this thread from its caller, allowing it to run completely
          *      independant from the main program. Once detached, this object will no
-         *      longer be able to reference its internal thread member variable.
+         *      longer be able to reference its internal thread member variable and the
+         *      thread will not be stoppable or joinable from this object.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -120,6 +177,9 @@ class AutonomyThread
         {
             // Detach the jthread from its caller.
             m_tThread.detach();
+
+            // Since thread is detached, we are no longer in control. Reset start toggle so we can start another thread.
+            m_bThreadStarted = false;
         }
 };
 
