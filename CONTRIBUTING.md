@@ -1,9 +1,4 @@
-<details><summary></summary></details>
-<p>
-~Doxygen flag/marks~
-
 \page CONTRIBUTING Contributing Guide
-</p>
 
 # Contributing to Autonomy Software
 ## Contributing
