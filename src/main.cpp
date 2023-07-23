@@ -8,7 +8,12 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../examples/OpenCV/TagGenerator.hpp"
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "./AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Autonomy main function.
@@ -20,8 +25,25 @@
  ******************************************************************************/
 int main()
 {
-    // This leaks memory when the generateImageMarker function is called lol. Damn OpenCV, never knew it was so bad.
-    GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, 1);
+    // Print Software Header
+    std::ifstream fHeaderText("../src/util/ASCII/v24.txt");
+    std::string szHeaderText;
+    if (fHeaderText)
+    {
+        std::ostringstream pHeaderText;
+        pHeaderText << fHeaderText.rdbuf();
+        szHeaderText = pHeaderText.str();
+    }
+
+    std::cout << szHeaderText << std::endl;
+    std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
+
+    // Initialize Loggers
+    InitializeAutonomyLoggers();
+
+    // TODO: Initialize Threads
+
+    // TODO: Initialize RoveComm
 
     return 0;
 }
