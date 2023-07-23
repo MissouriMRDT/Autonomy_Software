@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../examples/OpenCV/TagGenerator.hpp"
+#include "../examples/opencv/TagGenerator.hpp"
 #include "../examples/threading/PrimeNumbers.hpp"
 
 /******************************************************************************
