@@ -29,12 +29,6 @@ SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 SET(CPACK_GENERATOR "SH")
 
 ## Fetch Dependencies
-FETCHCONTENT_DECLARE(plog                                                           # C++ Logging Library
-        GIT_REPOSITORY https://github.com/SergiusTheBest/plog.git                   # Source Code URL
-        GIT_TAG        f47149410a4c927643148b96799f28b2d80d451b                     # Version 1.1.9
-        GIT_SHALLOW    TRUE                                                         # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-        )
 FETCHCONTENT_DECLARE(googletest                                                     # Google C++ Testing Framework
         GIT_REPOSITORY https://github.com/google/googletest.git                     # Source Code URL
         GIT_TAG        b796f7d44681514f58a683a3a71ff17c94edb0c1                     # Version 1.13.0
@@ -43,14 +37,13 @@ FETCHCONTENT_DECLARE(googletest                                                 
         )
 
 ## Make Dependencies Available
-FETCHCONTENT_MAKEAVAILABLE(plog googletest)
+FETCHCONTENT_MAKEAVAILABLE(googletest)
 
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
 
-## Find PLOG
-INCLUDE_DIRECTORIES(${plog_SOURCE_DIR}/include)
-ADD_COMPILE_DEFINITIONS(PLOG_ENABLE_WCHAR_INPUT)
+## Find spdlog
+FIND_PACKAGE(spdlog REQUIRED)
 
 ## Find Eigen3.
 FIND_PACKAGE(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -96,7 +89,7 @@ ENDIF()
 
 ## Link Libraries to Executable
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
-                                                plog::plog
+                                                spdlog::spdlog
                                                 Threads::Threads
 												Eigen3::Eigen
 												${OpenCV_LIBS}
