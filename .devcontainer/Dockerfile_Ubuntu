@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     yasm libatlas-base-dev gfortran libpq-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev libavutil-dev libpostproc-dev \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev tzdata \
-    libboost-all-dev valgrind doxygen graphviz libspdlog-dev && \
+    libboost-all-dev valgrind doxygen graphviz && \
     rm -rf /var/lib/apt/lists/*
 
 # Install CMake
@@ -32,8 +32,6 @@ WORKDIR /opt
 
 # Install OpenCV from Source
 ARG OPENCV_VERSION="4.8.0"
-
-# Install OpenCV from Source
 RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
     git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git && \
     mkdir opencv/build && cd opencv/build && \
@@ -63,6 +61,28 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     make install && ldconfig && \
     cd ../.. && \
     rm -rf opencv_contrib && rm -rf opencv
+
+# Install Quill from Source
+ARG QUILL_VERSION="v3.2.0"
+RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git && \
+    mkdir quill/build && \
+    cd quill/build && \
+    cmake .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf quill
+
+# Install Google Test from Source
+ARG GOOGLE_TEST_VERSION="v1.13.0"
+RUN git clone --depth 1 --branch ${GOOGLE_TEST_VERSION} https://github.com/google/googletest.git && \
+    mkdir googletest/build && \
+    cd googletest/build && \
+    cmake .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf googletest
 
 # Set Linux Environment Variable for Make Threads. Runs everytime a terminal is opened.
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
