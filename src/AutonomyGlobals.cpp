@@ -10,9 +10,6 @@
 
 #include "AutonomyGlobals.h"
 
-plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender("file.log", 1000000000, 10);
-plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;
-
 /******************************************************************************
  * @brief Sets up project wide logger.
  *
@@ -34,15 +31,6 @@ void InitializeAutonomyLoggers()
     std::string szFilenameWithExtension;
     szFilenameWithExtension = cCurrentTime;
     szFilenameWithExtension += ".log";
-
-    // Assign the file logger the file name that was just created
-    g_pFileAppender.setFileName(szFilenameWithExtension.c_str());
-
-    // Initialize file logger
-    plog::init<AutonomyLogger::AL_FileLogger>(plog::debug, &g_pFileAppender);
-
-    // Initialize console logger so that it also sends to the file logger
-    plog::init<AutonomyLogger::AL_ConsoleLogger>(plog::debug, &g_pConsoleAppender).addAppender(&g_pFileAppender);
 }
 
 IdentitySoftware g_pIdentifySoftware;
