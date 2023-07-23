@@ -18,7 +18,8 @@ class PrimeCalculatorThread : public AutonomyThread
     private:
         // Declare and define private methods and variables.
         std::vector<int> m_vThreadPrimes;
-        int m_nCount = 10;
+        int m_nCount        = 10;
+        int m_nCurrentCount = 2;
 
         /******************************************************************************
          * @brief Check if a number if prime.
@@ -50,33 +51,25 @@ class PrimeCalculatorThread : public AutonomyThread
         /******************************************************************************
          * @brief Calculate 'count' number of primes.
          *
-         * @param count - The number of primes to calculate.
-         * @return std::vector<int> - The resulting primes.
+         * @param nCount - The number of primes to calculate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        std::vector<int> calculatePrimes(int& nCount)
+        void calculatePrimes(int& nCount)
         {
-            // Create instance variables.
-            std::vector<int> primes;
-            int num = 2;
-
             // Loop until we have the required amount of primes.
-            while (int(primes.size()) < nCount)
+            if (int(m_vThreadPrimes.size()) < nCount)
             {
                 // Check if our current number is a prime.
-                if (isPrime(num))
+                if (isPrime(m_nCurrentCount))
                 {
-                    primes.push_back(num);
+                    m_vThreadPrimes.push_back(m_nCurrentCount);
                 }
 
                 // Increment counter.
-                ++num;
+                ++m_nCurrentCount;
             }
-
-            // Return result.
-            return primes;
         }
 
         /******************************************************************************
@@ -89,21 +82,14 @@ class PrimeCalculatorThread : public AutonomyThread
         void RunCode()
         {
             // Change this to calculate a different number of prime numbers.
-            std::vector<int> primes = calculatePrimes(m_nCount);
+            calculatePrimes(m_nCount);
 
-            // // Print primes.
-            // std::cout << "First " << m_nCount << " prime numbers are: ";
-            // for (int prime : primes)
-            // {
-            //     std::cout << prime << " ";
-            // }
-            // std::cout << std::endl;
-
-            // Store primes in class member variable.
-            m_vThreadPrimes = primes;
-
-            // Call thread stop.
-            this->Stop();
+            // Check if we have reached the desired number of primes.
+            if (int(GetPrimes().size()) >= GetDesiredPrimeAmount())
+            {
+                // Call thread stop.
+                this->RequestStop();
+            }
         }
 
     public:
@@ -128,7 +114,7 @@ class PrimeCalculatorThread : public AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        int GetPrimeCounter() { return m_nCount; }
+        int GetDesiredPrimeAmount() { return m_nCount; }
 
         /******************************************************************************
          * @brief Accessor for the Primes private member.
@@ -151,28 +137,28 @@ class PrimeCalculatorThread : public AutonomyThread
  ******************************************************************************/
 int RunExample()
 {
+    // Declare prime calculator threads.
     PrimeCalculatorThread ThreadedPrimeCalculator1;
     PrimeCalculatorThread ThreadedPrimeCalculator2;
     PrimeCalculatorThread ThreadedPrimeCalculator3;
     PrimeCalculatorThread ThreadedPrimeCalculator4;
     PrimeCalculatorThread ThreadedPrimeCalculator5;
 
+    /******************************************************************************
+     * Seperate threads method.
+     ******************************************************************************/
     // Calc 1.
     ThreadedPrimeCalculator1.SetPrimeCount(5);
     ThreadedPrimeCalculator1.Start();
-
     // Calc 2.
     ThreadedPrimeCalculator2.SetPrimeCount(50);
     ThreadedPrimeCalculator2.Start();
-
     // Calc 3.
     ThreadedPrimeCalculator3.SetPrimeCount(10000);
     ThreadedPrimeCalculator3.Start();
-
     // Calc 4.
     ThreadedPrimeCalculator4.SetPrimeCount(500);
     ThreadedPrimeCalculator4.Start();
-
     // Calc 5. Example of a thread that takes to long.
     ThreadedPrimeCalculator5.SetPrimeCount(99999999);
     ThreadedPrimeCalculator5.Start();
@@ -183,10 +169,11 @@ int RunExample()
     ThreadedPrimeCalculator3.Join();
     ThreadedPrimeCalculator4.Join();
     // This thread will take took long, stop it prematurely.
-    ThreadedPrimeCalculator5.Stop();
+    ThreadedPrimeCalculator5.RequestStop();
     ThreadedPrimeCalculator5.Join();
 
     // Print length of calculated primes vectors.
+    std::cout << "Creating seperate threads:" << std::endl;
     std::vector<int> vPrimes = ThreadedPrimeCalculator1.GetPrimes();
     std::cout << "Calculator1 Primes Length: " << vPrimes.size() << std::endl;
     vPrimes = ThreadedPrimeCalculator2.GetPrimes();
@@ -197,6 +184,14 @@ int RunExample()
     std::cout << "Calculator4 Primes Length: " << vPrimes.size() << std::endl;
     vPrimes = ThreadedPrimeCalculator5.GetPrimes();
     std::cout << "Calculator5 Primes Length: " << vPrimes.size() << std::endl;
+
+    /******************************************************************************
+     * Detacting one thread method.
+     ******************************************************************************/
+    ThreadedPrimeCalculator1.SetPrimeCount(10000);
+    ThreadedPrimeCalculator1.Start();
+    // ThreadedPrimeCalculator1.Detach();
+    // ThreadedPrimeCalculator1.Join();
 
     return 0;
 }
