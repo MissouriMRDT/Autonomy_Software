@@ -1,9 +1,10 @@
-<details><summary></summary></details>
-<details><p>
+<details>
+<p>
 ~Doxygen flag/marks~
   
 \dir data
-</p></details>
+</p>
+</details>
 
 # Data Directory
 
