@@ -23,31 +23,31 @@ jobs:
         os: [ubuntu-latest, [self-hosted, linux, ARM64]]
         container:
           [
-            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-16",
-            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15",
+            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-22",
+            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23",
           ]
         architecture: [AMD64, ARM64]
         exclude:
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-16"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-22"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-15"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-16"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-22"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-16"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-22"
             architecture: ARM64
 
     runs-on: ${{ matrix.os }}
