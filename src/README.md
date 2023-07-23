@@ -1,10 +1,9 @@
-<details><summary></summary>
+<details><summary></summary></details>
 <p>
 ~Doxygen flag/marks~
 
 \dir src
 </p>
-</details>
 
 # SRC Directory
 
