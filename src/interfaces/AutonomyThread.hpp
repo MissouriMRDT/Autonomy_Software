@@ -39,7 +39,7 @@ class AutonomyThread
             while (!sToken.stop_requested())
             {
                 // Call method containing user code.
-                this->RunCode();
+                // this->RunCode();
             }
         }
 
