@@ -63,6 +63,8 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
     m_iTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
     m_iTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
 
+    LOG_INFO(g_qSharedLogger, "Driving at: ({}, {})", m_iTargetSpeedLeft, m_iTargetSpeedRight);
+
     return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
 }
 

@@ -55,6 +55,8 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
     m_dPitch   = packet.dPitch;
     m_dRoll    = packet.dRoll;
     m_dHeading = packet.dHeading;
+
+    LOG_INFO(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
 }
 
 /******************************************************************************
@@ -71,6 +73,8 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
     m_sLocation.dLongitude = packet.dLongitude;
 
     m_tLastTime            = time(nullptr);
+
+    LOG_INFO(g_qSharedLogger, "Incoming GPS Data: ({}, {})", m_sLocation.dLatitude, m_sLocation.dLongitude);
 }
 
 /******************************************************************************
