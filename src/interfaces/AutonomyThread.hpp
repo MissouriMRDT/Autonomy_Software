@@ -57,7 +57,7 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        ~AutonomyThread()
+        virtual ~AutonomyThread()
         {
             // Check if thread is still started.
             if (m_bThreadStarted)
@@ -65,8 +65,11 @@ class AutonomyThread
                 // Print warning log.
 
                 // Rejoin thread before destroying this object.
-                RequestStop();
-                Join();
+                m_tThread.request_stop();
+                m_tThread.join();
+
+                // Reset toggle.
+                m_bThreadStarted = false;
             }
         }
 
@@ -116,6 +119,8 @@ class AutonomyThread
                     // Print info log.
                 }
             }
+            else
+            {}
         }
 
         /******************************************************************************
@@ -137,6 +142,8 @@ class AutonomyThread
                 // Once thread has joined, reset start toggle.
                 m_bThreadStarted = false;
             }
+            else
+            {}
         }
 
         /******************************************************************************
@@ -161,25 +168,6 @@ class AutonomyThread
             {
                 return false;
             }
-        }
-
-        /******************************************************************************
-         * @brief Detach this thread from its caller, allowing it to run completely
-         *      independant from the main program. Once detached, this object will no
-         *      longer be able to reference its internal thread member variable and the
-         *      thread will not be stoppable or joinable from this object.
-         *
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
-         ******************************************************************************/
-        void Detach()
-        {
-            // Detach the jthread from its caller.
-            m_tThread.detach();
-
-            // Since thread is detached, we are no longer in control. Reset start toggle so we can start another thread.
-            m_bThreadStarted = false;
         }
 };
 

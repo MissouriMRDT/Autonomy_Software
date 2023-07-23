@@ -85,7 +85,7 @@ class PrimeCalculatorThread : public AutonomyThread
             calculatePrimes(m_nCount);
 
             // Check if we have reached the desired number of primes.
-            if (int(GetPrimes().size()) >= GetDesiredPrimeAmount())
+            if (int(this->GetPrimes().size()) >= this->GetDesiredPrimeAmount())
             {
                 // Call thread stop.
                 this->RequestStop();
@@ -145,7 +145,7 @@ int RunExample()
     PrimeCalculatorThread ThreadedPrimeCalculator5;
 
     /******************************************************************************
-     * Seperate threads method.
+     * Seperate threads.
      ******************************************************************************/
     // Calc 1.
     ThreadedPrimeCalculator1.SetPrimeCount(5);
@@ -160,7 +160,7 @@ int RunExample()
     ThreadedPrimeCalculator4.SetPrimeCount(500);
     ThreadedPrimeCalculator4.Start();
     // Calc 5. Example of a thread that takes to long.
-    ThreadedPrimeCalculator5.SetPrimeCount(99999999);
+    ThreadedPrimeCalculator5.SetPrimeCount(9999999);
     ThreadedPrimeCalculator5.Start();
 
     // Wait for threads to finish.
@@ -184,14 +184,6 @@ int RunExample()
     std::cout << "Calculator4 Primes Length: " << vPrimes.size() << std::endl;
     vPrimes = ThreadedPrimeCalculator5.GetPrimes();
     std::cout << "Calculator5 Primes Length: " << vPrimes.size() << std::endl;
-
-    /******************************************************************************
-     * Detacting one thread method.
-     ******************************************************************************/
-    ThreadedPrimeCalculator1.SetPrimeCount(10000);
-    ThreadedPrimeCalculator1.Start();
-    // ThreadedPrimeCalculator1.Detach();
-    // ThreadedPrimeCalculator1.Join();
 
     return 0;
 }
