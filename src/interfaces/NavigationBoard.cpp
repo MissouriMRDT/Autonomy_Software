@@ -10,7 +10,7 @@
 
 #include "NavigationBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.
