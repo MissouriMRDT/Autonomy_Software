@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeSharedSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Ubuntu" ENABLED="true" CONFIG_NAME="Debug" TOOLCHAIN_NAME="Ubuntu - GitHub" />
+      <configuration PROFILE_NAME="JetPack" ENABLED="true" CONFIG_NAME="Debug" TOOLCHAIN_NAME="JetPack - GitHub" />
+    </configurations>
+  </component>
+</project>
