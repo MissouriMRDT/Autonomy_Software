@@ -57,6 +57,14 @@
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
                 "C_Cpp.default.cppStandard": "c++20",
+                "C_Cpp.default.includePath": [
+                    "/usr/local/include/opencv4",
+                    "/usr/local/include/opencv4/**",
+                    "/usr/local/zed/include",
+                    "/usr/local/zed/include/**",
+                    "/usr/local/cuda-11.4/include",
+                    "/usr/local/cuda-11.4/include/**"
+                ],
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": false,
                 // Format Files extension settings.
