@@ -10,7 +10,7 @@
  ******************************************************************************/
 #include "DriveBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 #include "../util/NumberOperations.hpp"
 
 /******************************************************************************

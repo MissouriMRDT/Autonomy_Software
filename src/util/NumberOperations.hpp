@@ -11,8 +11,8 @@
 
 #include <algorithm>
 
-#ifndef NUMBEROPERATIONS_H
-#define NUMBEROPERATIONS_H
+#ifndef NUMBER_OPERATIONS_H
+#define NUMBER_OPERATIONS_H
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and
@@ -43,4 +43,4 @@ namespace numops
     }
 }    // namespace numops
 
-#endif    // NUMBEROPERATIONS_H
+#endif    // NUMBER_OPERATIONS_H
