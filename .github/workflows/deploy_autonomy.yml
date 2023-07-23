@@ -23,31 +23,31 @@ jobs:
         os: [ubuntu-latest, [self-hosted, linux, ARM64]]
         container:
           [
-            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23",
-            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev2",
+            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2",
+            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3",
           ]
         architecture: [AMD64, ARM64]
         exclude:
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev2"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev2"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev2"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev2"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2"
             architecture: ARM64
 
     runs-on: ${{ matrix.os }}
