@@ -1,10 +1,4 @@
-<details><summary></summary>
-<p>
-~Doxygen flag/marks~
-  
 \dir docs
-</p>
-</details>
 
 # Docs Directory
 

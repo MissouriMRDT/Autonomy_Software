@@ -1,27 +1,6 @@
-<details><summary></summary>
-<p>
-~Doxygen flag/marks~
-
-\page <name> Contributing Guide
-</p>
-</details>
+\page CONTRIBUTING Contributing Guide
 
 # Contributing to Autonomy Software
-## Table of Contents
-
-- [Contribute](#contributing)
-  - [Reporting Bugs](#reporting-bugs)
-  - [Suggesting Enhancements](#suggesting-enhancements)
-  - [Commit Messages](#commit-messages)
-  - [Pull Requests](#pull-requests)
-- [Styleguides](#styleguides)
-  - [Variable Names](#commit-messages)
-  - [Macro Names](#macro-names)
-  - [Function Names](#function-names)
-  - [Class Names](#class-names)
-  - [Struct Names](#struct-names)
-- [Join The Project Team](#join-the-team)
-
 ## Contributing
 ### Reporting Bugs
 #### Before Submitting a Bug Report
@@ -29,7 +8,7 @@
 A good bug report shouldn't leave others needing to chase you down for more information. Therefore, we ask you to investigate carefully, collect information and describe the issue in detail in your report. Please complete the following steps in advance to help us fix any potential bug as fast as possible.
 
 - Make sure that you are using the latest version.
-- Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://missourimrdt.github.io/Autonomy_Software/).
+- Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://missourimrdt.github.io/Autonomy_Software/)).
 - To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/MissouriMRDT/Autonomy_Softwareissues).
 - Collect information about the bug:
   - Backtrace
