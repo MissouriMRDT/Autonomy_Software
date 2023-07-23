@@ -31,7 +31,7 @@ RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
 WORKDIR /opt
 
 # Install OpenCV from Source
-ARG OPENCV_VERSION="4.7.0"
+ARG OPENCV_VERSION="4.8.0"
 
 # Install OpenCV from Source
 RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
