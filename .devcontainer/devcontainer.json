@@ -52,11 +52,11 @@
                 "search.exclude": {
                     "**/docs": true
                 },
-                "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
-                "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
                 "extensions.ignoreRecommendations": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
+                "C_Cpp.default.cppStandard": "c++20",
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": false,
                 // Format Files extension settings.

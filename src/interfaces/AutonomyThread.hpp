@@ -24,7 +24,7 @@ class AutonomyThread
         bool m_bThreadStarted = false;
 
         // Declare interface class pure virtual functions. (These must be overriden be inheritor.)
-        virtual void RunCode() = 0;
+        virtual void ThreadedCode() = 0;
 
         // Declare and define private interface methods.
         /******************************************************************************
@@ -42,16 +42,16 @@ class AutonomyThread
             while (!sToken.stop_requested())
             {
                 // Call method containing user code.
-                this->RunCode();
+                this->ThreadedCode();
             }
         }
 
     public:
         /******************************************************************************
          * @brief Destroy the Autonomy Thread object. If the parent object or main thread
-         *      is destroyed or exited, a race condition will occur. Stopping and joining
-         *      the thread here insures that the main program can't exit if the user
-         *      forgot to stop and join the thread.
+         *      is destroyed or exited while this thread is still running, a race condition
+         *      will occur. Stopping and joining the thread here insures that the main
+         *      program can't exit if the user forgot to stop and join the thread.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
