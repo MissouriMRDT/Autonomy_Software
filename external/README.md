@@ -1,4 +1,5 @@
 \dir external
+
 # External Directory
 
 The **External** directory is intended to store external dependencies, libraries, or third-party modules used in the rover project. This directory focuses on organizing and managing external code or resources that are required for the project's functionality.
