@@ -28,22 +28,14 @@ SET(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 SET(CPACK_GENERATOR "SH")
 
-## Fetch Dependencies
-FETCHCONTENT_DECLARE(googletest                                                     # Google C++ Testing Framework
-        GIT_REPOSITORY https://github.com/google/googletest.git                     # Source Code URL
-        GIT_TAG        b796f7d44681514f58a683a3a71ff17c94edb0c1                     # Version 1.13.0
-        GIT_SHALLOW    TRUE                                                         # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-        )
-
-## Make Dependencies Available
-FETCHCONTENT_MAKEAVAILABLE(googletest)
-
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
 
-## Find spdlog
-FIND_PACKAGE(spdlog REQUIRED)
+## Find Quill
+FIND_PACKAGE(quill REQUIRED)
+
+## Find Google Test
+FIND_PACKAGE(GTest CONFIG REQUIRED)
 
 ## Find Eigen3.
 FIND_PACKAGE(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -89,11 +81,11 @@ ENDIF()
 
 ## Link Libraries to Executable
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
-                                                spdlog::spdlog
                                                 Threads::Threads
 												Eigen3::Eigen
+                                                quill::quill
 												${OpenCV_LIBS}
                                                 #Boost::filesystem
     )
 
-INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} RUNTIME DESTINATION bin )
+INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RUNTIME DESTINATION bin )
