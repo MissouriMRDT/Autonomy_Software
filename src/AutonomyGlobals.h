@@ -15,9 +15,7 @@
 
 #include <chrono>
 #include <ctime>
-#include <plog/Initializers/ConsoleInitializer.h>
-#include <plog/Initializers/RollingFileInitializer.h>
-#include <plog/Log.h>
+#include <iostream>
 
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
@@ -36,8 +34,8 @@ enum AutonomyLogger
     AL_ConsoleLogger
 };                                                                           // Enum to specify logging location
 
-extern plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender;        // Sends log message to file
-extern plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;    // Sends log message to file and console
+#define ONE_GIGABYTE 1073741824
+auto g_pFileLoggingAppender    = nullptr;
 
 void InitializeAutonomyLoggers();                                            // Method to set up the loggers
 
