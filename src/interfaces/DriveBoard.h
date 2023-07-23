@@ -10,8 +10,8 @@
  ******************************************************************************/
 #include <vector>
 
-#ifndef DRIVEBOARD_H
-#define DRIVEBOARD_H
+#ifndef DRIVE_BOARD_H
+#define DRIVE_BOARD_H
 
 class DriveBoard
 {
@@ -28,4 +28,4 @@ class DriveBoard
         void SendStop();
 };
 
-#endif    // DRIVEBOARD_H
+#endif    // DRIVE_BOARD_H
