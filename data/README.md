@@ -1,7 +1,6 @@
-<details>
-~Doxygen flag/marks~
-\dir data
-<details>
+<details>~Doxygen flag/marks~</details>
+<details>\dir data</details>
+
 
 # Data Directory
 
