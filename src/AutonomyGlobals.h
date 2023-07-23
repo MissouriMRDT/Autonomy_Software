@@ -16,6 +16,7 @@
 #include <chrono>
 #include <ctime>
 #include <iostream>
+#include <quill/Quill.h>
 
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
@@ -28,16 +29,11 @@ namespace constants
 }    // namespace constants
 
 // Logging:
-enum AutonomyLogger
-{
-    AL_FileLogger,
-    AL_ConsoleLogger
-};                                                                           // Enum to specify logging location
+extern quill::Logger* g_qFileLogger;
+extern quill::Logger* g_qConsoleLogger;
+extern quill::Logger* g_qSharedLogger;
 
-#define ONE_GIGABYTE 1073741824
-auto g_pFileLoggingAppender    = nullptr;
-
-void InitializeAutonomyLoggers();                                            // Method to set up the loggers
+void InitializeLoggers();    // Method to set up the loggers
 
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
