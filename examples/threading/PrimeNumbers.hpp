@@ -79,7 +79,7 @@ class PrimeCalculatorThread : public AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        void RunCode()
+        void ThreadedCode()
         {
             // Change this to calculate a different number of prime numbers.
             calculatePrimes(m_nCount);
