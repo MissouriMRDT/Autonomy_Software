@@ -1,9 +1,4 @@
-<details><summary></summary></details>
-<p>
-~Doxygen flag/marks~
-  
 \dir src/util
-</p>
 
 # Util Directory
 
