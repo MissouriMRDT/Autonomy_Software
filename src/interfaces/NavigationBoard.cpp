@@ -55,8 +55,6 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
     m_dPitch   = packet.dPitch;
     m_dRoll    = packet.dRoll;
     m_dHeading = packet.dHeading;
-
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming IMU Data: (" << m_dPitch << ", " << m_dRoll << ", " << m_dHeading << ")";
 }
 
 /******************************************************************************
@@ -73,8 +71,6 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
     m_sLocation.dLongitude = packet.dLongitude;
 
     m_tLastTime            = time(nullptr);
-
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude << ")";
 }
 
 /******************************************************************************
