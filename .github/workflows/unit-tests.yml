@@ -36,4 +36,4 @@ jobs:
           cd build
           cmake ..
           make
-          make test
+          make test --rerun-failed --output-on-failure
