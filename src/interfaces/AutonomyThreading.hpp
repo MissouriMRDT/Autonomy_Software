@@ -51,7 +51,7 @@ class AutonomyThreading
             }
 
             // Do one more iteration to get return type from user code.
-            // return void;
+            return this->ThreadedCode();
         }
 
     public:
@@ -179,7 +179,7 @@ class AutonomyThreading
          ******************************************************************************/
         void Join()
         {
-            // Make sure thread has been started.
+            // Wait for pool to finish all tasks.
             m_thPool.wait_for_tasks();
         }
 
@@ -195,7 +195,17 @@ class AutonomyThreading
          ******************************************************************************/
         bool Joinable()
         {
-            // Make sure thread has been started.
+            // Check current number of running and queued tasks.
+            if (m_thPool.get_tasks_total() <= 0)
+            {
+                // Threads are joinable.
+                return true;
+            }
+            else
+            {
+                // Threads are still running.
+                return false;
+            }
         }
 };
 
