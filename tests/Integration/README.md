@@ -2,13 +2,13 @@
 
 # Integration Tests Directory
 
-The **Integration Tests** directory is intended to store C++ files containing integration tests for the rover project. This directory focuses on ensuring the correctness and reliability of the code through systematic testing.
+The **Integration Tests** directory is intended to store C++ files containing integration tests for the Rover project. This directory focuses on ensuring the correctness and reliability of the code through systematic testing.
 
 ## Guidelines
 
 The following are the guidelines for organizing files within the **Integration Tests** directory:
 
-1. Each C++ file should contain one or more test cases or unit tests for specific functionalities, modules, or components of the rover project.
+1. Each C++ file should contain one or more test cases or unit tests for specific functionalities, modules, or components of the Rover project.
 2. Use descriptive names for the files that reflect the purpose or functionality being tested.
 3. Ensure that the test files are properly documented with comments explaining the test cases, their expected outcomes, and any relevant details.
 4. Include a README file in the **Integration Tests** directory to provide an overview of the testing framework used, instructions for running the tests, and any additional information.
@@ -22,6 +22,6 @@ Organize the test files in a way that mirrors the structure of the project's cod
 
 Remember to update this README file whenever new test files are added to the directory, providing a brief summary of each file's purpose and functionality.
 
-Regularly run the tests to identify and address any potential issues or bugs, ensuring the overall quality and reliability of the rover project.
+Regularly run the tests to identify and address any potential issues or bugs, ensuring the overall quality and reliability of the Rover project.
 
 Happy testing and maintaining code quality!
