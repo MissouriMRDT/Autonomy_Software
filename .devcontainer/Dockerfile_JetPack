@@ -20,13 +20,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     rm -rf /var/lib/apt/lists/*
 
 # Install CMake
-ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
-COPY reinstall-cmake.sh /tmp/
+ARG INSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
+COPY install-cmake.sh /tmp/
 
-RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
-    chmod +x /tmp/reinstall-cmake.sh && /tmp/reinstall-cmake.sh ${REINSTALL_CMAKE_VERSION_FROM_SOURCE}; \
+RUN if [ "${INSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
+    chmod +x /tmp/install-cmake.sh && /tmp/install-cmake.sh ${INSTALL_CMAKE_VERSION_FROM_SOURCE}; \
     fi && \
-    rm -f /tmp/reinstall-cmake.sh
+    rm -f /tmp/install-cmake.sh
 
 # Set Working Directory
 WORKDIR /opt
