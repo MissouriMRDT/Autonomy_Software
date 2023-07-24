@@ -41,7 +41,35 @@ jobs:
 
       - name: Run Valgrind
         run: |
+          cd /opt/Autonomy_Software/build
+          chmod 777 ../tools/run_valgrind.sh
+          ../tools/run_valgrind.sh 1
+
+      - name: Analyse Valgrind - Definitely Lost
+        if: always()
+        run: |
           cd /opt/Autonomy_Software/tools/valgrind
-          ls
-          chmod 777 run-valgrind
-          ./run_valgrind.sh
+          if ! grep 'definitely lost' valgrind.rpt; then exit 0; fi
+          if grep 'definitely lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Analyse Valgrind - Indirectly Lost
+        if: always()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'indirectly lost' valgrind.rpt; then exit 0; fi
+          if grep 'indirectly lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Analyse Valgrind - Possibly Lost
+        if: always()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'possibly lost' valgrind.rpt; then exit 0; fi
+          if grep 'possibly lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Upload Valgrind Log
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: valgrind.rpt
+          path: /opt/Autonomy_Software/tools/valgrind/valgrind.rpt
+          retention-days: 2

@@ -19,7 +19,10 @@ cp /usr/local/share/opencv*/*.supp $script_dir
 supp_files=$(find "$script_dir" -maxdepth 1 -type f -name "*.supp")
 
 # Construct the Valgrind command
-valgrind_cmd="valgrind -s --leak-check=yes --show-leak-kinds=all"
+valgrind_cmd="valgrind -s --leak-check=yes --show-leak-kinds=all "
+if [ $1 -eq 1 ]; then
+  valgrind_cmd+=" --log-file=valgrind.rpt"
+fi
 for supp_file in $supp_files; do
   valgrind_cmd+=" --suppressions=$supp_file"
 done
