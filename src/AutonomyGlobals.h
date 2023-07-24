@@ -15,9 +15,8 @@
 
 #include <chrono>
 #include <ctime>
-#include <plog/Initializers/ConsoleInitializer.h>
-#include <plog/Initializers/RollingFileInitializer.h>
-#include <plog/Log.h>
+#include <iostream>
+#include <quill/Quill.h>
 
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
@@ -30,16 +29,11 @@ namespace constants
 }    // namespace constants
 
 // Logging:
-enum AutonomyLogger
-{
-    AL_FileLogger,
-    AL_ConsoleLogger
-};                                                                           // Enum to specify logging location
+extern quill::Logger* g_qFileLogger;
+extern quill::Logger* g_qConsoleLogger;
+extern quill::Logger* g_qSharedLogger;
 
-extern plog::RollingFileAppender<plog::TxtFormatter> g_pFileAppender;        // Sends log message to file
-extern plog::ColorConsoleAppender<plog::TxtFormatter> g_pConsoleAppender;    // Sends log message to file and console
-
-void InitializeAutonomyLoggers();                                            // Method to set up the loggers
+void InitializeLoggers();    // Method to set up the loggers
 
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
