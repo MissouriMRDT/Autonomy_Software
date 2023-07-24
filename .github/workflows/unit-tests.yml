@@ -36,4 +36,5 @@ jobs:
           cd build
           cmake ..
           make
-          make test --rerun-failed --output-on-failure
+          ls
+          ./Autonomy_Software_UnitTests
