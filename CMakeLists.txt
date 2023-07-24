@@ -36,6 +36,9 @@ FIND_PACKAGE(quill REQUIRED)
 
 ## Find Google Test
 FIND_PACKAGE(GTest CONFIG REQUIRED)
+INCLUDE(GoogleTest)
+add_library(GTest::GTest INTERFACE IMPORTED)
+target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Eigen3.
 FIND_PACKAGE(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -56,7 +59,6 @@ FILE(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
 FILE(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
 FILE(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
 FILE(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
-FILE(GLOB Tests_SRC			 	CONFIGURE_DEPENDS  "tests/*.cpp")
 FILE(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
@@ -68,7 +70,6 @@ ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
 								 ${Vision_SRC}
 								 ${Main_SRC}
 								 ${Examples_SRC}
-								 ${Tests_SRC}
 								 ${Tools_SRC}
 	)
 
@@ -80,12 +81,31 @@ ELSE()
 ENDIF()
 
 ## Link Libraries to Executable
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
-                                                Threads::Threads
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
                                                 quill::quill
 												${OpenCV_LIBS}
                                                 #Boost::filesystem
     )
 
+## Package Executable
 INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RUNTIME DESTINATION bin )
+
+## Unit/Integration Tests
+FILE(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/**/*.cc")
+FILE(GLOB IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/**/*.cc")
+
+LIST(LENGTH UnitTests_SRC           UnitTests_LEN)
+LIST(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
+
+IF (UnitTests_LEN GREATER 0)
+    ADD_EXECUTABLE(${PROJECT_NAME}_UnitTests ${UnitTests_SRC})
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main)
+    ADD_TEST(Unit_Tests ${PROJECT_NAME}_UnitTests)
+ENDIF()
+
+IF (IntegrationTests_LEN GREATER 0)
+    ADD_EXECUTABLE(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC})
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main)
+    ADD_TEST(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
+ENDIF()
