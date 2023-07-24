@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Define the path to the executable
-executable_path="/workspaces/Autonomy_Software/build/Autonomy_Software"
+if [ "$1" = "GitHub-Action" ]; then
+  executable_path="/opt/Autonomy_Software/build/Autonomy_Software"
+else
+  executable_path="/workspaces/Autonomy_Software/build/Autonomy_Software"
+fi
 
 # Check if the executable exists
 if [ ! -f "$executable_path" ]; then
@@ -20,7 +24,7 @@ supp_files=$(find "$script_dir" -maxdepth 1 -type f -name "*.supp")
 
 # Construct the Valgrind command
 valgrind_cmd="valgrind -s --leak-check=yes --show-leak-kinds=all "
-if [ $1 -eq 1 ]; then
+if [ "$1" = "GitHub-Action" ]; then
   valgrind_cmd+=" --log-file=valgrind.rpt"
 fi
 for supp_file in $supp_files; do
