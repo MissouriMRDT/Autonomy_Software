@@ -20,7 +20,7 @@ jobs:
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
         id: extract_branch
 
-      - name: Checkout Tag
+      - name: Update Branch
         run: |
           cd /opt/Autonomy_Software/
           git fetch --force
@@ -29,10 +29,14 @@ jobs:
           git checkout $branch
           git pull
 
-      - name: Run unit tests
-        uses: HorstBaerbel/action-ctest@1.1
-        with:
-          sourcedir: "."
-          builddir: "build"
-          cmakeoptions: "--config Debug"
-          ctestoptions: ""
+      - name: Build and Create Executable
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make
+          make test
+
+      - name: Run Tests
+        run: ctest --output-on-failure --test-dir ./build/tests
