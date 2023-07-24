@@ -90,6 +90,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - OpenCV > `cv`  > Example: `cv::Mat cvExampleMat`
 - Boost:
     - State Chart > `sc`  > Example: `sc::simple_state<IdleState, StateMachine>`
+- Quill  > `q` > Example: `quill::Config qConfig`
 
 ### Macro Names
 Macros should be in all caps using underscores to seperate words. They should be detailed enough to not require an additional comment.
