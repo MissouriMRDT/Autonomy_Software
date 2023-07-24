@@ -1,0 +1,45 @@
+name: Valgrind Memory Check
+
+on:
+  pull_request:
+    branches: ["development"]
+  push:
+    branches: ["development"]
+  workflow_dispatch:
+
+concurrency:
+  group: "valgrind"
+  cancel-in-progress: false
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2
+
+    steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update Branch
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --force
+          branch=${{ steps.extract_branch.outputs.branch }}
+          echo $branch
+          git checkout $branch
+          git pull
+
+      - name: Build Tests
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Run Valgrind
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          ./run_valgrind.sh
