@@ -42,8 +42,8 @@ jobs:
       - name: Run Valgrind
         run: |
           cd /opt/Autonomy_Software/build
-          chmod 777 ../tools/run_valgrind.sh
-          ../tools/run_valgrind.sh 1
+          chmod 777 ../tools/valgrind/run_valgrind.sh
+          ../tools/valgrind/run_valgrind.sh 1
 
       - name: Analyse Valgrind - Definitely Lost
         if: always()
@@ -72,4 +72,4 @@ jobs:
         with:
           name: valgrind.rpt
           path: /opt/Autonomy_Software/tools/valgrind/valgrind.rpt
-          retention-days: 2
+          retention-days: 1
