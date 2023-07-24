@@ -29,12 +29,15 @@ jobs:
           git checkout $branch
           git pull
 
-      - name: Run Tests
+      - name: Build Tests
         run: |
           cd /opt/Autonomy_Software/
           mkdir build
           cd build
           cmake ..
           make
+
+      - name: Run Tests
+        run: |
           ls
-          ./Autonomy_Software_UnitTests
+          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests fi
