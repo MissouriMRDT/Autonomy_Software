@@ -10,7 +10,7 @@
  ******************************************************************************/
 #include "./DriveBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 #include "../util/NumberOperations.hpp"
 
 /******************************************************************************
@@ -63,7 +63,7 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
     m_iTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
     m_iTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Driving at (" << m_iTargetSpeedLeft << ", " << m_iTargetSpeedRight << ")";
+    LOG_INFO(g_qSharedLogger, "Driving at: ({}, {})", m_iTargetSpeedLeft, m_iTargetSpeedRight);
 
     return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
 }

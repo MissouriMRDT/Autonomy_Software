@@ -3,10 +3,20 @@ name: "CodeQL"
 on:
   push:
     branches: ["development"]
+    paths:
+      - examples/**
+      - external/**
+      - src/**
+      - tests/**
+      - tools/**
   pull_request:
     branches: ["development"]
-  schedule:
-    - cron: "41 20 * * 0"
+    paths:
+      - examples/**
+      - external/**
+      - src/**
+      - tests/**
+      - tools/**
   workflow_dispatch:
 
 permissions:
@@ -25,7 +35,7 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-08
+      image: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

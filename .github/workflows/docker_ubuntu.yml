@@ -1,11 +1,6 @@
 name: Build and Publish Ubuntu Dockerfile
 
 on:
-  # Runs workflow 'automatically' when a pull request for the development
-  # branch is made and documentaion files have been edited.
-  pull_request:
-    branches: ["development"]
-    paths: [".devcontainer/Dockerfile_Ubuntu"]
   workflow_dispatch:
 
 permissions:
@@ -30,7 +25,6 @@ jobs:
     steps:
       - name: Get commits
         env:
-          # github URL to list commits
           COMMITS_URL: ${{ github.event.pull_request.commits_url }}
         run: |
           if [ "${COMMITS_URL}x" != "x" ]; then

@@ -1,6 +1,6 @@
 ### Autonomy Specific ###
 # FileSystem
-build/
+*build*/
 .vscode/
 
 # Compiled Program
@@ -131,9 +131,6 @@ fabric.properties
 # that are supposed to be shared within teams.
 
 .idea/*
-
-!.idea/codeStyles
-!.idea/runConfigurations
 
 ### CMake ###
 CMakeLists.txt.user
