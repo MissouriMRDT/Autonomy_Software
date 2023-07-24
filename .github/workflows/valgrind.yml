@@ -42,24 +42,24 @@ jobs:
       - name: Run Valgrind
         run: |
           chmod 777 /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh
-          /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh 1
+          /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh "GitHub-Action"
 
       - name: Analyse Valgrind - Definitely Lost
-        if: always()
+        if: success() || failure()
         run: |
           cd /opt/Autonomy_Software/tools/valgrind
           if ! grep 'definitely lost' valgrind.rpt; then exit 0; fi
           if grep 'definitely lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
 
       - name: Analyse Valgrind - Indirectly Lost
-        if: always()
+        if: success() || failure()
         run: |
           cd /opt/Autonomy_Software/tools/valgrind
           if ! grep 'indirectly lost' valgrind.rpt; then exit 0; fi
           if grep 'indirectly lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
 
       - name: Analyse Valgrind - Possibly Lost
-        if: always()
+        if: success() || failure()
         run: |
           cd /opt/Autonomy_Software/tools/valgrind
           if ! grep 'possibly lost' valgrind.rpt; then exit 0; fi
