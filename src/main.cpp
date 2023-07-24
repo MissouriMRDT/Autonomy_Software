@@ -15,6 +15,7 @@
 
 #include "./AutonomyGlobals.h"
 #include "./interfaces/StateMachine.hpp"
+
 /******************************************************************************
  * @brief Autonomy main function.
  *
