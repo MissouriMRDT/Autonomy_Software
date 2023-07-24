@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  run-tests:
+  unit-tests:
     runs-on: ubuntu-latest
     container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2
 
@@ -39,4 +39,4 @@ jobs:
           make test
 
       - name: Run Tests
-        run: ctest --output-on-failure --test-dir ./build/tests
+        run: ctest --output-on-failure
