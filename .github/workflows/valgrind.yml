@@ -42,7 +42,7 @@ jobs:
       - name: Run Valgrind
         run: |
           cd /opt/Autonomy_Software/build
-          ls /tools/valgrind
+          ls /opt/Autonomy_Software/tools/valgrind
           chmod 777 ../tools/valgrind/run_valgrind.sh
           ../tools/valgrind/run_valgrind.sh 1
 
