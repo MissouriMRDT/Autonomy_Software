@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Obstacle Avoidance State
@@ -19,7 +19,7 @@
  ******************************************************************************/
 struct AvoidanceState : sc::simple_state<AvoidanceState, StateMachine>
 {
-        AvoidanceState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Avoidance"; }
+        AvoidanceState() { LOG_INFO(g_qSharedLogger, "In State: Avoidance"); }
 
         typedef mpl::
             list<sc::custom_reaction<Avoidance_EndAvoidanceTransition>, sc::custom_reaction<Avoidance_AbortTransition>, sc::custom_reaction<Avoidance_StuckTransition>>
@@ -43,15 +43,15 @@ struct AvoidanceState : sc::simple_state<AvoidanceState, StateMachine>
 
 struct Avoidance_EndAvoidanceTransition : sc::event<Avoidance_EndAvoidanceTransition>
 {
-        Avoidance_EndAvoidanceTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Avoidance (End Avoidance)"; }
+        Avoidance_EndAvoidanceTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Avoidance (End Avoidance)"); }
 };
 
 struct Avoidance_AbortTransition : sc::event<Avoidance_AbortTransition>
 {
-        Avoidance_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Avoidance (Abort)"; }
+        Avoidance_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Avoidance (Abort)"); }
 };
 
 struct Avoidance_StuckTransition : sc::event<Avoidance_StuckTransition>
 {
-        Avoidance_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Avoidance (Stuck)"; }
+        Avoidance_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Avoidance (Stuck)"); }
 };

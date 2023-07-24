@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Reverse State
@@ -19,7 +19,7 @@
  ******************************************************************************/
 struct ReverseState : sc::simple_state<ReverseState, StateMachine>
 {
-        ReverseState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Reverse"; }
+        ReverseState() { LOG_INFO(g_qSharedLogger, "In State: Reverse"); }
 
         typedef mpl::list<sc::custom_reaction<Reverse_ContinueTransition>, sc::custom_reaction<Reverse_AbortTransition>, sc::custom_reaction<Reverse_StuckTransition>>
             reactions;
@@ -54,15 +54,15 @@ struct ReverseState : sc::simple_state<ReverseState, StateMachine>
 
 struct Reverse_ContinueTransition : sc::event<Reverse_ContinueTransition>
 {
-        Reverse_ContinueTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Continue)"; }
+        Reverse_ContinueTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Reverse (Continue)"); }
 };
 
 struct Reverse_AbortTransition : sc::event<Reverse_AbortTransition>
 {
-        Reverse_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Abort)"; }
+        Reverse_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Reverse (Abort)"); }
 };
 
 struct Reverse_StuckTransition : sc::event<Reverse_StuckTransition>
 {
-        Reverse_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Reverse (Stuck)"; }
+        Reverse_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Reverse (Stuck)"); }
 };

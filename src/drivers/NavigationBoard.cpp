@@ -10,7 +10,7 @@
 
 #include "NavigationBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.
@@ -56,7 +56,7 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
     m_dRoll    = packet.dRoll;
     m_dHeading = packet.dHeading;
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming IMU Data: (" << m_dPitch << ", " << m_dRoll << ", " << m_dHeading << ")";
+    LOG_INFO(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
 }
 
 /******************************************************************************
@@ -74,7 +74,7 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 
     m_tLastTime            = time(nullptr);
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude << ")";
+    LOG_INFO(g_qSharedLogger, "Incoming GPS Data: ({}, {})", m_sLocation.dLatitude, m_sLocation.dLongitude);
 }
 
 /******************************************************************************

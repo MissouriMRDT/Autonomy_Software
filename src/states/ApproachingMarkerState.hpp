@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Approaching Marker State
@@ -19,7 +19,7 @@
  ******************************************************************************/
 struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMachine>
 {
-        ApproachingMarkerState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Approaching Marker"; }
+        ApproachingMarkerState() { LOG_INFO(g_qSharedLogger, "In State: Approaching Marker"); }
 
         typedef mpl::list<sc::custom_reaction<ApproachingMarker_MarkerLostTransition>,
                           sc::custom_reaction<ApproachingMarker_AbortTransition>,
@@ -35,15 +35,15 @@ struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMa
 
 struct ApproachingMarker_MarkerLostTransition : sc::event<ApproachingMarker_MarkerLostTransition>
 {
-        ApproachingMarker_MarkerLostTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Marker Lost)"; }
+        ApproachingMarker_MarkerLostTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Marker (Marker Lost)"); }
 };
 
 struct ApproachingMarker_AbortTransition : sc::event<ApproachingMarker_AbortTransition>
 {
-        ApproachingMarker_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Abort)"; }
+        ApproachingMarker_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Marker (Abort)"); }
 };
 
 struct ApproachingMarker_ReachedMarkerTransition : sc::event<ApproachingMarker_ReachedMarkerTransition>
 {
-        ApproachingMarker_ReachedMarkerTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Marker (Reached Marker)"; }
+        ApproachingMarker_ReachedMarkerTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Marker (Reached Marker)"); }
 };
