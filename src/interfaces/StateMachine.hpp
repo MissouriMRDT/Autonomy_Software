@@ -8,20 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <iostream>
-
 #include "../Autonomy_Globals.h"
-
-#include <boost/statechart/custom_reaction.hpp>
-#include <boost/statechart/event.hpp>
-#include <boost/statechart/state.hpp>
-#include <boost/statechart/state_machine.hpp>
-#include <boost/statechart/transition.hpp>
-
-#include <boost/mpl/list.hpp>
-
-namespace sc  = boost::statechart;
-namespace mpl = boost::mpl;
 
 /******************************************************************************
  * @brief Forward Declared References to States
