@@ -20,6 +20,6 @@
 TEST(TestSuite, TestBool)
 {
     const auto expected = true;
-    const auto actual   = true;
+    const auto actual   = false;
     ASSERT_EQ(expected, actual);
 }
