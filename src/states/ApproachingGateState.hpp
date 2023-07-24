@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Approaching Gate State
@@ -19,7 +19,7 @@
  ******************************************************************************/
 struct ApproachingGateState : sc::simple_state<ApproachingGateState, StateMachine>
 {
-        ApproachingGateState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Approaching Gate"; }
+        ApproachingGateState() { LOG_INFO(g_qSharedLogger, "In State: Approaching Gate"); }
 
         typedef mpl::list<sc::custom_reaction<ApproachingGate_MarkerLostTransition>,
                           sc::custom_reaction<ApproachingGate_AbortTransition>,
@@ -35,15 +35,15 @@ struct ApproachingGateState : sc::simple_state<ApproachingGateState, StateMachin
 
 struct ApproachingGate_MarkerLostTransition : sc::event<ApproachingGate_MarkerLostTransition>
 {
-        ApproachingGate_MarkerLostTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Gate (Marker Lost)"; }
+        ApproachingGate_MarkerLostTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Gate (Marker Lost)"); }
 };
 
 struct ApproachingGate_AbortTransition : sc::event<ApproachingGate_AbortTransition>
 {
-        ApproachingGate_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Gate (Abort)"; }
+        ApproachingGate_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Gate (Abort)"); }
 };
 
 struct ApproachingGate_ReachedMarkerTransition : sc::event<ApproachingGate_ReachedMarkerTransition>
 {
-        ApproachingGate_ReachedMarkerTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Approaching Gate (Reached Marker)"; }
+        ApproachingGate_ReachedMarkerTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Gate (Reached Marker)"); }
 };

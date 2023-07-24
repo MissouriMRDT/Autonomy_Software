@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Forward Declared References to States
@@ -36,7 +36,7 @@ struct StuckState;
  ******************************************************************************/
 struct StateMachine : sc::state_machine<StateMachine, IdleState>
 {
-        StateMachine() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "Starting State Machine..."; }
+        StateMachine() { LOG_INFO(g_qSharedLogger, "Starting State Machine..."); }
 };
 
 /******************************************************************************

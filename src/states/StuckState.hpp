@@ -19,7 +19,7 @@
  ******************************************************************************/
 struct StuckState : sc::simple_state<StuckState, StateMachine>
 {
-        StuckState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Stuck"; }
+        StuckState() { LOG_INFO(g_qSharedLogger, "In State: Stuck"); }
 
         typedef mpl::list<sc::custom_reaction<Stuck_AbortTransition>, sc::custom_reaction<Stuck_ReverseTransition>> reactions;
 
@@ -30,10 +30,10 @@ struct StuckState : sc::simple_state<StuckState, StateMachine>
 
 struct Stuck_AbortTransition : sc::event<Stuck_AbortTransition>
 {
-        Stuck_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Stuck (Abort)"; }
+        Stuck_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Stuck (Abort)"); }
 };
 
 struct Stuck_ReverseTransition : sc::event<Stuck_ReverseTransition>
 {
-        Stuck_ReverseTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Stuck (Reverse)"; }
+        Stuck_ReverseTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Stuck (Reverse)"); }
 };
