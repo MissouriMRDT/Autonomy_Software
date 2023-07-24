@@ -8,6 +8,8 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../Autonomy_Globals.h"
+
 /******************************************************************************
  * @brief Search Pattern State
  *

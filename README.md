@@ -22,7 +22,7 @@ The Autonomy Software project is organized into different directories, each serv
 
 - **external**: Contains external dependencies, libraries, or third-party modules used in our rover project. These files are essential for the project's functionality and are organized based on their purpose or source, ensuring proper integration and compliance with licensing requirements.
 
-The **src** directory serves as the main source code directory and contains the algorithms, interfaces, states, util, vision, and other folders related to the main codebase. 
+The **src** directory serves as the main source code directory and contains the algorithms, drivers, interfaces, states, threads, util, vision, and other folders related to the main codebase. 
 
 - **tests**: Contains test cases and test scripts to ensure the correctness and reliability of our autonomy software. These files help validate the functionality and performance of our code, ensuring robustness and accuracy in real-world scenarios.
 
