@@ -36,7 +36,6 @@ jobs:
           cd build
           cmake ..
           make
-          make test
 
       - name: Run Tests
-        run: ctest --output-on-failure
+        run: make test
