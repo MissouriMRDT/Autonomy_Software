@@ -1,7 +1,10 @@
 # Base Image
 FROM stereolabs/zed:4.0-gl-devel-cuda11.4-ubuntu20.04
 LABEL authors="Missouri S&T Mars Rover Design Team"
+LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
+LABEL org.opencontainers.image.licenses=GPL-3.0-only
+LABEL org.opencontainers.image.description="v24.0.0"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
@@ -15,25 +18,20 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libboost-all-dev valgrind doxygen graphviz && \
     rm -rf /var/lib/apt/lists/*
 
-# Set Linux Environment Variable for Make Threads. Runs everytime a terminal is opened.
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
-
 # Install CMake
-ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
-COPY reinstall-cmake.sh /tmp/
+ARG INSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"
+COPY install-cmake.sh /tmp/
 
-RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
-        chmod +x /tmp/reinstall-cmake.sh && /tmp/reinstall-cmake.sh ${REINSTALL_CMAKE_VERSION_FROM_SOURCE}; \
+RUN if [ "${INSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
+        chmod +x /tmp/install-cmake.sh && /tmp/install-cmake.sh ${INSTALL_CMAKE_VERSION_FROM_SOURCE}; \
     fi && \
-    rm -f /tmp/reinstall-cmake.sh
+    rm -f /tmp/install-cmake.sh
 
 # Set Working Directory for OpenCV build.
 WORKDIR /opt
 
 # Install OpenCV from Source
-ARG OPENCV_VERSION="4.7.0"
-
-# Install OpenCV from Source
+ARG OPENCV_VERSION="4.8.0"
 RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
     git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git && \
     mkdir opencv/build && cd opencv/build && \
@@ -42,23 +40,55 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     -D CMAKE_INSTALL_PREFIX=/usr/local \
     -D INSTALL_PYTHON_EXAMPLES=OFF \
     -D INSTALL_C_EXAMPLES=OFF \
+    -D BUILD_SHARED_LIBS=OFF \
+    -D WITH_CSTRIPES=ON \
+    -D WITH_OPENCL=ON \
     -D WITH_CUDA=ON \
     -D WITH_CUDNN=ON \
     -D OPENCV_DNN_CUDA=ON \
     -D ENABLE_FAST_MATH=1 \
     -D CUDA_FAST_MATH=1 \
     -D CUDA_ARCH_BIN=7.0 \
+    -D WITH_TBB=ON \
+    -D WITH_OPENMP=ON \
+    -D WITH_IPP=ON \
     -D WITH_CUBLAS=1 \
     -D WITH_FFMPEG=ON \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules \
+    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/aruco \
+    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/cudev \
     -D HAVE_opencv_python3=ON .. && \
     cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j && \
     make install && ldconfig && \
     cd ../.. && \
     rm -rf opencv_contrib && rm -rf opencv
 
+# Install Quill from Source
+ARG QUILL_VERSION="v3.2.0"
+RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git && \
+    mkdir quill/build && \
+    cd quill/build && \
+    cmake .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf quill
+
+# Install Google Test from Source
+ARG GOOGLE_TEST_VERSION="v1.13.0"
+RUN git clone --depth 1 --branch ${GOOGLE_TEST_VERSION} https://github.com/google/googletest.git && \
+    mkdir googletest/build && \
+    cd googletest/build && \
+    cmake .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf googletest
+
+# Set Linux Environment Variable for Make Threads. Runs everytime a terminal is opened.
+RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
+
 # Clone your C++ project repository
-RUN git clone https://github.com/MissouriMRDT/Autonomy_Software.git
+RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
 
 # Set the working directory TO BUILD
 WORKDIR /Autonomy_Software/

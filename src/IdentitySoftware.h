@@ -1,9 +1,9 @@
 /******************************************************************************
- * @brief Defines the Autonomy_IdentitySoftware class.
+ * @brief Defines the IdentitySoftware class.
  *
- * @file Autonomy_IdentitySoftware.h
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @file IdentitySoftware.h
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -15,10 +15,10 @@
 #define PATCH_VERSION 0
 #define BUILD_VERSION 0
 
-#ifndef AUTONOMY_IDENTITYSOFTWARE_H
-#define AUTONOMY_IDENTITYSOFTWARE_H
+#ifndef IDENTITY_SOFTWARE_H
+#define IDENTITY_SOFTWARE_H
 
-class Autonomy_IdentitySoftware
+class IdentitySoftware
 {
     private:
         std::string m_szMajorVersion;
@@ -27,11 +27,11 @@ class Autonomy_IdentitySoftware
         std::string m_szBuildVersion;
 
     public:
-        Autonomy_IdentitySoftware();
+        IdentitySoftware();
 
         std::string GetVersionNumber();
         std::string GetBuildNumber();
         std::string GetVersionBuildComboNumber();
 };
 
-#endif    // AUTONOMY_IDENTITYSOFTWARE_H
+#endif    // IDENTITY_SOFTWARE_H

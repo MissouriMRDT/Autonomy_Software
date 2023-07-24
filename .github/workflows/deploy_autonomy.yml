@@ -1,0 +1,120 @@
+name: Build and Create Autonomy Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+  packages: read
+  id-token: write
+
+concurrency:
+  group: "create-release"
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, [self-hosted, linux, ARM64]]
+        container:
+          [
+            "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2",
+            "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3",
+          ]
+        architecture: [AMD64, ARM64]
+        exclude:
+          - os: ubuntu-latest
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2"
+            architecture: ARM64
+          - os: ubuntu-latest
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
+            architecture: ARM64
+          - os: ubuntu-latest
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
+            architecture: ARM64
+          - os: ubuntu-latest
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
+            architecture: AMD64
+          - os: [self-hosted, linux, ARM64]
+            container: "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3"
+            architecture: AMD64
+          - os: [self-hosted, linux, ARM64]
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2"
+            architecture: AMD64
+          - os: [self-hosted, linux, ARM64]
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2"
+            architecture: ARM64
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+
+    steps:
+      - name: Checkout Tag
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --tags --force
+          tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo $tag
+          git checkout $tag
+
+      - name: Build and Create Executable
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make
+          make package
+
+      - name: Rename Executable
+        run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Autonomy-${{ matrix.architecture }}
+          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: build-and-upload
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Determine Version
+        id: version
+        run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        id: download
+        with:
+          path: /opt/Autonomy_Software/build/
+
+      - name: Display Structure
+        run: ls
+        working-directory: /opt/Autonomy_Software/build/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: false
+          name: "Autonomy Software ${{ steps.version.outputs.version }}"
+          files: "/opt/Autonomy_Software/build/**"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete Artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            Autonomy-AMD64
+            Autonomy-ARM64

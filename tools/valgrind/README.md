@@ -1,3 +1,5 @@
+\dir tools/valgrind
+
 # Valgrind Leak Suppression and .supp Files
 
 This directory contains suppression files for the Valgrind memory leak detection tool. These suppression files play a crucial role in ignoring leaks that are outside our control, improving the debugging process and focusing on our project-specific memory issues.
@@ -26,7 +28,7 @@ sudo chmod +x ./run_valgrind.sh
 
 ## HOW TO INTERPRET VALGRIND OUTPUT
 
-The output of valgrind will likely never show `All heap blocks were freed -- no leaks are possible` unless all of our external libraries fix their code. So valgrinds output with suppressions might look a little different then you're used to. Don't worry though, as long as all of the leaked memory is within the suppressed category, we're fine. The example below shows a compile of the Autonomy_Software code that doesn't leak any additional memory.
+The output of valgrind will likely never show `All heap blocks were freed -- no leaks are possible` unless all of our external libraries fix their code. So valgrinds output with suppressions might look a little different then you're used to. Don't worry though, as long as all of the leaked memory is within the suppressed or still reachable category, we're fine. The example below shows a compile of the Autonomy_Software code that doesn't leak any additional memory.
 
 ```
 ==23697== HEAP SUMMARY:
@@ -47,6 +49,18 @@ The output of valgrind will likely never show `All heap blocks were freed -- no 
 --23697-- used_suppression:      1 dl_open /workspaces/Autonomy_Software/tools/valgrind/opencv_3rdparty.supp:110 suppressed: 16 bytes in 1 blocks
 --23697-- used_suppression:      4 dl-hack4-64bit-addr-1 /usr/lib/x86_64-linux-gnu/valgrind/default.supp:1277
 ```
+
+## But, Why is This Okay?
+
+There are multiple interpretations of the term "memory leak" that programmers commonly use. Primarily, two distinct definitions are prevalent in the programming community.
+
+The first widely accepted definition of a "memory leak" states that it occurs when memory is allocated but not subsequently freed before the program terminates. However, some programmers argue, and rightfully so, that certain types of memory leaks falling under this definition do not pose any significant issues. Hence, they should not be considered true "memory leaks."
+
+A more stringent and practical definition of a "memory leak" is as follows: memory is allocated, but it cannot be freed afterwards because the program no longer possesses any pointers to the allocated memory block. In essence, if there are no remaining pointers, the memory cannot be released, leading to a "memory leak." Valgrind adopts this stricter definition when referring to a "memory leak." Such leaks can potentially result in substantial depletion of the heap, particularly in long-lived processes.
+
+Within Valgrind's leak report, the "still reachable" category encompasses allocations that align with only the first definition of a "memory leak." Although these blocks were not freed, they could have been freed if the programmer had desired, as the program was still maintaining pointers to those memory blocks.
+
+In general, there is no need to be concerned about "still reachable" blocks, as they do not pose the same problems that true memory leaks can cause. For example, "still reachable" blocks typically do not lead to heap exhaustion. They are typically one-time allocations, and references to them are retained throughout the process's lifetime. All object pointers within Autonomy_Software should still be cleaned-up as good practice. The only memory that is "still reachable" after our program finished should be that of the 3rd party libraries we use.
 
 ## Future Proofing
 

@@ -9,40 +9,36 @@
 ## Set CMake Minimum Version
 CMAKE_MINIMUM_REQUIRED(VERSION 3.24.3)
 
+## C++ Version
+SET(CMAKE_CXX_STANDARD 20)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 ## Project Name and Software Version Number
 PROJECT(Autonomy_Software VERSION 24.00.00)
 
 ## Include Required CMake Packages
+INCLUDE(CPack)																		# CMake Packaging Library
 INCLUDE(CTest)																	  	# CMake Testing Framework
 INCLUDE(FetchContent)															   	# CMake Dependency Framework
 
 ## Define Project Name and Version Number for CPack
 SET(CPACK_PROJECT_NAME ${PROJECT_NAME})
 SET(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-
-## Fetch Dependencies
-FETCHCONTENT_DECLARE(plog                                                           # C++ Logging Library
-        GIT_REPOSITORY https://github.com/SergiusTheBest/plog.git                   # Source Code URL
-        GIT_TAG        f47149410a4c927643148b96799f28b2d80d451b                     # Version 1.1.9
-        GIT_SHALLOW    TRUE                                                         # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-        )
-FETCHCONTENT_DECLARE(googletest                                                     # Google C++ Testing Framework
-        GIT_REPOSITORY https://github.com/google/googletest.git                     # Source Code URL
-        GIT_TAG        b796f7d44681514f58a683a3a71ff17c94edb0c1                     # Version 1.13.0
-        GIT_SHALLOW    TRUE                                                         # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-        )
-
-## Make Dependencies Available
-FETCHCONTENT_MAKEAVAILABLE(plog googletest)
+SET(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
+SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+SET(CPACK_GENERATOR "SH")
 
 ## Find Threads
 FIND_PACKAGE(Threads REQUIRED)
 
-## Find PLOG
-INCLUDE_DIRECTORIES(${plog_SOURCE_DIR}/include)
-ADD_COMPILE_DEFINITIONS(PLOG_ENABLE_WCHAR_INPUT)
+## Find Quill
+FIND_PACKAGE(quill REQUIRED)
+
+## Find Google Test
+FIND_PACKAGE(GTest CONFIG REQUIRED)
+INCLUDE(GoogleTest)
+add_library(GTest::GTest INTERFACE IMPORTED)
+target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Eigen3.
 FIND_PACKAGE(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -63,7 +59,6 @@ FILE(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
 FILE(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
 FILE(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
 FILE(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
-FILE(GLOB Tests_SRC			 	CONFIGURE_DEPENDS  "tests/*.cpp")
 FILE(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
@@ -75,7 +70,6 @@ ADD_EXECUTABLE(${PROJECT_NAME}   ${External_SRC}
 								 ${Vision_SRC}
 								 ${Main_SRC}
 								 ${Examples_SRC}
-								 ${Tests_SRC}
 								 ${Tools_SRC}
 	)
 
@@ -87,10 +81,31 @@ ELSE()
 ENDIF()
 
 ## Link Libraries to Executable
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE 	gtest_main
-                                                plog::plog
-                                                Threads::Threads
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
+                                                quill::quill
 												${OpenCV_LIBS}
                                                 #Boost::filesystem
     )
+
+## Package Executable
+INSTALL(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RUNTIME DESTINATION bin )
+
+## Unit/Integration Tests
+FILE(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/**/*.cc")
+FILE(GLOB IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/**/*.cc")
+
+LIST(LENGTH UnitTests_SRC           UnitTests_LEN)
+LIST(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
+
+IF (UnitTests_LEN GREATER 0)
+    ADD_EXECUTABLE(${PROJECT_NAME}_UnitTests "tests/Unit/main.cc" ${UnitTests_SRC})
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main)
+    ADD_TEST(Unit_Tests ${PROJECT_NAME}_UnitTests)
+ENDIF()
+
+IF (IntegrationTests_LEN GREATER 0)
+    ADD_EXECUTABLE(${PROJECT_NAME}_IntegrationTests "tests/Unit/main.cc" ${IntegrationTests_SRC})
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main)
+    ADD_TEST(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
+ENDIF()

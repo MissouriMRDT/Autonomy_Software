@@ -1,11 +1,6 @@
 name: Build and Publish JetPack Dockerfile
 
 on:
-  # Runs workflow 'automatically' when a pull request for the development
-  # branch is made and documentaion files have been edited.
-  pull_request:
-    branches: ['development']
-    paths: ['.devcontainer/Dockerfile_JetPack']
   workflow_dispatch:
 
 permissions:
@@ -20,10 +15,10 @@ concurrency:
 
 jobs:
   get-commit-message:
-    name: 'Get commit message'
+    name: "Get commit message"
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_dispatch' }}
-    
+
     env:
       LAST_MSG: ""
 
@@ -49,7 +44,7 @@ jobs:
       commit-message: ${{ env.LAST_MSG }}
 
   print-message:
-    name: 'Print Last Commit Message'
+    name: "Print Last Commit Message"
     needs: get-commit-message
     runs-on: ubuntu-latest
     steps:
@@ -71,17 +66,25 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: 'arm64'
+          platforms: "arm64"
 
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Get repository owner and convert to lowercase string
-        id: repo-name-string
+        id: repo-owner-string
         uses: ASzc/change-string-case-action@v5
         with:
-          string: ${{ github.repository }}
+          string: ${{ github.repository_owner }}
 
       - name: Get current date
         id: date
@@ -93,14 +96,25 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build JetPack Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
           context: .devcontainer
           file: .devcontainer/Dockerfile_JetPack
-          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
+          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
+
+      # This bit is necessary if you don't want your cache to grow forever
+      # until it hits GitHub's limit of 5GB.
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   package-docker-image-manual:
     name: Build Docker image and push to repository (called from button on actions page)
@@ -114,17 +128,25 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: 'arm64'
+          platforms: "arm64"
 
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Get repository owner and convert to lowercase string
-        id: repo-name-string
+        id: repo-owner-string
         uses: ASzc/change-string-case-action@v5
         with:
-          string: ${{ github.repository }}
+          string: ${{ github.repository_owner }}
 
       - name: Get current date
         id: date
@@ -136,11 +158,22 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build JetPack Image and push to GitHub Container Registry
         uses: docker/build-push-action@v2
         with:
           context: .devcontainer
           file: .devcontainer/Dockerfile_JetPack
-          tags: "ghcr.io/${{ steps.repo-name-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
+          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
+
+      # This bit is necessary if you don't want your cache to grow forever
+      # until it hits GitHub's limit of 5GB.
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

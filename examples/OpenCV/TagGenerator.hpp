@@ -2,8 +2,8 @@
  * @brief Defines the OpenCV ArUco Generator
  *
  * @file TagGenerator.hpp
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0709
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-07-09
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -17,8 +17,8 @@
  * @param eDictionary - The OpenCV Dictonary to pull from
  * @param sMarker - The id of the marker to generate
  *
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0709
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-07-09
  ******************************************************************************/
 void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, unsigned short sMarker)
 {

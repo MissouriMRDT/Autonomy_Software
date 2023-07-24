@@ -3,15 +3,15 @@
  * 		the Rover.
  *
  * @file DriveBoard.h
- * @author Byrdman32 (eli@byrdneststudios.com), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0618
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-06-18
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 #include <vector>
 
-#ifndef DRIVEBOARD_H
-#define DRIVEBOARD_H
+#ifndef DRIVE_BOARD_H
+#define DRIVE_BOARD_H
 
 class DriveBoard
 {
@@ -28,4 +28,4 @@ class DriveBoard
         void SendStop();
 };
 
-#endif    // DRIVEBOARD_H
+#endif    // DRIVE_BOARD_H
