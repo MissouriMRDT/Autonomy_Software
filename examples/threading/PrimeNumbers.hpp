@@ -11,9 +11,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../../src/interfaces/AutonomyThread.hpp"
+#include "../../src/interfaces/AutonomyThreading.hpp"
 
-class PrimeCalculatorThread : public AutonomyThread
+class PrimeCalculatorThread : public AutonomyThreading<void>
 {
     private:
         // Declare and define private methods and variables.
