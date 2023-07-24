@@ -39,5 +39,6 @@ jobs:
 
       - name: Run Tests
         run: |
+          cd /opt/Autonomy_Software/build
           ls
-          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests fi
+          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; fi
