@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Unit and Integration Tests
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  unit-tests:
+  run-tests:
     runs-on: ubuntu-latest
     container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2
 
@@ -37,7 +37,15 @@ jobs:
           cmake ..
           make
 
-      - name: Run Tests
+      - name: Run Unit Tests
+        id: run-unit
         run: |
           cd /opt/Autonomy_Software/build
-          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; else echo "No Tests Exist" ; fi
+          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; else echo "No Unit Tests Exist" ; fi
+
+      - name: Run Integration Tests
+        id: run-integration
+        if: success() || (failure() && steps.run-unit.outcome == 'failure')
+        run: |
+          cd /opt/Autonomy_Software/build
+          if test -f "Autonomy_Software_IntegrationTests"; then ./Autonomy_Software_IntegrationTests ; else echo "No Integration Tests Exist" ; fi
