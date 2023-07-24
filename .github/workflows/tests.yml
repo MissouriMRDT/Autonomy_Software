@@ -3,6 +3,8 @@ name: Unit and Integration Tests
 on:
   pull_request:
     branches: ["development"]
+  push:
+    branches: ["development"]
   workflow_dispatch:
 
 concurrency:
