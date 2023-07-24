@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Search Pattern State
@@ -19,7 +19,7 @@
  ******************************************************************************/
 struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
 {
-        SearchPatternState() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In State: Search Pattern"; }
+        SearchPatternState() { LOG_INFO(g_qSharedLogger, "In State: Search Pattern"); }
 
         typedef mpl::list<sc::custom_reaction<SeachPattern_GateSeenTransition>,
                           sc::custom_reaction<SeachPattern_ObstacleAvoidanceTransition>,
@@ -48,7 +48,7 @@ struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
  ******************************************************************************/
 struct SeachPattern_GateSeenTransition : sc::event<SeachPattern_GateSeenTransition>
 {
-        SeachPattern_GateSeenTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Search Pattern (Gate Seen)"; }
+        SeachPattern_GateSeenTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Search Pattern (Gate Seen)"); }
 };
 
 /******************************************************************************
@@ -60,7 +60,7 @@ struct SeachPattern_GateSeenTransition : sc::event<SeachPattern_GateSeenTransiti
  ******************************************************************************/
 struct SeachPattern_ObstacleAvoidanceTransition : sc::event<SeachPattern_ObstacleAvoidanceTransition>
 {
-        SeachPattern_ObstacleAvoidanceTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Search Pattern (Obstacle Avoidance)"; }
+        SeachPattern_ObstacleAvoidanceTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Search Pattern (Obstacle Avoidance)"); }
 };
 
 /******************************************************************************
@@ -72,7 +72,7 @@ struct SeachPattern_ObstacleAvoidanceTransition : sc::event<SeachPattern_Obstacl
  ******************************************************************************/
 struct SeachPattern_MarkerSeenTransition : sc::event<SeachPattern_MarkerSeenTransition>
 {
-        SeachPattern_MarkerSeenTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Search Pattern (Marker Seen)"; }
+        SeachPattern_MarkerSeenTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Search Pattern (Marker Seen)"); }
 };
 
 /******************************************************************************
@@ -84,7 +84,7 @@ struct SeachPattern_MarkerSeenTransition : sc::event<SeachPattern_MarkerSeenTran
  ******************************************************************************/
 struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
 {
-        SeachPattern_AbortTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Search Pattern (Abort)"; }
+        SeachPattern_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Search Pattern (Abort)"); }
 };
 
 /******************************************************************************
@@ -96,5 +96,5 @@ struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
  ******************************************************************************/
 struct SeachPattern_StuckTransition : sc::event<SeachPattern_StuckTransition>
 {
-        SeachPattern_StuckTransition() { PLOGI_(AutonomyLogger::AL_ConsoleLogger) << "In Transition: Search Pattern (Stuck)"; }
+        SeachPattern_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Search Pattern (Stuck)"); }
 };

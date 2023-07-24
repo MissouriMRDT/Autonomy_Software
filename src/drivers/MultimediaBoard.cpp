@@ -10,7 +10,7 @@
 
 #include "MultimediaBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Construct a new Multimedia Board:: Multimedia Board object.
