@@ -45,8 +45,5 @@ int main()
 
     // TODO: Initialize RoveComm
 
-    // Create Memory Leak
-    int* q = new int;
-
     return 0;
 }
