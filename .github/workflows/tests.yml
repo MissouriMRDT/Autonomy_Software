@@ -1,0 +1,53 @@
+name: Unit and Integration Tests
+
+on:
+  pull_request:
+    branches: ["development"]
+  push:
+    branches: ["development"]
+  workflow_dispatch:
+
+concurrency:
+  group: "unit-tests"
+  cancel-in-progress: false
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2
+
+    steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update Branch
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --force
+          branch=${{ steps.extract_branch.outputs.branch }}
+          echo $branch
+          git checkout $branch
+          git pull
+
+      - name: Build Tests
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Run Unit Tests
+        id: run-unit
+        run: |
+          cd /opt/Autonomy_Software/build
+          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; else echo "No Unit Tests Exist" ; fi
+
+      - name: Run Integration Tests
+        id: run-integration
+        if: success() || (failure() && steps.run-unit.outcome == 'failure')
+        run: |
+          cd /opt/Autonomy_Software/build
+          if test -f "Autonomy_Software_IntegrationTests"; then ./Autonomy_Software_IntegrationTests ; else echo "No Integration Tests Exist" ; fi
