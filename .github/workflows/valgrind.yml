@@ -41,9 +41,8 @@ jobs:
 
       - name: Run Valgrind
         run: |
-          cd /opt/Autonomy_Software/build
           chmod 777 /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh
-          bash /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh 1
+          /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh 1
 
       - name: Analyse Valgrind - Definitely Lost
         if: always()
