@@ -29,13 +29,11 @@ jobs:
           git checkout $branch
           git pull
 
-      - name: Build and Create Executable
+      - name: Run Tests
         run: |
           cd /opt/Autonomy_Software/
           mkdir build
           cd build
           cmake ..
           make
-
-      - name: Run Tests
-        run: make test
+          make test
