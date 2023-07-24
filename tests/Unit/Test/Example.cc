@@ -62,6 +62,6 @@ TEST(ExampleTests, TestIntegerZero_One)
 TEST(ExampleTests, TestDivision)
 {
     const auto expected = 2;
-    const auto actual   = 6 / 3;
+    const auto actual   = 6 / 2;
     ASSERT_EQ(actual, expected);
 }
