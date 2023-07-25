@@ -11,34 +11,50 @@
 #include "../../src/interfaces/AutonomyThread.hpp"
 #include "../opencv/TagGenerator.hpp"
 
-class ArucoGenerateTags : public AutonomyThread
+class ArucoGenerateTags : public AutonomyThread<void>
 {
     private:
         // Declare and define private member variables.
-        int m_nTagCounter                                 = 0;
-        int m_nNumTagsToGenerate                          = 0;
-        cv::aruco::PredefinedDictionaryType m_eDictionary = cv::aruco::DICT_4X4_50;
+        int m_nNumTagsToGenerate                                         = 50;
+        std::vector<cv::aruco::PredefinedDictionaryType> m_vDictionaries = {cv::aruco::DICT_4X4_50, cv::aruco::DICT_5X5_50, cv::aruco::DICT_6X6_50};
 
         /******************************************************************************
-         * @brief This code will run in a seperate thread.
+         * @brief This code will run in a seperate thread. This is the main code.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void ThreadedCode()
+        void ThreadedContinuousCode()
         {
-            // Generate tag with id from 4x4 50 dictionary.
-            GenerateOpenCVArucoMarker(cv::aruco::DICT_4X4_50, m_nTagCounter);
+            // Start thread pool.
+            this->RunPool(3);
 
-            // Increment tag counter.
-            ++m_nTagCounter;
+            // Wait for pool tasks to finish.
+            this->JoinPool();
 
-            // Check if we have reached 50 tags.
-            if (m_nTagCounter < m_nNumTagsToGenerate)
+            // Stop threaded code.
+            this->RequestStop();
+        }
+
+        /******************************************************************************
+         * @brief Any highly parallelizable code that can be used in the main thread
+         *       goes here.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0725
+         ******************************************************************************/
+        void PooledLinearCode()
+        {
+            // Get dictionary enum from back of dictionary vector.
+            cv::aruco::PredefinedDictionaryType cvDictType = m_vDictionaries.back();
+            m_vDictionaries.pop_back();
+
+            // Loop through and generate each of the tags.
+            for (int i = 0; i < m_nNumTagsToGenerate; ++i)
             {
-                // Stop threaded code.
-                this->RequestStop();
+                GenerateOpenCVArucoMarker(cvDictType, i);
             }
         }
 
@@ -65,7 +81,7 @@ class ArucoGenerateTags : public AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void SetTagDictionaryType(const cv::aruco::PredefinedDictionaryType eDictionary) { m_eDictionary = eDictionary; }
+        void AddTagDictionaryType(const cv::aruco::PredefinedDictionaryType eDictionary) { m_vDictionaries.emplace_back(eDictionary); }
 };
 
 /******************************************************************************
@@ -80,6 +96,9 @@ int RunExample()
 {
     // Create Aruco generator threads.
     ArucoGenerateTags TagGenerator1;
+
+    TagGenerator1.Start();
+    TagGenerator1.Join();
 
     return 0;
 }
