@@ -17,9 +17,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(Autonomy_Software VERSION 24.00.00)
 
 ## Include Required CMake Packages
-include(CPack)																		# CMake Packaging Library
-include(CTest)																	  	# CMake Testing Framework
-include(FetchContent)															   	# CMake Dependency Framework
+if(CPack_CMake_INCLUDED)
+    include(CPack)                                                                  # CMake Packaging Library
+endif()
+if(CTest_CMake_INCLUDED)
+    include(CTest)                                                                  # CMake Testing Framework
+endif()
+include(FetchContent)                                                               # CMake Dependency Framework
 
 ## Define Project Name and Version Number for CPack
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -27,6 +31,27 @@ set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_GENERATOR "SH")
+
+## Find RoveComm
+FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm)
+        GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
+        GIT_TAG        fd3b5cdaa9aeda7b9a9f632a8ffad438d8bb563c                     # Version 24.0.0
+        GIT_SHALLOW    TRUE                                                         # Download only without history
+        GIT_PROGRESS   TRUE                                                         # Forces progress status.
+    )
+FetchContent_GetProperties(RoveComm_CPP)
+if(NOT RoveComm_CPP)
+    # Fetch the content using previously declared details
+    FetchContent_Populate(RoveComm_CPP)
+
+    # Set Library Scope
+    set(RoveComm_CPP_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src/src)
+    set(RoveComm_CPP_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src)
+
+    # Bring the populated content into the build
+    include_directories( ${RoveComm_CPP_INCLUDE_DIR} )
+    add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
+endif()
 
 ## Find Threads
 find_package(Threads REQUIRED)
@@ -58,12 +83,10 @@ file(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
 file(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
 file(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
 file(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
-file(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${PROJECT_NAME}  ${External_SRC}
-								${Util_SRC}
+add_executable(${PROJECT_NAME}  ${Util_SRC}
 								${Algorithms_SRC}
 								${Interfaces_SRC}
 								${States_SRC}
@@ -85,11 +108,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
                                                 quill::quill
 												${OpenCV_LIBS}
+                                                RoveComm_CPP
                                                 #Boost::filesystem
     )
 
 ## Package Executable
-install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/**/*.cc")
