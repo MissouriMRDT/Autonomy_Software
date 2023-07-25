@@ -24,11 +24,14 @@ class AutonomyThreading
     private:
         // Declare and define interface class private member variables.
         std::atomic_bool m_bStopThreads = false;
-        BS::thread_pool m_thPool        = BS::thread_pool(1);
-        std::vector<void*> m_vPoolReturns;
+        BS::thread_pool m_thMainThread  = BS::thread_pool(1);
+        BS::thread_pool m_thPool        = BS::thread_pool(2);
+        std::future<T> m_fuMainReturn;
+        std::vector<std::future<T>> m_vPoolReturns;
 
         // Declare interface class pure virtual functions. (These must be overriden be inheritor.)
-        virtual T ThreadedCode() = 0;
+        virtual T ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
+        virtual T PooledLinearCode()       = 0;    // This is where user's offshoot, high parallelizable code will go. Helpful for intensive shortlived tasks.
 
         // Declare and define private interface methods.
         /******************************************************************************
@@ -47,11 +50,149 @@ class AutonomyThreading
             while (!bStopThread)
             {
                 // Call method containing user code.
-                this->ThreadedCode();
+                this->ThreadedContinuousCode();
             }
 
             // Do one more iteration to get return type from user code.
-            return this->ThreadedCode();
+            return this->ThreadedContinuousCode();
+        }
+
+        /******************************************************************************
+         * @brief When this method is called, it starts a thread pool that runs nNumThreads
+         *      copies of the code withing the PooledLinearCode() method. This is meant to be
+         *      used as an internal utility of the class to further improve parallelization.
+         *      Default value for nNumThreads is 2.
+         *
+         *      If this method is called directly after StartDetechedPool(), it will signal
+         *      for those threads to stop and wait until they exit on their next iteration. Any
+         *      number of tasks that are still queued will be cleared. Old results will be destoyed.
+         *      If you want to wait until they fully execute their code, then call the Join()
+         *      method before this one.
+         *
+         *      Once the pool is created it stays alive for as long as the program runs or until
+         *      a different threading method is called. So there's no overhead with starting and
+         *      stopping threads.
+         *
+         * @param nNumThreads - The number of threads to run user code in.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0723
+         ******************************************************************************/
+        void RunPool(const int nNumThreads = 2)
+        {
+            // Tell any open thread to stop.
+            m_bStopThreads = true;
+
+            // Pause queuing of new tasks to the threads, then purge them.
+            m_thPool.pause();
+            m_thPool.purge();
+            // Wait for open threads to terminate, then resize the pool.
+            m_thPool.reset(nNumThreads);
+
+            // Clear results vector.
+            m_vPoolReturns.clear();
+            // Reset thread stop toggle.
+            m_bStopThreads = false;
+
+            // Loop nNumThreads times and queue tasks.
+            for (int i = 0; i < nNumThreads; ++i)
+            {
+                // Submit single task to pool queue.
+                m_vPoolReturns.emplace_back(m_thPool.submit(&AutonomyThreading::PooledLinearCode, this, std::ref(m_bStopThreads)));
+            }
+
+            // Unpause queue.
+            m_thPool.unpause();
+        }
+
+        /******************************************************************************
+         * @brief When this method is called, it starts a thread pool full of threads that
+         *      don't return std::futures (like a placeholder for the thread return type). This
+         *      means the thread will not have a return type and there is not way to determine
+         *      if the thread has finished other than calling the Join() method.
+         *      Only use this if you want to 'set and forget'. It will be faster as it doesn't
+         *      return futures. Runs PooledLinearCode() method code. This is meant to be
+         *      used as an internal utility of the class to further improve parallelization.
+         *
+         *      If this method is called directly after StartPool(), it will signal
+         *      for those threads to stop and wait until they exit on their next iteration. Any
+         *      number of tasks that are still queued will be cleared. Old results will be destoyed.
+         *      If you want to wait until they fully execute their code, then call the Join()
+         *      method before this one.
+         *
+         *      Once the pool is created it stays alive for as long as the program runs or until
+         *      a different threading method is called. So there's no overhead with starting and
+         *      stopping threads.
+         *
+         * @param nNumThreads - The number of threads to run user code in.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0723
+         ******************************************************************************/
+        void RunDetachedPool(const int nNumThreads = 2)
+        {
+            // Tell any open thread to stop.
+            m_bStopThreads = true;
+
+            // Pause queuing of new tasks to the threads, then purge them.
+            m_thPool.pause();
+            m_thPool.purge();
+            // Wait for open threads to terminate, then resize the pool.
+            m_thPool.reset(nNumThreads);
+
+            // Clear results vector.
+            m_vPoolReturns.clear();
+            // Reset thread stop toggle.
+            m_bStopThreads = false;
+
+            // Loop nNumThreads times and queue tasks.
+            for (int i = 0; i < nNumThreads; ++i)
+            {
+                // Push single task to pool queue. No return value no control.
+                m_thPool.push_task(&AutonomyThreading::PooledLinearCode, this, std::ref(m_bStopThreads));
+            }
+
+            // Unpause queue.
+            m_thPool.unpause();
+        }
+
+        /******************************************************************************
+         * @brief Waits for pool to finish executing tasks. This method will block
+         *      the calling code until thread is finished.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0722
+         ******************************************************************************/
+        void JoinPool()
+        {
+            // Wait for pool to finish all tasks.
+            m_thPool.wait_for_tasks();
+        }
+
+        /******************************************************************************
+         * @brief Check if the internal pool threads are done executing code and the
+         *      queue is empty.
+         *
+         * @return true - The thread is finished and joinable.
+         * @return false - The thread is still running code.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0722
+         ******************************************************************************/
+        bool PoolJoinable()
+        {
+            // Check current number of running and queued tasks.
+            if (m_thPool.get_tasks_total() <= 0)
+            {
+                // Threads are joinable.
+                return true;
+            }
+            else
+            {
+                // Threads are still running.
+                return false;
+            }
         }
 
     public:
@@ -72,11 +213,19 @@ class AutonomyThreading
 
             // Wait for all threads to finish.
             m_thPool.wait_for_tasks();
+            m_thMainThread.wait_for_tasks();
         }
 
         /******************************************************************************
          * @brief When this method is called, it starts a new thread that runs the
-         *      code within the RunThread and ThreadedCode methods.
+         *      code within the RunThread and ThreadedCode methods. This is the users
+         *      main code that will run the important and continous code for the class.
+         *
+         *      If this method is called directly after StartPool() or StartDetachedPool(), it will signal
+         *      for those threads to stop and wait until they exit on their next iteration. Any
+         *      number of tasks that are still queued will be cleared. Old results will be destoyed.
+         *      If you want to wait until they fully execute their code, then call the Join()
+         *      method before this one.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -90,67 +239,20 @@ class AutonomyThreading
             // Pause queuing of new tasks to the threads, then purge them.
             m_thPool.pause();
             m_thPool.purge();
-            // Wait for open threads to terminate, then resize the pool to only 1 thread.
-            m_thPool.reset(1);
+            m_thMainThread.pause();
+            m_thMainThread.purge();
 
+            // Clear results vector.
+            m_vPoolReturns.clear();
             // Reset thread stop toggle.
             m_bStopThreads = false;
 
-            // Submit single task to pool queue.
-            std::future<T> future = m_thPool.submit(&AutonomyThreading::RunThread, this, std::ref(m_bStopThreads));
-            // Unpause queue.
+            // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
+            m_fuMainReturn = m_thMainThread.submit(&AutonomyThreading::RunThread, this, std::ref(m_bStopThreads));
+
+            // Unpause pool queues.
             m_thPool.unpause();
-        }
-
-        /******************************************************************************
-         * @brief When this method is called, it starts a thread pool that runs nNumThreads
-         *      copies of the code withing the RunThread and ThreadedCode methods.
-         *      Default value for nNumThreads is 1.
-         *
-         * @param nNumThreads - The number of threads to run user code in.
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
-         ******************************************************************************/
-        void StartPool(const int nNumThreads = 2)
-        {
-            // Tell any open thread to stop.
-            m_bStopThreads = true;
-
-            // Pause queuing of new tasks to the threads, then purge them.
-            m_thPool.pause();
-            m_thPool.purge();
-            // Wait for open threads to terminate, then resize the pool.
-            m_thPool.reset(nNumThreads);
-        }
-
-        /******************************************************************************
-         * @brief When this method is called, it starts a thread pool full of threads that
-         *      don't return std::futures (like a placeholder for the thread return type). This
-         *      means the thread will not have a return type and there is not way to determine
-         *      if the thread has finished. Only use this if you want to 'set and forget'.
-         *
-         *      If this method is called directly after Start() or StartPool(), it will signal
-         *      for those threads to stop and wait until they exit on their next iteration. Any
-         *      number of tasks that are still queued will be cleared.
-         *      If you want to wait until they fully execute their code, then call the Join()
-         *      method before this one.
-         *
-         * @param nNumThreads - The number of threads to run user code in.
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
-         ******************************************************************************/
-        void StartDetachedPool(const int nNumThreads = 2)
-        {
-            // Tell any open thread to stop.
-            m_bStopThreads = true;
-
-            // Pause queuing of new tasks to the threads, then purge them.
-            m_thPool.pause();
-            m_thPool.purge();
-            // Wait for open threads to terminate, then resize the pool.
-            m_thPool.reset(nNumThreads);
+            m_thMainThread.unpause();
         }
 
         /******************************************************************************
@@ -180,7 +282,7 @@ class AutonomyThreading
         void Join()
         {
             // Wait for pool to finish all tasks.
-            m_thPool.wait_for_tasks();
+            m_thMainThread.wait_for_tasks();
         }
 
         /******************************************************************************
@@ -196,7 +298,7 @@ class AutonomyThreading
         bool Joinable()
         {
             // Check current number of running and queued tasks.
-            if (m_thPool.get_tasks_total() <= 0)
+            if (m_thMainThread.get_tasks_total() <= 0)
             {
                 // Threads are joinable.
                 return true;

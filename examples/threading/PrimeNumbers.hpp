@@ -73,13 +73,13 @@ class PrimeCalculatorThread : public AutonomyThreading<void>
         }
 
         /******************************************************************************
-         * @brief This code will run in a seperate thread.
+         * @brief This code will run in a seperate thread. Main code goes here.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        void ThreadedCode()
+        void ThreadedContinuousCode()
         {
             // Change this to calculate a different number of prime numbers.
             calculatePrimes(m_nCount);
@@ -91,6 +91,16 @@ class PrimeCalculatorThread : public AutonomyThreading<void>
                 this->RequestStop();
             }
         }
+
+        /******************************************************************************
+         * @brief Any highly parallelizable code that can be used in the main thread
+         *       goes here.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0725
+         ******************************************************************************/
+        void PooledLinearCode() {}
 
     public:
         // Declare and define public methods and variables.
