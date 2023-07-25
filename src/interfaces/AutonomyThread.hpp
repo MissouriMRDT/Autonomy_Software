@@ -209,9 +209,12 @@ class AutonomyThread
             // Tell all threads to stop executing user code.
             m_bStopThreads = true;
 
-            // Wait for all threads to finish.
-            // m_thPool.wait_for_tasks();
-            std::cout << "HERE" << std::endl;
+            // Pause and clear pool queues.
+            m_thPool.pause();
+            m_thPool.purge();
+            m_thMainThread.pause();
+            m_thMainThread.purge();
+
             // Wait for all pool threads to finish.
             if (this->PoolJoinable())
             {
