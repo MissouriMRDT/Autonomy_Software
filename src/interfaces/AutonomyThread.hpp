@@ -4,7 +4,7 @@
  *      and others are pure virtual methods that need to be implemented by the
  *      inheritor.
  *
- * @file AutonomyThreading.h
+ * @file AutonomyThread.h
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0716
  *
@@ -19,19 +19,19 @@
 #define AUTONOMYTHREAD_H
 
 template<class T>
-class AutonomyThreading
+class AutonomyThread
 {
     private:
         // Declare and define interface class private member variables.
         std::atomic_bool m_bStopThreads = false;
         BS::thread_pool m_thMainThread  = BS::thread_pool(1);
         BS::thread_pool m_thPool        = BS::thread_pool(2);
-        std::future<T> m_fuMainReturn;
+        std::future<void> m_fuMainReturn;
         std::vector<std::future<T>> m_vPoolReturns;
 
         // Declare interface class pure virtual functions. (These must be overriden be inheritor.)
-        virtual T ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
-        virtual T PooledLinearCode()       = 0;    // This is where user's offshoot, high parallelizable code will go. Helpful for intensive shortlived tasks.
+        virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
+        virtual T PooledLinearCode()          = 0;    // This is where user's offshoot, high parallelizable code will go. Helpful for intensive shortlived tasks.
 
         // Declare and define private interface methods.
         /******************************************************************************
@@ -45,16 +45,14 @@ class AutonomyThreading
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0724
          ******************************************************************************/
-        T RunThread(std::atomic_bool& bStopThread)
+        void RunThread(std::atomic_bool& bStopThread)
         {
+            // Loop until stop flag is set.
             while (!bStopThread)
             {
                 // Call method containing user code.
                 this->ThreadedContinuousCode();
             }
-
-            // Do one more iteration to get return type from user code.
-            return this->ThreadedContinuousCode();
         }
 
         /******************************************************************************
@@ -98,7 +96,7 @@ class AutonomyThreading
             for (int i = 0; i < nNumThreads; ++i)
             {
                 // Submit single task to pool queue.
-                m_vPoolReturns.emplace_back(m_thPool.submit(&AutonomyThreading::PooledLinearCode, this, std::ref(m_bStopThreads)));
+                m_vPoolReturns.emplace_back(m_thPool.submit(&AutonomyThread::PooledLinearCode, this, std::ref(m_bStopThreads)));
             }
 
             // Unpause queue.
@@ -149,7 +147,7 @@ class AutonomyThreading
             for (int i = 0; i < nNumThreads; ++i)
             {
                 // Push single task to pool queue. No return value no control.
-                m_thPool.push_task(&AutonomyThreading::PooledLinearCode, this, std::ref(m_bStopThreads));
+                m_thPool.push_task(&AutonomyThread::PooledLinearCode, this, std::ref(m_bStopThreads));
             }
 
             // Unpause queue.
@@ -206,14 +204,24 @@ class AutonomyThreading
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        virtual ~AutonomyThreading()
+        virtual ~AutonomyThread()
         {
             // Tell all threads to stop executing user code.
             m_bStopThreads = true;
 
             // Wait for all threads to finish.
-            m_thPool.wait_for_tasks();
-            m_thMainThread.wait_for_tasks();
+            // m_thPool.wait_for_tasks();
+            std::cout << "HERE" << std::endl;
+            // Wait for all pool threads to finish.
+            if (this->PoolJoinable())
+            {
+                m_thPool.wait_for_tasks();
+            }
+            // Wait for main thread to finish.
+            if (this->Joinable())
+            {
+                m_thMainThread.wait_for_tasks();
+            }
         }
 
         /******************************************************************************
@@ -248,7 +256,7 @@ class AutonomyThreading
             m_bStopThreads = false;
 
             // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
-            m_fuMainReturn = m_thMainThread.submit(&AutonomyThreading::RunThread, this, std::ref(m_bStopThreads));
+            m_fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
 
             // Unpause pool queues.
             m_thPool.unpause();

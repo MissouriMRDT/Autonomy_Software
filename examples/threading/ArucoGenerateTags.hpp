@@ -8,10 +8,10 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
-#include "../../src/interfaces/AutonomyThreading.hpp"
+#include "../../src/interfaces/AutonomyThread.hpp"
 #include "../opencv/TagGenerator.hpp"
 
-class ArucoGenerateTags : public AutonomyThreading
+class ArucoGenerateTags : public AutonomyThread
 {
     private:
         // Declare and define private member variables.
