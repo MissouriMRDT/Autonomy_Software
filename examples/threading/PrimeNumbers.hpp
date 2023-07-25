@@ -11,9 +11,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../../src/interfaces/AutonomyThreading.hpp"
+#include "../../src/interfaces/AutonomyThread.hpp"
 
-class PrimeCalculatorThread : public AutonomyThreading<void>
+class PrimeCalculatorThread : public AutonomyThread<void>
 {
     private:
         // Declare and define private methods and variables.
@@ -135,6 +135,15 @@ class PrimeCalculatorThread : public AutonomyThreading<void>
          * @date 2023-0722
          ******************************************************************************/
         std::vector<int> GetPrimes() { return m_vThreadPrimes; }
+
+        /******************************************************************************
+         * @brief Clears the prime results vector.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-0725
+         ******************************************************************************/
+        void ClearPrimes() { m_vThreadPrimes.clear(); }
 };
 
 /******************************************************************************
@@ -192,6 +201,17 @@ int RunExample()
     std::cout << "Calculator3 Primes Length: " << vPrimes.size() << std::endl;
     vPrimes = ThreadedPrimeCalculator4.GetPrimes();
     std::cout << "Calculator4 Primes Length: " << vPrimes.size() << std::endl;
+    std::cout << "\n\nThis thread was stopped prematurely before reaching 9999999." << std::endl;
+    vPrimes = ThreadedPrimeCalculator5.GetPrimes();
+    std::cout << "Calculator5 Primes Length: " << vPrimes.size() << std::endl;
+
+    // Clear Calculator5 and restart the thread.
+    // Don't join before program exits to demonstrate
+    // graceful shutdowns when user doesn't do what they're supposed to.
+    ThreadedPrimeCalculator5.ClearPrimes();
+    ThreadedPrimeCalculator5.Start();
+    // Print info to user.
+    std::cout << "Calculator5 was restarted and then main program exited without joining. (graceful shutdown demo)" << std::endl;
     vPrimes = ThreadedPrimeCalculator5.GetPrimes();
     std::cout << "Calculator5 Primes Length: " << vPrimes.size() << std::endl;
 
