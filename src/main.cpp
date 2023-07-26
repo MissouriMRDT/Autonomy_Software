@@ -10,6 +10,8 @@
 
 #include "../examples/threading/ArucoGenerateTags.hpp"
 
+// #include "../examples/threading/PrimeNumbers.hpp"
+
 /******************************************************************************
  * @brief Autonomy main function.
  *
