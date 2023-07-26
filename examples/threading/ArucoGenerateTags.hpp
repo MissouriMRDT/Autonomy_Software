@@ -34,7 +34,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
         {
             // Start thread pool. Run detached since the threads aren't returning anything.
             // This is much faster than the normal RunPool function.
-            this->RunDetachedPool(m_vDictionaries.size());
+            this->RunDetachedPool(m_vDictionaries.size(), true);
 
             // Wait for pool tasks to finish.
             this->JoinPool();
@@ -60,13 +60,15 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
             m_vDictionaries.pop_back();
 
             // Parallelize loop.
-            this->ParallelizeLoop(m_nNumTagsToGenerate,
-                                  [&cvDictType](const int a, const int b)
-                                  {
-                                      // Loop through and generate each of the tags.
-                                      for (int i = a; i < b; ++i)
-                                          GenerateOpenCVArucoMarker(cvDictType, i);
-                                  });
+            this->ParallelizeLoop(
+                m_nNumTagsToGenerate,
+                [&cvDictType](const int a, const int b)
+                {
+                    // Loop through and generate each of the tags.
+                    for (int i = a; i < b; ++i)
+                        GenerateOpenCVArucoMarker(cvDictType, i);
+                },
+                true);
 
             // // Loop through and generate each of the tags. NONPARALLELIZED
             // for (int i = 0; i < m_nNumTagsToGenerate; ++i)
@@ -124,13 +126,16 @@ class ArucoGenerateTagsLinear
          ******************************************************************************/
         void Start()
         {
-            // Get dictionary enum from back of dictionary vector.
-            cv::aruco::PredefinedDictionaryType cvDictType = m_vDictionaries.back();
-            m_vDictionaries.pop_back();
+            while (m_vDictionaries.size() > 0)
+            {
+                // Get dictionary enum from back of dictionary vector.
+                cv::aruco::PredefinedDictionaryType cvDictType = m_vDictionaries.back();
+                m_vDictionaries.pop_back();
 
-            // Loop through and generate each of the tags.
-            for (int i = 0; i < m_nNumTagsToGenerate; ++i)
-                GenerateOpenCVArucoMarker(cvDictType, i);
+                // Loop through and generate each of the tags.
+                for (int i = 0; i < m_nNumTagsToGenerate; ++i)
+                    GenerateOpenCVArucoMarker(cvDictType, i);
+            }
         }
 
         /******************************************************************************
@@ -175,11 +180,15 @@ int RunExample()
     // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_4X4_50);
     // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_5X5_50);
     // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_6X6_50);
+    // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_7X7_50);
 
     // // Start first run.
     // LinearTagGenerator.Start();
 
     // // Add new dictionary to generator.
+    // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_4X4_1000);
+    // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_5X5_1000);
+    // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_6X6_1000);
     // LinearTagGenerator.AddTagDictionaryType(cv::aruco::DICT_7X7_1000);
     // // Set new num tags to generate.
     // LinearTagGenerator.SetNumTagsToGenerate(1000);
@@ -194,19 +203,31 @@ int RunExample()
     ArucoGenerateTagsThreaded ThreadedTagGenerator;
 
     // Configure tag generator.
-    ThreadedTagGenerator.SetNumTagsToGenerate(50);
+    ThreadedTagGenerator.SetNumTagsToGenerate(49);
     ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_4X4_50);
     ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_5X5_50);
     ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_6X6_50);
+    ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_7X7_50);
 
-    // Start first run.
+    // // Start first run.
     ThreadedTagGenerator.Start();
     ThreadedTagGenerator.Join();
 
     // Add new dictionary to generator.
+    ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_4X4_1000);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_4X4_250);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_4X4_100);
+    ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_5X5_1000);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_5X5_250);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_5X5_100);
+    ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_6X6_1000);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_6X6_250);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_6X6_100);
     ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_7X7_1000);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_7X7_250);
+    // ThreadedTagGenerator.AddTagDictionaryType(cv::aruco::DICT_7X7_100);
     // Set new num tags to generate.
-    ThreadedTagGenerator.SetNumTagsToGenerate(1000);
+    ThreadedTagGenerator.SetNumTagsToGenerate(999);
 
     // Start second run.
     ThreadedTagGenerator.Start();
