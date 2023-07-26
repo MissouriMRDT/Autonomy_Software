@@ -29,7 +29,8 @@ class AutonomyThread
         BS::thread_pool m_thMainThread  = BS::thread_pool(1);
         BS::thread_pool m_thPool        = BS::thread_pool(2);
         BS::thread_pool m_thLoopPool    = BS::thread_pool();    // Number of threads determined by std::thread::hardware_concurrency()
-        std::shared_mutex m_muLoopMutex;
+        std::mutex m_muPoolMutex;
+        std::mutex m_muLoopMutex;
         std::future<void> m_fuMainReturn;
         std::vector<std::future<T>> m_vPoolReturns;
 
@@ -129,11 +130,15 @@ class AutonomyThread
          *      stopping threads.
          *
          * @param nNumThreads - The number of threads to run user code in.
+         * @param bAquireWriteLocks - Whether or not to use a mutex for locking. This will depend on the
+         *                      code. If the code is writing to the parent object, then
+         *                      use a mutex. If turned on a unique lock on a shared, timed mutex will be used.
+         *                      (std::unique_lock<std::mutex>)
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void RunDetachedPool(const int nNumThreads = 2)
+        void RunDetachedPool(const int nNumThreads = 2, const bool bAquireWriteLocks = false)
         {
             // Tell any open thread to stop.
             m_bStopThreads = true;
@@ -153,7 +158,24 @@ class AutonomyThread
             for (int i = 0; i < nNumThreads; ++i)
             {
                 // Push single task to pool queue. No return value no control.
-                m_thPool.push_task(&AutonomyThread::PooledLinearCode, this);
+                m_thPool.push_task(
+                    [this, &bAquireWriteLocks]()
+                    {
+                        // Aquire mutex resource lock if necessary.
+                        if (bAquireWriteLocks)
+                        {
+                            // Aquire lock.
+                            std::lock_guard<std::mutex> lock(m_muPoolMutex);
+
+                            // Run user code with lock.
+                            this->PooledLinearCode();
+                        }
+                        else
+                        {
+                            // Run user code without lock.
+                            this->PooledLinearCode();
+                        }
+                    });
             }
 
             // Unpause queue.
@@ -173,10 +195,10 @@ class AutonomyThread
          * @tparam T - Template argument for the nTotalIterations type.
          * @param nTotalIterations - The total iterations to loop for.
          * @param tLoopFunction - Ref-qualified function to run. MUST ACCEPT TWO ARGS: const int a, const int b.
-         * @param bAquireWriteLocks - Whether or not to use a mutex for locking. This will depend in the
+         * @param bAquireWriteLocks - Whether or not to use a mutex for locking. This will depend on the
          *                      code running in the loop. If the loop is writing to the parent object, then
          *                      use a mutex. If turned on a unique lock on a shared, timed mutex will be used.
-         *                      (std::unique_lock<std::shared_mutex>)
+         *                      (std::unique_lock<std::mutex>)
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -192,11 +214,16 @@ class AutonomyThread
                                        if (bAquireWriteLocks)
                                        {
                                            // Aquire lock.
-                                           std::unique_lock<std::shared_mutex> lock(m_muLoopMutex);
-                                       }
+                                           std::lock_guard<std::mutex> lock(m_muLoopMutex);
 
-                                       // Call loop function.
-                                       tLoopFunction(a, b);
+                                           // Call loop function with lock.
+                                           tLoopFunction(a, b);
+                                       }
+                                       else
+                                       {
+                                           // Call loop function without lock.
+                                           tLoopFunction(a, b);
+                                       }
                                    });
         }
 
