@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 
+#include "../examples/threading/ArucoGenerateTags.hpp"
 #include "./AutonomyGlobals.h"
 
 /******************************************************************************
@@ -44,6 +45,9 @@ int main()
     // TODO: Initialize Threads
 
     // TODO: Initialize RoveComm
+
+    // Run examples
+    RunExample();
 
     return 0;
 }
