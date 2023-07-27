@@ -300,6 +300,7 @@ int RunExample()
     auto multiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
     // Print the result
     std::cout << "Time taken for multithreaded generator: " << multiThreadedDuration << " milliseconds." << std::endl;
+    std::cout << "\n\nCheck your build directory for all 5600 aruco tags!" << std::endl;
 
     return 0;
 }
