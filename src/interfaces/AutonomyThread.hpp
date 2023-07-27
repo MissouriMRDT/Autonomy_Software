@@ -18,6 +18,14 @@
 #ifndef AUTONOMYTHREAD_H
 #define AUTONOMYTHREAD_H
 
+/******************************************************************************
+ * @brief Interface class used to easily multithread a child class.
+ *
+ * @tparam T - Variable return type of internal pooled code.
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-0727
+ ******************************************************************************/
 template<class T>
 class AutonomyThread
 {
@@ -61,7 +69,7 @@ class AutonomyThread
         /******************************************************************************
          * @brief When this method is called, it starts a thread pool that runs nNumThreads
          *      copies of the code withing the PooledLinearCode() method. This is meant to be
-         *      used as an internal utility of the class to further improve parallelization.
+         *      used as an internal utility of the child class to further improve parallelization.
          *      Default value for nNumThreads is 2.
          *
          *      If this method is called directly after RunDetechedPool(), it will signal
@@ -118,11 +126,11 @@ class AutonomyThread
         /******************************************************************************
          * @brief When this method is called, it starts a thread pool full of threads that
          *      don't return std::futures (like a placeholder for the thread return type). This
-         *      means the thread will not have a return type and there is not way to determine
+         *      means the thread will not have a return type and there is no way to determine
          *      if the thread has finished other than calling the Join() method.
          *      Only use this if you want to 'set and forget'. It will be faster as it doesn't
          *      return futures. Runs PooledLinearCode() method code. This is meant to be
-         *      used as an internal utility of the class to further improve parallelization.
+         *      used as an internal utility of the child class to further improve parallelization.
          *
          *      If this method is called directly after RunPool(), it will signal
          *      for those threads to stop and wait until they exit on their next iteration. Any
@@ -336,6 +344,9 @@ class AutonomyThread
             m_thPool.purge();
             m_thMainThread.pause();
             m_thMainThread.purge();
+
+            // Wait for loop, pool and main thread to join.
+            this->Join();
 
             // Clear results vector.
             m_vPoolReturns.clear();
