@@ -4,15 +4,15 @@
  *
  * @file NumberOperations.hpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include <algorithm>
 
-#ifndef NUMBEROPERATIONS_H
-#define NUMBEROPERATIONS_H
+#ifndef NUMBER_OPERATIONS_H
+#define NUMBER_OPERATIONS_H
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and
@@ -20,7 +20,7 @@
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0706
+ * @date 2023-07-06
  ******************************************************************************/
 namespace numops
 {
@@ -34,7 +34,7 @@ namespace numops
      * @return T - The clamped value.
      *
      * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
-     * @date 2023-0620
+     * @date 2023-06-20
      ******************************************************************************/
     template<typename T>
     T Clamp(T tValue, T tMin, T tMax)
@@ -43,4 +43,4 @@ namespace numops
     }
 }    // namespace numops
 
-#endif    // NUMBEROPERATIONS_H
+#endif    // NUMBER_OPERATIONS_H

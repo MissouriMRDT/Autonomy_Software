@@ -3,7 +3,7 @@
  *
  * @file NavigationBoard.h
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -11,8 +11,8 @@
 #include <chrono>
 #include <ctime>
 
-#ifndef NAVIGATIONBOARD_H
-#define NAVIGATIONBOARD_H
+#ifndef NAVIGATION_BOARD_H
+#define NAVIGATION_BOARD_H
 
 struct NavBoardPacket_IMU
 {
@@ -95,4 +95,4 @@ class NavigationBoard
         NavBoardPacket_GPS GetSData(NavigationBoardPacketCoordinateComponents eKey) const;
 };
 
-#endif    // NAVIGATIONBOARD_H
+#endif    // NAVIGATION_BOARD_H

@@ -3,21 +3,21 @@
  *
  * @file NavigationBoard.cpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "NavigationBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 NavigationBoard::NavigationBoard()
 {
@@ -38,7 +38,7 @@ NavigationBoard::NavigationBoard()
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 NavigationBoard::~NavigationBoard() {}
 
@@ -48,7 +48,7 @@ NavigationBoard::~NavigationBoard() {}
  * @param packet - The special nav board packet containing IMU data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
 {
@@ -56,7 +56,7 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
     m_dRoll    = packet.dRoll;
     m_dHeading = packet.dHeading;
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming IMU Data: (" << m_dPitch << ", " << m_dRoll << ", " << m_dHeading << ")";
+    LOG_INFO(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
 }
 
 /******************************************************************************
@@ -65,7 +65,7 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
  * @param packet - The special nav board packet containing GPS data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 {
@@ -74,7 +74,7 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
 
     m_tLastTime            = time(nullptr);
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Incoming GPS Data: (" << m_sLocation.dLatitude << ", " << m_sLocation.dLongitude << ")";
+    LOG_INFO(g_qSharedLogger, "Incoming GPS Data: ({}, {})", m_sLocation.dLatitude, m_sLocation.dLongitude);
 }
 
 /******************************************************************************
@@ -84,7 +84,7 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
  * @return double - The Roll, Pitch, or Heading data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
 {
@@ -108,7 +108,7 @@ double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) con
  * @return NavBoardPacket_GPS - Struct storing GPS data.
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
 {

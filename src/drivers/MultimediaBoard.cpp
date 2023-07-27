@@ -3,21 +3,21 @@
  *
  * @file MultimediaBoard.cpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "MultimediaBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Construct a new Multimedia Board:: Multimedia Board object.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 MultimediaBoard::MultimediaBoard() {}
 
@@ -26,7 +26,7 @@ MultimediaBoard::MultimediaBoard() {}
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 MultimediaBoard::~MultimediaBoard() {}
 
@@ -37,7 +37,7 @@ MultimediaBoard::~MultimediaBoard() {}
  * 					MultimediaBoard.h
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState) {}
 
@@ -48,6 +48,6 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState) {}
  * 					MultimediaBoard.h
  *
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  ******************************************************************************/
 void MultimediaBoard::SendRGB(RGB rgbVal) {}

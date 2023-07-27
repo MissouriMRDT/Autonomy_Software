@@ -4,13 +4,13 @@
  *
  * @file DriveBoard.cpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 2023-06-18
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 #include "DriveBoard.h"
 
-#include "../Autonomy_Globals.h"
+#include "../AutonomyGlobals.h"
 #include "../util/NumberOperations.hpp"
 
 /******************************************************************************
@@ -18,7 +18,7 @@
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 2023-06-18
  ******************************************************************************/
 DriveBoard::DriveBoard()
 {
@@ -31,7 +31,7 @@ DriveBoard::DriveBoard()
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 2023-06-18
  ******************************************************************************/
 DriveBoard::~DriveBoard() {}
 
@@ -44,7 +44,7 @@ DriveBoard::~DriveBoard() {}
  * @return std::vector<int> - 1D vector with two values. (left power, right power)
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 2023-06-18
  ******************************************************************************/
 std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
 {
@@ -63,7 +63,7 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
     m_iTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
     m_iTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
 
-    PLOG_DEBUG_(AL_ConsoleLogger) << "Driving at (" << m_iTargetSpeedLeft << ", " << m_iTargetSpeedRight << ")";
+    LOG_INFO(g_qSharedLogger, "Driving at: ({}, {})", m_iTargetSpeedLeft, m_iTargetSpeedRight);
 
     return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
 }
@@ -75,7 +75,7 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
  * @param nRightTarget - Right drive speed (-1 to 1)
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 2023-06-18
  ******************************************************************************/
 void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
 
@@ -84,6 +84,6 @@ void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-0618
+ * @date 2023-06-18
  ******************************************************************************/
 void DriveBoard::SendStop() {}

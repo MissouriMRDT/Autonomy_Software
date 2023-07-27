@@ -1,7 +1,8 @@
 ### Autonomy Specific ###
 # FileSystem
-build/
+*build*/
 .vscode/
+valgrind.rpt
 
 # Compiled Program
 Autonomy_Software
@@ -131,9 +132,6 @@ fabric.properties
 # that are supposed to be shared within teams.
 
 .idea/*
-
-!.idea/codeStyles
-!.idea/runConfigurations
 
 ### CMake ###
 CMakeLists.txt.user
