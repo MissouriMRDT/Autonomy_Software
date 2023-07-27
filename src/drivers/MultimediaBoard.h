@@ -3,13 +3,13 @@
  *
  * @file MultimediaBoard.h
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0620
+ * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef MULTIMEDIABOARD_H
-#define MULTIMEDIABOARD_H
+#ifndef MULTIMEDIA_BOARD_H
+#define MULTIMEDIA_BOARD_H
 
 enum MultimediaBoardLightingState
 {
@@ -56,4 +56,4 @@ class MultimediaBoard
         void SendRGB(RGB);
 };
 
-#endif    // MULTIMEDIABOARD_H
+#endif    // MULTIMEDIA_BOARD_H
