@@ -258,6 +258,8 @@ int RunExample()
     ThreadedTagGenerator1.AddTagDictionaryType(cv::aruco::DICT_6X6_50);
     ThreadedTagGenerator1.AddTagDictionaryType(cv::aruco::DICT_7X7_50);
     ThreadedTagGenerator1.SetNumTagsToGenerate(50);
+    // Start first run.
+    ThreadedTagGenerator1.Start();
 
     // Add new dictionary to generator.
     ThreadedTagGenerator2.AddTagDictionaryType(cv::aruco::DICT_4X4_100);
@@ -265,6 +267,8 @@ int RunExample()
     ThreadedTagGenerator2.AddTagDictionaryType(cv::aruco::DICT_6X6_100);
     ThreadedTagGenerator2.AddTagDictionaryType(cv::aruco::DICT_7X7_100);
     ThreadedTagGenerator2.SetNumTagsToGenerate(100);
+    // Start second run.
+    ThreadedTagGenerator2.Start();
 
     // Add new dictionary to generator.
     ThreadedTagGenerator3.AddTagDictionaryType(cv::aruco::DICT_4X4_250);
@@ -272,6 +276,8 @@ int RunExample()
     ThreadedTagGenerator3.AddTagDictionaryType(cv::aruco::DICT_6X6_250);
     ThreadedTagGenerator3.AddTagDictionaryType(cv::aruco::DICT_7X7_250);
     ThreadedTagGenerator3.SetNumTagsToGenerate(250);
+    // Start third run.
+    ThreadedTagGenerator3.Start();
 
     // Add new dictionary to generator.
     ThreadedTagGenerator4.AddTagDictionaryType(cv::aruco::DICT_4X4_1000);
@@ -279,13 +285,6 @@ int RunExample()
     ThreadedTagGenerator4.AddTagDictionaryType(cv::aruco::DICT_6X6_1000);
     ThreadedTagGenerator4.AddTagDictionaryType(cv::aruco::DICT_7X7_1000);
     ThreadedTagGenerator4.SetNumTagsToGenerate(1000);
-
-    // Start first run.
-    ThreadedTagGenerator1.Start();
-    // Start second run.
-    ThreadedTagGenerator2.Start();
-    // Start third run.
-    ThreadedTagGenerator3.Start();
     // Start fourth run.
     ThreadedTagGenerator4.Start();
 
