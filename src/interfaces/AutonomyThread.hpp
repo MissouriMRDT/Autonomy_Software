@@ -11,8 +11,6 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 #include <atomic>
-#include <mutex>
-#include <shared_mutex>
 #include <vector>
 
 #include "../../external/threadpool/BSThreadPool.hpp"
@@ -29,8 +27,6 @@ class AutonomyThread
         BS::thread_pool m_thMainThread  = BS::thread_pool(1);
         BS::thread_pool m_thPool        = BS::thread_pool(2);
         BS::thread_pool m_thLoopPool    = BS::thread_pool();    // Number of threads determined by std::thread::hardware_concurrency()
-        std::mutex m_muPoolMutex;
-        std::mutex m_muLoopMutex;
         std::future<void> m_fuMainReturn;
         std::vector<std::future<T>> m_vPoolReturns;
 
@@ -68,7 +64,7 @@ class AutonomyThread
          *      used as an internal utility of the class to further improve parallelization.
          *      Default value for nNumThreads is 2.
          *
-         *      If this method is called directly after StartDetechedPool(), it will signal
+         *      If this method is called directly after RunDetechedPool(), it will signal
          *      for those threads to stop and wait until they exit on their next iteration. Any
          *      number of tasks that are still queued will be cleared. Old results will be destoyed.
          *      If you want to wait until they fully execute their code, then call the Join()
@@ -77,6 +73,10 @@ class AutonomyThread
          *      Once the pool is created it stays alive for as long as the program runs or until
          *      a different threading method is called. So there's no overhead with starting and
          *      stopping threads.
+         *
+         *      YOU MUST HANDLE MUTEX LOCKS AND ATOMICS. It is impossible for this class to handle
+         *      locks as all possible solutions lead to a solution that only lets one thread run at
+         *      a time, essentially canceling out the parallelism.
          *
          * @param nNumThreads - The number of threads to run user code in.
          *
@@ -103,7 +103,12 @@ class AutonomyThread
             for (int i = 0; i < nNumThreads; ++i)
             {
                 // Submit single task to pool queue.
-                m_vPoolReturns.emplace_back(m_thPool.submit(&AutonomyThread::PooledLinearCode, this));
+                m_vPoolReturns.emplace_back(m_thPool.submit(
+                    [this]()
+                    {
+                        // Run user pool code without lock.
+                        this->PooledLinearCode();
+                    }));
             }
 
             // Unpause queue.
@@ -119,7 +124,7 @@ class AutonomyThread
          *      return futures. Runs PooledLinearCode() method code. This is meant to be
          *      used as an internal utility of the class to further improve parallelization.
          *
-         *      If this method is called directly after StartPool(), it will signal
+         *      If this method is called directly after RunPool(), it will signal
          *      for those threads to stop and wait until they exit on their next iteration. Any
          *      number of tasks that are still queued will be cleared. Old results will be destoyed.
          *      If you want to wait until they fully execute their code, then call the Join()
@@ -129,16 +134,16 @@ class AutonomyThread
          *      a different threading method is called. So there's no overhead with starting and
          *      stopping threads.
          *
+         *      YOU MUST HANDLE MUTEX LOCKS AND ATOMICS. It is impossible for this class to handle
+         *      locks as all possible solutions lead to a solution that only lets one thread run at
+         *      a time, essentially canceling out the parallelism.
+         *
          * @param nNumThreads - The number of threads to run user code in.
-         * @param bAquireWriteLocks - Whether or not to use a mutex for locking. This will depend on the
-         *                      code. If the code is writing to the parent object, then
-         *                      use a mutex. If turned on a unique lock on a shared, timed mutex will be used.
-         *                      (std::unique_lock<std::mutex>)
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void RunDetachedPool(const int nNumThreads = 2, const bool bAquireWriteLocks = false)
+        void RunDetachedPool(const int nNumThreads = 2)
         {
             // Tell any open thread to stop.
             m_bStopThreads = true;
@@ -159,22 +164,10 @@ class AutonomyThread
             {
                 // Push single task to pool queue. No return value no control.
                 m_thPool.push_task(
-                    [this, &bAquireWriteLocks]()
+                    [this]()
                     {
-                        // Aquire mutex resource lock if necessary.
-                        if (bAquireWriteLocks)
-                        {
-                            // Aquire lock.
-                            std::lock_guard<std::mutex> lock(m_muPoolMutex);
-
-                            // Run user code with lock.
-                            this->PooledLinearCode();
-                        }
-                        else
-                        {
-                            // Run user code without lock.
-                            this->PooledLinearCode();
-                        }
+                        // Run user code without lock.
+                        this->PooledLinearCode();
                     });
             }
 
@@ -185,46 +178,40 @@ class AutonomyThread
         /******************************************************************************
          * @brief Given a ref-qualified looping function and an arbitrary number of iterations,
          *      this method will divide up the loop and run each section in a thread pool.
-         *      This function must not return anything. An internal mutex will ensure that
-         *      the given loop doesn't try to access member variable withouth aquiring a lock.
+         *      This function must not return anything. This method will block until the
+         *      loop has completed.
          *
          *      To see an example of how to use this function, check out ArucoGenerateTags in
          *      the threads example folder.
          *
+         *      YOU MUST HANDLE MUTEX LOCKS AND ATOMICS. It is impossible for this class to handle
+         *      locks as all possible solutions lead to a solution that only lets one thread run at
+         *      a time, essentially canceling out the parallelism.
+         *
+         * @tparam N - Template argument for the nTotalIterations type.
          * @tparam F - Template argument for the given function reference.
-         * @tparam T - Template argument for the nTotalIterations type.
          * @param nTotalIterations - The total iterations to loop for.
-         * @param tLoopFunction - Ref-qualified function to run. MUST ACCEPT TWO ARGS: const int a, const int b.
-         * @param bAquireWriteLocks - Whether or not to use a mutex for locking. This will depend on the
-         *                      code running in the loop. If the loop is writing to the parent object, then
-         *                      use a mutex. If turned on a unique lock on a shared, timed mutex will be used.
-         *                      (std::unique_lock<std::mutex>)
+         * @param tLoopFunction - Ref-qualified function to run.
+         *                       MUST ACCEPT TWO ARGS: const int a, const int b.
+         *                       a - loop start
+         *                       b - loop end
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0726
          ******************************************************************************/
-        template<typename F, typename N>
-        void ParallelizeLoop(const N tTotalIterations, F&& tLoopFunction, const bool bAquireWriteLocks = false)
+        template<typename N, typename F>
+        void ParallelizeLoop(const N tTotalIterations, F&& tLoopFunction)
         {
             m_thLoopPool.push_loop(tTotalIterations,
-                                   [this, &tLoopFunction, &bAquireWriteLocks](const int a, const int b)
+                                   [&tLoopFunction](const int a, const int b)
                                    {
-                                       // Aquire mutex resource lock if necessary.
-                                       if (bAquireWriteLocks)
-                                       {
-                                           // Aquire lock.
-                                           std::lock_guard<std::mutex> lock(m_muLoopMutex);
-
-                                           // Call loop function with lock.
-                                           tLoopFunction(a, b);
-                                       }
-                                       else
-                                       {
-                                           // Call loop function without lock.
-                                           tLoopFunction(a, b);
-                                       }
+                                       // Call loop function without lock.
+                                       tLoopFunction(a, b);
                                    });
+
+            // Wait for loop to finish.
+            m_thLoopPool.wait_for_tasks();
         }
 
         /******************************************************************************
@@ -311,29 +298,25 @@ class AutonomyThread
             m_bStopThreads = true;
 
             // Pause and clear pool queues.
+            m_thLoopPool.pause();
+            m_thLoopPool.purge();
             m_thPool.pause();
             m_thPool.purge();
             m_thMainThread.pause();
             m_thMainThread.purge();
 
-            // Wait for all pool threads to finish.
-            if (this->PoolJoinable())
-            {
-                m_thPool.wait_for_tasks();
-            }
-            // Wait for main thread to finish.
-            if (this->Joinable())
-            {
-                m_thMainThread.wait_for_tasks();
-            }
+            // Wait for all pools to finish.
+            m_thLoopPool.wait_for_tasks();
+            m_thPool.wait_for_tasks();
+            m_thMainThread.wait_for_tasks();
         }
 
         /******************************************************************************
          * @brief When this method is called, it starts a new thread that runs the
-         *      code within the RunThread and ThreadedCode methods. This is the users
+         *      code within the ThreadedContinuousCode method. This is the users
          *      main code that will run the important and continous code for the class.
          *
-         *      If this method is called directly after itself, StartPool(), or StartDetachedPool(), it will signal
+         *      If this method is called directly after itself, RunPool(), or RunDetachedPool(), it will signal
          *      for those threads to stop and wait until they exit on their next iteration. Any
          *      number of tasks that are still queued will be cleared. Old results will be destoyed.
          *      If you want to wait until they fully execute their code, then call the Join()
@@ -393,13 +376,17 @@ class AutonomyThread
          ******************************************************************************/
         void Join()
         {
+            // Wait for loop pool to finish all tasks.
+            m_thLoopPool.wait_for_tasks();
             // Wait for pool to finish all tasks.
+            m_thPool.wait_for_tasks();
+            // Wait for main thread to finish.
             m_thMainThread.wait_for_tasks();
         }
 
         /******************************************************************************
-         * @brief Check if the code within the thread is finished executing and the
-         *      thread is ready to be closed.
+         * @brief Check if the code within the thread and all pools created by it are
+         *       finished executing and the thread is ready to be closed.
          *
          * @return true - The thread is finished and joinable.
          * @return false - The thread is still running code.
@@ -410,7 +397,7 @@ class AutonomyThread
         bool Joinable() const
         {
             // Check current number of running and queued tasks.
-            if (m_thMainThread.get_tasks_total() <= 0)
+            if (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() && m_thLoopPool.get_tasks_total())
             {
                 // Threads are joinable.
                 return true;
