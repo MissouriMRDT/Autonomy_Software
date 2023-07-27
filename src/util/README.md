@@ -1,14 +1,8 @@
-<details><summary></summary>
-<p>
-~Doxygen flag/marks~
-  
 \dir src/util
-</p>
-</details>
 
 # Util Directory
 
-The **Util** directory is intended to store C++ files that provide utility functions and helper classes for the rover project. This directory focuses on reusable code snippets and functionalities that can be used across different modules.
+The **Util** directory is intended to store C++ files that provide utility functions and helper classes for the Rover project. This directory focuses on reusable code snippets and functionalities that can be used across different modules.
 
 ## Guidelines
 
@@ -23,12 +17,12 @@ The following are the guidelines for organizing files within the **Util** direct
 
 Here are some common types of files you might find in the **Util** directory:
 
-1. **Math utilities**: Files that contain mathematical functions or algorithms commonly used in the rover project, such as vector operations, coordinate transformations, or statistical calculations.
+1. **Math utilities**: Files that contain mathematical functions or algorithms commonly used in the Rover project, such as vector operations, coordinate transformations, or statistical calculations.
 2. **File utilities**: Files that provide functions for file handling, reading/writing data, or managing file paths within the project.
 3. **Logging utilities**: Files that implement logging mechanisms to capture and store relevant information or debug messages during runtime.
 4. **Configuration utilities**: Files that handle project configurations, settings, or parameter management, allowing for easy customization and adaptability.
 5. **Data processing utilities**: Files that offer functions for data manipulation, filtering, or formatting, to prepare data for further analysis or usage within the project.
-6. **Time and date utilities**: Files that provide functions for time and date operations, conversions, or scheduling tasks in the rover project.
+6. **Time and date utilities**: Files that provide functions for time and date operations, conversions, or scheduling tasks in the Rover project.
 7. **Networking utilities**: Files that handle network-related operations, such as socket communication, HTTP requests, or network configuration.
 
 Feel free to create subdirectories within the **Util** directory to further categorize the files based on the specific utility or functionality they provide.
