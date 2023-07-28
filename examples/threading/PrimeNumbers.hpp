@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "../../src/interfaces/AutonomyThread.hpp"
+#include "../../src/util/ExampleChecker.h"
 
 class PrimeCalculatorThread : public AutonomyThread<void>
 {
