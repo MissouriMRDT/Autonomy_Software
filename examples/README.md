@@ -9,9 +9,10 @@ The **Examples** directory is intended to store C++ files that provide example c
 The following are the guidelines for organizing files within the **Examples** directory:
 
 1. Each C++ file should contain a self-contained example or demo related to a specific aspect or functionality of the Rover project.
-2. Use descriptive names for the files that reflect the purpose or functionality of the example.
-3. Ensure that the files are properly documented with comments explaining the example, its purpose, input/output specifications, and any relevant details.
-4. Include a README file in the **Examples** directory to provide an overview of the available examples, instructions for running them, and any additional information.
+2. All example file must #include the `ExampleChecker.h` file. This enables main.cpp to automatically run your example when it's included.
+3. Use descriptive names for the files that reflect the purpose or functionality of the example.
+4. Ensure that the files are properly documented with comments explaining the example, its purpose, input/output specifications, and any relevant details.
+5. Include a README file in the **Examples** directory to provide an overview of the available examples, instructions for running them, and any additional information.
 
 ## Usage
 

@@ -16,6 +16,18 @@
 #include "../examples/threading/ArucoGenerateTags.hpp"
 #include "./AutonomyGlobals.h"
 
+// Check if any file from the example directory has been included.
+// If not included, define empty run example function and set bRunExampleFlag
+// to false. If included, then define bRunExampleFlag as true.
+#ifndef CHECK_IF_EXAMPLE_INCLUDED
+#include "./util/ExampleChecker.h"
+
+CHECK_IF_EXAMPLE_INCLUDED
+void RunExample() {}
+#else
+CHECK_IF_EXAMPLE_INCLUDED
+#endif
+
 /******************************************************************************
  * @brief Autonomy main function.
  *
@@ -27,7 +39,7 @@
 int main()
 {
     // Print Software Header
-    std::ifstream fHeaderText("../src/util/ASCII/v24.txt");
+    std::ifstream fHeaderText("../data/ASCII/v24.txt");
     std::string szHeaderText;
     if (fHeaderText)
     {
@@ -42,12 +54,17 @@ int main()
     // Initialize Loggers
     InitializeLoggers();
 
-    // TODO: Initialize Threads
+    // Check whether or not we should run example code or continue with normal operation.
+    if (bRunExampleFlag)
+    {
+        RunExample();
+    }
+    else
+    {
+        // TODO: Initialize Threads
 
-    // TODO: Initialize RoveComm
-
-    // Run examples
-    RunExample();
+        // TODO: Initialize RoveComm
+    }
 
     return 0;
 }

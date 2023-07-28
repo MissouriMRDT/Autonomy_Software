@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "../../src/interfaces/AutonomyThread.hpp"
+#include "../../src/util/ExampleChecker.h"
 #include "../opencv/TagGenerator.hpp"
 
 /******************************************************************************
