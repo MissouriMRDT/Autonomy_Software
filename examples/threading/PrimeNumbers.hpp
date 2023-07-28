@@ -31,7 +31,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        bool isPrime(int& nNum)
+        bool IsPrime(int& nNum)
         {
             if (nNum <= 1)
             {
@@ -56,13 +56,13 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        void calculatePrimes(int& nCount)
+        void CalculatePrimes(int& nCount)
         {
             // Loop until we have the required amount of primes.
             if (int(m_vThreadPrimes.size()) < nCount)
             {
                 // Check if our current number is a prime.
-                if (isPrime(m_nCurrentCount))
+                if (IsPrime(m_nCurrentCount))
                 {
                     m_vThreadPrimes.push_back(m_nCurrentCount);
                 }
@@ -82,7 +82,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
         void ThreadedContinuousCode()
         {
             // Change this to calculate a different number of prime numbers.
-            calculatePrimes(m_nCount);
+            CalculatePrimes(m_nCount);
 
             // Check if we have reached the desired number of primes.
             if (int(this->GetPrimes().size()) >= this->GetDesiredPrimeAmount())
@@ -154,7 +154,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0722
  ******************************************************************************/
-int RunExample()
+void RunExample()
 {
     // Declare prime calculator threads.
     PrimeCalculatorThread ThreadedPrimeCalculator1;
@@ -214,6 +214,4 @@ int RunExample()
     std::cout << "Calculator5 was restarted and then main program exited without joining. (graceful shutdown demo)" << std::endl;
     vPrimes = ThreadedPrimeCalculator5.GetPrimes();
     std::cout << "Calculator5 Primes Length: " << vPrimes.size() << std::endl;
-
-    return 0;
 }
