@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief This example uses the opencv TagGenerator.hpp example and multithreads
+ * @brief This example uses the OpenCV TagGenerator.hpp example and multithreads
  *      the generation of all available Aruco tags for the given dictionary type.
  *
  * @file ArucoGenerateTags.hpp
@@ -8,6 +8,7 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
+
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -16,9 +17,13 @@
 #include "../opencv/TagGenerator.hpp"
 
 /******************************************************************************
- * This class inherits the AutonomyThread interface and implments the threaded
+ * @brief This class inherits the AutonomyThread interface and implments the threaded
  * container methods. It also utilizes the ability to create a thread pool
  * of subroutines and the ability to parallelize loops.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-07-27
  ******************************************************************************/
 class ArucoGenerateTagsThreaded : public AutonomyThread<void>
 {
@@ -68,20 +73,36 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
             // Release resource lock.
             lock.unlock();
 
-            // Parallelize loop.
-            this->ParallelizeLoop(m_nNumTagsToGenerate,
-                                  [&cvDictType](const int a, const int b)
-                                  {
-                                      // Loop through and generate each of the tags.
-                                      for (int i = a; i < b; ++i)
-                                          GenerateOpenCVArucoMarker(cvDictType, i);
-                                  });
-
-            // // Loop through and generate each of the tags. NONPARALLELIZED
-            // for (int i = 0; i < m_nNumTagsToGenerate; ++i)
-            // {
-            //     GenerateOpenCVArucoMarker(cvDictType, i);
-            // }
+            //////////////////////////////////////////////////
+            // Change this bool to test the two different
+            // blocks of code!
+            //////////////////////////////////////////////////
+            bool bUseParallelLoop = true;
+            if (bUseParallelLoop)
+            {
+                //////////////////////////////////////////////////
+                // This code splits the loop into parts and
+                // completes it in different threads.
+                //////////////////////////////////////////////////
+                this->ParallelizeLoop(m_nNumTagsToGenerate,
+                                      [&cvDictType](const int a, const int b)
+                                      {
+                                          // Loop through and generate each of the tags.
+                                          for (int i = a; i < b; ++i)
+                                              GenerateOpenCVArucoMarker(cvDictType, i);
+                                      });
+            }
+            else
+            {
+                //////////////////////////////////////////////////
+                // This code linearly runs through every tag.
+                // UNCOMMENT to see the speed difference.
+                //////////////////////////////////////////////////
+                for (int i = 0; i < m_nNumTagsToGenerate; ++i)
+                {
+                    GenerateOpenCVArucoMarker(cvDictType, i);
+                }
+            }
         }
 
     public:
@@ -111,7 +132,11 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
 };
 
 /******************************************************************************
- *  This class is non threaded.
+ * @brief This class is non threaded.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-07-27
  ******************************************************************************/
 class ArucoGenerateTagsLinear
 {
@@ -175,13 +200,13 @@ class ArucoGenerateTagsLinear
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0723
  ******************************************************************************/
-int RunExample()
+void RunExample()
 {
     ////////////////////////////////////
     ///  Linear generator.
     ////////////////////////////////////
     // Start the timer
-    auto startTime = std::chrono::high_resolution_clock::now();
+    auto tmStartTime = std::chrono::high_resolution_clock::now();
 
     // Create generator.
     ArucoGenerateTagsLinear LinearTagGenerator;
@@ -223,9 +248,9 @@ int RunExample()
     LinearTagGenerator.Start();
 
     // End the timer
-    auto endTime = std::chrono::high_resolution_clock::now();
+    auto tmEndTime = std::chrono::high_resolution_clock::now();
     // Calculate the elapsed time
-    auto singleThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    auto singleThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
     // Print the result
     std::cout << "Time taken for single threaded generator: " << singleThreadedDuration << " milliseconds." << std::endl;
 
@@ -244,7 +269,7 @@ int RunExample()
     ///  Threaded generator.
     ////////////////////////////////////
     // Start the timer
-    startTime = std::chrono::high_resolution_clock::now();
+    tmStartTime = std::chrono::high_resolution_clock::now();
 
     // Create Aruco generator threads.
     ArucoGenerateTagsThreaded ThreadedTagGenerator1;
@@ -295,12 +320,10 @@ int RunExample()
     ThreadedTagGenerator4.Join();
 
     // End the timer
-    endTime = std::chrono::high_resolution_clock::now();
+    tmEndTime = std::chrono::high_resolution_clock::now();
     // Calculate the elapsed time
-    auto multiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    auto multiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
     // Print the result
     std::cout << "Time taken for multithreaded generator: " << multiThreadedDuration << " milliseconds." << std::endl;
-    std::cout << "\n\nCheck your build directory for all 5600 aruco tags!" << std::endl;
-
-    return 0;
+    std::cout << "\n\nCheck your build directory for all aruco tags!" << std::endl;
 }

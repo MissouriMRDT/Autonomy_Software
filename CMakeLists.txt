@@ -86,7 +86,6 @@ file(GLOB Threads_SRC			CONFIGURE_DEPENDS  "src/threads/*.cpp")
 file(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
 file(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
-file(GLOB Tests_SRC			 	CONFIGURE_DEPENDS  "tests/*.cpp")
 file(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
@@ -100,7 +99,6 @@ add_executable(${PROJECT_NAME}   ${External_SRC}
                                  ${Threads_SRC}
 								 ${Main_SRC}
 								 ${Examples_SRC}
-								 ${Tests_SRC}
 								 ${Tools_SRC}
 	)
 
