@@ -322,8 +322,8 @@ void RunExample()
     // End the timer
     tmEndTime = std::chrono::high_resolution_clock::now();
     // Calculate the elapsed time
-    auto multiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
+    auto tmMultiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
     // Print the result
-    std::cout << "Time taken for multithreaded generator: " << multiThreadedDuration << " milliseconds." << std::endl;
+    std::cout << "Time taken for multithreaded generator: " << tmMultiThreadedDuration << " milliseconds." << std::endl;
     std::cout << "\n\nCheck your build directory for all aruco tags!" << std::endl;
 }

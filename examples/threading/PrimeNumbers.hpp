@@ -8,11 +8,20 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
+
 #include <iostream>
 #include <vector>
 
 #include "../../src/interfaces/AutonomyThread.hpp"
 
+/******************************************************************************
+ * @brief This class creates a thread for calculating N prime numbers.
+ *     This is an example class demonstrating the use of the threading interface.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-07-28
+ ******************************************************************************/
 class PrimeCalculatorThread : public AutonomyThread<void>
 {
     private:
