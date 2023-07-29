@@ -16,8 +16,14 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
-    v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz && \
+    v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz 
+
+# Install gcc/g++
+RUN apt-get install  --no-install-recommends -y \
+    gcc-10 g++-10 && \
     rm -rf /var/lib/apt/lists/*
+# Update gcc and g++ to alternatively point to gcc/g++ 10 install.
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 # Install CMake
 ARG INSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"

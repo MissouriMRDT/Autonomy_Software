@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Defines the interface for sending commands to the drive board on
+ * @brief Defines the driver for sending commands to the drive board on
  * 		the Rover.
  *
  * @file DriveBoard.h
