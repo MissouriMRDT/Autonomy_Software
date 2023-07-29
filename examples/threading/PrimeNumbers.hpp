@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "../../src/interfaces/AutonomyThread.hpp"
+#include "../../src/util/ExampleChecker.h"
 
 /******************************************************************************
  * @brief This class creates a thread for calculating N prime numbers.
