@@ -1,4 +1,4 @@
-\dir src/util/ASCII
+\dir data/ASCII
 
 # ASCII Directory
 
