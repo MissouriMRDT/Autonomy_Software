@@ -78,22 +78,28 @@ enable_testing()
 ## Search Project Directories for CPP Files
 file(GLOB Algorithms_SRC		CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
 file(GLOB Interfaces_SRC		CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
+file(GLOB Drivers_SRC		    CONFIGURE_DEPENDS  "src/drivers/*.cpp")
 file(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
 file(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
 file(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
+file(GLOB Threads_SRC			CONFIGURE_DEPENDS  "src/threads/*.cpp")
 file(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
 file(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
+file(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${PROJECT_NAME}  ${Util_SRC}
-								${Algorithms_SRC}
-								${Interfaces_SRC}
-								${States_SRC}
-								${Vision_SRC}
-								${Main_SRC}
-								${Examples_SRC}
-								${Tools_SRC}
+add_executable(${PROJECT_NAME}   ${External_SRC}
+								 ${Util_SRC}
+								 ${Algorithms_SRC}
+								 ${Interfaces_SRC}
+                                 ${Drivers_SRC}
+								 ${States_SRC}
+								 ${Vision_SRC}
+                                 ${Threads_SRC}
+								 ${Main_SRC}
+								 ${Examples_SRC}
+								 ${Tools_SRC}
 	)
 
 ## Set Compile Options for Autonomy Software.
