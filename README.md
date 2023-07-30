@@ -42,10 +42,12 @@ The **src** directory serves as the main source code directory and contains the 
 
 To get started with our Autonomy Software development, follow these steps:
 
-1. Clone the repository to your local machine using the command:
-   ```
-   git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
-   ```
+1. Download and install required software:
+    - Download and install Visual Studio Code from [here](https://code.visualstudio.com/download)
+    - Download and install git-scm from [here](https://git-scm.com/downloads)
+
+    NOTE: For all installs, select the ADD TO PATH options whenever available.
+   
 
 2. Navigate to the cloned directory:
    ```
