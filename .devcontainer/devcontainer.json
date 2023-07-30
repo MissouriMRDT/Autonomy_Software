@@ -75,7 +75,7 @@
                     "/usr/local/include/gtest/**"
                 ],
                 // CMAKE extension settings.
-                "cmake.configureOnOpen": false,
+                "cmake.configureOnOpen": true,
                 // Format Files extension settings.
                 "formatFiles.excludedFolders": [
                     "node_modules",
