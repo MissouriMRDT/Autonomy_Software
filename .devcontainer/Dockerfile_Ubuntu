@@ -15,7 +15,15 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     yasm libatlas-base-dev gfortran libpq-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev libavutil-dev libpostproc-dev \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev tzdata \
-    libboost-all-dev valgrind doxygen graphviz
+    libboost-all-dev valgrind doxygen graphviz nano powerline
+
+# Configure .bashrc to use powerline.sh
+RUN echo 'if [ -f /usr/share/powerline/bindings/bash/powerline.sh ]; then \
+        powerline-daemon -q \
+        POWERLINE_BASH_CONTINUATION=1 \
+        POWERLINE_BASH_SELECT=1 \
+        source /usr/share/powerline/bindings/bash/powerline.sh \
+    fi' >> ~/.bashrc
 
 # Install gcc/g++
 RUN apt-get install  --no-install-recommends -y \
