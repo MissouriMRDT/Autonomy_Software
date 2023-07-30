@@ -9,14 +9,20 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Install Necessary Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    build-essential gcc g++ gdb \
+    build-essential gdb \
     cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev \
     yasm libatlas-base-dev gfortran libpq-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev libavutil-dev libpostproc-dev \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev tzdata \
-    libboost-all-dev valgrind doxygen graphviz && \
+    libboost-all-dev valgrind doxygen graphviz
+
+# Install gcc/g++
+RUN apt-get install  --no-install-recommends -y \
+    gcc-10 g++-10 && \
     rm -rf /var/lib/apt/lists/*
+# Update gcc and g++ to alternatively point to gcc/g++ 10 install.
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 # Install CMake
 ARG INSTALL_CMAKE_VERSION_FROM_SOURCE="3.24.3"

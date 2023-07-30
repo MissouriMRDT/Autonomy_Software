@@ -64,6 +64,8 @@ void GenerateOpenCVArucoMarker(cv::aruco::PredefinedDictionaryType eDictionary, 
     }
 
     std::string szMarkerFilename = "marker";
+    szMarkerFilename += std::to_string(eDictionary);
+    szMarkerFilename += "_";
     szMarkerFilename += std::to_string(sMarker);
     szMarkerFilename += ".png";
 
