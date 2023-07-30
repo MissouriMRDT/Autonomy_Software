@@ -8,6 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "Consts.h"
 #include "IdentitySoftware.h"
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
@@ -32,13 +33,6 @@ namespace mpl = boost::mpl;
 
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
-
-namespace constants
-{
-    // Drive constants.
-    const int MAX_DRIVE_POWER = 250;
-    const int MIN_DRIVE_POWER = 50;
-}    // namespace constants
 
 // Logging:
 extern quill::Logger* g_qFileLogger;
