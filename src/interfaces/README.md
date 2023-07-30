@@ -2,11 +2,11 @@
 
 # Interfaces Directory
 
-The **Interfaces** directory within the **src** directory is dedicated to storing abstract classes or interfaces that define the contract for other classes in the rover project. This directory focuses on providing a set of common methods and properties that classes can inherit and implement for the sake of organization and consistency.
+The **Interfaces** directory within the **src** directory is dedicated to storing C++ abstract classes or interfaces that define the contract for other classes in the Rover project. This directory focuses on providing a set of common methods and properties that classes can inherit and implement for the sake of organization and consistency.
 
 ## Directory Structure
 
-The **Interfaces** directory stores files representing the abstract classes or interfaces that define the contract for specific functionalities or modules within the project. Each file within this directory corresponds to a specific interface or abstract class.
+The **Interfaces** directory stores C++ files representing the abstract classes or interfaces that define the contract for specific functionalities or modules within the project. Each file within this directory corresponds to a specific interface or abstract class.
 
 ## Usage
 

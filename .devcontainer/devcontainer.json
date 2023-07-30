@@ -9,11 +9,11 @@
         "-e DISPLAY", // Makes DISPLAY environment variable available in the container.
         // "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-23-rev3",
+    "image": "ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-26",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2023-07-26",
     // "build": {
-    // "dockerfile": "Dockerfile_Ubuntu"
-    // "dockerfile": "Dockerfile_JetPack"
+    //     "dockerfile": "Dockerfile_Ubuntu"
+    //     // "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -49,6 +49,9 @@
                 "editor.tabSize": 4,
                 "editor.insertSpaces": true,
                 "editor.detectIndentation": false,
+                "editor.rulers": [
+                    150
+                ],
                 "search.exclude": {
                     "**/docs": true
                 },
@@ -72,7 +75,7 @@
                     "/usr/local/include/gtest/**"
                 ],
                 // CMAKE extension settings.
-                "cmake.configureOnOpen": false,
+                "cmake.configureOnOpen": true,
                 // Format Files extension settings.
                 "formatFiles.excludedFolders": [
                     "node_modules",
