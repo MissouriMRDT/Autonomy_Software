@@ -27,3 +27,7 @@ Remember to update this README file whenever new external dependencies or librar
 Ensure that the external dependencies are properly integrated and used within the Rover project, adhering to any licensing or usage requirements.
 
 Happy coding and leveraging external resources!
+
+### External Libs
+- BS-Thread-Pool (https://github.com/bshoshany/thread-pool)
+    Refer to the [threadpool/README.md](threadpool/README.md) for more details on this external library.
