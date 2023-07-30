@@ -1,0 +1,74 @@
+name: Valgrind Memory Check
+
+on:
+  pull_request:
+    branches: ["development"]
+  push:
+    branches: ["development"]
+  workflow_dispatch:
+
+concurrency:
+  group: "valgrind"
+  cancel-in-progress: false
+
+jobs:
+  run-valgrind:
+    runs-on: ubuntu-latest
+    container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-07-23-rev2
+
+    steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update Branch
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --force
+          branch=${{ steps.extract_branch.outputs.branch }}
+          echo $branch
+          git checkout $branch
+          git pull
+
+      - name: Build Executable
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Run Valgrind
+        run: |
+          chmod 777 /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh
+          /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh "GitHub-Action"
+
+      - name: Analyse Valgrind - Definitely Lost
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'definitely lost' valgrind.rpt; then exit 0; fi
+          if grep 'definitely lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Analyse Valgrind - Indirectly Lost
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'indirectly lost' valgrind.rpt; then exit 0; fi
+          if grep 'indirectly lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Analyse Valgrind - Possibly Lost
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'possibly lost' valgrind.rpt; then exit 0; fi
+          if grep 'possibly lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Upload Valgrind Log
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: valgrind.rpt
+          path: /opt/Autonomy_Software/tools/valgrind/valgrind.rpt
+          retention-days: 1

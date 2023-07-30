@@ -1,8 +1,8 @@
-\dir src/util/ASCII
+\dir data/ASCII
 
 # ASCII Directory
 
-The **ASCII** directory is intended to store Text files that provide software headers for the rover project.
+The **ASCII** directory is intended to store Text files that provide software headers for the Rover project.
 
 ## Guidelines
 
