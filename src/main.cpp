@@ -13,7 +13,6 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/threading/ArucoGenerateTags.hpp"
 #include "./AutonomyGlobals.h"
 
 // Check if any file from the example directory has been included.
