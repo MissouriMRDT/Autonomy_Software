@@ -74,7 +74,7 @@ The **src** directory serves as the main source code directory and contains the 
     All developement for Autonomy_Software should be done using our custom made docker image. This image is specifically built so that it is compatible with our codebase. All linux packages, libraries, environment settings, and other configurations are baked into the image. So when you spin up a docker container from our image, it's guarenteed to work perfect and compile easy. This prevents everyone from spending hours trying to setup their environment on widely varying machines with different software and drivers.
 
     - When the cloned folder is first opened, VSCode should detect that this repo is setup for a devcontainer and show a prompt. Click 'open'.
-    - On subsequent startups, if VSCode doesn't automatically open the devcontainer, you can manually open it by typing `CTRL + SHIFT + P` and that finding and selecting the `Dev Containers: Rebuild Container` option.
+    - If VSCode doesn't automatically ask to open the devcontainer, you can manually open it by typing `CTRL + SHIFT + P` and that finding and selecting the `Dev Containers: Rebuild Container` option.
     
     Give the container some time to install and setup extensions and other settings, you'll know it's done when the OUTPUT at the buttom stops printing.
 
