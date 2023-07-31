@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Idle State Implementation for Autonomy State Machine
  *
  * @file IdleState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
