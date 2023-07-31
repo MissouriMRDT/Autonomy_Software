@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Stuck State Implementation for Autonomy State Machine
  *
  * @file StuckState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)

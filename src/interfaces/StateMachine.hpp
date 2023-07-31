@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief State Machine Implementation for Autonomy Software
  *
  * @file StateMachine.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
@@ -10,13 +10,7 @@
 
 #include "../AutonomyGlobals.h"
 
-/******************************************************************************
- * @brief Forward Declared References to States
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
- ******************************************************************************/
+// Forward References
 struct IdleState;
 struct NavigationState;
 struct SearchPatternState;

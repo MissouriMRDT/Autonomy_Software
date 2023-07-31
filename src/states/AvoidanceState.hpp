@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Obstacle Avoidance State Implementation for Autonomy State Machine
  *
  * @file AvoidanceState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)

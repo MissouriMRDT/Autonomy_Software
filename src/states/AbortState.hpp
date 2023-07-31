@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Abort State Implementation for Autonomy State Machine
  *
  * @file AbortState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Approaching Marker State Implementation for Autonomy State Machine
  *
  * @file ApproachingMarkerState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
