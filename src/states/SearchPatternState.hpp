@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Search Pattern State Implementation for Autonomy State Machine
  *
  * @file SearchPatternState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)

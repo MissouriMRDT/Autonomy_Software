@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Navigation State Implementation for Autonomy State Machine
  *
  * @file NavigationState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)

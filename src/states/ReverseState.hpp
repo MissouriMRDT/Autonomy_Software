@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Reverse State Implementation for Autonomy State Machine
  *
  * @file ReverseState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)

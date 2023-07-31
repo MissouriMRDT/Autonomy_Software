@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief
+ * @brief Approaching Gate State Implementation for Autonomy State Machine
  *
  * @file ApproachingGateState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
