@@ -92,7 +92,6 @@ file(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 add_executable(${PROJECT_NAME}   ${External_SRC}
 								 ${Util_SRC}
 								 ${Algorithms_SRC}
-                                 ${Drivers_SRC}
 								 ${Interfaces_SRC}
                                  ${Drivers_SRC}
 								 ${States_SRC}
