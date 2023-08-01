@@ -2,7 +2,7 @@
  * @brief Implements NavigationBoard class.
  *
  * @file NavigationBoard.cpp
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
@@ -16,7 +16,7 @@
  * @brief Construct a new Navigation Board:: Navigation Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
 NavigationBoard::NavigationBoard()
@@ -37,7 +37,7 @@ NavigationBoard::NavigationBoard()
  * @brief Destroy the Navigation Board:: Navigation Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
 NavigationBoard::~NavigationBoard() {}
@@ -47,7 +47,7 @@ NavigationBoard::~NavigationBoard() {}
  *
  * @param packet - The special nav board packet containing IMU data.
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
 void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
@@ -64,7 +64,7 @@ void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
  *
  * @param packet - The special nav board packet containing GPS data.
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
 void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
@@ -83,7 +83,7 @@ void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
  * @param eKey - Enum detailing which component to retrieve.
  * @return double - The Roll, Pitch, or Heading data.
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
 double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
@@ -107,7 +107,7 @@ double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) con
  * @param eKey - Enum detailing which data to retrieve.
  * @return NavBoardPacket_GPS - Struct storing GPS data.
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
 NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
