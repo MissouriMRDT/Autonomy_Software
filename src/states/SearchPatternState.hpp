@@ -3,7 +3,7 @@
  *
  * @file SearchPatternState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
@@ -11,11 +11,19 @@
 #include "../AutonomyGlobals.h"
 
 /******************************************************************************
- * @brief Search Pattern State
+ * @brief Search Pattern State Handler
+ *
+ *        Primarily the Search Pattern State Handler, handles the search
+ *        algorithmn to attept and find a tag after reaching the GPS Point
+ *        for a Gate or Marker Leg.
+ *
+ *        It also listens for state events that pertain to the Search
+ *        Pattern State and calls the approprate transition handler to
+ *        transition states as needed.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  ******************************************************************************/
 struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
 {
@@ -40,11 +48,15 @@ struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
 };
 
 /******************************************************************************
- * @brief Gate Seen Transition
+ * @brief Search Pattern State - Transition to Gate Seen
+ *
+ *        When the state machine reaches the 'Gate Seen' transition handler,
+ *        Autonomy will transition into Approaching Gate and attempt to drive
+ *        between the posts and stop within the required distance.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  ******************************************************************************/
 struct SeachPattern_GateSeenTransition : sc::event<SeachPattern_GateSeenTransition>
 {
@@ -52,11 +64,15 @@ struct SeachPattern_GateSeenTransition : sc::event<SeachPattern_GateSeenTransiti
 };
 
 /******************************************************************************
- * @brief Obstacle Avoidance Transition
+ * @brief Search Pattern State - Transition to Obstacle Avoidance
+ *
+ *        When the state machine reaches the 'Obstacle Avoidance' transition
+ *        handler, Autonomy will switch to Obstacle Avoidance to change its
+ *        route to go around whatever obstacle was detected.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  ******************************************************************************/
 struct SeachPattern_ObstacleAvoidanceTransition : sc::event<SeachPattern_ObstacleAvoidanceTransition>
 {
@@ -64,11 +80,15 @@ struct SeachPattern_ObstacleAvoidanceTransition : sc::event<SeachPattern_Obstacl
 };
 
 /******************************************************************************
- * @brief Marker Seen Transition
+ * @brief Search Pattern State - Transition to Marker Seen
+ *
+ *        When the state machine reaches the 'Marker Seen' transition handler,
+ *        Autonomy will transition into Approaching Marker and attempt to stop
+ *        within the required distance of the post.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  ******************************************************************************/
 struct SeachPattern_MarkerSeenTransition : sc::event<SeachPattern_MarkerSeenTransition>
 {
@@ -76,11 +96,14 @@ struct SeachPattern_MarkerSeenTransition : sc::event<SeachPattern_MarkerSeenTran
 };
 
 /******************************************************************************
- * @brief Abort Transition
+ * @brief Search Pattern State - Transition to Abort
+ *
+ *        When the state machine reaches the 'Abort' transition handler,
+ *        Autonomy will stop all processes and transition to the Abort State.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  ******************************************************************************/
 struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
 {
@@ -88,11 +111,15 @@ struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
 };
 
 /******************************************************************************
- * @brief Stuck Transition
+ * @brief Search Pattern State - Transition to Stuck
+ *
+ *        When the state machine reaches the 'Stuck' transition handler,
+ *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        of algorithms to become unstuck.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-17
+ * @date 2023-07-31
  ******************************************************************************/
 struct SeachPattern_StuckTransition : sc::event<SeachPattern_StuckTransition>
 {
