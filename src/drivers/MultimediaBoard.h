@@ -2,14 +2,14 @@
  * @brief Defines the MultimediaBoard class and associated datatypes.
  *
  * @file MultimediaBoard.h
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef MULTIMEDIA_BOARD_H
-#define MULTIMEDIA_BOARD_H
+#ifndef MULTIMEDIABOARD_H
+#define MULTIMEDIABOARD_H
 
 enum MultimediaBoardLightingState
 {
@@ -56,4 +56,4 @@ class MultimediaBoard
         void SendRGB(RGB);
 };
 
-#endif    // MULTIMEDIA_BOARD_H
+#endif    // MULTIMEDIABOARD_H
