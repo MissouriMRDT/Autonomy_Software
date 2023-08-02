@@ -23,6 +23,13 @@ Here are some common types of files or directories you might find within the **D
 4. **Troubleshooting**: Directory containing documentation files that address common issues, errors, or frequently asked questions related to the Rover project.
 5. **Release Notes**: File or directory containing release notes or changelogs that document the changes, bug fixes, and new features introduced in different versions of the Rover project.
 
+## Generating Documentation
+
+1. Run `doxygen` from the workspace root directory and doxygen will automatically generate the output files to the docs/Doxygen directory.
+2. Open the `index.html` file to view the generated documentation site locally in a browser.
+
+NOTE: Depending on your machine, you may need to update the user permissions or owner of the generated files before you can properly view them.
+
 Remember to update this README file whenever new documentation files or resources are added to the **Docs** directory, providing a brief summary of each document's purpose and content.
 
 Regularly review and update the documentation to ensure its accuracy, relevance, and completeness.
