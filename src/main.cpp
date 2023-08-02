@@ -14,6 +14,7 @@
 #include <string>
 
 #include "./AutonomyGlobals.h"
+#include "./interfaces/StateMachine.hpp"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag

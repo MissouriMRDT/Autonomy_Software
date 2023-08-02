@@ -115,7 +115,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
                                                 quill::quill
 												${OpenCV_LIBS}
                                                 RoveComm_CPP
-                                                #Boost::filesystem
     )
 
 ## Package Executable
