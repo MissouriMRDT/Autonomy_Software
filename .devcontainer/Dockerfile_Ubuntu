@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     yasm libatlas-base-dev gfortran libpq-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev libavutil-dev libpostproc-dev \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev tzdata \
-    libboost-all-dev valgrind doxygen graphviz
+    libboost-all-dev valgrind doxygen graphviz nano
 
 # Install gcc/g++
 RUN apt-get install  --no-install-recommends -y \

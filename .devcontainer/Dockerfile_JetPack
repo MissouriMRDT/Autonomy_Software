@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
-    v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz 
+    v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz nano
 
 # Install gcc/g++
 RUN apt-get install  --no-install-recommends -y \
