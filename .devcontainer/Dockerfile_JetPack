@@ -73,7 +73,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     rm -rf opencv_contrib && rm -rf opencv
 
 # Install Quill from Source
-ARG QUILL_VERSION="v3.2.0"
+ARG QUILL_VERSION="v3.3.1"
 RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git && \
     mkdir quill/build && \
     cd quill/build && \
@@ -84,7 +84,7 @@ RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill
     rm -rf quill
 
 # Install Google Test from Source
-ARG GOOGLE_TEST_VERSION="v1.13.0"
+ARG GOOGLE_TEST_VERSION="v1.14.0"
 RUN git clone --depth 1 --branch ${GOOGLE_TEST_VERSION} https://github.com/google/googletest.git && \
     mkdir googletest/build && \
     cd googletest/build && \
