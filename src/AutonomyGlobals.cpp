@@ -38,7 +38,7 @@ void InitializeLoggers()
     szFilenameWithExtension += ".log";
 
     // Create Handlers
-    std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFilenameWithExtension, "w", quill::FilenameAppend::None, 1024, 5);
+    std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFilenameWithExtension);
     std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
 
     // Configure Patterns
