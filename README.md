@@ -1,6 +1,46 @@
 \mainpage
 
-# Autonomy Software
+<div align="center">
+  <a href="https://github.com/missourimrdt/autonomy_software">
+    <img width="125" src="https://i.postimg.cc/XYtdp84Z/logo.png" alt="Mars Rover Design Team Logo">
+  </a>
+  <h1>Autonomy Software C++</h1>
+
+  <div>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/codeql.yml?branch=development&label=CodeQL&style=flat-round" alt="codeql-ci" />
+    </a>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/tests.yml?branch=development&label=Unit%20Tests&style=flat-round" alt="tests-ci" />
+    </a>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/valgrind.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/valgrind.yml?branch=development&label=Valgrind&style=flat-round" alt="valgrind-ci" />
+    </a>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/doxygen_generate.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/valgrind.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
+    </a>
+  </div>
+  <div>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
+      <img src="https://img.shields.io/badge/autonomy_ubuntu-2023--08--02-orange" alt="ubuntu-pkg" />
+    </a>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
+      <img src="https://img.shields.io/badge/autonomy_jetpack-2023--08--02-orange" alt="ubuntu-pkg" />
+    </a>
+  </div>
+  <div>
+    <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
+      <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
+    </a>
+    <a href="https://en.wikipedia.org/wiki/C%2B%2B20">
+      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
+    </a>
+  </div>
+  <p><b>Autonomous Traversal and Object Detection for Rovers in C++</b></p>
+</div>
+<br>
+
+## Introduction
 
 Welcome to the Autonomy Software repository of the Mars Rover Design Team (MRDT) at Missouri University of Science and Technology (Missouri S&T)! This repository contains the source code, documentation, and other resources for the development of the Autonomy Software for our Mars Rover. The Autonomy Software project aims to compete in the University Rover Challenge (URC) by demonstrating advanced autonomous capabilities and robust navigation algorithms.
 
