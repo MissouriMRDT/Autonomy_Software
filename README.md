@@ -21,11 +21,11 @@
     </a>
   </div>
   <div>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-ubuntu">
       <img src="https://img.shields.io/badge/autonomy_ubuntu-2023--08--02-orange" alt="ubuntu-pkg" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
-      <img src="https://img.shields.io/badge/autonomy_jetpack-2023--08--02-orange" alt="ubuntu-pkg" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
+      <img src="https://img.shields.io/badge/autonomy_jetpack-2023--08--02-orange" alt="jetpack-pkg" />
     </a>
   </div>
   <div>
