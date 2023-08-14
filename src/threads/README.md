@@ -28,16 +28,18 @@ Before continuing, ask yourself if the code you've written will actually benefit
 
 All these question are extremely valid when you are writing code for a new system that you think could benefit from multithreading. Sharing memory between threads is not generally something that you want to do, so plan carefully when designing your class. Have the main class do all of the resource locking by creating getters and/or setters for each piece of data that you want to be accesible from outside of your threaded code. Since the `AutonomyThread` interface was designed so that only a single special method is ran in a different thread, resource handling should be relative simple if you are familiar with the different methods of mutexes and locking in C++. It will also be useful to know how to correctly use atomics in C++, as these let you freely share certain resources between threads without needed to manually lock and unlock them.
 
-#### Step 1: Create the file and class.
+**NOTE: Look in the `examples/threading` directory to see example implementations of what this guide discusses.**
+
+#### Step 1: Create the class and inherit the interface.
 Create a new file in the `threads` directory and name it appropriately. For example, if there is a main class responsible for managing the states of the rover, create a file named `StateMachineThread.cpp`. Similarly, if there is a main class handling vision processing, name the file `VisionThread.py`. Then, create a class with the same name as the file and inherit the `AutonomyThread` interface and define the template type like shown below:
 ```
 #include "../../src/interfaces/AutonomyThread.hpp"
 
 /******************************************************************************
  * @brief This class inherits the AutonomyThread interface so that it can inherit
- * and implement its parent methods. This allows the programmer to easily thread code
- * put in a specific function and also give them the ability to create a thread pool
- * of subroutines and the ability to parallelize loops.
+ * and implement its base methods. This allows the programmer to easily thread code
+ * put in a specific function and it also gives them the ability to create a thread pool
+ * of subroutines and parallelize loops.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -45,6 +47,9 @@ Create a new file in the `threads` directory and name it appropriately. For exam
  ******************************************************************************/
 class VisionThread : public AutonomyThread<void>    // <-- The '<void>' part lets you define what can be returned from the thread pool.
 ``` 
+
+#### Step 2: Implement the inherited methods.
+The `AutonomyThread` base class contains some [virtual](https://www.geeksforgeeks.org/virtual-function-cpp/) and [pure virtual](https://www.geeksforgeeks.org/pure-virtual-functions-and-abstract-classes/#) methods that your new child class should inherit.
 
 Remember to integrate the thread-related classes with other components of the project to ensure proper coordination and synchronization between threads.
 
