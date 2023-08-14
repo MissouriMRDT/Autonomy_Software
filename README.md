@@ -5,7 +5,7 @@
     <img width="125" src="https://i.postimg.cc/XYtdp84Z/logo.png" alt="Mars Rover Design Team Logo">
   </a>
   <h1>Autonomy Software C++</h1>
-
+  <p><b>Autonomous Traversal and Object Detection for Rovers in C++</b></p>
   <div>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/codeql.yml?branch=development&label=CodeQL&style=flat-round" alt="codeql-ci" />
@@ -36,7 +36,6 @@
       <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
     </a>
   </div>
-  <p><b>Autonomous Traversal and Object Detection for Rovers in C++</b></p>
 </div>
 <br>
 
