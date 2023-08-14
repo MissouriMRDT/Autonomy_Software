@@ -28,8 +28,9 @@ concurrency:
 jobs:
   run-doxygen:
 
-    # Only run this step if the pull request was merged
-    if: github.event.pull_request.merged == true
+    # Only run this step if the action wass triggered automatically and the pull request merged on the development branch.
+    # Or, it was triggered manually on the development branch.
+    if: ${{ github.event.pull_request.merged == true || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' ) }}
     
     environment:
       name: github-pages
