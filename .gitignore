@@ -14,6 +14,10 @@ docs/*
 docs/Doxygen/*
 !docs/Doxygen/resources
 
+### MacOS Temp Files ###
+# Filesystem
+.DS_Store
+
 ### C++ ###
 # Prerequisites
 *.d
