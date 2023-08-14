@@ -48,10 +48,9 @@ class AutonomyThread
         /******************************************************************************
          * @brief This method is ran in a seperate thread. It is a middleware between the
          *      class member thread and the user code that handles graceful stopping of
-         *      user code.
+         *      user code. This method is intentionally designed to not return anything.
          *
          * @param bStopThread - Atomic shared variable that signals the thread to stop interating.
-         * @return T - Variable return type from user code.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0724
