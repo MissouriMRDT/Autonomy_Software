@@ -102,7 +102,7 @@ jobs:
         with:
           context: .devcontainer
           file: .devcontainer/Dockerfile_JetPack
-          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
+          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-jetpack5.1:${{ steps.date.outputs.date }}"
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
@@ -164,7 +164,7 @@ jobs:
         with:
           context: .devcontainer
           file: .devcontainer/Dockerfile_JetPack
-          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-jetpack:${{ steps.date.outputs.date }}"
+          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-jetpack5.1:${{ steps.date.outputs.date }}"
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
