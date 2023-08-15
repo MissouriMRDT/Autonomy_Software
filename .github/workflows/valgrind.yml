@@ -14,7 +14,7 @@ concurrency:
 jobs:
   run-valgrind:
     runs-on: ubuntu-latest
-    container: ghcr.io/missourimrdt/autonomy-ubuntu:2023-08-02
+    container: ghcr.io/missourimrdt/autonomy-ubuntu:latest
 
     steps:
       - name: Extract branch name
