@@ -3,8 +3,7 @@ name: Generate API Docs
 on:
   # Runs workflow 'automatically' when a pull request
   # for the development branch is closed.
-  pull_request:
-    types: [closed]
+  push:
     branches: ["development"]
     # Don't apply gitignore rules, this allows us to push the generated docs.
     paths-ignore:
@@ -28,9 +27,8 @@ concurrency:
 jobs:
   run-doxygen:
 
-    # Only run this step if the action wass triggered automatically and the pull request merged on the development branch.
-    # Or, it was triggered manually on the development branch.
-    if: ${{ github.event.pull_request.merged == true || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' ) }}
+    # Only run this step if the action was triggered manually on the development branch.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' }}
     
     environment:
       name: github-pages
