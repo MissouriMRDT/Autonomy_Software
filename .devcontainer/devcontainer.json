@@ -9,8 +9,8 @@
         "-e DISPLAY", // Makes DISPLAY environment variable available in the container.
         // "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-ubuntu:latest",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
+    "image": "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest",
     // "build": {
     //  "dockerfile": "Dockerfile_Ubuntu20"
     //  "dockerfile": "Dockerfile_JetPack5"

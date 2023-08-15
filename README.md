@@ -21,10 +21,10 @@
     </a>
   </div>
   <div>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-ubuntu">
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-ubuntu20.04">
       <img src="https://img.shields.io/badge/autonomy--ubuntu-2023--08--02-orange" alt="ubuntu-pkg" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack5.1">
       <img src="https://img.shields.io/badge/autonomy--jetpack-2023--08--02-orange" alt="jetpack-pkg" />
     </a>
   </div>
