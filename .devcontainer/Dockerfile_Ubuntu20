@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     yasm libatlas-base-dev gfortran libpq-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev libavutil-dev libpostproc-dev \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev tzdata \
-    libboost-all-dev valgrind doxygen graphviz nano
+    libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes cowsay locales
 
 # Install gcc/g++
 RUN apt-get install  --no-install-recommends -y \
@@ -91,7 +91,14 @@ RUN git clone --depth 1 --branch ${GOOGLE_TEST_VERSION} https://github.com/googl
     rm -rf googletest
 
 # Set Linux Environment Variable for Make Threads. Runs everytime a terminal is opened.
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
+RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> /root/.bashrc
+# Fix broken locales for perl.
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8  
+# Enable cowsay.
+RUN echo '/usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/* | shuf -n 1`' >> /root/.bashrc
 
 # Clone your C++ project repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git

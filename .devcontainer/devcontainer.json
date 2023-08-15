@@ -12,8 +12,8 @@
     "image": "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest",
     // "build": {
-    //  "dockerfile": "Dockerfile_Ubuntu20"
-    //  "dockerfile": "Dockerfile_JetPack5"
+    //     "dockerfile": "Dockerfile_Ubuntu20"
+    //     //  "dockerfile": "Dockerfile_JetPack5"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
