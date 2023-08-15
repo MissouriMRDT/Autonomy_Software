@@ -8,7 +8,7 @@ The **Threads** directory is dedicated to storing C++ files related to multithre
 
 The **Threads** directory stores files representing the main classes of different modules, each of which will spawn its own thread for parallel execution. The structure within the directory will typically resemble the organization of the corresponding modules, such as states, vision, and other relevant components.
 
-## Usage
+## General Usage
 
 Here's a general guideline for organizing files within the **Threads** directory:
 
@@ -18,9 +18,9 @@ Here's a general guideline for organizing files within the **Threads** directory
 - Ensure that the files are properly documented with comments explaining the class's role, its interaction with other modules, and any relevant details.
 - Implement the necessary thread management mechanisms within each class, adhering to best practices for multithreading.
 
-### Detailed Walkthrough
+## Detailed Walkthrough
 
-#### Step 0: Do I really need this to run in a new thread?
+### Step 0: Do I really need this to run in a new thread?
 Before continuing, ask yourself if the code you've written will actually benefit from being ran outside of the main program:
 - **_Is your code for a new subsystem that hasn't aleady been implemented?_** 
 - **_Will your code actually benefit from running in a seperate thread; is the code parallelizable or does it wait/depend on other external code running first?_**
@@ -30,7 +30,7 @@ All these question are extremely valid when you are writing code for a new syste
 
 **NOTE: Look in the `examples/threading` directory to see example implementations of what this guide discusses.**
 
-#### Step 1: Create the class and inherit the interface.
+### Step 1: Create the class and inherit the interface.
 Create a new file in the `threads` directory and name it appropriately. For example, if there is a main class responsible for managing the states of the rover, create a file named `StateMachineThread.cpp`. Similarly, if there is a main class handling vision processing, name the file `VisionThread.py`. Then, create a class with the same name as the file and inherit the `AutonomyThread` interface and define the template type like shown below:
 ```
 #include "../../src/interfaces/AutonomyThread.hpp"
@@ -48,12 +48,19 @@ Create a new file in the `threads` directory and name it appropriately. For exam
 class VisionThread : public AutonomyThread<void>    // <-- The '<void>' part lets you define what can be returned from the thread pool.
 ``` 
 
-#### Step 2: Implement the inherited methods.
-The `AutonomyThread` base class contains some [virtual](https://www.geeksforgeeks.org/virtual-function-cpp/) and [pure virtual](https://www.geeksforgeeks.org/pure-virtual-functions-and-abstract-classes/#) methods that your new child class should inherit.
+### Step 2: Implement the inherited methods.
+The `AutonomyThread` base class contains some [virtual](https://www.geeksforgeeks.org/virtual-function-cpp/) and [pure virtual](https://www.geeksforgeeks.org/pure-virtual-functions-and-abstract-classes/#) methods that your new child class should inherit. The parent class (AutonomyThread) does some stuff in the background that will allow you to easily run the code put in these functions parallel to the main thread.
+
+The two methods that you need to implement are called [ThreadedContinuousCode()](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a856f865268995d910a4c5deafe1a47f1) and [PooledLinearCode()](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a442ce800c8d195164bb8caa25622551a).
+- ThreadedContinuousCode is where you will put your main code for the thread, this is the code that you want to loop forever until either you or the program stops it. The code that you put in this method should not block the rest of the code, **do not put a `while(true)` loop inside this method.** The parent class that you inherited will handle the looping and stop signaling internally, as shown [here](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#aeafe6a5ff40437d14425d5af73b48019).
+- PooledLinearCode is where you can optionally put any _highly parallelizable sub-routine code_ that you want to run in an arbitrarly large pool of threads. For example, if you have four images from four different cameras and they all need the AR tag detection algorithms ran, you can start a thread pool and process all four in roughly the same time it would normally take one to process. (Assuming you AR tag detector can be ran in parallel without blocking).
+
+
+**To stop all threads, call the [RequestStop()](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a83a49c4a92e0c983909d24edfa74843d) method from inside or outside of your class. _You CAN call the RequestStop() method from inside of your threaded code._**
 
 Remember to integrate the thread-related classes with other components of the project to ensure proper coordination and synchronization between threads.
 
-### Mutexes and Locks
+## Mutexes and Locks
 When working with different mutex types in C++20, it's important to understand how locks can be acquired to ensure proper synchronization and avoid potential issues like deadlocks. Here's a detailed explanation of the types of locks that can be acquired for each mutex type:
 
 ### 1. `std::mutex`
