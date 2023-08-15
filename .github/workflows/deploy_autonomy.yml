@@ -23,31 +23,31 @@ jobs:
         os: [ubuntu-latest, [self-hosted, linux, ARM64]]
         container:
           [
-            "ghcr.io/missourimrdt/autonomy-ubuntu:latest",
-            "ghcr.io/missourimrdt/autonomy-jetpack:latest",
+            "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest",
+            "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest",
           ]
         architecture: [AMD64, ARM64]
         exclude:
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:latest"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest"
             architecture: ARM64
           - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
+            container: "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:latest"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest"
             architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-ubuntu:latest"
+            container: "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest"
             architecture: ARM64
 
     runs-on: ${{ matrix.os }}
