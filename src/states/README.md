@@ -6,7 +6,7 @@ The **States** directory is intended to store C++ files related to the implement
 
 ## Diagram
 
-![](data/README_Resources/images/state_machine_diagram.png)
+![](../../data/README_Resources/images/state_machine_diagram.png)
 
 ## Guidelines
 
