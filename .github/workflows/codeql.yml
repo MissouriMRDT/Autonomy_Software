@@ -27,7 +27,7 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/missourimrdt/autonomy-ubuntu:latest
+      image: ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

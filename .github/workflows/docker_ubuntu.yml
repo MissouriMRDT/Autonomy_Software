@@ -97,7 +97,7 @@ jobs:
         with:
           context: .devcontainer
           file: .devcontainer/Dockerfile_Ubuntu
-          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-ubuntu:${{ steps.date.outputs.date }}"
+          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-ubuntu20.04:${{ steps.date.outputs.date }}"
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
@@ -154,7 +154,7 @@ jobs:
         with:
           context: .devcontainer
           file: .devcontainer/Dockerfile_Ubuntu
-          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-ubuntu:${{ steps.date.outputs.date }}"
+          tags: "ghcr.io/${{ steps.repo-owner-string.outputs.lowercase }}/autonomy-ubuntu20.04:${{ steps.date.outputs.date }}"
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
