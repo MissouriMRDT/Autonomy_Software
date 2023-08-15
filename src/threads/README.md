@@ -31,7 +31,7 @@ All these question are extremely valid when you are writing code for a new syste
 **NOTE: Look in the `examples/threading` directory to see example implementations of what this guide discusses.**
 
 ### Step 1: Create the class and inherit the interface.
-Create a new file in the `threads` directory and name it appropriately. For example, if there is a main class responsible for managing the states of the rover, create a file named `StateMachineThread.cpp`. Similarly, if there is a main class handling vision processing, name the file `VisionThread.py`. Then, create a class with the same name as the file and inherit the `AutonomyThread` interface and define the template type like shown below:
+Create a new file in the `threads` directory and name it appropriately. For example, if there is a main class responsible for managing the states of the rover, create a file named `StateMachineThread.cpp`. Similarly, if there is a main class handling vision processing, name the file `VisionThread.cpp`. Then, create a class with the same name as the file and inherit the `AutonomyThread` interface and define the template type like shown below:
 ```
 #include "../../src/interfaces/AutonomyThread.hpp"
 
