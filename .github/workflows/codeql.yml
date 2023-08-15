@@ -32,7 +32,7 @@ permissions:
 
 concurrency:
   group: "codeql"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   analyze:
