@@ -4,6 +4,10 @@
 
 The **States** directory is intended to store C++ files related to the implementation of state machines in the Rover project. This directory focuses on managing the different states and transitions within the project's logic.
 
+## Diagram
+
+![](data/README_Resources/images/state_machine_diagram.png)
+
 ## Guidelines
 
 The following are the guidelines for organizing files within the **States** directory:
