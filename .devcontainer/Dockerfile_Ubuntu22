@@ -146,4 +146,4 @@ RUN echo '/usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Sof
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
 
 # Set Working Directory
-WORKDIR /Autonomy_Software/
+WORKDIR /opt/Autonomy_Software/
