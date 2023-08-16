@@ -9,6 +9,18 @@ on:
       - src/**
       - tests/**
       - tools/**
+      - .github/workflows/codeql.yml
+
+  push:
+    branches: ["development"]
+    paths:
+      - examples/**
+      - external/**
+      - src/**
+      - tests/**
+      - tools/**
+      - .github/workflows/codeql.yml
+      
   workflow_dispatch:
 
 permissions:
@@ -41,6 +53,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
