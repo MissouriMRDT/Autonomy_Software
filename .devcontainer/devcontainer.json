@@ -36,7 +36,6 @@
                 "jbockle.jbockle-format-files",
                 "codezombiech.gitignore",
                 "cschlosser.doxdocgen",
-                "formulahendry.docker-extension-pack"
             ],
             "settings": {
                 // VSCode settings.
