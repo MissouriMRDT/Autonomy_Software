@@ -8,15 +8,15 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#ifndef IDENTITY_SOFTWARE_H
+#define IDENTITY_SOFTWARE_H
+
 #include <string>
 
 #define MAJOR_VERSION 24
 #define MINOR_VERSION 0
 #define PATCH_VERSION 0
 #define BUILD_VERSION 0
-
-#ifndef IDENTITY_SOFTWARE_H
-#define IDENTITY_SOFTWARE_H
 
 class IdentitySoftware
 {
