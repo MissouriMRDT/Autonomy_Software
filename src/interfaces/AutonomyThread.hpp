@@ -10,14 +10,13 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
+#ifndef AUTONOMYTHREAD_H
+#define AUTONOMYTHREAD_H
 
 #include <atomic>
 #include <vector>
 
 #include "../../external/threadpool/BSThreadPool.hpp"
-
-#ifndef AUTONOMYTHREAD_H
-#define AUTONOMYTHREAD_H
 
 /******************************************************************************
  * @brief Interface class used to easily multithread a child class.
