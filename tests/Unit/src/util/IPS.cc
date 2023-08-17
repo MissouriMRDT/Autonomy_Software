@@ -116,11 +116,12 @@ TEST(IPSTest, MetricsFunctionality)
         tElapsedTime = tCurrentTime - tStartTime;
     }
 
+    // Retrieve IPS stats.
     double dAverage  = pIPS->GetAverageIPS();
     double dHigh     = pIPS->GetHighestIPS();
     double dLow      = pIPS->GetLowestIPS();
     double d1Percent = pIPS->Get1PercentLow();
-    // Test that the returned average make sense.
+    // Test that the returned average makes sense.
     EXPECT_TRUE(dAverage <= dHigh && dAverage >= dLow);
     // Test that the returned minimum makes sense.
     EXPECT_TRUE(dLow >= 0 && dLow <= dHigh);
