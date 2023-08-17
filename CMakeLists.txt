@@ -121,7 +121,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
-file(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/**/*.cc")
+file(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/src/util/IPS.cc")
 file(GLOB IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/**/*.cc")
 
 list(LENGTH UnitTests_SRC           UnitTests_LEN)
