@@ -55,7 +55,7 @@ class IPS
                 m_dHighestIPS = m_dCurrentIPS;
             }
             // Check lowest IPS.
-            else if (m_dCurrentIPS < m_dLowestIPS)
+            if (m_dCurrentIPS < m_dLowestIPS)
             {
                 // Update new lowest.
                 m_dLowestIPS = m_dCurrentIPS;
@@ -142,10 +142,40 @@ class IPS
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-17
          ******************************************************************************/
-        double GetCurrentIPS()
+        double GetCurrentIPS() const
         {
             // Return current iterations per second.
             return m_dCurrentIPS;
+        }
+
+        /******************************************************************************
+         * @brief Calculates the average iterations per second.
+         *
+         * @return double - The average iterations per second according to the metrics
+         *                  window.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-17
+         ******************************************************************************/
+        double GetAverageIPS() const
+        {
+            // Check if there is any history.
+            if (m_dqIPSHistory.empty())
+            {
+                // Return zero IPS average.
+                return 0.0;
+            }
+
+            // Loop through IPS history and calculate average.
+            double dSum = 0.0;
+            for (const double dVal : m_dqIPSHistory)
+            {
+                // Add FPS to total sum.
+                dSum += dVal;
+            }
+
+            // Return calulated average.
+            return dSum / m_dqIPSHistory.size();
         }
 
         /******************************************************************************
@@ -156,7 +186,7 @@ class IPS
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-17
          ******************************************************************************/
-        double GetHighestIPS()
+        double GetHighestIPS() const
         {
             // Return the highest iterations per second.
             return m_dHighestIPS;
@@ -170,7 +200,7 @@ class IPS
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-17
          ******************************************************************************/
-        double GetLowestIPS()
+        double GetLowestIPS() const
         {
             // Return the lowest iterations per second.
             return m_dLowestIPS;
@@ -184,7 +214,7 @@ class IPS
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-17
          ******************************************************************************/
-        double Get1PercentLow()
+        double Get1PercentLow() const
         {
             // Return the 1% low for IPS.
             return m_d1PercentLow;
