@@ -6,14 +6,16 @@
         // "--gpus all", // add all available GPUs
         // "--runtime nvidia", // Use the NVIDIA container runtime.
         "--privileged", // grants permission to the container to access USBs
-        "-e DISPLAY", // Makes DISPLAY environment variable available in the container.
+        "-e DISPLAY" // Makes DISPLAY environment variable available in the container.
         // "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-ubuntu20.04:latest",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack5.1:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-    //     "dockerfile": "Dockerfile_Ubuntu20"
-    //     //  "dockerfile": "Dockerfile_JetPack5"
+    //     "dockerfile": "Dockerfile_Jammy"
+    //     "dockerfile": "Dockerfile_Focal"
+    //     "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -35,8 +37,7 @@
                 "redhat.vscode-yaml",
                 "jbockle.jbockle-format-files",
                 "codezombiech.gitignore",
-                "cschlosser.doxdocgen",
-                "formulahendry.docker-extension-pack"
+                "cschlosser.doxdocgen"
             ],
             "settings": {
                 // VSCode settings.
@@ -137,7 +138,5 @@
                 "doxdocgen.generic.useGitUserName": true
             }
         }
-    },
-    // Connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-    //"remoteUser": "root"
+    }
 }
