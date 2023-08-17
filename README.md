@@ -21,14 +21,14 @@
     </a>
   </div>
   <div>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-ubuntu20.04">
-      <img src="https://img.shields.io/badge/Ubuntu_20.04-2023--08--16-orange" alt="ubuntu-pkg" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jammy">
+      <img src="https://img.shields.io/badge/Ubuntu_Jammy-2023--08--16-orange" alt="jammy-pkg" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-ubuntu22.04">
-      <img src="https://img.shields.io/badge/Ubuntu_22.04-2023--08--16-orange" alt="ubuntu-pkg" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-focal">
+      <img src="https://img.shields.io/badge/Ubuntu_Focal-2023--08--16-orange" alt="focal-pkg" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack5.1">
-      <img src="https://img.shields.io/badge/JetPack_5.1-2023--08--16-orange" alt="jetpack-pkg" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
+      <img src="https://img.shields.io/badge/JetPack-2023--08--16-orange" alt="jetpack-pkg" />
     </a>
   </div>
   <div>
