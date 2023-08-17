@@ -8,4 +8,17 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-class BasicCam
+#ifndef BASICCAM_H
+#define BASICCAM_H
+
+#include "../interfaces/Camera.hpp"
+
+class BasicCam : public Camera
+{
+    private:
+        // Declare private methods and functions variables.
+
+    public:
+        // Declare public methods and member variables.
+};
+#endif
