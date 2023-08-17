@@ -31,6 +31,9 @@ class Camera
         double m_dHorizontalFOV    = -1;
         double m_dVeticalFOV       = -1;
 
+        // Declare object pointers.
+        IPS* m_pIPS;
+
     public:
         // Declare public methods and member variables.
         Camera();
