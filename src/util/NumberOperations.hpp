@@ -8,11 +8,10 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
-
-#include <algorithm>
-
 #ifndef NUMBER_OPERATIONS_H
 #define NUMBER_OPERATIONS_H
+
+#include <algorithm>
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and
