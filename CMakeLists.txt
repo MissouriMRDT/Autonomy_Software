@@ -121,20 +121,20 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
-file(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/src/util/IPS.cc")
-file(GLOB IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/**/*.cc")
+file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
+file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
 
 list(LENGTH UnitTests_SRC           UnitTests_LEN)
 list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_UnitTests "tests/Unit/main.cc" ${UnitTests_SRC})
+    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC})
     target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main)
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_IntegrationTests "tests/Unit/main.cc" ${IntegrationTests_SRC})
+    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC})
     target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main)
     add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
 endif()
