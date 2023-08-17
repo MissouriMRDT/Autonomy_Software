@@ -7,12 +7,13 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
+#ifndef NAVIGATIONBOARD_H
+#define NAVIGATIONBOARD_H
 
 #include <chrono>
 #include <ctime>
 
-#ifndef NAVIGATIONBOARD_H
-#define NAVIGATIONBOARD_H
+
 
 struct NavBoardPacket_IMU
 {

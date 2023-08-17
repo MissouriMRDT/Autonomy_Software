@@ -8,6 +8,7 @@
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
+
 #ifndef NUMBER_OPERATIONS_H
 #define NUMBER_OPERATIONS_H
 
