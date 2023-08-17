@@ -79,6 +79,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Character > `c`  > Example: `char cExampleCharacter`
 - Vector    > `v`  > Example: `vector<int> vExampleVector`
 - Array     > `a`  > Example: `int aExampleArray[4]`
+- Deque     > `dq` > Example: `deque dqExampleDeque`
 - String    > `sz` > Example: `string szExampleString`
 - Pointer   > `p`  > Example: `string* pExamplePointer`
 - Enum      > `e`  > Example: `ExampleEnum eExampleUseOfEnum`
