@@ -36,7 +36,7 @@ class IPS
         std::chrono::high_resolution_clock::time_point m_tLastUpdateTime;
 
         // Define class constants.
-        const int m_nMaxMetricsHistorySize = 100;
+        const long unsigned int m_nMaxMetricsHistorySize = 100;
 
         /******************************************************************************
          * @brief This method is used to calculate the IPS stats. Highest, lowest, and 1
@@ -69,9 +69,9 @@ class IPS
                 m_dqIPSHistory.pop_front();
             }
             // Sort the IPS history vector, this allows us to find the 1% low more easily.
-            std ::sort(m_dqIPSHistory.begin(), m_dqIPSHistory.end());
+            std::sort(m_dqIPSHistory.begin(), m_dqIPSHistory.end());
             // Get the index correlating to the IPS number that was lower than 99% of the rest of the IPS history.
-            int nIndex = static_cast<int>(m_dqIPSHistory.size() * 0.01);
+            long unsigned int nIndex = static_cast<long unsigned int>(m_dqIPSHistory.size() * 0.01);
             // Check that the index is valid. If history data is too sparse, set 1% low to 0.0.
             m_d1PercentLow = (nIndex < m_dqIPSHistory.size()) ? m_dqIPSHistory[nIndex] : 0.0;
         }
@@ -102,7 +102,7 @@ class IPS
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-17
          ******************************************************************************/
-        IPS()
+        ~IPS()
         {
             // Nothing to destroy.
         }
@@ -202,5 +202,4 @@ class IPS
             m_dqIPSHistory.clear();
         }
 };
-
 #endif
