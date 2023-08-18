@@ -85,47 +85,49 @@ The **src** directory serves as the main source code directory and contains the 
 ### To get started with our Autonomy Software development, follow these steps:
 
 #### 1. Download and install required software:
-    - Download and install Visual Studio Code from [here](https://code.visualstudio.com/download)
-    - Download and install git-scm from [here](https://git-scm.com/downloads)
-    - Download and install Docker from [here](https://docs.docker.com/get-docker/)
+    
+- Download and install Visual Studio Code from [here](https://code.visualstudio.com/download)
+- Download and install git-scm from [here](https://git-scm.com/downloads)
+- Download and install Docker from [here](https://docs.docker.com/get-docker/)
 
-    **(Optional) Needed for container GPU support.**
-    - Download and install NVIDIA Container Toolkit from [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-        This is only applicable if your machine has a GPU with CUDA. Windows users should integrate WSL (Windows Subsystem for Linux) into their Docker install. [Medium](https://medium.com/htc-research-engineering-blog/nvidia-docker-on-wsl2-f891dfe34ab) has an okay guide.
+(Optional) Needed for container GPU support.
+    - Download and install NVIDIA Container Toolkit from [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) This is only applicable if your machine has a GPU with CUDA. Windows users should integrate WSL (Windows Subsystem for Linux) into their Docker install. [Medium](https://medium.com/htc-research-engineering-blog/nvidia-docker-on-wsl2-f891dfe34ab) has an okay guide.
 
-    NOTE: For all installs, select the ADD TO PATH options whenever available.
+NOTE: For all installs, select the ADD TO PATH options whenever available.
    
 
 #### 2. Open VSCode and install extensions:
-    - Open VSCode and goto the extensions tab on the left toolbar.
-    - Use the searchbar to find the `Dev Containers` extension and click the install button.
-    - Feel free to install any other useful extensions that might help you develop your code.
-        ![](data/README_Resources/images/vscode_install_extensions.png)
 
-    NOTE: In the later steps when we start the devcontainer, It's extensions will be seperate from the extensions locally installed on your
-    computer. You can still install extensions to the devcontainer, but the extensions and their settings won't be persistant between container rebuild.
-    If you would like an extension to come packaged in with the container, ask one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software_leads)
+- Open VSCode and goto the extensions tab on the left toolbar.
+- Use the searchbar to find the `Dev Containers` extension and click the install button.
+- Feel free to install any other useful extensions that might help you develop your code.
+
+![](data/README_Resources/images/vscode_install_extensions.png)
+
+NOTE: In the later steps when we start the devcontainer, It's extensions will be seperate from the extensions locally installed on your computer. You can still install extensions to the devcontainer, but the extensions and their settings won't be persistant between container rebuild. If you would like an extension to come packaged in with the container, ask one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software_leads)
 
 #### 3. Clone the Autonomy_Software repo:
-    - Type the sequence `CTRL + SHIFT + P` to open the editor commands. 
-    - Then, start typing: 'git clone' and an option called `Git: Clone (Recursive)` will show up. Select that option and enter this URL when prompted: ```https://github.com/MissouriMRDT/Autonomy_Software.git```.
-    - Next, it will ask you where you want to store the repo files on your local machine. It's smart to store them in a organized folder structure located somewhere you won't forget and is that easily accessible.
-    - Finally, when the repo is done cloning, VSCode will ask you if you want to open the newly cloned workspace. Click 'open'.
+   
+- Type the sequence `CTRL + SHIFT + P` to open the editor commands. 
+- Then, start typing: 'git clone' and an option called `Git: Clone (Recursive)` will show up. Select that option and enter this URL when prompted: ```https://github.com/MissouriMRDT/Autonomy_Software.git```.
+- Next, it will ask you where you want to store the repo files on your local machine. It's smart to store them in a organized folder structure located somewhere you won't forget and is that easily accessible.
+- Finally, when the repo is done cloning, VSCode will ask you if you want to open the newly cloned workspace. Click 'open'.
 
 #### 4. Open the repo inside of our devcontainer:
-    All developement for Autonomy_Software should be done using our custom made docker image. This image is specifically built so that it is compatible with our codebase. All linux packages, libraries, environment settings, and other configurations are baked into the image. So when you spin up a docker container from our image, it's guarenteed to work perfect and compile easy. This prevents everyone from spending hours trying to setup their environment on widely varying machines with different software and drivers.
 
-    - When the cloned folder is first opened, VSCode should detect that this repo is setup for a devcontainer and show a prompt. Click 'open'.
-    - If VSCode doesn't automatically ask to open the devcontainer, you can manually open it by typing `CTRL + SHIFT + P` and that finding and selecting the `Dev Containers: Rebuild Container` option.
+All developement for Autonomy_Software should be done using our custom made docker image. This image is specifically built so that it is compatible with our codebase. All linux packages, libraries, environment settings, and other configurations are baked into the image. So when you spin up a docker container from our image, it's guarenteed to work perfect and compile easy. This prevents everyone from spending hours trying to setup their environment on widely varying machines with different software and drivers.
+
+- When the cloned folder is first opened, VSCode should detect that this repo is setup for a devcontainer and show a prompt. Click 'open'.
+- If VSCode doesn't automatically ask to open the devcontainer, you can manually open it by typing `CTRL + SHIFT + P` and then finding and selecting the `Dev Containers: Rebuild Container` option.
     
-    Give the container some time to install and setup extensions and other settings, you'll know it's done when the OUTPUT at the buttom stops printing.
+    Give the container some time to install and setup extensions, you'll know it's done when the OUTPUT at the buttom stops printing.
 
-#### 5. First build and run:
-    - Once the devcontainer has been opened and extensions have been automatically setup, a box will appear asking you what CMAKE kit you want to compile with. Select the one that points to `/usr/bin/g++` and `/usr/bin/gcc`.
+##### 5. First build and run:
+- Once the devcontainer has been opened and extensions have been automatically setup, a box will appear asking you what CMAKE kit you want to compile with. Select the one that points to `/usr/bin/g++` and `/usr/bin/gcc`.
     ![](data/README_Resources/images/kit_selection_first_container_start.png)
-    - If the CMake cache needs to be generated or updated, the extension will configure the project automatically. This process may take a few seconds, depending on your hardware. Use the build, run, and debug buttons to easily perform those actions.
+- If the CMake cache needs to be generated or updated, the extension will configure the project automatically. This process may take a few seconds, depending on your hardware. Use the build, run, and debug buttons to easily perform those actions.
     ![](data/README_Resources/images/toolbar_build_run.png)
-    - Normal make commands (such as `make clean`) can be performed by navigating into the `build/` directory with `cd build/` and running the desired commands.
+- Normal make commands (such as `make clean`) can be performed by navigating into the `build/` directory with `cd build/` and running the desired commands.
 
 #### 6. Explore the different directories to understand the structure and purpose of each.
 #### 7. Refer to the specific README files within each directory for detailed information and guidelines on organizing files and using the functionalities.
@@ -138,7 +140,7 @@ Debugging a C++ application in Visual Studio Code can be made seamless and effic
 
 ## Setting up the Development Environment
 
-1. Open this project in a devcontainer: First, install Microsoft's ~Dev Containers~ extension from the marketplace. Then hit `CTRL + SHIFT + P` sequence
+1. Open this project in a devcontainer: First, install Microsoft's _Dev Containers_ extension from the marketplace. Then hit `CTRL + SHIFT + P` sequence
 to open the editor commands, and select the `Dev Container: Rebuild Container` option. 
 
 3. Select the CMake Kit: Once you open the project, you'll be prompted to select the CMake Kit for your project. You can do this either from the bottom status bar or during the initial setup of the development container a prompt will automatically show up. The CMake Kit represents the C++ toolchain used for building the project (compiler, architecture, etc.). Choose the appropriate kit for your project.
