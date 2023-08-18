@@ -97,7 +97,6 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
             {
                 //////////////////////////////////////////////////
                 // This code linearly runs through every tag.
-                // UNCOMMENT to see the speed difference.
                 //////////////////////////////////////////////////
                 for (int i = 0; i < m_nNumTagsToGenerate; ++i)
                 {
