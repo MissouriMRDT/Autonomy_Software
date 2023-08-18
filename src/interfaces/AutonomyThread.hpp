@@ -48,10 +48,9 @@ class AutonomyThread
         /******************************************************************************
          * @brief This method is ran in a seperate thread. It is a middleware between the
          *      class member thread and the user code that handles graceful stopping of
-         *      user code.
+         *      user code. This method is intentionally designed to not return anything.
          *
          * @param bStopThread - Atomic shared variable that signals the thread to stop interating.
-         * @return T - Variable return type from user code.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0724
@@ -264,7 +263,9 @@ class AutonomyThread
 
         /******************************************************************************
          * @brief Accessor for the Pool Results private member. The action of getting
-         *      results will destroy and remove them from this object.
+         *      results will destroy and remove them from this object. This method blocks
+         *      if the thread is not finished, so no need to call JoinPool() before getting
+         *      results.
          *
          * @return std::vector<T> - A vector containing the returns from each thread that
          *                      ran the PooledLinearCode.
@@ -409,7 +410,7 @@ class AutonomyThread
         bool Joinable() const
         {
             // Check current number of running and queued tasks.
-            if (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() && m_thLoopPool.get_tasks_total())
+            if (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() <= 0 && m_thLoopPool.get_tasks_total() <= 0)
             {
                 // Threads are joinable.
                 return true;
