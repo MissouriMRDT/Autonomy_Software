@@ -38,7 +38,7 @@ class AutonomyThread
         std::future<void> m_fuMainReturn;
         std::vector<std::future<T>> m_vPoolReturns;
 
-        // Declare interface class pure virtual functions. (These must be overriden be inheritor.)
+        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
         virtual T PooledLinearCode()          = 0;    // This is where user's offshoot, high parallelizable code will go. Helpful for intensive shortlived tasks.
                                                       // Can be ran from inside the ThreadedContinuousCode() method.

@@ -55,7 +55,7 @@ void CameraHandlerThread::ThreadedContinuousCode()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-cv::Mat CameraHandlerThread::PooledLinearCode()
+void CameraHandlerThread::PooledLinearCode()
 {
     //
 }
