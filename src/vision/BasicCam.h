@@ -13,7 +13,7 @@
 
 #include "../interfaces/Camera.hpp"
 
-class BasicCam : public Camera
+class BasicCam : public Camera<cv::Mat>
 {
     private:
         // Declare private methods and functions variables.

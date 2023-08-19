@@ -23,12 +23,12 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-class CameraHandlerThread : public AutonomyThread<cv::Mat>
+class CameraHandlerThread : public AutonomyThread<void>
 {
     private:
         // Declare private class functions and variables.
-        void ThreadedContinuousCode();
-        cv::Mat PooledLinearCode();
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
 
     public:
         // Declare public class methods and variables.

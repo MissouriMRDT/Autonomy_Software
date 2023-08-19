@@ -37,6 +37,8 @@ enum PIXEL_FORMATS
     eLAB,
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
 /******************************************************************************
  * @brief This interface class serves as a base for all other classes that will
  *      implement and interface with a type of camera.
@@ -45,6 +47,7 @@ enum PIXEL_FORMATS
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
+template<class T>
 class Camera
 {
     private:
@@ -52,11 +55,18 @@ class Camera
         int m_nPropResolutionX;
         int m_nPropResolutionY;
         int m_nPropFramesPerSecond;
-        int m_nPropPixelFormat;
+        PIXEL_FORMATS m_ePropPixelFormat;
         double m_dPropHorizontalFOV;
         double m_dPropVerticalFOV;
-        // Declare object pointers.
-        IPS* m_pIPS;
+
+    protected:
+        // Declare protected methods and member variables.
+
+        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
+        virtual T GrabFrame() = 0;    // This is where the code to retrieve an image from the camera is put.
+
+        // Declare protected object pointers.
+        IPS* m_pIPS = new IPS();
 
     public:
         // Declare public methods and member variables.
@@ -66,7 +76,7 @@ class Camera
          * @param nPropResolutionX - X res of camera.
          * @param nPropResolutionY - Y res of camera.
          * @param nPropFramesPerSecond - FPS camera is running at.
-         * @param nPropPixelFormat - The pixel layout/format of the image.
+         * @param ePropPixelFormat - The pixel layout/format of the image.
          * @param dPropHorizontalFOV - The horizontal field of view.
          * @param dPropVerticalFOV - The vertical field of view.
          *
@@ -76,7 +86,7 @@ class Camera
         Camera(const int nPropResolutionX,
                const int nPropResolutionY,
                const int nPropFramesPerSecond,
-               const int nPropPixelFormat,
+               const PIXEL_FORMATS ePropPixelFormat,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV)
         {
@@ -84,7 +94,7 @@ class Camera
             m_nPropResolutionX     = nPropResolutionX;
             m_nPropResolutionY     = nPropResolutionY;
             m_nPropFramesPerSecond = nPropFramesPerSecond;
-            m_nPropPixelFormat     = nPropPixelFormat;
+            m_ePropPixelFormat     = ePropPixelFormat;
             m_dPropHorizontalFOV   = dPropHorizontalFOV;
             m_dPropVerticalFOV     = dPropVerticalFOV;
         }
@@ -98,7 +108,72 @@ class Camera
          ******************************************************************************/
         ~Camera()
         {
-            // Nothing to destroy.
+            // Delete dynamically allocated memory.
+            delete m_pIPS;
+
+            // Set dangling pointers to point to null.
+            m_pIPS = nullptr;
         }
+
+        /******************************************************************************
+         * @brief Accessor for the Prop Resolution X private member.
+         *
+         * @return int - The X resolution of the camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-19
+         ******************************************************************************/
+        int GetPropResolutionX() const { return m_nPropResolutionX; }
+
+        /******************************************************************************
+         * @brief Accessor for the Prop Resolution Y private member.
+         *
+         * @return int - The Y resolution of the camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-19
+         ******************************************************************************/
+        int GetPropResolutionY() const { return m_nPropResolutionY; }
+
+        /******************************************************************************
+         * @brief Accessor for the Prop Frames Per Second private member.
+         *
+         * @return int - The FPS of the camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-19
+         ******************************************************************************/
+        int GetPropFramesPerSecond() const { return m_nPropFramesPerSecond; }
+
+        /******************************************************************************
+         * @brief Accessor for the Prop Pixel Format private member.
+         *
+         * @return PIXEL_FORMATS - The layout/pixel format of the image returned from
+         *                      the camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-19
+         ******************************************************************************/
+        PIXEL_FORMATS GetPropPixelFormat() const { return m_ePropPixelFormat; }
+
+        /******************************************************************************
+         * @brief Accessor for the Prop Horizontal F O V private member.
+         *
+         * @return double - The horizontal field of view of the camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-19
+         ******************************************************************************/
+        double GetPropHorizontalFOV() const { return m_dPropHorizontalFOV; }
+
+        /******************************************************************************
+         * @brief Accessor for the Prop Vertical F O V private member.
+         *
+         * @return double - The vertical field of view of the camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-19
+         ******************************************************************************/
+        double GetPropVerticalFOV() const { return m_dPropVerticalFOV; }
 };
 #endif

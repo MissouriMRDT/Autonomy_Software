@@ -41,7 +41,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void ThreadedContinuousCode()
+        void ThreadedContinuousCode() override
         {
             // Start thread pool. Run detached since the threads aren't returning anything.
             // This is much faster than the normal RunPool function.
@@ -64,7 +64,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0725
          ******************************************************************************/
-        void PooledLinearCode()
+        void PooledLinearCode() override
         {
             // Aquire resource lock for dictionary vector.
             std::unique_lock<std::mutex> lock(m_muDictMutex);
