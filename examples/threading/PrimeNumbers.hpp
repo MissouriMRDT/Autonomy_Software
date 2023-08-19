@@ -89,7 +89,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0722
          ******************************************************************************/
-        void ThreadedContinuousCode()
+        void ThreadedContinuousCode() override
         {
             // Change this to calculate a different number of prime numbers.
             CalculatePrimes(m_nCount);
@@ -110,7 +110,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0725
          ******************************************************************************/
-        void PooledLinearCode() {}
+        void PooledLinearCode() override {}
 
     public:
         // Declare and define public methods and variables.
