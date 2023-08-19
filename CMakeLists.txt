@@ -17,10 +17,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(Autonomy_Software VERSION 24.00.00)
 
 ## Include Required CMake Packages
-if(CPack_CMake_INCLUDED)
+if(NOT CPack_CMake_INCLUDED)
     include(CPack)                                                                  # CMake Packaging Library
 endif()
-if(CTest_CMake_INCLUDED)
+if(NOT CTest_CMake_INCLUDED)
     include(CTest)                                                                  # CMake Testing Framework
 endif()
 include(FetchContent)                                                               # CMake Dependency Framework
@@ -30,13 +30,15 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_GENERATOR "SH")
+set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
+set(CPACK_GENERATOR "STGZ")
 
 ## Find RoveComm
 FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm)
         GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
         GIT_TAG        16ba934e74a1c18e18c565c48000481e0451a966                     # Version 24.0.0
-        GIT_SHALLOW    TRUE                                                         # Download only without history
+        GIT_SHALLOW    FALSE                                                         # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
     )
 FetchContent_GetProperties(RoveComm_CPP)
