@@ -63,8 +63,8 @@ class Camera
         double m_dPropVerticalFOV;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual T GrabFrame()          = 0;    // This is where the code to retrieve an image from the camera is put.
-        virtual bool GetCameraIsOpen() = 0;    // This is where the code to check if the camera is current open goes.
+        virtual T GrabFrame(const bool bGrabRaw = false) = 0;    // This is where the code to retrieve an image from the camera is put.
+        virtual bool GetCameraIsOpen()                   = 0;    // This is where the code to check if the camera is current open goes.
 
         // Declare protected object pointers.
         IPS* m_pIPS = new IPS();
@@ -176,5 +176,15 @@ class Camera
          * @date 2023-08-19
          ******************************************************************************/
         double GetPropVerticalFOV() const { return m_dPropVerticalFOV; }
+
+        /******************************************************************************
+         * @brief Accessor for the Frame I P S private member.
+         *
+         * @return IPS& - A pointer to the camera objects iteration per second counter.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-20
+         ******************************************************************************/
+        IPS* GetFrameIPS() { return m_pIPS; }
 };
 #endif

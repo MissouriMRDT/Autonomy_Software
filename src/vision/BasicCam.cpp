@@ -123,19 +123,29 @@ BasicCam::~BasicCam()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
  ******************************************************************************/
-cv::Mat BasicCam::GrabFrame()
+cv::Mat BasicCam::GrabFrame(const bool bGrabRaw)
 {
     // Check if the camera is open.
     if (m_cvCamera.isOpened())
     {
         // Get frame from camera and store.
         m_cvCamera >> m_cvFrame;
+
+        // Check if we should resize to match member variables properties.
+        if (!bGrabRaw)
+        {
+            // Resize frame.
+            cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY));
+        }
     }
     else
     {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger, "Tried to get frame from camera but it's not opened!");
     }
+
+    // Call FPS tracker tick.
+    m_pIPS->Tick();
 
     // Return retrieved image.
     return m_cvFrame;

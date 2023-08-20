@@ -15,15 +15,15 @@
 
 #include "./AutonomyGlobals.h"
 #include "./interfaces/StateMachine.hpp"
-#include "./threads/CameraHandlerThread.h"
+#include "./vision/BasicCam.h"
+// #include "./threads/CameraHandlerThread.h"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
 // to false. If included, then define bRunExampleFlag as true.
 #ifndef CHECK_IF_EXAMPLE_INCLUDED
-#include "./util/ExampleChecker.h"
+static bool bRunExampleFlag = false;
 
-CHECK_IF_EXAMPLE_INCLUDED
 void RunExample() {}
 #else
 CHECK_IF_EXAMPLE_INCLUDED
@@ -58,6 +58,7 @@ int main()
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
     {
+        // Run example code from included file.
         RunExample();
     }
     else
@@ -65,6 +66,31 @@ int main()
         // TODO: Initialize Threads
 
         // TODO: Initialize RoveComm
+        std::cout << "TEST" << std::endl;
+
+        // Init camera.
+        BasicCam TestCamera = BasicCam(0, 640, 480, 30, eRGB, 45, 45);
+        cv::Mat cvResultFrame;
+        while (true)
+        {
+            // Grab Frames from camera and draw FPS on frame.
+            cvResultFrame = TestCamera.GrabFrame();
+            cv::putText(cvResultFrame,
+                        std::to_string(TestCamera.GetFrameIPS()->GetCurrentIPS()),
+                        cv::Point(50, 50),
+                        cv::FONT_HERSHEY_COMPLEX,
+                        1,
+                        cv::Scalar(255, 255, 255));
+
+            // Display frame.
+            cv::imshow("TEST", cvResultFrame);
+
+            char chKey = cv::waitKey(1);
+            if (chKey == 27)    // Press 'Esc' key to exit
+                break;
+        }
+
+        cv::destroyAllWindows();
     }
 
     return 0;
