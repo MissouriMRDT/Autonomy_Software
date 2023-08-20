@@ -135,6 +135,9 @@ cv::Mat BasicCam::GrabFrame()
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger, "Tried to get frame from camera but it's not opened!");
     }
+
+    // Return retrieved image.
+    return m_cvFrame;
 }
 
 /******************************************************************************
