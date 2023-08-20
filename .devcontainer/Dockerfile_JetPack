@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential gfortran cmake git gdb file tar libatlas-base-dev apt-transport-https  \
     libavcodec-dev libavformat-dev libavresample-dev libcanberra-gtk3-module zstd wget less \
     libdc1394-22-dev libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev curl \
-    libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo \
+    libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
