@@ -66,7 +66,6 @@ int main()
         // TODO: Initialize Threads
 
         // TODO: Initialize RoveComm
-        std::cout << "TEST" << std::endl;
 
         // Init camera.
         BasicCam TestCamera = BasicCam(0, 640, 480, 30, eRGB, 45, 45);
