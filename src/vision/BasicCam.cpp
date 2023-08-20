@@ -57,7 +57,8 @@ BasicCam::BasicCam(const std::string szCameraPath,
 }
 
 /******************************************************************************
- * @brief Construct a new Basic Cam:: Basic Cam object.
+ * @brief Construct a new Basic Cam:: Basic Cam object. Overloaded for dev/video
+ *      indexes.
  *
  * @param nCameraIndex - The video index that the camera is connected on.
  * @param nPropResolutionX - X res of camera.
