@@ -47,11 +47,14 @@ enum PIXEL_FORMATS
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-template<class T>
+template<typename T>
 class Camera
 {
     private:
         // Declare private methods and member variables.
+
+    protected:
+        // Declare protected methods and member variables.
         int m_nPropResolutionX;
         int m_nPropResolutionY;
         int m_nPropFramesPerSecond;
@@ -59,11 +62,9 @@ class Camera
         double m_dPropHorizontalFOV;
         double m_dPropVerticalFOV;
 
-    protected:
-        // Declare protected methods and member variables.
-
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual T GrabFrame() = 0;    // This is where the code to retrieve an image from the camera is put.
+        virtual T GrabFrame()          = 0;    // This is where the code to retrieve an image from the camera is put.
+        virtual bool GetCameraIsOpen() = 0;    // This is where the code to check if the camera is current open goes.
 
         // Declare protected object pointers.
         IPS* m_pIPS = new IPS();
