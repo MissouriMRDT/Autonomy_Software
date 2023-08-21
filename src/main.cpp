@@ -68,12 +68,12 @@ int main()
         // TODO: Initialize RoveComm
 
         // Init camera.
-        BasicCam TestCamera = BasicCam(0, 640, 480, 30, eRGB, 45, 45);
+        BasicCam TestCamera = BasicCam("../data/test.mp4", 640, 480, 30, eRGB, 45, 45);
         cv::Mat cvResultFrame;
         while (true)
         {
             // Grab Frames from camera and draw FPS on frame.
-            cvResultFrame = TestCamera.GrabFrame();
+            cvResultFrame = TestCamera.GrabFrame(true);
             cv::putText(cvResultFrame,
                         std::to_string(TestCamera.GetFrameIPS()->GetCurrentIPS()),
                         cv::Point(50, 50),
