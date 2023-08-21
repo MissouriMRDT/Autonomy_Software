@@ -3,20 +3,31 @@
     "runArgs": [
         "--name",
         "Autonomy_Software_devcontainer",
+        // "--net=host",
         // "--gpus all", // add all available GPUs
         // "--runtime nvidia", // Use the NVIDIA container runtime.
         "--privileged", // grants permission to the container to access USBs
-        "-e DISPLAY" // Makes DISPLAY environment variable available in the container.
-        // "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        "-v",
+        "/mnt/wslg:/mnt/wslg",
+        "-e",
+        "DISPLAY",
+        "-e",
+        "WAYLAND_DISPLAY",
+        "-e",
+        "XDG_RUNTIME_DIR",
+        "-e",
+        "PULSE_SERVER"
     ],
     // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
-    "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-    // "build": {
-    //     "dockerfile": "Dockerfile_Jammy"
-    //     "dockerfile": "Dockerfile_Focal"
-    //     "dockerfile": "Dockerfile_JetPack"
-    // },
+    "build": {
+        "dockerfile": "Dockerfile_Jammy"
+        // "dockerfile": "Dockerfile_Focal"
+        //     "dockerfile": "Dockerfile_JetPack"
+    },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -41,6 +52,7 @@
             ],
             "settings": {
                 // VSCode settings.
+                "dev.containers.executeInWSL": true,
                 "editor.acceptSuggestionOnEnter": "off",
                 "editor.formatOnPaste": true,
                 "editor.formatOnSave": true,
