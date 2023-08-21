@@ -52,7 +52,7 @@ BasicCam::BasicCam(const std::string szCameraPath,
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to open camera {} at path/URL {}", m_cvCamera.getBackendName(), m_szCameraPath);
+        LOG_ERROR(g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
     }
 }
 
@@ -98,7 +98,7 @@ BasicCam::BasicCam(const int nCameraIndex,
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to open camera {} at video index {}", m_cvCamera.getBackendName(), m_nCameraIndex);
+        LOG_ERROR(g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
     }
 }
 
