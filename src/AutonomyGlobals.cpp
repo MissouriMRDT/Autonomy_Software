@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "AutonomyGlobals.h"
+#include "AutonomyLogging.h"
 
 // Forward Declarations
 quill::Logger* g_qFileLogger;
