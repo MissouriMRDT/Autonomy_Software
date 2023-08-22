@@ -79,7 +79,7 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-18
  ******************************************************************************/
-void DriveBoard::SendDrive(int nLeftTarget, int nRightTarget) {}
+void DriveBoard::SendDrive(/*int nLeftTarget, int nRightTarget*/) {}
 
 /******************************************************************************
  * @brief Stop the drivetrain of the Rover.
