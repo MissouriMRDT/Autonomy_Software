@@ -11,6 +11,7 @@
 #include "MultimediaBoard.h"
 
 #include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Construct a new Multimedia Board:: Multimedia Board object.
