@@ -49,5 +49,4 @@ extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Int
 extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
 extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
 
-#endif                                                 // MRDT_AutonomyGlobals_H
 #endif    // AUTONOMY_GLOBALS_H
