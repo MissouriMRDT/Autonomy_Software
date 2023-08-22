@@ -5,7 +5,7 @@
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-06-20
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "AutonomyConstants.h"
@@ -49,4 +49,4 @@ extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Int
 extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
 extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
 
-#endif                                                 // MRDT_AutonomyGlobals_H
+#endif    // AUTONOMY_GLOBALS_H
