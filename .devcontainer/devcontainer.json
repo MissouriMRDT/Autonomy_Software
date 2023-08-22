@@ -109,7 +109,7 @@
                 "doxdocgen.generic.dateFormat": "YYYY-MM-DD",
                 "doxdocgen.generic.dateTemplate": "@date {date}",
                 "doxdocgen.file.copyrightTag": [
-                    "@copyright Copyright MRDT {year} - All Rights Reserved"
+                    "@copyright Copyright Mars Rover Design Team {year} - All Rights Reserved"
                 ],
                 // The order to use for the file comment.
                 "doxdocgen.file.fileOrder": [
