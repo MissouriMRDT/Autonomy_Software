@@ -6,7 +6,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-0722
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include <iostream>
