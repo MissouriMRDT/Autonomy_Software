@@ -11,6 +11,7 @@
 #include "NavigationBoard.h"
 
 #include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.

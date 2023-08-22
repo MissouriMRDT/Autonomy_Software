@@ -12,6 +12,7 @@
 #include "./DriveBoard.h"
 
 #include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 #include "../util/NumberOperations.hpp"
 
 /******************************************************************************

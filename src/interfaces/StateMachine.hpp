@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 
 // Forward References
 struct IdleState;
