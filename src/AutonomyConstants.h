@@ -5,7 +5,7 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-07-30
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef CONSTS_H
