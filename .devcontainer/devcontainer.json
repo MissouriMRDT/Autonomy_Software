@@ -3,7 +3,6 @@
     "runArgs": [
         "--name",
         "Autonomy_Software_devcontainer",
-        "--net=host",
         // "--gpus all", // add all available GPUs
         // "--runtime nvidia", // Use the NVIDIA container runtime.
         "--privileged", // grants permission to the container to access USBs
