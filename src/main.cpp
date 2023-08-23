@@ -73,9 +73,9 @@ int main()
         while (true)
         {
             // Grab Frames from camera and draw FPS on frame.
-            cvResultFrame = TestCamera.GrabFrame(true);
+            cvResultFrame = TestCamera.GrabFrame();
             cv::putText(cvResultFrame,
-                        std::to_string(TestCamera.GetFrameIPS()->GetCurrentIPS()),
+                        std::to_string(TestCamera.GetFrameIPS()->GetAverageIPS()),
                         cv::Point(50, 50),
                         cv::FONT_HERSHEY_COMPLEX,
                         1,

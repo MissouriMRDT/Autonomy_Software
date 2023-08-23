@@ -135,14 +135,17 @@ class IPS
         }
 
         /******************************************************************************
-         * @brief Accessor for the Current I P S private member.
+         * @brief Accessor for the Current I P S private member. This method will return the
+         *      immediate IPS since the last Tick() call. If called in a loop, this number will
+         *      likely jump around greatly. If you want a 'smoother' IPS number then call the
+         *      GetAverageIPS() method.
          *
-         * @return double - The calculate IPS value.
+         * @return double - The calculated IPS value since the last iteration.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-17
          ******************************************************************************/
-        double GetCurrentIPS() const
+        double GetExactIPS() const
         {
             // Return current iterations per second.
             return m_dCurrentIPS;

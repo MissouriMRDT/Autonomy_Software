@@ -63,7 +63,7 @@ TEST(IPSTest, IterationCounter)
     pIPS->Tick();
 
     // Get the calculated FPS.
-    double dFPS = pIPS->GetCurrentIPS();
+    double dFPS = pIPS->GetExactIPS();
 
     // Check if FPS is within 5 frames of 60.
     EXPECT_TRUE(dFPS <= 65 && dFPS >= 55);
