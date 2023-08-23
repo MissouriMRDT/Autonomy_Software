@@ -3,16 +3,18 @@
     "runArgs": [
         "--name",
         "Autonomy_Software_devcontainer",
-        // "--net=host",
+        "--net=host",
         // "--gpus all", // add all available GPUs
         // "--runtime nvidia", // Use the NVIDIA container runtime.
         "--privileged", // grants permission to the container to access USBs
         "-v",
         "/tmp/.X11-unix:/tmp/.X11-unix",
         "-v",
+        "~/.Xauthority:/root/.Xauthority",
+        "-v",
         "/mnt/wslg:/mnt/wslg",
         "-e",
-        "DISPLAY",
+        "$DISPLAY",
         "-e",
         "WAYLAND_DISPLAY",
         "-e",
@@ -52,7 +54,6 @@
             ],
             "settings": {
                 // VSCode settings.
-                "dev.containers.executeInWSL": true,
                 "editor.acceptSuggestionOnEnter": "off",
                 "editor.formatOnPaste": true,
                 "editor.formatOnSave": true,
