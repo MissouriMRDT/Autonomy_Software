@@ -37,7 +37,8 @@
                 "redhat.vscode-yaml",
                 "jbockle.jbockle-format-files",
                 "codezombiech.gitignore",
-                "cschlosser.doxdocgen"
+                "cschlosser.doxdocgen",
+                "gruntfuggly.todo-tree"
             ],
             "settings": {
                 // VSCode settings.
@@ -135,7 +136,44 @@
                 // Additional file documentation.
                 "doxdocgen.file.customTag": [],
                 "doxdocgen.generic.useGitUserEmail": true,
-                "doxdocgen.generic.useGitUserName": true
+                "doxdocgen.generic.useGitUserName": true,
+                // Todo Tree Extention Settings
+                "todo-tree.general.tags": [
+                    "FIXME",
+                    "TODO",
+                    "LEAD",
+                    "ISSUE NOTE"
+                ],
+                "todo-tree.highlights.customHighlight": {
+                    "TODO": {
+                        "icon": "check",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "FIXME": {
+                        "icon": "beaker",
+                        "type": "line",
+                        "iconColour": "#ff0000",
+                        "foreground": "#ffffff",
+                        "background": "#ff0000"
+                    },
+                    "LEAD": {
+                        "icon": "person",
+                        "type": "line",
+                        "iconColour": "#ffffff",
+                        "foreground": "#000000",
+                        "background": "#ffffff"
+                    },
+                    "ISSUE NOTE": {
+                        "icon": "book",
+                        "type": "line",
+                        "iconColour": "#808080",
+                        "foreground": "#000000",
+                        "background": "#808080"
+                    }
+                }
             }
         }
     }
