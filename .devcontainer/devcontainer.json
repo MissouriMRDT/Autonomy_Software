@@ -1,11 +1,14 @@
 {
     "name": "MRDT Autonomy C++",
     "runArgs": [
+        // Name container.
         "--name",
         "Autonomy_Software_devcontainer",
-        // "--gpus all", // add all available GPUs
-        // "--runtime nvidia", // Use the NVIDIA container runtime.
-        "--privileged", // grants permission to the container to access USBs
+        // Add all available GPUs
+        "--gpus",
+        "all",
+        // Grants permission to the container to access USBs.
+        "--privileged",
         "-v",
         "/tmp/.X11-unix:/tmp/.X11-unix",
         "-v",
