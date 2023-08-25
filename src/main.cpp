@@ -68,21 +68,46 @@ int main()
         // TODO: Initialize RoveComm
 
         // Init camera.
-        BasicCam TestCamera = BasicCam("../data/test.mp4", 640, 480, 30, eRGB, 45, 45);
-        cv::Mat cvResultFrame;
+        BasicCam TestCamera1 = BasicCam(0, 640, 480, 30, eRGB, 45, 45);
+        BasicCam TestCamera2 = BasicCam(2, 640, 480, 30, eRGB, 45, 45);
+        BasicCam TestCamera3 = BasicCam(4, 640, 480, 30, eRGB, 45, 45);
+        cv::Mat cvResultFrame1;
+        cv::Mat cvResultFrame2;
+        cv::Mat cvResultFrame3;
         while (true)
         {
             // Grab Frames from camera and draw FPS on frame.
-            cvResultFrame = TestCamera.GrabFrame();
-            cv::putText(cvResultFrame,
-                        std::to_string(TestCamera.GetFrameIPS()->GetAverageIPS()),
+            cvResultFrame1 = TestCamera1.GrabFrame();
+            cv::putText(cvResultFrame1,
+                        std::to_string(TestCamera1.GetFrameIPS()->GetAverageIPS()),
+                        cv::Point(50, 50),
+                        cv::FONT_HERSHEY_COMPLEX,
+                        1,
+                        cv::Scalar(255, 255, 255));
+
+            // Grab Frames from camera and draw FPS on frame.
+            cvResultFrame2 = TestCamera2.GrabFrame();
+            cv::putText(cvResultFrame2,
+                        std::to_string(TestCamera2.GetFrameIPS()->GetAverageIPS()),
+                        cv::Point(50, 50),
+                        cv::FONT_HERSHEY_COMPLEX,
+                        1,
+                        cv::Scalar(255, 255, 255));
+
+            // Grab Frames from camera and draw FPS on frame.
+            cvResultFrame3 = TestCamera3.GrabFrame();
+            cv::putText(cvResultFrame3,
+                        std::to_string(TestCamera3.GetFrameIPS()->GetAverageIPS()),
                         cv::Point(50, 50),
                         cv::FONT_HERSHEY_COMPLEX,
                         1,
                         cv::Scalar(255, 255, 255));
 
             // Display frame.
-            cv::imshow("TEST", cvResultFrame);
+            cv::imshow("TEST1", cvResultFrame1);
+            cv::imshow("TEST2", cvResultFrame2);
+            cv::imshow("TEST3", cvResultFrame3);
+            // cv::imshow("TEST4", cvResultFrame4);
 
             char chKey = cv::waitKey(1);
             if (chKey == 27)    // Press 'Esc' key to exit

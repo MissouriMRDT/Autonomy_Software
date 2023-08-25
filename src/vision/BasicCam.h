@@ -15,7 +15,7 @@
 
 #include "../interfaces/Camera.hpp"
 
-class BasicCam : public Camera<cv::Mat>
+class BasicCam : public Camera<cv::Mat&>
 {
     private:
         // Declare private methods and functions variables.
@@ -42,7 +42,7 @@ class BasicCam : public Camera<cv::Mat>
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV);
         ~BasicCam();
-        cv::Mat GrabFrame(const bool bGrabRaw = false) override;
+        cv::Mat& GrabFrame(const bool bGrabRaw = false) override;
 
         // Getters.
         template<typename T>
