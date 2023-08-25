@@ -10,9 +10,9 @@
         // Grants permission to the container to access USBs.
         "--privileged",
         "-v",
-        "/tmp/.X11-unix:/tmp/.X11-unix",
+        "/dev/bus/usb:/dev/bus/usb",
         "-v",
-        "~/.Xauthority:/root/.Xauthority",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
         "-v",
         "/mnt/wslg:/mnt/wslg",
         "-e",
@@ -24,14 +24,14 @@
         "-e",
         "PULSE_SERVER"
     ],
-    // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-    "build": {
-        "dockerfile": "Dockerfile_Jammy"
-        // "dockerfile": "Dockerfile_Focal"
-        //     "dockerfile": "Dockerfile_JetPack"
-    },
+    // "build": {
+    //     "dockerfile": "Dockerfile_Jammy"
+    //     // "dockerfile": "Dockerfile_Focal"
+    //     //     "dockerfile": "Dockerfile_JetPack"
+    // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
