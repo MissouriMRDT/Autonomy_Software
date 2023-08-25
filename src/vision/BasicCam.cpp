@@ -123,7 +123,7 @@ BasicCam::~BasicCam()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
  ******************************************************************************/
-cv::Mat BasicCam::GrabFrame(const bool bGrabRaw)
+cv::Mat& BasicCam::GrabFrame(const bool bGrabRaw)
 {
     // Check if the camera is open.
     if (m_cvCamera.isOpened())
@@ -131,11 +131,20 @@ cv::Mat BasicCam::GrabFrame(const bool bGrabRaw)
         // Get frame from camera and store.
         m_cvCamera >> m_cvFrame;
 
-        // Check if we should resize to match member variables properties.
-        if (!bGrabRaw)
+        // Check if the retrieved image is empty.
+        if (!m_cvFrame.empty())
         {
-            // Resize frame.
-            cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY));
+            // Check if we should resize to match member variables properties.
+            if (!bGrabRaw)
+            {
+                // Resize frame.
+                cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY));
+            }
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger, "Image retrieved from camera source is empty!");
         }
     }
     else
