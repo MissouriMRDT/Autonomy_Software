@@ -128,7 +128,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
                                                 RoveComm_CPP
     )
 
-## Package Executable
+## Package Executable // FIXME: Install doesn't work.
 install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
