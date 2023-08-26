@@ -27,10 +27,10 @@ IdentitySoftware::IdentitySoftware()
     m_szBuildVersion = "000";
 
     // Append the versions after the forced extra characters
-    m_szMajorVersion += std::to_string(MAJOR_VERSION);
-    m_szMinorVersion += std::to_string(MINOR_VERSION);
-    m_szPatchVersion += std::to_string(PATCH_VERSION);
-    m_szBuildVersion += std::to_string(BUILD_VERSION);
+    m_szMajorVersion += std::to_string(AUTONOMY_MAJOR_VERSION);
+    m_szMinorVersion += std::to_string(AUTONOMY_MINOR_VERSION);
+    m_szPatchVersion += std::to_string(AUTONOMY_PATCH_VERSION);
+    m_szBuildVersion += std::to_string(AUTONOMY_BUILD_VERSION);
 
     // Shorten the strings down to the appropriate lengths
     if (m_szMajorVersion.length() > 2)
