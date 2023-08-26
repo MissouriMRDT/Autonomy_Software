@@ -118,6 +118,7 @@ BasicCam::~BasicCam()
 /******************************************************************************
  * @brief Retrieves a frame from the camera.
  *
+ * @param bGrabRaw - Whether or not to apply class properties to image. (resize, colorspace change, etc.)
  * @return cv::Mat - The returned image stored in an OpenCV MAT.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
