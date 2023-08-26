@@ -32,9 +32,6 @@
 namespace sc  = boost::statechart;
 namespace mpl = boost::mpl;
 
-#ifndef AUTONOMY_GLOBALS_H
-#define AUTONOMY_GLOBALS_H
-
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
 

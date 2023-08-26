@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include "BasicCam.h"
-#include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Construct a new Basic Cam:: Basic Cam object.
