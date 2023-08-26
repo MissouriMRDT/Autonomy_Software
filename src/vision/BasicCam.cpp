@@ -123,7 +123,7 @@ BasicCam::~BasicCam()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
  ******************************************************************************/
-cv::Mat& BasicCam::GrabFrame(const bool bGrabRaw)
+cv::Mat BasicCam::GrabFrame(const bool bGrabRaw)
 {
     // Check if the camera is open.
     if (m_cvCamera.isOpened())
