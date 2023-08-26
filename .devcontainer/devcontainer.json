@@ -73,6 +73,8 @@
                     "**/docs": true
                 },
                 "extensions.ignoreRecommendations": true,
+                // Git settings.
+                "git.autofetch": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
