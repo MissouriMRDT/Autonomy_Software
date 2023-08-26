@@ -70,9 +70,17 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-## Find OpenCV
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+## Find OpenCV.
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+## Find ZEDSDK.
+find_package(ZED REQUIRED)
+include_directories(${ZED_INCLUDE_DIRS})
+
+## Find CUDA. Must match ZEDSDK version.
+find_package(CUDA ${ZED_CUDA_VERSION} EXACT REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
