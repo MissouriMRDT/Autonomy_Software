@@ -5,7 +5,7 @@
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-06-20
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include <fstream>
@@ -14,6 +14,7 @@
 #include <string>
 
 #include "./AutonomyGlobals.h"
+#include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
 #include "./vision/ZEDCam.h"
 // #include "./threads/CameraHandlerThread.h"

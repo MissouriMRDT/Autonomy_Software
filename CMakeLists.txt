@@ -1,6 +1,6 @@
 ####################################################################################################################
 ##											Autonomy Software												   	  ##
-##											v24.00.00 Build 000												 	  ##
+##											v24.01.00 Build 001												 	  ##
 ##										  Mars Rover Design Team												  ##
 ##								   Copyright 2023 - All Rights Reserved										 	  ##
 ####################################################################################################################
@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.00.00)
+project(Autonomy_Software VERSION 24.01.00)
 
 ## Include Required CMake Packages
 if(NOT CPack_CMake_INCLUDED)
@@ -37,8 +37,8 @@ set(CPACK_GENERATOR "STGZ")
 ## Find RoveComm
 FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm)
         GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        16ba934e74a1c18e18c565c48000481e0451a966                     # Version 24.0.0
-        GIT_SHALLOW    FALSE                                                         # Download only without history
+        GIT_TAG        522bbf3e6266c4f97e9a069da05d9f1754b2247e                     # Version 24.0.0
+        GIT_SHALLOW    FALSE                                                        # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
     )
 FetchContent_GetProperties(RoveComm_CPP)

@@ -5,12 +5,13 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "NavigationBoard.h"
 
 #include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.

@@ -24,7 +24,7 @@ LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
-LABEL org.opencontainers.image.version="v24.0.0"
+LABEL org.opencontainers.image.version="v24.1.0"
 LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}, and Google Test ${GTEST_VERSION}."
 
 # Set Non-Interactive Mode
