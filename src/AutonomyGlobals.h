@@ -5,7 +5,7 @@
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-06-20
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef AUTONOMY_GLOBALS_H
@@ -21,8 +21,6 @@
 #include <ctime>
 #include <iostream>
 
-#include <quill/Quill.h>
-
 #include <boost/statechart/custom_reaction.hpp>
 #include <boost/statechart/event.hpp>
 #include <boost/statechart/state.hpp>
@@ -34,12 +32,8 @@
 namespace sc  = boost::statechart;
 namespace mpl = boost::mpl;
 
-// Logging:
-extern quill::Logger* g_qFileLogger;
-extern quill::Logger* g_qConsoleLogger;
-extern quill::Logger* g_qSharedLogger;
-
-void InitializeLoggers();    // Method to set up the loggers
+#ifndef AUTONOMY_GLOBALS_H
+#define AUTONOMY_GLOBALS_H
 
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
@@ -49,4 +43,4 @@ extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Int
 extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
 extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
 
-#endif                                                 // MRDT_AutonomyGlobals_H
+#endif                                                 // AUTONOMY_GLOBALS_H

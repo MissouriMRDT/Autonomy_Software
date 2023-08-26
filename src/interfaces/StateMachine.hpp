@@ -5,10 +5,11 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-07-31
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "../AutonomyGlobals.h"
+#include "../AutonomyLogging.h"
 
 // Forward References
 struct IdleState;
