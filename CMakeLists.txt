@@ -74,13 +74,13 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-## Find ZEDSDK.
+## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED REQUIRED)
-include_directories(${ZED_INCLUDE_DIRS})
+include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 
-## Find CUDA. Must match ZEDSDK version.
+## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
 find_package(CUDA ${ZED_CUDA_VERSION} EXACT REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
+include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
@@ -124,11 +124,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
                                                 quill::quill
 												${OpenCV_LIBS}
+                                                ${ZED_LIBS} 
                                                 RoveComm_CPP
     )
 
 ## Package Executable
-install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
