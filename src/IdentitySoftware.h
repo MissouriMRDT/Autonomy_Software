@@ -13,10 +13,10 @@
 
 #include <string>
 
-#define MAJOR_VERSION 24
-#define MINOR_VERSION 0
-#define PATCH_VERSION 0
-#define BUILD_VERSION 0
+#define AUTONOMY_MAJOR_VERSION 24
+#define AUTONOMY_MINOR_VERSION 0
+#define AUTONOMY_PATCH_VERSION 0
+#define AUTONOMY_BUILD_VERSION 0
 
 class IdentitySoftware
 {
