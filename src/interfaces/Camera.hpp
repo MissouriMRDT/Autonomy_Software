@@ -25,6 +25,7 @@ enum PIXEL_FORMATS
     eRGBE,
     eRGBXZY,
     eRGBAXYZ,
+    eZEDDepth,
     eGrayscale,
     eDepth,
     eCMYK,
