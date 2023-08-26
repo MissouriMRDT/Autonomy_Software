@@ -107,7 +107,7 @@ jobs:
         with:
           draft: false
           prerelease: false
-          name: "Autonomy Software ${{ steps.version.outputs.version }}"
+          name: "${{ steps.version.outputs.version }}"
           files: "/opt/Autonomy_Software/build/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
