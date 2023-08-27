@@ -187,7 +187,7 @@ bool BasicCam::GetCameraIsOpen()
  * @date 2023-08-20
  ******************************************************************************/
 template<typename T>
-T BasicCam::GetCameraLocation()
+T BasicCam::GetCameraLocation() const
 {
     // Check if camera location is a hardware path or video index.
     if (m_bCameraIsConnectedOnVideoIndex)

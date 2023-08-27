@@ -46,7 +46,7 @@ class BasicCam : public Camera<cv::Mat>
 
         // Getters.
         template<typename T>
-        T GetCameraLocation();
+        T GetCameraLocation() const;
         bool GetCameraIsOpen() override;
 };
 #endif
