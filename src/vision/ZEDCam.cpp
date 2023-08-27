@@ -29,6 +29,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX, const int nPropResolutionY, const int
     // Assign member variables.
 
     // Attempt to open camera.
+    m_slCamera.open();
 }
 
 /******************************************************************************
