@@ -25,7 +25,7 @@ class DriveBoard
         ~DriveBoard();
 
         std::vector<int> CalculateMove(float fSpeed, float fAngle);
-        void SendDrive(int iLeftTarget, int iRightTarget);
+        void SendDrive(/*int iLeftTarget, int iRightTarget*/);
         void SendStop();
 };
 

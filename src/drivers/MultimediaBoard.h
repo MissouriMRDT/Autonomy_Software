@@ -52,8 +52,8 @@ class MultimediaBoard
         MultimediaBoard();
         ~MultimediaBoard();
 
-        void SendLightingState(MultimediaBoardLightingState eState);
-        void SendRGB(RGB);
+        void SendLightingState(/*MultimediaBoardLightingState eState*/);
+        void SendRGB(/*RGB rgbVal*/);
 };
 
 #endif    // MULTIMEDIABOARD_H

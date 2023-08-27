@@ -40,7 +40,7 @@ MultimediaBoard::~MultimediaBoard() {}
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
-void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState) {}
+void MultimediaBoard::SendLightingState(/*MultimediaBoardLightingState eState*/) {}
 
 /******************************************************************************
  * @brief Send a custom RGB value to the board.
@@ -51,4 +51,4 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState) {}
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
-void MultimediaBoard::SendRGB(RGB rgbVal) {}
+void MultimediaBoard::SendRGB(/*RGB rgbVal*/) {}
