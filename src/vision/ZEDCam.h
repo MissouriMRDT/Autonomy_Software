@@ -24,6 +24,7 @@ class ZEDCam : public Camera<sl::Mat>
         // Declare private methods and functions variables.
         sl::Camera m_slCamera;
         sl::InitParameters m_slCameraParams;
+        sl::RuntimeParameters m_slRuntimeParams;
         sl::Pose m_slCameraPose;
         sl::SensorsData m_slSensorData;
         sl::Objects m_slTrackedObjects;
@@ -33,6 +34,10 @@ class ZEDCam : public Camera<sl::Mat>
         sl::Mat m_slDepth;
         sl::Mat m_slPointCloud;
 
+        // Create iteration per second object pointers.
+        IPS* m_pIPSDepth      = new IPS();
+        IPS* m_pIPSPointCloud = new IPS();
+
     public:
         // Declare public methods and member variables.
         ZEDCam(const unsigned int unCameraSerialNumber,
@@ -41,11 +46,13 @@ class ZEDCam : public Camera<sl::Mat>
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
-               const bool bMemTypeGPU = false);
+               const float fMinSenseDistance = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+               const float fMaxSenseDistance = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+               const bool bMemTypeGPU        = false);
         ~ZEDCam();
         sl::Mat GrabFrame(const bool bGrabRaw = false) override;
-        sl::Mat GrabDepth(const bool bGrabRaw = false);
-        sl::Mat GrabPointCloud(const bool bGrabRaw = false);
+        sl::Mat GrabDepth(const bool bGrabRaw = false, const bool bHalfPrecision = false);
+        sl::Mat GrabPointCloud(const bool bGrabRaw = false, const bool bIncludeColor = false);
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<sl::CustomBoxObjectData> vCustomObjects);
         sl::ERROR_CODE RebootCamera();
