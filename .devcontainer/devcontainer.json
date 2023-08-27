@@ -156,10 +156,10 @@
                 "doxdocgen.generic.useGitUserName": true,
                 // Todo Tree Extention Settings
                 "todo-tree.general.tags": [
-                    "FIXME",
-                    "TODO",
-                    "LEAD",
-                    "ISSUE NOTE"
+                    "FIXME:",
+                    "TODO:",
+                    "LEAD:",
+                    "ISSUE NOTE:"
                 ],
                 "todo-tree.highlights.customHighlight": {
                     "TODO": {
