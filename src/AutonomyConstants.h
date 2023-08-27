@@ -34,8 +34,9 @@ namespace constants
     const sl::COORDINATE_SYSTEM ZED_COORD_SYSTEM = sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP;
     const sl::DEPTH_MODE ZED_DEPTH_MODE          = sl::DEPTH_MODE::QUALITY;
     const sl::VIEW ZED_RETRIEVE_VIEW             = sl::VIEW::LEFT;
-    const float ZED_MINIMUM_DISTANCE             = 0.2;     // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
-    const float ZED_MAXIMUM_DISTANCE             = 40.0;    // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
+    const bool ZED_SENSING_FILL                  = true;    // True provides a depth map with a Z value for every pixel (X, Y) in the left image. Slower.
+    const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.2;     // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
+    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 40.0;    // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const int ZED_DEPTH_STABILIZATION            = 1;       // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
 
 }    // namespace constants
