@@ -14,22 +14,56 @@
 /******************************************************************************
  * @brief Construct a new Zed Cam:: Zed Cam object.
  *
+ * @param unCameraSerialNumber - The serial number of the camera to open.
  * @param nPropResolutionX - X res of camera.
  * @param nPropResolutionY - Y res of camera.
  * @param nPropFramesPerSecond - FPS camera is running at.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param bMemTypeGPU - Whether or not to use the GPU memory for operations.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-ZEDCam::ZEDCam(const int nPropResolutionX, const int nPropResolutionY, const int nPropFramesPerSecond, const double dPropHorizontalFOV, const double dPropVerticalFOV) :
+ZEDCam::ZEDCam(const unsigned int unCameraSerialNumber,
+               const int nPropResolutionX,
+               const int nPropResolutionY,
+               const int nPropFramesPerSecond,
+               const double dPropHorizontalFOV,
+               const double dPropVerticalFOV,
+               const bool bMemTypeGPU) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
+    bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
+
+    // Setup camera params.
+    m_slCameraParams.input.setFromSerialNumber(unCameraSerialNumber);
+    m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
+    m_slCameraParams.camera_fps             = nPropFramesPerSecond;
+    m_slCameraParams.coordinate_units       = constants::ZED_MEASURE_UNITS;
+    m_slCameraParams.coordinate_system      = constants::ZED_COORD_SYSTEM;
+    m_slCameraParams.depth_mode             = constants::ZED_DEPTH_MODE;
+    m_slCameraParams.depth_minimum_distance = constants::ZED_MINIMUM_DISTANCE;
+    m_slCameraParams.depth_maximum_distance = constants::ZED_MAXIMUM_DISTANCE;
+    m_slCameraParams.depth_stabilization    = constants::ZED_DEPTH_STABILIZATION;
 
     // Attempt to open camera.
-    m_slCamera.open();
+    m_slCamera.open(m_slCameraParams);
+    // Check if the camera was successfully opened.
+    if (m_slCamera.isOpened())
+    {
+        // Submit logger message.
+        LOG_DEBUG(g_qSharedLogger,
+                  "{} stereo camera with serial number {} has been succsessfully opened.",
+                  this->GetCameraModel(),
+                  m_slCamera.getCameraInformation().serial_number);
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_ERROR(g_qSharedLogger, "Unable to open stereo camera with serial number {}", unCameraSerialNumber);
+    }
 }
 
 /******************************************************************************
@@ -42,6 +76,12 @@ ZEDCam::ZEDCam(const int nPropResolutionX, const int nPropResolutionY, const int
 ZEDCam::~ZEDCam()
 {
     // Close the ZEDCam.
+    m_slCamera.close();
+
+    // Free all mats and other sl namespace objects.
+    m_slFrame.free();
+    m_slDepth.free();
+    m_slPointCloud.free();
 }
 
 /******************************************************************************
@@ -58,6 +98,7 @@ ZEDCam::~ZEDCam()
 sl::Mat ZEDCam::GrabFrame(const bool bGrabRaw)
 {
     // Grab regular image and store it in member variable.
+    m_slCamera.retrieveImage(m_slFrame, sl::VIEW::LEFT, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
 }
 
 /******************************************************************************
@@ -238,6 +279,62 @@ bool ZEDCam::GetCameraIsOpen()
 {
     // Return if the ZED camera is currently opened.
     return m_slCamera.isOpened();
+}
+
+/******************************************************************************
+ * @brief Accessor for the model enum from the ZEDSDK and represents the camera model as a string.
+ *
+ * @return std::string - The model of the zed camera.
+ *      Possible values: ZED, ZED_MINI, ZED_2, ZED_2i, ZED_X, ZED_X_MINI, UNDEFINED_UNKNOWN
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-27
+ ******************************************************************************/
+std::string ZEDCam::GetCameraModel()
+{
+    // Declare instance variables.
+    std::string szCameraModel;
+
+    // Check if the camera is opened.
+    if (m_slCamera.isOpened())
+    {
+        // Get model enum from zed api.
+        sl::MODEL slCameraModel = m_slCamera.getCameraInformation().camera_model;
+
+        // Switch case that turns enum value into string.
+        switch (slCameraModel)
+        {
+            case sl::MODEL::ZED: szCameraModel = "ZED"; break;
+            case sl::MODEL::ZED_M: szCameraModel = "ZED_MINI"; break;
+            case sl::MODEL::ZED2: szCameraModel = "ZED_2"; break;
+            case sl::MODEL::ZED2i: szCameraModel = "ZED_2i"; break;
+            case sl::MODEL::ZED_X: szCameraModel = "ZED_X"; break;
+            case sl::MODEL::ZED_XM: szCameraModel = "ZED_X_MINI"; break;
+            default: szCameraModel = "UNDEFINED_UNKNOWN"; break;
+        }
+    }
+    else
+    {
+        // Set the model string to show camera isn't opened.
+        szCameraModel = "NOT_OPENED";
+    }
+
+    // Return model of camera represented as string.
+    return szCameraModel;
+}
+
+/******************************************************************************
+ * @brief Accessor for the camera's serial number.
+ *
+ * @return unsigned int -
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-27
+ ******************************************************************************/
+unsigned int ZEDCam::GetCameraSerial()
+{
+    // Return connected camera serial number.
+    return m_slCamera.getCameraInformation().serial_number;
 }
 
 /******************************************************************************
