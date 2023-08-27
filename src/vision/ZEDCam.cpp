@@ -97,8 +97,50 @@ ZEDCam::~ZEDCam()
  ******************************************************************************/
 sl::Mat ZEDCam::GrabFrame(const bool bGrabRaw)
 {
-    // Grab regular image and store it in member variable.
-    m_slCamera.retrieveImage(m_slFrame, sl::VIEW::LEFT, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // Call generalized update method of zed api.
+    sl::ERROR_CODE slReturnCode = m_slCamera.grab();
+
+    // Update zed api.
+    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    {
+        // Check if we should resize the grabbed image.
+        if (bGrabRaw)
+        {
+            // Grab regular image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType);
+        }
+        else
+        {
+            // Grab regular resized image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        }
+
+        // Check if a new image was successfully retrieved.
+        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+        {
+            // Call FPS tick.
+            m_pIPS->Tick();
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Failed to retrieve image for stereo camera {} ({}).",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number);
+        }
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger,
+                    "Unable to update stereo camera {} ({}) images and sensors!",
+                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                    m_slCamera.getCameraInformation().serial_number);
+    }
+
+    // Return a copy of the frame member variable.
+    return m_slFrame;
 }
 
 /******************************************************************************
@@ -298,20 +340,8 @@ std::string ZEDCam::GetCameraModel()
     // Check if the camera is opened.
     if (m_slCamera.isOpened())
     {
-        // Get model enum from zed api.
-        sl::MODEL slCameraModel = m_slCamera.getCameraInformation().camera_model;
-
-        // Switch case that turns enum value into string.
-        switch (slCameraModel)
-        {
-            case sl::MODEL::ZED: szCameraModel = "ZED"; break;
-            case sl::MODEL::ZED_M: szCameraModel = "ZED_MINI"; break;
-            case sl::MODEL::ZED2: szCameraModel = "ZED_2"; break;
-            case sl::MODEL::ZED2i: szCameraModel = "ZED_2i"; break;
-            case sl::MODEL::ZED_X: szCameraModel = "ZED_X"; break;
-            case sl::MODEL::ZED_XM: szCameraModel = "ZED_X_MINI"; break;
-            default: szCameraModel = "UNDEFINED_UNKNOWN"; break;
-        }
+        // Convert camera model to a string.
+        szCameraModel = sl::toString(m_slCamera.getCameraInformation().camera_model).get();
     }
     else
     {
@@ -360,7 +390,7 @@ sl::Pose ZEDCam::GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference
         if (slReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Getting ZED positional pose returned non-OK status! sl::POSITIONAL_TRACKING_STATE is: {}", static_cast<int>(slReturnCode));
+            LOG_WARNING(g_qSharedLogger, "Getting ZED positional pose returned non-OK status! sl::POSITIONAL_TRACKING_STATE is: {}", sl::toString(slReturnCode).get());
         }
     }
 
@@ -421,7 +451,7 @@ std::vector<double> ZEDCam::GetIMUData()
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Failed to get data from ZED sensors package. sl::ERROR_CODE number: {}", static_cast<int>(slReturnCode));
+        LOG_WARNING(g_qSharedLogger, "Failed to get data from ZED sensors package. sl::ERROR_CODE number: {}", sl::toString(slReturnCode).get());
     }
 
     // Return sensors data.
@@ -486,7 +516,7 @@ std::future<sl::FusedPointCloud> ZEDCam::ExtractSpatialMapAsync()
                                   // Submit logger message.
                                   LOG_ERROR(g_qSharedLogger,
                                             "Failed to extract ZED spatial map. sl::ERROR_CODE is: {}",
-                                            static_cast<int>(m_slCamera.getSpatialMapRequestStatusAsync()));
+                                            sl::toString(m_slCamera.getSpatialMapRequestStatusAsync()).get());
 
                                   // Return empty point cloud.
                                   return sl::FusedPointCloud();
@@ -541,7 +571,7 @@ std::vector<sl::ObjectData> ZEDCam::GetTrackedObjects()
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is : {}", static_cast<int>(slReturnCode));
+            LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is : {}", sl::toString(slReturnCode).get());
 
             // Return previously tracked object list.
             return m_slTrackedObjects.object_list;
