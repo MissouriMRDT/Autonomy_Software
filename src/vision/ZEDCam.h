@@ -1,7 +1,7 @@
 /******************************************************************************
- * @brief Defines the ZedCam class.
+ * @brief Defines the ZEDCam class.
  *
- * @file ZedCam.h
+ * @file ZEDCam.h
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-25
  *
@@ -18,43 +18,47 @@
 #include "../AutonomyConstants.h"
 #include "../interfaces/Camera.hpp"
 
-class ZedCam : public Camera<sl::Mat>
+class ZEDCam : public Camera<sl::Mat>
 {
     private:
         // Declare private methods and functions variables.
         sl::Camera m_slCamera;
+        sl::Pose m_slCameraPose;
+        sl::SensorsData m_slSensorData;
+        sl::Objects m_slTrackedObjects;
+        sl::ObjectDetectionParameters m_slTrackedObjectParameters;
         sl::Mat m_slFrame;
         sl::Mat m_slDepth;
         sl::Mat m_slPointCloud;
 
     public:
         // Declare public methods and member variables.
-        ZedCam(const int nPropResolutionX, const int nPropResolutionY, const int nPropFramesPerSecond, const double dPropHorizontalFOV, const double dPropVerticalFOV);
-        ~ZedCam();
+        ZEDCam(const int nPropResolutionX, const int nPropResolutionY, const int nPropFramesPerSecond, const double dPropHorizontalFOV, const double dPropVerticalFOV);
+        ~ZEDCam();
         sl::Mat GrabFrame(const bool bGrabRaw = false) override;
         sl::Mat GrabDepth(const bool bGrabRaw = false);
         sl::Mat GrabPointCloud(const bool bGrabRaw = false);
         sl::ERROR_CODE ResetPositionalTracking();
-        sl::ERROR_CODE IngestCustomBoxObjects(std::vector<sl::CustomBoxObjectData> vCustomObjects);
+        sl::ERROR_CODE TrackCustomBoxObjects(std::vector<sl::CustomBoxObjectData> vCustomObjects);
         sl::ERROR_CODE RebootCamera();
 
         // Setters for class member variables.
         sl::ERROR_CODE EnablePositionalTracking();
         void DisablePositionalTracking();
-        sl::ERROR_CODE SetPositionalPose();
+        sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
         sl::ERROR_CODE EnableSpatialMapping();
         void DisableSpatialMapping();
-        sl::ERROR_CODE EnableObjectDetection();
-        void DisableObjectDetection();
+        sl::ERROR_CODE EnableObjectTracking();
+        void DisableObjectTracking();
 
         // Accessors for class member variables.
-        bool GetCameraIsOpen() const override;
-        sl::Pose GetPositionalPose() const;
-        bool GetPositionalTrackingEnabled() const;
-        sl::SensorsData GetSensorsData() const;
-        sl::SPATIAL_MAPPING_STATE GetSpatialMappingState() const;
-        bool GetObjectDetectionEnabled() const;
-        sl::ERROR_CODE GetDetectedAndTrackedObjects() const;
-        std::future<sl::FusedPointCloud> ExtractSpatialMapAsync() const;
+        bool GetCameraIsOpen() override;
+        sl::Pose GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference = sl::REFERENCE_FRAME::WORLD);
+        bool GetPositionalTrackingEnabled();
+        std::vector<double> GetIMUData();
+        sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
+        std::future<sl::FusedPointCloud> ExtractSpatialMapAsync();
+        bool GetObjectTrackingEnabled();
+        std::vector<sl::ObjectData> GetTrackedObjects();
 };
 #endif
