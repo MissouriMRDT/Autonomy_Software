@@ -89,7 +89,8 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Mutex     > `mu` > Exanple: `mutex muExampleUseOfMutex`
 
 #### External Types
-- OpenCV > `cv`  > Example: `cv::Mat cvExampleMat`
+- OpenCV > `cv` > Example: `cv::Mat cvExampleMat`
+- ZEDSDK > `sl` > Example: `sl::Mat slExampleZedMat`
 - Boost:
     - State Chart > `sc`  > Example: `sc::simple_state<IdleState, StateMachine>`
 - Quill  > `q` > Example: `quill::Config qConfig`
