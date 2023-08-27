@@ -31,6 +31,8 @@ ZEDCam::ZEDCam(const unsigned int unCameraSerialNumber,
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const float fMinSenseDistance,
+               const float fMaxSenseDistance,
                const bool bMemTypeGPU) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
@@ -44,9 +46,12 @@ ZEDCam::ZEDCam(const unsigned int unCameraSerialNumber,
     m_slCameraParams.coordinate_units       = constants::ZED_MEASURE_UNITS;
     m_slCameraParams.coordinate_system      = constants::ZED_COORD_SYSTEM;
     m_slCameraParams.depth_mode             = constants::ZED_DEPTH_MODE;
-    m_slCameraParams.depth_minimum_distance = constants::ZED_MINIMUM_DISTANCE;
-    m_slCameraParams.depth_maximum_distance = constants::ZED_MAXIMUM_DISTANCE;
+    m_slCameraParams.depth_minimum_distance = fMinSenseDistance;
+    m_slCameraParams.depth_maximum_distance = fMaxSenseDistance;
     m_slCameraParams.depth_stabilization    = constants::ZED_DEPTH_STABILIZATION;
+
+    // Setup camera runtime params.
+    m_slRuntimeParams.enable_fill_mode = constants::ZED_SENSING_FILL;
 
     // Attempt to open camera.
     m_slCamera.open(m_slCameraParams);
@@ -75,6 +80,14 @@ ZEDCam::ZEDCam(const unsigned int unCameraSerialNumber,
  ******************************************************************************/
 ZEDCam::~ZEDCam()
 {
+    // Delete dynamically allocated memory.
+    delete m_pIPSDepth;
+    delete m_pIPSPointCloud;
+
+    // Set dangling pointers to point to null.
+    m_pIPSDepth      = nullptr;
+    m_pIPSPointCloud = nullptr;
+
     // Close the ZEDCam.
     m_slCamera.close();
 
@@ -98,7 +111,7 @@ ZEDCam::~ZEDCam()
 sl::Mat ZEDCam::GrabFrame(const bool bGrabRaw)
 {
     // Call generalized update method of zed api.
-    sl::ERROR_CODE slReturnCode = m_slCamera.grab();
+    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
 
     // Update zed api.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -151,33 +164,132 @@ sl::Mat ZEDCam::GrabFrame(const bool bGrabRaw)
  * @param bGrabRaw - Whether or not to apply class properties to image. (resize)
  *              If bGrabRaw is set to true, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
  *              will be used.
+ * @param bHalfPrecision - The accuracy to use for the depth measurement. Full = float32, Half = unsigned long16.
  * @return sl::Mat - The result depth image stored in an sl::Mat object.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-sl::Mat ZEDCam::GrabDepth(const bool bGrabRaw)
+sl::Mat ZEDCam::GrabDepth(const bool bGrabRaw, const bool bHalfPrecision)
 {
-    // Grab the depth image and store it in member variable.
+    // Declare instance variables.
+    sl::MEASURE slMeasureType;
+
+    // Determine if we are using float32 or unsigned long16.
+    bHalfPrecision ? slMeasureType = sl::MEASURE::DEPTH_U16_MM : slMeasureType = sl::MEASURE::DEPTH;
+    // Call generalized update method of zed api.
+    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+
+    // Update zed api.
+    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    {
+        // Check if we should resize the grabbed image.
+        if (bGrabRaw)
+        {
+            // Grab regular image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveMeasure(m_slDepth, slMeasureType, m_slMemoryType);
+        }
+        else
+        {
+            // Grab regular resized image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveMeasure(m_slDepth, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        }
+
+        // Check if a new image was successfully retrieved.
+        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+        {
+            // Call FPS tick.
+            m_pIPSDepth->Tick();
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Failed to retrieve depth measure for stereo camera {} ({}).",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number);
+        }
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger,
+                    "Unable to update stereo camera {} ({}) measurements and sensors!",
+                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                    m_slCamera.getCameraInformation().serial_number);
+    }
+
+    // Return a copy of the frame member variable.
+    return m_slDepth;
 }
 
 /******************************************************************************
- * @brief Grabs a point cloud image from the camera. This image has the same shape as a normal
- *      BGRA image put with three extra XYZ values attached to the 3rd dimension. (BGRAXYZ)
+ * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+ *      image but with three XYZ values replacing the old color values in the 3rd dimension. A 4th value can be
+ *      added to the 3rd dimension to get color (X, Y, Z, color(BGRA)), but this is slower.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
  *
  * @param bGrabRaw - Whether or not to apply class properties to image. (resize)
  *              If bGrabRaw is set to true, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
  *              will be used.
+ * @param bIncludeColor - Whether or not a unsigned char[4] should be appended to the 3rd dimension after the XYZ values.
  * @return sl::Mat - The result point cloud image with pixel colors and real-world locations.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-sl::Mat ZEDCam::GrabPointCloud(const bool bGrabRaw)
+sl::Mat ZEDCam::GrabPointCloud(const bool bGrabRaw, const bool bIncludeColor)
 {
-    // Grab the point cloud and store it in member variable.
+    // Declare instance variables.
+    sl::MEASURE slMeasureType;
+
+    // Determine if we are using float32 or unsigned long16.
+    bIncludeColor ? slMeasureType = sl::MEASURE::XYZBGRA : slMeasureType = sl::MEASURE::XYZ;
+    // Call generalized update method of zed api.
+    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+
+    // Update zed api.
+    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    {
+        // Check if we should resize the grabbed image.
+        if (bGrabRaw)
+        {
+            // Grab regular image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType);
+        }
+        else
+        {
+            // Grab regular resized image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        }
+
+        // Check if a new image was successfully retrieved.
+        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+        {
+            // Call FPS tick.
+            m_pIPSPointCloud->Tick();
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Failed to retrieve point cloud for stereo camera {} ({}).",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number);
+        }
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger,
+                    "Unable to update stereo camera {} ({}) measurements and sensors!",
+                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                    m_slCamera.getCameraInformation().serial_number);
+    }
+
+    // Return a copy of the frame member variable.
+    return m_slPointCloud;
 }
 
 /******************************************************************************
