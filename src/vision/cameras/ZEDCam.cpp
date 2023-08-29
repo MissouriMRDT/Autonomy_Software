@@ -103,6 +103,15 @@ ZEDCam::ZEDCam(const unsigned int unCameraSerialNumber,
     // Setup camera runtime params.
     m_slRuntimeParams.enable_fill_mode = constants::ZED_SENSING_FILL;
 
+    // Setup positional tracking parameters.
+    m_slPoseTrackingParams.enable_area_memory    = constants::ZED_POSETRACK_AREA_MEMORY;
+    m_slPoseTrackingParams.enable_pose_smoothing = constants::ZED_POSETRACK_POSE_SMOOTHING;
+    m_slPoseTrackingParams.set_floor_as_origin   = constants::ZED_POSETRACK_FLOOR_IS_ORIGIN;
+    m_slPoseTrackingParams.enable_imu_fusion     = constants::ZED_POSETRACK_ENABLE_IMU_FUSION;
+    m_slPoseTrackingParams.depth_min_range       = constants::ZED_POSETRACK_USABLE_DEPTH_MIN;
+    m_slPoseTrackingParams.set_gravity_as_origin = constants::ZED_POSETRACK_USE_GRAVITY_ORIGIN;
+    m_slPoseTrackingParams.mode                  = constants::ZED_POSETRACK_MODE;
+
     // Attempt to open camera.
     m_slCamera.open(m_slCameraParams);
     // Check if the camera was successfully opened.
@@ -453,7 +462,8 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
  ******************************************************************************/
 sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
 {
-    //
+    // Enable pose tracking.
+    m_slCamera.enablePositionalTracking(m_slPoseTrackingParams);
 }
 
 /******************************************************************************
@@ -463,7 +473,11 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-void ZEDCam::DisablePositionalTracking() {}
+void ZEDCam::DisablePositionalTracking()
+{
+    // Disable pose tracking.
+    m_slCamera.disablePositionalTracking();
+}
 
 /******************************************************************************
  * @brief Sets the pose of the positional tracking of the camera. XYZ will point
