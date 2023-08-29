@@ -39,6 +39,9 @@ class ZEDCam : public Camera<sl::Mat>
         IPS* m_pIPSPointCloud = new IPS();
 
     public:
+        // Declare public structs that are specific to and used within this class.
+        struct ZedObjectData;
+
         // Declare public methods and member variables.
         ZEDCam(const unsigned int unCameraSerialNumber,
                const int nPropResolutionX,
@@ -54,7 +57,7 @@ class ZEDCam : public Camera<sl::Mat>
         sl::Mat GrabDepth(const bool bGrabRaw = false, const bool bHalfPrecision = false);
         sl::Mat GrabPointCloud(const bool bGrabRaw = false, const bool bIncludeColor = false);
         sl::ERROR_CODE ResetPositionalTracking();
-        sl::ERROR_CODE TrackCustomBoxObjects(std::vector<sl::CustomBoxObjectData> vCustomObjects);
+        sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData> vCustomObjects);
         sl::ERROR_CODE RebootCamera();
 
         // Setters for class member variables.
