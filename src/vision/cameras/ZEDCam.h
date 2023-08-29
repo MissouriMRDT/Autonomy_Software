@@ -15,8 +15,8 @@
 #include <sl/Camera.hpp>
 #include <vector>
 
-#include "../AutonomyConstants.h"
-#include "../interfaces/Camera.hpp"
+#include "../../AutonomyConstants.h"
+#include "../../interfaces/Camera.hpp"
 
 class ZEDCam : public Camera<sl::Mat>
 {
