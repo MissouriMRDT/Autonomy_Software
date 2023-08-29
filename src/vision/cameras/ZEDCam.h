@@ -25,8 +25,9 @@ class ZEDCam : public Camera<sl::Mat>
         sl::Camera m_slCamera;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
-        sl::Pose m_slCameraPose;
         sl::SensorsData m_slSensorData;
+        sl::Pose m_slCameraPose;
+        sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::Objects m_slTrackedObjects;
         sl::ObjectDetectionParameters m_slTrackedObjectParameters;
         sl::MEM m_slMemoryType;
