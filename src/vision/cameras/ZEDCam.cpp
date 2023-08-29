@@ -9,7 +9,57 @@
  ******************************************************************************/
 
 #include "ZEDCam.h"
-#include "../AutonomyLogging.h"
+#include "../../AutonomyLogging.h"
+
+/******************************************************************************
+ * @brief This struct is part of the ZEDCam class and is used as a container for all
+ *      bounding box data that is going to be passed to the zed api via the ZEDCam's
+ *      TrackCustomBoxObjects() method.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-29
+ ******************************************************************************/
+struct ZEDCam::ZedObjectData
+{
+    private:
+        // Declare and define private struct member variables.
+        std::string szObjectUUID = sl::generate_unique_id().get();    // This will automatically generate a guaranteed unique id so the object is traceable.
+
+        // Declare a private struct for holding point data.
+        /******************************************************************************
+         * @brief This struct is internal to the ZedObjectData struct is used to store
+         *      an X and Y value for the corners of a bounding box.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-29
+         ******************************************************************************/
+        struct Corner
+        {
+            public:
+                // Declare public struct member variables.
+                unsigned int nX;
+                unsigned int nY;
+        };
+
+    public:
+        // Declare and define public struct member variables.
+        struct Corner CornerTL;    // The top left corner of the bounding box.
+        struct Corner CornerTR;    // The top right corner of the bounding box.
+        struct Corner CornerBL;    // The bottom left corner of the bounding box.
+        struct Corner CornerBR;    // The bottom right corner of bounding box.
+        int nClassNumber;          // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the same.
+        float fConfidence;         // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
+        // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by labels
+        // to avoid issues.
+        bool bObjectRemainsOnFloorPlane = false;
+
+        // Declare and define public struct getters.
+        std::string GetObjectUUID() { return szObjectUUID; };
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
  * @brief Construct a new Zed Cam:: Zed Cam object.
@@ -304,7 +354,17 @@ sl::Mat ZEDCam::GrabPointCloud(const bool bGrabRaw, const bool bIncludeColor)
  ******************************************************************************/
 sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
 {
-    // Reset the positional location of the camera. Maintain the orientation.
+    // Create new translation to set position back to zero.
+    sl::Translation slZeroTranslation(0.0, 0.0, 0.0);
+    // This will reset position and coordinate frame.
+    sl::Rotation slZeroRotation;
+    slZeroRotation.setEulerAngles(sl::float3(0.0, 0.0, 0.0), false);
+
+    // Store new translation and rotation in a tranform object.
+    sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
+
+    // Reset the positional tracking location of the camera.
+    m_slCamera.resetPositionalTracking(slZeroTransform);
 }
 
 /******************************************************************************
@@ -323,9 +383,50 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<sl::CustomBoxObjectData> vCustomObjects)
+sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData> vCustomObjects)
 {
-    // Pass objects to ZEDSDK.
+    // Create instance varables.
+    std::vector<sl::CustomBoxObjectData> vCustomBoxData;
+
+    // Repack detection data into sl specific object.
+    for (ZedObjectData stObjectData : vCustomObjects)
+    {
+        // Create new sl CustomBoxObjectData struct.
+        sl::CustomBoxObjectData slCustomBox;
+        std::vector<sl::uint2> vCorners;
+
+        // Assign simple attributes.
+        slCustomBox.unique_object_id = sl::String(stObjectData.GetObjectUUID().c_str());
+        slCustomBox.label            = stObjectData.nClassNumber;
+        slCustomBox.probability      = stObjectData.fConfidence;
+        slCustomBox.is_grounded      = stObjectData.bObjectRemainsOnFloorPlane;
+        // Repackage object corner data.
+        vCorners.emplace_back(sl::uint2(stObjectData.CornerTL.nX, stObjectData.CornerTL.nY));
+        vCorners.emplace_back(sl::uint2(stObjectData.CornerTR.nX, stObjectData.CornerTR.nY));
+        vCorners.emplace_back(sl::uint2(stObjectData.CornerBL.nX, stObjectData.CornerBL.nY));
+        vCorners.emplace_back(sl::uint2(stObjectData.CornerBR.nX, stObjectData.CornerBR.nY));
+        slCustomBox.bounding_box_2d = vCorners;
+
+        // Append repackaged object to vector.
+        vCustomBoxData.emplace_back(slCustomBox);
+    }
+
+    // Give the custom box data to the zed api.
+    sl::ERROR_CODE slReturnCode = m_slCamera.ingestCustomBoxObjects(vCustomBoxData);
+
+    // Check if successful.
+    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger,
+                    "Failed to ingest objects for camera {} ({})! sl::ERROR_CODE is: {}",
+                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                    m_slCamera.getCameraInformation().serial_number,
+                    sl::toString(slReturnCode).get());
+    }
+
+    // Return error code.
+    return slReturnCode;
 }
 
 /******************************************************************************
@@ -683,7 +784,7 @@ std::vector<sl::ObjectData> ZEDCam::GetTrackedObjects()
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is : {}", sl::toString(slReturnCode).get());
+            LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is: {}", sl::toString(slReturnCode).get());
 
             // Return previously tracked object list.
             return m_slTrackedObjects.object_list;
