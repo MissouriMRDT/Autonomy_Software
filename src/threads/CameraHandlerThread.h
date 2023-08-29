@@ -11,7 +11,7 @@
 #include <opencv2/core.hpp>
 
 #include "../interfaces/AutonomyThread.hpp"
-#include "../vision/BasicCam.h"
+#include "../vision/cameras/BasicCam.h"
 
 /******************************************************************************
  * @brief The CameraHandlerThread class is responsible for managing all of the

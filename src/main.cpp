@@ -16,7 +16,7 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
-#include "./vision/ZEDCam.h"
+#include "./vision/cameras/ZEDCam.h"
 // #include "./threads/CameraHandlerThread.h"
 
 // Check if any file from the example directory has been included.

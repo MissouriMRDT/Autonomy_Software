@@ -13,7 +13,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "../interfaces/Camera.hpp"
+#include "../../interfaces/Camera.hpp"
 
 class BasicCam : public Camera<cv::Mat>
 {
