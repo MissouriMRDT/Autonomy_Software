@@ -463,7 +463,7 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
 sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
 {
     // Enable pose tracking.
-    m_slCamera.enablePositionalTracking(m_slPoseTrackingParams);
+    return m_slCamera.enablePositionalTracking(m_slPoseTrackingParams);
 }
 
 /******************************************************************************
