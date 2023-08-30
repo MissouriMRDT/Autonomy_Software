@@ -45,6 +45,14 @@ class ZEDCam : public Camera<sl::Mat>
         // Declare public structs that are specific to and used within this class.
         struct ZedObjectData;
 
+        // Define public enum for IPS selection.
+        enum IPS_TYPE
+        {
+            eFRAME,
+            eDEPTH,
+            ePOINTCLOUD
+        };
+
         // Declare public methods and member variables.
         ZEDCam(const unsigned int unCameraSerialNumber,
                const int nPropResolutionX,
@@ -74,6 +82,7 @@ class ZEDCam : public Camera<sl::Mat>
 
         // Accessors for class member variables.
         bool GetCameraIsOpen() override;
+        IPS* GetIPS(const IPS_TYPE eIPSType);
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         sl::Pose GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference = sl::REFERENCE_FRAME::WORLD);

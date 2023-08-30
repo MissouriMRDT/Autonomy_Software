@@ -645,6 +645,27 @@ bool ZEDCam::GetCameraIsOpen()
 }
 
 /******************************************************************************
+ * @brief Return a selected iterations per second object for the normal RGB, DEPTH,
+ *      or point cloud grabbers.
+ *
+ * @param eIPSType - The type of frame to return the IPS for.
+ * @return IPS* - The Iterations Per Second object that tracks iterations and other metrics.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-30
+ ******************************************************************************/
+IPS* ZEDCam::GetIPS(const IPS_TYPE eIPSType)
+{
+    // Determine which IPS to return.
+    switch (eIPSType)
+    {
+        case IPS_TYPE::eFRAME: return m_pIPS;
+        case IPS_TYPE::eDEPTH: return m_pIPSDepth;
+        case IPS_TYPE::ePOINTCLOUD: return m_pIPSPointCloud;
+    }
+}
+
+/******************************************************************************
  * @brief Accessor for the model enum from the ZEDSDK and represents the camera model as a string.
  *
  * @return std::string - The model of the zed camera.
