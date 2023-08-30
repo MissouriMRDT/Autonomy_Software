@@ -51,7 +51,7 @@ namespace constants
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const float ZED_MAPPING_RESOLUTION_METER = 0.5;     // The approx goal precision for spatial mapping in METERS. Lower = Faster.
-    const int ZED_MAPPING_MAX_MEMORY         = 2048;    // The max amount of CPU RAM that can be allocated for spatial mapping.
+    const int ZED_MAPPING_MAX_MEMORY         = 2048;    // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
     // ZedCam Object Detection Config.
     const bool ZED_OBJDETECTION_IMG_SYNC     = true;     // True = Run detection for every frame. False = Run detection async, can lead to delayed detections.
     const bool ZED_OBJDETECTION_TRACK_OBJ    = true;     // Whether or not to enable object tracking in the scene. Attempts to maintain OBJ UUIDs.
