@@ -98,28 +98,14 @@ endif()
 enable_testing()
 
 ## Search Project Directories for CPP Files
-file(GLOB Algorithms_SRC		CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-file(GLOB Interfaces_SRC		CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
-file(GLOB Drivers_SRC		    CONFIGURE_DEPENDS  "src/drivers/*.cpp")
-file(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
-file(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
-file(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
-file(GLOB Threads_SRC			CONFIGURE_DEPENDS  "src/threads/*.cpp")
-file(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
-file(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
-file(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
-file(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
+file(GLOB_RECURSE SRC			  	    CONFIGURE_DEPENDS  "src/*.cpp")
+file(GLOB_RECURSE Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
+file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
+file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
 add_executable(${PROJECT_NAME}   ${External_SRC}
-								 ${Util_SRC}
-								 ${Algorithms_SRC}
-								 ${Interfaces_SRC}
-                                 ${Drivers_SRC}
-								 ${States_SRC}
-								 ${Vision_SRC}
-                                 ${Threads_SRC}
-								 ${Main_SRC}
+								 ${SRC}
 								 ${Examples_SRC}
 								 ${Tools_SRC}
 	)

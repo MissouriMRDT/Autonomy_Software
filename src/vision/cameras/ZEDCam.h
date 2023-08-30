@@ -26,10 +26,12 @@ class ZEDCam : public Camera<sl::Mat>
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::SensorsData m_slSensorData;
-        sl::Pose m_slCameraPose;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
-        sl::Objects m_slTrackedObjects;
-        sl::ObjectDetectionParameters m_slTrackedObjectParameters;
+        sl::Pose m_slCameraPose;
+        sl::SpatialMappingParameters m_slSpatialMappingParams;
+        sl::ObjectDetectionParameters m_slObjectDetectionParams;
+        sl::BatchParameters m_slObjectDetectionBatchParams;
+        sl::Objects m_slDetectedObjects;
         sl::MEM m_slMemoryType;
         sl::Mat m_slFrame;
         sl::Mat m_slDepth;
@@ -67,8 +69,8 @@ class ZEDCam : public Camera<sl::Mat>
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
         sl::ERROR_CODE EnableSpatialMapping();
         void DisableSpatialMapping();
-        sl::ERROR_CODE EnableObjectTracking();
-        void DisableObjectTracking();
+        sl::ERROR_CODE EnableObjectDetection();
+        void DisableObjectDetection();
 
         // Accessors for class member variables.
         bool GetCameraIsOpen() override;
@@ -79,7 +81,8 @@ class ZEDCam : public Camera<sl::Mat>
         std::vector<double> GetIMUData();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         std::future<sl::FusedPointCloud> ExtractSpatialMapAsync();
-        bool GetObjectTrackingEnabled();
-        std::vector<sl::ObjectData> GetTrackedObjects();
+        bool GetObjectDetectionEnabled();
+        std::vector<sl::ObjectData> GetObjects();
+        std::vector<sl::ObjectsBatch> GetBatchedObjects();
 };
 #endif

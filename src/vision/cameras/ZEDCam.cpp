@@ -104,13 +104,28 @@ ZEDCam::ZEDCam(const unsigned int unCameraSerialNumber,
     m_slRuntimeParams.enable_fill_mode = constants::ZED_SENSING_FILL;
 
     // Setup positional tracking parameters.
+    m_slPoseTrackingParams.mode                  = constants::ZED_POSETRACK_MODE;
     m_slPoseTrackingParams.enable_area_memory    = constants::ZED_POSETRACK_AREA_MEMORY;
     m_slPoseTrackingParams.enable_pose_smoothing = constants::ZED_POSETRACK_POSE_SMOOTHING;
     m_slPoseTrackingParams.set_floor_as_origin   = constants::ZED_POSETRACK_FLOOR_IS_ORIGIN;
     m_slPoseTrackingParams.enable_imu_fusion     = constants::ZED_POSETRACK_ENABLE_IMU_FUSION;
     m_slPoseTrackingParams.depth_min_range       = constants::ZED_POSETRACK_USABLE_DEPTH_MIN;
     m_slPoseTrackingParams.set_gravity_as_origin = constants::ZED_POSETRACK_USE_GRAVITY_ORIGIN;
-    m_slPoseTrackingParams.mode                  = constants::ZED_POSETRACK_MODE;
+
+    // Setup spatial mapping parameters.
+    m_slSpatialMappingParams.map_type         = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD;
+    m_slSpatialMappingParams.resolution_meter = constants::ZED_MAPPING_RESOLUTION_METER;
+    m_slSpatialMappingParams.range_meter      = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
+
+    // Setup object detection/tracking parameters.
+    m_slObjectDetectionParams.detection_model      = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
+    m_slObjectDetectionParams.image_sync           = constants::ZED_OBJDETECTION_IMG_SYNC;
+    m_slObjectDetectionParams.enable_tracking      = constants::ZED_OBJDETECTION_TRACK_OBJ;
+    m_slObjectDetectionParams.enable_segmentation  = constants::ZED_OBJDETECTION_SEGMENTATION;
+    m_slObjectDetectionParams.filtering_mode       = constants::ZED_OBJDETECTION_FILTERING;
+    m_slObjectDetectionParams.prediction_timeout_s = constants::ZED_OBJDETECTION_TRACKING_PREDICTION_TIMEOUT;
+    // Setup object detection/tracking batch parameters.
+    m_slObjectDetectionParams.batch_parameters = m_slObjectDetectionBatchParams;
 
     // Attempt to open camera.
     m_slCamera.open(m_slCameraParams);
@@ -373,7 +388,7 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
     // Reset the positional tracking location of the camera.
-    m_slCamera.resetPositionalTracking(slZeroTransform);
+    return m_slCamera.resetPositionalTracking(slZeroTransform);
 }
 
 /******************************************************************************
@@ -495,7 +510,20 @@ void ZEDCam::DisablePositionalTracking()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO) {}
+sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
+{
+    // Create new translation to set position back to user given values.
+    sl::Translation slZeroTranslation(dX, dY, dZ);
+    // This will reset position and coordinate frame.
+    sl::Rotation slZeroRotation;
+    slZeroRotation.setEulerAngles(sl::float3(dXO, dYO, dZO), false);
+
+    // Store new translation and rotation in a tranform object.
+    sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
+
+    // Reset the positional tracking location of the camera.
+    return m_slCamera.resetPositionalTracking(slZeroTransform);
+}
 
 /******************************************************************************
  * @brief Enabled the spatial mapping feature of the camera.
@@ -505,7 +533,11 @@ sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::EnableSpatialMapping() {}
+sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
+{
+    // Enable spatial mapping.
+    return m_slCamera.enableSpatialMapping(m_slSpatialMappingParams);
+}
 
 /******************************************************************************
  * @brief Disabled the spatial mapping feature of the camera.
@@ -514,7 +546,11 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping() {}
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-void ZEDCam::DisableSpatialMapping() {}
+void ZEDCam::DisableSpatialMapping()
+{
+    // Disable spatial mapping.
+    m_slCamera.disableSpatialMapping();
+}
 
 /******************************************************************************
  * @brief Enables the object detection and tracking feature of the camera.
@@ -524,7 +560,7 @@ void ZEDCam::DisableSpatialMapping() {}
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::EnableObjectTracking() {}
+sl::ERROR_CODE ZEDCam::EnableObjectDetection() {}
 
 /******************************************************************************
  * @brief Disables the object detection and tracking feature of the camera.
@@ -533,7 +569,7 @@ sl::ERROR_CODE ZEDCam::EnableObjectTracking() {}
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-void ZEDCam::DisableObjectTracking() {}
+void ZEDCam::DisableObjectDetection() {}
 
 /******************************************************************************
  * @brief Accessor for the current status of the camera.
@@ -766,7 +802,7 @@ std::future<sl::FusedPointCloud> ZEDCam::ExtractSpatialMapAsync()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-bool ZEDCam::GetObjectTrackingEnabled()
+bool ZEDCam::GetObjectDetectionEnabled()
 {
     // Return is the object tracking feature of camera is enabled.
     return m_slCamera.isObjectDetectionEnabled();
@@ -781,19 +817,19 @@ bool ZEDCam::GetObjectTrackingEnabled()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-std::vector<sl::ObjectData> ZEDCam::GetTrackedObjects()
+std::vector<sl::ObjectData> ZEDCam::GetObjects()
 {
     // Check if object detection has been enabled.
     if (m_slCamera.isObjectDetectionEnabled())
     {
         // Get updated image from camera.
-        sl::ERROR_CODE slReturnCode = m_slCamera.retrieveObjects(m_slTrackedObjects);
+        sl::ERROR_CODE slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
 
         // Check if objects were successfully retrieved.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
             // Return the tracked object data.
-            return m_slTrackedObjects.object_list;
+            return m_slDetectedObjects.object_list;
         }
         else
         {
@@ -801,7 +837,7 @@ std::vector<sl::ObjectData> ZEDCam::GetTrackedObjects()
             LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is: {}", sl::toString(slReturnCode).get());
 
             // Return previously tracked object list.
-            return m_slTrackedObjects.object_list;
+            return m_slDetectedObjects.object_list;
         }
     }
     else
@@ -813,3 +849,15 @@ std::vector<sl::ObjectData> ZEDCam::GetTrackedObjects()
         return std::vector<sl::ObjectData>();
     }
 }
+
+/******************************************************************************
+ * @brief If batching is enabled, this retrieves the normal objects and passes them to
+ *  the the iternal batching queue of the zed api. This performs short-term re-identification
+ *  with deep learning and trajectories filtering.
+ *
+ * @return std::vector<sl::ObjectsBatch> -
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-30
+ ******************************************************************************/
+std::vector<sl::ObjectsBatch> ZEDCam::GetBatchedObjects() {}
