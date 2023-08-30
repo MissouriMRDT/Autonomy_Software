@@ -186,6 +186,6 @@ class Camera
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-08-20
          ******************************************************************************/
-        IPS* GetFrameIPS() { return m_pIPS; }
+        virtual IPS* GetIPS() { return m_pIPS; }
 };
 #endif
