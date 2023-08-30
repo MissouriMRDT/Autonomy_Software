@@ -41,7 +41,6 @@ namespace constants
     const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.2;     // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 40.0;    // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const int ZED_DEPTH_STABILIZATION            = 1;       // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
-
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::STANDARD;    // Positional tracking accuracy.
     const bool ZED_POSETRACK_AREA_MEMORY                  = true;     // Enabled camera to remember its surroundings for better positioning. Uses more resources.
@@ -50,11 +49,9 @@ namespace constants
     const bool ZED_POSETRACK_ENABLE_IMU_FUSION            = false;    // Allows ZED to use both optical odometry and IMU data for pose tracking.
     const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.2;      // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
-
     // ZedCam Spatial Mapping Config.
     const float ZED_MAPPING_RESOLUTION_METER = 0.5;     // The approx goal precision for spatial mapping in METERS. Lower = Faster.
     const int ZED_MAPPING_MAX_MEMORY         = 2048;    // The max amount of CPU RAM that can be allocated for spatial mapping.
-
     // ZedCam Object Detection Config.
     const bool ZED_OBJDETECTION_IMG_SYNC     = true;     // True = Run detection for every frame. False = Run detection async, can lead to delayed detections.
     const bool ZED_OBJDETECTION_TRACK_OBJ    = true;     // Whether or not to enable object tracking in the scene. Attempts to maintain OBJ UUIDs.
