@@ -60,7 +60,7 @@ class ZEDCam : public Camera<sl::Mat>
         sl::Mat GrabDepth(const bool bGrabRaw = false, const bool bHalfPrecision = false);
         sl::Mat GrabPointCloud(const bool bGrabRaw = false, const bool bIncludeColor = false);
         sl::ERROR_CODE ResetPositionalTracking();
-        sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData> vCustomObjects);
+        sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
 
         // Setters for class member variables.
@@ -69,7 +69,7 @@ class ZEDCam : public Camera<sl::Mat>
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
         sl::ERROR_CODE EnableSpatialMapping();
         void DisableSpatialMapping();
-        sl::ERROR_CODE EnableObjectDetection();
+        sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
         void DisableObjectDetection();
 
         // Accessors for class member variables.
@@ -80,7 +80,7 @@ class ZEDCam : public Camera<sl::Mat>
         bool GetPositionalTrackingEnabled();
         std::vector<double> GetIMUData();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
-        std::future<sl::FusedPointCloud> ExtractSpatialMapAsync();
+        sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::FusedPointCloud>& fuPointCoudFuture);
         bool GetObjectDetectionEnabled();
         std::vector<sl::ObjectData> GetObjects();
         std::vector<sl::ObjectsBatch> GetBatchedObjects();

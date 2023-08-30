@@ -88,6 +88,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Thread    > `th` > Example: `jthread thExampleUseOfThread`
 - Mutex     > `mu` > Example: `mutex muExampleUseOfMutex`
 - Struct    > `st` > Example: `StructName stExampleUseOfStruct`
+- Future    > `fu` > Example: `future<void> fuExampleUseOfFuture`
 
 #### External Types
 - OpenCV > `cv` > Example: `cv::Mat cvExampleMat`
