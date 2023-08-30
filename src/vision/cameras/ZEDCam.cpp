@@ -51,7 +51,7 @@ struct ZEDCam::ZedObjectData
         struct Corner CornerBR;    // The bottom right corner of bounding box.
         int nClassNumber;          // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the same.
         float fConfidence;         // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
-        // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by labels
+        // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by class number
         // to avoid issues.
         bool bObjectRemainsOnFloorPlane = false;
 
