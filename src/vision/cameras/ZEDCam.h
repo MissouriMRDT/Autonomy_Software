@@ -54,19 +54,19 @@ class ZEDCam : public Camera<sl::Mat>
         };
 
         // Declare public methods and member variables.
-        ZEDCam(const unsigned int unCameraSerialNumber,
-               const int nPropResolutionX,
+        ZEDCam(const int nPropResolutionX,
                const int nPropResolutionY,
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
-               const float fMinSenseDistance = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-               const float fMaxSenseDistance = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-               const bool bMemTypeGPU        = false);
+               const float fMinSenseDistance           = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+               const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+               const bool bMemTypeGPU                  = false,
+               const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
-        sl::Mat GrabFrame(const bool bGrabRaw = false) override;
-        sl::Mat GrabDepth(const bool bGrabRaw = false, const bool bHalfPrecision = false);
-        sl::Mat GrabPointCloud(const bool bGrabRaw = false, const bool bIncludeColor = false);
+        sl::Mat GrabFrame(const bool bResize = true) override;
+        sl::Mat GrabDepth(const bool bRetrieveMeasure, const bool bResize = true, const bool bHalfPrecision = false);
+        sl::Mat GrabPointCloud(const bool bResize = true, const bool bIncludeColor = false);
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
