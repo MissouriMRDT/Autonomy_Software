@@ -20,9 +20,7 @@
         "-e",
         "WAYLAND_DISPLAY",
         "-e",
-        "XDG_RUNTIME_DIR",
-        "-e",
-        "PULSE_SERVER"
+        "XDG_RUNTIME_DIR"
     ],
     // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
