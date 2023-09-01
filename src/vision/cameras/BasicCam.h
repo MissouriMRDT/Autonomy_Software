@@ -19,6 +19,7 @@ class BasicCam : public Camera<cv::Mat>
 {
     private:
         // Declare private methods and functions variables.
+
         bool m_bCameraIsConnectedOnVideoIndex;
         int m_nCameraIndex;
         std::string m_szCameraPath;
@@ -27,6 +28,7 @@ class BasicCam : public Camera<cv::Mat>
 
     public:
         // Declare public methods and member variables.
+
         BasicCam(const std::string szCameraPath,
                  const int nPropResolutionX,
                  const int nPropResolutionY,

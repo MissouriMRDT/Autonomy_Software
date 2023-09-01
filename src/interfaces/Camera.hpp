@@ -108,7 +108,7 @@ class Camera
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-18
          ******************************************************************************/
-        ~Camera()
+        virtual ~Camera()
         {
             // Delete dynamically allocated memory.
             delete m_pIPS;

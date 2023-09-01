@@ -19,7 +19,8 @@
  ******************************************************************************/
 CameraHandlerThread::CameraHandlerThread()
 {
-    // Do nothing.
+    // Initialize main ZED camera.
+    m_pMainCam = new ZEDCam(1920, 1080, 60, 110, 80, 0.2f, 40.0f, true);
 }
 
 /******************************************************************************
@@ -31,31 +32,48 @@ CameraHandlerThread::CameraHandlerThread()
  ******************************************************************************/
 CameraHandlerThread::~CameraHandlerThread()
 {
-    // Do nothing.
+    // Delete dynamic memory.
+    delete m_pMainCam;
+
+    // Set dangling pointers to nullptr.
+    m_pMainCam = nullptr;
 }
 
 /******************************************************************************
- * @brief This code is ran in a seperate thread and mostly handles camera classes
- *      and threadpool management.
+ * @brief Accessor for ZED cameras.
  *
+ * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
+ * @return ZEDCam* - A pointer to the zed camera pertaining to the given name.
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-08-17
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-01
  ******************************************************************************/
-void CameraHandlerThread::ThreadedContinuousCode()
+ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
 {
-    //
+    // Determine which camera should be returned.
+    switch (eCameraName)
+    {
+        case eHeadMainCam: return m_pMainCam;
+        default: return m_pMainCam;
+    }
 }
 
 /******************************************************************************
- * @brief This code is highly parallelizable and grabs a frame from
+ * @brief Accessor for Basic cameras.
  *
- * @return cv::Mat -
+ * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
+ * @return BasicCam* - A pointer to the basic camera pertaining to the given name.
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-08-17
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-01
  ******************************************************************************/
-void CameraHandlerThread::PooledLinearCode()
+BasicCam* CameraHandlerThread::GetBasicCam(BasicCamName eCameraName)
 {
-    //
+    // Determine which camera should be returned.
+    switch (eCameraName)
+    {
+        case eHeadLeftArucoEye: break;     // No camera to return yet.
+        case eHeadRightAcuroEye: break;    // No camera to return yet.
+        default: break;
+    }
 }

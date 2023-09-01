@@ -16,6 +16,7 @@
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
+#include "threads/CameraHandlerThread.h"
 
 #include <chrono>
 #include <ctime>
@@ -34,6 +35,9 @@ namespace mpl = boost::mpl;
 
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
+
+// CameraHandler.
+extern CameraHandlerThread* g_pCameraHandler;
 
 // Board Interfaces:
 extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface

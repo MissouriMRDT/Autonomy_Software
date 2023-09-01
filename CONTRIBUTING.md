@@ -87,6 +87,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Tuple     > `tp` > Example: `tuple tpExampleUseOfTuple`
 - Thread    > `th` > Example: `jthread thExampleUseOfThread`
 - Mutex     > `mu` > Example: `mutex muExampleUseOfMutex`
+- Lock      > `lk` > Example: `lock lkExampleUseOfLock`
 - Struct    > `st` > Example: `StructName stExampleUseOfStruct`
 - Future    > `fu` > Example: `future<void> fuExampleUseOfFuture`
 

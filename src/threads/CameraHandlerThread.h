@@ -8,10 +8,14 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#ifndef CAMERA_HANDLER_THREAD_H
+#define CAMERA_HANDLER_THREAD_H
+
 #include <opencv2/core.hpp>
 
 #include "../interfaces/AutonomyThread.hpp"
 #include "../vision/cameras/BasicCam.h"
+#include "../vision/cameras/ZEDCam.h"
 
 /******************************************************************************
  * @brief The CameraHandlerThread class is responsible for managing all of the
@@ -23,15 +27,32 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-class CameraHandlerThread : public AutonomyThread<void>
+class CameraHandlerThread
 {
     private:
-        // Declare private class functions and variables.
-        void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;
+        // Declare private class member variables.
+        ZEDCam* m_pMainCam;
 
     public:
+        // Define public enumerators specific to this class.
+        enum ZEDCamName    // Enum for different zed cameras.
+        {
+            eHeadMainCam
+        };
+
+        enum BasicCamName    // Enum for different basic cameras.
+        {
+            eHeadLeftArucoEye,
+            eHeadRightAcuroEye
+        };
+
         // Declare public class methods and variables.
         CameraHandlerThread();
         ~CameraHandlerThread();
+
+        // Accessors.
+        ZEDCam* GetZED(ZEDCamName eCameraName);
+        BasicCam* GetBasicCam(BasicCamName eCameraName);
 };
+
+#endif

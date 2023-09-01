@@ -12,6 +12,7 @@
 #define ZEDCAM_H
 
 #include <future>
+#include <shared_mutex>
 #include <sl/Camera.hpp>
 #include <vector>
 
@@ -19,11 +20,13 @@
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
 
-class ZEDCam : public Camera<sl::Mat>
+class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
 {
     private:
         // Declare private member variables.
+
         sl::Camera m_slCamera;
+        std::shared_mutex m_muCameraMutex;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::SensorsData m_slSensorData;
@@ -38,11 +41,17 @@ class ZEDCam : public Camera<sl::Mat>
         sl::Mat m_slDepth;
         sl::Mat m_slPointCloud;
 
+        // Declare private methods.
+
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override{};    // This does nothing for now. No need for threadpools.
+
     public:
         // Declare public structs that are specific to and used within this class.
         struct ZedObjectData;
 
         // Declare public methods and member variables.
+
         ZEDCam(const int nPropResolutionX,
                const int nPropResolutionY,
                const int nPropFramesPerSecond,
@@ -53,7 +62,6 @@ class ZEDCam : public Camera<sl::Mat>
                const bool bMemTypeGPU                  = false,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
-        sl::ERROR_CODE Update();
         sl::Mat GrabFrame(const bool bResize = true) override;
         sl::Mat GrabDepth(const bool bRetrieveMeasure, const bool bResize = true, const bool bHalfPrecision = false);
         sl::Mat GrabPointCloud(const bool bResize = true, const bool bIncludeColor = false);
