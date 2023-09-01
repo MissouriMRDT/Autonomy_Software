@@ -70,7 +70,7 @@ int main()
         // TODO: Initialize RoveComm
 
         // Init camera.
-        ZEDCam TestCamera1 = ZEDCam(1280, 720, 60, 110, 80, 0.2f, 40.0f, true);
+        ZEDCam TestCamera1 = ZEDCam(1280, 720, 30, 110, 80, 0.2f, 40.0f, true);
         sl::Mat slResultFrame1;
         sl::Mat slDepthFrame1;
         cv::Mat cvNormalFrame1;
@@ -79,6 +79,8 @@ int main()
         cv::cuda::GpuMat cvGPUDepthFrame1;
         while (true)
         {
+            // Update camera frames, measures, positions.
+            TestCamera1.Update();
             // Grab normal frame from camera.
             slResultFrame1 = TestCamera1.GrabFrame();
             slDepthFrame1  = TestCamera1.GrabDepth(false);
@@ -92,20 +94,10 @@ int main()
             // cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
 
             // Put FPS on normal frame.
-            cv::putText(cvNormalFrame1,
-                        std::to_string(TestCamera1.GetIPS(ZEDCam::eFRAME)->GetExactIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
+            cv::putText(cvNormalFrame1, std::to_string(TestCamera1.GetIPS()->GetAverageIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
             // Put FPS on depth frame.
-            cv::putText(cvDepthFrame1,
-                        std::to_string(TestCamera1.GetIPS(ZEDCam::eDEPTH)->GetExactIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
+            cv::putText(cvDepthFrame1, std::to_string(TestCamera1.GetIPS()->GetAverageIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
             // Display frame.
             cv::imshow("TEST1", cvNormalFrame1);
