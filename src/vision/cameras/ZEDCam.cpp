@@ -165,14 +165,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
  ******************************************************************************/
 ZEDCam::~ZEDCam()
 {
-    // Delete dynamically allocated memory.
-    delete m_pIPSDepth;
-    delete m_pIPSPointCloud;
-
-    // Set dangling pointers to point to null.
-    m_pIPSDepth      = nullptr;
-    m_pIPSPointCloud = nullptr;
-
     // Close the ZEDCam.
     m_slCamera.close();
 
@@ -180,6 +172,42 @@ ZEDCam::~ZEDCam()
     m_slFrame.free();
     m_slDepth.free();
     m_slPointCloud.free();
+}
+
+/******************************************************************************
+ * @brief This method retrieves new frames from the ZED camera, calculates disparity
+ *      and depth measures, updates positional tracking and spatial mapping, and tracks
+ *      latest objects. Call this method ONLY ONCE per loop. Do not call this method every
+ *      time an image or measure is retrieved if retrieving multiple images/measures per loop.
+ *      I.E. You can call this method once and retrieve all measures before calling Update() again
+ *      to get a new frame.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-01
+ ******************************************************************************/
+sl::ERROR_CODE ZEDCam::Update()
+{
+    // Call generalized update method of zed api.
+    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+
+    // Update zed api.
+    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    {
+        // Call FPS tick.
+        m_pIPS->Tick();
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger,
+                    "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
+                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                    m_slCamera.getCameraInformation().serial_number,
+                    sl::toString(slReturnCode).get());
+    }
+
+    return slReturnCode;
 }
 
 /******************************************************************************
@@ -195,45 +223,27 @@ ZEDCam::~ZEDCam()
  ******************************************************************************/
 sl::Mat ZEDCam::GrabFrame(const bool bResize)
 {
-    // Call generalized update method of zed api.
-    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+    // Create instance variables.
+    sl::ERROR_CODE slReturnCode;
 
-    // Update zed api.
-    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    // Check if we should resize the grabbed image.
+    if (bResize)
     {
-        // Check if we should resize the grabbed image.
-        if (bResize)
-        {
-            // Grab regular image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType);
-        }
-        else
-        {
-            // Grab regular resized image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-        }
-
-        // Check if a new image was successfully retrieved.
-        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
-        {
-            // Call FPS tick.
-            m_pIPS->Tick();
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_WARNING(g_qSharedLogger,
-                        "Failed to retrieve image for stereo camera {} ({}). sl::ERROR_CODE is: {}",
-                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                        m_slCamera.getCameraInformation().serial_number,
-                        sl::toString(slReturnCode).get());
-        }
+        // Grab regular image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType);
     }
     else
     {
+        // Grab regular resized image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    }
+
+    // Check if a new image was successfully retrieved.
+    if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+    {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Unable to update stereo camera {} ({}) images and sensors! sl::ERROR_CODE is: {}",
+                    "Failed to retrieve image for stereo camera {} ({}). sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -248,7 +258,7 @@ sl::Mat ZEDCam::GrabFrame(const bool bResize)
  *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
  *      AutonomyConstants.h.
  *
- * @param bRetrieveMeasure - Get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
+ * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
  *                  purposes other than displaying depth.
  * @param bResize - Whether or not to apply class properties to image. (resize)
  *              If bResize is set to true, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
@@ -263,66 +273,47 @@ sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure, const bool bResize, const
 {
     // Declare instance variables.
     sl::MEASURE slMeasureType;
+    sl::ERROR_CODE slReturnCode;
 
     // Determine if we are using float32 or unsigned long16.
     bHalfPrecision ? slMeasureType = sl::MEASURE::DEPTH_U16_MM : slMeasureType = sl::MEASURE::DEPTH;
-    // Call generalized update method of zed api.
-    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
 
-    // Update zed api.
-    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    // Check if we should resize the grabbed image.
+    if (bResize)
     {
-        // Check if we should resize the grabbed image.
-        if (bResize)
+        // Check if we are just retrieving a scaled image with values ranging [0-255]
+        if (bRetrieveMeasure)
         {
-            // Check if we are just retrieving a scaled image with values ranging [0-255]
-            if (bRetrieveMeasure)
-            {
-                // Grab depth measure and store it in member variable.
-                slReturnCode = m_slCamera.retrieveMeasure(m_slDepth, slMeasureType, m_slMemoryType);
-            }
-            else
-            {
-                // Grab depth grayscale image and store it in member variable.
-                slReturnCode = m_slCamera.retrieveImage(m_slDepth, sl::VIEW::DEPTH, m_slMemoryType);
-            }
+            // Grab depth measure and store it in member variable.
+            slReturnCode = m_slCamera.retrieveMeasure(m_slDepth, slMeasureType, m_slMemoryType);
         }
         else
         {
-            // Check if we are just retrieving a scaled image with values ranging [0-255]
-            if (bRetrieveMeasure)
-            {
-                // Grab depth measure and store it in member variable.
-                slReturnCode = m_slCamera.retrieveMeasure(m_slDepth, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-            }
-            else
-            {
-                // Grab depth grayscale image and store it in member variable.
-                slReturnCode = m_slCamera.retrieveImage(m_slDepth, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-            }
-        }
-
-        // Check if a new image was successfully retrieved.
-        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
-        {
-            // Call FPS tick.
-            m_pIPSDepth->Tick();
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_WARNING(g_qSharedLogger,
-                        "Failed to retrieve depth measure for stereo camera {} ({}). sl::ERROR_CODE is: {}",
-                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                        m_slCamera.getCameraInformation().serial_number,
-                        sl::toString(slReturnCode).get());
+            // Grab depth grayscale image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveImage(m_slDepth, sl::VIEW::DEPTH, m_slMemoryType);
         }
     }
     else
     {
+        // Check if we are just retrieving a scaled image with values ranging [0-255]
+        if (bRetrieveMeasure)
+        {
+            // Grab depth measure and store it in member variable.
+            slReturnCode = m_slCamera.retrieveMeasure(m_slDepth, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        }
+        else
+        {
+            // Grab depth grayscale image and store it in member variable.
+            slReturnCode = m_slCamera.retrieveImage(m_slDepth, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        }
+    }
+
+    // Check if a new image was successfully retrieved.
+    if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+    {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Unable to update stereo camera {} ({}) measurements and sensors! sl::ERROR_CODE is: {}",
+                    "Failed to retrieve depth measure for stereo camera {} ({}). sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -352,48 +343,29 @@ sl::Mat ZEDCam::GrabPointCloud(const bool bResize, const bool bIncludeColor)
 {
     // Declare instance variables.
     sl::MEASURE slMeasureType;
+    sl::ERROR_CODE slReturnCode;
 
     // Determine if we are using float32 or unsigned long16.
     bIncludeColor ? slMeasureType = sl::MEASURE::XYZBGRA : slMeasureType = sl::MEASURE::XYZ;
-    // Call generalized update method of zed api.
-    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
 
-    // Update zed api.
-    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    // Check if we should resize the grabbed image.
+    if (bResize)
     {
-        // Check if we should resize the grabbed image.
-        if (bResize)
-        {
-            // Grab regular image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType);
-        }
-        else
-        {
-            // Grab regular resized image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-        }
-
-        // Check if a new image was successfully retrieved.
-        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
-        {
-            // Call FPS tick.
-            m_pIPSPointCloud->Tick();
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_WARNING(g_qSharedLogger,
-                        "Failed to retrieve point cloud for stereo camera {} ({}). sl::ERROR_CODE is: {}",
-                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                        m_slCamera.getCameraInformation().serial_number,
-                        sl::toString(slReturnCode).get());
-        }
+        // Grab regular image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType);
     }
     else
     {
+        // Grab regular resized image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    }
+
+    // Check if a new image was successfully retrieved.
+    if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+    {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Unable to update stereo camera {} ({}) measurements and sensors! sl::ERROR_CODE is: {}",
+                    "Failed to retrieve point cloud for stereo camera {} ({}). sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -676,28 +648,6 @@ bool ZEDCam::GetCameraIsOpen()
 {
     // Return if the ZED camera is currently opened.
     return m_slCamera.isOpened();
-}
-
-/******************************************************************************
- * @brief Return a selected iterations per second object for the normal RGB, DEPTH,
- *      or point cloud grabbers.
- *
- * @param eIPSType - The type of frame to return the IPS for.
- * @return IPS* - The Iterations Per Second object that tracks iterations and other metrics.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-30
- ******************************************************************************/
-IPS* ZEDCam::GetIPS(const IPS_TYPE eIPSType)
-{
-    // Determine which IPS to return.
-    switch (eIPSType)
-    {
-        case IPS_TYPE::eFRAME: return m_pIPS;
-        case IPS_TYPE::eDEPTH: return m_pIPSDepth;
-        case IPS_TYPE::ePOINTCLOUD: return m_pIPSPointCloud;
-        default: return m_pIPS;
-    }
 }
 
 /******************************************************************************

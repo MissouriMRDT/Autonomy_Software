@@ -16,12 +16,13 @@
 #include <vector>
 
 #include "../../AutonomyConstants.h"
+#include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
 
 class ZEDCam : public Camera<sl::Mat>
 {
     private:
-        // Declare private methods and functions variables.
+        // Declare private member variables.
         sl::Camera m_slCamera;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
@@ -37,21 +38,9 @@ class ZEDCam : public Camera<sl::Mat>
         sl::Mat m_slDepth;
         sl::Mat m_slPointCloud;
 
-        // Create iteration per second object pointers.
-        IPS* m_pIPSDepth      = new IPS();
-        IPS* m_pIPSPointCloud = new IPS();
-
     public:
         // Declare public structs that are specific to and used within this class.
         struct ZedObjectData;
-
-        // Define public enum for IPS selection.
-        enum IPS_TYPE
-        {
-            eFRAME,
-            eDEPTH,
-            ePOINTCLOUD
-        };
 
         // Declare public methods and member variables.
         ZEDCam(const int nPropResolutionX,
@@ -64,6 +53,7 @@ class ZEDCam : public Camera<sl::Mat>
                const bool bMemTypeGPU                  = false,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
+        sl::ERROR_CODE Update();
         sl::Mat GrabFrame(const bool bResize = true) override;
         sl::Mat GrabDepth(const bool bRetrieveMeasure, const bool bResize = true, const bool bHalfPrecision = false);
         sl::Mat GrabPointCloud(const bool bResize = true, const bool bIncludeColor = false);
@@ -82,7 +72,6 @@ class ZEDCam : public Camera<sl::Mat>
 
         // Accessors for class member variables.
         bool GetCameraIsOpen() override;
-        IPS* GetIPS(const IPS_TYPE eIPSType);
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         sl::Pose GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference = sl::REFERENCE_FRAME::WORLD);
