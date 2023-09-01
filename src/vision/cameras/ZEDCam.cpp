@@ -154,42 +154,29 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                   m_slCamera.getCameraInformation().serial_number,
                   sl::toString(slReturnCode).get());
     }
+
+    // Start camera grabbing thread. This runs the ThreadedContinuousCode() in a loop in a new thread.
+    this->Start();
 }
 
 /******************************************************************************
- * @brief Destroy the Zed Cam:: Zed Cam object.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
- ******************************************************************************/
-ZEDCam::~ZEDCam()
-{
-    // Close the ZEDCam.
-    m_slCamera.close();
-
-    // Free all mats and other sl namespace objects.
-    m_slFrame.free();
-    m_slDepth.free();
-    m_slPointCloud.free();
-}
-
-/******************************************************************************
- * @brief This method retrieves new frames from the ZED camera, calculates disparity
- *      and depth measures, updates positional tracking and spatial mapping, and tracks
- *      latest objects. Call this method ONLY ONCE per loop. Do not call this method every
- *      time an image or measure is retrieved if retrieving multiple images/measures per loop.
- *      I.E. You can call this method once and retrieve all measures before calling Update() again
- *      to get a new frame.
+ * @brief The code inside this private method runs in a seperate thread, but still
+ *      has access to this*. This method continuously calls the grab() function of
+ *      the ZEDSDK, which updates all frames (RGB, depth, cloud) and all other data
+ *      such as positional and spatial mapping.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::Update()
+void ZEDCam::ThreadedContinuousCode()
 {
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Call generalized update method of zed api.
     sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Update zed api.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -206,8 +193,28 @@ sl::ERROR_CODE ZEDCam::Update()
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
     }
+}
 
-    return slReturnCode;
+/******************************************************************************
+ * @brief Destroy the Zed Cam:: Zed Cam object.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-26
+ ******************************************************************************/
+ZEDCam::~ZEDCam()
+{
+    // Stop threaded code.
+    this->RequestStop();
+    this->Join();
+
+    // Close the ZEDCam.
+    m_slCamera.close();
+
+    // Free all mats and other sl namespace objects.
+    m_slFrame.free();
+    m_slDepth.free();
+    m_slPointCloud.free();
 }
 
 /******************************************************************************
@@ -226,6 +233,8 @@ sl::Mat ZEDCam::GrabFrame(const bool bResize)
     // Create instance variables.
     sl::ERROR_CODE slReturnCode;
 
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Check if we should resize the grabbed image.
     if (bResize)
     {
@@ -237,6 +246,8 @@ sl::Mat ZEDCam::GrabFrame(const bool bResize)
         // Grab regular resized image and store it in member variable.
         slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
     }
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if a new image was successfully retrieved.
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
@@ -278,6 +289,8 @@ sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure, const bool bResize, const
     // Determine if we are using float32 or unsigned long16.
     bHalfPrecision ? slMeasureType = sl::MEASURE::DEPTH_U16_MM : slMeasureType = sl::MEASURE::DEPTH;
 
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Check if we should resize the grabbed image.
     if (bResize)
     {
@@ -307,6 +320,8 @@ sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure, const bool bResize, const
             slReturnCode = m_slCamera.retrieveImage(m_slDepth, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
         }
     }
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if a new image was successfully retrieved.
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
@@ -348,6 +363,8 @@ sl::Mat ZEDCam::GrabPointCloud(const bool bResize, const bool bIncludeColor)
     // Determine if we are using float32 or unsigned long16.
     bIncludeColor ? slMeasureType = sl::MEASURE::XYZBGRA : slMeasureType = sl::MEASURE::XYZ;
 
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Check if we should resize the grabbed image.
     if (bResize)
     {
@@ -359,6 +376,8 @@ sl::Mat ZEDCam::GrabPointCloud(const bool bResize, const bool bIncludeColor)
         // Grab regular resized image and store it in member variable.
         slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, slMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
     }
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if a new image was successfully retrieved.
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
@@ -396,6 +415,8 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     // Store new translation and rotation in a tranform object.
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Reset the positional tracking location of the camera.
     return m_slCamera.resetPositionalTracking(slZeroTransform);
 }
@@ -444,8 +465,12 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
         vCustomBoxData.emplace_back(slCustomBox);
     }
 
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Give the custom box data to the zed api.
     sl::ERROR_CODE slReturnCode = m_slCamera.ingestCustomBoxObjects(vCustomBoxData);
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if successful.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -544,6 +569,8 @@ sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const
     // Store new translation and rotation in a tranform object.
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Reset the positional tracking location of the camera.
     return m_slCamera.resetPositionalTracking(slZeroTransform);
 }
