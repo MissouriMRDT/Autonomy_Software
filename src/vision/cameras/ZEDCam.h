@@ -73,7 +73,7 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE EnablePositionalTracking();
         void DisablePositionalTracking();
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
-        sl::ERROR_CODE EnableSpatialMapping();
+        sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 10);
         void DisableSpatialMapping();
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
         void DisableObjectDetection();
@@ -86,8 +86,7 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
         bool GetPositionalTrackingEnabled();
         std::vector<double> GetIMUData();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
-        sl::Mesh ExtractSpatialMapBlocking();
-        sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::FusedPointCloud>& fuPointCoudFuture);
+        sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
         bool GetObjectDetectionEnabled();
         std::vector<sl::ObjectData> GetObjects();
         std::vector<sl::ObjectsBatch> GetBatchedObjects();
