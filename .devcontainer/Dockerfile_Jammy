@@ -133,10 +133,6 @@ RUN git clone --depth 1 --branch ${GTEST_VERSION} https://github.com/google/goog
 # Enable Make Threads
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> /root/.bashrc
 
-# # Set display environment variables for x11.
-# RUN export DISPLAY=$(awk '/nameserver / {print $2; exit}' /etc/resolv.conf 2>/dev/null):0
-# RUN export LIBGL_ALWAYS_INDIRECT=1
-
 # Fix Perl Locale Error
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG en_US.UTF-8  

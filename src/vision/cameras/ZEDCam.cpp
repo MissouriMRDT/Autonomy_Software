@@ -64,13 +64,15 @@ struct ZEDCam::ZedObjectData
 /******************************************************************************
  * @brief Construct a new Zed Cam:: Zed Cam object.
  *
- * @param unCameraSerialNumber - The serial number of the camera to open.
  * @param nPropResolutionX - X res of camera. Must be smaller than ZED_BASE_RESOLUTION.
  * @param nPropResolutionY - Y res of camera. Must be smaller than ZED_BASE_RESOLUTION.
  * @param nPropFramesPerSecond - FPS camera is running at.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param fMinSenseDistance - The minimum distance to include in depth measures.
+ * @param fMaxSenseDistance - The maximim distance to include in depth measures.
  * @param bMemTypeGPU - Whether or not to use the GPU memory for operations.
+ * @param unCameraSerialNumber - The serial number of the camera to open.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -117,9 +119,10 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_slPoseTrackingParams.set_gravity_as_origin = constants::ZED_POSETRACK_USE_GRAVITY_ORIGIN;
 
     // Setup spatial mapping parameters.
-    m_slSpatialMappingParams.map_type         = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD;
+    m_slSpatialMappingParams.map_type         = constants::ZED_MAPPING_TYPE;
     m_slSpatialMappingParams.resolution_meter = constants::ZED_MAPPING_RESOLUTION_METER;
     m_slSpatialMappingParams.range_meter      = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
+    m_slSpatialMappingParams.save_texture     = true;
 
     // Setup object detection/tracking parameters.
     m_slObjectDetectionParams.detection_model      = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
@@ -824,6 +827,34 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::GetSpatialMappingState()
 {
     // Return the current spatial mapping state of the camera.
     return m_slCamera.getSpatialMappingState();
+}
+
+/******************************************************************************
+ * @brief Extract the whole and current spatial map from the camera. This method
+ *      is blocking, the camera will likely be unresponsive.
+ *
+ * @return sl::FusedPointCloud - The built point cloud of the spatial map.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-02
+ ******************************************************************************/
+sl::Mesh ZEDCam::ExtractSpatialMapBlocking()
+{
+    // Create instance variables.
+    sl::Mesh slSpatialMap;
+
+    // Get and store current state of spatial mapping.
+    sl::SPATIAL_MAPPING_STATE slReturnState = m_slCamera.getSpatialMappingState();
+
+    // Check if spatial mapping has been enabled and ready
+    if (slReturnState == sl::SPATIAL_MAPPING_STATE::OK)
+    {
+        // Extract spatial map.
+        m_slCamera.extractWholeSpatialMap(slSpatialMap);
+    }
+
+    // Return point cloud.
+    return slSpatialMap;
 }
 
 /******************************************************************************
