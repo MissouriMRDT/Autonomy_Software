@@ -71,6 +71,9 @@ int main()
 
         // Get reference to camera.
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+        // Turn on ZED features.
+        TestCamera1->EnablePositionalTracking();
+        TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         sl::Mat slResultFrame1;
         sl::Mat slDepthFrame1;
@@ -107,12 +110,22 @@ int main()
             cv::imshow("TEST1", cvNormalFrame1);
             cv::imshow("DEPTH1", cvDepthFrame1);
 
+            // Print info about position.
+            sl::Translation slLocation = TestCamera1->GetPositionalPose().getTranslation();
+            LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+            LOG_INFO(g_qConsoleLogger, "X: {} \nY: {}\nZ: {}\n\n", slLocation.x, slLocation.y, slLocation.z);
+
             char chKey = cv::waitKey(1);
             if (chKey == 27)    // Press 'Esc' key to exit
                 break;
         }
 
         cv::destroyAllWindows();
+
+        // Extract spatial map.
+        sl::Mesh slTestMesh = TestCamera1->ExtractSpatialMapBlocking();
+        // slTestMesh.applyTexture();
+        slTestMesh.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
     }
 
     // Delete dynamically allocated memory.

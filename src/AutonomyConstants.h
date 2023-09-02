@@ -50,8 +50,9 @@ namespace constants
     const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.2;      // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
-    const float ZED_MAPPING_RESOLUTION_METER = 0.5;     // The approx goal precision for spatial mapping in METERS. Lower = Faster.
-    const int ZED_MAPPING_MAX_MEMORY         = 2048;    // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
+    const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
+    const float ZED_MAPPING_RESOLUTION_METER                              = 0.1;     // The approx goal precision for spatial mapping in METERS. Lower = Faster.
+    const int ZED_MAPPING_MAX_MEMORY                                      = 2048;    // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
     // ZedCam Object Detection Config.
     const bool ZED_OBJDETECTION_IMG_SYNC     = true;     // True = Run detection for every frame. False = Run detection async, can lead to delayed detections.
     const bool ZED_OBJDETECTION_TRACK_OBJ    = true;     // Whether or not to enable object tracking in the scene. Attempts to maintain OBJ UUIDs.
@@ -60,6 +61,19 @@ namespace constants
     const float ZED_OBJDETECTION_TRACKING_PREDICTION_TIMEOUT   = 0.5;    // 0-1 second. Timeout to keep guessing object position when not in sight.
     const float ZED_OBJDETECTION_BATCH_RETENTION_TIME          = 240;    // The time in seconds to search for an object UUID before expiring the object.
     const float ZED_OBJDETECTION_BATCH_LATENCY = 2;    // Short latency will limit the search for previously seen object IDs but will be closer to real time output.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Camera Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    const int ZED_MAINCAM_RESOLUTIONX    = 1920;
+    const int ZED_MAINCAM_RESOLUTIONY    = 1080;
+    const int ZED_MAINCAM_FPS            = 60;
+    const int ZED_MAINCAM_HORIZONTAL_FOV = 110;
+    const int ZED_MAINCAM_VERTICAL_FOV   = 70;
+    const bool ZED_MAINCAM_USE_GPU_MAT   = true;
+    const int ZED_MAINCAN_SERIAL         = 31237348;
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants
