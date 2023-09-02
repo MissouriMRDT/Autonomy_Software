@@ -73,6 +73,7 @@ int main()
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
         // Turn on ZED features.
         TestCamera1->EnablePositionalTracking();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         sl::Mat slResultFrame1;
@@ -87,13 +88,13 @@ int main()
             slResultFrame1 = TestCamera1->GrabFrame();
             slDepthFrame1  = TestCamera1->GrabDepth(false);
             // Convert to OpenCV Mat.
-            cvGPUNormalFrame1 = imgops::ConvertSLMatToGPUMat(slResultFrame1);
-            cvGPUDepthFrame1  = imgops::ConvertSLMatToGPUMat(slDepthFrame1);
+            // cvGPUNormalFrame1 = imgops::ConvertSLMatToGPUMat(slResultFrame1);
+            // cvGPUDepthFrame1  = imgops::ConvertSLMatToGPUMat(slDepthFrame1);
             // Download mats from GPU memory into CPU memory.
-            cvGPUNormalFrame1.download(cvNormalFrame1);
-            cvGPUDepthFrame1.download(cvDepthFrame1);
-            // cvNormalFrame1 = imgops::ConvertSLMatToCVMat(slResultFrame1);
-            // cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
+            // cvGPUNormalFrame1.download(cvNormalFrame1);
+            // cvGPUDepthFrame1.download(cvDepthFrame1);
+            cvNormalFrame1 = imgops::ConvertSLMatToCVMat(slResultFrame1);
+            cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
@@ -112,8 +113,10 @@ int main()
 
             // Print info about position.
             sl::Translation slLocation = TestCamera1->GetPositionalPose().getTranslation();
+            LOG_INFO(g_qConsoleLogger, "Positional Tracking:\nX: {} \nY: {}\nZ: {}\n\n", slLocation.x, slLocation.y, slLocation.z);
             LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
-            LOG_INFO(g_qConsoleLogger, "X: {} \nY: {}\nZ: {}\n\n", slLocation.x, slLocation.y, slLocation.z);
+            std::vector<double> vIMUValues = TestCamera1->GetIMUData();
+            LOG_INFO(g_qConsoleLogger, "IMU Data:\nRoll: {}\nPitch: {}\nYaw:{}\n", vIMUValues[0], vIMUValues[1], vIMUValues[2]);
 
             char chKey = cv::waitKey(1);
             if (chKey == 27)    // Press 'Esc' key to exit
@@ -123,9 +126,10 @@ int main()
         cv::destroyAllWindows();
 
         // Extract spatial map.
-        sl::Mesh slTestMesh = TestCamera1->ExtractSpatialMapBlocking();
-        // slTestMesh.applyTexture();
-        slTestMesh.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
+        std::future<sl::Mesh> fuSpatialMap;
+        TestCamera1->ExtractSpatialMapAsync(fuSpatialMap);
+        sl::Mesh slSpatialMap = fuSpatialMap.get();
+        slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
     }
 
     // Delete dynamically allocated memory.

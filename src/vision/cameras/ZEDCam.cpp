@@ -147,6 +147,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                   "{} stereo camera with serial number {} has been succsessfully opened.",
                   this->GetCameraModel(),
                   m_slCamera.getCameraInformation().serial_number);
+
+        // Start camera grabbing thread. This runs the ThreadedContinuousCode() in a loop in a new thread.
+        this->Start();
     }
     else
     {
@@ -157,9 +160,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                   m_slCamera.getCameraInformation().serial_number,
                   sl::toString(slReturnCode).get());
     }
-
-    // Start camera grabbing thread. This runs the ThreadedContinuousCode() in a loop in a new thread.
-    this->Start();
 }
 
 /******************************************************************************
@@ -257,7 +257,7 @@ sl::Mat ZEDCam::GrabFrame(const bool bResize)
     {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Failed to retrieve image for stereo camera {} ({}). sl::ERROR_CODE is: {}",
+                    "Failed to retrieve new image for stereo camera {} ({}). sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -331,7 +331,7 @@ sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure, const bool bResize, const
     {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Failed to retrieve depth measure for stereo camera {} ({}). sl::ERROR_CODE is: {}",
+                    "Failed to retrieve new depth measure for stereo camera {} ({}). sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -387,7 +387,7 @@ sl::Mat ZEDCam::GrabPointCloud(const bool bResize, const bool bIncludeColor)
     {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Failed to retrieve point cloud for stereo camera {} ({}). sl::ERROR_CODE is: {}",
+                    "Failed to retrieve new point cloud for stereo camera {} ({}). sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -480,7 +480,7 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
     {
         // Submit logger message.
         LOG_WARNING(g_qSharedLogger,
-                    "Failed to ingest objects for camera {} ({})! sl::ERROR_CODE is: {}",
+                    "Failed to ingest new objects for camera {} ({})! sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
@@ -500,7 +500,9 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
  ******************************************************************************/
 sl::ERROR_CODE ZEDCam::RebootCamera()
 {
-    // Reboot the this camera and return the status code.
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
+    // Reboot this camera and return the status code.
     return sl::Camera::reboot(m_slCamera.getCameraInformation().serial_number);
 }
 
@@ -514,6 +516,8 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
  ******************************************************************************/
 sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
 {
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Enable pose tracking and store return code.
     sl::ERROR_CODE slReturnCode = m_slCamera.enablePositionalTracking(m_slPoseTrackingParams);
 
@@ -521,11 +525,11 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger,
-                    "Failed to enabled positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
-                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                    m_slCamera.getCameraInformation().serial_number,
-                    sl::toString(slReturnCode).get());
+        LOG_ERROR(g_qSharedLogger,
+                  "Failed to enabled positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
+                  sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                  m_slCamera.getCameraInformation().serial_number,
+                  sl::toString(slReturnCode).get());
     }
 
     // Return error code.
@@ -541,6 +545,8 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
  ******************************************************************************/
 void ZEDCam::DisablePositionalTracking()
 {
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Disable pose tracking.
     m_slCamera.disablePositionalTracking();
 }
@@ -579,27 +585,64 @@ sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const
 }
 
 /******************************************************************************
- * @brief Enabled the spatial mapping feature of the camera.
+ * @brief Enabled the spatial mapping feature of the camera. Pose tracking will be
+ *      enabled if it is not already.
  *
+ * @param fTimeoutSeconds - The timeout used to wait for pose tracking to be on the OK state. Default is 10 seconds.
  * @return sl::ERROR_CODE - Whether or not spatial mapping was successfully enabled.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
+sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
 {
-    // Enable spatial mapping.
-    sl::ERROR_CODE slReturnCode = m_slCamera.enableSpatialMapping(m_slSpatialMappingParams);
+    // Create instance variables.
+    auto tmStartTime = std::chrono::steady_clock::now();
+    sl::Pose slCameraPose;
+    sl::ERROR_CODE slReturnCode;
 
-    // Check if positional tracking was enabled properly.
-    if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+    // Check if positional tracking is enabled.
+    if (!m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Enable positional tracking.
+        this->EnablePositionalTracking();
+    }
+
+    // Wait for positional tracking state to be OK. Defualt Timeout of 10 seconds.
+    while (m_slCamera.getPosition(slCameraPose) != sl::POSITIONAL_TRACKING_STATE::OK &&
+           std::chrono::steady_clock::now() - tmStartTime < std::chrono::seconds(nTimeoutSeconds))
+    {
+        // Sleep for one millisecond.
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    // Final check if positional tracking was successfully enabled.
+    if (m_slCamera.getPosition(slCameraPose) == sl::POSITIONAL_TRACKING_STATE::OK)
+    {
+        // Acquire write lock.
+        std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
+        // Enable spatial mapping.
+        slReturnCode = m_slCamera.enableSpatialMapping(m_slSpatialMappingParams);
+
+        // Check if positional tracking was enabled properly.
+        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_ERROR(g_qSharedLogger,
+                      "Failed to enabled spatial mapping for camera {} ({})! sl::ERROR_CODE is: {}",
+                      sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                      m_slCamera.getCameraInformation().serial_number,
+                      sl::toString(slReturnCode).get());
+        }
+    }
+    else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger,
-                    "Failed to enabled positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
-                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                    m_slCamera.getCameraInformation().serial_number,
-                    sl::toString(slReturnCode).get());
+        LOG_ERROR(g_qSharedLogger,
+                  "Failed to enabled spatial mapping for camera {} ({}) because positional tracking could not be enabled! sl::ERROR_CODE is: {}",
+                  sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                  m_slCamera.getCameraInformation().serial_number,
+                  sl::toString(slReturnCode).get());
     }
 
     // Return error code.
@@ -615,6 +658,8 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
  ******************************************************************************/
 void ZEDCam::DisableSpatialMapping()
 {
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Disable spatial mapping.
     m_slCamera.disableSpatialMapping();
 }
@@ -634,6 +679,8 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
     // Give batch params to detection params.
     m_slObjectDetectionParams.batch_parameters = m_slObjectDetectionBatchParams;
 
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Enable object detection.
     sl::ERROR_CODE slReturnCode = m_slCamera.enableObjectDetection(m_slObjectDetectionParams);
 
@@ -641,11 +688,11 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger,
-                    "Failed to enabled object detection for camera {} ({})! sl::ERROR_CODE is: {}",
-                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                    m_slCamera.getCameraInformation().serial_number,
-                    sl::toString(slReturnCode).get());
+        LOG_ERROR(g_qSharedLogger,
+                  "Failed to enabled object detection for camera {} ({})! sl::ERROR_CODE is: {}",
+                  sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                  m_slCamera.getCameraInformation().serial_number,
+                  sl::toString(slReturnCode).get());
     }
 
     // Return error code.
@@ -661,6 +708,8 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
  ******************************************************************************/
 void ZEDCam::DisableObjectDetection()
 {
+    // Acquire write lock.
+    std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Disable object detection and tracking.
     m_slCamera.disableObjectDetection();
 }
@@ -740,8 +789,12 @@ sl::Pose ZEDCam::GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference
     // Check if positional tracking has been enabled.
     if (m_slCamera.isPositionalTrackingEnabled())
     {
+        // Acquire read lock.
+        std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
         // Get the current pose of the camera.
         sl::POSITIONAL_TRACKING_STATE slReturnCode = m_slCamera.getPosition(m_slCameraPose, slPositionReference);
+        // Release lock.
+        lkSharedLock.unlock();
 
         // Check if the tracking state is anything other than OK.
         if (slReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
@@ -774,7 +827,7 @@ bool ZEDCam::GetPositionalTrackingEnabled()
  * @brief Gets the IMU data from the ZED camera. If getting the data fails, the
  *      last successfully retrieved value is returned.
  *
- * @return std::vector<double> - A 1x6 vector containing X_deg, X_deg, X_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
+ * @return std::vector<double> - A 1x6 vector containing X_deg, Y_deg, Z_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -784,10 +837,14 @@ std::vector<double> ZEDCam::GetIMUData()
     // Create instance variables.
     std::vector<double> vIMUAnglesAndAccel;
 
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Get and store the SensorData object from the camera. Get data from the most recent image grab.
     // Using TIME_REFERENCE::CURRENT requires high rate polling and can introduce error as the most recent
     // IMU data could be in the future of the camera image.
     sl::ERROR_CODE slReturnCode = m_slCamera.getSensorsData(m_slSensorData, sl::TIME_REFERENCE::IMAGE);
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if the sensor data was retrieved correctly.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -830,47 +887,19 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::GetSpatialMappingState()
 }
 
 /******************************************************************************
- * @brief Extract the whole and current spatial map from the camera. This method
- *      is blocking, the camera will likely be unresponsive.
- *
- * @return sl::FusedPointCloud - The built point cloud of the spatial map.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-09-02
- ******************************************************************************/
-sl::Mesh ZEDCam::ExtractSpatialMapBlocking()
-{
-    // Create instance variables.
-    sl::Mesh slSpatialMap;
-
-    // Get and store current state of spatial mapping.
-    sl::SPATIAL_MAPPING_STATE slReturnState = m_slCamera.getSpatialMappingState();
-
-    // Check if spatial mapping has been enabled and ready
-    if (slReturnState == sl::SPATIAL_MAPPING_STATE::OK)
-    {
-        // Extract spatial map.
-        m_slCamera.extractWholeSpatialMap(slSpatialMap);
-    }
-
-    // Return point cloud.
-    return slSpatialMap;
-}
-
-/******************************************************************************
  * @brief Retrieve the built spatial map from the camera. Spatial mapping must be enabled.
  *  This method takes in an std::future<sl::FusedPointCloud> to eventually store the map in.
  *  It returns a enum code representing the successful scheduling of building the map.
  *  Any code other than SPATIAL_MAPPING_STATE::OK means the future will never be filled.
  *
- * @param std::future<sl::FusedPointCloud> - The future to eventually store the map in.
+ * @param std::future<sl::Mesh> - The future to eventually store the map in.
  * @return sl::SPATIAL_MAPPING_STATE - Whether or not the building of the map was successfully scheduled.
  *          Anything other than OK means the future will never be filled.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::FusedPointCloud>& fuPointCoudFuture)
+sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture)
 {
     // Get and store current state of spatial mapping.
     sl::SPATIAL_MAPPING_STATE slReturnState = m_slCamera.getSpatialMappingState();
@@ -882,39 +911,39 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::FusedPo
         m_slCamera.requestSpatialMapAsync();
 
         // Start an async thread to wait for spatial map processing to finish. Return resultant future object.
-        fuPointCoudFuture = std::async(std::launch::async,
-                                       [this]()
-                                       {
-                                           // Create instance variables.
-                                           sl::FusedPointCloud slSpatialMap;
+        fuMeshFuture = std::async(std::launch::async,
+                                  [this]()
+                                  {
+                                      // Create instance variables.
+                                      sl::Mesh slSpatialMap;
 
-                                           // Loop until map is finished generating.
-                                           while (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE)
-                                           {
-                                               // Sleep for 10ms.
-                                               std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                                           }
+                                      // Loop until map is finished generating.
+                                      while (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE)
+                                      {
+                                          // Sleep for 10ms.
+                                          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                                      }
 
-                                           // Check if the spatial map was exported successfully.
-                                           if (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::SUCCESS)
-                                           {
-                                               // Get and store the spatial map.
-                                               m_slCamera.retrieveSpatialMapAsync(slSpatialMap);
+                                      // Check if the spatial map was exported successfully.
+                                      if (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::SUCCESS)
+                                      {
+                                          // Get and store the spatial map.
+                                          m_slCamera.retrieveSpatialMapAsync(slSpatialMap);
 
-                                               // Return spatial map.
-                                               return slSpatialMap;
-                                           }
-                                           else
-                                           {
-                                               // Submit logger message.
-                                               LOG_ERROR(g_qSharedLogger,
-                                                         "Failed to extract ZED spatial map. sl::ERROR_CODE is: {}",
-                                                         sl::toString(m_slCamera.getSpatialMapRequestStatusAsync()).get());
+                                          // Return spatial map.
+                                          return slSpatialMap;
+                                      }
+                                      else
+                                      {
+                                          // Submit logger message.
+                                          LOG_ERROR(g_qSharedLogger,
+                                                    "Failed to extract ZED spatial map. sl::ERROR_CODE is: {}",
+                                                    sl::toString(m_slCamera.getSpatialMapRequestStatusAsync()).get());
 
-                                               // Return empty point cloud.
-                                               return sl::FusedPointCloud();
-                                           }
-                                       });
+                                          // Return empty point cloud.
+                                          return sl::Mesh();
+                                      }
+                                  });
     }
     else
     {
@@ -955,8 +984,12 @@ std::vector<sl::ObjectData> ZEDCam::GetObjects()
     // Check if object detection has been enabled.
     if (m_slCamera.isObjectDetectionEnabled())
     {
+        // Acquire read lock.
+        std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
         // Get updated image from camera.
         sl::ERROR_CODE slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+        // Release lock.
+        lkSharedLock.unlock();
 
         // Check if objects were successfully retrieved.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -1004,14 +1037,21 @@ std::vector<sl::ObjectsBatch> ZEDCam::GetBatchedObjects()
     // Check if object detection and batching has been enabled.
     if (m_slCamera.isObjectDetectionEnabled() && m_slObjectDetectionBatchParams.enable)
     {
+        // Acquire read lock.
+        std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
         // Get updated objects from camera.
         sl::ERROR_CODE slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+        // Release lock.
+        lkSharedLock.unlock();
 
         // Check if objects were successfully retrieved.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
+            // Acquire read lock.
+            lkSharedLock.lock();
             // Get batched objects.
             slReturnCode = m_slCamera.getObjectsBatch(vBatchedObjects);
+            lkSharedLock.unlock();
 
             // Check if objects were successfully retrieved.
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
