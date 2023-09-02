@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "CameraHandlerThread.h"
+#include "../AutonomyConstants.h"
 
 /******************************************************************************
  * @brief Construct a new Camera Handler Thread:: Camera Handler Thread object.
@@ -20,7 +21,15 @@
 CameraHandlerThread::CameraHandlerThread()
 {
     // Initialize main ZED camera.
-    m_pMainCam = new ZEDCam(1920, 1080, 60, 110, 80, 0.2f, 40.0f, true);
+    m_pMainCam = new ZEDCam(constants::ZED_MAINCAN_SERIAL,
+                            constants::ZED_MAINCAM_RESOLUTIONX,
+                            constants::ZED_MAINCAM_FPS,
+                            constants::ZED_MAINCAM_HORIZONTAL_FOV,
+                            constants::ZED_MAINCAM_VERTICAL_FOV,
+                            constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+                            constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+                            constants::ZED_MAINCAM_USE_GPU_MAT,
+                            constants::ZED_MAINCAN_SERIAL);
 }
 
 /******************************************************************************

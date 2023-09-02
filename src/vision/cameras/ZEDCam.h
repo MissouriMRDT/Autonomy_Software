@@ -86,6 +86,7 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
         bool GetPositionalTrackingEnabled();
         std::vector<double> GetIMUData();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
+        sl::Mesh ExtractSpatialMapBlocking();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::FusedPointCloud>& fuPointCoudFuture);
         bool GetObjectDetectionEnabled();
         std::vector<sl::ObjectData> GetObjects();
