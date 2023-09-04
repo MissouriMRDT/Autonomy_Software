@@ -520,6 +520,8 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Enable pose tracking and store return code.
     sl::ERROR_CODE slReturnCode = m_slCamera.enablePositionalTracking(m_slPoseTrackingParams);
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if positional tracking was enabled properly.
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
@@ -623,6 +625,8 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
         std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
         // Enable spatial mapping.
         slReturnCode = m_slCamera.enableSpatialMapping(m_slSpatialMappingParams);
+        // Release lock.
+        lkSharedLock.unlock();
 
         // Check if positional tracking was enabled properly.
         if (slReturnCode != sl::ERROR_CODE::SUCCESS)
@@ -683,6 +687,8 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Enable object detection.
     sl::ERROR_CODE slReturnCode = m_slCamera.enableObjectDetection(m_slObjectDetectionParams);
+    // Release lock.
+    lkSharedLock.unlock();
 
     // Check if positional tracking was enabled properly.
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
