@@ -73,7 +73,6 @@ int main()
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
         // Turn on ZED features.
         TestCamera1->EnablePositionalTracking();
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         sl::Mat slResultFrame1;
@@ -85,38 +84,35 @@ int main()
         while (true)
         {
             // Grab normal frame from camera.
-            slResultFrame1 = TestCamera1->GrabFrame();
-            slDepthFrame1  = TestCamera1->GrabDepth(false);
+            // slResultFrame1 = TestCamera1->GrabFrame();
+            slDepthFrame1 = TestCamera1->GrabDepth(false);
             // Convert to OpenCV Mat.
             // cvGPUNormalFrame1 = imgops::ConvertSLMatToGPUMat(slResultFrame1);
             // cvGPUDepthFrame1  = imgops::ConvertSLMatToGPUMat(slDepthFrame1);
             // Download mats from GPU memory into CPU memory.
             // cvGPUNormalFrame1.download(cvNormalFrame1);
             // cvGPUDepthFrame1.download(cvDepthFrame1);
-            cvNormalFrame1 = imgops::ConvertSLMatToCVMat(slResultFrame1);
-            cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
+            // cvNormalFrame1 = imgops::ConvertSLMatToCVMat(slResultFrame1);
+            cvDepthFrame1 = imgops::ConvertSLMatToCVMat(slDepthFrame1);
 
             // Put FPS on normal frame.
-            cv::putText(cvNormalFrame1,
-                        std::to_string(TestCamera1->GetIPS()->GetAverageIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
+            // cv::putText(cvNormalFrame1, std::to_string(TestCamera1->GetIPS()->GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255,
+            // 255));
 
             // Put FPS on depth frame.
-            cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS()->GetAverageIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS()->GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
             // Display frame.
-            cv::imshow("TEST1", cvNormalFrame1);
+            // cv::imshow("TEST1", cvNormalFrame1);
             cv::imshow("DEPTH1", cvDepthFrame1);
 
             // Print info about position.
-            sl::Translation slLocation = TestCamera1->GetPositionalPose().getTranslation();
-            LOG_INFO(g_qConsoleLogger, "Positional Tracking:\nX: {} \nY: {}\nZ: {}\n\n", slLocation.x, slLocation.y, slLocation.z);
+            // sl::Pose slPose               = TestCamera1->GetPositionalPose();
+            // sl::Translation slTranslation = slPose.getTranslation();
+            // sl::float3 slEulerAngles      = slPose.getEulerAngles();
+            // LOG_INFO(g_qConsoleLogger, "Positional Tracking:\nX: {} \nY: {}\nZ: {}\n\n", slTranslation.x, slTranslation.y, slTranslation.z);
             LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
-            std::vector<double> vIMUValues = TestCamera1->GetIMUData();
-            LOG_INFO(g_qConsoleLogger, "IMU Data:\nRoll: {}\nPitch: {}\nYaw:{}\n", vIMUValues[0], vIMUValues[1], vIMUValues[2]);
+            // LOG_INFO(g_qConsoleLogger, "IMU Data:\nRoll: {}\nPitch: {}\nYaw:{}\n", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
 
             char chKey = cv::waitKey(1);
             if (chKey == 27)    // Press 'Esc' key to exit
