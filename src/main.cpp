@@ -21,9 +21,8 @@
 // If not included, define empty run example function and set bRunExampleFlag
 // to false. If included, then define bRunExampleFlag as true.
 #ifndef CHECK_IF_EXAMPLE_INCLUDED
-#include "./util/ExampleChecker.h"
+static bool bRunExampleFlag = false;
 
-CHECK_IF_EXAMPLE_INCLUDED
 void RunExample() {}
 #else
 CHECK_IF_EXAMPLE_INCLUDED
