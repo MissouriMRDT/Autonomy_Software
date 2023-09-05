@@ -1,4 +1,4 @@
-\page INSTALL_8md Installation Guide
+\page md_INSTALL Installation Guide
 
 # Installing Autonomy Software
 
