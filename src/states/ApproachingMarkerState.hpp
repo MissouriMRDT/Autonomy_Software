@@ -35,11 +35,23 @@ struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMa
                           sc::custom_reaction<ApproachingMarker_ReachedMarkerTransition>>
             reactions;
 
-        sc::result react(const ApproachingMarker_MarkerLostTransition& event) { return transit<SearchPatternState>(); }
+        sc::result react(const ApproachingMarker_MarkerLostTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<SearchPatternState>();
+        }
 
-        sc::result react(const ApproachingMarker_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const ApproachingMarker_AbortTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>();
+        }
 
-        sc::result react(const ApproachingMarker_ReachedMarkerTransition& event) { return transit<IdleState>(); }
+        sc::result react(const ApproachingMarker_ReachedMarkerTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<IdleState>();
+        }
 };
 
 /******************************************************************************
