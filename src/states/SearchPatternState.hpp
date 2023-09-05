@@ -37,23 +37,35 @@ struct SearchPatternState : sc::simple_state<SearchPatternState, StateMachine>
                           sc::custom_reaction<SeachPattern_StuckTransition>>
             reactions;
 
-        sc::result react(const SeachPattern_GateSeenTransition& event) { (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-        return transit<ApproachingGateState>(); }
-
-        sc::result react(const SeachPattern_ObstacleAvoidanceTransition& event) { (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-        return transit<AvoidanceState>(); }
-
-        sc::result react(const SeachPattern_MarkerSeenTransition& event) { (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-        return transit<ApproachingMarkerState>(); }
-
-        sc::result react(const SeachPattern_AbortTransition& event) {
+        sc::result react(const SeachPattern_GateSeenTransition& event)
+        {
             (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-            return transit<AbortState>(); }
+            return transit<ApproachingGateState>();
+        }
 
-            sc::result react(const SeachPattern_StuckTransition& event)
-            {
-                (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-                return transit<StuckState>(); }
+        sc::result react(const SeachPattern_ObstacleAvoidanceTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AvoidanceState>();
+        }
+
+        sc::result react(const SeachPattern_MarkerSeenTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<ApproachingMarkerState>();
+        }
+
+        sc::result react(const SeachPattern_AbortTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>();
+        }
+
+        sc::result react(const SeachPattern_StuckTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<StuckState>();
+        }
 };
 
 /******************************************************************************
