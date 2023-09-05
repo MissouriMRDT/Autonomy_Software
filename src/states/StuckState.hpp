@@ -31,9 +31,17 @@ struct StuckState : sc::simple_state<StuckState, StateMachine>
 
         typedef mpl::list<sc::custom_reaction<Stuck_AbortTransition>, sc::custom_reaction<Stuck_ReverseTransition>> reactions;
 
-        sc::result react(const Stuck_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const Stuck_AbortTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>();
+        }
 
-        sc::result react(const Stuck_ReverseTransition& event) { return transit<ReverseState>(); }
+        sc::result react(const Stuck_ReverseTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<ReverseState>();
+        }
 };
 
 /******************************************************************************

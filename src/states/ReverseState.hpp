@@ -54,12 +54,15 @@ struct ReverseState : sc::simple_state<ReverseState, StateMachine>
             // If - Approaching Gate
             //      return transit<ApproachingGateState>();
 
+(void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
             return transit<AbortState>();
         }
 
-        sc::result react(const Reverse_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const Reverse_AbortTransition& event) { (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+        return transit<AbortState>(); }
 
-        sc::result react(const Reverse_StuckTransition& event) { return transit<StuckState>(); }
+        sc::result react(const Reverse_StuckTransition& event) { (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+        return transit<StuckState>(); }
 };
 
 /******************************************************************************
