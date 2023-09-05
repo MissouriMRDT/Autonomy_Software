@@ -2,22 +2,8 @@ name: clang-format Check
 on:
   pull_request:
     branches: ["development"]
-    paths:
-      - examples/**
-      - src/**
-      - tests/**
-      - tools/**
-      - .github/workflows/clang_check.yml
-
   push:
     branches: ["development"]
-    paths:
-      - examples/**
-      - src/**
-      - tests/**
-      - tools/**
-      - .github/workflows/clang_check.yml
-
   workflow_dispatch:
 
 concurrency:
