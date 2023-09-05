@@ -35,11 +35,17 @@ struct ApproachingGateState : sc::simple_state<ApproachingGateState, StateMachin
                           sc::custom_reaction<ApproachingGate_ReachedMarkerTransition>>
             reactions;
 
-        sc::result react(const ApproachingGate_MarkerLostTransition& event) { return transit<SearchPatternState>(); }
+        sc::result react(const ApproachingGate_MarkerLostTransition& event) { 
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<SearchPatternState>(); }
 
-        sc::result react(const ApproachingGate_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const ApproachingGate_AbortTransition& event) { 
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>(); }
 
-        sc::result react(const ApproachingGate_ReachedMarkerTransition& event) { return transit<IdleState>(); }
+        sc::result react(const ApproachingGate_ReachedMarkerTransition& event) {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<IdleState>(); }
 };
 
 /******************************************************************************
