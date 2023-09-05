@@ -1,4 +1,4 @@
-\page INSTALL Installation Guide
+\page INSTALL_8md Installation Guide
 
 # Installing Autonomy Software
 
@@ -22,7 +22,7 @@ NOTE: For all installs, select the ADD TO PATH options whenever available.
 
 ![](data/README_Resources/images/vscode_install_extensions.png)
 
-NOTE: In the later steps when we start the devcontainer, It's extensions will be seperate from the extensions locally installed on your computer. You can still install extensions to the devcontainer, but the extensions and their settings won't be persistant between container rebuild. If you would like an extension to come packaged in with the container, ask one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software_leads)
+NOTE: In the later steps when we start the devcontainer, It's extensions will be seperate from the extensions locally installed on your computer. You can still install extensions to the devcontainer, but the extensions and their settings won't be persistant between container rebuild. If you would like an extension to come packaged in with the container, ask one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software_leads).
 
 ### 3. Clone the Autonomy_Software repo:
    
