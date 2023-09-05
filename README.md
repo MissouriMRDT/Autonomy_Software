@@ -19,6 +19,9 @@
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/doxygen_generate.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/doxygen_generate.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
     </a>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/clang_check.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/clang_check.yml?branch=development&label=Clang&style=flat-round" alt="clang-ci" />
+    </a>
   </div>
   <div>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jammy">
