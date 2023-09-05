@@ -1,0 +1,46 @@
+name: clang-format Check
+on:
+  pull_request:
+    branches: ["development"]
+    paths:
+      - examples/**
+      - src/**
+      - tests/**
+      - tools/**
+      - .github/workflows/clang_check.yml
+
+  push:
+    branches: ["development"]
+    paths:
+      - examples/**
+      - src/**
+      - tests/**
+      - tools/**
+      - .github/workflows/clang_check.yml
+
+  workflow_dispatch:
+
+jobs:
+  formatting-check:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - check: "examples"
+            exclude: ""
+          - check: "src"
+            exclude: "ArucoSamplesUtility.hpp"
+          - check: "tests"
+            exclude: ""
+          - check: "tools"
+            exclude: ""
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run clang-format style check
+        uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: "18"
+          check-path: ${{ matrix.path['check'] }}
+          exclude-regex: ${{ matrix.path['exclude'] }}
+          fallback-style: "Microsoft"
