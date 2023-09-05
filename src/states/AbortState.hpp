@@ -32,9 +32,17 @@ struct AbortState : sc::simple_state<AbortState, StateMachine>
 
         typedef mpl::list<sc::custom_reaction<Abort_RestartTransition>, sc::custom_reaction<Abort_ExitTransition>> reactions;
 
-        sc::result react(const Abort_RestartTransition& event) { return transit<IdleState>(); }
+        sc::result react(const Abort_RestartTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<IdleState>();
+        }
 
-        sc::result react(const Abort_ExitTransition& event) { return transit<IdleState>(); /* TODO: Exit the application */ }
+        sc::result react(const Abort_ExitTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<IdleState>();
+        }
 };
 
 /******************************************************************************
