@@ -20,6 +20,10 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: "clang-check"
+  cancel-in-progress: false
+
 jobs:
   formatting-check:
     name: Formatting Check
