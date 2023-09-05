@@ -1,4 +1,4 @@
-\page CONTRIBUTING_8md Contributing Guide
+\page md_CONTRIBUTING Contributing Guide
 
 # Contributing to Autonomy Software
 ## Contributing
