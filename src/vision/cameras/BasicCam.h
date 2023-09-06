@@ -44,7 +44,7 @@ class BasicCam : public Camera<cv::Mat>
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV);
         ~BasicCam();
-        cv::Mat GrabFrame(const bool bGrabRaw = false) override;
+        cv::Mat GrabFrame() override;
 
         // Getters.
         template<typename T>
