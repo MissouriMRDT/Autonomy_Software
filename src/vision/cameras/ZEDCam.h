@@ -27,8 +27,10 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
 
         sl::Camera m_slCamera;
         std::shared_mutex m_muCameraMutex;
+        std::vector<sl::ERROR_CODE> m_vReturnStatuses;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
+        sl::MEASURE m_slDepthMeasureType;
         sl::SensorsData m_slSensorData;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::Pose m_slCameraPose;
@@ -37,9 +39,15 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
         sl::BatchParameters m_slObjectDetectionBatchParams;
         sl::Objects m_slDetectedObjects;
         sl::MEM m_slMemoryType;
-        sl::Mat m_slFrame;
-        sl::Mat m_slDepth;
-        sl::Mat m_slPointCloud;
+        sl::Mat m_slFrame[2];
+        int m_nCurrentFrameBuffer;
+        std::shared_mutex m_muFrameBufferMutex;
+        sl::Mat m_slDepthMeasure[2];
+        int m_nCurrentDepthMeasureBuffer;
+        sl::Mat m_slDepthImage[2];
+        int m_nCurrentDepthImageBuffer;
+        sl::Mat m_slPointCloud[2];
+        int m_nCurrentPointCloudBuffer;
 
         // Declare private methods.
 
@@ -60,11 +68,12 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
                const float fMinSenseDistance           = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,
+               const bool bUseHalfDepthPrecision       = false,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
-        sl::Mat GrabFrame(const bool bResize = true) override;
-        sl::Mat GrabDepth(const bool bRetrieveMeasure, const bool bResize = true, const bool bHalfPrecision = false);
-        sl::Mat GrabPointCloud(const bool bResize = true, const bool bIncludeColor = false);
+        sl::Mat GrabFrame() override;
+        sl::Mat GrabDepth(const bool bRetrieveMeasure);
+        sl::Mat GrabPointCloud();
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();

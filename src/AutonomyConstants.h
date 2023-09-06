@@ -67,13 +67,14 @@ namespace constants
     //// Camera Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
-    const int ZED_MAINCAM_RESOLUTIONX    = 1920;
-    const int ZED_MAINCAM_RESOLUTIONY    = 1080;
-    const int ZED_MAINCAM_FPS            = 60;
-    const int ZED_MAINCAM_HORIZONTAL_FOV = 110;
-    const int ZED_MAINCAM_VERTICAL_FOV   = 70;
-    const bool ZED_MAINCAM_USE_GPU_MAT   = false;
-    const int ZED_MAINCAN_SERIAL         = 31237348;
+    const int ZED_MAINCAM_RESOLUTIONX         = 1920;
+    const int ZED_MAINCAM_RESOLUTIONY         = 1080;
+    const int ZED_MAINCAM_FPS                 = 60;
+    const int ZED_MAINCAM_HORIZONTAL_FOV      = 110;
+    const int ZED_MAINCAM_VERTICAL_FOV        = 70;
+    const bool ZED_MAINCAM_USE_GPU_MAT        = false;
+    const bool ZED_MAINCAM_USE_HALF_PRECISION = false;
+    const int ZED_MAINCAN_SERIAL              = 31237348;
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants
