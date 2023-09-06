@@ -25,13 +25,13 @@
   </div>
   <div>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jammy">
-      <img src="https://img.shields.io/badge/Ubuntu_Jammy-2023--08--16-orange" alt="jammy-pkg" />
+      <img src="https://img.shields.io/badge/Ubuntu_Jammy-2023--09--05-orange" alt="jammy-pkg" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-focal">
-      <img src="https://img.shields.io/badge/Ubuntu_Focal-2023--08--16-orange" alt="focal-pkg" />
+      <img src="https://img.shields.io/badge/Ubuntu_Focal-2023--09--05-orange" alt="focal-pkg" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
-      <img src="https://img.shields.io/badge/JetPack-2023--08--16-orange" alt="jetpack-pkg" />
+      <img src="https://img.shields.io/badge/JetPack-2023--09--05-orange" alt="jetpack-pkg" />
     </a>
   </div>
   <div>
