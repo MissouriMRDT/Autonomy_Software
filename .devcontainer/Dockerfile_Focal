@@ -18,12 +18,13 @@ ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
 ARG QUILL_VERSION="v3.3.1"
 ARG GTEST_VERSION="v1.14.0"
+ARG TZ="America/Chicago"
 
 # Set Labels
 LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
-LABEL org.opencontainers.image.licenses=GPL-3.0-onlyLABEL
+LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.1.0"
 LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}, and Google Test ${GTEST_VERSION}."
 
@@ -34,16 +35,13 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES \
     ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility,graphics
 
-# Set Timezone
-RUN echo "America/Chicago" > /etc/localtime
-
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     build-essential gdb wget less udev zstd sudo libgomp1 libswscale-dev \
-    cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev \
+    cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev tzdata \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata curl net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay locales usbutils \
@@ -52,6 +50,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
 
 # Install Required Python Packages
 RUN python3 -m pip install numpy opencv-python pyopengl
+
+# Set Timezone
+RUN echo "${TZ}" > /etc/localtime && \
+    echo "${TZ}" > /etc/timezone
 
 # Install gcc/g++
 RUN apt-get install  --no-install-recommends -y \

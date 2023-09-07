@@ -41,12 +41,22 @@ struct AvoidanceState : sc::simple_state<AvoidanceState, StateMachine>
             // If - Navigation
             //      return transit<NavigationState>();
 
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+
             return transit<AbortState>();
         }
 
-        sc::result react(const Avoidance_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const Avoidance_AbortTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>();
+        }
 
-        sc::result react(const Avoidance_StuckTransition& event) { return transit<StuckState>(); }
+        sc::result react(const Avoidance_StuckTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<StuckState>();
+        }
 };
 
 /******************************************************************************
