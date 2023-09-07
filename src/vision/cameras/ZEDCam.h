@@ -44,10 +44,13 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
         std::shared_mutex m_muFrameBufferMutex;
         sl::Mat m_slDepthMeasure[2];
         int m_nCurrentDepthMeasureBuffer;
+        std::shared_mutex m_muDepthMeasureBufferMutex;
         sl::Mat m_slDepthImage[2];
         int m_nCurrentDepthImageBuffer;
+        std::shared_mutex m_muDepthImageBufferMutex;
         sl::Mat m_slPointCloud[2];
         int m_nCurrentPointCloudBuffer;
+        std::shared_mutex m_muPointCloudBufferMutex;
 
         // Declare private methods.
 

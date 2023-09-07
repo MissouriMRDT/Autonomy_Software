@@ -219,20 +219,32 @@ void ZEDCam::ThreadedContinuousCode()
                                               m_slDepthMeasureType,
                                               m_slMemoryType,
                                               sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // Acquire write lock for changing buffer counter.
+    std::unique_lock<std::shared_mutex> lkDepthMeasureBufferLock(m_muDepthMeasureBufferMutex);
     // Swap buffers.
     m_nCurrentDepthMeasureBuffer = 1 - m_nCurrentDepthMeasureBuffer;
+    // Release lock.
+    lkDepthMeasureBufferLock.unlock();
 
     // Grab depth grayscale image and store it in member variable.
     slReturnCode =
         m_slCamera.retrieveImage(m_slDepthImage[m_nCurrentDepthImageBuffer], sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // Acquire write lock for changing buffer counter.
+    std::unique_lock<std::shared_mutex> lkDepthImageBufferLock(m_muDepthImageBufferMutex);
     // Swap buffers.
     m_nCurrentDepthImageBuffer = 1 - m_nCurrentDepthImageBuffer;
+    // Release lock.
+    lkDepthImageBufferLock.unlock();
 
     // Grab regular resized image and store it in member variable.
     slReturnCode =
         m_slCamera.retrieveMeasure(m_slPointCloud[m_nCurrentPointCloudBuffer], sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // Acquire write lock for changing buffer counter.
+    std::unique_lock<std::shared_mutex> lkPointCloudBufferLock(m_muPointCloudBufferMutex);
     // Swap Buffers.
     m_nCurrentPointCloudBuffer = 1 - m_nCurrentPointCloudBuffer;
+    // Release lock.
+    lkPointCloudBufferLock.unlock();
 }
 
 /******************************************************************************
@@ -309,11 +321,15 @@ sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure)
     // Check if we are getting the depth measure of depth image.
     if (bRetrieveMeasure)
     {
+        // Acquire write lock for changing buffer counter.
+        std::unique_lock<std::shared_mutex> lkDepthMeasureBufferLock(m_muDepthMeasureBufferMutex);
         // Return latest depth measure from buffer not being written to.
         return m_slDepthMeasure[1 - m_nCurrentDepthMeasureBuffer];
     }
     else
     {
+        // Acquire write lock for changing buffer counter.
+        std::unique_lock<std::shared_mutex> lkDepthImageBufferLock(m_muDepthImageBufferMutex);
         // Return latest depth image from buffer not being written to.
         return m_slDepthImage[1 - m_nCurrentDepthImageBuffer];
     }
@@ -336,6 +352,8 @@ sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure)
  ******************************************************************************/
 sl::Mat ZEDCam::GrabPointCloud()
 {
+    // Acquire write lock for changing buffer counter.
+    std::unique_lock<std::shared_mutex> lkPointCloudBufferLock(m_muPointCloudBufferMutex);
     // Return latest point cloud from buffer not being written to.
     return m_slPointCloud[1 - m_nCurrentPointCloudBuffer];
 }
