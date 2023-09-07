@@ -33,11 +33,23 @@ struct IdleState : sc::simple_state<IdleState, StateMachine>
         typedef mpl::list<sc::custom_reaction<Idle_AbortTransition>, sc::custom_reaction<Idle_NavigatingTransition>, sc::custom_reaction<Idle_ReverseTransition>>
             reactions;
 
-        sc::result react(const Idle_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const Idle_AbortTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>();
+        }
 
-        sc::result react(const Idle_NavigatingTransition& event) { return transit<NavigationState>(); }
+        sc::result react(const Idle_NavigatingTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<NavigationState>();
+        }
 
-        sc::result react(const Idle_ReverseTransition& event) { return transit<ReverseState>(); }
+        sc::result react(const Idle_ReverseTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<ReverseState>();
+        }
 };
 
 /******************************************************************************

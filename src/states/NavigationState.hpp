@@ -38,11 +38,23 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
                           sc::custom_reaction<Navigation_ObstacleAvoidanceTransition>>
             reactions;
 
-        sc::result react(const Navigation_NewWaypointTransition& event) { return transit<NavigationState>(); }
+        sc::result react(const Navigation_NewWaypointTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<NavigationState>();
+        }
 
-        sc::result react(const Navigation_AbortTransition& event) { return transit<AbortState>(); }
+        sc::result react(const Navigation_AbortTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AbortState>();
+        }
 
-        sc::result react(const Navigation_StuckTransition& event) { return transit<StuckState>(); }
+        sc::result react(const Navigation_StuckTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<StuckState>();
+        }
 
         sc::result react(const Navigation_ReachedGPSTransition& event)
         {
@@ -51,6 +63,8 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
 
             // If - ArUco Search
             //      return transit<SearchPatternState>();
+
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
 
             return transit<AbortState>();
         }
@@ -63,10 +77,16 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
             // If - Gate
             //      return transit<ApproachingGateState>();
 
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+
             return transit<AbortState>();
         }
 
-        sc::result react(const Navigation_ObstacleAvoidanceTransition& event) { return transit<AvoidanceState>(); }
+        sc::result react(const Navigation_ObstacleAvoidanceTransition& event)
+        {
+            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+            return transit<AvoidanceState>();
+        }
 };
 
 /******************************************************************************
