@@ -63,16 +63,13 @@ class IPS
             // Add current IPS to history.
             m_dqIPSHistory.emplace_back(m_dCurrentIPS);
             // Sort the IPS history vector, this allows us to find the 1% low more easily.
-            std::sort(m_dqIPSHistory.begin(), m_dqIPSHistory.end());
             // Throw out oldest element in deque if size is over given number.
             if (m_dqIPSHistory.size() > m_nMaxMetricsHistorySize)
             {
-                m_dqIPSHistory.pop_back();
+                m_dqIPSHistory.pop_front();
             }
             // Get the index correlating to the IPS number that was lower than 99% of the rest of the IPS history.
-            long unsigned int nIndex = static_cast<long unsigned int>(m_dqIPSHistory.size() * 0.01);
-            // Check that the index is valid. If history data is too sparse, set 1% low to 0.0.
-            m_d1PercentLow = (nIndex < m_dqIPSHistory.size()) ? m_dqIPSHistory[nIndex] : 0.0;
+            m_d1PercentLow = *std::min_element(m_dqIPSHistory.begin(), m_dqIPSHistory.end());
         }
 
     public:

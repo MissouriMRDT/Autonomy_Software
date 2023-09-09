@@ -217,7 +217,7 @@ void ZEDCam::ThreadedContinuousCode()
     if (!m_qFrameCopySchedule.empty())
     {
         // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameCopyScheduleMutex);
+        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
@@ -289,11 +289,27 @@ void ZEDCam::ThreadedContinuousCode()
  ******************************************************************************/
 void ZEDCam::PooledLinearCode()
 {
+    // Aqcuire mutex for getting frames out of the queue.
+    std::unique_lock<std::mutex> lkQueue(m_muFrameCopyMutex);
+
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
-        // Pop frame container out of queue.
-        m_qFrameCopySchedule.front();
+        // Get frame container out of queue.
+        FrameFetchContainer& stContainer = m_qFrameCopySchedule.front();
+        // Pop out of queue.
+        m_qFrameCopySchedule.pop();
+        // Release lock.
+        lkQueue.unlock();
+
+        // Acquire unique lock on container.
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Copy sl::Mat frame to cv::Mat stored in container.
+        stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slFrame);
+        // Release lock.
+        lkConditionLock.unlock();
+        // Use the condition variable to notify other waiting threads that this thread is finished.
+        stContainer.cdMatWriteSuccess.notify_all();
     }
 }
 
@@ -332,7 +348,7 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     FrameFetchContainer stContainer(cvFrame);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameCopyScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -342,6 +358,8 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
     // Wait up to 10 seconds for the condition variable to be notified.
     std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+    // Release lock.
+    lkConditionLock.unlock();
 
     // Check condition variable status and return.
     if (cdStatus == std::cv_status::no_timeout)
