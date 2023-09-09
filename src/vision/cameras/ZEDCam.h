@@ -24,8 +24,10 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     private:
         // Declare public structs that are specific to and used within this class.
+        template<typename T>
         struct FrameFetchContainer;
-        struct GPUFrameFetchContainer;
+        template<typename T>
+        struct DataAndSensorsFetchContainer;
 
         // Declare private member variables.
 
@@ -46,12 +48,10 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Mat m_slDepthImage;
         sl::Mat m_slDepthMeasure;
         sl::Mat m_slPointCloud;
-        std::queue<std::reference_wrapper<FrameFetchContainer>> m_qFrameCopySchedule;
-        std::queue<std::reference_wrapper<GPUFrameFetchContainer>> m_qGPUFrameCopySchedule;
-        std::shared_mutex m_muFrameScheduleMutex;
+        std::queue<std::reference_wrapper<FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
+        std::queue<std::reference_wrapper<FrameFetchContainer<cv::cuda::GpuMat&>>> m_qGPUFrameCopySchedule;
+        std::shared_mutex m_muPoolScheduleMutex;
         std::mutex m_muFrameCopyMutex;
-        std::mutex m_muDepthCopyMutex;
-        std::mutex m_muPointCloudCopyMutex;
 
         // Declare private methods.
 
@@ -96,6 +96,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         // Accessors for class member variables.
         bool GetCameraIsOpen() override;
+        bool GetUsingGPUMem() const;
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         sl::Pose GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference = sl::REFERENCE_FRAME::WORLD);
