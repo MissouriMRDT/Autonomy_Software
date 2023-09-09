@@ -49,6 +49,7 @@ class CameraHandlerThread
         // Declare public class methods and variables.
         CameraHandlerThread();
         ~CameraHandlerThread();
+        void StartAllCameras();
 
         // Accessors.
         ZEDCam* GetZED(ZEDCamName eCameraName);

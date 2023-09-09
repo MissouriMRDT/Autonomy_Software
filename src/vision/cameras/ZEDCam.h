@@ -12,22 +12,24 @@
 #define ZEDCAM_H
 
 #include <future>
+#include <opencv2/opencv.hpp>
 #include <shared_mutex>
 #include <sl/Camera.hpp>
-#include <vector>
 
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
 
-class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
+class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     private:
+        // Declare public structs that are specific to and used within this class.
+        struct FrameFetchContainer;
+
         // Declare private member variables.
 
         sl::Camera m_slCamera;
         std::shared_mutex m_muCameraMutex;
-        std::vector<sl::ERROR_CODE> m_vReturnStatuses;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::MEASURE m_slDepthMeasureType;
@@ -39,23 +41,14 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
         sl::BatchParameters m_slObjectDetectionBatchParams;
         sl::Objects m_slDetectedObjects;
         sl::MEM m_slMemoryType;
-        sl::Mat m_slFrame[2];
-        int m_nCurrentFrameBuffer;
-        std::shared_mutex m_muFrameBufferMutex;
-        sl::Mat m_slDepthMeasure[2];
-        int m_nCurrentDepthMeasureBuffer;
-        std::shared_mutex m_muDepthMeasureBufferMutex;
-        sl::Mat m_slDepthImage[2];
-        int m_nCurrentDepthImageBuffer;
-        std::shared_mutex m_muDepthImageBufferMutex;
-        sl::Mat m_slPointCloud[2];
-        int m_nCurrentPointCloudBuffer;
-        std::shared_mutex m_muPointCloudBufferMutex;
+        sl::Mat m_slFrame;
+        std::queue<std::reference_wrapper<FrameFetchContainer>> m_qFrameCopySchedule;
+        std::shared_mutex m_muFrameCopyScheduleMutex;
 
         // Declare private methods.
 
         void ThreadedContinuousCode() override;
-        void PooledLinearCode() override{};    // This does nothing for now. No need for threadpools.
+        void PooledLinearCode() override;    // This does nothing for now. No need for threadpools.
 
     public:
         // Declare public structs that are specific to and used within this class.
@@ -74,9 +67,9 @@ class ZEDCam : public Camera<sl::Mat>, public AutonomyThread<void>
                const bool bUseHalfDepthPrecision       = false,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
-        sl::Mat GrabFrame() override;
-        sl::Mat GrabDepth(const bool bRetrieveMeasure);
-        sl::Mat GrabPointCloud();
+        bool GrabFrame(cv::Mat& cvFrame) override;
+        // sl::Mat GrabDepth(const bool bRetrieveMeasure);
+        // sl::Mat GrabPointCloud();
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();

@@ -27,7 +27,6 @@ class IPS
 {
     private:
         // Declare private methods and member variables.
-        int m_nIterations;
         double m_dCurrentIPS;
         double m_dHighestIPS;
         double m_dLowestIPS;
@@ -63,13 +62,13 @@ class IPS
 
             // Add current IPS to history.
             m_dqIPSHistory.emplace_back(m_dCurrentIPS);
+            // Sort the IPS history vector, this allows us to find the 1% low more easily.
+            std::sort(m_dqIPSHistory.begin(), m_dqIPSHistory.end());
             // Throw out oldest element in deque if size is over given number.
             if (m_dqIPSHistory.size() > m_nMaxMetricsHistorySize)
             {
-                m_dqIPSHistory.pop_front();
+                m_dqIPSHistory.pop_back();
             }
-            // Sort the IPS history vector, this allows us to find the 1% low more easily.
-            std::sort(m_dqIPSHistory.begin(), m_dqIPSHistory.end());
             // Get the index correlating to the IPS number that was lower than 99% of the rest of the IPS history.
             long unsigned int nIndex = static_cast<long unsigned int>(m_dqIPSHistory.size() * 0.01);
             // Check that the index is valid. If history data is too sparse, set 1% low to 0.0.
@@ -88,7 +87,6 @@ class IPS
         IPS()
         {
             // Initialize member variables and objects.
-            m_nIterations  = 0;
             m_dCurrentIPS  = 0.0;
             m_dHighestIPS  = 0.0;
             m_dLowestIPS   = 9999999;
@@ -117,9 +115,6 @@ class IPS
          ******************************************************************************/
         void Tick()
         {
-            // Increment iterations counter.
-            ++m_nIterations;
-
             // Get the current and elapsed time.
             auto tCurrentTime              = std::chrono::high_resolution_clock::now();
             auto tElapsedTimeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(tCurrentTime - m_tLastUpdateTime).count();
@@ -223,10 +218,16 @@ class IPS
             return m_d1PercentLow;
         }
 
+        /******************************************************************************
+         * @brief Resets all metrics and frame time history.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-09-07
+         ******************************************************************************/
         void Reset()
         {
             // Reset member variable.
-            m_nIterations  = 0;
             m_dCurrentIPS  = 0.0;
             m_dHighestIPS  = 0.0;
             m_dLowestIPS   = 9999999;

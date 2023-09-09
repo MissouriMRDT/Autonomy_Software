@@ -64,11 +64,11 @@ class Camera
         double m_dPropVerticalFOV;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual T GrabFrame()          = 0;    // This is where the code to retrieve an image from the camera is put.
-        virtual bool GetCameraIsOpen() = 0;    // This is where the code to check if the camera is current open goes.
+        virtual bool GrabFrame(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
+        virtual bool GetCameraIsOpen()    = 0;    // This is where the code to check if the camera is current open goes.
 
         // Declare protected object pointers.
-        IPS* m_pIPS = new IPS();
+        IPS m_IPS = IPS();
 
     public:
         // Declare public methods and member variables.
@@ -108,14 +108,7 @@ class Camera
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-18
          ******************************************************************************/
-        virtual ~Camera()
-        {
-            // Delete dynamically allocated memory.
-            delete m_pIPS;
-
-            // Set dangling pointers to point to null.
-            m_pIPS = nullptr;
-        }
+        virtual ~Camera() {}
 
         /******************************************************************************
          * @brief Accessor for the Prop Resolution X private member.
@@ -181,11 +174,11 @@ class Camera
         /******************************************************************************
          * @brief Accessor for the Frame I P S private member.
          *
-         * @return IPS& - A pointer to the camera objects iteration per second counter.
+         * @return IPS& - A the camera objects iteration per second counter.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-08-20
          ******************************************************************************/
-        virtual IPS* GetIPS() { return m_pIPS; }
+        virtual IPS& GetIPS() { return m_IPS; }
 };
 #endif

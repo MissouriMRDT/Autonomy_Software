@@ -13,11 +13,11 @@
 #include <sstream>
 #include <string>
 
+#include "../examples/threading/ArucoGenerateTags.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
 #include "./threads/CameraHandlerThread.h"
-#include "./util/OpenCV/ImageOperations.hpp"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -84,26 +84,35 @@ int main()
         while (true)
         {
             // Grab normal frame from camera.
-            slResultFrame1 = TestCamera1->GrabFrame();
-            slDepthFrame1  = TestCamera1->GrabDepth(false);
+            // cvNormalFrame1 = TestCamera1->GrabFrame();
+            // slDepthFrame1  = TestCamera1->GrabDepth(false);
             // Convert to OpenCV Mat.
             // cvGPUNormalFrame1 = imgops::ConvertSLMatToGPUMat(slResultFrame1);
             // cvGPUDepthFrame1  = imgops::ConvertSLMatToGPUMat(slDepthFrame1);
             // Download mats from GPU memory into CPU memory.
             // cvGPUNormalFrame1.download(cvNormalFrame1);
             // cvGPUDepthFrame1.download(cvDepthFrame1);
-            cvNormalFrame1 = imgops::ConvertSLMatToCVMat(slResultFrame1);
-            cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
+            // cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
 
-            // Put FPS on normal frame.
-            cv::putText(cvNormalFrame1, std::to_string(TestCamera1->GetIPS()->GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            if (!cvNormalFrame1.empty())
+            {
+                LOG_INFO(g_qConsoleLogger, "FPS: {}\n1% Low: {}", TestCamera1->GetIPS().GetExactIPS(), TestCamera1->GetIPS().Get1PercentLow());
+                // Put FPS on normal frame.
+                cv::putText(cvNormalFrame1,
+                            std::to_string(TestCamera1->GetIPS().GetExactIPS()),
+                            cv::Point(50, 50),
+                            cv::FONT_HERSHEY_COMPLEX,
+                            1,
+                            cv::Scalar(255, 255, 255));
 
-            // Put FPS on depth frame.
-            cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS()->GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+                // Put FPS on depth frame.
+                // cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS()->GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255,
+                // 255));
 
-            // Display frame.
-            cv::imshow("TEST1", cvNormalFrame1);
-            cv::imshow("DEPTH1", cvDepthFrame1);
+                // Display frame.
+                // cv::imshow("TEST1", cvNormalFrame1);
+                // cv::imshow("DEPTH1", cvDepthFrame1);
+            }
 
             // Print info about position.
             // sl::Pose slPose               = TestCamera1->GetPositionalPose();

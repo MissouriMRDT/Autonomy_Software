@@ -10,6 +10,34 @@
 
 #include "ZEDCam.h"
 #include "../../AutonomyLogging.h"
+#include "../../util/OpenCV/ImageOperations.hpp"
+
+/******************************************************************************
+ * @brief This struct is used internally by the ZEDCam class to schedule mat frames
+ *      for copying and signal when the copy has been completed.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-08
+ ******************************************************************************/
+struct ZEDCam::FrameFetchContainer
+{
+    public:
+        // Declare and define public struct member variables.
+        std::condition_variable cdMatWriteSuccess;
+        std::mutex muConditionMutex;
+        cv::Mat& cvFrame;
+
+        /******************************************************************************
+         * @brief Construct a new Frame Fetch Container object.
+         *
+         * @param cvFrame - A reference to the cv::Mat object to store.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-09-09
+         ******************************************************************************/
+        FrameFetchContainer(cv::Mat& cvFrame) : cvFrame(cvFrame) {}
+};
 
 /******************************************************************************
  * @brief This struct is part of the ZEDCam class and is used as a container for all
@@ -21,6 +49,7 @@
  * @date 2023-08-29
  ******************************************************************************/
 struct ZEDCam::ZedObjectData
+
 {
     private:
         // Declare and define private struct member variables.
@@ -90,10 +119,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
-    m_nCurrentFrameBuffer        = 0;
-    m_nCurrentDepthMeasureBuffer = 0;
-    m_nCurrentDepthImageBuffer   = 0;
-    m_nCurrentPointCloudBuffer   = 0;
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
 
@@ -153,9 +178,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                   "{} stereo camera with serial number {} has been succsessfully opened.",
                   this->GetCameraModel(),
                   m_slCamera.getCameraInformation().serial_number);
-
-        // Start camera grabbing thread. This runs the ThreadedContinuousCode() in a loop in a new thread.
-        this->Start();
     }
     else
     {
@@ -186,13 +208,30 @@ void ZEDCam::ThreadedContinuousCode()
     std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
     // Call generalized update method of zed api.
     sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+    // Grab regular image and store it in member variable.
+    slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
     // Release camera lock.
     lkSharedCameraLock.unlock();
+
+    // Check if the frame copy queue is empty.
+    if (!m_qFrameCopySchedule.empty())
+    {
+        // Acquire a shared_lock on the frame copy queue.
+        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameCopyScheduleMutex);
+
+        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
+        this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
+        // Wait for thread pool to finish.
+        this->JoinPool();
+        // Release lock on frame copy queue.
+        lkFrameSchedule.unlock();
+    }
+
     // Check if grab function was executed successfully.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
     {
         // Call FPS tick.
-        m_pIPS->Tick();
+        m_IPS.Tick();
     }
     else
     {
@@ -204,47 +243,58 @@ void ZEDCam::ThreadedContinuousCode()
                     sl::toString(slReturnCode).get());
     }
 
-    // Grab regular image and store it in member variable.
-    slReturnCode =
-        m_slCamera.retrieveImage(m_slFrame[m_nCurrentFrameBuffer], constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Acquire write lock for changing buffer counter.
-    std::unique_lock<std::shared_mutex> lkFrameBufferLock(m_muFrameBufferMutex);
-    // Swap buffers.
-    m_nCurrentFrameBuffer = 1 - m_nCurrentFrameBuffer;
-    // Release lock.
-    lkFrameBufferLock.unlock();
+    // // Grab depth measure and store it in member variable.
+    // slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure[m_nCurrentDepthMeasureBuffer],
+    //                                           m_slDepthMeasureType,
+    //                                           m_slMemoryType,
+    //                                           sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // // Acquire write lock for changing buffer counter.
+    // std::unique_lock<std::shared_mutex> lkDepthMeasureBufferLock(m_muDepthMeasureBufferMutex);
+    // // Swap buffers.
+    // m_nCurrentDepthMeasureBuffer = 1 - m_nCurrentDepthMeasureBuffer;
+    // // Release lock.
+    // lkDepthMeasureBufferLock.unlock();
 
-    // Grab depth measure and store it in member variable.
-    slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure[m_nCurrentDepthMeasureBuffer],
-                                              m_slDepthMeasureType,
-                                              m_slMemoryType,
-                                              sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Acquire write lock for changing buffer counter.
-    std::unique_lock<std::shared_mutex> lkDepthMeasureBufferLock(m_muDepthMeasureBufferMutex);
-    // Swap buffers.
-    m_nCurrentDepthMeasureBuffer = 1 - m_nCurrentDepthMeasureBuffer;
-    // Release lock.
-    lkDepthMeasureBufferLock.unlock();
+    // // Grab depth grayscale image and store it in member variable.
+    // slReturnCode =
+    //     m_slCamera.retrieveImage(m_slDepthImage[m_nCurrentDepthImageBuffer], sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // // Acquire write lock for changing buffer counter.
+    // std::unique_lock<std::shared_mutex> lkDepthImageBufferLock(m_muDepthImageBufferMutex);
+    // // Swap buffers.
+    // m_nCurrentDepthImageBuffer = 1 - m_nCurrentDepthImageBuffer;
+    // // Release lock.
+    // lkDepthImageBufferLock.unlock();
 
-    // Grab depth grayscale image and store it in member variable.
-    slReturnCode =
-        m_slCamera.retrieveImage(m_slDepthImage[m_nCurrentDepthImageBuffer], sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Acquire write lock for changing buffer counter.
-    std::unique_lock<std::shared_mutex> lkDepthImageBufferLock(m_muDepthImageBufferMutex);
-    // Swap buffers.
-    m_nCurrentDepthImageBuffer = 1 - m_nCurrentDepthImageBuffer;
-    // Release lock.
-    lkDepthImageBufferLock.unlock();
+    // // Grab regular resized image and store it in member variable.
+    // slReturnCode =
+    //     m_slCamera.retrieveMeasure(m_slPointCloud[m_nCurrentPointCloudBuffer], sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX,
+    //     m_nPropResolutionY));
+    // // Acquire write lock for changing buffer counter.
+    // std::unique_lock<std::shared_mutex> lkPointCloudBufferLock(m_muPointCloudBufferMutex);
+    // // Swap Buffers.
+    // m_nCurrentPointCloudBuffer = 1 - m_nCurrentPointCloudBuffer;
+    // // Release lock.
+    // lkPointCloudBufferLock.unlock();
+}
 
-    // Grab regular resized image and store it in member variable.
-    slReturnCode =
-        m_slCamera.retrieveMeasure(m_slPointCloud[m_nCurrentPointCloudBuffer], sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Acquire write lock for changing buffer counter.
-    std::unique_lock<std::shared_mutex> lkPointCloudBufferLock(m_muPointCloudBufferMutex);
-    // Swap Buffers.
-    m_nCurrentPointCloudBuffer = 1 - m_nCurrentPointCloudBuffer;
-    // Release lock.
-    lkPointCloudBufferLock.unlock();
+/******************************************************************************
+ * @brief This method holds the code that is ran in the thread pool started by
+ *      the ThreadedLinearCode() method. It copies the data from the different
+ *      sl::Mats to a cv::Mat& reference stored in a vector queued up by the
+ *      Grab methods.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-08
+ ******************************************************************************/
+void ZEDCam::PooledLinearCode()
+{
+    // Check if the queue is empty.
+    if (!m_qFrameCopySchedule.empty())
+    {
+        // Pop frame container out of queue.
+        m_qFrameCopySchedule.front();
+    }
 }
 
 /******************************************************************************
@@ -262,101 +312,97 @@ ZEDCam::~ZEDCam()
 
     // Close the ZEDCam.
     m_slCamera.close();
-
-    // Free all frame mats.
-    for (sl::Mat slMat : m_slFrame)
-    {
-        slMat.free();
-    }
-    // Free all depth measure mats.
-    for (sl::Mat slMat : m_slDepthMeasure)
-    {
-        slMat.free();
-    }
-    // Free all depth image mats.
-    for (sl::Mat slMat : m_slDepthImage)
-    {
-        slMat.free();
-    }
-    // Free all point cloud mats.
-    for (sl::Mat slMat : m_slPointCloud)
-    {
-        slMat.free();
-    }
 }
 
 /******************************************************************************
  * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera.
+ *      Remember this code will be ran in whatever class/thread calls it.
  *
  * @param bResize - Whether or not to apply class properties to image. (resize)
  *              If bResize is set to true, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
  *              will be used.
- * @return sl::Mat - The result image stored in an sl::Mat object.
+ * @return cv::Mat - The result image stored in an cv::Mat object.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-sl::Mat ZEDCam::GrabFrame()
+bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
 {
-    // Acquire read lock for frame buffer.
-    std::shared_lock<std::shared_mutex> lkFrameBufferLock(m_muFrameBufferMutex);
-    // Return a copy of the frame member variable.
-    return m_slFrame[1 - m_nCurrentFrameBuffer];
-}
+    // Assemble the FrameFetchContainer.
+    FrameFetchContainer stContainer(cvFrame);
 
-/******************************************************************************
- * @brief Grabs a depth measure or image from the camera. This image has the same shape as
- *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
- *      AutonomyConstants.h.
- *
- * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
- *                  purposes other than displaying depth.
- * @return sl::Mat - The result depth image stored in an sl::Mat object.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
- ******************************************************************************/
-sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure)
-{
-    // Check if we are getting the depth measure of depth image.
-    if (bRetrieveMeasure)
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameCopyScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkFrameSchedule.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
     {
-        // Acquire write lock for changing buffer counter.
-        std::unique_lock<std::shared_mutex> lkDepthMeasureBufferLock(m_muDepthMeasureBufferMutex);
-        // Return latest depth measure from buffer not being written to.
-        return m_slDepthMeasure[1 - m_nCurrentDepthMeasureBuffer];
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
     }
     else
     {
-        // Acquire write lock for changing buffer counter.
-        std::unique_lock<std::shared_mutex> lkDepthImageBufferLock(m_muDepthImageBufferMutex);
-        // Return latest depth image from buffer not being written to.
-        return m_slDepthImage[1 - m_nCurrentDepthImageBuffer];
+        // Image was not written successfully.
+        return false;
     }
 }
 
-/******************************************************************************
- * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
- *      image but with three XYZ values replacing the old color values in the 3rd dimension. A 4th value can be
- *      added to the 3rd dimension to get color (X, Y, Z, color(BGRA)), but this is slower.
- *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
- *      constants set in AutonomyConstants.h.
- *
- * @param bResize - Whether or not to apply class properties to image. (resize)
- *              If bResize is set to false, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
- *              will be used.
- * @return sl::Mat - The result point cloud image with pixel colors and real-world locations.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
- ******************************************************************************/
-sl::Mat ZEDCam::GrabPointCloud()
-{
-    // Acquire write lock for changing buffer counter.
-    std::unique_lock<std::shared_mutex> lkPointCloudBufferLock(m_muPointCloudBufferMutex);
-    // Return latest point cloud from buffer not being written to.
-    return m_slPointCloud[1 - m_nCurrentPointCloudBuffer];
-}
+// /******************************************************************************
+//  * @brief Grabs a depth measure or image from the camera. This image has the same shape as
+//  *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
+//  *      AutonomyConstants.h.
+//  *
+//  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
+//  *                  purposes other than displaying depth.
+//  * @return sl::Mat - The result depth image stored in an sl::Mat object.
+//  *
+//  * @author clayjay3 (claytonraycowen@gmail.com)
+//  * @date 2023-08-26
+//  ******************************************************************************/
+// sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure)
+// {
+//     // Check if we are getting the depth measure of depth image.
+//     if (bRetrieveMeasure)
+//     {
+//         // Return latest depth measure from buffer not being written to.
+//         return m_slDepthMeasure[1 - m_nCurrentDepthMeasureBuffer];
+//     }
+//     else
+//     {
+//         // Return latest depth image from buffer not being written to.
+//         return m_slDepthImage[1 - m_nCurrentDepthImageBuffer];
+//     }
+// }
+
+// /******************************************************************************
+//  * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+//  *      image but with three XYZ values replacing the old color values in the 3rd dimension. A 4th value can be
+//  *      added to the 3rd dimension to get color (X, Y, Z, color(BGRA)), but this is slower.
+//  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
+//  *      constants set in AutonomyConstants.h.
+//  *
+//  * @param bResize - Whether or not to apply class properties to image. (resize)
+//  *              If bResize is set to false, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
+//  *              will be used.
+//  * @return sl::Mat - The result point cloud image with pixel colors and real-world locations.
+//  *
+//  * @author clayjay3 (claytonraycowen@gmail.com)
+//  * @date 2023-08-26
+//  ******************************************************************************/
+// sl::Mat ZEDCam::GrabPointCloud()
+// {
+//     // Return latest point cloud from buffer not being written to.
+//     return m_slPointCloud[1 - m_nCurrentPointCloudBuffer];
+// }
 
 /******************************************************************************
  * @brief Resets the cameras X,Y,Z translation and Roll,Pitch,Yaw orientation back

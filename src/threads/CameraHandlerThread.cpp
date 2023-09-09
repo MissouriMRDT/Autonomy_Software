@@ -21,14 +21,15 @@
 CameraHandlerThread::CameraHandlerThread()
 {
     // Initialize main ZED camera.
-    m_pMainCam = new ZEDCam(constants::ZED_MAINCAN_SERIAL,
-                            constants::ZED_MAINCAM_RESOLUTIONX,
+    m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
+                            constants::ZED_MAINCAM_RESOLUTIONY,
                             constants::ZED_MAINCAM_FPS,
                             constants::ZED_MAINCAM_HORIZONTAL_FOV,
                             constants::ZED_MAINCAM_VERTICAL_FOV,
                             constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                             constants::ZED_MAINCAM_USE_GPU_MAT,
+                            constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
                             constants::ZED_MAINCAN_SERIAL);
 }
 
@@ -46,6 +47,14 @@ CameraHandlerThread::~CameraHandlerThread()
 
     // Set dangling pointers to nullptr.
     m_pMainCam = nullptr;
+}
+
+void CameraHandlerThread::StartAllCameras()
+{
+    // Start ZED cams.
+    m_pMainCam->Start();
+
+    // Start basic cams.
 }
 
 /******************************************************************************
