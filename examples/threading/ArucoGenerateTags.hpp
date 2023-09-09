@@ -78,14 +78,15 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
             // Change this bool to test the two different
             // blocks of code!
             //////////////////////////////////////////////////
-            bool bUseParallelLoop = true;
+            bool bUseParallelLoop = false;
             if (bUseParallelLoop)
             {
                 //////////////////////////////////////////////////
                 // This code splits the loop into parts and
                 // completes it in different threads.
                 //////////////////////////////////////////////////
-                this->ParallelizeLoop(m_nNumTagsToGenerate,
+                this->ParallelizeLoop(50,
+                                      m_nNumTagsToGenerate,
                                       [&cvDictType](const int a, const int b)
                                       {
                                           // Loop through and generate each of the tags.
