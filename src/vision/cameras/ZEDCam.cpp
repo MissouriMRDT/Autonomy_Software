@@ -213,20 +213,6 @@ void ZEDCam::ThreadedContinuousCode()
     // Release camera lock.
     lkSharedCameraLock.unlock();
 
-    // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty())
-    {
-        // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
-
-        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-        this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
-        // Wait for thread pool to finish.
-        this->JoinPool();
-        // Release lock on frame copy queue.
-        lkFrameSchedule.unlock();
-    }
-
     // Check if grab function was executed successfully.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
     {
@@ -241,6 +227,20 @@ void ZEDCam::ThreadedContinuousCode()
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
                     sl::toString(slReturnCode).get());
+    }
+
+    // Check if the frame copy queue is empty.
+    if (!m_qFrameCopySchedule.empty())
+    {
+        // Acquire a shared_lock on the frame copy queue.
+        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+
+        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
+        this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
+        // Wait for thread pool to finish.
+        this->JoinPool();
+        // Release lock on frame copy queue.
+        lkFrameSchedule.unlock();
     }
 
     // TODO: Implement the other frame grabbing.
