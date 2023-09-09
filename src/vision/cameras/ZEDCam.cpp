@@ -221,6 +221,7 @@ void ZEDCam::ThreadedContinuousCode()
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
+        // TODO: Consider removing the join since tasks will be queued of max threads reached. Could improve smoothness.
         // Wait for thread pool to finish.
         this->JoinPool();
         // Release lock on frame copy queue.
