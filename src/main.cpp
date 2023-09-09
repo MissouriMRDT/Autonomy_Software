@@ -13,7 +13,6 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/threading/ArucoGenerateTags.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -66,25 +65,23 @@ int main()
     {
         // Initialize and start Threads
         g_pCameraHandler = new CameraHandlerThread();
+        g_pCameraHandler->StartAllCameras();
 
         // TODO: Initialize RoveComm
 
         // Get reference to camera.
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
         // Turn on ZED features.
-        TestCamera1->EnablePositionalTracking();
+        // TestCamera1->EnablePositionalTracking();
         // TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
-        sl::Mat slResultFrame1;
-        sl::Mat slDepthFrame1;
         cv::Mat cvNormalFrame1;
+        cv::Mat cvNormalFrame2;
         cv::Mat cvDepthFrame1;
         cv::cuda::GpuMat cvGPUNormalFrame1;
         cv::cuda::GpuMat cvGPUDepthFrame1;
         while (true)
         {
-            // Grab normal frame from camera.
-            // cvNormalFrame1 = TestCamera1->GrabFrame();
             // slDepthFrame1  = TestCamera1->GrabDepth(false);
             // Convert to OpenCV Mat.
             // cvGPUNormalFrame1 = imgops::ConvertSLMatToGPUMat(slResultFrame1);
@@ -94,9 +91,11 @@ int main()
             // cvGPUDepthFrame1.download(cvDepthFrame1);
             // cvDepthFrame1  = imgops::ConvertSLMatToCVMat(slDepthFrame1);
 
-            if (!cvNormalFrame1.empty())
+            // Grab normal frame from camera.
+            if (TestCamera1->GrabFrame(cvNormalFrame1))
             {
-                LOG_INFO(g_qConsoleLogger, "FPS: {}\n1% Low: {}", TestCamera1->GetIPS().GetExactIPS(), TestCamera1->GetIPS().Get1PercentLow());
+                LOG_INFO(g_qConsoleLogger, "FPS: {}\n1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+                LOG_INFO(g_qConsoleLogger, "{} {}", cvNormalFrame1.rows, cvNormalFrame1.cols);
                 // Put FPS on normal frame.
                 cv::putText(cvNormalFrame1,
                             std::to_string(TestCamera1->GetIPS().GetExactIPS()),
@@ -110,7 +109,29 @@ int main()
                 // 255));
 
                 // Display frame.
-                // cv::imshow("TEST1", cvNormalFrame1);
+                cv::imshow("TEST1", cvNormalFrame1);
+                // cv::imshow("DEPTH1", cvDepthFrame1);
+            }
+
+            // Grab normal frame from camera.
+            if (TestCamera1->GrabFrame(cvNormalFrame2))
+            {
+                LOG_INFO(g_qConsoleLogger, "FPS: {}\n1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+                LOG_INFO(g_qConsoleLogger, "{} {}", cvNormalFrame2.rows, cvNormalFrame2.cols);
+                // Put FPS on normal frame.
+                cv::putText(cvNormalFrame2,
+                            std::to_string(TestCamera1->GetIPS().GetExactIPS()),
+                            cv::Point(50, 50),
+                            cv::FONT_HERSHEY_COMPLEX,
+                            1,
+                            cv::Scalar(255, 255, 255));
+
+                // Put FPS on depth frame.
+                // cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS()->GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255,
+                // 255));
+
+                // Display frame.
+                cv::imshow("TEST2", cvNormalFrame2);
                 // cv::imshow("DEPTH1", cvDepthFrame1);
             }
 
