@@ -43,7 +43,8 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::MEM m_slMemoryType;
         sl::Mat m_slFrame;
         std::queue<std::reference_wrapper<FrameFetchContainer>> m_qFrameCopySchedule;
-        std::shared_mutex m_muFrameCopyScheduleMutex;
+        std::shared_mutex m_muFrameScheduleMutex;
+        std::mutex m_muFrameCopyMutex;
 
         // Declare private methods.
 
