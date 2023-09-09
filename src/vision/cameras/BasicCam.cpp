@@ -118,12 +118,14 @@ BasicCam::~BasicCam()
 /******************************************************************************
  * @brief Retrieves a frame from the camera.
  *
- * @return cv::Mat - The returned image stored in an OpenCV MAT.
+ * @param cvFrame - A reference to the cv::Mat to store the frame in.
+ * @return true - Frame successfully retrieved and stored.
+ * @return false - Frame was not stored successfully.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-20
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-09
  ******************************************************************************/
-cv::Mat BasicCam::GrabFrame()
+bool BasicCam::GrabFrame(cv::Mat& cvFrame)
 {
     // Check if the camera is open.
     if (m_cvCamera.isOpened())
@@ -145,10 +147,7 @@ cv::Mat BasicCam::GrabFrame()
     }
 
     // Call FPS tracker tick.
-    m_pIPS->Tick();
-
-    // Return retrieved image.
-    return m_cvFrame;
+    m_IPS.Tick();
 }
 
 /******************************************************************************
