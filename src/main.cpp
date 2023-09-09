@@ -73,7 +73,7 @@ int main()
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
         // Turn on ZED features.
         TestCamera1->EnablePositionalTracking();
-        // TestCamera1->EnableSpatialMapping();
+        TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         cv::Mat cvNormalFrame1;
         cv::Mat cvDepthFrame1;
@@ -117,8 +117,9 @@ int main()
             // sl::Translation slTranslation = slPose.getTranslation();
             // sl::float3 slEulerAngles      = slPose.getEulerAngles();
             // LOG_INFO(g_qConsoleLogger, "Positional Tracking:\nX: {} \nY: {}\nZ: {}\n\n", slTranslation.x, slTranslation.y, slTranslation.z);
-            // LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+            LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
             // LOG_INFO(g_qConsoleLogger, "IMU Data:\nRoll: {}\nPitch: {}\nYaw:{}\n", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+            // std::vector<double> vIMUData = TestCamera1->GetIMUData();
 
             char chKey = cv::waitKey(1);
             if (chKey == 27)    // Press 'Esc' key to exit
