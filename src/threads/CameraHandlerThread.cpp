@@ -49,6 +49,13 @@ CameraHandlerThread::~CameraHandlerThread()
     m_pMainCam = nullptr;
 }
 
+/******************************************************************************
+ * @brief Signals all cameras to start their threads.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-09
+ ******************************************************************************/
 void CameraHandlerThread::StartAllCameras()
 {
     // Start ZED cams.
