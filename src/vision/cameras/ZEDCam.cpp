@@ -20,13 +20,14 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-08
  ******************************************************************************/
+template<typename T>
 struct ZEDCam::FrameFetchContainer
 {
     public:
         // Declare and define public struct member variables.
         std::condition_variable cdMatWriteSuccess;
         std::mutex muConditionMutex;
-        cv::Mat& cvFrame;
+        T& cvFrame;
         PIXEL_FORMATS eFrameType;
 
         /******************************************************************************
@@ -38,36 +39,7 @@ struct ZEDCam::FrameFetchContainer
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-09-09
          ******************************************************************************/
-        FrameFetchContainer(cv::Mat& cvFrame, PIXEL_FORMATS eFrameType) : cvFrame(cvFrame), eFrameType(eFrameType) {}
-};
-
-/******************************************************************************
- * @brief This struct is used internally by the ZEDCam class to schedule GPU mat frames
- *      for copying and signal when the copy has been completed.
- *
- *
- * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-09-08
- ******************************************************************************/
-struct ZEDCam::GPUFrameFetchContainer
-{
-    public:
-        // Declare and define public struct member variables.
-        std::condition_variable cdMatWriteSuccess;
-        std::mutex muConditionMutex;
-        cv::cuda::GpuMat& cvGPUFrame;
-        PIXEL_FORMATS eFrameType;
-
-        /******************************************************************************
-         * @brief Construct a new Frame Fetch Container object for storing GPU Mats.
-         *
-         * @param cvFrame - A reference to the cv::cuda::GpuMat object to store.
-         * @param eFrameType - The image or measure type to store in the frame.
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-09-09
-         ******************************************************************************/
-        GPUFrameFetchContainer(cv::cuda::GpuMat& cvGPUFrame, PIXEL_FORMATS eFrameType) : cvGPUFrame(cvGPUFrame), eFrameType(eFrameType) {}
+        FrameFetchContainer(T& cvFrame, PIXEL_FORMATS eFrameType) : cvFrame(cvFrame), eFrameType(eFrameType) {}
 };
 
 /******************************************************************************
@@ -270,7 +242,7 @@ void ZEDCam::ThreadedContinuousCode()
     if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty())
     {
         // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
@@ -303,7 +275,7 @@ void ZEDCam::PooledLinearCode()
         if (!m_qFrameCopySchedule.empty())
         {
             // Get frame container out of queue.
-            FrameFetchContainer& stContainer = m_qFrameCopySchedule.front();
+            FrameFetchContainer<cv::Mat&>& stContainer = m_qFrameCopySchedule.front();
             // Pop out of queue.
             m_qFrameCopySchedule.pop();
             // Release lock.
@@ -335,7 +307,7 @@ void ZEDCam::PooledLinearCode()
         if (!m_qGPUFrameCopySchedule.empty())
         {
             // Get frame container out of queue.
-            GPUFrameFetchContainer& stContainer = m_qGPUFrameCopySchedule.front();
+            FrameFetchContainer<cv::cuda::GpuMat&>& stContainer = m_qGPUFrameCopySchedule.front();
             // Pop out of queue.
             m_qGPUFrameCopySchedule.pop();
             // Release lock.
@@ -347,11 +319,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZ: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eBGRA: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case eXYZ: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
             // Release lock.
@@ -393,10 +365,10 @@ ZEDCam::~ZEDCam()
 bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
-    FrameFetchContainer stContainer(cvFrame, eBGRA);
+    FrameFetchContainer<cv::Mat&> stContainer(cvFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -437,10 +409,10 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
 bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
 {
     // Assemble the FrameFetchContainer.
-    GPUFrameFetchContainer stContainer(cvGPUFrame, eBGRA);
+    FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -488,10 +460,10 @@ bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
     // Check if the container should be set to retrieve an image or a measure.
     bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
     // Assemble container.
-    FrameFetchContainer stContainer(cvDepth, eFrameType);
+    FrameFetchContainer<cv::Mat&> stContainer(cvDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -539,10 +511,10 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
     // Check if the container should be set to retrieve an image or a measure.
     bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
     // Assemble container.
-    GPUFrameFetchContainer stContainer(cvGPUDepth, eFrameType);
+    FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -584,10 +556,10 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
 bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    FrameFetchContainer stContainer(cvPointCloud, eXYZ);
+    FrameFetchContainer<cv::Mat&> stContainer(cvPointCloud, eXYZ);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -629,10 +601,10 @@ bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
 bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    GPUFrameFetchContainer stContainer(cvGPUPointCloud, eXYZ);
+    FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUPointCloud, eXYZ);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -992,8 +964,31 @@ void ZEDCam::DisableObjectDetection()
  ******************************************************************************/
 bool ZEDCam::GetCameraIsOpen()
 {
-    // Return if the ZED camera is currently opened.
     return m_slCamera.isOpened();
+}
+
+/******************************************************************************
+ * @brief Accessor for if this ZED is storing it's frames in GPU memory.
+ *
+ * @return true - Using GPU memory for mats.
+ * @return false - Using CPU memory for mats.
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-09
+ ******************************************************************************/
+bool ZEDCam::GetUsingGPUMem() const
+{
+    // Check if we are using GPU memory.
+    if (m_slMemoryType == sl::MEM::GPU)
+    {
+        // Using GPU memory.
+        return true;
+    }
+    else
+    {
+        // Not using GPU memory.
+        return false;
+    }
 }
 
 /******************************************************************************
@@ -1086,7 +1081,6 @@ sl::Pose ZEDCam::GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference
  ******************************************************************************/
 bool ZEDCam::GetPositionalTrackingEnabled()
 {
-    // Return is positional tracking is enabled.
     return m_slCamera.isPositionalTrackingEnabled();
 }
 
@@ -1233,7 +1227,6 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& 
  ******************************************************************************/
 bool ZEDCam::GetObjectDetectionEnabled()
 {
-    // Return is the object tracking feature of camera is enabled.
     return m_slCamera.isObjectDetectionEnabled();
 }
 
