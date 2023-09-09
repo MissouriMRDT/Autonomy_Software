@@ -27,16 +27,47 @@ struct ZEDCam::FrameFetchContainer
         std::condition_variable cdMatWriteSuccess;
         std::mutex muConditionMutex;
         cv::Mat& cvFrame;
+        PIXEL_FORMATS eFrameType;
 
         /******************************************************************************
          * @brief Construct a new Frame Fetch Container object.
          *
          * @param cvFrame - A reference to the cv::Mat object to store.
+         * @param eFrameType - The image or measure type to store in the frame.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-09-09
          ******************************************************************************/
-        FrameFetchContainer(cv::Mat& cvFrame) : cvFrame(cvFrame) {}
+        FrameFetchContainer(cv::Mat& cvFrame, PIXEL_FORMATS eFrameType) : cvFrame(cvFrame), eFrameType(eFrameType) {}
+};
+
+/******************************************************************************
+ * @brief This struct is used internally by the ZEDCam class to schedule GPU mat frames
+ *      for copying and signal when the copy has been completed.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-08
+ ******************************************************************************/
+struct ZEDCam::GPUFrameFetchContainer
+{
+    public:
+        // Declare and define public struct member variables.
+        std::condition_variable cdMatWriteSuccess;
+        std::mutex muConditionMutex;
+        cv::cuda::GpuMat& cvGPUFrame;
+        PIXEL_FORMATS eFrameType;
+
+        /******************************************************************************
+         * @brief Construct a new Frame Fetch Container object for storing GPU Mats.
+         *
+         * @param cvFrame - A reference to the cv::cuda::GpuMat object to store.
+         * @param eFrameType - The image or measure type to store in the frame.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-09-09
+         ******************************************************************************/
+        GPUFrameFetchContainer(cv::cuda::GpuMat& cvGPUFrame, PIXEL_FORMATS eFrameType) : cvGPUFrame(cvGPUFrame), eFrameType(eFrameType) {}
 };
 
 /******************************************************************************
@@ -210,6 +241,12 @@ void ZEDCam::ThreadedContinuousCode()
     sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
     // Grab regular image and store it in member variable.
     slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // Grab depth measure and store it in member variable.
+    slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // // Grab depth grayscale image and store it in member variable.
+    slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // // Grab regular resized image and store it in member variable.
+    slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
     // Release camera lock.
     lkSharedCameraLock.unlock();
 
@@ -230,7 +267,7 @@ void ZEDCam::ThreadedContinuousCode()
     }
 
     // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty())
+    if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty())
     {
         // Acquire a shared_lock on the frame copy queue.
         std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
@@ -242,40 +279,6 @@ void ZEDCam::ThreadedContinuousCode()
         // Release lock on frame copy queue.
         lkFrameSchedule.unlock();
     }
-
-    // TODO: Implement the other frame grabbing.
-    // // Grab depth measure and store it in member variable.
-    // slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure[m_nCurrentDepthMeasureBuffer],
-    //                                           m_slDepthMeasureType,
-    //                                           m_slMemoryType,
-    //                                           sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // // Acquire write lock for changing buffer counter.
-    // std::unique_lock<std::shared_mutex> lkDepthMeasureBufferLock(m_muDepthMeasureBufferMutex);
-    // // Swap buffers.
-    // m_nCurrentDepthMeasureBuffer = 1 - m_nCurrentDepthMeasureBuffer;
-    // // Release lock.
-    // lkDepthMeasureBufferLock.unlock();
-
-    // // Grab depth grayscale image and store it in member variable.
-    // slReturnCode =
-    //     m_slCamera.retrieveImage(m_slDepthImage[m_nCurrentDepthImageBuffer], sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // // Acquire write lock for changing buffer counter.
-    // std::unique_lock<std::shared_mutex> lkDepthImageBufferLock(m_muDepthImageBufferMutex);
-    // // Swap buffers.
-    // m_nCurrentDepthImageBuffer = 1 - m_nCurrentDepthImageBuffer;
-    // // Release lock.
-    // lkDepthImageBufferLock.unlock();
-
-    // // Grab regular resized image and store it in member variable.
-    // slReturnCode =
-    //     m_slCamera.retrieveMeasure(m_slPointCloud[m_nCurrentPointCloudBuffer], sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX,
-    //     m_nPropResolutionY));
-    // // Acquire write lock for changing buffer counter.
-    // std::unique_lock<std::shared_mutex> lkPointCloudBufferLock(m_muPointCloudBufferMutex);
-    // // Swap Buffers.
-    // m_nCurrentPointCloudBuffer = 1 - m_nCurrentPointCloudBuffer;
-    // // Release lock.
-    // lkPointCloudBufferLock.unlock();
 }
 
 /******************************************************************************
@@ -293,27 +296,69 @@ void ZEDCam::PooledLinearCode()
     // Aqcuire mutex for getting frames out of the queue.
     std::unique_lock<std::mutex> lkQueue(m_muFrameCopyMutex);
 
-    // TODO: Implement other frame copies.
-    // TODO: Consider using parallel loop functionality for maybe better speed after implement other frames.
-
-    // Check if the queue is empty.
-    if (!m_qFrameCopySchedule.empty())
+    // Check if we are using CPU or GPU mats.
+    if (m_slMemoryType == sl::MEM::CPU)
     {
-        // Get frame container out of queue.
-        FrameFetchContainer& stContainer = m_qFrameCopySchedule.front();
-        // Pop out of queue.
-        m_qFrameCopySchedule.pop();
-        // Release lock.
-        lkQueue.unlock();
+        // Check if the queue is empty.
+        if (!m_qFrameCopySchedule.empty())
+        {
+            // Get frame container out of queue.
+            FrameFetchContainer& stContainer = m_qFrameCopySchedule.front();
+            // Pop out of queue.
+            m_qFrameCopySchedule.pop();
+            // Release lock.
+            lkQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-        // Copy sl::Mat frame to cv::Mat stored in container.
-        stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slFrame);
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+            // Acquire unique lock on container.
+            std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+
+            // Determine which frame should be copied.
+            switch (stContainer.eFrameType)
+            {
+                case eBGRA: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case eXYZ: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+            }
+
+            // Release lock.
+            lkConditionLock.unlock();
+            // Use the condition variable to notify other waiting threads that this thread is finished.
+            stContainer.cdMatWriteSuccess.notify_all();
+        }
+    }
+    // Use GPU mat.
+    else
+    {
+        // Check if the queue is empty.
+        if (!m_qGPUFrameCopySchedule.empty())
+        {
+            // Get frame container out of queue.
+            GPUFrameFetchContainer& stContainer = m_qGPUFrameCopySchedule.front();
+            // Pop out of queue.
+            m_qGPUFrameCopySchedule.pop();
+            // Release lock.
+            lkQueue.unlock();
+
+            // Acquire unique lock on container.
+            std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+
+            // Determine which frame should be copied.
+            switch (stContainer.eFrameType)
+            {
+                case eBGRA: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case eXYZ: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: stContainer.cvGPUFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+            }
+
+            // Release lock.
+            lkConditionLock.unlock();
+            // Use the condition variable to notify other waiting threads that this thread is finished.
+            stContainer.cdMatWriteSuccess.notify_all();
+        }
     }
 }
 
@@ -338,18 +383,17 @@ ZEDCam::~ZEDCam()
  * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera.
  *      Remember this code will be ran in whatever class/thread calls it.
  *
- * @param bResize - Whether or not to apply class properties to image. (resize)
- *              If bResize is set to true, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
- *              will be used.
- * @return cv::Mat - The result image stored in an cv::Mat object.
+ * @param cvFrame - A reference to the cv::Mat to copy the normal frame to.
+ * @return true - The frame was successfully copied.
+ * @return false - The frame was not copied successfully.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-09
  ******************************************************************************/
 bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
-    FrameFetchContainer stContainer(cvFrame);
+    FrameFetchContainer stContainer(cvFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
@@ -378,53 +422,241 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     }
 }
 
-// /******************************************************************************
-//  * @brief Grabs a depth measure or image from the camera. This image has the same shape as
-//  *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
-//  *      AutonomyConstants.h.
-//  *
-//  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
-//  *                  purposes other than displaying depth.
-//  * @return sl::Mat - The result depth image stored in an sl::Mat object.
-//  *
-//  * @author clayjay3 (claytonraycowen@gmail.com)
-//  * @date 2023-08-26
-//  ******************************************************************************/
-// sl::Mat ZEDCam::GrabDepth(const bool bRetrieveMeasure)
-// {
-//     // Check if we are getting the depth measure of depth image.
-//     if (bRetrieveMeasure)
-//     {
-//         // Return latest depth measure from buffer not being written to.
-//         return m_slDepthMeasure[1 - m_nCurrentDepthMeasureBuffer];
-//     }
-//     else
-//     {
-//         // Return latest depth image from buffer not being written to.
-//         return m_slDepthImage[1 - m_nCurrentDepthImageBuffer];
-//     }
-// }
+/******************************************************************************
+ * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera and
+ *      stores it in a GPU mat.
+ *      Remember this code will be ran in whatever class/thread calls it.
+ *
+ * @param cvGPUFrame - A reference to the cv::Mat to copy the normal frame to.
+ * @return true - The frame was successfully copied.
+ * @return false - The frame was not copied successfully.
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-09
+ ******************************************************************************/
+bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
+{
+    // Assemble the FrameFetchContainer.
+    GPUFrameFetchContainer stContainer(cvGPUFrame, eBGRA);
 
-// /******************************************************************************
-//  * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
-//  *      image but with three XYZ values replacing the old color values in the 3rd dimension. A 4th value can be
-//  *      added to the 3rd dimension to get color (X, Y, Z, color(BGRA)), but this is slower.
-//  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
-//  *      constants set in AutonomyConstants.h.
-//  *
-//  * @param bResize - Whether or not to apply class properties to image. (resize)
-//  *              If bResize is set to false, then the ZED_BASE_RESOLUTION that is set in AutonomyContants.h
-//  *              will be used.
-//  * @return sl::Mat - The result point cloud image with pixel colors and real-world locations.
-//  *
-//  * @author clayjay3 (claytonraycowen@gmail.com)
-//  * @date 2023-08-26
-//  ******************************************************************************/
-// sl::Mat ZEDCam::GrabPointCloud()
-// {
-//     // Return latest point cloud from buffer not being written to.
-//     return m_slPointCloud[1 - m_nCurrentPointCloudBuffer];
-// }
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qGPUFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkFrameSchedule.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+    // Release lock.
+    lkConditionLock.unlock();
+
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
+    {
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
+    }
+    else
+    {
+        // Image was not written successfully.
+        return false;
+    }
+}
+
+/******************************************************************************
+ * @brief Grabs a depth measure or image from the camera. This image has the same shape as
+ *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
+ *      AutonomyConstants.h.
+ *
+ * @param cvDepth - A reference to the cv::Mat to copy the depth frame to.
+ * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
+ *                  purposes other than displaying depth.
+ * @return true - The frame was successfully copied.
+ * @return false - The frame was not copied successfully.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-26
+ ******************************************************************************/
+bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
+{
+    // Create instance variables.
+    PIXEL_FORMATS eFrameType;
+
+    // Check if the container should be set to retrieve an image or a measure.
+    bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
+    // Assemble container.
+    FrameFetchContainer stContainer(cvDepth, eFrameType);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkFrameSchedule.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+    // Release lock.
+    lkConditionLock.unlock();
+
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
+    {
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
+    }
+    else
+    {
+        // Image was not written successfully.
+        return false;
+    }
+}
+
+/******************************************************************************
+ * @brief Grabs a depth measure or image from the camera and stores it in GPU mat. This image has the same shape as
+ *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
+ *      AutonomyConstants.h.
+ *
+ * @param cvGPUDepth - A reference to the cv::Mat to copy the depth frame to.
+ * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
+ *                  purposes other than displaying depth.
+ * @return true - The frame was successfully copied.
+ * @return false - The frame was not copied successfully.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-26
+ ******************************************************************************/
+bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure)
+{
+    // Create instance variables.
+    PIXEL_FORMATS eFrameType;
+
+    // Check if the container should be set to retrieve an image or a measure.
+    bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
+    // Assemble container.
+    GPUFrameFetchContainer stContainer(cvGPUDepth, eFrameType);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qGPUFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkFrameSchedule.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+    // Release lock.
+    lkConditionLock.unlock();
+
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
+    {
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
+    }
+    else
+    {
+        // Image was not written successfully.
+        return false;
+    }
+}
+
+/******************************************************************************
+ * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+ *      image but with three XYZ values replacing the old color values in the 3rd dimension.
+ *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
+ *      constants set in AutonomyConstants.h.
+ *
+ * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @return true - The frame was successfully copied.
+ * @return false - The frame was not copied successfully.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-26
+ ******************************************************************************/
+bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
+{
+    // Assemble the FrameFetchContainer.
+    FrameFetchContainer stContainer(cvPointCloud, eXYZ);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkFrameSchedule.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+    // Release lock.
+    lkConditionLock.unlock();
+
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
+    {
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
+    }
+    else
+    {
+        // Image was not written successfully.
+        return false;
+    }
+}
+
+/******************************************************************************
+ * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+ *      image but with three XYZ values replacing the old color values in the 3rd dimension.
+ *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
+ *      constants set in AutonomyConstants.h.
+ *
+ * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @return true - The frame was successfully copied.
+ * @return false - The frame was not copied successfully.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-26
+ ******************************************************************************/
+bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
+{
+    // Assemble the FrameFetchContainer.
+    GPUFrameFetchContainer stContainer(cvGPUPointCloud, eXYZ);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muFrameScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qGPUFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkFrameSchedule.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+    // Release lock.
+    lkConditionLock.unlock();
+
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
+    {
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
+    }
+    else
+    {
+        // Image was not written successfully.
+        return false;
+    }
+}
 
 /******************************************************************************
  * @brief Resets the cameras X,Y,Z translation and Roll,Pitch,Yaw orientation back
