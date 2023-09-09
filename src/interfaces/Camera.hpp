@@ -23,11 +23,13 @@ enum PIXEL_FORMATS
     eARGB,
     eABGR,
     eRGBE,
+    eXYZ,
     eRGBXZY,
     eRGBAXYZ,
     eZED,
     eGrayscale,
-    eDepth,
+    eDepthImage,
+    eDepthMeasure,
     eCMYK,
     eYUV,
     eYUYV,
@@ -36,6 +38,7 @@ enum PIXEL_FORMATS
     eHSL,
     eSRGB,
     eLAB,
+    eUNKNOWN
 };
 
 ///////////////////////////////////////////////////////////////////////////////

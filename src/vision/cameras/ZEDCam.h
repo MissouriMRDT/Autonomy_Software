@@ -25,6 +25,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
     private:
         // Declare public structs that are specific to and used within this class.
         struct FrameFetchContainer;
+        struct GPUFrameFetchContainer;
 
         // Declare private member variables.
 
@@ -42,9 +43,15 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         sl::MEM m_slMemoryType;
         sl::Mat m_slFrame;
+        sl::Mat m_slDepthImage;
+        sl::Mat m_slDepthMeasure;
+        sl::Mat m_slPointCloud;
         std::queue<std::reference_wrapper<FrameFetchContainer>> m_qFrameCopySchedule;
+        std::queue<std::reference_wrapper<GPUFrameFetchContainer>> m_qGPUFrameCopySchedule;
         std::shared_mutex m_muFrameScheduleMutex;
         std::mutex m_muFrameCopyMutex;
+        std::mutex m_muDepthCopyMutex;
+        std::mutex m_muPointCloudCopyMutex;
 
         // Declare private methods.
 
@@ -69,8 +76,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
         bool GrabFrame(cv::Mat& cvFrame) override;
-        // sl::Mat GrabDepth(const bool bRetrieveMeasure);
-        // sl::Mat GrabPointCloud();
+        bool GrabFrame(cv::cuda::GpuMat& cvGPUFrame);
+        bool GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
+        bool GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true);
+        bool GrabPointCloud(cv::Mat& cvPointCloud);
+        bool GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud);
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
