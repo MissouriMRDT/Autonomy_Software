@@ -72,7 +72,7 @@ int main()
         // Get reference to camera.
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
         // Turn on ZED features.
-        // TestCamera1->EnablePositionalTracking();
+        TestCamera1->EnablePositionalTracking();
         // TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         cv::Mat cvNormalFrame1;
@@ -86,7 +86,8 @@ int main()
             {
                 // Print info.
                 LOG_INFO(g_qConsoleLogger, "FPS: {}\n1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
-                // Download memory from gpu mats.
+                LOG_INFO(g_qConsoleLogger, "Camera Model: {}", TestCamera1->GetCameraModel());
+                // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
                 cvGPUDepthFrame1.download(cvDepthFrame1);
 
