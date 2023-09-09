@@ -845,10 +845,10 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
 
     // Wait for positional tracking state to be OK. Defualt Timeout of 10 seconds.
     while (m_slCamera.getPosition(slCameraPose) != sl::POSITIONAL_TRACKING_STATE::OK &&
-           std::chrono::steady_clock::now() - tmStartTime < std::chrono::seconds(nTimeoutSeconds))
+           std::chrono::steady_clock::now() - tmStartTime <= std::chrono::seconds(nTimeoutSeconds))
     {
         // Sleep for one millisecond.
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     // Final check if positional tracking was successfully enabled.
