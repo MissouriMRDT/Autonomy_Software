@@ -127,27 +127,7 @@ BasicCam::~BasicCam()
  ******************************************************************************/
 bool BasicCam::GrabFrame(cv::Mat& cvFrame)
 {
-    // Check if the camera is open.
-    if (m_cvCamera.isOpened())
-    {
-        // Get frame from camera and store.
-        m_cvCamera >> m_cvFrame;
-
-        // Check if the retrieved image is empty.
-        if (m_cvFrame.empty())
-        {
-            // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Image retrieved from camera source is empty!");
-        }
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Tried to get frame from camera but it's not opened!");
-    }
-
-    // Call FPS tracker tick.
-    m_IPS.Tick();
+    // TODO: Implement super sick threadpool blast copy.
 }
 
 /******************************************************************************

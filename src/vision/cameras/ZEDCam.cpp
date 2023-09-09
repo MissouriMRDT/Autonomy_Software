@@ -243,6 +243,7 @@ void ZEDCam::ThreadedContinuousCode()
                     sl::toString(slReturnCode).get());
     }
 
+    // TODO: Implement the other frame grabbing.
     // // Grab depth measure and store it in member variable.
     // slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure[m_nCurrentDepthMeasureBuffer],
     //                                           m_slDepthMeasureType,
@@ -291,6 +292,9 @@ void ZEDCam::PooledLinearCode()
 {
     // Aqcuire mutex for getting frames out of the queue.
     std::unique_lock<std::mutex> lkQueue(m_muFrameCopyMutex);
+
+    // TODO: Implement other frame copies.
+    // TODO: Consider using parallel loop functionality for maybe better speed after implement other frames.
 
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
