@@ -70,7 +70,8 @@ class AutonomyThread
          *      used as an internal utility of the child class to further improve parallelization.
          *      Default value for nNumThreads is 2.
          *
-         *      If this method is called directly after itself or RunDetechedPool(), it will signal
+         *      If this method is called directly after itself or RunDetechedPool(), it will just add more
+         *      tasks to the queue. If the bForceStopCurrentThreads is enabled, it will signal
          *      for those threads to stop and wait until they exit on their next iteration if
          *      bForceTopCurrentThreads is true. Any number of tasks that are still queued will
          *      be cleared. Old results will be destoyed. If you want to wait until they fully
@@ -84,14 +85,15 @@ class AutonomyThread
          *      locks as all possible solutions lead to a solution that only lets one thread run at
          *      a time, essentially canceling out the parallelism.
          *
+         * @param nNumTasksToQueue - The number of tasks running PooledLinearCode() to queue.
          * @param nNumThreads - The number of threads to run user code in.
-         * @param nForceStopCurrentThreads - Clears the current tasks queue then signals and waits for existing
+         * @param bForceStopCurrentThreads - Clears the current tasks queue then signals and waits for existing
          *                                  tasks to stop before queueing more.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void RunPool(const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
+        void RunPool(const unsigned int nNumTasksToQueue, const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
         {
             // Check if the pools need to be resized.
             if (m_thPool.get_thread_count() != nNumThreads)
@@ -152,7 +154,8 @@ class AutonomyThread
          *      return futures. Runs PooledLinearCode() method code. This is meant to be
          *      used as an internal utility of the child class to further improve parallelization.
          *
-         *      If this method is called directly after itself or RunPool(), it will signal
+         *      If this method is called directly after itself or RunPool(), it will just add more
+         *      tasks to the queue. If the bForceStopCurrentThreads is enabled, it will signal
          *      for those threads to stop and wait until they exit on their next iteration if
          *      bForceTopCurrentThreads is true. Any number of tasks that are still queued will
          *      be cleared. Old results will be destoyed. If you want to wait until they fully
@@ -167,7 +170,7 @@ class AutonomyThread
          *      a time, essentially canceling out the parallelism.
          *
          * @param nNumThreads - The number of threads to run user code in.
-         * @param nForceStopCurrentThreads - Clears the current tasks queue then signals and waits for existing
+         * @param bForceStopCurrentThreads - Clears the current tasks queue then signals and waits for existing
          *                                  tasks to stop before queueing more.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)

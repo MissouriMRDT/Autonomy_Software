@@ -73,20 +73,22 @@ int main()
         ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
         // Turn on ZED features.
         TestCamera1->EnablePositionalTracking();
-        TestCamera1->EnableSpatialMapping();
+        // TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         cv::Mat cvNormalFrame1;
         cv::Mat cvDepthFrame1;
         cv::cuda::GpuMat cvGPUNormalFrame1;
         cv::cuda::GpuMat cvGPUDepthFrame1;
+        // Declare FPS counter.
+        IPS FPS = IPS();
         while (true)
         {
             // Grab normal frame from camera.
             if (TestCamera1->GrabFrame(cvGPUNormalFrame1) && TestCamera1->GrabDepth(cvGPUDepthFrame1, false))
             {
                 // Print info.
-                LOG_INFO(g_qConsoleLogger, "FPS: {}\n1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
-                LOG_INFO(g_qConsoleLogger, "Camera Model: {}", TestCamera1->GetCameraModel());
+                LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+                LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
                 // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
                 cvGPUDepthFrame1.download(cvDepthFrame1);
@@ -113,13 +115,19 @@ int main()
             }
 
             // Print info about position.
-            // sl::Pose slPose               = TestCamera1->GetPositionalPose();
-            // sl::Translation slTranslation = slPose.getTranslation();
-            // sl::float3 slEulerAngles      = slPose.getEulerAngles();
-            // LOG_INFO(g_qConsoleLogger, "Positional Tracking:\nX: {} \nY: {}\nZ: {}\n\n", slTranslation.x, slTranslation.y, slTranslation.z);
-            LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
-            // LOG_INFO(g_qConsoleLogger, "IMU Data:\nRoll: {}\nPitch: {}\nYaw:{}\n", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
-            // std::vector<double> vIMUData = TestCamera1->GetIMUData();
+            sl::Pose slPose;
+            TestCamera1->GetPositionalPose(slPose);
+            sl::Translation slTranslation = slPose.getTranslation();
+            sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
+            LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
+            LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+            // LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+            std::vector<double> vIMUData;
+            TestCamera1->GetIMUData(vIMUData);
+            LOG_INFO(g_qConsoleLogger, "IMU Data: Roll: {} | Pitch: {} | Yaw:{}", vIMUData[0], vIMUData[1], vIMUData[2]);
+
+            // Tick FPS counter.
+            FPS.Tick();
 
             char chKey = cv::waitKey(1);
             if (chKey == 27)    // Press 'Esc' key to exit

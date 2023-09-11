@@ -45,7 +45,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
         {
             // Start thread pool. Run detached since the threads aren't returning anything.
             // This is much faster than the normal RunPool function.
-            this->RunDetachedPool(m_vDictionaries.size());
+            this->RunDetachedPool(m_vDictionaries.size(), m_vDictionaries.size());
 
             // Wait for pool tasks to finish.
             this->JoinPool();
