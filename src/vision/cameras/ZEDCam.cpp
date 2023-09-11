@@ -13,9 +13,11 @@
 #include "../../util/OpenCV/ImageOperations.hpp"
 
 /******************************************************************************
- * @brief This struct is used internally by the ZEDCam class to schedule mat frames
- *      for copying and signal when the copy has been completed.
+ * @brief This struct is used internally by the ZEDCam class to contain mat frames
+ *      for scheduling and copying. It also stores a condition variable and mutex for
+ *      signaling when the copy has been completed.
  *
+ * @tparam T - The mat type that the struct will be containing.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-08
@@ -27,19 +29,50 @@ struct ZEDCam::FrameFetchContainer
         // Declare and define public struct member variables.
         std::condition_variable cdMatWriteSuccess;
         std::mutex muConditionMutex;
-        T& cvFrame;
+        T& tFrame;
         PIXEL_FORMATS eFrameType;
 
         /******************************************************************************
          * @brief Construct a new Frame Fetch Container object.
          *
-         * @param cvFrame - A reference to the cv::Mat object to store.
-         * @param eFrameType - The image or measure type to store in the frame.
+         * @param tFrame - A reference to the cv::Mat object to store.
+         * @param eFrameType - The image or measure type to store in the frame. This
+         *                  is used to determine what is copied to the given frame object.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-09-09
          ******************************************************************************/
-        FrameFetchContainer(T& cvFrame, PIXEL_FORMATS eFrameType) : cvFrame(cvFrame), eFrameType(eFrameType) {}
+        FrameFetchContainer(T& tFrame, PIXEL_FORMATS eFrameType) : tFrame(tFrame), eFrameType(eFrameType) {}
+};
+
+/******************************************************************************
+ * @brief The struct is used internally by the ZEDCam class to contain any datatype (mostly sl library types)
+ *      for scheduling and copying. It also stores a condition variable and mutex for signaling when the copy
+ *      has been completed.
+ *
+ * @tparam T - The type of data object that this struct will be containing.
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-10
+ ******************************************************************************/
+template<typename T>
+struct ZEDCam::DataAndSensorsFetchContainer
+{
+    public:
+        // Declare and define public struct member variables.
+        std::condition_variable cdMatWriteSuccess;
+        std::mutex muConditionMutex;
+        T& tData;
+
+        /******************************************************************************
+         * @brief Construct a new Frame Fetch Container object.
+         *
+         * @param tTata - A reference to the data object to store.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-09-09
+         ******************************************************************************/
+        DataAndSensorsFetchContainer(T& tData) : tData(tData) {}
 };
 
 /******************************************************************************
@@ -215,12 +248,37 @@ void ZEDCam::ThreadedContinuousCode()
     slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
     // Grab depth measure and store it in member variable.
     slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // // Grab depth grayscale image and store it in member variable.
+    // Grab depth grayscale image and store it in member variable.
     slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // // Grab regular resized image and store it in member variable.
+    // Grab regular resized image and store it in member variable.
     slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+    // Get and store the SensorData object from the camera. Get data from the most recent image grab.
+    // Using TIME_REFERENCE::CURRENT requires high rate polling and can introduce error as the most recent
+    // IMU data could be in the future of the camera image.
+    slReturnCode = m_slCamera.getSensorsData(m_slSensorData, sl::TIME_REFERENCE::IMAGE);
+    // Check if positional tracking is enabled.
+    if (m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Get the current pose of the camera.
+        sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+    }
+    // Check if object detection is enabled.
+    if (m_slCamera.isObjectDetectionEnabled())
+    {
+        // Get updated objects from camera.
+        slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+
+        // Check if batched object data is enabled.
+        if (m_slObjectDetectionBatchParams.enable)
+        {
+            // Get updated batched objects from camera.
+            slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
+        }
+    }
     // Release camera lock.
     lkSharedCameraLock.unlock();
+
+    // TODO: Implement logger output for slReturnCode statuses.
 
     // Check if grab function was executed successfully.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -238,18 +296,27 @@ void ZEDCam::ThreadedContinuousCode()
                     sl::toString(slReturnCode).get());
     }
 
+    // Acquire a shared_lock on the frame copy queue.
+    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty())
+    if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxInjestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
+        !m_qIMUDataCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
     {
-        // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+        // Find the queue with the longest length.
+        size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
+                                            m_qGPUFrameCopySchedule.size(),
+                                            m_qCustomBoxInjestSchedule.size(),
+                                            m_qPoseCopySchedule.size(),
+                                            m_qIMUDataCopySchedule.size(),
+                                            m_qObjectDataCopySchedule.size(),
+                                            m_qObjectBatchedDataCopySchedule.size()});
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-        this->RunDetachedPool(constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
+        this->RunDetachedPool(siMaxQueueLength, constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
         // Wait for thread pool to finish.
         this->JoinPool();
         // Release lock on frame copy queue.
-        lkFrameSchedule.unlock();
+        lkSchedulers.unlock();
     }
 }
 
@@ -265,12 +332,17 @@ void ZEDCam::ThreadedContinuousCode()
  ******************************************************************************/
 void ZEDCam::PooledLinearCode()
 {
-    // Aqcuire mutex for getting frames out of the queue.
-    std::unique_lock<std::mutex> lkQueue(m_muFrameCopyMutex);
+    IPS PoolFPS = IPS();
 
+    PoolFPS.Tick();
+    /////////////////////////////
+    //  Frame queue.
+    /////////////////////////////
     // Check if we are using CPU or GPU mats.
     if (m_slMemoryType == sl::MEM::CPU)
     {
+        // Aqcuire mutex for getting frames out of the queue.
+        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
         {
@@ -279,7 +351,7 @@ void ZEDCam::PooledLinearCode()
             // Pop out of queue.
             m_qFrameCopySchedule.pop();
             // Release lock.
-            lkQueue.unlock();
+            lkFrameQueue.unlock();
 
             // Acquire unique lock on container.
             std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -287,11 +359,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case eXYZ: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
-                default: stContainer.cvFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
             // Release lock.
@@ -306,12 +378,14 @@ void ZEDCam::PooledLinearCode()
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
+            // Aqcuire mutex for getting frames out of the queue.
+            std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
             // Get frame container out of queue.
             FrameFetchContainer<cv::cuda::GpuMat&>& stContainer = m_qGPUFrameCopySchedule.front();
             // Pop out of queue.
             m_qGPUFrameCopySchedule.pop();
             // Release lock.
-            lkQueue.unlock();
+            lkFrameQueue.unlock();
 
             // Acquire unique lock on container.
             std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -319,11 +393,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZ: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: stContainer.cvFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
             // Release lock.
@@ -332,6 +406,121 @@ void ZEDCam::PooledLinearCode()
             stContainer.cdMatWriteSuccess.notify_all();
         }
     }
+
+    /////////////////////////////
+    //  Pose queue.
+    /////////////////////////////
+    // Aqcuire mutex for getting frames out of the pose queue.
+    std::unique_lock<std::mutex> lkPoseQueue(m_muPoseCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qPoseCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        DataAndSensorsFetchContainer<sl::Pose&>& stContainer = m_qPoseCopySchedule.front();
+        // Pop out of queue.
+        m_qPoseCopySchedule.pop();
+        // Release lock.
+        lkPoseQueue.unlock();
+
+        // Acquire unique lock on container.
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Copy pose.
+        stContainer.tData = sl::Pose(m_slCameraPose);
+        // Release lock.
+        lkConditionLock.unlock();
+        // Use the condition variable to notify other waiting threads that this thread is finished.
+        stContainer.cdMatWriteSuccess.notify_all();
+    }
+
+    /////////////////////////////
+    //  IMU data queue.
+    /////////////////////////////
+    // Aqcuire mutex for getting frames out of the pose queue.
+    std::unique_lock<std::mutex> lkIMUQueue(m_muIMUDataCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qIMUDataCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        DataAndSensorsFetchContainer<std::vector<double>&>& stContainer = m_qIMUDataCopySchedule.front();
+        // Pop out of queue.
+        m_qIMUDataCopySchedule.pop();
+        // Release lock.
+        lkIMUQueue.unlock();
+
+        // Acquire unique lock on container.
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+
+        // Get IMU orientation in degrees.
+        sl::float3 slAngles = m_slSensorData.imu.pose.getEulerAngles(false);
+        // Get IMU linear acceleration.
+        sl::float3 slLinearAccels = m_slSensorData.imu.linear_acceleration;
+        // Repackage angles and accels into vector.
+        stContainer.tData.emplace_back(slAngles.x);
+        stContainer.tData.emplace_back(slAngles.y);
+        stContainer.tData.emplace_back(slAngles.z);
+        stContainer.tData.emplace_back(slLinearAccels.x);
+        stContainer.tData.emplace_back(slLinearAccels.y);
+        stContainer.tData.emplace_back(slLinearAccels.z);
+
+        // Release lock.
+        lkConditionLock.unlock();
+        // Use the condition variable to notify other waiting threads that this thread is finished.
+        stContainer.cdMatWriteSuccess.notify_all();
+    }
+
+    /////////////////////////////
+    //  ObjectData queue.
+    /////////////////////////////
+    // Aqcuire mutex for getting frames out of the pose queue.
+    std::unique_lock<std::mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qObjectDataCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        DataAndSensorsFetchContainer<std::vector<sl::ObjectData>&>& stContainer = m_qObjectDataCopySchedule.front();
+        // Pop out of queue.
+        m_qObjectDataCopySchedule.pop();
+        // Release lock.
+        lkIMUQueue.unlock();
+
+        // Acquire unique lock on container.
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
+        stContainer.tData = m_slDetectedObjects.object_list;
+        // Release lock.
+        lkConditionLock.unlock();
+        // Use the condition variable to notify other waiting threads that this thread is finished.
+        stContainer.cdMatWriteSuccess.notify_all();
+    }
+
+    /////////////////////////////
+    //  ObjectData Batched queue.
+    /////////////////////////////
+    // Aqcuire mutex for getting frames out of the pose queue.
+    std::unique_lock<std::mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qObjectBatchedDataCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        DataAndSensorsFetchContainer<std::vector<sl::ObjectsBatch>&>& stContainer = m_qObjectBatchedDataCopySchedule.front();
+        // Pop out of queue.
+        m_qObjectBatchedDataCopySchedule.pop();
+        // Release lock.
+        lkIMUQueue.unlock();
+
+        // Acquire unique lock on container.
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
+        stContainer.tData = m_slDetectedObjectsBatched;
+        // Release lock.
+        lkConditionLock.unlock();
+        // Use the condition variable to notify other waiting threads that this thread is finished.
+        stContainer.cdMatWriteSuccess.notify_all();
+    }
+
+    PoolFPS.Tick();
+
+    LOG_INFO(g_qConsoleLogger, "PoolFPS: {}", PoolFPS.GetExactIPS());
 }
 
 /******************************************************************************
@@ -368,11 +557,11 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     FrameFetchContainer<cv::Mat&> stContainer(cvFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
-    lkFrameSchedule.unlock();
+    lkSchedulers.unlock();
 
     // Create lock variable to be used by condition variable. CV unlocks this during wait().
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -389,6 +578,8 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     }
     else
     {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -412,11 +603,11 @@ bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
     FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
-    lkFrameSchedule.unlock();
+    lkSchedulers.unlock();
 
     // Create lock variable to be used by condition variable. CV unlocks this during wait().
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -433,6 +624,8 @@ bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
     }
     else
     {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -463,11 +656,11 @@ bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
     FrameFetchContainer<cv::Mat&> stContainer(cvDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
-    lkFrameSchedule.unlock();
+    lkSchedulers.unlock();
 
     // Create lock variable to be used by condition variable. CV unlocks this during wait().
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -484,6 +677,8 @@ bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
     }
     else
     {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -514,11 +709,11 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
     FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
-    lkFrameSchedule.unlock();
+    lkSchedulers.unlock();
 
     // Create lock variable to be used by condition variable. CV unlocks this during wait().
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -535,6 +730,8 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
     }
     else
     {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -559,11 +756,11 @@ bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
     FrameFetchContainer<cv::Mat&> stContainer(cvPointCloud, eXYZ);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
-    lkFrameSchedule.unlock();
+    lkSchedulers.unlock();
 
     // Create lock variable to be used by condition variable. CV unlocks this during wait().
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -580,6 +777,8 @@ bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
     }
     else
     {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -604,11 +803,11 @@ bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
     FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUPointCloud, eXYZ);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkFrameSchedule(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
-    lkFrameSchedule.unlock();
+    lkSchedulers.unlock();
 
     // Create lock variable to be used by condition variable. CV unlocks this during wait().
     std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
@@ -625,6 +824,8 @@ bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
     }
     else
     {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -791,6 +992,10 @@ void ZEDCam::DisablePositionalTracking()
  *      in their respective directions according to ZED_COORD_SYSTEM defined in
  *      AutonomyConstants.h.
  *
+ *      Warning: This method is slow and should not be called in a loop. Setting the pose
+ *              will temporarily block the entire camera from grabbed or copying frames to
+ *              new threads. This method should only be called occasionally when absolutely needed.
+ *
  * @param dX - The X position of the camera in ZED_MEASURE_UNITS.
  * @param dY - The Y position of the camera in ZED_MEASURE_UNITS.
  * @param dZ - The Z position of the camera in ZED_MEASURE_UNITS.
@@ -848,7 +1053,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
            std::chrono::steady_clock::now() - tmStartTime <= std::chrono::seconds(nTimeoutSeconds))
     {
         // Sleep for one millisecond.
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     // Final check if positional tracking was successfully enabled.
@@ -1036,38 +1241,59 @@ unsigned int ZEDCam::GetCameraSerial()
 }
 
 /******************************************************************************
- * @brief Returns the current pose of the camera. If positional tracking is not
- *      enabled, this method will return an defualt initialized pose object.
+ * @brief Returns the current pose of the camera relative to it's start pose or the origin of the set pose.
+ *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
  *
- * @param slPositionReference - An sl::REFERENCE_FRAME enum that specifies whether to return the pose relative
- *                          to the last camera position or the camera's start position.
- * @return sl::Pose - The current pose of the camera.
+ * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
+ * @return true - Pose was successfully retrieved and copied.
+ * @return false - Pose was not successfully retrieved and/or copied.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::Pose ZEDCam::GetPositionalPose(const sl::REFERENCE_FRAME slPositionReference)
+bool ZEDCam::GetPositionalPose(sl::Pose& slPose)
 {
     // Check if positional tracking has been enabled.
     if (m_slCamera.isPositionalTrackingEnabled())
     {
-        // Acquire read lock.
-        std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
-        // Get the current pose of the camera.
-        sl::POSITIONAL_TRACKING_STATE slReturnCode = m_slCamera.getPosition(m_slCameraPose, slPositionReference);
-        // Release lock.
-        lkSharedLock.unlock();
+        // Assemble the data container.
+        DataAndSensorsFetchContainer<sl::Pose&> stContainer(slPose);
 
-        // Check if the tracking state is anything other than OK.
-        if (slReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
+        // Acquire lock on frame copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append frame fetch container to the schedule queue.
+        m_qPoseCopySchedule.push(stContainer);
+        // Release lock on the frame schedule queue.
+        lkSchedulers.unlock();
+
+        // Create lock variable to be used by condition variable. CV unlocks this during wait().
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Wait up to 10 seconds for the condition variable to be notified.
+        std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+        // Release lock.
+        lkConditionLock.unlock();
+
+        // Check condition variable status and return.
+        if (cdStatus == std::cv_status::no_timeout)
+        {
+            // Image was successfully written to the given cv::Mat reference.
+            return true;
+        }
+        else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Getting ZED positional pose returned non-OK status! sl::POSITIONAL_TRACKING_STATE is: {}", sl::toString(slReturnCode).get());
+            LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving sl::Pose from threadpool queue.");
+            // Image was not written successfully.
+            return false;
         }
     }
-
-    // Return the pose object of the camera with respect to either its last position or its start.
-    return m_slCameraPose;
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled!");
+        // Return unsuccessful.
+        return false;
+    }
 }
 
 /******************************************************************************
@@ -1088,49 +1314,45 @@ bool ZEDCam::GetPositionalTrackingEnabled()
  * @brief Gets the IMU data from the ZED camera. If getting the data fails, the
  *      last successfully retrieved value is returned.
  *
- * @return std::vector<double> - A 1x6 vector containing X_deg, Y_deg, Z_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
+ * @param vIMUValues - A 1x6 vector containing X_deg, Y_deg, Z_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
+ * @return true - The IMU vals were copied and stored successfully.
+ * @return false - The IMU vals were copied and stored successfully.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-std::vector<double> ZEDCam::GetIMUData()
+bool ZEDCam::GetIMUData(std::vector<double>& vIMUValues)
 {
-    // Create instance variables.
-    std::vector<double> vIMUAnglesAndAccel;
+    // Assemble the data container.
+    DataAndSensorsFetchContainer<std::vector<double>&> stContainer(vIMUValues);
 
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
-    // Get and store the SensorData object from the camera. Get data from the most recent image grab.
-    // Using TIME_REFERENCE::CURRENT requires high rate polling and can introduce error as the most recent
-    // IMU data could be in the future of the camera image.
-    sl::ERROR_CODE slReturnCode = m_slCamera.getSensorsData(m_slSensorData, sl::TIME_REFERENCE::IMAGE);
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qIMUDataCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkSchedulers.unlock();
+
+    // Create lock variable to be used by condition variable. CV unlocks this during wait().
+    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+    // Wait up to 10 seconds for the condition variable to be notified.
+    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
     // Release lock.
-    lkSharedLock.unlock();
+    lkConditionLock.unlock();
 
-    // Check if the sensor data was retrieved correctly.
-    if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+    // Check condition variable status and return.
+    if (cdStatus == std::cv_status::no_timeout)
     {
-        // Get IMU orientation in degrees.
-        sl::float3 slAngles = m_slSensorData.imu.pose.getEulerAngles(false);
-        // Get IMU linear acceleration.
-        sl::float3 slLinearAccels = m_slSensorData.imu.linear_acceleration;
-
-        // Repackage angles and accels into vector.
-        vIMUAnglesAndAccel.emplace_back(slAngles.x);
-        vIMUAnglesAndAccel.emplace_back(slAngles.y);
-        vIMUAnglesAndAccel.emplace_back(slAngles.z);
-        vIMUAnglesAndAccel.emplace_back(slLinearAccels.x);
-        vIMUAnglesAndAccel.emplace_back(slLinearAccels.y);
-        vIMUAnglesAndAccel.emplace_back(slLinearAccels.z);
+        // Image was successfully written to the given cv::Mat reference.
+        return true;
     }
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Failed to get data from ZED sensors package. sl::ERROR_CODE number: {}", sl::toString(slReturnCode).get());
+        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving IMU data from threadpool queue.");
+        // Image was not written successfully.
+        return false;
     }
-
-    // Return sensors data.
-    return vIMUAnglesAndAccel;
 }
 
 /******************************************************************************
@@ -1231,48 +1453,58 @@ bool ZEDCam::GetObjectDetectionEnabled()
 }
 
 /******************************************************************************
- * @brief Accessor for getting the tracked objects from the camera.
+ * @brief Accessor for getting the tracked objects from the camera. Current objects are copied to the
+ *      given sl::ObjectData vector.
  *
- * @return std::vector<sl::ObjectData> - A vector containing the data for each object stored in an
- *                                  sl::ObjectData object.
+ * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
+ * @return true - The object data was successfully copied.
+ * @return false - The object data was not successfully copied.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-std::vector<sl::ObjectData> ZEDCam::GetObjects()
+bool ZEDCam::GetObjects(std::vector<sl::ObjectData>& vObjectData)
 {
     // Check if object detection has been enabled.
     if (m_slCamera.isObjectDetectionEnabled())
     {
-        // Acquire read lock.
-        std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
-        // Get updated image from camera.
-        sl::ERROR_CODE slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
-        // Release lock.
-        lkSharedLock.unlock();
+        // Assemble the data container.
+        DataAndSensorsFetchContainer<std::vector<sl::ObjectData>&> stContainer(vObjectData);
 
-        // Check if objects were successfully retrieved.
-        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+        // Acquire lock on frame copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append frame fetch container to the schedule queue.
+        m_qObjectDataCopySchedule.push(stContainer);
+        // Release lock on the frame schedule queue.
+        lkSchedulers.unlock();
+
+        // Create lock variable to be used by condition variable. CV unlocks this during wait().
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Wait up to 10 seconds for the condition variable to be notified.
+        std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
+        // Release lock.
+        lkConditionLock.unlock();
+
+        // Check condition variable status and return.
+        if (cdStatus == std::cv_status::no_timeout)
         {
-            // Return the tracked object data.
-            return m_slDetectedObjects.object_list;
+            // Image was successfully written to the given cv::Mat reference.
+            return true;
         }
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is: {}", sl::toString(slReturnCode).get());
-
-            // Return previously tracked object list.
-            return m_slDetectedObjects.object_list;
+            LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving object data from threadpool queue.");
+            // Image was not written successfully.
+            return false;
         }
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "ZED object tracking was never enabled!");
-
-        // Return empty vector.
-        return std::vector<sl::ObjectData>();
+        LOG_WARNING(g_qSharedLogger, "Attempted to get ZED object data but object detection/tracking is not enabled!");
+        // Return unsuccessful.
+        return false;
     }
 }
 
@@ -1283,54 +1515,55 @@ std::vector<sl::ObjectData> ZEDCam::GetObjects()
  *  EnableObjectDetection() was called. Most of the time the vector will be empty and will be
  *  filled every ZED_OBJDETECTION_BATCH_LATENCY.
  *
- * @return std::vector<sl::ObjectsBatch> - A vector containing the data for each object stored in an
- *                                  sl::ObjectsBatch object.
+ * @param vBatchedObjectData - A vector containing objects of sl::ObjectsBatch object that will
+ *                              have object data copied to.
+ * @return true - The batched objects data was successfully copied.
+ * @return false - The batched objects data was not successfully copied.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-30
  ******************************************************************************/
-std::vector<sl::ObjectsBatch> ZEDCam::GetBatchedObjects()
+bool ZEDCam::GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
 {
-    // Create instance variables.
-    std::vector<sl::ObjectsBatch> vBatchedObjects;
-
     // Check if object detection and batching has been enabled.
     if (m_slCamera.isObjectDetectionEnabled() && m_slObjectDetectionBatchParams.enable)
     {
-        // Acquire read lock.
-        std::shared_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
-        // Get updated objects from camera.
-        sl::ERROR_CODE slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+        // Assemble the data container.
+        DataAndSensorsFetchContainer<std::vector<sl::ObjectsBatch>&> stContainer(vBatchedObjectData);
+
+        // Acquire lock on frame copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append frame fetch container to the schedule queue.
+        m_qObjectBatchedDataCopySchedule.push(stContainer);
+        // Release lock on the frame schedule queue.
+        lkSchedulers.unlock();
+
+        // Create lock variable to be used by condition variable. CV unlocks this during wait().
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        // Wait up to 10 seconds for the condition variable to be notified.
+        std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
         // Release lock.
-        lkSharedLock.unlock();
+        lkConditionLock.unlock();
 
-        // Check if objects were successfully retrieved.
-        if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+        // Check condition variable status and return.
+        if (cdStatus == std::cv_status::no_timeout)
         {
-            // Acquire read lock.
-            lkSharedLock.lock();
-            // Get batched objects.
-            slReturnCode = m_slCamera.getObjectsBatch(vBatchedObjects);
-            lkSharedLock.unlock();
-
-            // Check if objects were successfully retrieved.
-            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
-            {
-                // Submit logger message.
-                LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED batched objects. sl::ERROR_CODE is: {}", sl::toString(slReturnCode).get());
-            }
+            // Image was successfully written to the given cv::Mat reference.
+            return true;
         }
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Failed to retrieve ZED tracked objects. sl::ERROR_CODE is: {}", sl::toString(slReturnCode).get());
+            LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving batched object data from threadpool queue.");
+            // Image was not written successfully.
+            return false;
         }
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "ZED object tracking and/or batching was never enabled!");
+        LOG_WARNING(g_qSharedLogger, "Attempted to get ZED batched object data but object detection/tracking is not enabled!");
+        // Return unsuccessful.
+        return false;
     }
-
-    return vBatchedObjects;
 }
