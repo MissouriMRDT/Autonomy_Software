@@ -13,6 +13,8 @@
 
 #include <sl/Camera.hpp>
 
+#include "./interfaces/Camera.hpp"
+
 /******************************************************************************
  * @brief Namespace containing all constants for autonomy software. Including
  *      AutonomyGlobals.h will also include this namespace.
@@ -66,7 +68,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
     //// Camera Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
-
+    // MainCam
     const int ZED_MAINCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_FPS                       = 60;          // The FPS to use for the maincam.
@@ -76,6 +78,16 @@ namespace constants
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = false;       // Whether of not to use float32 or unsigned short (16) for depth measure.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 30;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAN_SERIAL                    = 31237348;    // The serial number of the camera.
+
+    // Left Side Cam.
+    const int BASIC_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
+    const int BASIC_LEFTCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the maincam images to.
+    const int BASIC_LEFTCAM_FPS                     = 60;      // The FPS to use for the maincam.
+    const int BASIC_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
+    const int BASIC_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
+    const int BASIC_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASIC_LEFTCAM_INDEX                   = 0;       // The /dev/video index of the camera.
+    const PIXEL_FORMATS BASIC_LEFTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants
