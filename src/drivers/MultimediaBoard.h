@@ -35,7 +35,7 @@ struct RGB
         {
             this->dRed   = ((iHex >> 16) & 0xFF);
             this->dGreen = ((iHex >> 8) & 0xFF);
-            this->dBlue  = ((iHex) &0xFF);
+            this->dBlue  = ((iHex) & 0xFF);
         }
 
         RGB(double dRed, double dGreen, double dBlue)

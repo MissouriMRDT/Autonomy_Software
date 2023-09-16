@@ -13,8 +13,6 @@
 #include <chrono>
 #include <ctime>
 
-
-
 struct NavBoardPacket_IMU
 {
         double dPitch;
