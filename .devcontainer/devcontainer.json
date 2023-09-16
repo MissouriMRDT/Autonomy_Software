@@ -22,6 +22,9 @@
         "-e",
         "XDG_RUNTIME_DIR"
     ],
+    // Mount shared workspace volumes. Bind from host machine to container.
+    //"workspaceMount": "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
+    //"workspaceFolder": "/workspace/Autonomy_Software",
     // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
