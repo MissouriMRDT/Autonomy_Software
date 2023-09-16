@@ -31,6 +31,14 @@ CameraHandlerThread::CameraHandlerThread()
                             constants::ZED_MAINCAM_USE_GPU_MAT,
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
                             constants::ZED_MAINCAN_SERIAL);
+
+    m_pLeftCam = new BasicCam(constants::BASIC_LEFTCAM_INDEX,
+                              constants::BASIC_LEFTCAM_RESOLUTIONX,
+                              constants::BASIC_LEFTCAM_RESOLUTIONY,
+                              constants::BASIC_LEFTCAM_FPS,
+                              constants::BASIC_LEFTCAM_PIXELTYPE,
+                              constants::BASIC_LEFTCAM_HORIZONTAL_FOV,
+                              constants::BASIC_LEFTCAM_VERTICAL_FOV);
 }
 
 /******************************************************************************
@@ -44,9 +52,11 @@ CameraHandlerThread::~CameraHandlerThread()
 {
     // Delete dynamic memory.
     delete m_pMainCam;
+    delete m_pLeftCam;
 
     // Set dangling pointers to nullptr.
     m_pMainCam = nullptr;
+    m_pLeftCam = nullptr;
 }
 
 /******************************************************************************
@@ -62,6 +72,7 @@ void CameraHandlerThread::StartAllCameras()
     m_pMainCam->Start();
 
     // Start basic cams.
+    m_pLeftCam->Start();
 }
 
 /******************************************************************************
@@ -97,8 +108,8 @@ BasicCam* CameraHandlerThread::GetBasicCam(BasicCamName eCameraName)
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case eHeadLeftArucoEye: break;     // No camera to return yet.
-        case eHeadRightAcuroEye: break;    // No camera to return yet.
-        default: break;
+        case eHeadLeftArucoEye: return m_pLeftCam;     // Return the left fisheye cam in the autonomy head.
+        case eHeadRightAcuroEye: return m_pLeftCam;    // No camera to return yet.
+        default: return m_pLeftCam;
     }
 }
