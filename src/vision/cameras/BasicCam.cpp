@@ -112,6 +112,10 @@ BasicCam::BasicCam(const int nCameraIndex,
  ******************************************************************************/
 BasicCam::~BasicCam()
 {
+    // Stop threaded code.
+    this->RequestStop();
+    this->Join();
+
     // Release camera capture object.
     m_cvCamera.release();
 }
