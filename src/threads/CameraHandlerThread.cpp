@@ -32,6 +32,7 @@ CameraHandlerThread::CameraHandlerThread()
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
                             constants::ZED_MAINCAN_SERIAL);
 
+    // Initialize Left acruco eye.
     m_pLeftCam = new BasicCam(constants::BASIC_LEFTCAM_INDEX,
                               constants::BASIC_LEFTCAM_RESOLUTIONX,
                               constants::BASIC_LEFTCAM_RESOLUTIONY,
