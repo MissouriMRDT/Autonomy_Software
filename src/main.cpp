@@ -70,12 +70,14 @@ int main()
         // TODO: Initialize RoveComm
 
         // Get reference to camera.
-        ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+        ZEDCam* TestCamera1   = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+        BasicCam* TestCamera2 = g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
         // Turn on ZED features.
         TestCamera1->EnablePositionalTracking();
         // TestCamera1->EnableSpatialMapping();
         // Declare mats to store images in.
         cv::Mat cvNormalFrame1;
+        cv::Mat cvNormalFrame2;
         cv::Mat cvDepthFrame1;
         cv::cuda::GpuMat cvGPUNormalFrame1;
         cv::cuda::GpuMat cvGPUDepthFrame1;
@@ -112,16 +114,34 @@ int main()
                 // Display frame.
                 cv::imshow("TEST1", cvNormalFrame1);
                 cv::imshow("DEPTH1", cvDepthFrame1);
+
+                // Print info about position.
+                sl::Pose slPose;
+                TestCamera1->GetPositionalPose(slPose);
+                sl::Translation slTranslation = slPose.getTranslation();
+                sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
+                LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
+                LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+                // LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
             }
 
-            // Print info about position.
-            sl::Pose slPose;
-            TestCamera1->GetPositionalPose(slPose);
-            sl::Translation slTranslation = slPose.getTranslation();
-            sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
-            LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-            LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
-            // LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+            // Grab normal frame from camera.
+            if (TestCamera2->GrabFrame(cvNormalFrame2))
+            {
+                // Print info.
+                LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", TestCamera2->GetIPS().GetAverageIPS(), TestCamera2->GetIPS().Get1PercentLow());
+
+                // Put FPS on normal frame.
+                cv::putText(cvNormalFrame2,
+                            std::to_string(TestCamera2->GetIPS().GetExactIPS()),
+                            cv::Point(50, 50),
+                            cv::FONT_HERSHEY_COMPLEX,
+                            1,
+                            cv::Scalar(255, 255, 255));
+
+                // Display frame.
+                cv::imshow("TEST2", cvNormalFrame2);
+            }
 
             // Tick FPS counter.
             FPS.Tick();
