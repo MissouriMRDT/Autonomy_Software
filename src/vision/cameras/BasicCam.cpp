@@ -88,6 +88,11 @@ BasicCam::BasicCam(const int nCameraIndex,
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = true;
 
+    // Set video cap properties.
+    m_cvCamera.set(cv::CAP_PROP_FRAME_WIDTH, nPropResolutionX);
+    m_cvCamera.set(cv::CAP_PROP_FRAME_HEIGHT, nPropResolutionY);
+    m_cvCamera.set(cv::CAP_PROP_FPS, nPropFramesPerSecond);
+
     // Attempt to open camera with OpenCV's VideoCapture.
     m_cvCamera.open(m_nCameraIndex);
     // Check if the camera was successfully opened.
@@ -134,29 +139,43 @@ BasicCam::~BasicCam()
  ******************************************************************************/
 void BasicCam::ThreadedContinuousCode()
 {
-    // Check if new frame was computed successfully.
-    if (m_cvCamera.read(m_cvFrame))
+    // Check if camera is NOT open.
+    if (!m_cvCamera.isOpened())
     {
-        // Call FPS tick.
-        m_IPS.Tick();
+        // Shutdown threads for this BasicCam.
+        this->RequestStop();
+        // Submit logger message.
+        LOG_CRITICAL(g_qSharedLogger,
+                     "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
+                     m_nCameraIndex,
+                     m_szCameraPath);
     }
     else
     {
-        // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
-    }
+        // Check if new frame was computed successfully.
+        if (m_cvCamera.read(m_cvFrame))
+        {
+            // Call FPS tick.
+            m_IPS.Tick();
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_ERROR(g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
+        }
 
-    // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty())
-    {
-        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-        this->RunDetachedPool(m_qFrameCopySchedule.size(), constants::BASIC_LEFTCAM_FRAME_RETRIEVAL_THREADS);
-        // Wait for thread pool to finish.
-        this->JoinPool();
-        // Release lock on frame copy queue.
-        lkSchedulers.unlock();
+        // Acquire a shared_lock on the frame copy queue.
+        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Check if the frame copy queue is empty.
+        if (!m_qFrameCopySchedule.empty())
+        {
+            // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
+            this->RunDetachedPool(m_qFrameCopySchedule.size(), constants::BASIC_LEFTCAM_FRAME_RETRIEVAL_THREADS);
+            // Wait for thread pool to finish.
+            this->JoinPool();
+            // Release lock on frame copy queue.
+            lkSchedulers.unlock();
+        }
     }
 }
 

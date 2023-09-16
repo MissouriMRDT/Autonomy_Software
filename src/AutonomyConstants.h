@@ -82,7 +82,7 @@ namespace constants
     // Left Side Cam.
     const int BASIC_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
     const int BASIC_LEFTCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the maincam images to.
-    const int BASIC_LEFTCAM_FPS                     = 60;      // The FPS to use for the maincam.
+    const int BASIC_LEFTCAM_FPS                     = 30;      // The FPS to use for the maincam.
     const int BASIC_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASIC_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
     const int BASIC_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
