@@ -158,13 +158,13 @@ int main()
         // TestCamera1->ExtractSpatialMapAsync(fuSpatialMap);
         // sl::Mesh slSpatialMap = fuSpatialMap.get();
         // slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
+
+        // Delete dynamically allocated memory.
+        delete g_pCameraHandler;
+
+        // Set dangling pointers to null.
+        g_pCameraHandler = nullptr;
     }
-
-    // Delete dynamically allocated memory.
-    delete g_pCameraHandler;
-
-    // Set dangling pointers to null.
-    g_pCameraHandler = nullptr;
 
     // Successful exit.
     return 0;
