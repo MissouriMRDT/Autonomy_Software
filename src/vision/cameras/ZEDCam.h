@@ -19,14 +19,20 @@
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+#include "../../util/vision/FetchContainers.hpp"
 
 class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     public:
+        /////////////////////////////////////////
         // Declare public structs that are specific to and used within this class.
+        /////////////////////////////////////////
+
         struct ZedObjectData;
 
+        /////////////////////////////////////////
         // Declare public methods and member variables.
+        /////////////////////////////////////////
 
         ZEDCam(const int nPropResolutionX,
                const int nPropResolutionY,
@@ -49,7 +55,9 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
 
+        /////////////////////////////////////////
         // Setters for class member variables.
+        /////////////////////////////////////////
 
         sl::ERROR_CODE EnablePositionalTracking();
         void DisablePositionalTracking();
@@ -59,7 +67,9 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
         void DisableObjectDetection();
 
+        /////////////////////////////////////////
         // Accessors for class member variables.
+        /////////////////////////////////////////
 
         bool GetCameraIsOpen() override;
         bool GetUsingGPUMem() const;
@@ -75,17 +85,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         bool GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData);
 
     private:
-        // Declare public structs that are specific to and used within this class.
-        template<typename T>
-        struct FrameFetchContainer;
-        template<typename T>
-        struct DataAndSensorsFetchContainer;
-
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
-
         // ZED Camera specific.
+
         sl::Camera m_slCamera;
         std::shared_mutex m_muCameraMutex;
         sl::InitParameters m_slCameraParams;
@@ -102,19 +106,21 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::MEM m_slMemoryType;
 
         // Mats for storing frames and measures.
+
         sl::Mat m_slFrame;
         sl::Mat m_slDepthImage;
         sl::Mat m_slDepthMeasure;
         sl::Mat m_slPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<std::reference_wrapper<FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
-        std::queue<std::reference_wrapper<FrameFetchContainer<cv::cuda::GpuMat&>>> m_qGPUFrameCopySchedule;
-        std::queue<std::reference_wrapper<DataAndSensorsFetchContainer<std::vector<ZedObjectData>&>>> m_qCustomBoxInjestSchedule;
-        std::queue<std::reference_wrapper<DataAndSensorsFetchContainer<sl::Pose&>>> m_qPoseCopySchedule;
-        std::queue<std::reference_wrapper<DataAndSensorsFetchContainer<std::vector<double>&>>> m_qIMUDataCopySchedule;
-        std::queue<std::reference_wrapper<DataAndSensorsFetchContainer<std::vector<sl::ObjectData>&>>> m_qObjectDataCopySchedule;
-        std::queue<std::reference_wrapper<DataAndSensorsFetchContainer<std::vector<sl::ObjectsBatch>&>>> m_qObjectBatchedDataCopySchedule;
+
+        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
+        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::cuda::GpuMat&>>> m_qGPUFrameCopySchedule;
+        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<ZedObjectData>&>>> m_qCustomBoxInjestSchedule;
+        std::queue<std::reference_wrapper<containers::DataFetchContainer<sl::Pose&>>> m_qPoseCopySchedule;
+        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<double>&>>> m_qIMUDataCopySchedule;
+        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<sl::ObjectData>&>>> m_qObjectDataCopySchedule;
+        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>&>>> m_qObjectBatchedDataCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
         std::mutex m_muFrameCopyMutex;
         std::mutex m_muCustomBoxInjestMutex;
@@ -123,9 +129,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
 
+        /////////////////////////////////////////
         // Declare private methods.
+        /////////////////////////////////////////
 
         void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;    // This does nothing for now. No need for threadpools.
+        void PooledLinearCode() override;
 };
 #endif
