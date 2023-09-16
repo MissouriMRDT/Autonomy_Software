@@ -16,7 +16,7 @@
 #include <sl/Camera.hpp>
 
 /******************************************************************************
- * @brief Namespace containing function related to operations on images or other
+ * @brief Namespace containing functions related to operations on images or other
  *      large binary operations.
  *
  *
