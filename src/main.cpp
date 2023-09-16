@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/OpenZEDCam.hpp"
+#include "../examples/vision/OpenBasicCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -62,7 +62,13 @@ int main()
         RunExample();
     }
     else
-    {}
+    {
+        // Initialize and start Threads
+        g_pCameraHandler = new CameraHandlerThread();
+        g_pCameraHandler->StartAllCameras();
+
+        // TODO: Initialize RoveComm
+    }
 
     // Successful exit.
     return 0;
