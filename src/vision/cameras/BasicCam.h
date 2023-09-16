@@ -12,22 +12,18 @@
 #define BASICCAM_H
 
 #include <opencv2/opencv.hpp>
+#include <shared_mutex>
 
+#include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+#include "../../util/vision/FetchContainers.hpp"
 
-class BasicCam : public Camera<cv::Mat>
+class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
-    private:
-        // Declare private methods and functions variables.
-
-        bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nCameraIndex;
-        std::string m_szCameraPath;
-        cv::VideoCapture m_cvCamera;
-        cv::Mat m_cvFrame;
-
     public:
+        /////////////////////////////////////////
         // Declare public methods and member variables.
+        /////////////////////////////////////////
 
         BasicCam(const std::string szCameraPath,
                  const int nPropResolutionX,
@@ -46,9 +42,38 @@ class BasicCam : public Camera<cv::Mat>
         ~BasicCam();
         bool GrabFrame(cv::Mat& cvFrame) override;
 
+        /////////////////////////////////////////
         // Getters.
+        /////////////////////////////////////////
+
         template<typename T>
         T GetCameraLocation() const;
         bool GetCameraIsOpen() override;
+
+    private:
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+        // Basic camera specific.
+
+        cv::VideoCapture m_cvCamera;
+        std::string m_szCameraPath;
+        bool m_bCameraIsConnectedOnVideoIndex;
+        int m_nCameraIndex;
+
+        // Mats for storing frames.
+        cv::Mat m_cvFrame;
+
+        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
+        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
+        std::shared_mutex m_muPoolScheduleMutex;
+        std::mutex m_muFrameCopyMutex;
+
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
 };
 #endif
