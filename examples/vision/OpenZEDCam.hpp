@@ -12,6 +12,9 @@
 #include "../../src/util/ExampleChecker.h"
 #include "../../src/vision/cameras/ZEDCam.h"
 
+// Declare file constants.
+const bool ENABLE_SPATIAL_MAPPING = false;
+
 /******************************************************************************
  * @brief Main example method.
  *
@@ -29,7 +32,12 @@ void RunExample()
     ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
     // Turn on ZED features.
     TestCamera1->EnablePositionalTracking();
-    TestCamera1->EnableSpatialMapping();
+    // Check if we should turn on spatial mapping.
+    if (ENABLE_SPATIAL_MAPPING)
+    {
+        // Enable spatial mapping.
+        TestCamera1->EnableSpatialMapping();
+    }
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
@@ -68,7 +76,11 @@ void RunExample()
             sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
             LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
             LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
-            // LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+            // Check if spatial mapping is enabled.
+            if (ENABLE_SPATIAL_MAPPING)
+            {
+                LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+            }
         }
 
         // Tick FPS counter.
@@ -81,11 +93,15 @@ void RunExample()
 
     cv::destroyAllWindows();
 
-    // Extract spatial map.
-    std::future<sl::Mesh> fuSpatialMap;
-    TestCamera1->ExtractSpatialMapAsync(fuSpatialMap);
-    sl::Mesh slSpatialMap = fuSpatialMap.get();
-    slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
+    // Check if spatial mapping is enabled.
+    if (ENABLE_SPATIAL_MAPPING)
+    {
+        // Extract spatial map.
+        std::future<sl::Mesh> fuSpatialMap;
+        TestCamera1->ExtractSpatialMapAsync(fuSpatialMap);
+        sl::Mesh slSpatialMap = fuSpatialMap.get();
+        slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
+    }
 
     // Delete dynamically allocated memory.
     delete g_pCameraHandler;

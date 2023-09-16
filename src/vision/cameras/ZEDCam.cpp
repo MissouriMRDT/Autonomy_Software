@@ -178,12 +178,6 @@ ZEDCam::~ZEDCam()
     this->RequestStop();
     this->Join();
 
-    // Free SL mats.
-    m_slFrame.free();
-    m_slDepthMeasure.free();
-    m_slDepthImage.free();
-    m_slPointCloud.free();
-
     // Close the ZEDCam.
     m_slCamera.close();
 }
