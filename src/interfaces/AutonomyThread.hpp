@@ -133,7 +133,7 @@ class AutonomyThread
             }
 
             // Loop nNumThreads times and queue tasks.
-            for (int i = 0; i < nNumThreads; ++i)
+            for (int i = 0; i < nNumTasksToQueue; ++i)
             {
                 // Submit single task to pool queue.
                 m_vPoolReturns.emplace_back(m_thPool.submit(
@@ -169,6 +169,7 @@ class AutonomyThread
          *      locks as all possible solutions lead to a solution that only lets one thread run at
          *      a time, essentially canceling out the parallelism.
          *
+         * @param nNumTasksToQueue - The number of tasks running PooledLinearCode() to queue.
          * @param nNumThreads - The number of threads to run user code in.
          * @param bForceStopCurrentThreads - Clears the current tasks queue then signals and waits for existing
          *                                  tasks to stop before queueing more.
@@ -176,7 +177,7 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-0723
          ******************************************************************************/
-        void RunDetachedPool(const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
+        void RunDetachedPool(const unsigned int nNumTasksToQueue, const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
         {
             // Check if the pools need to be resized.
             if (m_thPool.get_thread_count() != nNumThreads)
@@ -216,7 +217,7 @@ class AutonomyThread
             }
 
             // Loop nNumThreads times and queue tasks.
-            for (unsigned int i = 0; i < nNumThreads; ++i)
+            for (unsigned int i = 0; i < nNumTasksToQueue; ++i)
             {
                 // Push single task to pool queue. No return value no control.
                 m_thPool.push_task(
