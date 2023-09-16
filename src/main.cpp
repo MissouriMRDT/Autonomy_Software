@@ -122,9 +122,6 @@ int main()
             LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
             LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
             // LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
-            std::vector<double> vIMUData;
-            TestCamera1->GetIMUData(vIMUData);
-            LOG_INFO(g_qConsoleLogger, "IMU Data: Roll: {} | Pitch: {} | Yaw:{}", vIMUData[0], vIMUData[1], vIMUData[2]);
 
             // Tick FPS counter.
             FPS.Tick();

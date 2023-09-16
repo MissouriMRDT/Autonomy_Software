@@ -244,56 +244,142 @@ void ZEDCam::ThreadedContinuousCode()
     std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
     // Call generalized update method of zed api.
     sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
-    // Grab regular image and store it in member variable.
-    slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Grab depth measure and store it in member variable.
-    slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Grab depth grayscale image and store it in member variable.
-    slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Grab regular resized image and store it in member variable.
-    slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-    // Get and store the SensorData object from the camera. Get data from the most recent image grab.
-    // Using TIME_REFERENCE::CURRENT requires high rate polling and can introduce error as the most recent
-    // IMU data could be in the future of the camera image.
-    slReturnCode = m_slCamera.getSensorsData(m_slSensorData, sl::TIME_REFERENCE::IMAGE);
-    // Check if positional tracking is enabled.
-    if (m_slCamera.isPositionalTrackingEnabled())
-    {
-        // Get the current pose of the camera.
-        sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-    }
-    // Check if object detection is enabled.
-    if (m_slCamera.isObjectDetectionEnabled())
-    {
-        // Get updated objects from camera.
-        slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
-
-        // Check if batched object data is enabled.
-        if (m_slObjectDetectionBatchParams.enable)
-        {
-            // Get updated batched objects from camera.
-            slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
-        }
-    }
-    // Release camera lock.
-    lkSharedCameraLock.unlock();
-
-    // TODO: Implement logger output for slReturnCode statuses.
-
-    // Check if grab function was executed successfully.
+    // Check if new frame was computed successfully.
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
     {
+        // Grab regular image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        // Check that the regular frame was retrieved successfully.
+        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number,
+                        sl::toString(slReturnCode).get());
+        }
+
+        // Grab depth measure and store it in member variable.
+        slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        // Check that the regular frame was retrieved successfully.
+        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number,
+                        sl::toString(slReturnCode).get());
+        }
+
+        // Grab depth grayscale image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        // Check that the regular frame was retrieved successfully.
+        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number,
+                        sl::toString(slReturnCode).get());
+        }
+
+        // Grab regular resized image and store it in member variable.
+        slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+        // Check that the regular frame was retrieved successfully.
+        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number,
+                        sl::toString(slReturnCode).get());
+        }
+
+        // Get and store the SensorData object from the camera. Get data from the most recent image grab.
+        // Using TIME_REFERENCE::CURRENT requires high rate polling and can introduce error as the most recent
+        // IMU data could be in the future of the camera image.
+        slReturnCode = m_slCamera.getSensorsData(m_slSensorData, sl::TIME_REFERENCE::IMAGE);
+        // Check that the regular frame was retrieved successfully.
+        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_WARNING(g_qSharedLogger,
+                        "Unable to retrieve new sensors data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                        m_slCamera.getCameraInformation().serial_number,
+                        sl::toString(slReturnCode).get());
+        }
+
+        // Check if positional tracking is enabled.
+        if (m_slCamera.isPositionalTrackingEnabled())
+        {
+            // Get the current pose of the camera.
+            sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+            // Check that the regular frame was retrieved successfully.
+            if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
+            {
+                // Submit logger message.
+                LOG_WARNING(g_qSharedLogger,
+                            "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_slCamera.getCameraInformation().serial_number,
+                            sl::toString(slPoseTrackReturnCode).get());
+            }
+        }
+        // Check if object detection is enabled.
+        if (m_slCamera.isObjectDetectionEnabled())
+        {
+            // Get updated objects from camera.
+            slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+            // Check that the regular frame was retrieved successfully.
+            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+            {
+                // Submit logger message.
+                LOG_WARNING(g_qSharedLogger,
+                            "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_slCamera.getCameraInformation().serial_number,
+                            sl::toString(slReturnCode).get());
+            }
+
+            // Check if batched object data is enabled.
+            if (m_slObjectDetectionBatchParams.enable)
+            {
+                // Get updated batched objects from camera.
+                slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
+                // Check that the regular frame was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(g_qSharedLogger,
+                                "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number,
+                                sl::toString(slReturnCode).get());
+                }
+            }
+        }
+        // Release camera lock.
+        lkSharedCameraLock.unlock();
+
         // Call FPS tick.
         m_IPS.Tick();
     }
     else
     {
+        // Release camera lock.
+        lkSharedCameraLock.unlock();
+
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger,
-                    "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
-                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                    m_slCamera.getCameraInformation().serial_number,
-                    sl::toString(slReturnCode).get());
+        LOG_ERROR(g_qSharedLogger,
+                  "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
+                  sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                  m_slCamera.getCameraInformation().serial_number,
+                  sl::toString(slReturnCode).get());
     }
 
     // Acquire a shared_lock on the frame copy queue.
@@ -332,9 +418,6 @@ void ZEDCam::ThreadedContinuousCode()
  ******************************************************************************/
 void ZEDCam::PooledLinearCode()
 {
-    IPS PoolFPS = IPS();
-
-    PoolFPS.Tick();
     /////////////////////////////
     //  Frame queue.
     /////////////////////////////
@@ -517,10 +600,6 @@ void ZEDCam::PooledLinearCode()
         // Use the condition variable to notify other waiting threads that this thread is finished.
         stContainer.cdMatWriteSuccess.notify_all();
     }
-
-    PoolFPS.Tick();
-
-    LOG_INFO(g_qConsoleLogger, "PoolFPS: {}", PoolFPS.GetExactIPS());
 }
 
 /******************************************************************************
