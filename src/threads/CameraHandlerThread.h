@@ -32,6 +32,7 @@ class CameraHandlerThread
     private:
         // Declare private class member variables.
         ZEDCam* m_pMainCam;
+        BasicCam* m_pLeftCam;
 
     public:
         // Define public enumerators specific to this class.
