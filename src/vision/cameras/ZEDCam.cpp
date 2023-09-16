@@ -123,10 +123,12 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_slPoseTrackingParams.set_gravity_as_origin = constants::ZED_POSETRACK_USE_GRAVITY_ORIGIN;
 
     // Setup spatial mapping parameters.
-    m_slSpatialMappingParams.map_type         = constants::ZED_MAPPING_TYPE;
-    m_slSpatialMappingParams.resolution_meter = constants::ZED_MAPPING_RESOLUTION_METER;
-    m_slSpatialMappingParams.range_meter      = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
-    m_slSpatialMappingParams.save_texture     = true;
+    m_slSpatialMappingParams.map_type          = constants::ZED_MAPPING_TYPE;
+    m_slSpatialMappingParams.resolution_meter  = constants::ZED_MAPPING_RESOLUTION_METER;
+    m_slSpatialMappingParams.range_meter       = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
+    m_slSpatialMappingParams.save_texture      = true;
+    m_slSpatialMappingParams.use_chunk_only    = constants::ZED_MAPPING_USE_CHUNK_ONLY;
+    m_slSpatialMappingParams.stability_counter = constants::ZED_MAPPING_STABILITY_COUNTER;
 
     // Setup object detection/tracking parameters.
     m_slObjectDetectionParams.detection_model      = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
@@ -175,6 +177,12 @@ ZEDCam::~ZEDCam()
     // Stop threaded code.
     this->RequestStop();
     this->Join();
+
+    // Free SL mats.
+    m_slFrame.free();
+    m_slDepthMeasure.free();
+    m_slDepthImage.free();
+    m_slPointCloud.free();
 
     // Close the ZEDCam.
     m_slCamera.close();
