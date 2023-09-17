@@ -80,7 +80,7 @@ include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 link_directories(${ZED_LIBRARY_DIRS})
 
 ## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
-find_package(CUDA ${ZED_CUDA_VERSION} EXACT REQUIRED)
+find_package(CUDAToolkit ${ZED_CUDA_VERSION} EXACT REQUIRED)
 include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
 link_directories(${CUDA_LIBRARY_DIRS})
 ## Determine if shared or static libraries will be used.
@@ -91,9 +91,9 @@ if (NOT LINK_SHARED_ZED AND MSVC)
 endif()
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
-    SET(ZED_LIBS ${ZED_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY})
+    SET(ZED_LIBS ${ZED_LIBRARIES} ${CUDA_CUDART_LIBRARY})
 else()
-    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_LIBRARY})
+    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} ${CUDA_LIBRARY})
 endif()
 
 ## Enable to CTest and Google Test Frameworks
