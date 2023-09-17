@@ -104,6 +104,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
         sl::MEM m_slMemoryType;
+        unsigned int m_unCameraSerialNumber;
 
         // Mats for storing frames and measures.
 

@@ -51,6 +51,12 @@ CameraHandlerThread::CameraHandlerThread()
  ******************************************************************************/
 CameraHandlerThread::~CameraHandlerThread()
 {
+    // Signal and wait for cameras to stop.
+    m_pMainCam->RequestStop();
+    m_pLeftCam->RequestStop();
+    m_pMainCam->Join();
+    m_pLeftCam->Join();
+
     // Delete dynamic memory.
     delete m_pMainCam;
     delete m_pLeftCam;

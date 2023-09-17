@@ -94,6 +94,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
+    m_unCameraSerialNumber = unCameraSerialNumber;
 
     // Setup camera params.
     m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
@@ -204,7 +205,7 @@ void ZEDCam::ThreadedContinuousCode()
         // Submit logger message.
         LOG_CRITICAL(g_qSharedLogger,
                      "Camera start was attempted for camera at {}, but camera never properly opened or it has been closed/rebooted!",
-                     m_slCamera.getCameraInformation().serial_number);
+                     m_unCameraSerialNumber);
     }
     else
     {
