@@ -91,10 +91,15 @@ if (NOT LINK_SHARED_ZED AND MSVC)
 endif()
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
-    SET(ZED_LIBS ${ZED_LIBRARIES} ${CUDA_CUDART_LIBRARY})
+    SET(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
 else()
-    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} ${CUDA_LIBRARY})
+    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} CUDA::toolkit)
 endif()
+
+## Add special flag if compiling on aarch64.
+IF (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+    add_definitions(-DJETSON_STYLE)
+ENDIF()
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
