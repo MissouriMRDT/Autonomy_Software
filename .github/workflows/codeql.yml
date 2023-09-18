@@ -37,7 +37,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     container:
       image: ghcr.io/missourimrdt/autonomy-focal:latest
       credentials:
