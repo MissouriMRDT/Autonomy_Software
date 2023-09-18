@@ -1,0 +1,51 @@
+# Image Variables
+ARG UBUNTU_MAJOR="20"
+ARG CUDA_MAJOR="11"
+ARG CUDA_MINOR="7"
+ARG CUDA_PATCH="0"
+
+# Base Image
+FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.04
+
+# Install Variables
+ARG UBUNTU_MAJOR="20"
+ARG CUDA_MAJOR="11"
+ARG CUDA_MINOR="7"
+ARG CUDA_PATCH="0"
+ARG RUNNER_VERSION="2.309.0"
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set Labels
+LABEL authors="Missouri S&T Mars Rover Design Team"
+LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
+LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
+LABEL org.opencontainers.image.licenses=GPL-3.0-only
+LABEL org.opencontainers.image.version="v24.1.0"
+LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, and Runner ${RUNNER_VERSION}."
+
+# update the base packages + add a non-sudo user
+RUN apt-get update -y && apt-get upgrade -y && useradd -m docker
+
+# install the packages and dependencies along with jq so we can parse JSON (add additional packages as necessary)
+RUN apt-get install -y --no-install-recommends \
+    curl nodejs wget unzip vim git jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip
+
+# cd into the user directory, download and unzip the github actions runner
+RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
+    && curl -O -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
+    && tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+
+# install some additional dependencies
+RUN chown -R docker ~docker && /home/docker/actions-runner/bin/installdependencies.sh
+
+# add over the start.sh script
+ADD scripts/start.sh start.sh
+
+# make the script executable
+RUN chmod +x start.sh
+
+# set the user to "docker" so all subsequent commands are run as the docker user
+USER docker
+
+# set the entrypoint to the start.sh script
+ENTRYPOINT ["./start.sh"]
