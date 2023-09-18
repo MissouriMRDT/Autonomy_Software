@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 
+#include "../examples/vision/OpenZEDCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
