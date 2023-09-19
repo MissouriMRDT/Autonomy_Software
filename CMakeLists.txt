@@ -74,8 +74,12 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+## Find CUDA.
+find_package(CUDA 11.7 REQUIRED)
+message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
+
 ## Find ZEDSDK. Add as system package to supress library warnings.
-find_package(ZED 2 REQUIRED)
+find_package(ZED REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 link_directories(${ZED_LIBRARY_DIRS})
 
