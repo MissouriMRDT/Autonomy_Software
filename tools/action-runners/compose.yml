@@ -4,12 +4,21 @@ version: '3.8'
 services:
   jammy-runner:
     image: ghcr.io/missourimrdt/jammy-runner:latest
+    stdin_open: true
+    tty: true
     build:
       context: .
       dockerfile: Dockerfile_Jammy
       args:
         RUNNER_VERSION: '2.309.0'
     command: unix-connect:/var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
     volumes:
       - type: bind
         source: /var/run/docker.sock
@@ -20,12 +29,21 @@ services:
       GH_REPOSITORY: Autonomy_Software
   jetpack-runner:
     image: ghcr.io/missourimrdt/jetpack-runner:latest
+    stdin_open: true
+    tty: true
     build:
       context: .
       dockerfile: Dockerfile_JetPack
       args:
         RUNNER_VERSION: '2.309.0'
     command: unix-connect:/var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
     volumes:
       - type: bind
         source: /var/run/docker.sock
