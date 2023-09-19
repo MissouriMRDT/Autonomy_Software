@@ -13,7 +13,7 @@ concurrency:
 jobs:
   formatting-check:
     name: Formatting Check
-    runs-on: [self-hosted, linux, X64]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
