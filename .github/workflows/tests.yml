@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory .
+        run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Extract branch name
         shell: bash
@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory .
+        run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Download Artifact (Unit Tests)
         uses: actions/download-artifact@v2
@@ -87,7 +87,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory .
+        run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Download Artifact (Integration Tests)
         uses: actions/download-artifact@v2
