@@ -1,11 +1,5 @@
-# Image Variables
-ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
-ARG CUDA_PATCH="0"
-
 # Base Image
-FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.04
+FROM ghcr.io/missourimrdt/autonomy-jammy:latest
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"

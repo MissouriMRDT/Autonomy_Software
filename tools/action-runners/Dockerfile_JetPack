@@ -1,11 +1,5 @@
-# Image Variables
-ARG L4T_MAJOR="35"
-ARG L4T_MINOR="3"
-ARG L4T_PATCH="1"
-ARG L4T_BASE="l4t-jetpack"
-
 # Base Image
-FROM nvcr.io/nvidia/${L4T_BASE}:r${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH}
+FROM ghcr.io/missourimrdt/autonomy-jetpack:latest
 
 # Install Variables
 ARG L4T_MAJOR="35"
