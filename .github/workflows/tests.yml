@@ -46,6 +46,7 @@ jobs:
           if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
+          ls /usr/local/zed/
           cmake ..
           make
 
