@@ -15,6 +15,10 @@ jobs:
   build-tests:
     runs-on: [self-hosted, linux, X64]
 
+    outputs:
+      check_unit: ${{ steps.check_unit.outputs.files_exists }}
+      check_integration: ${{ steps.check_integration.outputs.files_exists }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,7 +34,6 @@ jobs:
       - name: Update Branch
         run: |
           cd /opt/Autonomy_Software/
-          chmod -R 777 .git
           git fetch --force
           branch=${{ steps.extract_branch.outputs.branch }}
           echo $branch
@@ -45,21 +48,37 @@ jobs:
           cmake ..
           make
 
+      - name: Check File Existence (Unit Tests)
+        id: check_unit
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_UnitTests"
+
       - name: Upload Artifact (Unit Tests)
+        if: steps.check_unit.outputs.files_exists == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: Autonomy-Unit-Tests
           path: /opt/Autonomy_Software/build/Autonomy_Software_UnitTests
 
+      - name: Check File Existence (Integration Tests)
+        id: check_integration
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests"
+
       - name: Upload Artifact (Integration Tests)
+        if: steps.check_integration.outputs.files_exists == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: Autonomy-Integration-Tests
           path: /opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests
-  
+
   run-unit-tests:
     needs: build-tests
     runs-on: [self-hosted, linux, X64]
+
+    if: ${{needs.build-tests.outputs.check_unit}}
 
     steps:
       - name: Checkout repository
@@ -82,6 +101,8 @@ jobs:
   run-integration-tests:
     needs: build-tests
     runs-on: [self-hosted, linux, X64]
+
+    if: ${{needs.build-tests.outputs.check_integration}}
 
     steps:
       - name: Checkout repository
