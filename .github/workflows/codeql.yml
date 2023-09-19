@@ -38,11 +38,6 @@ jobs:
   analyze:
     name: Analyze
     runs-on: [self-hosted, linux, X64]
-    container:
-      image: ghcr.io/missourimrdt/autonomy-focal:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 360
 
     strategy:

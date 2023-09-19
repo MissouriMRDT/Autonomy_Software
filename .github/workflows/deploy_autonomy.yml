@@ -21,37 +21,14 @@ jobs:
     strategy:
       matrix:
         os: [[self-hosted, linux, X64], [self-hosted, linux, ARM64]]
-        container:
-          [
-            "ghcr.io/missourimrdt/autonomy-focal:latest",
-            "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-          ]
         architecture: [AMD64, ARM64]
         exclude:
           - os: [self-hosted, linux, X64]
-            container: "ghcr.io/missourimrdt/autonomy-focal:latest"
             architecture: ARM64
-          - os: [self-hosted, linux, X64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-            architecture: ARM64
-          - os: [self-hosted, linux, X64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-            architecture: ARM64
-          - os: [self-hosted, linux, X64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-            architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
             architecture: AMD64
-          - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-focal:latest"
-            architecture: AMD64
-          - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-focal:latest"
-            architecture: ARM64
 
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
 
     steps:
       - name: Checkout Tag
