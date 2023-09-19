@@ -30,7 +30,7 @@ jobs:
       - name: Update Branch
         run: |
           cd /opt/Autonomy_Software/
-          sudo chmod -R 777 .git
+          chmod -R 777 .git
           git fetch --force
           branch=${{ steps.extract_branch.outputs.branch }}
           echo $branch
