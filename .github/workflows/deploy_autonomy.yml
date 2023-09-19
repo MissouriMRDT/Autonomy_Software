@@ -49,6 +49,7 @@ jobs:
       - name: Build and Create Executable
         run: |
           cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
           cmake ..
