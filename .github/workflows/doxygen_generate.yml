@@ -26,15 +26,14 @@ concurrency:
 
 jobs:
   run-doxygen:
-
     # Only run this step if the action was triggered automatically and the pull request merged on the development branch.
     # Or, it was triggered manually on the development branch.
     if: ${{ github.event_name == 'push' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' ) }}
-    
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: [self-hosted, linux, X64]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
