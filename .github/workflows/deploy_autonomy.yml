@@ -31,6 +31,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
+
       - name: Checkout Tag
         run: |
           cd /opt/Autonomy_Software/
@@ -64,6 +70,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
 
       - name: Determine Version
         id: version
