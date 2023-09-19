@@ -12,10 +12,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  run-tests:
+  build-tests:
     runs-on: [self-hosted, linux, X64]
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
+
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
@@ -38,15 +44,58 @@ jobs:
           cmake ..
           make
 
+      - name: Upload Artifact (Unit Tests)
+        uses: actions/upload-artifact@v3
+        with:
+          name: Autonomy-Unit-Tests
+          path: /opt/Autonomy_Software/build/Autonomy_Software_UnitTests
+
+      - name: Upload Artifact (Integration Tests)
+        uses: actions/upload-artifact@v3
+        with:
+          name: Autonomy-Integration-Tests
+          path: /opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests
+  
+  run-unit-tests:
+    needs: build-tests
+    runs-on: [self-hosted, linux, X64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
+
+      - name: Download Artifact (Unit Tests)
+        uses: actions/download-artifact@v2
+        with:
+          name: Autonomy-Unit-Tests
+          path: /opt/Autonomy_Software/build/Autonomy_Software_UnitTests
+
       - name: Run Unit Tests
-        id: run-unit
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; else echo "No Unit Tests Exist" ; fi
 
+  run-integration-tests:
+    needs: build-tests
+    runs-on: [self-hosted, linux, X64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
+
+      - name: Download Artifact (Integration Tests)
+        uses: actions/download-artifact@v2
+        with:
+          name: Autonomy-Integration-Tests
+          path: /opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests
+
       - name: Run Integration Tests
-        id: run-integration
-        if: success() || (failure() && steps.run-unit.outcome == 'failure')
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_IntegrationTests"; then ./Autonomy_Software_IntegrationTests ; else echo "No Integration Tests Exist" ; fi

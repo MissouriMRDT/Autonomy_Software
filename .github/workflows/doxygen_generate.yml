@@ -37,8 +37,11 @@ jobs:
     runs-on: [self-hosted, linux, X64]
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory .
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
