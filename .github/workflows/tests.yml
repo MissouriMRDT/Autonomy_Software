@@ -78,7 +78,7 @@ jobs:
     needs: build-tests
     runs-on: [self-hosted, linux, X64]
 
-    if: ${{needs.build-tests.outputs.check_unit}}
+    if: needs.build-tests.outputs.check_unit == 'true'
 
     steps:
       - name: Checkout repository
@@ -102,7 +102,7 @@ jobs:
     needs: build-tests
     runs-on: [self-hosted, linux, X64]
 
-    if: ${{needs.build-tests.outputs.check_integration}}
+    if: needs.build-tests.outputs.check_integration == 'true'
 
     steps:
       - name: Checkout repository
