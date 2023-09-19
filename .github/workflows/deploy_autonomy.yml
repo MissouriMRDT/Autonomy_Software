@@ -19,6 +19,7 @@ concurrency:
 jobs:
   build-and-upload:
     strategy:
+      fail-fast: false
       matrix:
         os: [[self-hosted, linux, X64], [self-hosted, linux, ARM64]]
         architecture: [AMD64, ARM64]
@@ -32,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -69,7 +70,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
