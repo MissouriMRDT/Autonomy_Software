@@ -75,6 +75,7 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
+set(ZED_DIR "/usr/local/zed/")
 find_package(ZED REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 link_directories(${ZED_LIBRARY_DIRS})
