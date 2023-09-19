@@ -14,7 +14,6 @@ concurrency:
 jobs:
   run-valgrind:
     runs-on: [self-hosted, linux, X64]
-    container: ghcr.io/missourimrdt/autonomy-focal:latest
 
     steps:
       - name: Extract branch name
