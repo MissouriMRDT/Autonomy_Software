@@ -36,7 +36,7 @@ namespace mpl = boost::mpl;
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
 
-// CameraHandler.
+// Camera Handler:
 extern CameraHandlerThread* g_pCameraHandler;
 
 // Board Interfaces:

@@ -13,7 +13,7 @@
 
 #include "../util/IPS.hpp"
 
-// Declare global enumerator.
+// Declare global/file-scope enumerator.
 enum PIXEL_FORMATS
 {
     eRGB,

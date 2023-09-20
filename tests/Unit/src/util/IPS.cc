@@ -99,6 +99,7 @@ TEST(IPSTest, MetricsFunctionality)
         {
             // Call tick method.
             pIPS->Tick();
+
             // Sleep for 2ms.
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
@@ -107,6 +108,7 @@ TEST(IPSTest, MetricsFunctionality)
         {
             // Call tick method.
             pIPS->Tick();
+
             // Sleep for 2ms.
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
@@ -121,6 +123,7 @@ TEST(IPSTest, MetricsFunctionality)
     double dHigh     = pIPS->GetHighestIPS();
     double dLow      = pIPS->GetLowestIPS();
     double d1Percent = pIPS->Get1PercentLow();
+
     // Test that the returned average makes sense.
     EXPECT_TRUE(dAverage <= dHigh && dAverage >= dLow);
     // Test that the returned minimum makes sense.

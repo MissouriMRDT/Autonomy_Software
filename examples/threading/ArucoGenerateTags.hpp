@@ -4,7 +4,7 @@
  *
  * @file ArucoGenerateTags.hpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0723
+ * @date 2023-07-23
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
@@ -39,7 +39,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void ThreadedContinuousCode() override
         {
@@ -62,7 +62,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0725
+         * @date 2023-07-25
          ******************************************************************************/
         void PooledLinearCode() override
         {
@@ -117,7 +117,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @param nNumTags - The number of tags to generate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void SetNumTagsToGenerate(const int nNumTags) { m_nNumTagsToGenerate = nNumTags; }
 
@@ -127,7 +127,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @param eDictionary - The dictionary type to use for generation.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void AddTagDictionaryType(const cv::aruco::PredefinedDictionaryType eDictionary) { m_vDictionaries.emplace_back(eDictionary); }
 };
@@ -155,7 +155,7 @@ class ArucoGenerateTagsLinear
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0725
+         * @date 2023-07-25
          ******************************************************************************/
         void Start()
         {
@@ -178,7 +178,7 @@ class ArucoGenerateTagsLinear
          * @param nNumTags - The number of tags to generate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void SetNumTagsToGenerate(const int nNumTags) { m_nNumTagsToGenerate = nNumTags; }
 
@@ -188,7 +188,7 @@ class ArucoGenerateTagsLinear
          * @param eDictionary - The dictionary type to use for generation.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void AddTagDictionaryType(const cv::aruco::PredefinedDictionaryType eDictionary) { m_vDictionaries.emplace_back(eDictionary); }
 };
@@ -199,7 +199,7 @@ class ArucoGenerateTagsLinear
  * @return int - Return status.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0723
+ * @date 2023-07-23
  ******************************************************************************/
 void RunExample()
 {

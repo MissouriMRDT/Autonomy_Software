@@ -20,7 +20,7 @@ const bool ENABLE_SPATIAL_MAPPING = false;
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0722
+ * @date 2023-07-22
  ******************************************************************************/
 void RunExample()
 {
@@ -30,6 +30,7 @@ void RunExample()
 
     // Get reference to camera.
     ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+
     // Turn on ZED features.
     TestCamera1->EnablePositionalTracking();
     // Check if we should turn on spatial mapping.
@@ -38,11 +39,13 @@ void RunExample()
         // Enable spatial mapping.
         TestCamera1->EnableSpatialMapping();
     }
+
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     cv::cuda::GpuMat cvGPUDepthFrame1;
+
     // Declare FPS counter.
     IPS FPS = IPS();
 
@@ -52,9 +55,6 @@ void RunExample()
         // Grab normal frame from camera.
         if (TestCamera1->GrabFrame(cvGPUNormalFrame1) && TestCamera1->GrabDepth(cvGPUDepthFrame1, false))
         {
-            // Print info.
-            LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
-            LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
             // Download memory from gpu mats if necessary.
             cvGPUNormalFrame1.download(cvNormalFrame1);
             cvGPUDepthFrame1.download(cvDepthFrame1);
@@ -69,11 +69,15 @@ void RunExample()
             cv::imshow("TEST1", cvNormalFrame1);
             cv::imshow("DEPTH1", cvDepthFrame1);
 
-            // Print info about position.
+            // Get info about position.
             sl::Pose slPose;
             TestCamera1->GetPositionalPose(slPose);
             sl::Translation slTranslation = slPose.getTranslation();
             sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
+
+            // Print info.
+            LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+            LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
             LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
             LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
             // Check if spatial mapping is enabled.
