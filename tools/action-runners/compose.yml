@@ -10,6 +10,13 @@ services:
       args:
         RUNNER_VERSION: '2.309.0'
     command: unix-connect:/var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
     volumes:
       - type: bind
         source: /var/run/docker.sock
@@ -26,6 +33,13 @@ services:
       args:
         RUNNER_VERSION: '2.309.0'
     command: unix-connect:/var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
     volumes:
       - type: bind
         source: /var/run/docker.sock
@@ -34,3 +48,4 @@ services:
       GH_TOKEN: <TOKEN>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
+

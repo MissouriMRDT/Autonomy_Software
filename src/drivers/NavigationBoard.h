@@ -8,11 +8,11 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <chrono>
-#include <ctime>
-
 #ifndef NAVIGATIONBOARD_H
 #define NAVIGATIONBOARD_H
+
+#include <chrono>
+#include <ctime>
 
 struct NavBoardPacket_IMU
 {

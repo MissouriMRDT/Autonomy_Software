@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 
+#include "../examples/vision/OpenZEDCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -57,14 +58,18 @@ int main()
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
     {
+        // Run example code from included file.
         RunExample();
     }
     else
     {
-        // TODO: Initialize Threads
+        // Initialize and start Threads
+        g_pCameraHandler = new CameraHandlerThread();
+        g_pCameraHandler->StartAllCameras();
 
         // TODO: Initialize RoveComm
     }
 
+    // Successful exit.
     return 0;
 }
