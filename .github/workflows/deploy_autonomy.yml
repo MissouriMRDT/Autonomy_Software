@@ -59,12 +59,6 @@ jobs:
       - name: Rename Executable
         run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: Autonomy-${{ matrix.architecture }}
-          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-
   create-release:
     runs-on: [self-hosted, linux, X64]
     needs: build-and-upload
@@ -79,12 +73,6 @@ jobs:
       - name: Determine Version
         id: version
         run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
-        id: download
-        with:
-          path: /opt/Autonomy_Software/build/
 
       - name: Display Structure
         run: ls

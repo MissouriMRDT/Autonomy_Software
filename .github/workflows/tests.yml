@@ -56,25 +56,11 @@ jobs:
         with:
           files: "/opt/Autonomy_Software/build/Autonomy_Software_UnitTests"
 
-      - name: Upload Artifact (Unit Tests)
-        if: steps.check_unit.outputs.files_exists == 'true'
-        uses: actions/upload-artifact@v3
-        with:
-          name: Autonomy-Unit-Tests
-          path: /opt/Autonomy_Software/build/Autonomy_Software_UnitTests
-
       - name: Check File Existence (Integration Tests)
         id: check_integration
         uses: andstor/file-existence-action@v2
         with:
           files: "/opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests"
-
-      - name: Upload Artifact (Integration Tests)
-        if: steps.check_integration.outputs.files_exists == 'true'
-        uses: actions/upload-artifact@v3
-        with:
-          name: Autonomy-Integration-Tests
-          path: /opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests
 
   run-unit-tests:
     needs: build-tests
@@ -88,12 +74,6 @@ jobs:
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
-
-      - name: Download Artifact (Unit Tests)
-        uses: actions/download-artifact@v2
-        with:
-          name: Autonomy-Unit-Tests
-          path: /opt/Autonomy_Software/build/Autonomy_Software_UnitTests
 
       - name: Run Unit Tests
         run: |
@@ -112,12 +92,6 @@ jobs:
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
-
-      - name: Download Artifact (Integration Tests)
-        uses: actions/download-artifact@v2
-        with:
-          name: Autonomy-Integration-Tests
-          path: /opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests
 
       - name: Run Integration Tests
         run: |
