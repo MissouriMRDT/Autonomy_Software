@@ -13,10 +13,15 @@ concurrency:
 
 jobs:
   run-valgrind:
-    runs-on: ubuntu-latest
-    container: ghcr.io/missourimrdt/autonomy-focal:latest
+    runs-on: [self-hosted, linux, X64]
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
@@ -34,6 +39,7 @@ jobs:
       - name: Build Executable
         run: |
           cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
           cmake ..
