@@ -4,8 +4,6 @@ version: '3.8'
 services:
   jammy-runner:
     image: ghcr.io/missourimrdt/jammy-runner:latest
-    stdin_open: true
-    tty: true
     build:
       context: .
       dockerfile: Dockerfile_Jammy
@@ -29,8 +27,6 @@ services:
       GH_REPOSITORY: Autonomy_Software
   jetpack-runner:
     image: ghcr.io/missourimrdt/jetpack-runner:latest
-    stdin_open: true
-    tty: true
     build:
       context: .
       dockerfile: Dockerfile_JetPack
@@ -52,3 +48,4 @@ services:
       GH_TOKEN: <TOKEN>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
+
