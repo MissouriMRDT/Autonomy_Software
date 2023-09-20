@@ -42,10 +42,8 @@ BasicCam::BasicCam(const std::string szCameraPath,
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
 
-    // Attempt to open camera with OpenCV's VideoCapture.
-    m_cvCamera.open(szCameraPath);
-    // Check if the camera was successfully opened.
-    if (m_cvCamera.isOpened())
+    // Attempt to open camera with OpenCV's VideoCapture and print if successfully opened or not.
+    if (m_cvCamera.open(szCameraPath))
     {
         // Submit logger message.
         LOG_DEBUG(g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
@@ -144,6 +142,7 @@ void BasicCam::ThreadedContinuousCode()
     {
         // Shutdown threads for this BasicCam.
         this->RequestStop();
+
         // Submit logger message.
         LOG_CRITICAL(g_qSharedLogger,
                      "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",

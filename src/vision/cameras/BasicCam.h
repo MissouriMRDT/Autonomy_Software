@@ -24,7 +24,6 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-
         BasicCam(const std::string szCameraPath,
                  const int nPropResolutionX,
                  const int nPropResolutionY,
@@ -45,7 +44,6 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Getters.
         /////////////////////////////////////////
-
         template<typename T>
         T GetCameraLocation() const;
         bool GetCameraIsOpen() override;
@@ -54,8 +52,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
-        // Basic camera specific.
-
+        // Basic Camera specific.
         cv::VideoCapture m_cvCamera;
         std::string m_szCameraPath;
         bool m_bCameraIsConnectedOnVideoIndex;
@@ -72,7 +69,6 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
-
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 };

@@ -25,7 +25,9 @@
  ******************************************************************************/
 namespace constants
 {
-    // Drive constants.
+    ///////////////////////////////////////////////////////////////////////////
+    //// Drive Constants.
+    ///////////////////////////////////////////////////////////////////////////
     const int MAX_DRIVE_POWER = 250;
     const int MIN_DRIVE_POWER = 50;
 
@@ -70,6 +72,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
     //// Camera Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
+
     // MainCam
     const int ZED_MAINCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the maincam images to.

@@ -6,7 +6,7 @@
  *
  * @file AutonomyThread.h
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0716
+ * @date 2023-07-16
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
@@ -24,7 +24,7 @@
  * @tparam T - Variable return type of internal pooled code.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0727
+ * @date 2023-07-27
  ******************************************************************************/
 template<class T>
 class AutonomyThread
@@ -51,7 +51,7 @@ class AutonomyThread
          * @param bStopThread - Atomic shared variable that signals the thread to stop interating.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0724
+         * @date 2023-07-24
          ******************************************************************************/
         void RunThread(std::atomic_bool& bStopThread)
         {
@@ -91,7 +91,7 @@ class AutonomyThread
          *                                  tasks to stop before queueing more.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void RunPool(const unsigned int nNumTasksToQueue, const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
         {
@@ -175,7 +175,7 @@ class AutonomyThread
          *                                  tasks to stop before queueing more.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void RunDetachedPool(const unsigned int nNumTasksToQueue, const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
         {
@@ -253,7 +253,7 @@ class AutonomyThread
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0726
+         * @date 2023-07-26
          ******************************************************************************/
         template<typename N, typename F>
         void ParallelizeLoop(const int nNumThreads, const N tTotalIterations, F&& tLoopFunction)
@@ -288,7 +288,7 @@ class AutonomyThread
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void JoinPool() { m_thPool.wait_for_tasks(); }
 
@@ -300,7 +300,7 @@ class AutonomyThread
          * @return false - The thread is still running code.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         bool PoolJoinable() const
         {
@@ -337,7 +337,7 @@ class AutonomyThread
          *                      ran the PooledLinearCode.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0726
+         * @date 2023-07-26
          ******************************************************************************/
         std::vector<T> GetPoolResults()
         {
@@ -366,7 +366,7 @@ class AutonomyThread
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         virtual ~AutonomyThread()
         {
@@ -397,7 +397,7 @@ class AutonomyThread
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void Start()
         {
@@ -434,7 +434,7 @@ class AutonomyThread
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void RequestStop() { m_bStopThreads = true; }
 
@@ -444,7 +444,7 @@ class AutonomyThread
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void Join()
         {
@@ -462,7 +462,7 @@ class AutonomyThread
          * @return false - The thread is still running code.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         bool Joinable() const
         {
