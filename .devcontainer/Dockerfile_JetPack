@@ -78,7 +78,8 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     rm -rf /usr/local/zed/resources/* \
     rm -rf ZED_SDK_Linux.run && \
     rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /root/Documents/ZED/
+    mkdir -p /root/Documents/ZED/ && \
+    sed '/#pragma message.*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
 RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
