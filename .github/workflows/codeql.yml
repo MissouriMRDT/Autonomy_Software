@@ -37,12 +37,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/missourimrdt/autonomy-focal:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: [self-hosted, linux, X64]
     timeout-minutes: 360
 
     strategy:
@@ -52,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory .
+        run: git config --global --add safe.directory /opt/Autonomy_Software
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

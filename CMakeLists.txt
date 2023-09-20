@@ -74,6 +74,10 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+## Find CUDA.
+find_package(CUDA 11.7 REQUIRED)
+message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
+
 ## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
@@ -147,10 +151,14 @@ if (UnitTests_LEN GREATER 0)
     add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC})
     target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main)
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
+else()
+    message("No Unit Tests!")
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC})
+    add_executable(${PROJECT_NAME}_IntegrationTests "tests/Integration/main.cc" ${IntegrationTests_SRC})
     target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main)
     add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
+else()
+    message("No Integration Tests!")
 endif()
