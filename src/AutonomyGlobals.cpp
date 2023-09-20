@@ -81,6 +81,10 @@ void InitializeLoggers()
 
 IdentitySoftware g_pIdentifySoftware;
 
+// Camera handler.
+CameraHandlerThread* g_pCameraHandler;
+
+// Drivers.
 DriveBoard g_pDriveBoardInterface;
 MultimediaBoard g_pMultimediaBoard;
 NavigationBoard g_pNavigationBoard;

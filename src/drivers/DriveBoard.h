@@ -9,10 +9,10 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <vector>
-
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
+
+#include <vector>
 
 class DriveBoard
 {

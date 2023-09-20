@@ -8,15 +8,15 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <string>
-
-#define MAJOR_VERSION 24
-#define MINOR_VERSION 1
-#define PATCH_VERSION 0
-#define BUILD_VERSION 0
-
 #ifndef IDENTITY_SOFTWARE_H
 #define IDENTITY_SOFTWARE_H
+
+#include <string>
+
+#define AUTONOMY_MAJOR_VERSION 24
+#define AUTONOMY_MINOR_VERSION 0
+#define AUTONOMY_PATCH_VERSION 0
+#define AUTONOMY_BUILD_VERSION 0
 
 class IdentitySoftware
 {

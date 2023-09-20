@@ -4,7 +4,7 @@
  *
  * @file ArucoGenerateTags.hpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0723
+ * @date 2023-07-23
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
@@ -39,13 +39,13 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
-        void ThreadedContinuousCode()
+        void ThreadedContinuousCode() override
         {
             // Start thread pool. Run detached since the threads aren't returning anything.
             // This is much faster than the normal RunPool function.
-            this->RunDetachedPool(m_vDictionaries.size());
+            this->RunDetachedPool(m_vDictionaries.size(), m_vDictionaries.size());
 
             // Wait for pool tasks to finish.
             this->JoinPool();
@@ -62,9 +62,9 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0725
+         * @date 2023-07-25
          ******************************************************************************/
-        void PooledLinearCode()
+        void PooledLinearCode() override
         {
             // Aquire resource lock for dictionary vector.
             std::unique_lock<std::mutex> lock(m_muDictMutex);
@@ -78,14 +78,15 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
             // Change this bool to test the two different
             // blocks of code!
             //////////////////////////////////////////////////
-            bool bUseParallelLoop = true;
+            bool bUseParallelLoop = false;
             if (bUseParallelLoop)
             {
                 //////////////////////////////////////////////////
                 // This code splits the loop into parts and
                 // completes it in different threads.
                 //////////////////////////////////////////////////
-                this->ParallelizeLoop(m_nNumTagsToGenerate,
+                this->ParallelizeLoop(50,
+                                      m_nNumTagsToGenerate,
                                       [&cvDictType](const int a, const int b)
                                       {
                                           // Loop through and generate each of the tags.
@@ -116,7 +117,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @param nNumTags - The number of tags to generate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void SetNumTagsToGenerate(const int nNumTags) { m_nNumTagsToGenerate = nNumTags; }
 
@@ -126,7 +127,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @param eDictionary - The dictionary type to use for generation.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void AddTagDictionaryType(const cv::aruco::PredefinedDictionaryType eDictionary) { m_vDictionaries.emplace_back(eDictionary); }
 };
@@ -154,7 +155,7 @@ class ArucoGenerateTagsLinear
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0725
+         * @date 2023-07-25
          ******************************************************************************/
         void Start()
         {
@@ -177,7 +178,7 @@ class ArucoGenerateTagsLinear
          * @param nNumTags - The number of tags to generate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void SetNumTagsToGenerate(const int nNumTags) { m_nNumTagsToGenerate = nNumTags; }
 
@@ -187,7 +188,7 @@ class ArucoGenerateTagsLinear
          * @param eDictionary - The dictionary type to use for generation.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0723
+         * @date 2023-07-23
          ******************************************************************************/
         void AddTagDictionaryType(const cv::aruco::PredefinedDictionaryType eDictionary) { m_vDictionaries.emplace_back(eDictionary); }
 };
@@ -198,7 +199,7 @@ class ArucoGenerateTagsLinear
  * @return int - Return status.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0723
+ * @date 2023-07-23
  ******************************************************************************/
 void RunExample()
 {
