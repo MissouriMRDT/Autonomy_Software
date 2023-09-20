@@ -4,7 +4,7 @@
  *
  * @file PrimeNumbers.hpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0722
+ * @date 2023-07-22
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
@@ -39,7 +39,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @return false - The number is not prime.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         bool IsPrime(int& nNum)
         {
@@ -64,7 +64,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @param nCount - The number of primes to calculate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void CalculatePrimes(int& nCount)
         {
@@ -87,7 +87,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void ThreadedContinuousCode() override
         {
@@ -108,7 +108,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0725
+         * @date 2023-07-25
          ******************************************************************************/
         void PooledLinearCode() override {}
 
@@ -122,7 +122,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @param nNum - The amount of primes to calculate.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         void SetPrimeCount(int nNum) { m_nCount = nNum; }
 
@@ -132,7 +132,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @return int - The amount of primes the calculator will produce.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         int GetDesiredPrimeAmount() { return m_nCount; }
 
@@ -142,7 +142,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          * @return std::vector<int> - A vector of the resultant primes.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0722
+         * @date 2023-07-22
          ******************************************************************************/
         std::vector<int> GetPrimes() { return m_vThreadPrimes; }
 
@@ -151,7 +151,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-0725
+         * @date 2023-07-25
          ******************************************************************************/
         void ClearPrimes() { m_vThreadPrimes.clear(); }
 };
@@ -162,7 +162,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
  * @return int - Return status.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-0722
+ * @date 2023-07-22
  ******************************************************************************/
 void RunExample()
 {

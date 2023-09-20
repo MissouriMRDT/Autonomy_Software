@@ -7,6 +7,7 @@
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
+
 #ifndef NAVIGATIONBOARD_H
 #define NAVIGATIONBOARD_H
 
