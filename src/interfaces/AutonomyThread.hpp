@@ -65,21 +65,20 @@ class AutonomyThread
 
     protected:
         /******************************************************************************
-         * @brief When this method is called, it starts adds tasks to a thread pool that runs nNumThreads
-         *      copies of the code withing the PooledLinearCode() method. This is meant to be
+         * @brief When this method is called, it starts/adds tasks to a thread pool that runs nNumTasksToQueue
+         *      copies of the code within the PooledLinearCode() method using nNumThreads number of threads. This is meant to be
          *      used as an internal utility of the child class to further improve parallelization.
          *      Default value for nNumThreads is 2.
          *
          *      If this method is called directly after itself or RunDetechedPool(), it will just add more
          *      tasks to the queue. If the bForceStopCurrentThreads is enabled, it will signal
-         *      for those threads to stop and wait until they exit on their next iteration if
-         *      bForceTopCurrentThreads is true. Any number of tasks that are still queued will
-         *      be cleared. Old results will be destoyed. If you want to wait until they fully
-         *      execute their code, then call the Join() method before this one.
+         *      for those threads to stop and wait until they exit on their next iteration. Any number of
+         *      tasks that are still queued will be cleared. Old results will be destoyed. If you want
+         *      to wait until they fully execute their code, then call the Join() method before this one.
          *
          *      Once the pool is created it stays alive for as long as the program runs or until
          *      a different threading method is called. So there's no overhead with starting and
-         *      stopping threads.
+         *      stopping threads or queueing more tasks.
          *
          *      YOU MUST HANDLE MUTEX LOCKS AND ATOMICS. It is impossible for this class to handle
          *      locks as all possible solutions lead to a solution that only lets one thread run at
@@ -156,14 +155,13 @@ class AutonomyThread
          *
          *      If this method is called directly after itself or RunPool(), it will just add more
          *      tasks to the queue. If the bForceStopCurrentThreads is enabled, it will signal
-         *      for those threads to stop and wait until they exit on their next iteration if
-         *      bForceTopCurrentThreads is true. Any number of tasks that are still queued will
-         *      be cleared. Old results will be destoyed. If you want to wait until they fully
-         *      execute their code, then call the Join() method before this one.
+         *      for those threads to stop and wait until they exit on their next iteration.
+         *      Any number of tasks that are still queued will be cleared. Old results will be destoyed.
+         *      If you want to wait until they fully execute their code, then call the Join() method before this one.
          *
          *      Once the pool is created it stays alive for as long as the program runs or until
          *      a different threading method is called. So there's no overhead with starting and
-         *      stopping threads.
+         *      stopping threads or queueing more tasks.
          *
          *      YOU MUST HANDLE MUTEX LOCKS AND ATOMICS. It is impossible for this class to handle
          *      locks as all possible solutions lead to a solution that only lets one thread run at

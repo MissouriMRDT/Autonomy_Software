@@ -215,7 +215,7 @@ void BasicCam::PooledLinearCode()
 
 /******************************************************************************
  * @brief Retrieves a frame from the camera. The given mat reference is placed
- *      into a queue for copying. Remember, this code will be ran in whatever,
+ *      into a queue for copying. Remember, this code will be ran in whatever
  *      class/thread calls it.
  *
  * @param cvFrame - A reference to the cv::Mat to store the frame in.

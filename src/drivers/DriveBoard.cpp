@@ -24,8 +24,9 @@
  ******************************************************************************/
 DriveBoard::DriveBoard()
 {
-    m_iTargetSpeedLeft  = 0;
-    m_iTargetSpeedRight = 0;
+    // Initialize member variables.
+    m_fTargetSpeedLeft  = 0.0;
+    m_fTargetSpeedRight = 0.0;
 }
 
 /******************************************************************************
@@ -35,7 +36,11 @@ DriveBoard::DriveBoard()
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-18
  ******************************************************************************/
-DriveBoard::~DriveBoard() {}
+DriveBoard::~DriveBoard()
+{
+    // Stop drivetrain.
+    this->SendStop();
+}
 
 /******************************************************************************
  * @brief This method determines drive powers to make the Rover drive towards a
@@ -43,15 +48,16 @@ DriveBoard::~DriveBoard() {}
  *
  * @param fSpeed - The speed to drive at (-1 to 1)
  * @param fAngle - The angle to drive towards.
- * @return std::vector<int> - 1D vector with two values. (left power, right power)
+ * @return std::array<int, 2> - 1D array of length 2 containing two values. (left power, right power)
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-18
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
  ******************************************************************************/
-std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
+std::array<int, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAngle)
 {
-    double dSpeedLeft  = fSpeed;
-    double dSpeedRight = fSpeed;
+    // Create instance variables.
+    double dSpeedLeft;
+    double dSpeedRight;
 
     if (fAngle > 0)
     {
@@ -62,12 +68,12 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
         dSpeedLeft = dSpeedLeft * (1 + (fAngle / 180.0));
     }
 
-    m_iTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
-    m_iTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
+    m_fTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
+    m_fTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
 
-    LOG_INFO(g_qSharedLogger, "Driving at: ({}, {})", m_iTargetSpeedLeft, m_iTargetSpeedRight);
+    LOG_DEBUG(g_qSharedLogger, "Driving at: ({}, {})", m_fTargetSpeedLeft, m_fTargetSpeedRight);
 
-    return {m_iTargetSpeedLeft, m_iTargetSpeedRight};
+    return {m_fTargetSpeedLeft, m_fTargetSpeedRight};
 }
 
 /******************************************************************************
@@ -79,7 +85,14 @@ std::vector<int> DriveBoard::CalculateMove(float fSpeed, float fAngle)
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-18
  ******************************************************************************/
-void DriveBoard::SendDrive(/*int nLeftTarget, int nRightTarget*/) {}
+void DriveBoard::SendDrive(const float fLeftTarget, const float fRightTarget)
+{
+    // Update member variables with new target speeds.
+    m_fTargetSpeedLeft  = fLeftTarget;
+    m_fTargetSpeedRight = fRightTarget;
+
+    // Send drive command over RoveComm to drive board.
+}
 
 /******************************************************************************
  * @brief Stop the drivetrain of the Rover.
@@ -88,4 +101,11 @@ void DriveBoard::SendDrive(/*int nLeftTarget, int nRightTarget*/) {}
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-18
  ******************************************************************************/
-void DriveBoard::SendStop() {}
+void DriveBoard::SendStop()
+{
+    // Update member variables with new target speeds.
+    m_fTargetSpeedLeft  = 0.0;
+    m_fTargetSpeedRight = 0.0;
+
+    // Send drive command over RoveComm to drive board.
+}

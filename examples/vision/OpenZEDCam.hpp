@@ -28,7 +28,7 @@ void RunExample()
     g_pCameraHandler = new CameraHandlerThread();
     g_pCameraHandler->StartAllCameras();
 
-    // Get reference to camera.
+    // Get pointer to camera.
     ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
 
     // Turn on ZED features.

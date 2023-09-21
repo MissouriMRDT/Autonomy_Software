@@ -12,21 +12,45 @@
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
 
-#include <vector>
-
+/******************************************************************************
+ * @brief This class handles communication with the drive board on the rover by
+ *      sending RoveComm packets over the network.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
+ ******************************************************************************/
 class DriveBoard
 {
     private:
-        int m_iTargetSpeedLeft;
-        int m_iTargetSpeedRight;
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+
+        float m_fTargetSpeedLeft;
+        float m_fTargetSpeedRight;
 
     public:
+        /////////////////////////////////////////
+        // Declare public methods and member variables.
+        /////////////////////////////////////////
+
         DriveBoard();
         ~DriveBoard();
-
-        std::vector<int> CalculateMove(float fSpeed, float fAngle);
-        void SendDrive(/*int iLeftTarget, int iRightTarget*/);
+        std::array<int, 2> CalculateMove(const float fSpeed, const float fAngle);
+        void SendDrive(const float fLeftTarget, const float fRightTarget);
         void SendStop();
-};
 
-#endif    // DRIVEBOARD_H
+        /////////////////////////////////////////
+        // Setters
+        /////////////////////////////////////////
+
+        void SetMaxDrivePower();
+
+        /////////////////////////////////////////
+        // Getters
+        /////////////////////////////////////////
+
+        float GetMaxDrivePower() const;
+};
+#endif
