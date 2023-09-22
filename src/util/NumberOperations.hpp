@@ -12,6 +12,8 @@
 #ifndef NUMBER_OPERATIONS_HPP
 #define NUMBER_OPERATIONS_HPP
 
+#include "../AutonomyLogging.h"
+
 #include <algorithm>
 
 /******************************************************************************
@@ -23,5 +25,42 @@
  * @date 2023-07-06
  ******************************************************************************/
 namespace NumberOperations
-{}    // namespace NumberOperations
+{
+    /******************************************************************************
+     * @brief Maps a value to a new range given the old range.
+     *
+     * @tparam T - Template value specifying the type of the number to map to new range.
+     * @param tValue - The value to remap.
+     * @param tOldMinimum - The current range's minimum value.
+     * @param tOldMaximum - The current range's maximim value.
+     * @param tNewMinimum - The new range's minimim value.
+     * @param tNewMaximum - The new range's maximum value.
+     * @return T - The resultant templated type mapped to the new range.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-22
+     ******************************************************************************/
+    template<typename T>
+    T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
+    {
+        // Check if the ranges are valid.
+        if (tOldMinimum == tOldMaximum || tNewMinimum == tNewMaximum)
+        {
+            // Submit logger message.
+            LOG_CRITICAL(g_qSharedLogger, "MAPRANGE: The old/new range is not valid.")
+
+            // Return old, given value.
+            return tValue;
+        }
+
+        // Perform the mapping using linear interpolation.
+        T tOldValueRange = tOldMaximum - tOldMinimum;
+        T tNewValueRange = tNewMaximum - tNewMinimum;
+        T tScaledValue   = (tValue - tOldMinimum) / tOldValueRange;
+
+        // Return new mapped value.
+        return tNewMinimum + tScaledValue * tNewValueRange;
+    }
+
+}    // namespace NumberOperations
 #endif
