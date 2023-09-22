@@ -126,10 +126,20 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Setup spatial mapping parameters.
     m_slSpatialMappingParams.map_type          = constants::ZED_MAPPING_TYPE;
     m_slSpatialMappingParams.resolution_meter  = constants::ZED_MAPPING_RESOLUTION_METER;
-    m_slSpatialMappingParams.range_meter       = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
     m_slSpatialMappingParams.save_texture      = true;
     m_slSpatialMappingParams.use_chunk_only    = constants::ZED_MAPPING_USE_CHUNK_ONLY;
     m_slSpatialMappingParams.stability_counter = constants::ZED_MAPPING_STABILITY_COUNTER;
+    // Set or auto-set max depth range for mapping.
+    if (constants::ZED_MAPPING_RANGE_METER >= 0)
+    {
+        // Automatically guess the best mapping depth range.
+        m_slSpatialMappingParams.range_meter = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
+    }
+    else
+    {
+        // Manually set.
+        m_slSpatialMappingParams.range_meter = constants::ZED_MAPPING_RANGE_METER;
+    }
 
     // Setup object detection/tracking parameters.
     m_slObjectDetectionParams.detection_model      = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
