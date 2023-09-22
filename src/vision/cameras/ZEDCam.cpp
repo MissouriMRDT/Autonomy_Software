@@ -412,11 +412,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
-                default: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eBGRA: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case eXYZ: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
             // Release lock.
@@ -446,11 +446,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eBGRA: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case eXYZ: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
             // Release lock.
