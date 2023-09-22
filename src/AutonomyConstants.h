@@ -28,10 +28,16 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
     //// Drive Constants.
     ///////////////////////////////////////////////////////////////////////////
-    const double MAX_DRIVE_POWER  = 1.0;
-    const double MIN_DRIVE_POWER  = -1.0;
-    const double MAX_DRIVE_EFFORT = 0.5;
-    const double MIN_DRIVE_EFFORT = -0.5;
+
+    // Power constants.
+    const float DRIVE_MAX_POWER  = 1.0;
+    const float DRIVE_MIN_POWER  = -1.0;
+    const float DRIVE_MAX_EFFORT = 0.5;
+    const float DRIVE_MIN_EFFORT = -0.5;
+
+    // Control constants.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
