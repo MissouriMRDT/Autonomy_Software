@@ -53,7 +53,7 @@ DriveBoard::~DriveBoard()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-std::array<int, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAngle)
+std::array<float, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAngle)
 {
     // Create instance variables.
     double dSpeedLeft;
@@ -68,9 +68,6 @@ std::array<int, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAn
         dSpeedLeft = dSpeedLeft * (1 + (fAngle / 180.0));
     }
 
-    m_fTargetSpeedLeft  = int(numops::Clamp<double>(dSpeedLeft, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
-    m_fTargetSpeedRight = int(numops::Clamp<double>(dSpeedRight, constants::MIN_DRIVE_POWER, constants::MAX_DRIVE_POWER));
-
     LOG_DEBUG(g_qSharedLogger, "Driving at: ({}, {})", m_fTargetSpeedLeft, m_fTargetSpeedRight);
 
     return {m_fTargetSpeedLeft, m_fTargetSpeedRight};
@@ -79,17 +76,17 @@ std::array<int, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAn
 /******************************************************************************
  * @brief Sets the left and right drive powers of the drive board.
  *
- * @param nLeftTarget - Left drive speed (-1 to 1)
- * @param nRightTarget - Right drive speed (-1 to 1)
+ * @param nLeftSpeed - Left drive speed (-1 to 1)
+ * @param nRightSpeed - Right drive speed (-1 to 1)
  *
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-18
  ******************************************************************************/
-void DriveBoard::SendDrive(const float fLeftTarget, const float fRightTarget)
+void DriveBoard::SendDrive(const float fLeftSpeed, const float fRightSpeed)
 {
     // Update member variables with new target speeds.
-    m_fTargetSpeedLeft  = fLeftTarget;
-    m_fTargetSpeedRight = fRightTarget;
+    m_fTargetSpeedLeft  = fLeftSpeed;
+    m_fTargetSpeedRight = fRightSpeed;
 
     // Send drive command over RoveComm to drive board.
 }

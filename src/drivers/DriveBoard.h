@@ -12,6 +12,8 @@
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
 
+#include <array>
+
 /******************************************************************************
  * @brief This class handles communication with the drive board on the rover by
  *      sending RoveComm packets over the network.
@@ -32,13 +34,24 @@ class DriveBoard
 
     public:
         /////////////////////////////////////////
+        // Declare public enums that are specific to and used withing this class.
+        /////////////////////////////////////////
+        // Enumerator used to specify what method of drive control to use.
+        enum DifferentialControlMethod
+        {
+            eTankDrive,        // Simple independant left/right control for drive.
+            eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
+            eCurvatureDrive    // Similiar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
+        };
+
+        /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
 
         DriveBoard();
         ~DriveBoard();
-        std::array<int, 2> CalculateMove(const float fSpeed, const float fAngle);
-        void SendDrive(const float fLeftTarget, const float fRightTarget);
+        std::array<float, 2> CalculateMove(const float fSpeed, const float fAngle);
+        void SendDrive(const float fLeftSpeed, const float fRightSpeed);
         void SendStop();
 
         /////////////////////////////////////////

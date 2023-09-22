@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Defines and implements functions related to operations on images. All
- *      functions are defined within the imgops namespace.
+ *      functions are defined within the ImageOperations namespace.
  *
  * @file ImageOperations.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -23,7 +23,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-31
  ******************************************************************************/
-namespace imgops
+namespace ImageOperations
 {
     /******************************************************************************
      * @brief Provides an easy method of mapping sl::Mat types to cv::Mat types.
@@ -129,5 +129,5 @@ namespace imgops
                                 slInputMat.getPtr<sl::uchar1>(sl::MEM::GPU),
                                 slInputMat.getStepBytes(sl::MEM::GPU));
     }
-}    // namespace imgops
+}    // namespace ImageOperations
 #endif
