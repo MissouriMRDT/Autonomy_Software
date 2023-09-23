@@ -9,117 +9,150 @@
  ******************************************************************************/
 
 #include "NavigationBoard.h"
-
-#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
+
+/******************************************************************************
+ * @brief This struct stores/contains information about an IMU packet recieved
+ *      from RoveComm.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
+struct NavigationBoard::IMUData
+{
+    public:
+        // Declare struct public member variables.
+        double dPitch;
+        double dRoll;
+        double dHeading;
+
+        /******************************************************************************
+         * @brief Construct a new IMUData object.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-09-23
+         ******************************************************************************/
+        IMUData()
+        {
+            // Initialize member variables to default values.
+            dPitch   = 0.0;
+            dRoll    = 0.0;
+            dHeading = 0.0;
+        }
+
+        /******************************************************************************
+         * @brief Construct a new IMUData object.
+         *
+         * @param dPitch - The pitch of the navboard in degrees.
+         * @param dRoll - The roll of the navboard in degrees.
+         * @param dHeading - The heading/yaw of the navboard in degrees.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-09-23
+         ******************************************************************************/
+        IMUData(double dPitch, double dRoll, double dHeading)
+        {
+            // Initialize member variables with given values.
+            this->dPitch   = dPitch;
+            this->dRoll    = dRoll;
+            this->dHeading = dHeading;
+        }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
 NavigationBoard::NavigationBoard()
 {
-    m_dPitch            = 0;
-    m_dRoll             = 0;
-    m_dHeading          = 0;
-
-    m_sLocation         = {0, 0};
-
-    m_iDistanceToGround = 0;
-    m_iLidarQuality     = 0;
-
-    m_tLastTime         = time(nullptr);
+    m_dPitch   = 0;
+    m_dRoll    = 0;
+    m_dHeading = 0;
 }
 
 /******************************************************************************
  * @brief Destroy the Navigation Board:: Navigation Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
 NavigationBoard::~NavigationBoard() {}
 
 /******************************************************************************
  * @brief Unpack and store data from an IMU packet.
  *
- * @param packet - The special nav board packet containing IMU data.
+ * @param stPacket - The special nav board packet containing IMU data.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
+void NavigationBoard::ProcessIMUData(IMUData stPacket)
 {
-    m_dPitch   = packet.dPitch;
-    m_dRoll    = packet.dRoll;
-    m_dHeading = packet.dHeading;
+    m_dPitch   = stPacket.dPitch;
+    m_dRoll    = stPacket.dRoll;
+    m_dHeading = stPacket.dHeading;
 
-    LOG_INFO(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
+    LOG_DEBUG(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
 }
 
 /******************************************************************************
  * @brief Unpack and store data from a GPS packet.
  *
- * @param packet - The special nav board packet containing GPS data.
+ * @param packet - The special nav board struct containing GPS data.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
+void NavigationBoard::ProcessGPSData(globals::GPSCoordinate stPacket)
 {
-    m_sLocation.dLatitude  = packet.dLatitude;
-    m_sLocation.dLongitude = packet.dLongitude;
-
-    m_tLastTime            = time(nullptr);
-
-    LOG_INFO(g_qSharedLogger, "Incoming GPS Data: ({}, {})", m_sLocation.dLatitude, m_sLocation.dLongitude);
+    // Submit logger message.
+    LOG_DEBUG(g_qSharedLogger, "Incoming GPS Data: ({}, {})");
 }
 
 /******************************************************************************
- * @brief Get stored nav board IMU data.
+ * @brief Accessor for most recent IMU data recieved from NavBoard.
  *
- * @param eKey - Enum detailing which component to retrieve.
- * @return double - The Roll, Pitch, or Heading data.
+ * @return NavigationBoard::IMUData - Struct containing roll, pitch, and yaw/heading info.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
+NavigationBoard::IMUData NavigationBoard::GetIMUData() const
 {
-    double dValue = 0.0;
-
-    switch (eKey)
-    {
-        case NBPC_PITCH: dValue = m_dPitch; break;
-        case NBPC_ROLL: dValue = m_dRoll; break;
-        case NBPC_HEADING: dValue = m_dHeading; break;
-        default: break;
-    }
-
-    return dValue;
+    //
 }
 
-/******************************************************************************
- * @brief Get stored GPS data.
- *
- * @param eKey - Enum detailing which data to retrieve.
- * @return NavBoardPacket_GPS - Struct storing GPS data.
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
- ******************************************************************************/
-NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
-{
-    NavBoardPacket_GPS sValue = NavBoardPacket_GPS();
+// /******************************************************************************
+//  * @brief Accessor for most recent GPS data recieved from NavBoard.
+//  *
+//  * @return NavigationBoard::GPSCoordinate - Struct containing lat, lon, alt, and accuracy data.
+//  *
+//  * @author clayjay3 (claytonraycowen@gmail.com)
+//  * @date 2023-09-23
+//  ******************************************************************************/
+// globals::GPSCoordinate NavigationBoard::GetGPSData() const
+// {
+//     //
+// }
 
-    switch (eKey)
-    {
-        case NBPCC_LOCATION: sValue = m_sLocation; break;
-        default: break;
-    }
-
-    return sValue;
-}
+// /******************************************************************************
+//  * @brief Accesor for most recent GPS data recieved from NavBoard converted to UTM coords.
+//  *
+//  * @return NavigationBoard::UTMCoordinate - Struct containing easting, northing, alt, zone,
+//  *                                          and accuracy data.
+//  *
+//  * @author clayjay3 (claytonraycowen@gmail.com)
+//  * @date 2023-09-23
+//  ******************************************************************************/
+// UTMCoordinate NavigationBoard::GetUTMData() const
+// {
+//     //
+// }

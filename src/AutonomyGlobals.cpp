@@ -16,6 +16,17 @@ quill::Logger* g_qFileLogger;
 quill::Logger* g_qConsoleLogger;
 quill::Logger* g_qSharedLogger;
 
+// Versioning:
+IdentitySoftware g_pIdentifySoftware;
+
+// Camera handler:
+CameraHandlerThread* g_pCameraHandler;
+
+// Drivers:
+DriveBoard g_pDriveBoardInterface;
+MultimediaBoard g_pMultimediaBoard;
+NavigationBoard g_pNavigationBoard;
+
 /******************************************************************************
  * @brief Set up project wide logger.
  *
@@ -79,12 +90,95 @@ void InitializeLoggers()
     g_qSharedLogger->init_backtrace(2, quill::LogLevel::Critical);
 }
 
-IdentitySoftware g_pIdentifySoftware;
+/******************************************************************************
+ * @brief Namespace containing all global types/structs that will be used project
+ *      wide and ARE NOT SPECIFIC TO A CERTAIN CLASS.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
+namespace globals
+{
+    /******************************************************************************
+     * @brief Construct a new GPSCoordinate object.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    GPSCoordinate::GPSCoordinate()
+    {
+        // Initialize member variables to default values.
+        dLatitude   = 0.0;
+        dLongitude  = 0.0;
+        dAltitude   = 0.0;
+        d2DAccuracy = -1.0;
+        d3DAccuracy = -1.0;
+    }
 
-// Camera handler.
-CameraHandlerThread* g_pCameraHandler;
+    /******************************************************************************
+     * @brief Construct a new GPSCoordinate object.
+     *
+     * @param dLatitude - The latitude of the GPS coordinate.
+     * @param dLongitude - The longitude of the GPS coordinate.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    GPSCoordinate::GPSCoordinate(double dLatitude, double dLongitude)
+    {
+        // Initialize member variables with given values.
+        this->dLatitude  = dLatitude;
+        this->dLongitude = dLongitude;
 
-// Drivers.
-DriveBoard g_pDriveBoardInterface;
-MultimediaBoard g_pMultimediaBoard;
-NavigationBoard g_pNavigationBoard;
+        // Use default values for everything else.
+        dAltitude   = 0.0;
+        d2DAccuracy = -1.0;
+        d3DAccuracy = -1.0;
+    }
+
+    /******************************************************************************
+     * @brief Construct a new GPSCoordinate object.
+     *
+     * @param dLatitude - The latitude of the GPS coordinate.
+     * @param dLongitude - The longitude of the GPS coordinate.
+     * @param Altitude - The altitude of the GPS coordinate.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    GPSCoordinate::GPSCoordinate(double dLatitude, double dLongitude, double Altitude)
+    {
+        // Initialize member variables with given values.
+        this->dLatitude  = dLatitude;
+        this->dLongitude = dLongitude;
+        this->dAltitude  = dAltitude;
+
+        // Use default values for everything else.
+        d2DAccuracy = -1.0;
+        d2DAccuracy = -1.0;
+    }
+
+    /******************************************************************************
+     * @brief Construct a new GPSCoordinate object.
+     *
+     * @param dLatitude - The latitude of the GPS coordinate.
+     * @param dLongitude - The longitude of the GPS coordinate.
+     * @param Altitude - The altitude of the GPS coordinate.
+     * @param d2DAccurary - The accuracy of the lat/lon
+     * @param d3DAccuracy - The accuracy of the lat/lon/alt
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    GPSCoordinate::GPSCoordinate(double dLatitude, double dLongitude, double dAltitude, double d2DAccurary, double d3DAccuracy)
+    {
+        // Initialize member variables with given values.
+        this->dLatitude   = dLatitude;
+        this->dLongitude  = dLongitude;
+        this->dAltitude   = dAltitude;
+        this->d2DAccuracy = d2DAccuracy;
+        this->d3DAccuracy = d3DAccuracy;
+    }
+}    // namespace globals

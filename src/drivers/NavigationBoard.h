@@ -11,88 +11,50 @@
 #ifndef NAVIGATIONBOARD_H
 #define NAVIGATIONBOARD_H
 
+#include "../AutonomyGlobals.h"
 #include <chrono>
 #include <ctime>
 
-struct NavBoardPacket_IMU
-{
-        double dPitch;
-        double dRoll;
-        double dHeading;
-
-        NavBoardPacket_IMU()
-        {
-            dPitch   = 0.0;
-            dRoll    = 0.0;
-            dHeading = 0.0;
-        }
-
-        NavBoardPacket_IMU(double dPitch, double dRoll, double dHeading)
-        {
-            this->dPitch   = dPitch;
-            this->dRoll    = dRoll;
-            this->dHeading = dHeading;
-        }
-};
-
-struct NavBoardPacket_GPS
-{
-        double dLatitude;
-        double dLongitude;
-
-        NavBoardPacket_GPS()
-        {
-            dLatitude  = 0.0;
-            dLongitude = 0.0;
-        }
-
-        NavBoardPacket_GPS(double dLatitude, double dLongitude)
-        {
-            this->dLatitude  = dLatitude;
-            this->dLongitude = dLongitude;
-        }
-};
-
-enum NavigationBoardPacketDoubleComponents
-{
-    NBPC_PITCH,
-    NBPC_ROLL,
-    NBPC_HEADING
-};
-
-enum NavigationBoardPacketCoordinateComponents
-{
-    NBPCC_LOCATION
-};
-
 class NavigationBoard
 {
-    private:
-        int m_iDistanceToGround;
-        int m_iLidarQuality;
+    public:
+        /////////////////////////////////////////
+        // Declare public enums and structs that are specific to and used withing this class.
+        /////////////////////////////////////////
 
+        struct IMUData;
+
+        /////////////////////////////////////////
+        // Declare public methods and member variables.
+        /////////////////////////////////////////
+        NavigationBoard();
+        ~NavigationBoard();
+        void ProcessIMUData(IMUData stPacket);
+        void ProcessGPSData(globals::GPSCoordinate stPacket);
+
+        /////////////////////////////////////////
+        // Setters
+        /////////////////////////////////////////
+
+        /////////////////////////////////////////
+        // Getters
+        /////////////////////////////////////////
+        IMUData GetIMUData() const;
+        globals::GPSCoordinate GetGPSData() const;
+        globals::UTMCoordinate GetUTMData() const;
+
+    private:
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
         double m_dPitch;
         double m_dRoll;
         double m_dHeading;
-
-        time_t m_tLastTime;
-
-        NavBoardPacket_GPS m_sLocation;
 
         // TODO: RoveComm Node
 
         // TODO: RoveComm Callback -> IMU Data
         // TODO: RoveComm Callback -> GPS Data
-
-    public:
-        NavigationBoard();
-        ~NavigationBoard();
-
-        void ProcessIMUData(NavBoardPacket_IMU packet);
-        void ProcessGPSData(NavBoardPacket_GPS packet);
-
-        double GetDData(NavigationBoardPacketDoubleComponents eKey) const;
-        NavBoardPacket_GPS GetSData(NavigationBoardPacketCoordinateComponents eKey) const;
 };
 
 #endif    // NAVIGATIONBOARD_H

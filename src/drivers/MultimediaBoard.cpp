@@ -89,10 +89,10 @@ struct MultimediaBoard::RGB
 MultimediaBoard::MultimediaBoard()
 {
     // Initialize member variables.
-    eCurrentLightingState = eOff;
-    dCustomRed            = 0.0;
-    dCustomGreen          = 0.0;
-    dCustomBlue           = 0.0;
+    m_eCurrentLightingState = eOff;
+    m_dCustomRed            = 0.0;
+    m_dCustomGreen          = 0.0;
+    m_dCustomBlue           = 0.0;
 }
 
 /******************************************************************************
@@ -120,21 +120,24 @@ MultimediaBoard::~MultimediaBoard()
 void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
 {
     // Update member variables.
-    this->eCurrentLightingState = eState;
+    this->m_eCurrentLightingState = eState;
 
     // Decide what lighting operation to execute.
     switch (eState)
     {
         case eOff:
             // Use RoveComm to send 0, 0, 0 RGB values.
+            // TODO: Add RoveComm sendpacket.
             break;
 
         case eCustom:
             // Use RoveComm to send old custom values previously set.
+            // TODO: Add RoveComm sendpacket.
             break;
 
         default:
             // Send lighting state over RoveComm.
+            // TODO: Add RoveComm sendpacket.
             break;
     }
     // Send multimedia board lighting state to board over RoveComm.
@@ -151,15 +154,16 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
 void MultimediaBoard::SendRGB(RGB stRGBVal)
 {
     // Update custom RGB values.
-    dCustomRed   = stRGBVal.dRed;
-    dCustomGreen = stRGBVal.dGreen;
-    dCustomBlue  = stRGBVal.dBlue;
+    m_dCustomRed   = stRGBVal.dRed;
+    m_dCustomGreen = stRGBVal.dGreen;
+    m_dCustomBlue  = stRGBVal.dBlue;
 
     // Send RGB values to mutlimedia board over RoveComm.
+    // TODO: Add RoveComm sendpacket.
 }
 
 MultimediaBoard::MultimediaBoardLightingState MultimediaBoard::GetCurrentLightingState() const
 {
     // Return the current lighting state.
-    return eCurrentLightingState;
+    return m_eCurrentLightingState;
 }

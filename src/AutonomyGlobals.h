@@ -44,4 +44,60 @@ extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Int
 extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
 extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
 
-#endif                                                 // AUTONOMY_GLOBALS_H
+/******************************************************************************
+ * @brief Namespace containing all global types/structs that will be used project
+ *      wide and ARE NOT SPECIFIC TO A CERTAIN CLASS.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
+namespace globals
+{
+    /******************************************************************************
+     * @brief This struct stores/contains information about a GPS data.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    struct GPSCoordinate
+    {
+        public:
+            // Declare struct public attributes
+            double dLatitude;
+            double dLongitude;
+            double dAltitude;
+            double d2DAccuracy;
+            double d3DAccuracy;
+
+            /////////////////////////////////////////
+            // Declare public methods.
+            /////////////////////////////////////////
+            GPSCoordinate();
+            GPSCoordinate(double dLatitude, double dLongitude);
+            GPSCoordinate(double dLatitude, double dLongitude, double Altitude);
+            GPSCoordinate(double dLatitude, double dLongitude, double dAltitude, double d2DAccurary, double d3DAccuracy);
+    };
+
+    /******************************************************************************
+     * @brief This struct stores/contains information about a UTM coordinate.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    struct UTMCoordinate
+    {
+        public:
+            // Declare struct public attributes.
+            double dEasting;
+            double dNorthing;
+            double dAltitude;
+            double dZone;
+            double d2DAccuracy;
+            double d3DAccuracy;
+    };
+}    // namespace globals
+
+#endif    // AUTONOMY_GLOBALS_H

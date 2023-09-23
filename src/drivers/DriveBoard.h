@@ -36,6 +36,7 @@ class DriveBoard
         /////////////////////////////////////////
         // Declare public enums that are specific to and used withing this class.
         /////////////////////////////////////////
+
         // Enumerator used to specify what method of drive control to use.
         enum DifferentialControlMethod
         {
