@@ -75,7 +75,7 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Find CUDA.
-find_package(CUDA 11.7 REQUIRED)
+find_package(CUDA 11.4 REQUIRED)
 message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
@@ -84,7 +84,7 @@ include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 link_directories(${ZED_LIBRARY_DIRS})
 
 ## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
-find_package(CUDAToolkit ${ZED_CUDA_VERSION} EXACT REQUIRED)
+find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
 link_directories(${CUDA_LIBRARY_DIRS})
 ## Determine if shared or static libraries will be used.

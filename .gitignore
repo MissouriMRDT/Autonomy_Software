@@ -17,6 +17,9 @@ docs/*
 docs/Doxygen/*
 !docs/Doxygen/resources
 
+# Data. Ignore optimized models, but push base model.
+data/models/zed/.*
+
 ### MacOS Temp Files ###
 # Filesystem
 .DS_Store
