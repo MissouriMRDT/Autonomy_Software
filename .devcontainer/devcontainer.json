@@ -5,9 +5,9 @@
         "--name",
         "Autonomy_Software_devcontainer",
         // Add all available GPUs
-        // "--gpus",
-        // "all",
-        "--runtime=nvidia",
+        "--gpus",
+        "all",
+        // "--runtime=nvidia",
         // Grants permission to the container to access USBs.
         "--privileged",
         "-v",
