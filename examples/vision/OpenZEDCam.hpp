@@ -30,11 +30,9 @@ void RunExample()
 
     // Get pointer to camera.
     ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
-    ZEDCam* TestCamera2 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam2);
 
     // Turn on ZED features.
     TestCamera1->EnablePositionalTracking();
-    TestCamera2->EnablePositionalTracking();
     // Check if we should turn on spatial mapping.
     if (ENABLE_SPATIAL_MAPPING)
     {
@@ -45,12 +43,8 @@ void RunExample()
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
-    cv::Mat cvNormalFrame2;
-    cv::Mat cvDepthFrame2;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     cv::cuda::GpuMat cvGPUDepthFrame1;
-    cv::cuda::GpuMat cvGPUNormalFrame2;
-    cv::cuda::GpuMat cvGPUDepthFrame2;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -90,41 +84,6 @@ void RunExample()
             if (ENABLE_SPATIAL_MAPPING)
             {
                 LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
-            }
-        }
-
-        // Grab normal frame from camera.
-        if (TestCamera2->GrabFrame(cvGPUNormalFrame2) && TestCamera2->GrabDepth(cvGPUDepthFrame2, false))
-        {
-            // Download memory from gpu mats if necessary.
-            cvGPUNormalFrame2.download(cvNormalFrame2);
-            cvGPUDepthFrame2.download(cvDepthFrame2);
-
-            // Put FPS on normal frame.
-            cv::putText(cvNormalFrame2, std::to_string(TestCamera2->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
-
-            // Put FPS on depth frame.
-            cv::putText(cvDepthFrame2, std::to_string(TestCamera2->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
-
-            // Display frame.
-            cv::imshow("TEST2", cvNormalFrame2);
-            cv::imshow("DEPTH2", cvDepthFrame2);
-
-            // Get info about position.
-            sl::Pose slPose;
-            TestCamera2->GetPositionalPose(slPose);
-            sl::Translation slTranslation = slPose.getTranslation();
-            sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
-
-            // Print info.
-            LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera2->GetIPS().GetAverageIPS(), TestCamera2->GetIPS().Get1PercentLow());
-            LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
-            LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-            LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
-            // Check if spatial mapping is enabled.
-            if (ENABLE_SPATIAL_MAPPING)
-            {
-                LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera2->GetSpatialMappingState()).get());
             }
         }
 
