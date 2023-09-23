@@ -47,7 +47,7 @@ namespace NumberOperations
         if (tOldMinimum == tOldMaximum || tNewMinimum == tNewMaximum)
         {
             // Submit logger message.
-            LOG_CRITICAL(g_qSharedLogger, "MAPRANGE: The old/new range is not valid.")
+            std::cerr << "MAPRANGE: The old/new range is not valid." << std::endl;
 
             // Return old, given value.
             return tValue;
