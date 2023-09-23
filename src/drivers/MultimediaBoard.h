@@ -55,15 +55,16 @@ class MultimediaBoard
         /////////////////////////////////////////
         // Getters
         /////////////////////////////////////////
+
         MultimediaBoardLightingState GetCurrentLightingState() const;
 
     private:
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
-        MultimediaBoardLightingState eCurrentLightingState;
-        double dCustomRed;
-        double dCustomGreen;
-        double dCustomBlue;
+        MultimediaBoardLightingState m_eCurrentLightingState;
+        double m_dCustomRed;
+        double m_dCustomGreen;
+        double m_dCustomBlue;
 };
 #endif
