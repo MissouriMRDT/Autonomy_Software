@@ -1,9 +1,9 @@
 /******************************************************************************
- * @brief Defines the MultimediaBoard class and associated datatypes.
+ * @brief Defines the MultimediaBoard class.
  *
  * @file MultimediaBoard.h
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
@@ -11,44 +11,25 @@
 #ifndef MULTIMEDIABOARD_H
 #define MULTIMEDIABOARD_H
 
-enum MultimediaBoardLightingState
-{
-    TELEOP,
-    AUTONOMY,
-    REACHED_MARKER
-};
-
-struct RGB
-{
-        double dRed;
-        double dGreen;
-        double dBlue;
-
-        RGB()
-        {
-            this->dRed   = 0;
-            this->dGreen = 0;
-            this->dBlue  = 0;
-        }
-
-        RGB(int iHex)
-        {
-            this->dRed   = ((iHex >> 16) & 0xFF);
-            this->dGreen = ((iHex >> 8) & 0xFF);
-            this->dBlue  = (iHex & 0xFF);
-        }
-
-        RGB(double dRed, double dGreen, double dBlue)
-        {
-            this->dRed   = dRed;
-            this->dGreen = dGreen;
-            this->dBlue  = dBlue;
-        }
-};
-
 class MultimediaBoard
 {
+    private:
     public:
+        /////////////////////////////////////////
+        // Declare public enums and structs that are specific to and used withing this class.
+        /////////////////////////////////////////
+
+        // Structs.
+        struct RGB;
+
+        // Enums
+        enum MultimediaBoardLightingState
+        {
+            TELEOP,
+            AUTONOMY,
+            REACHED_MARKER
+        };
+
         MultimediaBoard();
         ~MultimediaBoard();
 

@@ -30,16 +30,28 @@ CameraHandlerThread::CameraHandlerThread()
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                             constants::ZED_MAINCAM_USE_GPU_MAT,
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
-                            constants::ZED_MAINCAN_SERIAL);
+                            constants::ZED_MAINCAM_SERIAL);
+
+    // Initialize main ZED camera 2.
+    m_pMainCam2 = new ZEDCam(constants::ZEDTEST_MAINCAM_RESOLUTIONX,
+                             constants::ZEDTEST_MAINCAM_RESOLUTIONY,
+                             constants::ZEDTEST_MAINCAM_FPS,
+                             constants::ZEDTEST_MAINCAM_HORIZONTAL_FOV,
+                             constants::ZEDTEST_MAINCAM_VERTICAL_FOV,
+                             constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+                             constants::ZEDTEST_MAINCAM_USE_GPU_MAT,
+                             constants::ZEDTEST_MAINCAM_USE_HALF_PRECISION_DEPTH,
+                             constants::ZEDTEST_MAINCAM_SERIAL);
 
     // Initialize Left acruco eye.
-    m_pLeftCam = new BasicCam(constants::BASIC_LEFTCAM_INDEX,
-                              constants::BASIC_LEFTCAM_RESOLUTIONX,
-                              constants::BASIC_LEFTCAM_RESOLUTIONY,
-                              constants::BASIC_LEFTCAM_FPS,
-                              constants::BASIC_LEFTCAM_PIXELTYPE,
-                              constants::BASIC_LEFTCAM_HORIZONTAL_FOV,
-                              constants::BASIC_LEFTCAM_VERTICAL_FOV);
+    // m_pLeftCam = new BasicCam(constants::BASIC_LEFTCAM_INDEX,
+    //                           constants::BASIC_LEFTCAM_RESOLUTIONX,
+    //                           constants::BASIC_LEFTCAM_RESOLUTIONY,
+    //                           constants::BASIC_LEFTCAM_FPS,
+    //                           constants::BASIC_LEFTCAM_PIXELTYPE,
+    //                           constants::BASIC_LEFTCAM_HORIZONTAL_FOV,
+    //                           constants::BASIC_LEFTCAM_VERTICAL_FOV);
 }
 
 /******************************************************************************
@@ -53,17 +65,21 @@ CameraHandlerThread::~CameraHandlerThread()
 {
     // Signal and wait for cameras to stop.
     m_pMainCam->RequestStop();
+    m_pMainCam2->RequestStop();
     m_pLeftCam->RequestStop();
     m_pMainCam->Join();
+    m_pMainCam2->Join();
     m_pLeftCam->Join();
 
     // Delete dynamic memory.
     delete m_pMainCam;
+    delete m_pMainCam2;
     delete m_pLeftCam;
 
     // Set dangling pointers to nullptr.
-    m_pMainCam = nullptr;
-    m_pLeftCam = nullptr;
+    m_pMainCam  = nullptr;
+    m_pMainCam2 = nullptr;
+    m_pLeftCam  = nullptr;
 }
 
 /******************************************************************************
@@ -77,9 +93,10 @@ void CameraHandlerThread::StartAllCameras()
 {
     // Start ZED cams.
     m_pMainCam->Start();
+    m_pMainCam2->Start();
 
     // Start basic cams.
-    m_pLeftCam->Start();
+    // m_pLeftCam->Start();
 }
 
 /******************************************************************************
@@ -97,6 +114,7 @@ ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
     switch (eCameraName)
     {
         case eHeadMainCam: return m_pMainCam;
+        case eHeadMainCam2: return m_pMainCam2;
         default: return m_pMainCam;
     }
 }
