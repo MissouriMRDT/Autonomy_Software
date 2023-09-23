@@ -109,6 +109,7 @@ void DriveBoard::SendDrive(float fLeftSpeed, float fRightSpeed)
     m_fTargetSpeedRight = std::clamp(m_fTargetSpeedRight, constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
 
     // Send drive command over RoveComm to drive board.
+    // TODO: Add RoveComm sendpacket.
 }
 
 /******************************************************************************
@@ -125,4 +126,5 @@ void DriveBoard::SendStop()
     m_fTargetSpeedRight = 0.0;
 
     // Send drive command over RoveComm to drive board.
+    // TODO: Add RoveComm sendpacket.
 }
