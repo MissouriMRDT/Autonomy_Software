@@ -11,9 +11,16 @@
 #ifndef MULTIMEDIABOARD_H
 #define MULTIMEDIABOARD_H
 
+/******************************************************************************
+ * @brief This class handles communication with the multimedia board on the rover
+ *      by sending RoveComm packets over the network.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
 class MultimediaBoard
 {
-    private:
     public:
         /////////////////////////////////////////
         // Declare public enums and structs that are specific to and used withing this class.
@@ -25,16 +32,38 @@ class MultimediaBoard
         // Enums
         enum MultimediaBoardLightingState
         {
-            TELEOP,
-            AUTONOMY,
-            REACHED_MARKER
+            eOff = -2,      // LED panel off.
+            eCustom,        // A custom value has been set or board should go back to a previously custom set value.
+            eTeleOp,        // TeleOp color = BLUE
+            eAutonomy,      // Autonomy color = RED
+            eReachedGoal    // Goal reached = FLASH GREEN
         };
+
+        /////////////////////////////////////////
+        // Declare public methods and member variables.
+        /////////////////////////////////////////
 
         MultimediaBoard();
         ~MultimediaBoard();
+        void SendLightingState(MultimediaBoardLightingState eState);
+        void SendRGB(RGB stRGBVal);
 
-        void SendLightingState(/*MultimediaBoardLightingState eState*/);
-        void SendRGB(/*RGB rgbVal*/);
+        /////////////////////////////////////////
+        // Setters
+        /////////////////////////////////////////
+
+        /////////////////////////////////////////
+        // Getters
+        /////////////////////////////////////////
+        MultimediaBoardLightingState GetCurrentLightingState() const;
+
+    private:
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+        MultimediaBoardLightingState eCurrentLightingState;
+        double dCustomRed;
+        double dCustomGreen;
+        double dCustomBlue;
 };
-
-#endif    // MULTIMEDIABOARD_H
+#endif

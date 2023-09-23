@@ -21,7 +21,7 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-06-20
  ******************************************************************************/
-struct RGB
+struct MultimediaBoard::RGB
 {
     public:
         // Declare public struct attributes.
@@ -83,19 +83,30 @@ struct RGB
  * @brief Construct a new Multimedia Board:: Multimedia Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-MultimediaBoard::MultimediaBoard() {}
+MultimediaBoard::MultimediaBoard()
+{
+    // Initialize member variables.
+    eCurrentLightingState = eOff;
+    dCustomRed            = 0.0;
+    dCustomGreen          = 0.0;
+    dCustomBlue           = 0.0;
+}
 
 /******************************************************************************
  * @brief Destroy the Multimedia Board:: Multimedia Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-MultimediaBoard::~MultimediaBoard() {}
+MultimediaBoard::~MultimediaBoard()
+{
+    // Send RGB 0, 0, 0 to multimedia board to turn LED panel off.
+    this->SendLightingState(eOff);
+}
 
 /******************************************************************************
  * @brief Sends a predetermined color pattern to board.
@@ -103,18 +114,52 @@ MultimediaBoard::~MultimediaBoard() {}
  * @param eState - The lighting state. Enum defined in header file for
  * 					MultimediaBoard.h
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-void MultimediaBoard::SendLightingState(/*MultimediaBoardLightingState eState*/) {}
+void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
+{
+    // Update member variables.
+    this->eCurrentLightingState = eState;
+
+    // Decide what lighting operation to execute.
+    switch (eState)
+    {
+        case eOff:
+            // Use RoveComm to send 0, 0, 0 RGB values.
+            break;
+
+        case eCustom:
+            // Use RoveComm to send old custom values previously set.
+            break;
+
+        default:
+            // Send lighting state over RoveComm.
+            break;
+    }
+    // Send multimedia board lighting state to board over RoveComm.
+}
 
 /******************************************************************************
  * @brief Send a custom RGB value to the board.
  *
- * @param rgbVal - RGB struct containing color information. Struct defined in
- * 					MultimediaBoard.h
+ * @param stRGBVal - RGB struct containing color information.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-void MultimediaBoard::SendRGB(/*RGB rgbVal*/) {}
+void MultimediaBoard::SendRGB(RGB stRGBVal)
+{
+    // Update custom RGB values.
+    dCustomRed   = stRGBVal.dRed;
+    dCustomGreen = stRGBVal.dGreen;
+    dCustomBlue  = stRGBVal.dBlue;
+
+    // Send RGB values to mutlimedia board over RoveComm.
+}
+
+MultimediaBoard::MultimediaBoardLightingState MultimediaBoard::GetCurrentLightingState() const
+{
+    // Return the current lighting state.
+    return eCurrentLightingState;
+}
