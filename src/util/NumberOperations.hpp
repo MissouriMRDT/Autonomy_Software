@@ -9,10 +9,10 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <algorithm>
+#ifndef NUMBER_OPERATIONS_HPP
+#define NUMBER_OPERATIONS_HPP
 
-#ifndef NUMBER_OPERATIONS_H
-#define NUMBER_OPERATIONS_H
+#include <algorithm>
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and
