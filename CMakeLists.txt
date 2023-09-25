@@ -70,36 +70,53 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-## Find OpenCV
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
+## Find OpenCV.
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+## Find CUDA.
+find_package(CUDA 11.4 REQUIRED)
+message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
+
+## Find ZEDSDK. Add as system package to supress library warnings.
+find_package(ZED REQUIRED)
+include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
+link_directories(${ZED_LIBRARY_DIRS})
+
+## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
+find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
+include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
+link_directories(${CUDA_LIBRARY_DIRS})
+## Determine if shared or static libraries will be used.
+option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+
+if (NOT LINK_SHARED_ZED AND MSVC)
+    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
+endif()
+## Define libraries for ZED. Optionally static or dynamic.
+if (LINK_SHARED_ZED)
+    SET(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
+else()
+    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} CUDA::toolkit)
+endif()
+
+## Add special flag if compiling on aarch64.
+IF (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+    add_definitions(-DJETSON_STYLE)
+ENDIF()
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
 
 ## Search Project Directories for CPP Files
-file(GLOB Algorithms_SRC		CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-file(GLOB Interfaces_SRC		CONFIGURE_DEPENDS  "src/interfaces/*.cpp")
-file(GLOB Drivers_SRC		    CONFIGURE_DEPENDS  "src/drivers/*.cpp")
-file(GLOB States_SRC			CONFIGURE_DEPENDS  "src/states/*.cpp")
-file(GLOB Util_SRC			  	CONFIGURE_DEPENDS  "src/util/*.cpp")
-file(GLOB Vision_SRC			CONFIGURE_DEPENDS  "src/vision/*.cpp")
-file(GLOB Threads_SRC			CONFIGURE_DEPENDS  "src/threads/*.cpp")
-file(GLOB Main_SRC			  	CONFIGURE_DEPENDS  "src/*.cpp")
-file(GLOB Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
-file(GLOB External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
-file(GLOB Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
+file(GLOB_RECURSE SRC			  	    CONFIGURE_DEPENDS  "src/*.cpp")
+file(GLOB_RECURSE Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
+file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
+file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
 add_executable(${PROJECT_NAME}   ${External_SRC}
-								 ${Util_SRC}
-								 ${Algorithms_SRC}
-								 ${Interfaces_SRC}
-                                 ${Drivers_SRC}
-								 ${States_SRC}
-								 ${Vision_SRC}
-                                 ${Threads_SRC}
-								 ${Main_SRC}
+								 ${SRC}
 								 ${Examples_SRC}
 								 ${Tools_SRC}
 	)
@@ -116,27 +133,32 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
                                                 quill::quill
 												${OpenCV_LIBS}
+                                                ${ZED_LIBS} 
                                                 RoveComm_CPP
     )
 
 ## Package Executable
-install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
-file(GLOB UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/**/*.cc")
-file(GLOB IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/**/*.cc")
+file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
+file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
 
 list(LENGTH UnitTests_SRC           UnitTests_LEN)
 list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_UnitTests "tests/Unit/main.cc" ${UnitTests_SRC})
+    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC})
     target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main)
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
+else()
+    message("No Unit Tests!")
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_IntegrationTests "tests/Unit/main.cc" ${IntegrationTests_SRC})
+    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC})
     target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main)
     add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
+else()
+    message("No Integration Tests!")
 endif()

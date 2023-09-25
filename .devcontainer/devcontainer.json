@@ -1,21 +1,39 @@
 {
     "name": "MRDT Autonomy C++",
     "runArgs": [
+        // Name container.
         "--name",
         "Autonomy_Software_devcontainer",
-        // "--gpus all", // add all available GPUs
-        // "--runtime nvidia", // Use the NVIDIA container runtime.
-        "--privileged", // grants permission to the container to access USBs
-        "-e DISPLAY" // Makes DISPLAY environment variable available in the container.
-        // "-v /tmp/.X11-unix:/tmp/.X11-unix" // Required for container to access display.
+        // Add all available GPUs
+        "--gpus",
+        "all",
+        // "--runtime=nvidia",
+        // Grants permission to the container to access USBs.
+        "--privileged",
+        "-v",
+        "/dev/bus/usb:/dev/bus/usb",
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        "-v",
+        "/mnt/wslg:/mnt/wslg",
+        "-e",
+        "$DISPLAY",
+        "-e",
+        "WAYLAND_DISPLAY",
+        "-e",
+        "XDG_RUNTIME_DIR"
+    ],
+    // Mount shared workspace volumes. Bind from host machine to container.
+    "mounts": [
+        "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
     // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-    //     "dockerfile": "Dockerfile_Jammy"
+    //     // "dockerfile": "Dockerfile_Jammy"
     //     "dockerfile": "Dockerfile_Focal"
-    //     "dockerfile": "Dockerfile_JetPack"
+    //     // "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -58,6 +76,8 @@
                     "**/docs": true
                 },
                 "extensions.ignoreRecommendations": true,
+                // Git settings.
+                "git.autofetch": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
@@ -67,8 +87,8 @@
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
                     "/usr/local/zed/include/**",
-                    "/usr/local/cuda-11.4/include",
-                    "/usr/local/cuda-11.4/include/**",
+                    "/usr/local/cuda-11.7/include",
+                    "/usr/local/cuda-11.7/include/**",
                     "/usr/local/include/quill/",
                     "/usr/local/include/quill/**",
                     "/usr/local/include/gmock/",
