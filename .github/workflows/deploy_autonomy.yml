@@ -19,41 +19,25 @@ concurrency:
 jobs:
   build-and-upload:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, [self-hosted, linux, ARM64]]
-        container:
-          [
-            "ghcr.io/missourimrdt/autonomy-focal:latest",
-            "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-          ]
+        os: [[self-hosted, linux, X64], [self-hosted, linux, ARM64]]
         architecture: [AMD64, ARM64]
         exclude:
-          - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-focal:latest"
+          - os: [self-hosted, linux, X64]
             architecture: ARM64
-          - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-            architecture: ARM64
-          - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-            architecture: ARM64
-          - os: ubuntu-latest
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-            architecture: AMD64
           - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-jetpack:latest"
             architecture: AMD64
-          - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-focal:latest"
-            architecture: AMD64
-          - os: [self-hosted, linux, ARM64]
-            container: "ghcr.io/missourimrdt/autonomy-focal:latest"
-            architecture: ARM64
 
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
       - name: Checkout Tag
         run: |
           cd /opt/Autonomy_Software/
@@ -65,6 +49,7 @@ jobs:
       - name: Build and Create Executable
         run: |
           cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
           cmake ..
@@ -74,29 +59,20 @@ jobs:
       - name: Rename Executable
         run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: Autonomy-${{ matrix.architecture }}
-          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-
   create-release:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     needs: build-and-upload
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Determine Version
         id: version
         run: "echo ::set-output name=version::${GITHUB_REF#refs/tags/}"
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
-        id: download
-        with:
-          path: /opt/Autonomy_Software/build/
 
       - name: Display Structure
         run: ls

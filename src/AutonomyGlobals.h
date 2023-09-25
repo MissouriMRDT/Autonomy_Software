@@ -8,11 +8,15 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#ifndef AUTONOMY_GLOBALS_H
+#define AUTONOMY_GLOBALS_H
+
 #include "AutonomyConstants.h"
 #include "IdentitySoftware.h"
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
+#include "threads/CameraHandlerThread.h"
 
 #include <chrono>
 #include <ctime>
@@ -29,11 +33,11 @@
 namespace sc  = boost::statechart;
 namespace mpl = boost::mpl;
 
-#ifndef AUTONOMY_GLOBALS_H
-#define AUTONOMY_GLOBALS_H
-
 // Versioning:
 extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
+
+// Camera Handler:
+extern CameraHandlerThread* g_pCameraHandler;
 
 // Board Interfaces:
 extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface

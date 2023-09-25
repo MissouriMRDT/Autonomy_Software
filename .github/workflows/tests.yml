@@ -12,11 +12,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  run-tests:
-    runs-on: ubuntu-latest
-    container: ghcr.io/missourimrdt/autonomy-focal:latest
+  build-tests:
+    runs-on: [self-hosted, linux, X64]
+
+    outputs:
+      check_unit: ${{ steps.check_unit.outputs.files_exists }}
+      check_integration: ${{ steps.check_integration.outputs.files_exists }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
@@ -34,20 +43,56 @@ jobs:
       - name: Build Tests
         run: |
           cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
           cmake ..
           make
 
+      - name: Check File Existence (Unit Tests)
+        id: check_unit
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_UnitTests"
+
+      - name: Check File Existence (Integration Tests)
+        id: check_integration
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests"
+
+  run-unit-tests:
+    needs: build-tests
+    runs-on: [self-hosted, linux, X64]
+
+    if: needs.build-tests.outputs.check_unit == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
       - name: Run Unit Tests
-        id: run-unit
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; else echo "No Unit Tests Exist" ; fi
 
+  run-integration-tests:
+    needs: build-tests
+    runs-on: [self-hosted, linux, X64]
+
+    if: needs.build-tests.outputs.check_integration == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
       - name: Run Integration Tests
-        id: run-integration
-        if: success() || (failure() && steps.run-unit.outcome == 'failure')
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_IntegrationTests"; then ./Autonomy_Software_IntegrationTests ; else echo "No Integration Tests Exist" ; fi
