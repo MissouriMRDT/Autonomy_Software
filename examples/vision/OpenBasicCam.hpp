@@ -34,7 +34,9 @@ void RunExample()
     while (true)
     {
         // Grab normal frame from camera.
-        if (TestCamera1->GrabFrame(cvNormalFrame1))
+        std::future<cv::Mat&> fuTest = TestCamera1->GrabFrame(cvNormalFrame1);
+        cvNormalFrame1               = fuTest.get();
+        if (!cvNormalFrame1.empty())
         {
             // Print info.
             LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
