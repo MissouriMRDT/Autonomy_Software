@@ -21,16 +21,16 @@
 CameraHandlerThread::CameraHandlerThread()
 {
     // Initialize main ZED camera.
-    m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
-                            constants::ZED_MAINCAM_RESOLUTIONY,
-                            constants::ZED_MAINCAM_FPS,
-                            constants::ZED_MAINCAM_HORIZONTAL_FOV,
-                            constants::ZED_MAINCAM_VERTICAL_FOV,
-                            constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-                            constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-                            constants::ZED_MAINCAM_USE_GPU_MAT,
-                            constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
-                            constants::ZED_MAINCAN_SERIAL);
+    // m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
+    //                         constants::ZED_MAINCAM_RESOLUTIONY,
+    //                         constants::ZED_MAINCAM_FPS,
+    //                         constants::ZED_MAINCAM_HORIZONTAL_FOV,
+    //                         constants::ZED_MAINCAM_VERTICAL_FOV,
+    //                         constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+    //                         constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+    //                         constants::ZED_MAINCAM_USE_GPU_MAT,
+    //                         constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
+    //                         constants::ZED_MAINCAN_SERIAL);
 
     // Initialize Left acruco eye.
     m_pLeftCam = new BasicCam(constants::BASIC_LEFTCAM_INDEX,
@@ -52,17 +52,17 @@ CameraHandlerThread::CameraHandlerThread()
 CameraHandlerThread::~CameraHandlerThread()
 {
     // Signal and wait for cameras to stop.
-    m_pMainCam->RequestStop();
+    // m_pMainCam->RequestStop();
     m_pLeftCam->RequestStop();
-    m_pMainCam->Join();
+    // m_pMainCam->Join();
     m_pLeftCam->Join();
 
     // Delete dynamic memory.
-    delete m_pMainCam;
+    // delete m_pMainCam;
     delete m_pLeftCam;
 
     // Set dangling pointers to nullptr.
-    m_pMainCam = nullptr;
+    // m_pMainCam = nullptr;
     m_pLeftCam = nullptr;
 }
 
@@ -76,7 +76,7 @@ CameraHandlerThread::~CameraHandlerThread()
 void CameraHandlerThread::StartAllCameras()
 {
     // Start ZED cams.
-    m_pMainCam->Start();
+    // m_pMainCam->Start();
 
     // Start basic cams.
     m_pLeftCam->Start();
@@ -91,15 +91,15 @@ void CameraHandlerThread::StartAllCameras()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
-{
-    // Determine which camera should be returned.
-    switch (eCameraName)
-    {
-        case eHeadMainCam: return m_pMainCam;
-        default: return m_pMainCam;
-    }
-}
+// ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
+// {
+//     // Determine which camera should be returned.
+//     switch (eCameraName)
+//     {
+//         case eHeadMainCam: return m_pMainCam;
+//         default: return m_pMainCam;
+//     }
+// }
 
 /******************************************************************************
  * @brief Accessor for Basic cameras.
