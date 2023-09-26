@@ -14,6 +14,7 @@
 #ifndef FETCH_CONTAINERS_HPP
 #define FETCH_CONTAINERS_HPP
 
+#include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
 
@@ -42,10 +43,9 @@ namespace containers
     {
         public:
             // Declare and define public struct member variables.
-            std::condition_variable cdMatWriteSuccess;
-            std::mutex muConditionMutex;
-            T& tFrame;
+            std::shared_ptr<T> pFrame;
             PIXEL_FORMATS eFrameType;
+            std::shared_ptr<std::promise<T&>> pCopiedFrame;
 
             /******************************************************************************
              * @brief Construct a new Frame Fetch Container object.
@@ -57,7 +57,28 @@ namespace containers
              * @author ClayJay3 (claytonraycowen@gmail.com)
              * @date 2023-09-09
              ******************************************************************************/
-            FrameFetchContainer(T& tFrame, PIXEL_FORMATS eFrameType) : tFrame(tFrame), eFrameType(eFrameType) {}
+            FrameFetchContainer(T& tFrame, PIXEL_FORMATS eFrameType) :
+                pFrame(std::make_shared<T>(tFrame)), eFrameType(eFrameType), pCopiedFrame(std::make_shared<std::promise<T&>>())
+            {}
+
+            FrameFetchContainer(const FrameFetchContainer& stOtherFrameContainer) :
+                pFrame(stOtherFrameContainer.pFrame), eFrameType(stOtherFrameContainer.eFrameType), pCopiedFrame(stOtherFrameContainer.pCopiedFrame)
+            {}
+
+            FrameFetchContainer& operator=(const FrameFetchContainer& stOtherFrameContainer)
+            {
+                // Check if the passed in container is the same as this one.
+                if (this != &stOtherFrameContainer)
+                {
+                    // Copy struct attributes.
+                    this->pFrame       = stOtherFrameContainer.pFrame;
+                    this->eFrameType   = stOtherFrameContainer.eFrameType;
+                    this->pCopiedFrame = stOtherFrameContainer.pCopiedFrame;
+                }
+
+                // Return pointer to this object which now contains the copied values.
+                return *this;
+            }
     };
 
     /******************************************************************************

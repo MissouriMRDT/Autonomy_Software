@@ -196,20 +196,14 @@ void BasicCam::PooledLinearCode()
     if (!m_qFrameCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat&>& stContainer = m_qFrameCopySchedule.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
         // Pop out of queue.
         m_qFrameCopySchedule.pop();
         // Release lock.
         lkFrameQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
         // Copy frame to data container.
-        stContainer.tFrame = m_cvFrame.clone();
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+        *(stContainer.pFrame) = m_cvFrame.clone();
     }
 }
 
@@ -225,10 +219,10 @@ void BasicCam::PooledLinearCode()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-bool BasicCam::GrabFrame(cv::Mat& cvFrame)
+std::future<cv::Mat&> BasicCam::GrabFrame(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat&> stContainer(cvFrame, m_ePropPixelFormat);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -237,26 +231,8 @@ bool BasicCam::GrabFrame(cv::Mat& cvFrame)
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrame->get_future();
 }
 
 /******************************************************************************

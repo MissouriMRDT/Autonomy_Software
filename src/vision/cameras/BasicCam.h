@@ -39,7 +39,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV);
         ~BasicCam();
-        bool GrabFrame(cv::Mat& cvFrame) override;
+        std::future<cv::Mat&> GrabFrame(cv::Mat& cvFrame) override;
 
         /////////////////////////////////////////
         // Getters.
@@ -62,7 +62,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         cv::Mat m_cvFrame;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qFrameCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
         std::mutex m_muFrameCopyMutex;
 
