@@ -88,13 +88,15 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
+               const int nNumFrameRetrievalThreads,
                const unsigned int unCameraSerialNumber) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_unCameraSerialNumber = unCameraSerialNumber;
+    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
+    m_unCameraSerialNumber      = unCameraSerialNumber;
 
     // Setup camera params.
     m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
