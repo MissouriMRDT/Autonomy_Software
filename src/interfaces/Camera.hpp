@@ -68,8 +68,8 @@ class Camera
         double m_dPropVerticalFOV;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual std::future<T&> GrabFrame(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
-        virtual bool GetCameraIsOpen()               = 0;    // This is where the code to check if the camera is current open goes.
+        virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
+        virtual bool GetCameraIsOpen()                        = 0;    // This is where the code to check if the camera is current open goes.
 
         // Declare protected object pointers.
         IPS m_IPS = IPS();
