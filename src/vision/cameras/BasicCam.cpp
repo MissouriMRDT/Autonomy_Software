@@ -204,6 +204,8 @@ void BasicCam::PooledLinearCode()
 
         // Copy frame to data container.
         *(stContainer.pFrame) = m_cvFrame.clone();
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
     }
 }
 
@@ -213,13 +215,13 @@ void BasicCam::PooledLinearCode()
  *      class/thread calls it.
  *
  * @param cvFrame - A reference to the cv::Mat to store the frame in.
- * @return true - Frame successfully retrieved and stored.
- * @return false - Frame was not stored successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-std::future<cv::Mat&> BasicCam::GrabFrame(cv::Mat& cvFrame)
+std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
@@ -232,7 +234,7 @@ std::future<cv::Mat&> BasicCam::GrabFrame(cv::Mat& cvFrame)
     lkScheduler.unlock();
 
     // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrame->get_future();
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
