@@ -13,7 +13,7 @@
 #include "../../src/vision/cameras/ZEDCam.h"
 
 // Declare file constants.
-const bool ENABLE_SPATIAL_MAPPING = false;
+const bool ENABLE_SPATIAL_MAPPING = true;
 
 /******************************************************************************
  * @brief Main example method.
@@ -41,11 +41,12 @@ void RunExample()
     }
 
     // Declare mats to store images in.
-    sl::Pose slPose;
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     cv::cuda::GpuMat cvGPUDepthFrame1;
+    // Declare other data types to store data in.
+    sl::Pose slPose;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -55,37 +56,37 @@ void RunExample()
     {
         // Grab frames from camera.
         std::future<bool> fuFrameCopyStatus = TestCamera1->RequestFrameCopy(cvGPUNormalFrame1);
-        // std::future<bool> fuDepthCopyStatus = TestCamera1->RequestDepthCopy(cvGPUDepthFrame1);
+        std::future<bool> fuDepthCopyStatus = TestCamera1->RequestDepthCopy(cvGPUDepthFrame1, false);
         // Grab other info from camera.
-        // std::future<bool> fuPoseCopyStatus = TestCamera1->RequestPositionalPoseCopy(slPose);
+        std::future<bool> fuPoseCopyStatus = TestCamera1->RequestPositionalPoseCopy(slPose);
 
         // Wait for the frames to be copied.
-        if (fuFrameCopyStatus.get())
+        if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get())
         {
             // Download memory from gpu mats if necessary.
             cvGPUNormalFrame1.download(cvNormalFrame1);
-            // cvGPUDepthFrame1.download(cvDepthFrame1);
+            cvGPUDepthFrame1.download(cvDepthFrame1);
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1, std::to_string(TestCamera1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
             // Put FPS on depth frame.
-            // cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            cv::putText(cvDepthFrame1, std::to_string(TestCamera1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
             // Display frame.
-            cv::imshow("TEST1", cvNormalFrame1);
-            // cv::imshow("DEPTH1", cvDepthFrame1);
+            cv::imshow("FRAME1", cvNormalFrame1);
+            cv::imshow("DEPTH1", cvDepthFrame1);
 
-            // // Wait for the other info to be copied.
-            // if (fuPoseCopyStatus.get())
-            // {
-            //     // Wait for the
-            //     sl::Translation slTranslation = slPose.getTranslation();
-            //     sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
+            // Wait for the other info to be copied.
+            if (fuPoseCopyStatus.get())
+            {
+                // Wait for the
+                sl::Translation slTranslation = slPose.getTranslation();
+                sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
 
-            //     LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-            //     LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
-            // }
+                LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
+                LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+            }
 
             // Print info.
             LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());

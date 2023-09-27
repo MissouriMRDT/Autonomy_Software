@@ -132,6 +132,17 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_slSpatialMappingParams.save_texture      = true;
     m_slSpatialMappingParams.use_chunk_only    = constants::ZED_MAPPING_USE_CHUNK_ONLY;
     m_slSpatialMappingParams.stability_counter = constants::ZED_MAPPING_STABILITY_COUNTER;
+    // Set or auto-set max depth range for mapping.
+    if (constants::ZED_MAPPING_RANGE_METER >= 0)
+    {
+        // Automatically guess the best mapping depth range.
+        m_slSpatialMappingParams.range_meter = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
+    }
+    else
+    {
+        // Manually set.
+        m_slSpatialMappingParams.range_meter = constants::ZED_MAPPING_RANGE_METER;
+    }
 
     // Setup object detection/tracking parameters.
     m_slObjectDetectionParams.detection_model      = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
@@ -401,7 +412,6 @@ void ZEDCam::PooledLinearCode()
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
         {
-            // TODO: Check if the frame is actually a Mat.
             // Get frame container out of queue.
             containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
             // Pop out of queue.
@@ -422,6 +432,16 @@ void ZEDCam::PooledLinearCode()
             // Signal future that the frame has been successfully retrieved.
             stContainer.pCopiedFrameStatus->set_value(true);
         }
+
+        // Check if anything has been added to the GPU queue.
+        if (!m_qGPUFrameCopySchedule.empty())
+        {
+            // Submit logger error.
+            LOG_ERROR(g_qSharedLogger,
+                      "ZEDCam ({}) is in CPU sl::Mat mode but a GPU mat has been added to the copy queue! Whichever thread queued the frame will now appear frozen if "
+                      "future.get() is called. Either switch the camera to GPU Mat mode in AutonomyConstants.h or stop queueing frames of type cv::Mat.",
+                      m_unCameraSerialNumber);
+        }
     }
     // Use GPU mat.
     else
@@ -431,7 +451,6 @@ void ZEDCam::PooledLinearCode()
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
-            // TODO: Check if the frame is actually a GpuMat
             // Get frame container out of queue.
             containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer = m_qGPUFrameCopySchedule.front();
             // Pop out of queue.
@@ -451,6 +470,16 @@ void ZEDCam::PooledLinearCode()
 
             // Signal future that the frame has been successfully retrieved.
             stContainer.pCopiedFrameStatus->set_value(true);
+        }
+
+        // Check if anything has been added to the GPU queue.
+        if (!m_qFrameCopySchedule.empty())
+        {
+            // Submit logger error.
+            LOG_ERROR(g_qSharedLogger,
+                      "ZEDCam ({}) is in GPU sl::Mat mode but a CPU mat has been added to the copy queue! Whichever thread queued the frame will now appear frozen if "
+                      "future.get() is called. Either switch the camera to GPU Mat mode in AutonomyConstants.h or stop queueing frames of type cv::cuda::GpuMat.",
+                      m_unCameraSerialNumber);
         }
     }
 
@@ -1182,7 +1211,7 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         std::promise<bool> pmDummyPromise;
         std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
         // Set future value.
-        pmDummyPromise.set_value(true);
+        pmDummyPromise.set_value(false);
 
         // Return unsuccessful.
         return fuDummyFuture;
