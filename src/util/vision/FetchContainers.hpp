@@ -137,7 +137,7 @@ namespace containers
              * @author ClayJay3 (claytonraycowen@gmail.com)
              * @date 2023-09-09
              ******************************************************************************/
-            DataFetchContainer(T& tData) : pData(&tData) {}
+            DataFetchContainer(T& tData) : pData(&tData), pCopiedDataStatus(std::make_shared<std::promise<bool>>()) {}
 
             /******************************************************************************
              * @brief Copy Construct a new Frame Fetch Container object.

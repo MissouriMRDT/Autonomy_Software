@@ -158,6 +158,9 @@ void BasicCam::ThreadedContinuousCode()
         // Check if new frame was computed successfully.
         if (m_cvCamera.read(m_cvFrame))
         {
+            // Resize the frame.
+            cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY), 0.0, 0.0, constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
+
             // Call FPS tick.
             m_IPS.Tick();
         }
