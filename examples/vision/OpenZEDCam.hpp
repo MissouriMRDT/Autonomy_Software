@@ -77,7 +77,6 @@ void RunExample()
 
             // Print info.
             LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
-            LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
             LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
             LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
             // Check if spatial mapping is enabled.
@@ -89,6 +88,8 @@ void RunExample()
 
         // Tick FPS counter.
         FPS.Tick();
+        // Print FPS of main loop.
+        LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit

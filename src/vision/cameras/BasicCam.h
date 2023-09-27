@@ -39,7 +39,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV);
         ~BasicCam();
-        std::future<cv::Mat&> GrabFrame(cv::Mat& cvFrame) override;
+        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
 
         /////////////////////////////////////////
         // Getters.
