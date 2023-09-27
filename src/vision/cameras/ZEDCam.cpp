@@ -369,7 +369,7 @@ void ZEDCam::ThreadedContinuousCode()
                                                 m_qObjectBatchedDataCopySchedule.size()});
 
             // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-            this->RunDetachedPool(siMaxQueueLength, constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
+            this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
             // Wait for thread pool to finish.
             this->JoinPool();
             // Release lock on frame copy queue.
@@ -401,6 +401,7 @@ void ZEDCam::PooledLinearCode()
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
         {
+            // TODO: Check if the frame is actually a Mat.
             // Get frame container out of queue.
             containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
             // Pop out of queue.
@@ -425,11 +426,12 @@ void ZEDCam::PooledLinearCode()
     // Use GPU mat.
     else
     {
+        // Aqcuire mutex for getting frames out of the queue.
+        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
-            // Aqcuire mutex for getting frames out of the queue.
-            std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+            // TODO: Check if the frame is actually a GpuMat
             // Get frame container out of queue.
             containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer = m_qGPUFrameCopySchedule.front();
             // Pop out of queue.
@@ -1180,7 +1182,7 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         std::promise<bool> pmDummyPromise;
         std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
         // Set future value.
-        pmDummyPromise.set_value(false);
+        pmDummyPromise.set_value(true);
 
         // Return unsuccessful.
         return fuDummyFuture;

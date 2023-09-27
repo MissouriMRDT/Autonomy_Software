@@ -120,13 +120,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Mat m_slPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::Mat>>> m_qFrameCopySchedule;
-        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::cuda::GpuMat>>> m_qGPUFrameCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<ZedObjectData>>>> m_qCustomBoxInjestSchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<sl::Pose>>> m_qPoseCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<double>>>> m_qIMUDataCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<sl::ObjectData>>>> m_qObjectDataCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>>> m_qObjectBatchedDataCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qFrameCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxInjestSchedule;
+        std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
         std::mutex m_muFrameCopyMutex;
         std::mutex m_muCustomBoxInjestMutex;
