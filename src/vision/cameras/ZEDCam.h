@@ -21,6 +21,16 @@
 #include "../../interfaces/Camera.hpp"
 #include "../../util/vision/FetchContainers.hpp"
 
+/******************************************************************************
+ * @brief This class implements and interfaces with the most common ZEDSDK cameras
+ *  and features. It is designed in such a way that multiple other classes/threads
+ *  can safely call any method of an object of this class withing resource corruption
+ *  or slowdown of the camera.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
+ ******************************************************************************/
 class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     public:
@@ -41,6 +51,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,
                const bool bUseHalfDepthPrecision       = false,
+               const int nNumFrameRetrievalThreads     = 10,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
@@ -99,6 +110,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
         sl::MEM m_slMemoryType;
+        int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
 
         // Mats for storing frames and measures.

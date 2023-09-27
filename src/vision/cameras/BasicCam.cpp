@@ -32,12 +32,14 @@ BasicCam::BasicCam(const std::string szCameraPath,
                    const int nPropFramesPerSecond,
                    const PIXEL_FORMATS ePropPixelFormat,
                    const double dPropHorizontalFOV,
-                   const double dPropVerticalFOV) :
+                   const double dPropVerticalFOV,
+                   const int nNumFrameRetrievalThreads) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
-    m_szCameraPath = szCameraPath;
-    m_nCameraIndex = -1;
+    m_szCameraPath              = szCameraPath;
+    m_nCameraIndex              = -1;
+    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
@@ -76,12 +78,14 @@ BasicCam::BasicCam(const int nCameraIndex,
                    const int nPropFramesPerSecond,
                    const PIXEL_FORMATS ePropPixelFormat,
                    const double dPropHorizontalFOV,
-                   const double dPropVerticalFOV) :
+                   const double dPropVerticalFOV,
+                   const int nNumFrameRetrievalThreads) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
-    m_nCameraIndex = nCameraIndex;
-    m_szCameraPath = "";
+    m_nCameraIndex              = nCameraIndex;
+    m_szCameraPath              = "";
+    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = true;
@@ -169,7 +173,7 @@ void BasicCam::ThreadedContinuousCode()
         if (!m_qFrameCopySchedule.empty())
         {
             // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-            this->RunDetachedPool(m_qFrameCopySchedule.size(), constants::BASIC_LEFTCAM_FRAME_RETRIEVAL_THREADS);
+            this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
             // Wait for thread pool to finish.
             this->JoinPool();
             // Release lock on frame copy queue.

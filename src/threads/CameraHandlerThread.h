@@ -15,8 +15,7 @@
 
 #include "../interfaces/AutonomyThread.hpp"
 #include "../vision/cameras/BasicCam.h"
-
-// #include "../vision/cameras/ZEDCam.h"
+#include "../vision/cameras/ZEDCam.h"
 
 /******************************************************************************
  * @brief The CameraHandlerThread class is responsible for managing all of the
@@ -32,7 +31,7 @@ class CameraHandlerThread
 {
     private:
         // Declare private class member variables.
-        // ZEDCam* m_pMainCam;
+        ZEDCam* m_pMainCam;
         BasicCam* m_pLeftCam;
 
     public:
@@ -54,7 +53,7 @@ class CameraHandlerThread
         void StartAllCameras();
 
         // Accessors.
-        // ZEDCam* GetZED(ZEDCamName eCameraName);
+        ZEDCam* GetZED(ZEDCamName eCameraName);
         BasicCam* GetBasicCam(BasicCamName eCameraName);
 };
 
