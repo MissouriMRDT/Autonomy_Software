@@ -14,9 +14,41 @@
 #ifndef FETCH_CONTAINERS_HPP
 #define FETCH_CONTAINERS_HPP
 
+#include "../../interfaces/Camera.hpp"
+
 #include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
+
+// Declare global/file-scope enumerator.
+enum PIXEL_FORMATS
+{
+    eRGB,
+    eBGR,
+    eRGBA,
+    eBGRA,
+    eARGB,
+    eABGR,
+    eRGBE,
+    eXYZ,
+    eRGBXZY,
+    eRGBAXYZ,
+    eZED,
+    eGrayscale,
+    eDepthImage,
+    eDepthMeasure,
+    eCMYK,
+    eYUV,
+    eYUYV,
+    eYUVJ,
+    eHSV,
+    eHSL,
+    eSRGB,
+    eLAB,
+    eUNKNOWN
+};
+
+///////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
  * @brief Namespace containing functions or objects/struct used to aid in data

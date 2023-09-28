@@ -12,37 +12,10 @@
 #define CAMERA_HPP
 
 #include "../util/IPS.hpp"
+#include "../util/vision/FetchContainers.hpp"
+
 #include <future>
-
-// Declare global/file-scope enumerator.
-enum PIXEL_FORMATS
-{
-    eRGB,
-    eBGR,
-    eRGBA,
-    eBGRA,
-    eARGB,
-    eABGR,
-    eRGBE,
-    eXYZ,
-    eRGBXZY,
-    eRGBAXYZ,
-    eZED,
-    eGrayscale,
-    eDepthImage,
-    eDepthMeasure,
-    eCMYK,
-    eYUV,
-    eYUYV,
-    eYUVJ,
-    eHSV,
-    eHSL,
-    eSRGB,
-    eLAB,
-    eUNKNOWN
-};
-
-///////////////////////////////////////////////////////////////////////////////
+#include <shared_mutex>
 
 /******************************************************************************
  * @brief This interface class serves as a base for all other classes that will
@@ -66,6 +39,11 @@ class Camera
         PIXEL_FORMATS m_ePropPixelFormat;
         double m_dPropHorizontalFOV;
         double m_dPropVerticalFOV;
+
+        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
+        std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;
+        std::shared_mutex m_muPoolScheduleMutex;
+        std::mutex m_muFrameCopyMutex;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.

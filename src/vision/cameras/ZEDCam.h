@@ -13,13 +13,11 @@
 
 #include <future>
 #include <opencv2/opencv.hpp>
-#include <shared_mutex>
 #include <sl/Camera.hpp>
 
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
-#include "../../util/vision/FetchContainers.hpp"
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common ZEDSDK cameras
@@ -120,15 +118,12 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Mat m_slPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qFrameCopySchedule;
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxInjestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
         std::mutex m_muCustomBoxInjestMutex;
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muIMUDataCopyMutex;
