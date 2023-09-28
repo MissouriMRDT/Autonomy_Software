@@ -392,7 +392,7 @@ void ZEDCam::ThreadedContinuousCode()
 /******************************************************************************
  * @brief This method holds the code that is ran in the thread pool started by
  *      the ThreadedLinearCode() method. It copies the data from the different
- *      data objects to references of the same type stored in a vector queued up by the
+ *      data objects to references of the same type stored in a queue filled by the
  *      Grab methods.
  *
  *
@@ -582,7 +582,8 @@ void ZEDCam::PooledLinearCode()
 }
 
 /******************************************************************************
- * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera.
+ * @brief Requests a regular BGRA image from the LEFT eye of the zed camera.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *      Remember this code will be ran in whatever class/thread calls it.
  *
  * @param cvFrame - A reference to the cv::Mat to copy the normal frame to.
@@ -609,8 +610,8 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
 }
 
 /******************************************************************************
- * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera and
- *      stores it in a GPU mat.
+ * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera and stores it in a GPU mat.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *      Remember this code will be ran in whatever class/thread calls it.
  *
  * @param cvGPUFrame - A reference to the cv::Mat to copy the normal frame to.
@@ -637,9 +638,10 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
 }
 
 /******************************************************************************
- * @brief Grabs a depth measure or image from the camera. This image has the same shape as
- *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
- *      AutonomyConstants.h.
+ * @brief Requests a depth measure or image from the camera.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      This image has the same shape as a grayscale image, but the values represent the depth in
+ *      MILLIMETERS. The ZEDSDK will always return this measure in MILLIMETERS.
  *
  * @param cvDepth - A reference to the cv::Mat to copy the depth frame to.
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
@@ -672,9 +674,10 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
 }
 
 /******************************************************************************
- * @brief Grabs a depth measure or image from the camera and stores it in GPU mat. This image has the same shape as
- *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
- *      AutonomyConstants.h.
+ * @brief Requests a depth measure or image from the camera.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      This image has the same shape as a grayscale image, but the values represent the depth in
+ *      MILLIMETERS. The ZEDSDK will always return this measure in MILLIMETERS.
  *
  * @param cvGPUDepth - A reference to the cv::Mat to copy the depth frame to.
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
@@ -707,10 +710,12 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
 }
 
 /******************************************************************************
- * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+ * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
+ *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
@@ -740,6 +745,8 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
+ *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
@@ -1174,7 +1181,8 @@ unsigned int ZEDCam::GetCameraSerial()
 }
 
 /******************************************************************************
- * @brief Returns the current pose of the camera relative to it's start pose or the origin of the set pose.
+ * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
+ *      Puts a Pose pointer into a queue so a copy of a frame from the camera can be written to it.
  *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
@@ -1233,8 +1241,9 @@ bool ZEDCam::GetPositionalTrackingEnabled()
 }
 
 /******************************************************************************
- * @brief Gets the IMU data from the ZED camera. If getting the data fails, the
- *      last successfully retrieved value is returned.
+ * @brief Requests the IMU data from the ZED camera.
+ *      Puts a std::vector pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      If getting the data fails, the last successfully retrieved value is returned.
  *
  * @param vIMUValues - A 1x6 vector containing X_deg, Y_deg, Z_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
  * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
@@ -1357,8 +1366,8 @@ bool ZEDCam::GetObjectDetectionEnabled()
 }
 
 /******************************************************************************
- * @brief Accessor for getting the tracked objects from the camera. Current objects are copied to the
- *      given sl::ObjectData vector.
+ * @brief Requests a current copy of the tracked objects from the camera.
+ *      Puts a pointer to a vector containing sl::ObjectData into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
  * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
@@ -1402,7 +1411,7 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
 }
 
 /******************************************************************************
- * @brief If batching is enabled, this retrieves the normal objects and passes them to
+ * @brief If batching is enabled, this requests the normal objects and passes them to
  *  the the iternal batching queue of the zed api. This performs short-term re-identification
  *  with deep learning and trajectories filtering. Batching must have been set to enabled when
  *  EnableObjectDetection() was called. Most of the time the vector will be empty and will be
