@@ -2,12 +2,14 @@
 #define ARUCO_DETECTOR_H_
 
 #include <algorithm>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
 
+#include "./../../interfaces/AutonomyThread.hpp"
 #include "./../../util/vision/ArucoSamplesUtility.hpp"
 
 #define TAG_SIDE_LENGTH 1    // meters
@@ -164,6 +166,20 @@ class ArucoDetector
 
         cv::aruco::Dictionary m_cvDictionary;
         std::string m_szCameraParamsFilename;
+};
+
+class ArucoThread : public AutonomyThread<void>
+{
+    public:
+        ArucoThread();
+
+    private:
+        void ThreadContinousCode() override;
+        void PooledLinearCode() override;
+
+        std::shared_mutex m_muDetectedTags;
+
+        std::vector<ArucoTag> m_vDetectedTags;
 };
 
 #endif
