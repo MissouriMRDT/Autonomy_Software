@@ -1,47 +1,52 @@
 #include "Aruco.hpp"
 
-ArucoTag::ArucoTag(int id, Corners corners) : m_id(id), m_corners(corners) {}
+ArucoTag::ArucoTag(int id, ArucoTag::Corners corners) : m_nID(id), m_vCorners(corners) {}
 
-int ArucoTag::getID() const
+int ArucoTag::GetID() const
 {
-    return m_id;
+    return m_nID;
 }
 
-double ArucoTag::getDistance() const
+double ArucoTag::GetDistance() const
 {
-    return m_distance;
+    return m_dDistance;
 }
 
-cv::Vec3d ArucoTag::getEulerAngles() const
+cv::Vec3d ArucoTag::GetEulerAngles() const
 {
-    return m_eulerAngles;
+    return m_cvEulerAnglesVec;
 }
 
-Corners ArucoTag::getCorners() const
+ArucoTag::Corners ArucoTag::GetCorners() const
 {
-    return m_corners;
+    return m_vCorners;
 }
 
-void ArucoTag::setPose(double distance, cv::Vec3d eulerAngles)
+void ArucoTag::SetPose(double distance, cv::Vec3d eulerAngles)
 {
-    m_distance    = distance;
-    m_eulerAngles = eulerAngles;
+    m_dDistance        = distance;
+    m_cvEulerAnglesVec = eulerAngles;
 }
 
-ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary) : m_dictionary(dictionary) {}
+ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary) : m_cvDictionary(dictionary) {}
 
 ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary, const std::string& cameraParamsFilename) :
-    m_dictionary(dictionary), m_cameraParamsFilename(cameraParamsFilename)
+    m_cvDictionary(dictionary), m_szCameraParamsFilename(cameraParamsFilename)
 {}
 
-std::vector<ArucoTag> ArucoDetector::detect(const cv::Mat& image)
+std::vector<ArucoTag> ArucoDetector::Detect(const cv::Mat& image)
 {
+    // vector containing ids of all detected tags
     std::vector<int> ids;
-    std::vector<Corners> markerCorners, rejectedCandidates;
+
+    std::vector<ArucoTag::Corners> markerCorners, rejectedCandidates;
     cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
-    cv::aruco::ArucoDetector detector(m_dictionary, detectorParams);
+
+    // detect the tags in the image
+    cv::aruco::ArucoDetector detector(m_cvDictionary, detectorParams);
     detector.detectMarkers(image, markerCorners, ids, rejectedCandidates);
 
+    // store all of the detectected tags as ArucoTag
     std::vector<ArucoTag> detectedTags;
     detectedTags.reserve((int) ids.size());
 
@@ -51,12 +56,13 @@ std::vector<ArucoTag> ArucoDetector::detect(const cv::Mat& image)
     return detectedTags;
 }
 
-void ArucoDetector::poseEstimate(ArucoTag& tag)
+void ArucoDetector::EstimatePose(ArucoTag& tag)
 {
+    // camera parameters
     cv::Mat camMatrix, distCoeffs;
-    readCameraParameters(m_cameraParamsFilename, camMatrix, distCoeffs);
+    readCameraParameters(m_szCameraParamsFilename, camMatrix, distCoeffs);
 
-    cv::Vec3d rvec, tvec;
+    cv::Vec3d rotVec, transVec;
 
     // Set object coordinate system
     cv::Mat objPoints(4, 1, CV_32FC3);
@@ -65,25 +71,25 @@ void ArucoDetector::poseEstimate(ArucoTag& tag)
     objPoints.at<cv::Vec3f>(2) = cv::Vec3f{0, TAG_SIDE_LENGTH, 0};
     objPoints.at<cv::Vec3f>(3) = cv::Vec3f{TAG_SIDE_LENGTH, TAG_SIDE_LENGTH, 0};
 
-    solvePnP(objPoints, tag.getCorners(), camMatrix, distCoeffs, rvec, tvec);
+    solvePnP(objPoints, tag.GetCorners(), camMatrix, distCoeffs, rotVec, transVec);
 
-    double distance       = cv::norm(tvec);
+    double distance       = cv::norm(transVec);
 
-    cv::Vec3d eulerAngles = axisAngleRotation2EulerAngles(rvec);
+    cv::Vec3d eulerAngles = AxisAngleRotation2EulerAngles(rotVec);
 
-    tag.setPose(distance, eulerAngles);
+    tag.SetPose(distance, eulerAngles);
 }
 
-cv::Vec3d ArucoDetector::axisAngleRotation2EulerAngles(cv::Vec3d rvec) const
+cv::Vec3d ArucoDetector::AxisAngleRotation2EulerAngles(cv::Vec3d rotVec) const
 {
-    cv::Mat R;
-    cv::Rodrigues(rvec, R);
+    cv::Mat rotMat;
+    cv::Rodrigues(rotVec, rotMat);
 
-    double v     = sqrt(pow(R.at<double>(0, 0), 2) + pow(R.at<double>(1, 0), 2));
-    double pitch = atan2(-R.at<double>(2, 0), v);
+    double v     = sqrt(pow(rotMat.at<double>(0, 0), 2) + pow(rotMat.at<double>(1, 0), 2));
+    double pitch = atan2(-rotMat.at<double>(2, 0), v);
 
-    double yaw   = atan2(R.at<double>(2, 1), R.at<double>(2, 2));
-    double roll  = atan2(R.at<double>(1, 0), R.at<double>(0, 0));
+    double yaw   = atan2(rotMat.at<double>(2, 1), rotMat.at<double>(2, 2));
+    double roll  = atan2(rotMat.at<double>(1, 0), rotMat.at<double>(0, 0));
 
     return {pitch, yaw, roll};
 }
