@@ -22,6 +22,7 @@
  * @param ePropPixelFormat - The pixel layout/format of the image.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param nNumFrameRetrievalThreads - The number of threads to use for frame queueing and copying.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
@@ -68,6 +69,7 @@ BasicCam::BasicCam(const std::string szCameraPath,
  * @param ePropPixelFormat - The pixel layout/format of the image.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param nNumFrameRetrievalThreads - The number of threads to use for frame queueing and copying.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
@@ -217,9 +219,8 @@ void BasicCam::PooledLinearCode()
 }
 
 /******************************************************************************
- * @brief Retrieves a frame from the camera. The given mat reference is placed
- *      into a queue for copying. Remember, this code will be ran in whatever,
- *      class/thread calls it.
+ * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      Remember, this code will be ran in whatever, class/thread calls it.
  *
  * @param cvFrame - A reference to the cv::Mat to store the frame in.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
