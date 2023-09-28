@@ -524,6 +524,8 @@ void ZEDCam::PooledLinearCode()
         sl::float3 slAngles = m_slSensorData.imu.pose.getEulerAngles(false);
         // Get IMU linear acceleration.
         sl::float3 slLinearAccels = m_slSensorData.imu.linear_acceleration;
+        // Clear the data vector that the IMUData will be copied to.
+        stContainer.pData->clear();
         // Repackage angles and accels into vector.
         stContainer.pData->emplace_back(slAngles.x);
         stContainer.pData->emplace_back(slAngles.y);
