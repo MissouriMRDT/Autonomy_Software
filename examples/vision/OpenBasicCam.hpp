@@ -37,7 +37,7 @@ void RunExample()
     g_pCameraHandler->StartAllCameras();
 
     // Get reference to camera.
-    BasicCam* TestCamera1 = g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
+    BasicCam* ExampleBasicCam1 = g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvNormalFrame2;
@@ -49,17 +49,22 @@ void RunExample()
     while (true)
     {
         // Grab normal frame from camera.
-        std::future<bool> fuCopyStatus1 = TestCamera1->RequestFrameCopy(cvNormalFrame1);
-        std::future<bool> fuCopyStatus2 = TestCamera1->RequestFrameCopy(cvNormalFrame2);
+        std::future<bool> fuCopyStatus1 = ExampleBasicCam1->RequestFrameCopy(cvNormalFrame1);
+        std::future<bool> fuCopyStatus2 = ExampleBasicCam1->RequestFrameCopy(cvNormalFrame2);
 
         // Show first frame copy.
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
         {
             // Print info.
-            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", ExampleBasicCam1->GetIPS().GetAverageIPS(), ExampleBasicCam1->GetIPS().Get1PercentLow());
 
             // Put FPS on normal frame.
-            cv::putText(cvNormalFrame1, std::to_string(TestCamera1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            cv::putText(cvNormalFrame1,
+                        std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
+                        cv::Point(50, 50),
+                        cv::FONT_HERSHEY_COMPLEX,
+                        1,
+                        cv::Scalar(255, 255, 255));
 
             // Display frame.
             cv::imshow("BasicCamExample Frame1", cvNormalFrame1);
@@ -69,10 +74,15 @@ void RunExample()
         if (fuCopyStatus2.get() && !cvNormalFrame2.empty())
         {
             // Print info.
-            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", ExampleBasicCam1->GetIPS().GetAverageIPS(), ExampleBasicCam1->GetIPS().Get1PercentLow());
 
             // Put FPS on normal frame.
-            cv::putText(cvNormalFrame2, std::to_string(TestCamera1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            cv::putText(cvNormalFrame2,
+                        std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
+                        cv::Point(50, 50),
+                        cv::FONT_HERSHEY_COMPLEX,
+                        1,
+                        cv::Scalar(255, 255, 255));
 
             // Display frame.
             cv::imshow("BasicCamExample Frame2", cvNormalFrame2);
