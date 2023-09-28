@@ -12,11 +12,9 @@
 #define BASICCAM_H
 
 #include <opencv2/opencv.hpp>
-#include <shared_mutex>
 
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
-#include "../../util/vision/FetchContainers.hpp"
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common USB cameras
@@ -73,11 +71,6 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         // Mats for storing frames.
         cv::Mat m_cvFrame;
-
-        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qFrameCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
 
         /////////////////////////////////////////
         // Declare private methods.

@@ -13,7 +13,7 @@
 #include "../../src/vision/cameras/ZEDCam.h"
 
 // Declare file constants.
-const bool ENABLE_SPATIAL_MAPPING = true;
+const bool ENABLE_SPATIAL_MAPPING = false;
 
 /******************************************************************************
  * @brief Main example method.
