@@ -30,12 +30,18 @@
 class CameraHandlerThread
 {
     private:
+        /////////////////////////////////////////
         // Declare private class member variables.
+        /////////////////////////////////////////
+
         ZEDCam* m_pMainCam;
         BasicCam* m_pLeftCam;
 
     public:
+        /////////////////////////////////////////
         // Define public enumerators specific to this class.
+        /////////////////////////////////////////
+
         enum ZEDCamName    // Enum for different zed cameras.
         {
             eHeadMainCam
@@ -47,12 +53,18 @@ class CameraHandlerThread
             eHeadRightAcuroEye
         };
 
+        /////////////////////////////////////////
         // Declare public class methods and variables.
+        /////////////////////////////////////////
+
         CameraHandlerThread();
         ~CameraHandlerThread();
         void StartAllCameras();
 
+        /////////////////////////////////////////
         // Accessors.
+        /////////////////////////////////////////
+
         ZEDCam* GetZED(ZEDCamName eCameraName);
         BasicCam* GetBasicCam(BasicCamName eCameraName);
 };

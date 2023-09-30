@@ -12,12 +12,20 @@
 #define BASICCAM_H
 
 #include <opencv2/opencv.hpp>
-#include <shared_mutex>
 
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
-#include "../../util/vision/FetchContainers.hpp"
 
+/******************************************************************************
+ * @brief This class implements and interfaces with the most common USB cameras
+ *  and features. It is designed in such a way that multiple other classes/threads
+ *  can safely call any method of an object of this class withing resource corruption
+ *  or slowdown of the camera.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
+ ******************************************************************************/
 class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     public:
@@ -30,16 +38,18 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const int nPropFramesPerSecond,
                  const PIXEL_FORMATS ePropPixelFormat,
                  const double dPropHorizontalFOV,
-                 const double dPropVerticalFOV);
+                 const double dPropVerticalFOV,
+                 const int nNumFrameRetrievalThreads = 10);
         BasicCam(const int nCameraIndex,
                  const int nPropResolutionX,
                  const int nPropResolutionY,
                  const int nPropFramesPerSecond,
                  const PIXEL_FORMATS ePropPixelFormat,
                  const double dPropHorizontalFOV,
-                 const double dPropVerticalFOV);
+                 const double dPropVerticalFOV,
+                 const int nNumFrameRetrievalThreads = 10);
         ~BasicCam();
-        bool GrabFrame(cv::Mat& cvFrame) override;
+        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
 
         /////////////////////////////////////////
         // Getters.
@@ -57,14 +67,10 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::string m_szCameraPath;
         bool m_bCameraIsConnectedOnVideoIndex;
         int m_nCameraIndex;
+        int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
         cv::Mat m_cvFrame;
-
-        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
 
         /////////////////////////////////////////
         // Declare private methods.
