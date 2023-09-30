@@ -100,21 +100,26 @@ void NavigationBoard::ProcessIMUData(IMUData stPacket)
     m_dRoll    = stPacket.dRoll;
     m_dHeading = stPacket.dHeading;
 
-    LOG_DEBUG(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
 }
 
 /******************************************************************************
  * @brief Unpack and store data from a GPS packet.
  *
- * @param packet - The special nav board struct containing GPS data.
+ * @param stPacket - The special nav board struct containing GPS data.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-void NavigationBoard::ProcessGPSData(globals::GPSCoordinate stPacket)
+void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
 {
     // Submit logger message.
-    LOG_DEBUG(g_qSharedLogger, "Incoming GPS Data: ({}, {})");
+    LOG_DEBUG(logging::g_qSharedLogger,
+              "Incoming GPS Data: ({} lat, {} lon, {} alt, {} acc)",
+              stPacket.dLatitude,
+              stPacket.dLongitude,
+              stPacket.dAltitude,
+              stPacket.d2DAccuracy);
 }
 
 /******************************************************************************
@@ -130,29 +135,29 @@ NavigationBoard::IMUData NavigationBoard::GetIMUData() const
     //
 }
 
-// /******************************************************************************
-//  * @brief Accessor for most recent GPS data recieved from NavBoard.
-//  *
-//  * @return NavigationBoard::GPSCoordinate - Struct containing lat, lon, alt, and accuracy data.
-//  *
-//  * @author clayjay3 (claytonraycowen@gmail.com)
-//  * @date 2023-09-23
-//  ******************************************************************************/
-// globals::GPSCoordinate NavigationBoard::GetGPSData() const
-// {
-//     //
-// }
+/******************************************************************************
+ * @brief Accessor for most recent GPS data recieved from NavBoard.
+ *
+ * @return geoops::GPSCoordinate - Struct containing lat, lon, alt, and accuracy data.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
+geoops::GPSCoordinate NavigationBoard::GetGPSData() const
+{
+    //
+}
 
-// /******************************************************************************
-//  * @brief Accesor for most recent GPS data recieved from NavBoard converted to UTM coords.
-//  *
-//  * @return NavigationBoard::UTMCoordinate - Struct containing easting, northing, alt, zone,
-//  *                                          and accuracy data.
-//  *
-//  * @author clayjay3 (claytonraycowen@gmail.com)
-//  * @date 2023-09-23
-//  ******************************************************************************/
-// UTMCoordinate NavigationBoard::GetUTMData() const
-// {
-//     //
-// }
+/******************************************************************************
+ * @brief Accesor for most recent GPS data recieved from NavBoard converted to UTM coords.
+ *
+ * @return geoops::UTMCoordinate - Struct containing easting, northing, alt, zone,
+ *                                          and accuracy data.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
+geoops::UTMCoordinate NavigationBoard::GetUTMData() const
+{
+    //
+}
