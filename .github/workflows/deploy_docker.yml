@@ -1,0 +1,71 @@
+name: Build and Publish Docker Images
+
+on:
+  pull_request:
+    paths:
+      - ".devcontainer/Dockerfile_Jammy"
+      - ".devcontainer/Dockerfile_Focal"
+      - ".devcontainer/Dockerfile_JetPack"
+  workflow_dispatch:
+
+concurrency:
+  group: "docker"
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [[self-hosted, linux, X64], [self-hosted, linux, ARM64]]
+        name: [Jammy, Focal, JetPack]
+        file: [Dockerfile_Jammy, Dockerfile_Focal, Dockerfile_JetPack]
+        image: [autonomy-jammy, autonomy-focal, autonomy-jetpack]
+        exclude:
+          - os: [self-hosted, linux, X64]
+            name: [JetPack]
+            file: [Dockerfile_JetPack]
+            image: [autonomy-jetpack]
+          - os: [self-hosted, linux, ARM64]
+            name: [Jammy, Focal]
+            file: [Dockerfile_Jammy, Dockerfile_Focal]
+            image: [autonomy-jammy, autonomy-focal]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Edits
+        id: changed-files
+        uses: tj-actions/changed-files@v39
+        with:
+          files_yaml: |
+            dev:
+              - ".devcontainer/${{ matrix.file }}"
+
+      - name: Set up Docker Buildx
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Github Packages
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push ${{ matrix.name }} Image
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          file: ".devcontainer/${{ matrix.file }}"
+          tags: "missourimrdt/${{ matrix.image }}"
+          push: true
+
+      - name: ${{ matrix.name }} Image digest
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        run: echo ${{ steps.docker_build.outputs.digest }}
