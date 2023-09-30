@@ -2,8 +2,8 @@
 #define ARUCO_DETECTOR_H_
 
 #include <algorithm>
-#include <future>
-#include <shared_mutex>
+#include <future>          // FIXME: Remove this
+#include <shared_mutex>    // FIXME: Remove this
 #include <string>
 #include <vector>
 
@@ -15,6 +15,7 @@
 #include "./../../util/vision/ArucoSamplesUtility.hpp"
 #include "./../../util/vision/FetchContainers.hpp"
 
+// FIXME: Never use #defines to define a literal. Always put any variables of a global scope in the AutonomyConstants file within the constants namespace.
 #define TAG_SIDE_LENGTH 1    // meters
 
 /******************************************************************************
@@ -26,6 +27,7 @@
  ******************************************************************************/
 struct ArucoTag
 {
+        // FIXME: typedefs are generally discouraged as it makes code harders to understand. Instead use a struct within a struct. Similar to ZedObjectData struct.
         typedef std::vector<cv::Point2f> Corners;
 
         int id;                   // ID of the tag
@@ -55,6 +57,7 @@ class ArucoDetector
          ******************************************************************************/
         ArucoDetector(const cv::aruco::Dictionary& dictionary);
 
+        // FIXME: This can be put within a private method inside of the ArucoVision class.
         /******************************************************************************
          * @brief detect ArUco tags in the provided image
          *
@@ -66,6 +69,7 @@ class ArucoDetector
          ******************************************************************************/
         std::vector<ArucoTag> Detect(const cv::Mat& image);
 
+        // FIXME: This can be put within a private method inside of the ArucoVision class.
         /******************************************************************************
          * @brief estimate the tag's position and euler angle rotation with respect to camera
          *
@@ -77,6 +81,7 @@ class ArucoDetector
         void EstimatePose(ArucoTag& tag);
 
     private:
+        // FIXME: This could probably be put within the number operations namespace and generalized to accept and return something other than cv::Vec3d. Just an idea.
         /******************************************************************************
          * @brief convert axis angle rotations to euler angles
          *
