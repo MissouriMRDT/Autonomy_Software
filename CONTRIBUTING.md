@@ -93,6 +93,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Lock      > `lk` > Example: `lock lkExampleUseOfLock`
 - Struct    > `st` > Example: `StructName stExampleUseOfStruct`
 - Future    > `fu` > Example: `future<void> fuExampleUseOfFuture`
+- Promise   > `pm` > Example: `promise<void> pmExampleUseIfPromise`
 
 #### External Types
 - OpenCV > `cv` > Example: `cv::Mat cvExampleMat`
