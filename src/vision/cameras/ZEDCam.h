@@ -13,14 +13,22 @@
 
 #include <future>
 #include <opencv2/opencv.hpp>
-#include <shared_mutex>
 #include <sl/Camera.hpp>
 
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
-#include "../../util/vision/FetchContainers.hpp"
 
+/******************************************************************************
+ * @brief This class implements and interfaces with the most common ZEDSDK cameras
+ *  and features. It is designed in such a way that multiple other classes/threads
+ *  can safely call any method of an object of this class withing resource corruption
+ *  or slowdown of the camera.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
+ ******************************************************************************/
 class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     public:
@@ -41,14 +49,15 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,
                const bool bUseHalfDepthPrecision       = false,
+               const int nNumFrameRetrievalThreads     = 10,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
-        bool GrabFrame(cv::Mat& cvFrame) override;
-        bool GrabFrame(cv::cuda::GpuMat& cvGPUFrame);
-        bool GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
-        bool GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true);
-        bool GrabPointCloud(cv::Mat& cvPointCloud);
-        bool GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud);
+        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
+        std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame);
+        std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
+        std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true);
+        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
+        std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud);
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
@@ -71,14 +80,14 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         bool GetUsingGPUMem() const;
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
-        bool GetPositionalPose(sl::Pose& slPose);
+        std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
         bool GetPositionalTrackingEnabled();
-        bool GetIMUData(std::vector<double>& vIMUValues);
+        std::future<bool> RequestIMUDataCopy(std::vector<double>& vIMUValues);
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
         bool GetObjectDetectionEnabled();
-        bool GetObjects(std::vector<sl::ObjectData>& vObjectData);
-        bool GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData);
+        std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData);
+        std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData);
 
     private:
         /////////////////////////////////////////
@@ -99,6 +108,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
         sl::MEM m_slMemoryType;
+        int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
 
         // Mats for storing frames and measures.
@@ -108,15 +118,12 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Mat m_slPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::Mat&>>> m_qFrameCopySchedule;
-        std::queue<std::reference_wrapper<containers::FrameFetchContainer<cv::cuda::GpuMat&>>> m_qGPUFrameCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<ZedObjectData>&>>> m_qCustomBoxInjestSchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<sl::Pose&>>> m_qPoseCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<double>&>>> m_qIMUDataCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<sl::ObjectData>&>>> m_qObjectDataCopySchedule;
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>&>>> m_qObjectBatchedDataCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
+        std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxInjestSchedule;
+        std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
         std::mutex m_muCustomBoxInjestMutex;
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muIMUDataCopyMutex;

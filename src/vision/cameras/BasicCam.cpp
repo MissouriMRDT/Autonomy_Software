@@ -22,6 +22,7 @@
  * @param ePropPixelFormat - The pixel layout/format of the image.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param nNumFrameRetrievalThreads - The number of threads to use for frame queueing and copying.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
@@ -32,12 +33,14 @@ BasicCam::BasicCam(const std::string szCameraPath,
                    const int nPropFramesPerSecond,
                    const PIXEL_FORMATS ePropPixelFormat,
                    const double dPropHorizontalFOV,
-                   const double dPropVerticalFOV) :
+                   const double dPropVerticalFOV,
+                   const int nNumFrameRetrievalThreads) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
-    m_szCameraPath = szCameraPath;
-    m_nCameraIndex = -1;
+    m_szCameraPath              = szCameraPath;
+    m_nCameraIndex              = -1;
+    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
@@ -66,6 +69,7 @@ BasicCam::BasicCam(const std::string szCameraPath,
  * @param ePropPixelFormat - The pixel layout/format of the image.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param nNumFrameRetrievalThreads - The number of threads to use for frame queueing and copying.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
@@ -76,12 +80,14 @@ BasicCam::BasicCam(const int nCameraIndex,
                    const int nPropFramesPerSecond,
                    const PIXEL_FORMATS ePropPixelFormat,
                    const double dPropHorizontalFOV,
-                   const double dPropVerticalFOV) :
+                   const double dPropVerticalFOV,
+                   const int nNumFrameRetrievalThreads) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
-    m_nCameraIndex = nCameraIndex;
-    m_szCameraPath = "";
+    m_nCameraIndex              = nCameraIndex;
+    m_szCameraPath              = "";
+    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = true;
@@ -154,6 +160,9 @@ void BasicCam::ThreadedContinuousCode()
         // Check if new frame was computed successfully.
         if (m_cvCamera.read(m_cvFrame))
         {
+            // Resize the frame.
+            cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY), 0.0, 0.0, constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
+
             // Call FPS tick.
             m_IPS.Tick();
         }
@@ -169,7 +178,7 @@ void BasicCam::ThreadedContinuousCode()
         if (!m_qFrameCopySchedule.empty())
         {
             // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-            this->RunDetachedPool(m_qFrameCopySchedule.size(), constants::BASIC_LEFTCAM_FRAME_RETRIEVAL_THREADS);
+            this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
             // Wait for thread pool to finish.
             this->JoinPool();
             // Release lock on frame copy queue.
@@ -196,39 +205,34 @@ void BasicCam::PooledLinearCode()
     if (!m_qFrameCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat&>& stContainer = m_qFrameCopySchedule.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
         // Pop out of queue.
         m_qFrameCopySchedule.pop();
         // Release lock.
         lkFrameQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
         // Copy frame to data container.
-        stContainer.tFrame = m_cvFrame.clone();
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+        *(stContainer.pFrame) = m_cvFrame.clone();
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
     }
 }
 
 /******************************************************************************
- * @brief Retrieves a frame from the camera. The given mat reference is placed
- *      into a queue for copying. Remember, this code will be ran in whatever,
- *      class/thread calls it.
+ * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      Remember, this code will be ran in whatever, class/thread calls it.
  *
  * @param cvFrame - A reference to the cv::Mat to store the frame in.
- * @return true - Frame successfully retrieved and stored.
- * @return false - Frame was not stored successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-bool BasicCam::GrabFrame(cv::Mat& cvFrame)
+std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat&> stContainer(cvFrame, m_ePropPixelFormat);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -237,26 +241,8 @@ bool BasicCam::GrabFrame(cv::Mat& cvFrame)
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
