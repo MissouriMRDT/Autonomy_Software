@@ -1,32 +1,4 @@
-#include "Aruco.hpp"
-
-ArucoTag::ArucoTag(int id, ArucoTag::Corners corners) : m_nID(id), m_vCorners(corners) {}
-
-int ArucoTag::GetID() const
-{
-    return m_nID;
-}
-
-double ArucoTag::GetDistance() const
-{
-    return m_dDistance;
-}
-
-cv::Vec3d ArucoTag::GetEulerAngles() const
-{
-    return m_cvEulerAnglesVec;
-}
-
-ArucoTag::Corners ArucoTag::GetCorners() const
-{
-    return m_vCorners;
-}
-
-void ArucoTag::SetPose(double distance, cv::Vec3d eulerAngles)
-{
-    m_dDistance        = distance;
-    m_cvEulerAnglesVec = eulerAngles;
-}
+#include "Aruco.h"
 
 ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary) : m_cvDictionary(dictionary) {}
 
@@ -51,7 +23,12 @@ std::vector<ArucoTag> ArucoDetector::Detect(const cv::Mat& image)
     detectedTags.reserve((int) ids.size());
 
     for (int i = 0; i < (int) ids.size(); i++)
-        detectedTags.emplace_back(ids[i], markerCorners[i]);
+    {
+        ArucoTag detectedTag;
+        detectedTag.id      = ids[i];
+        detectedTag.corners = markerCorners[i];
+        detectedTags.push_back(detectedTag);
+    }
 
     return detectedTags;
 }
@@ -71,13 +48,14 @@ void ArucoDetector::EstimatePose(ArucoTag& tag)
     objPoints.at<cv::Vec3f>(2) = cv::Vec3f{0, TAG_SIDE_LENGTH, 0};
     objPoints.at<cv::Vec3f>(3) = cv::Vec3f{TAG_SIDE_LENGTH, TAG_SIDE_LENGTH, 0};
 
-    solvePnP(objPoints, tag.GetCorners(), camMatrix, distCoeffs, rotVec, transVec);
+    solvePnP(objPoints, tag.m_vCorners, camMatrix, distCoeffs, rotVec, transVec);
 
     double distance       = cv::norm(transVec);
 
     cv::Vec3d eulerAngles = AxisAngleRotation2EulerAngles(rotVec);
 
-    tag.SetPose(distance, eulerAngles);
+    tag.distance          = distance;
+    tag.eulerAngles       = eulerAngles;
 }
 
 cv::Vec3d ArucoDetector::AxisAngleRotation2EulerAngles(cv::Vec3d rotVec) const
