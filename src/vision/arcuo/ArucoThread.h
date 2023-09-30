@@ -19,13 +19,14 @@
 class ArucoThread : public AutonomyThread<void>
 {
     public:
-        ArucoThread(ZEDCam<cv::Mat>* camera);
-        ArucoThread(BasicCAM<cv::Mat>* camera);
+        ArucoThread(CameraHandlerThread* cameraHandlerThread, const int nNumDetectedTagsRetrievalThreads);
         std::future<bool> RequestDetectedArucoTags(std::vector<ArucoTag>& arucoTagVec);
 
     private:
-        bool m_bPoseEstimationActive;
-        Camera<cv::Mat>* m_pCamera;
+        ArucoDetector m_arucoDetector;
+
+        CameraHandlerThread* m_pCameraHandlerThread;
+        int m_nnNumDetectedTagsRetrievalThreads;
 
         std::vector<ArucoTag> m_vDetectedTags;
 
