@@ -2,6 +2,7 @@
 #define ARUCO_DETECTOR_H_
 
 #include <algorithm>
+#include <future>
 #include <shared_mutex>
 #include <string>
 #include <vector>
@@ -10,7 +11,9 @@
 #include <opencv2/opencv.hpp>
 
 #include "./../../interfaces/AutonomyThread.hpp"
+#include "./../../interfaces/Camera.hpp"
 #include "./../../util/vision/ArucoSamplesUtility.hpp"
+#include "./../../util/vision/FetchContainers.hpp"
 
 #define TAG_SIDE_LENGTH 1    // meters
 
@@ -21,80 +24,14 @@
  * @author jspencerpittman (jspencerpittman@gmail.com)
  * @date 2023-09-28
  ******************************************************************************/
-class ArucoTag
+struct ArucoTag
 {
-    public:
         typedef std::vector<cv::Point2f> Corners;
 
-        /******************************************************************************
-         * @brief Construct a new Aruco Tag object.
-         *
-         * @param id - id assigned to the ArUco tag
-         * @param corners - a vector containing the four corners of the detected ArUco tag
-         *                      in the image.
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        ArucoTag(int id, Corners corners);
-
-        /******************************************************************************
-         * @brief Get ID
-         *
-         * @return int - id of the ArUco tag
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        int GetID() const;
-
-        /******************************************************************************
-         * @brief Get Corners
-         *
-         * @return Corners - vector of the four corners of the detected ArUco tag
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        Corners GetCorners() const;
-
-        /******************************************************************************
-         * @brief Get distance
-         *
-         * @return double - distance to the tag
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        double GetDistance() const;
-
-        /******************************************************************************
-         * @brief Get Euler Angles
-         *
-         * @return cv::Vec3d - euler angles (pitch, yaw, roll)
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        cv::Vec3d GetEulerAngles() const;
-
-        /******************************************************************************
-         * @brief Set the orientation of the tag with respect to the rover
-         *
-         * @param distance - distance from the camera
-         * @param eulerAngles - rotation in euler angles with respect to camera
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        void SetPose(double distance, cv::Vec3d eulerAngles);
-
-    private:
-        int m_nID;
-        Corners m_vCorners;
-
-        double m_dDistance;
-        cv::Vec3d m_cvEulerAnglesVec;
+        int id;                   // ID of the tag
+        Corners corners;          // Corners of the tag in the image
+        double distance;          // Distance between the tag and the camera
+        cv::Vec3d eulerAngles;    // Euler angle rotations of the tag with respect to the camera
 };
 
 /******************************************************************************
@@ -162,24 +99,10 @@ class ArucoDetector
          * @author jspencerpittman (jspencerpittman@gmail.com)
          * @date 2023-09-28
          ******************************************************************************/
-        cv::Vec3d AxisAngleRotation2EulerAngles(cv::Vec3d rotVec) const;
+        static cv::Vec3d AxisAngleRotation2EulerAngles(cv::Vec3d rotVec) const;
 
         cv::aruco::Dictionary m_cvDictionary;
         std::string m_szCameraParamsFilename;
-};
-
-class ArucoThread : public AutonomyThread<void>
-{
-    public:
-        ArucoThread();
-
-    private:
-        void ThreadContinousCode() override;
-        void PooledLinearCode() override;
-
-        std::shared_mutex m_muDetectedTags;
-
-        std::vector<ArucoTag> m_vDetectedTags;
 };
 
 #endif
