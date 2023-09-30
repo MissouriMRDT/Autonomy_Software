@@ -1,3 +1,5 @@
+// FIXME: This file is unneeded. This can be put in a private function within the other class.
+
 #include "Aruco.h"
 
 ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary) : m_cvDictionary(dictionary) {}
@@ -29,6 +31,4 @@ std::vector<ArucoTag> ArucoDetector::Detect(const cv::Mat& image)
     return detectedTags;
 }
 
-void ArucoDetector::EstimatePose(ArucoTag& tag)
-{
-}
+void ArucoDetector::EstimatePose(ArucoTag& tag) {}
