@@ -54,17 +54,6 @@ class ArucoDetector
          * @date 2023-09-28
          ******************************************************************************/
         ArucoDetector(const cv::aruco::Dictionary& dictionary);
-        /******************************************************************************
-         * @brief Construct a new Aruco Detector object.
-         *
-         * @param dictionary - Which dictionary are the ArUco tags in (DICT_4x4_50, DICT_6x6_250, ...)
-         * @param cameraParamsFilename - path to the camera calibration parameters file
-         * @see util/vision/ArucoSamplesUtility.hpp
-         *
-         * @author jspencerpittman (jspencerpittman@gmail.com)
-         * @date 2023-09-28
-         ******************************************************************************/
-        ArucoDetector(const cv::aruco::Dictionary& dictionary, const std::string& cameraParamsFilename);
 
         /******************************************************************************
          * @brief detect ArUco tags in the provided image
