@@ -32,7 +32,7 @@ TEST(NumOpsTest, MapRange)
     double dExpectedNewValue = 5.0;
 
     // Remap new value.
-    double dActualValue = NumberOperations::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
+    double dActualValue = numops::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
 
     // Get the calculated values and check that they are correct.
     EXPECT_NE(dActualValue, 0);
@@ -41,7 +41,7 @@ TEST(NumOpsTest, MapRange)
     // Check invalid input on old range.
     dOldMin = 1.0;
     // Remap new value.
-    dActualValue = NumberOperations::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
+    dActualValue = numops::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
     // Make sure original value is returned.
     EXPECT_EQ(dActualValue, dOldValue);
 
@@ -49,7 +49,7 @@ TEST(NumOpsTest, MapRange)
     dOldMin = -1.0;
     dNewMin = 10;
     // Remap new value.
-    dActualValue = NumberOperations::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
+    dActualValue = numops::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
     // Make sure original value is returned.
     EXPECT_EQ(dActualValue, dOldValue);
 }

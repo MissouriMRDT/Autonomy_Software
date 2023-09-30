@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/OpenZEDCam.hpp"
+#include "../examples/vision/OpenBasicCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -53,7 +53,7 @@ int main()
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
-    InitializeLoggers();
+    logging::InitializeLoggers();
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -64,8 +64,8 @@ int main()
     else
     {
         // Initialize and start Threads
-        g_pCameraHandler = new CameraHandlerThread();
-        g_pCameraHandler->StartAllCameras();
+        globals::g_pCameraHandler = new CameraHandlerThread();
+        globals::g_pCameraHandler->StartAllCameras();
 
         // TODO: Initialize RoveComm
     }

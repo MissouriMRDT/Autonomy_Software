@@ -28,7 +28,7 @@
  ******************************************************************************/
 struct IdleState : sc::simple_state<IdleState, StateMachine>
 {
-        IdleState() { LOG_INFO(g_qSharedLogger, "In State: Idle"); }
+        IdleState() { LOG_INFO(logging::g_qSharedLogger, "In State: Idle"); }
 
         typedef mpl::list<sc::custom_reaction<Idle_AbortTransition>, sc::custom_reaction<Idle_NavigatingTransition>, sc::custom_reaction<Idle_ReverseTransition>>
             reactions;
@@ -64,7 +64,7 @@ struct IdleState : sc::simple_state<IdleState, StateMachine>
  ******************************************************************************/
 struct Idle_AbortTransition : sc::event<Idle_AbortTransition>
 {
-        Idle_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Idle (Abort)"); }
+        Idle_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Idle (Abort)"); }
 };
 
 /******************************************************************************
@@ -81,7 +81,7 @@ struct Idle_AbortTransition : sc::event<Idle_AbortTransition>
  ******************************************************************************/
 struct Idle_NavigatingTransition : sc::event<Idle_NavigatingTransition>
 {
-        Idle_NavigatingTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Idle (Navigating)"); }
+        Idle_NavigatingTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Idle (Navigating)"); }
 };
 
 /******************************************************************************
@@ -97,5 +97,5 @@ struct Idle_NavigatingTransition : sc::event<Idle_NavigatingTransition>
  ******************************************************************************/
 struct Idle_ReverseTransition : sc::event<Idle_ReverseTransition>
 {
-        Idle_ReverseTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Idle (Reverse)"); }
+        Idle_ReverseTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Idle (Reverse)"); }
 };

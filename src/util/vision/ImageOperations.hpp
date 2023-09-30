@@ -23,7 +23,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-31
  ******************************************************************************/
-namespace ImageOperations
+namespace imgops
 {
     /******************************************************************************
      * @brief Provides an easy method of mapping sl::Mat types to cv::Mat types.
@@ -129,5 +129,5 @@ namespace ImageOperations
                                 slInputMat.getPtr<sl::uchar1>(sl::MEM::GPU),
                                 slInputMat.getStepBytes(sl::MEM::GPU));
     }
-}    // namespace ImageOperations
+}    // namespace imgops
 #endif

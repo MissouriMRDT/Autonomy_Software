@@ -160,7 +160,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     if (m_slCamera.isOpened())
     {
         // Submit logger message.
-        LOG_DEBUG(g_qSharedLogger,
+        LOG_DEBUG(logging::g_qSharedLogger,
                   "{} stereo camera with serial number {} has been succsessfully opened.",
                   this->GetCameraModel(),
                   m_slCamera.getCameraInformation().serial_number);
@@ -168,7 +168,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger,
+        LOG_ERROR(logging::g_qSharedLogger,
                   "Unable to open stereo camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_slCamera.getCameraInformation().serial_number,
@@ -213,7 +213,7 @@ void ZEDCam::ThreadedContinuousCode()
         // Shutdown threads for this ZEDCam.
         this->RequestStop();
         // Submit logger message.
-        LOG_CRITICAL(g_qSharedLogger,
+        LOG_CRITICAL(logging::g_qSharedLogger,
                      "Camera start was attempted for camera at {}, but camera never properly opened or it has been closed/rebooted!",
                      m_unCameraSerialNumber);
     }
@@ -232,7 +232,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
             {
                 // Submit logger message.
-                LOG_WARNING(g_qSharedLogger,
+                LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                             m_slCamera.getCameraInformation().serial_number,
@@ -245,7 +245,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
             {
                 // Submit logger message.
-                LOG_WARNING(g_qSharedLogger,
+                LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                             m_slCamera.getCameraInformation().serial_number,
@@ -258,7 +258,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
             {
                 // Submit logger message.
-                LOG_WARNING(g_qSharedLogger,
+                LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                             m_slCamera.getCameraInformation().serial_number,
@@ -271,7 +271,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
             {
                 // Submit logger message.
-                LOG_WARNING(g_qSharedLogger,
+                LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                             m_slCamera.getCameraInformation().serial_number,
@@ -286,7 +286,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
             {
                 // Submit logger message.
-                LOG_WARNING(g_qSharedLogger,
+                LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new sensors data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                             m_slCamera.getCameraInformation().serial_number,
@@ -302,7 +302,7 @@ void ZEDCam::ThreadedContinuousCode()
                 if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
                 {
                     // Submit logger message.
-                    LOG_WARNING(g_qSharedLogger,
+                    LOG_WARNING(logging::g_qSharedLogger,
                                 "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
                                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                 m_slCamera.getCameraInformation().serial_number,
@@ -318,7 +318,7 @@ void ZEDCam::ThreadedContinuousCode()
                 if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                 {
                     // Submit logger message.
-                    LOG_WARNING(g_qSharedLogger,
+                    LOG_WARNING(logging::g_qSharedLogger,
                                 "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                 m_slCamera.getCameraInformation().serial_number,
@@ -334,7 +334,7 @@ void ZEDCam::ThreadedContinuousCode()
                     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                     {
                         // Submit logger message.
-                        LOG_WARNING(g_qSharedLogger,
+                        LOG_WARNING(logging::g_qSharedLogger,
                                     "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                     m_slCamera.getCameraInformation().serial_number,
@@ -354,7 +354,7 @@ void ZEDCam::ThreadedContinuousCode()
             lkSharedCameraLock.unlock();
 
             // Submit logger message.
-            LOG_ERROR(g_qSharedLogger,
+            LOG_ERROR(logging::g_qSharedLogger,
                       "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
                       sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                       m_slCamera.getCameraInformation().serial_number,
@@ -422,11 +422,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case eXYZ: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slPointCloud); break;
-                default: stContainer.tFrame = ImageOperations::ConvertSLMatToCVMat(m_slFrame); break;
+                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
             // Release lock.
@@ -456,11 +456,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZ: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: stContainer.tFrame = ImageOperations::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
             // Release lock.
@@ -621,7 +621,7 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -667,7 +667,7 @@ bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -720,7 +720,7 @@ bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -773,7 +773,7 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -820,7 +820,7 @@ bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -867,7 +867,7 @@ bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -955,7 +955,7 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger,
+        LOG_WARNING(logging::g_qSharedLogger,
                     "Failed to ingest new objects for camera {} ({})! sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                     m_slCamera.getCameraInformation().serial_number,
@@ -1003,7 +1003,7 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger,
+        LOG_ERROR(logging::g_qSharedLogger,
                   "Failed to enabled positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_slCamera.getCameraInformation().serial_number,
@@ -1112,7 +1112,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
         if (slReturnCode != sl::ERROR_CODE::SUCCESS)
         {
             // Submit logger message.
-            LOG_ERROR(g_qSharedLogger,
+            LOG_ERROR(logging::g_qSharedLogger,
                       "Failed to enabled spatial mapping for camera {} ({})! sl::ERROR_CODE is: {}",
                       sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                       m_slCamera.getCameraInformation().serial_number,
@@ -1122,7 +1122,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger,
+        LOG_ERROR(logging::g_qSharedLogger,
                   "Failed to enabled spatial mapping for camera {} ({}) because positional tracking could not be enabled! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_slCamera.getCameraInformation().serial_number,
@@ -1174,7 +1174,7 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger,
+        LOG_ERROR(logging::g_qSharedLogger,
                   "Failed to enabled object detection for camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_slCamera.getCameraInformation().serial_number,
@@ -1324,7 +1324,7 @@ bool ZEDCam::GetPositionalPose(sl::Pose& slPose)
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving sl::Pose from threadpool queue.");
+            LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving sl::Pose from threadpool queue.");
             // Image was not written successfully.
             return false;
         }
@@ -1332,7 +1332,7 @@ bool ZEDCam::GetPositionalPose(sl::Pose& slPose)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled!");
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled!");
         // Return unsuccessful.
         return false;
     }
@@ -1391,7 +1391,7 @@ bool ZEDCam::GetIMUData(std::vector<double>& vIMUValues)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving IMU data from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving IMU data from threadpool queue.");
         // Image was not written successfully.
         return false;
     }
@@ -1461,7 +1461,7 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& 
                                       else
                                       {
                                           // Submit logger message.
-                                          LOG_ERROR(g_qSharedLogger,
+                                          LOG_ERROR(logging::g_qSharedLogger,
                                                     "Failed to extract ZED spatial map. sl::ERROR_CODE is: {}",
                                                     sl::toString(m_slCamera.getSpatialMapRequestStatusAsync()).get());
 
@@ -1473,7 +1473,7 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& 
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "ZED spatial mapping was never enabled, can't extract spatial map!");
+        LOG_WARNING(logging::g_qSharedLogger, "ZED spatial mapping was never enabled, can't extract spatial map!");
     }
 
     // Return current spatial mapping state.
@@ -1536,7 +1536,7 @@ bool ZEDCam::GetObjects(std::vector<sl::ObjectData>& vObjectData)
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving object data from threadpool queue.");
+            LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving object data from threadpool queue.");
             // Image was not written successfully.
             return false;
         }
@@ -1544,7 +1544,7 @@ bool ZEDCam::GetObjects(std::vector<sl::ObjectData>& vObjectData)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Attempted to get ZED object data but object detection/tracking is not enabled!");
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED object data but object detection/tracking is not enabled!");
         // Return unsuccessful.
         return false;
     }
@@ -1596,7 +1596,7 @@ bool ZEDCam::GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData
         else
         {
             // Submit logger message.
-            LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving batched object data from threadpool queue.");
+            LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving batched object data from threadpool queue.");
             // Image was not written successfully.
             return false;
         }
@@ -1604,7 +1604,7 @@ bool ZEDCam::GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Attempted to get ZED batched object data but object detection/tracking is not enabled!");
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED batched object data but object detection/tracking is not enabled!");
         // Return unsuccessful.
         return false;
     }
