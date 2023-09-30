@@ -1,9 +1,7 @@
 #include "ArucoThread.h"
 
-ArucoThread::ArucoThread(CameraHandlerThread* cameraHandlerThread,
-                        const int nNumDetectedTagsRetrievalThreads) 
-    : m_pCameraHandlerThread(cameraHandlerThread), 
-    nNumDetectedTagsRetrievalThreads(nNumDetectedTagsRetrievalThreads)
+ArucoThread::ArucoThread(CameraHandlerThread* cameraHandlerThread, const int nNumDetectedTagsRetrievalThreads) :
+    m_pCameraHandlerThread(cameraHandlerThread), nNumDetectedTagsRetrievalThreads(nNumDetectedTagsRetrievalThreads)
 {
     cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
 
@@ -79,5 +77,32 @@ void ArucoThread::ThreadContinousCode()
         this->JoinPool();
         // Release lock on frame copy queue.
         lkSchedulers.unlock();
+    }
+}
+
+ArucoThread::PooledLinearCode()
+{
+    std::unique<std::mutex> lkTagQueue(m_muPoolScheduleMatrix);
+
+    if (!m_qDetectedTagCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::DataFetchContainer<std::vector<ArucoTag>> stContainer = m_qDetectedTagCopySchedule.front();
+        // Pop out of queue.
+        m_qDetectedTagCopySchedule.pop();
+        // Release lock.
+        lkFrameQueue.unlock();
+
+        // Acquire unique lock on container.
+        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
+        std::shared_lock<std::mutex> lkDetectedTagsCopy(m_muDetectedTagsCopyMutex);
+
+        stContainer.tData = m_vDetectedTags;
+
+        // Release locks
+        lkConditionLock.unlock();
+        lkDetectedTagsCopy.unlock();
+        // Use the condition variable to notify other waiting threads that this thread is finished.
+        stContainer.cdMatWriteSuccess.notify_all();
     }
 }
