@@ -16,25 +16,64 @@
 #include "./../../util/vision/FetchContainers.hpp"
 #include "./Aruco.h"
 
+#define DEFAULT_DICTIONARY cv::aruco::DICT_4X4_50
+
+/******************************************************************************
+ * @brief Run's Aruco detection & camera pose estimation in a multithreading environment
+ *
+ * What are the threads doing?
+ * Continous Thread:
+ *  In this thread we are constantly getting images and depth maps from the necessary
+ *  cameras. We then detect the tags in the image and estimate their location with respect to
+ *  the rover.
+ * Pooled Threads:
+ *  Copy the vector of detected tags to all of the threads requesting it through the
+ *  RequestDetectedArucoTags(...) function.
+ *
+ * @see Aruco.hpp
+ * @author jspencerpittman (jspencerpittman@gmail.com)
+ * @date 2023-09-30
+ ******************************************************************************/
 class ArucoThread : public AutonomyThread<void>
 {
     public:
+        /******************************************************************************
+         * @brief Construct a new Aruco Thread object.
+         *
+         * @param cameraHandlerThread - the currently running camera handler
+         * @param nNumDetectedTagsRetrievalThreads - the number of threads to use when fullfilling
+         *                                           requests for the detected aruco tags
+         *
+         * @author jspencerpittman (jspencerpittman@gmail.com)
+         * @date 2023-09-30
+         ******************************************************************************/
         ArucoThread(CameraHandlerThread* cameraHandlerThread, const int nNumDetectedTagsRetrievalThreads);
+
+        /******************************************************************************
+         * @brief Request the most up to date vector of detected aruco tags
+         *
+         * @param arucoTagVec - a reference to the vector the detected aruco tags will be saved to
+         * @return std::future<bool> - status of when the request has been fulfilled
+         *
+         * @author jspencerpittman (jspencerpittman@gmail.com)
+         * @date 2023-09-30
+         ******************************************************************************/
         std::future<bool> RequestDetectedArucoTags(std::vector<ArucoTag>& arucoTagVec);
 
     private:
         ArucoDetector m_arucoDetector;
-
         CameraHandlerThread* m_pCameraHandlerThread;
         int m_nnNumDetectedTagsRetrievalThreads;
 
+        /* detected tags */
         std::vector<ArucoTag> m_vDetectedTags;
-        std::mutex m_muDetectedTagsCopyMutex;
+        std::shared_mutex m_muDetectedTagsMutex;
 
+        /* scheduling queue */
         std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<ArucoTag>&>>> m_qDetectedTagCopySchedule;
-
         std::shared_mutex m_muPoolScheduleMatrix;
 
+        /* threading functionality */
         void ThreadContinousCode() override;
         void PooledLinearCode() override;
 };

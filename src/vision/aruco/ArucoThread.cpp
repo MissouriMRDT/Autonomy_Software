@@ -3,7 +3,8 @@
 ArucoThread::ArucoThread(CameraHandlerThread* cameraHandlerThread, const int nNumDetectedTagsRetrievalThreads) :
     m_pCameraHandlerThread(cameraHandlerThread), nNumDetectedTagsRetrievalThreads(nNumDetectedTagsRetrievalThreads)
 {
-    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    // initialize aruco detector
+    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(DEFAULT_DICTIONARY);
 
     m_arucoDetector                  = ArucoDetector(dictionary);
 }
@@ -30,11 +31,14 @@ void ArucoThread::ThreadContinousCode()
     // TODO: support pose estimation-this would include depth maps
     // TODO: pass reference to vector to ArucoDetector.Detect instead
 
+    // Access zed camera
     ZEDCam* zedCamera = m_pCameraHandlerThread->GetZED(CameraHandlerThread::eHeadMainCam);
 
+    // hold camera frames
     cv::Mat cvNormalFrame;
     cv::cuda::GpuMat cvGPUNormalFrame;
 
+    // indicates when the frame has been copied
     std::future<bool> fuFrameCopyStatus;
 
     // Check if the camera is setup to use CPU or GPU mats.
@@ -46,7 +50,7 @@ void ArucoThread::ThreadContinousCode()
     else
     {
         // Grab frames from camera.
-        fuFrameCopyStatus = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame);
+        fuFrameCopyStatus = zedCamera->RequestFrameCopy(cvNormalFrame);
     }
 
     // Wait for the frames to be copied.
@@ -59,19 +63,21 @@ void ArucoThread::ThreadContinousCode()
             cvGPUNormalFrame.download(cvNormalFrame);
         }
 
+        // Acquire lock on detected tags
+        std::unique_lock<std::mutex> lkDetectedTags(m_muDetectedTagsMutex);
         // Update detected tags
-        m_muDetectedTagsCopyMutex.lock();
         m_detectedTags = m_arucoDetector.Detect(cvNormalFrame);
-        m_muDetectedTagsCopyMutex.unlock();
+        // Release lock on detected tags
+        lkDetectedTags.unlock();
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Check if the frame copy queue is empty.
+    // Check if the detected tag copy queue is empty.
     if (!m_qDetectedTagCopySchedule.empty())
     {
         size_t = siQueueLength = m_qDetectedTagCopySchedule.size();
-        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
+        // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumFrameRetrievalThreads);
         // Wait for thread pool to finish.
         this->JoinPool();
@@ -82,8 +88,10 @@ void ArucoThread::ThreadContinousCode()
 
 ArucoThread::PooledLinearCode()
 {
-    std::unique<std::mutex> lkTagQueue(m_muPoolScheduleMatrix);
+    // Acquire sole writing access to the detectedTagCopySchedule
+    std::unique_lock<std::shared_mutex> lkTagQueue(m_muPoolScheduleMatrix);
 
+    // If there are unfulfilled requests
     if (!m_qDetectedTagCopySchedule.empty())
     {
         // Get frame container out of queue.
@@ -91,17 +99,21 @@ ArucoThread::PooledLinearCode()
         // Pop out of queue.
         m_qDetectedTagCopySchedule.pop();
         // Release lock.
-        lkFrameQueue.unlock();
+        lkTagQueue.unlock();
 
-        // Acquire unique lock on container.
+        // Acquire sole writing access to the container
         std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-        std::shared_lock<std::mutex> lkDetectedTagsCopy(m_muDetectedTagsCopyMutex);
 
+        // Acquire reading access to the detected tags
+        std::shared_lock<std::mutex> lkDetectedTags(m_muDetectedTagsMutex);
+
+        // Copy the detected tags to the target location
         stContainer.tData = m_vDetectedTags;
 
         // Release locks
         lkConditionLock.unlock();
-        lkDetectedTagsCopy.unlock();
+        lkDetectedTags.unlock();
+
         // Use the condition variable to notify other waiting threads that this thread is finished.
         stContainer.cdMatWriteSuccess.notify_all();
     }
