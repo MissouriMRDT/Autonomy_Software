@@ -46,12 +46,12 @@ BasicCam::BasicCam(const std::string szCameraPath,
     if (m_cvCamera.open(szCameraPath))
     {
         // Submit logger message.
-        LOG_DEBUG(g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
+        LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
     }
 }
 
@@ -97,12 +97,12 @@ BasicCam::BasicCam(const int nCameraIndex,
     if (m_cvCamera.isOpened())
     {
         // Submit logger message.
-        LOG_DEBUG(g_qSharedLogger, "Camera {} at video index {} has been successfully opened.", m_cvCamera.getBackendName(), m_nCameraIndex);
+        LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at video index {} has been successfully opened.", m_cvCamera.getBackendName(), m_nCameraIndex);
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
     }
 }
 
@@ -144,7 +144,7 @@ void BasicCam::ThreadedContinuousCode()
         this->RequestStop();
 
         // Submit logger message.
-        LOG_CRITICAL(g_qSharedLogger,
+        LOG_CRITICAL(logging::g_qSharedLogger,
                      "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
                      m_nCameraIndex,
                      m_szCameraPath);
@@ -160,7 +160,7 @@ void BasicCam::ThreadedContinuousCode()
         else
         {
             // Submit logger message.
-            LOG_ERROR(g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
+            LOG_ERROR(logging::g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
         }
 
         // Acquire a shared_lock on the frame copy queue.
@@ -253,7 +253,7 @@ bool BasicCam::GrabFrame(cv::Mat& cvFrame)
     else
     {
         // Submit logger message.
-        LOG_WARNING(g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
+        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
         // Image was not written successfully.
         return false;
     }

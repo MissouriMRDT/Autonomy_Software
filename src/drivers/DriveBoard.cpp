@@ -77,7 +77,7 @@ std::array<float, 2> DriveBoard::CalculateMove(const float fSpeed, const float f
     m_fTargetSpeedRight = double(aDrivePowers[1]);
 
     // Submit logger message.
-    LOG_DEBUG(g_qSharedLogger, "Driving at: ({}, {})", m_fTargetSpeedLeft, m_fTargetSpeedRight);
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_fTargetSpeedLeft, m_fTargetSpeedRight);
 
     return {m_fTargetSpeedLeft, m_fTargetSpeedRight};
 }
@@ -102,8 +102,8 @@ void DriveBoard::SendDrive(float fLeftSpeed, float fRightSpeed)
     m_fTargetSpeedRight = fRightSpeed;
 
     // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-    m_fTargetSpeedLeft  = NumberOperations::MapRange(m_fTargetSpeedLeft, -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    m_fTargetSpeedRight = NumberOperations::MapRange(m_fTargetSpeedRight, -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    m_fTargetSpeedLeft  = numops::MapRange(m_fTargetSpeedLeft, -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    m_fTargetSpeedRight = numops::MapRange(m_fTargetSpeedRight, -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
     // Limit the power to max and min effort defined in constants.
     m_fTargetSpeedLeft  = std::clamp(m_fTargetSpeedLeft, constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
     m_fTargetSpeedRight = std::clamp(m_fTargetSpeedRight, constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);

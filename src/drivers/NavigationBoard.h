@@ -11,10 +11,16 @@
 #ifndef NAVIGATIONBOARD_H
 #define NAVIGATIONBOARD_H
 
-#include "../AutonomyGlobals.h"
-#include <chrono>
-#include <ctime>
+#include "../util/GeospatialOperations.hpp"
 
+/******************************************************************************
+ * @brief This class handles communication with the navigation board on the rover
+ *      by sending RoveComm packets over the network.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-30
+ ******************************************************************************/
 class NavigationBoard
 {
     public:
@@ -30,7 +36,7 @@ class NavigationBoard
         NavigationBoard();
         ~NavigationBoard();
         void ProcessIMUData(IMUData stPacket);
-        void ProcessGPSData(globals::GPSCoordinate stPacket);
+        void ProcessGPSData(geoops::GPSCoordinate stPacket);
 
         /////////////////////////////////////////
         // Setters
@@ -40,8 +46,8 @@ class NavigationBoard
         // Getters
         /////////////////////////////////////////
         IMUData GetIMUData() const;
-        globals::GPSCoordinate GetGPSData() const;
-        globals::UTMCoordinate GetUTMData() const;
+        geoops::GPSCoordinate GetGPSData() const;
+        geoops::UTMCoordinate GetUTMData() const;
 
     private:
         /////////////////////////////////////////

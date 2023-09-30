@@ -33,17 +33,6 @@
 namespace sc  = boost::statechart;
 namespace mpl = boost::mpl;
 
-// Versioning:
-extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
-
-// Camera Handler:
-extern CameraHandlerThread* g_pCameraHandler;
-
-// Board Interfaces:
-extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface
-extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
-extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
-
 /******************************************************************************
  * @brief Namespace containing all global types/structs that will be used project
  *      wide and ARE NOT SPECIFIC TO A CERTAIN CLASS.
@@ -54,50 +43,19 @@ extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Boar
  ******************************************************************************/
 namespace globals
 {
-    /******************************************************************************
-     * @brief This struct stores/contains information about a GPS data.
-     *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-09-23
-     ******************************************************************************/
-    struct GPSCoordinate
-    {
-        public:
-            // Declare struct public attributes
-            double dLatitude;
-            double dLongitude;
-            double dAltitude;
-            double d2DAccuracy;
-            double d3DAccuracy;
+    /////////////////////////////////////////
+    // Declare namespace external variables and objects.
+    /////////////////////////////////////////
+    // Versioning:
+    extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
 
-            /////////////////////////////////////////
-            // Declare public methods.
-            /////////////////////////////////////////
-            GPSCoordinate();
-            GPSCoordinate(double dLatitude, double dLongitude);
-            GPSCoordinate(double dLatitude, double dLongitude, double Altitude);
-            GPSCoordinate(double dLatitude, double dLongitude, double dAltitude, double d2DAccurary, double d3DAccuracy);
-    };
+    // Camera Handler:
+    extern CameraHandlerThread* g_pCameraHandler;    // Global Camera Handler
 
-    /******************************************************************************
-     * @brief This struct stores/contains information about a UTM coordinate.
-     *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-09-23
-     ******************************************************************************/
-    struct UTMCoordinate
-    {
-        public:
-            // Declare struct public attributes.
-            double dEasting;
-            double dNorthing;
-            double dAltitude;
-            double dZone;
-            double d2DAccuracy;
-            double d3DAccuracy;
-    };
+    // Board Interfaces:
+    extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface
+    extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
+    extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H

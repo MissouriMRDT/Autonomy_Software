@@ -25,11 +25,11 @@ const bool ENABLE_SPATIAL_MAPPING = false;
 void RunExample()
 {
     // Initialize and start Threads
-    g_pCameraHandler = new CameraHandlerThread();
-    g_pCameraHandler->StartAllCameras();
+    globals::g_pCameraHandler = new CameraHandlerThread();
+    globals::g_pCameraHandler->StartAllCameras();
 
     // Get pointer to camera.
-    ZEDCam* TestCamera1 = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+    ZEDCam* TestCamera1 = globals::g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
 
     // Turn on ZED features.
     TestCamera1->EnablePositionalTracking();
@@ -76,14 +76,14 @@ void RunExample()
             sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
 
             // Print info.
-            LOG_INFO(g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
-            LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
-            LOG_INFO(g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-            LOG_INFO(g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+            LOG_INFO(logging::g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+            LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetExactIPS());
+            LOG_INFO(logging::g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
+            LOG_INFO(logging::g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
             // Check if spatial mapping is enabled.
             if (ENABLE_SPATIAL_MAPPING)
             {
-                LOG_INFO(g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
+                LOG_INFO(logging::g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(TestCamera1->GetSpatialMappingState()).get());
             }
         }
 
@@ -95,6 +95,7 @@ void RunExample()
             break;
     }
 
+    // Close all OpenCV windows.
     cv::destroyAllWindows();
 
     // Check if spatial mapping is enabled.
@@ -106,10 +107,4 @@ void RunExample()
         sl::Mesh slSpatialMap = fuSpatialMap.get();
         slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
     }
-
-    // Delete dynamically allocated memory.
-    delete g_pCameraHandler;
-
-    // Set dangling pointers to null.
-    g_pCameraHandler = nullptr;
 }

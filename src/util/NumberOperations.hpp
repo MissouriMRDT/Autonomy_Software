@@ -12,8 +12,6 @@
 #ifndef NUMBER_OPERATIONS_HPP
 #define NUMBER_OPERATIONS_HPP
 
-#include "../AutonomyLogging.h"
-
 #include <algorithm>
 
 /******************************************************************************
@@ -24,7 +22,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-07-06
  ******************************************************************************/
-namespace NumberOperations
+namespace numops
 {
     /******************************************************************************
      * @brief Maps a value to a new range given the old range.
@@ -62,5 +60,5 @@ namespace NumberOperations
         return tNewMinimum + tScaledValue * tNewValueRange;
     }
 
-}    // namespace NumberOperations
+}    // namespace numops
 #endif

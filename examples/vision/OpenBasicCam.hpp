@@ -22,11 +22,11 @@
 void RunExample()
 {
     // Initialize and start Threads
-    g_pCameraHandler = new CameraHandlerThread();
-    g_pCameraHandler->StartAllCameras();
+    globals::g_pCameraHandler = new CameraHandlerThread();
+    globals::g_pCameraHandler->StartAllCameras();
 
     // Get reference to camera.
-    BasicCam* TestCamera1 = g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
+    BasicCam* TestCamera1 = globals::g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
 
@@ -37,7 +37,7 @@ void RunExample()
         if (TestCamera1->GrabFrame(cvNormalFrame1))
         {
             // Print info.
-            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
+            LOG_INFO(logging::g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", TestCamera1->GetIPS().GetAverageIPS(), TestCamera1->GetIPS().Get1PercentLow());
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1, std::to_string(TestCamera1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
@@ -51,11 +51,6 @@ void RunExample()
             break;
     }
 
+    // Close all OpenCV windows.
     cv::destroyAllWindows();
-
-    // Delete dynamically allocated memory.
-    delete g_pCameraHandler;
-
-    // Set dangling pointers to null.
-    g_pCameraHandler = nullptr;
 }
