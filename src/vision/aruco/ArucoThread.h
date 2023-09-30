@@ -1,3 +1,5 @@
+// FIXME: File needs file header doc.
+
 #ifndef ARUCO_THREAD_H_
 #define ARUCO_THREAD_H_
 
@@ -16,6 +18,8 @@
 #include "./../../util/vision/FetchContainers.hpp"
 #include "./Aruco.h"
 
+// FIXME: Never #define literals at the top of class files. Instead define the variable within AutonomyGlobals file. I have added a new section for ArUco and made a
+// constant identical to this #define as an example.
 #define DEFAULT_DICTIONARY cv::aruco::DICT_4X4_50
 
 /******************************************************************************
@@ -40,13 +44,14 @@ class ArucoThread : public AutonomyThread<void>
         /******************************************************************************
          * @brief Construct a new Aruco Thread object.
          *
-         * @param cameraHandlerThread - the currently running camera handler
+         * @param cameraHandlerThread - the currently running camera handler    // FIXME: Remove this.
          * @param nNumDetectedTagsRetrievalThreads - the number of threads to use when fullfilling
          *                                           requests for the detected aruco tags
          *
          * @author jspencerpittman (jspencerpittman@gmail.com)
          * @date 2023-09-30
          ******************************************************************************/
+        // FIXME: No need to redeclare the CameraHandlerThread. Just #include "AutonomyGlobals.h" and g_pCameraHandler will be accessible.
         ArucoThread(CameraHandlerThread* cameraHandlerThread, const int nNumDetectedTagsRetrievalThreads);
 
         /******************************************************************************
@@ -58,22 +63,26 @@ class ArucoThread : public AutonomyThread<void>
          * @author jspencerpittman (jspencerpittman@gmail.com)
          * @date 2023-09-30
          ******************************************************************************/
-        std::future<bool> RequestDetectedArucoTags(std::vector<ArucoTag>& arucoTagVec);
+        std::future<bool> RequestDetectedArucoTags(std::vector<ArucoTag>& arucoTagVec);    // FIXME: Parameter name should be vArucoTagVec
 
     private:
         ArucoDetector m_arucoDetector;
-        CameraHandlerThread* m_pCameraHandlerThread;
-        int m_nnNumDetectedTagsRetrievalThreads;
+        CameraHandlerThread* m_pCameraHandlerThread;    // FIXME: Delete this.
+        int m_nnNumDetectedTagsRetrievalThreads;        // FIXME: Remove extra n in m_n
 
         /* detected tags */
         std::vector<ArucoTag> m_vDetectedTags;
         std::shared_mutex m_muDetectedTagsMutex;
 
         /* scheduling queue */
-        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<ArucoTag>&>>> m_qDetectedTagCopySchedule;
+        // FIXME: Remove reference wrapper. This will prevent you from fully copying the container out of the queue. Then we you .pop() the container the promise will go
+        // out of scope and the program will crash.
+        std::queue<std::reference_wrapper<containers::DataFetchContainer<std::vector<ArucoTag>&>>>
+            m_qDetectedTagCopySchedule;    // FIXME: Also remove & on ArucoTag, the container already does this for you.
         std::shared_mutex m_muPoolScheduleMatrix;
 
         /* threading functionality */
+        // FIXME: This should be ThreadedContinuousCode(), make sure you are developing within the devcontainer in VSCode as it will alert you to errors like this.
         void ThreadContinousCode() override;
         void PooledLinearCode() override;
 };
