@@ -233,6 +233,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Change Directories
+        run: cd .devcontainer
+
       - name: Check for Edits
         id: changed-files
         uses: tj-actions/changed-files@v39
@@ -258,7 +261,7 @@ jobs:
         if: steps.changed-files.outputs.dev_any_changed  == 'true'
         uses: docker/build-push-action@v2
         with:
-          file: ".devcontainer/${{ matrix.file }}"
+          file: "${{ matrix.file }}"
           tags: "missourimrdt/${{ matrix.image }}"
           push: true
 
