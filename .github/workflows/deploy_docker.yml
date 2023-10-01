@@ -241,12 +241,10 @@ jobs:
             dev:
               - ".devcontainer/${{ matrix.file }}"
 
-      # - name: Set up Docker Permissions
-      #   if: steps.changed-files.outputs.dev_any_changed  == 'true'
-      #   run: |
-      #     sudo groupadd docker
-      #     sudo usermod -aG docker ${USER}
-      #     sudo chmod 666 /var/run/docker.sock
+      - name: Set up Docker Buildx
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        id: buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Github Packages
         if: steps.changed-files.outputs.dev_any_changed  == 'true'
