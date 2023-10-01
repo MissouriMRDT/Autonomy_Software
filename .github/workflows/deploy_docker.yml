@@ -2,6 +2,13 @@ name: Build and Publish Docker Images
 
 on:
   pull_request:
+    branches: ["development"]
+    paths:
+      - ".devcontainer/Dockerfile_Jammy"
+      - ".devcontainer/Dockerfile_Focal"
+      - ".devcontainer/Dockerfile_JetPack"
+  push:
+    branches: ["development"]
     paths:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_Focal"
@@ -258,13 +265,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push ${{ matrix.name }} Image
-        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+      - name: Build and Push ${{ matrix.name }} Image with Date Tag
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && steps.changed-files.outputs.dev_any_changed  == 'true' }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
           file: ".devcontainer/${{ matrix.file }}"
           tags: "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
+          push: true
+
+      - name: Build and Push ${{ matrix.name }} Image with Latest Tag
+        if: ${{ github.event_name == 'push' && steps.changed-files.outputs.dev_any_changed  == 'true' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/${{ matrix.file }}"
+          tags: |
+            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
+            "ghcr.io/missourimrdt/${{ matrix.image }}:latest"
           push: true
 
       - name: ${{ matrix.name }} Image digest
