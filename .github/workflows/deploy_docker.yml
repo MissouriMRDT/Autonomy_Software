@@ -256,11 +256,11 @@ jobs:
 
       - name: Build and Push ${{ matrix.name }} Image
         if: steps.changed-files.outputs.dev_any_changed  == 'true'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
-          context: .devcontainer
-          file: ${{ matrix.file }}
-          tags: missourimrdt/${{ matrix.image }}
+          context: ".devcontainer"
+          file: "{context}/${{ matrix.file }}"
+          tags: "missourimrdt/${{ matrix.image }}"
           push: true
 
       - name: ${{ matrix.name }} Image digest
