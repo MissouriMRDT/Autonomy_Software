@@ -30,16 +30,18 @@ CameraHandlerThread::CameraHandlerThread()
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                             constants::ZED_MAINCAM_USE_GPU_MAT,
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
+                            constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                             constants::ZED_MAINCAN_SERIAL);
 
     // Initialize Left acruco eye.
-    m_pLeftCam = new BasicCam(constants::BASIC_LEFTCAM_INDEX,
-                              constants::BASIC_LEFTCAM_RESOLUTIONX,
-                              constants::BASIC_LEFTCAM_RESOLUTIONY,
-                              constants::BASIC_LEFTCAM_FPS,
-                              constants::BASIC_LEFTCAM_PIXELTYPE,
-                              constants::BASIC_LEFTCAM_HORIZONTAL_FOV,
-                              constants::BASIC_LEFTCAM_VERTICAL_FOV);
+    m_pLeftCam = new BasicCam(constants::BASICCAM_LEFTCAM_INDEX,
+                              constants::BASICCAM_LEFTCAM_RESOLUTIONX,
+                              constants::BASICCAM_LEFTCAM_RESOLUTIONY,
+                              constants::BASICCAM_LEFTCAM_FPS,
+                              constants::BASICCAM_LEFTCAM_PIXELTYPE,
+                              constants::BASICCAM_LEFTCAM_HORIZONTAL_FOV,
+                              constants::BASICCAM_LEFTCAM_VERTICAL_FOV,
+                              constants::BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS);
 }
 
 /******************************************************************************
