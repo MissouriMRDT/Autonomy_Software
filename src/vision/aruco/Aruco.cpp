@@ -1,15 +1,19 @@
-// FIXME: This file is unneeded. This can be put in a private function within the other class.
-
 #include "Aruco.h"
 
-ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary) : m_cvDictionary(dictionary) {}
+ArucoDetector::ArucoDetector() {
+    m_cvDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
+}
+
+ArucoDetector::ArucoDetector(const cv::aruco::Dictionary& dictionary) {
+    m_cvDictionary = dictionary;
+}
 
 std::vector<ArucoTag> ArucoDetector::Detect(const cv::Mat& image)
 {
     // vector containing ids of all detected tags
     std::vector<int> ids;
 
-    std::vector<ArucoTag::Corners> markerCorners, rejectedCandidates;
+    std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
     cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
 
     // detect the tags in the image
