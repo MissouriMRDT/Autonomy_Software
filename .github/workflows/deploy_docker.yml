@@ -259,7 +259,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer"
-          file: "{context}/${{ matrix.file }}"
+          file: "${{ matrix.file }}"
           tags: "missourimrdt/${{ matrix.image }}"
           push: true
 
