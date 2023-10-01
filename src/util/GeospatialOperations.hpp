@@ -109,7 +109,7 @@ namespace geoops
              * @param dLatitude - The latitude of the GPS coordinate.
              * @param dLongitude - The longitude of the GPS coordinate.
              * @param Altitude - The altitude of the GPS coordinate.
-             * @param d2DAccurary - The accuracy of the lat/lon
+             * @param d2DAccuracy - The accuracy of the lat/lon
              * @param d3DAccuracy - The accuracy of the lat/lon/alt
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
@@ -140,9 +140,99 @@ namespace geoops
             double dEasting;
             double dNorthing;
             double dAltitude;
-            double dZone;
+            int nZone;
             double d2DAccuracy;
             double d3DAccuracy;
+
+            /////////////////////////////////////////
+            // Declare public methods.
+            /////////////////////////////////////////
+            /******************************************************************************
+             * @brief Construct a new UTMCoordinate object.
+             *
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-09-23
+             ******************************************************************************/
+            UTMCoordinate()
+            {
+                // Initialize member variables to default values.
+                this->dEasting    = 0.0;
+                this->dNorthing   = 0.0;
+                this->dAltitude   = 0.0;
+                this->nZone       = 0;
+                this->d2DAccuracy = -1.0;
+                this->d3DAccuracy = -1.0;
+            }
+
+            /******************************************************************************
+             * @brief Construct a new UTMCoordinate object.
+             *
+             * @param dEasting - The Easting of the UTM coordinate.
+             * @param dNorthing - The Northing of the UTM coordinate.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-09-23
+             ******************************************************************************/
+            UTMCoordinate(double dEasting, double dNorthing)
+            {
+                // Initialize member variables with given values.
+                this->dEasting  = dEasting;
+                this->dNorthing = dNorthing;
+
+                // Use default values for everything else.
+                dAltitude   = 0.0;
+                nZone       = 0;
+                d2DAccuracy = -1.0;
+                d3DAccuracy = -1.0;
+            }
+
+            /******************************************************************************
+             * @brief Construct a new UTMCoordinate object.
+             *
+             * @param dEasting - The Easting of the UTM coordinate.
+             * @param dNorthing - The Northing of the UTM coordinate.
+             * @param dAltitude - The Altitude of the UTM coordinate.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-09-23
+             ******************************************************************************/
+            UTMCoordinate(double dEasting, double dNorthing, double dAltitude)
+            {
+                // Initialize member variables with given values.
+                this->dEasting  = dEasting;
+                this->dNorthing = dNorthing;
+                this->dAltitude = dAltitude;
+
+                // Use default values for everything else.
+                nZone       = 0;
+                d2DAccuracy = -1.0;
+                d2DAccuracy = -1.0;
+            }
+
+            /******************************************************************************
+             * @brief Construct a new UTMCoordinate object.
+             *
+             * @param dEasting - The Easting of the UTM coordinate.
+             * @param dNorthing - The Northing of the UTM coordinate.
+             * @param dAltitude - The Altitude of the UTM coordinate.
+             * @param nZone - The zone of the UTM coordinate.
+             * @param d2DAccuracy - The accuracy of the east / north
+             * @param d3DAccuracy - The accuracy of the east / north / alt
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-09-23
+             ******************************************************************************/
+            UTMCoordinate(double dEasting, double dNorthing, double dAltitude, int nZone, double d2DAccuracy, double d3DAccuracy)
+            {
+                // Initialize member variables with given values.
+                this->dEasting    = dEasting;
+                this->dNorthing   = dNorthing;
+                this->dAltitude   = dAltitude;
+                this->nZone       = nZone;
+                this->d2DAccuracy = d2DAccuracy;
+                this->d3DAccuracy = d3DAccuracy;
+            }
     };
 }    // namespace geoops
 #endif
