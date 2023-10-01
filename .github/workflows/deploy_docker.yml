@@ -23,13 +23,209 @@ jobs:
         image: [autonomy-jammy, autonomy-focal, autonomy-jetpack]
         exclude:
           - os: [self-hosted, linux, X64]
-            name: [JetPack]
-            file: [Dockerfile_JetPack]
-            image: [autonomy-jetpack]
+            name: Jammy
+            file: Dockerfile_Jammy
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_Jammy
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_Focal
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_Focal
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_Focal
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_JetPack
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_JetPack
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: Jammy
+            file: Dockerfile_JetPack
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_Jammy
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_Jammy
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_Jammy
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_Focal
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_Focal
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_JetPack
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_JetPack
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: Focal
+            file: Dockerfile_JetPack
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_Jammy
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_Jammy
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_Jammy
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_Focal
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_Focal
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_Focal
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_JetPack
+            image: autonomy-jammy
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_JetPack
+            image: autonomy-focal
+          - os: [self-hosted, linux, X64]
+            name: JetPack
+            file: Dockerfile_JetPack
+            image: autonomy-jetpack
           - os: [self-hosted, linux, ARM64]
-            name: [Jammy, Focal]
-            file: [Dockerfile_Jammy, Dockerfile_Focal]
-            image: [autonomy-jammy, autonomy-focal]
+            name: Jammy
+            file: Dockerfile_Jammy
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_Jammy
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_Jammy
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_Focal
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_Focal
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_Focal
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_JetPack
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_JetPack
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: Jammy
+            file: Dockerfile_JetPack
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_Jammy
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_Jammy
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_Jammy
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_Focal
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_Focal
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_Focal
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_JetPack
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_JetPack
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: Focal
+            file: Dockerfile_JetPack
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_Jammy
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_Jammy
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_Jammy
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_Focal
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_Focal
+            image: autonomy-focal
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_Focal
+            image: autonomy-jetpack
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_JetPack
+            image: autonomy-jammy
+          - os: [self-hosted, linux, ARM64]
+            name: JetPack
+            file: Dockerfile_JetPack
+            image: autonomy-focal
 
     runs-on: ${{ matrix.os }}
 
