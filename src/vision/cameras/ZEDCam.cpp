@@ -51,9 +51,9 @@ struct ZEDCam::ZedObjectData
         struct Corner CornerTR;    // The top right corner of the bounding box.
         struct Corner CornerBL;    // The bottom left corner of the bounding box.
         struct Corner CornerBR;    // The bottom right corner of bounding box.
-        int nClassNumber;          // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the same.
+        int nClassNumber;          // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the
         float fConfidence;         // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
-        // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by class number
+        // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by class
         // to avoid issues.
         bool bObjectRemainsOnFloorPlane = false;
 
@@ -88,13 +88,15 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
+               const int nNumFrameRetrievalThreads,
                const unsigned int unCameraSerialNumber) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_unCameraSerialNumber = unCameraSerialNumber;
+    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
+    m_unCameraSerialNumber      = unCameraSerialNumber;
 
     // Setup camera params.
     m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
@@ -377,7 +379,7 @@ void ZEDCam::ThreadedContinuousCode()
                                                 m_qObjectBatchedDataCopySchedule.size()});
 
             // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-            this->RunDetachedPool(siMaxQueueLength, constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS);
+            this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
             // Wait for thread pool to finish.
             this->JoinPool();
             // Release lock on frame copy queue.
@@ -389,7 +391,7 @@ void ZEDCam::ThreadedContinuousCode()
 /******************************************************************************
  * @brief This method holds the code that is ran in the thread pool started by
  *      the ThreadedLinearCode() method. It copies the data from the different
- *      data objects to references of the same type stored in a vector queued up by the
+ *      data objects to references of the same type stored in a queue filled by the
  *      Grab methods.
  *
  *
@@ -410,63 +412,73 @@ void ZEDCam::PooledLinearCode()
         if (!m_qFrameCopySchedule.empty())
         {
             // Get frame container out of queue.
-            containers::FrameFetchContainer<cv::Mat&>& stContainer = m_qFrameCopySchedule.front();
+            containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
             // Pop out of queue.
             m_qFrameCopySchedule.pop();
             // Release lock.
             lkFrameQueue.unlock();
 
-            // Acquire unique lock on container.
-            std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
-                default: stContainer.tFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case eXYZ: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
-            // Release lock.
-            lkConditionLock.unlock();
-            // Use the condition variable to notify other waiting threads that this thread is finished.
-            stContainer.cdMatWriteSuccess.notify_all();
+            // Signal future that the frame has been successfully retrieved.
+            stContainer.pCopiedFrameStatus->set_value(true);
+        }
+
+        // Check if anything has been added to the GPU queue.
+        if (!m_qGPUFrameCopySchedule.empty())
+        {
+            // Submit logger error.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "ZEDCam ({}) is in CPU sl::Mat mode but a GPU mat has been added to the copy queue! Whichever thread queued the frame will now appear frozen if "
+                      "future.get() is called. Either switch the camera to GPU Mat mode in AutonomyConstants.h or stop queueing frames of type cv::Mat.",
+                      m_unCameraSerialNumber);
         }
     }
     // Use GPU mat.
     else
     {
+        // Aqcuire mutex for getting frames out of the queue.
+        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
-            // Aqcuire mutex for getting frames out of the queue.
-            std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
             // Get frame container out of queue.
-            containers::FrameFetchContainer<cv::cuda::GpuMat&>& stContainer = m_qGPUFrameCopySchedule.front();
+            containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer = m_qGPUFrameCopySchedule.front();
             // Pop out of queue.
             m_qGPUFrameCopySchedule.pop();
             // Release lock.
             lkFrameQueue.unlock();
 
-            // Acquire unique lock on container.
-            std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case eDepthMeasure: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case eDepthImage: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZ: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: stContainer.tFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case eXYZ: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
-            // Release lock.
-            lkConditionLock.unlock();
-            // Use the condition variable to notify other waiting threads that this thread is finished.
-            stContainer.cdMatWriteSuccess.notify_all();
+            // Signal future that the frame has been successfully retrieved.
+            stContainer.pCopiedFrameStatus->set_value(true);
+        }
+
+        // Check if anything has been added to the GPU queue.
+        if (!m_qFrameCopySchedule.empty())
+        {
+            // Submit logger error.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "ZEDCam ({}) is in GPU sl::Mat mode but a CPU mat has been added to the copy queue! Whichever thread queued the frame will now appear frozen if "
+                      "future.get() is called. Either switch the camera to GPU Mat mode in AutonomyConstants.h or stop queueing frames of type cv::cuda::GpuMat.",
+                      m_unCameraSerialNumber);
         }
     }
 
@@ -479,20 +491,17 @@ void ZEDCam::PooledLinearCode()
     if (!m_qPoseCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<sl::Pose&>& stContainer = m_qPoseCopySchedule.front();
+        containers::DataFetchContainer<sl::Pose> stContainer = m_qPoseCopySchedule.front();
         // Pop out of queue.
         m_qPoseCopySchedule.pop();
         // Release lock.
         lkPoseQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
         // Copy pose.
-        stContainer.tData = sl::Pose(m_slCameraPose);
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+        *(stContainer.pData) = sl::Pose(m_slCameraPose);
+
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
     }
 
     /////////////////////////////
@@ -504,31 +513,28 @@ void ZEDCam::PooledLinearCode()
     if (!m_qIMUDataCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<double>&>& stContainer = m_qIMUDataCopySchedule.front();
+        containers::DataFetchContainer<std::vector<double>> stContainer = m_qIMUDataCopySchedule.front();
         // Pop out of queue.
         m_qIMUDataCopySchedule.pop();
         // Release lock.
         lkIMUQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-
         // Get IMU orientation in degrees.
         sl::float3 slAngles = m_slSensorData.imu.pose.getEulerAngles(false);
         // Get IMU linear acceleration.
         sl::float3 slLinearAccels = m_slSensorData.imu.linear_acceleration;
+        // Clear the data vector that the IMUData will be copied to.
+        stContainer.pData->clear();
         // Repackage angles and accels into vector.
-        stContainer.tData.emplace_back(slAngles.x);
-        stContainer.tData.emplace_back(slAngles.y);
-        stContainer.tData.emplace_back(slAngles.z);
-        stContainer.tData.emplace_back(slLinearAccels.x);
-        stContainer.tData.emplace_back(slLinearAccels.y);
-        stContainer.tData.emplace_back(slLinearAccels.z);
+        stContainer.pData->emplace_back(slAngles.x);
+        stContainer.pData->emplace_back(slAngles.y);
+        stContainer.pData->emplace_back(slAngles.z);
+        stContainer.pData->emplace_back(slLinearAccels.x);
+        stContainer.pData->emplace_back(slLinearAccels.y);
+        stContainer.pData->emplace_back(slLinearAccels.z);
 
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
     }
 
     /////////////////////////////
@@ -540,20 +546,17 @@ void ZEDCam::PooledLinearCode()
     if (!m_qObjectDataCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<sl::ObjectData>&>& stContainer = m_qObjectDataCopySchedule.front();
+        containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer = m_qObjectDataCopySchedule.front();
         // Pop out of queue.
         m_qObjectDataCopySchedule.pop();
         // Release lock.
         lkIMUQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
         // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
-        stContainer.tData = m_slDetectedObjects.object_list;
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+        *(stContainer.pData) = m_slDetectedObjects.object_list;
+
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
     }
 
     /////////////////////////////
@@ -565,38 +568,36 @@ void ZEDCam::PooledLinearCode()
     if (!m_qObjectBatchedDataCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<sl::ObjectsBatch>&>& stContainer = m_qObjectBatchedDataCopySchedule.front();
+        containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer = m_qObjectBatchedDataCopySchedule.front();
         // Pop out of queue.
         m_qObjectBatchedDataCopySchedule.pop();
         // Release lock.
         lkIMUQueue.unlock();
 
-        // Acquire unique lock on container.
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
         // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
-        stContainer.tData = m_slDetectedObjectsBatched;
-        // Release lock.
-        lkConditionLock.unlock();
-        // Use the condition variable to notify other waiting threads that this thread is finished.
-        stContainer.cdMatWriteSuccess.notify_all();
+        *(stContainer.pData) = m_slDetectedObjectsBatched;
+
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
     }
 }
 
 /******************************************************************************
- * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera.
+ * @brief Requests a regular BGRA image from the LEFT eye of the zed camera.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *      Remember this code will be ran in whatever class/thread calls it.
  *
  * @param cvFrame - A reference to the cv::Mat to copy the normal frame to.
- * @return true - The frame was successfully copied.
- * @return false - The frame was not copied successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
+std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat&> stContainer(cvFrame, eBGRA);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -605,44 +606,26 @@ bool ZEDCam::GrabFrame(cv::Mat& cvFrame)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
- * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera and
- *      stores it in a GPU mat.
+ * @brief Grabs a regular BGRA image from the LEFT eye of the zed camera and stores it in a GPU mat.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *      Remember this code will be ran in whatever class/thread calls it.
  *
  * @param cvGPUFrame - A reference to the cv::Mat to copy the normal frame to.
- * @return true - The frame was successfully copied.
- * @return false - The frame was not copied successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
+std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUFrame, eBGRA);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUFrame, eBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -651,43 +634,26 @@ bool ZEDCam::GrabFrame(cv::cuda::GpuMat& cvGPUFrame)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving frame from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
- * @brief Grabs a depth measure or image from the camera. This image has the same shape as
- *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
- *      AutonomyConstants.h.
+ * @brief Requests a depth measure or image from the camera.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      This image has the same shape as a grayscale image, but the values represent the depth in
+ *      MILLIMETERS. The ZEDSDK will always return this measure in MILLIMETERS.
  *
  * @param cvDepth - A reference to the cv::Mat to copy the depth frame to.
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
  *                  purposes other than displaying depth.
- * @return true - The frame was successfully copied.
- * @return false - The frame was not copied successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
+std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure)
 {
     // Create instance variables.
     PIXEL_FORMATS eFrameType;
@@ -695,7 +661,7 @@ bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
     // Check if the container should be set to retrieve an image or a measure.
     bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
     // Assemble container.
-    containers::FrameFetchContainer<cv::Mat&> stContainer(cvDepth, eFrameType);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -704,43 +670,26 @@ bool ZEDCam::GrabDepth(cv::Mat& cvDepth, const bool bRetrieveMeasure)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
- * @brief Grabs a depth measure or image from the camera and stores it in GPU mat. This image has the same shape as
- *      a grayscale image, but the values represent the depth in ZED_MEASURE_UNITS that is set in
- *      AutonomyConstants.h.
+ * @brief Requests a depth measure or image from the camera.
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      This image has the same shape as a grayscale image, but the values represent the depth in
+ *      MILLIMETERS. The ZEDSDK will always return this measure in MILLIMETERS.
  *
  * @param cvGPUDepth - A reference to the cv::Mat to copy the depth frame to.
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
  *                  purposes other than displaying depth.
- * @return true - The frame was successfully copied.
- * @return false - The frame was not copied successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure)
+std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure)
 {
     // Create instance variables.
     PIXEL_FORMATS eFrameType;
@@ -748,7 +697,7 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
     // Check if the container should be set to retrieve an image or a measure.
     bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
     // Assemble container.
-    containers::FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUDepth, eFrameType);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -757,45 +706,29 @@ bool ZEDCam::GrabDepth(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving depth from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
- * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+ * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
  *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @return true - The frame was successfully copied.
- * @return false - The frame was not copied successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
+std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat&> stContainer(cvPointCloud, eXYZ);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eXYZ);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -804,26 +737,8 @@ bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
@@ -832,17 +747,19 @@ bool ZEDCam::GrabPointCloud(cv::Mat& cvPointCloud)
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
  *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *
  * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @return true - The frame was successfully copied.
- * @return false - The frame was not copied successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
+std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::cuda::GpuMat&> stContainer(cvGPUPointCloud, eXYZ);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, eXYZ);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -851,26 +768,8 @@ bool ZEDCam::GrabPointCloud(cv::cuda::GpuMat& cvGPUPointCloud)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving point cloud from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
 }
 
 /******************************************************************************
@@ -1283,23 +1182,24 @@ unsigned int ZEDCam::GetCameraSerial()
 }
 
 /******************************************************************************
- * @brief Returns the current pose of the camera relative to it's start pose or the origin of the set pose.
+ * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
+ *      Puts a Pose pointer into a queue so a copy of a frame from the camera can be written to it.
  *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
- * @return true - Pose was successfully retrieved and copied.
- * @return false - Pose was not successfully retrieved and/or copied.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-bool ZEDCam::GetPositionalPose(sl::Pose& slPose)
+std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
 {
     // Check if positional tracking has been enabled.
     if (m_slCamera.isPositionalTrackingEnabled())
     {
         // Assemble the data container.
-        containers::DataFetchContainer<sl::Pose&> stContainer(slPose);
+        containers::DataFetchContainer<sl::Pose> stContainer(slPose);
 
         // Acquire lock on frame copy queue.
         std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1308,33 +1208,22 @@ bool ZEDCam::GetPositionalPose(sl::Pose& slPose)
         // Release lock on the frame schedule queue.
         lkSchedulers.unlock();
 
-        // Create lock variable to be used by condition variable. CV unlocks this during wait().
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-        // Wait up to 10 seconds for the condition variable to be notified.
-        std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-        // Release lock.
-        lkConditionLock.unlock();
-
-        // Check condition variable status and return.
-        if (cdStatus == std::cv_status::no_timeout)
-        {
-            // Image was successfully written to the given cv::Mat reference.
-            return true;
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving sl::Pose from threadpool queue.");
-            // Image was not written successfully.
-            return false;
-        }
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
     }
     else
     {
         // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
         // Return unsuccessful.
-        return false;
+        return fuDummyFuture;
     }
 }
 
@@ -1353,20 +1242,21 @@ bool ZEDCam::GetPositionalTrackingEnabled()
 }
 
 /******************************************************************************
- * @brief Gets the IMU data from the ZED camera. If getting the data fails, the
- *      last successfully retrieved value is returned.
+ * @brief Requests the IMU data from the ZED camera.
+ *      Puts a std::vector pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      If getting the data fails, the last successfully retrieved value is returned.
  *
  * @param vIMUValues - A 1x6 vector containing X_deg, Y_deg, Z_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
- * @return true - The IMU vals were copied and stored successfully.
- * @return false - The IMU vals were copied and stored successfully.
+ * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-bool ZEDCam::GetIMUData(std::vector<double>& vIMUValues)
+std::future<bool> ZEDCam::RequestIMUDataCopy(std::vector<double>& vIMUValues)
 {
     // Assemble the data container.
-    containers::DataFetchContainer<std::vector<double>&> stContainer(vIMUValues);
+    containers::DataFetchContainer<std::vector<double>> stContainer(vIMUValues);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1375,26 +1265,8 @@ bool ZEDCam::GetIMUData(std::vector<double>& vIMUValues)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Create lock variable to be used by condition variable. CV unlocks this during wait().
-    std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-    // Wait up to 10 seconds for the condition variable to be notified.
-    std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-    // Release lock.
-    lkConditionLock.unlock();
-
-    // Check condition variable status and return.
-    if (cdStatus == std::cv_status::no_timeout)
-    {
-        // Image was successfully written to the given cv::Mat reference.
-        return true;
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving IMU data from threadpool queue.");
-        // Image was not written successfully.
-        return false;
-    }
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedDataStatus->get_future();
 }
 
 /******************************************************************************
@@ -1495,23 +1367,23 @@ bool ZEDCam::GetObjectDetectionEnabled()
 }
 
 /******************************************************************************
- * @brief Accessor for getting the tracked objects from the camera. Current objects are copied to the
- *      given sl::ObjectData vector.
+ * @brief Requests a current copy of the tracked objects from the camera.
+ *      Puts a pointer to a vector containing sl::ObjectData into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
- * @return true - The object data was successfully copied.
- * @return false - The object data was not successfully copied.
+ * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-bool ZEDCam::GetObjects(std::vector<sl::ObjectData>& vObjectData)
+std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
 {
     // Check if object detection has been enabled.
     if (m_slCamera.isObjectDetectionEnabled())
     {
         // Assemble the data container.
-        containers::DataFetchContainer<std::vector<sl::ObjectData>&> stContainer(vObjectData);
+        containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer(vObjectData);
 
         // Acquire lock on frame copy queue.
         std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1520,38 +1392,27 @@ bool ZEDCam::GetObjects(std::vector<sl::ObjectData>& vObjectData)
         // Release lock on the frame schedule queue.
         lkSchedulers.unlock();
 
-        // Create lock variable to be used by condition variable. CV unlocks this during wait().
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-        // Wait up to 10 seconds for the condition variable to be notified.
-        std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-        // Release lock.
-        lkConditionLock.unlock();
-
-        // Check condition variable status and return.
-        if (cdStatus == std::cv_status::no_timeout)
-        {
-            // Image was successfully written to the given cv::Mat reference.
-            return true;
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving object data from threadpool queue.");
-            // Image was not written successfully.
-            return false;
-        }
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
     }
     else
     {
         // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED object data but object detection/tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
         // Return unsuccessful.
-        return false;
+        return fuDummyFuture;
     }
 }
 
 /******************************************************************************
- * @brief If batching is enabled, this retrieves the normal objects and passes them to
+ * @brief If batching is enabled, this requests the normal objects and passes them to
  *  the the iternal batching queue of the zed api. This performs short-term re-identification
  *  with deep learning and trajectories filtering. Batching must have been set to enabled when
  *  EnableObjectDetection() was called. Most of the time the vector will be empty and will be
@@ -1559,19 +1420,19 @@ bool ZEDCam::GetObjects(std::vector<sl::ObjectData>& vObjectData)
  *
  * @param vBatchedObjectData - A vector containing objects of sl::ObjectsBatch object that will
  *                              have object data copied to.
- * @return true - The batched objects data was successfully copied.
- * @return false - The batched objects data was not successfully copied.
+ * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
+ *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-30
  ******************************************************************************/
-bool ZEDCam::GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
+std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
 {
     // Check if object detection and batching has been enabled.
     if (m_slCamera.isObjectDetectionEnabled() && m_slObjectDetectionBatchParams.enable)
     {
         // Assemble the data container.
-        containers::DataFetchContainer<std::vector<sl::ObjectsBatch>&> stContainer(vBatchedObjectData);
+        containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer(vBatchedObjectData);
 
         // Acquire lock on frame copy queue.
         std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1580,32 +1441,21 @@ bool ZEDCam::GetBatchedObjects(std::vector<sl::ObjectsBatch>& vBatchedObjectData
         // Release lock on the frame schedule queue.
         lkSchedulers.unlock();
 
-        // Create lock variable to be used by condition variable. CV unlocks this during wait().
-        std::unique_lock<std::mutex> lkConditionLock(stContainer.muConditionMutex);
-        // Wait up to 10 seconds for the condition variable to be notified.
-        std::cv_status cdStatus = stContainer.cdMatWriteSuccess.wait_for(lkConditionLock, std::chrono::seconds(10));
-        // Release lock.
-        lkConditionLock.unlock();
-
-        // Check condition variable status and return.
-        if (cdStatus == std::cv_status::no_timeout)
-        {
-            // Image was successfully written to the given cv::Mat reference.
-            return true;
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Reached timeout while retrieving batched object data from threadpool queue.");
-            // Image was not written successfully.
-            return false;
-        }
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
     }
     else
     {
         // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED batched object data but object detection/tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
         // Return unsuccessful.
-        return false;
+        return fuDummyFuture;
     }
 }
