@@ -258,8 +258,8 @@ jobs:
         if: steps.changed-files.outputs.dev_any_changed  == 'true'
         uses: docker/build-push-action@v5
         with:
-          context: ".devcontainer"
-          file: "${{ matrix.file }}"
+          context: ".devcontainer/"
+          file: ".devcontainer/${{ matrix.file }}"
           tags: "missourimrdt/${{ matrix.image }}"
           push: true
 
