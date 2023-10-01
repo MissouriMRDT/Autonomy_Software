@@ -76,7 +76,7 @@ class ArucoThread : public AutonomyThread<void>
 
         /* detected tags */
         std::vector<ArucoTag> m_vDetectedTags;
-        std::mutex m_muDetectedTagsMutex;
+        std::shared_mutex m_muDetectedTagsMutex;
 
         /* scheduling queue */
         std::queue<containers::DataFetchContainer<std::vector<ArucoTag>>> m_qDetectedTagCopySchedule;
