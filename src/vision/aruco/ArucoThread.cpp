@@ -1,14 +1,10 @@
 #include "ArucoThread.h"
 
-ArucoThread::ArucoThread(const int nNumDetectedTagsRetrievalThreads) :
+ArucoThread::ArucoThread(const int nNumDetectedTagsRetrievalThreads)
 {
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
 
-    // initialize aruco detector
-    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
-    m_arucoDetector                  = ArucoDetector(dictionary);
-
-    m_pZedCam                        = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+    m_pZedCam                          = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
 }
 
 std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<ArucoTag>& arucoTagVec)
@@ -61,20 +57,15 @@ void ArucoThread::ThreadedContinuousCode()
             cvGPUNormalFrame.download(cvNormalFrame);
         }
 
-        // Acquire lock on detected tags
-        std::unique_lock<std::mutex> lkDetectedTags(m_muDetectedTagsMutex);
         // Update detected tags
-        m_vDetectedTags = m_arucoDetector.Detect(cvNormalFrame);    // FIXME: No need to aquire a lock since the detect function call is not running in a seperate thread.
-        // Release lock on detected tags
-        lkDetectedTags.unlock();
+        m_vDetectedTags = m_arucoDetector.Detect(cvNormalFrame);
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
-    std::shared_lock<std::mutex> lkSchedulers(m_muPoolScheduleMatrix);
+    std::unique_lock<std::mutex> lkSchedulers(m_muPoolScheduleMatrix);
     // Check if the detected tag copy queue is empty.
     if (!m_qDetectedTagCopySchedule.empty())
     {
-        // FIXME: Won't compile.
         size_t siQueueLength = m_qDetectedTagCopySchedule.size();
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
@@ -101,7 +92,7 @@ void ArucoThread::PooledLinearCode()
         lkTagQueue.unlock();
 
         // Acquire reading access to the detected tags
-        std::shared_lock<std::mutex> lkDetectedTags(m_muDetectedTagsMutex);
+        std::shared_lock<std::shared_mutex> lkDetectedTags(m_muDetectedTagsMutex);
 
         // Copy the detected tags to the target location
         *(stContainer.pData) = m_vDetectedTags;
