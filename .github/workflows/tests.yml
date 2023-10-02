@@ -8,16 +8,17 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: "unit-tests"
+  group: "tests"
   cancel-in-progress: false
 
 jobs:
-  build-tests:
-    runs-on: [self-hosted, linux, X64]
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        type: [Unit, Integration]
 
-    outputs:
-      check_unit: ${{ steps.check_unit.outputs.files_exists }}
-      check_integration: ${{ steps.check_integration.outputs.files_exists }}
+    runs-on: [self-hosted, linux, X64]
 
     steps:
       - name: Checkout repository
@@ -49,50 +50,14 @@ jobs:
           cmake ..
           make
 
-      - name: Check File Existence (Unit Tests)
-        id: check_unit
+      - name: Check File Existence (${{ matrix.arch }} Tests)
+        id: check
         uses: andstor/file-existence-action@v2
         with:
-          files: "/opt/Autonomy_Software/build/Autonomy_Software_UnitTests"
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.arch }}Tests"
 
-      - name: Check File Existence (Integration Tests)
-        id: check_integration
-        uses: andstor/file-existence-action@v2
-        with:
-          files: "/opt/Autonomy_Software/build/Autonomy_Software_IntegrationTests"
-
-  run-unit-tests:
-    needs: build-tests
-    runs-on: [self-hosted, linux, X64]
-
-    if: needs.build-tests.outputs.check_unit == 'true'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory /opt/Autonomy_Software
-
-      - name: Run Unit Tests
+      - name: Run ${{ matrix.arch }} Tests
+        if: steps.check.outputs.files_exists == 'true'
         run: |
           cd /opt/Autonomy_Software/build
-          if test -f "Autonomy_Software_UnitTests"; then ./Autonomy_Software_UnitTests ; else echo "No Unit Tests Exist" ; fi
-
-  run-integration-tests:
-    needs: build-tests
-    runs-on: [self-hosted, linux, X64]
-
-    if: needs.build-tests.outputs.check_integration == 'true'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory /opt/Autonomy_Software
-
-      - name: Run Integration Tests
-        run: |
-          cd /opt/Autonomy_Software/build
-          if test -f "Autonomy_Software_IntegrationTests"; then ./Autonomy_Software_IntegrationTests ; else echo "No Integration Tests Exist" ; fi
+          if test -f "Autonomy_Software_${{ matrix.arch }}Tests"; then ./Autonomy_Software_${{ matrix.arch }}Tests ; else echo "No ${{ matrix.arch }} Tests Exist" ; fi
