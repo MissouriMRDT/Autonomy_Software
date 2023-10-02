@@ -36,7 +36,7 @@ struct StuckState;
  ******************************************************************************/
 struct StateMachine : sc::state_machine<StateMachine, IdleState>
 {
-        StateMachine() { LOG_INFO(g_qSharedLogger, "Starting State Machine..."); }
+        StateMachine() { LOG_INFO(logging::g_qSharedLogger, "Starting State Machine..."); }
 };
 
 /******************************************************************************
