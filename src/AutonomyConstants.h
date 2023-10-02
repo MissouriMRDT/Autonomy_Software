@@ -29,8 +29,17 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
     //// Drive Constants.
     ///////////////////////////////////////////////////////////////////////////
-    const int MAX_DRIVE_POWER = 250;
-    const int MIN_DRIVE_POWER = 50;
+
+    // Power constants.
+    const float DRIVE_MAX_POWER  = 1.0;
+    const float DRIVE_MIN_POWER  = -1.0;
+    const float DRIVE_MAX_EFFORT = 0.5;
+    const float DRIVE_MIN_EFFORT = -0.5;
+
+    // Control constants.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
+    ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
     //// Camera Constants.
@@ -96,7 +105,7 @@ namespace constants
     const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
     const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int BASICCAM_LEFTCAM_INDEX                   = 0;       // The /dev/video index of the camera.
+    const int BASICCAM_LEFTCAM_INDEX                   = 2;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_LEFTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
 

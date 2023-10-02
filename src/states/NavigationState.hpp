@@ -28,7 +28,7 @@
  ******************************************************************************/
 struct NavigationState : sc::simple_state<NavigationState, StateMachine>
 {
-        NavigationState() { LOG_INFO(g_qSharedLogger, "In State: Navigation"); }
+        NavigationState() { LOG_INFO(logging::g_qSharedLogger, "In State: Navigation"); }
 
         typedef mpl::list<sc::custom_reaction<Navigation_NewWaypointTransition>,
                           sc::custom_reaction<Navigation_AbortTransition>,
@@ -102,7 +102,7 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
  ******************************************************************************/
 struct Navigation_NewWaypointTransition : sc::event<Navigation_NewWaypointTransition>
 {
-        Navigation_NewWaypointTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (New Waypoint)"); }
+        Navigation_NewWaypointTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (New Waypoint)"); }
 };
 
 /******************************************************************************
@@ -117,7 +117,7 @@ struct Navigation_NewWaypointTransition : sc::event<Navigation_NewWaypointTransi
  ******************************************************************************/
 struct Navigation_AbortTransition : sc::event<Navigation_AbortTransition>
 {
-        Navigation_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Abort)"); }
+        Navigation_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Abort)"); }
 };
 
 /******************************************************************************
@@ -133,7 +133,7 @@ struct Navigation_AbortTransition : sc::event<Navigation_AbortTransition>
  ******************************************************************************/
 struct Navigation_StuckTransition : sc::event<Navigation_StuckTransition>
 {
-        Navigation_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Stuck)"); }
+        Navigation_StuckTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Stuck)"); }
 };
 
 /******************************************************************************
@@ -151,7 +151,7 @@ struct Navigation_StuckTransition : sc::event<Navigation_StuckTransition>
  ******************************************************************************/
 struct Navigation_ReachedGPSTransition : sc::event<Navigation_ReachedGPSTransition>
 {
-        Navigation_ReachedGPSTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Reached GPS)"); }
+        Navigation_ReachedGPSTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Reached GPS)"); }
 };
 
 /******************************************************************************
@@ -167,7 +167,7 @@ struct Navigation_ReachedGPSTransition : sc::event<Navigation_ReachedGPSTransiti
  ******************************************************************************/
 struct Navigation_SeenTagTransition : sc::event<Navigation_SeenTagTransition>
 {
-        Navigation_SeenTagTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Seen Tag)"); }
+        Navigation_SeenTagTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Seen Tag)"); }
 };
 
 /******************************************************************************
@@ -183,5 +183,5 @@ struct Navigation_SeenTagTransition : sc::event<Navigation_SeenTagTransition>
  ******************************************************************************/
 struct Navigation_ObstacleAvoidanceTransition : sc::event<Navigation_ObstacleAvoidanceTransition>
 {
-        Navigation_ObstacleAvoidanceTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Obstacle Avoidance)"); }
+        Navigation_ObstacleAvoidanceTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Obstacle Avoidance)"); }
 };

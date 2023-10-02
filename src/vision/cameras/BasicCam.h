@@ -32,6 +32,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
+
         BasicCam(const std::string szCameraPath,
                  const int nPropResolutionX,
                  const int nPropResolutionY,
@@ -54,6 +55,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Getters.
         /////////////////////////////////////////
+
         template<typename T>
         T GetCameraLocation() const;
         bool GetCameraIsOpen() override;

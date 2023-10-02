@@ -33,11 +33,11 @@
 void RunExample()
 {
     // Initialize and start Threads
-    g_pCameraHandler = new CameraHandlerThread();
-    g_pCameraHandler->StartAllCameras();
+    globals::g_pCameraHandler = new CameraHandlerThread();
+    globals::g_pCameraHandler->StartAllCameras();
 
     // Get reference to camera.
-    BasicCam* ExampleBasicCam1 = g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
+    BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandlerThread::eHeadLeftArucoEye);
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvNormalFrame2;
@@ -56,7 +56,10 @@ void RunExample()
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
         {
             // Print info.
-            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", ExampleBasicCam1->GetIPS().GetAverageIPS(), ExampleBasicCam1->GetIPS().Get1PercentLow());
+            LOG_INFO(logging::g_qConsoleLogger,
+                     "BasicCam Getter FPS: {} | 1% Low: {}",
+                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
+                     ExampleBasicCam1->GetIPS().Get1PercentLow());
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
@@ -74,7 +77,10 @@ void RunExample()
         if (fuCopyStatus2.get() && !cvNormalFrame2.empty())
         {
             // Print info.
-            LOG_INFO(g_qConsoleLogger, "BasicCam Getter FPS: {} | 1% Low: {}", ExampleBasicCam1->GetIPS().GetAverageIPS(), ExampleBasicCam1->GetIPS().Get1PercentLow());
+            LOG_INFO(logging::g_qConsoleLogger,
+                     "BasicCam Getter FPS: {} | 1% Low: {}",
+                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
+                     ExampleBasicCam1->GetIPS().Get1PercentLow());
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame2,
@@ -91,18 +97,13 @@ void RunExample()
         // Tick FPS counter.
         FPS.Tick();
         // Print FPS of main loop.
-        LOG_INFO(g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
+        LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit
             break;
     }
 
+    // Close all OpenCV windows.
     cv::destroyAllWindows();
-
-    // Delete dynamically allocated memory.
-    delete g_pCameraHandler;
-
-    // Set dangling pointers to null.
-    g_pCameraHandler = nullptr;
 }
