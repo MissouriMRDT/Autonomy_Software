@@ -12,70 +12,13 @@
 #include "../AutonomyLogging.h"
 
 /******************************************************************************
- * @brief This struct stores/contains information about an IMU packet recieved
- *      from RoveComm.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-09-23
- ******************************************************************************/
-struct NavigationBoard::IMUData
-{
-    public:
-        // Declare struct public member variables.
-        double dPitch;
-        double dRoll;
-        double dHeading;
-
-        /******************************************************************************
-         * @brief Construct a new IMUData object.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-09-23
-         ******************************************************************************/
-        IMUData()
-        {
-            // Initialize member variables to default values.
-            dPitch   = 0.0;
-            dRoll    = 0.0;
-            dHeading = 0.0;
-        }
-
-        /******************************************************************************
-         * @brief Construct a new IMUData object.
-         *
-         * @param dPitch - The pitch of the navboard in degrees.
-         * @param dRoll - The roll of the navboard in degrees.
-         * @param dHeading - The heading/yaw of the navboard in degrees.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-09-23
-         ******************************************************************************/
-        IMUData(double dPitch, double dRoll, double dHeading)
-        {
-            // Initialize member variables with given values.
-            this->dPitch   = dPitch;
-            this->dRoll    = dRoll;
-            this->dHeading = dHeading;
-        }
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-NavigationBoard::NavigationBoard()
-{
-    m_dPitch   = 0;
-    m_dRoll    = 0;
-    m_dHeading = 0;
-}
+NavigationBoard::NavigationBoard() {}
 
 /******************************************************************************
  * @brief Destroy the Navigation Board:: Navigation Board object.
@@ -94,13 +37,15 @@ NavigationBoard::~NavigationBoard() {}
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-void NavigationBoard::ProcessIMUData(IMUData stPacket)
+void NavigationBoard::ProcessIMUData(geoops::IMUData stPacket)
 {
-    m_dPitch   = stPacket.dPitch;
-    m_dRoll    = stPacket.dRoll;
-    m_dHeading = stPacket.dHeading;
+    // Update member variables attributes.
+    m_stOrientation.dPitch   = stPacket.dPitch;
+    m_stOrientation.dRoll    = stPacket.dRoll;
+    m_stOrientation.dHeading = stPacket.dHeading;
 
-    LOG_DEBUG(logging::g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_stOrientation.dPitch, m_stOrientation.dRoll, m_stOrientation.dHeading);
 }
 
 /******************************************************************************
@@ -125,14 +70,15 @@ void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
 /******************************************************************************
  * @brief Accessor for most recent IMU data recieved from NavBoard.
  *
- * @return NavigationBoard::IMUData - Struct containing roll, pitch, and yaw/heading info.
+ * @return geoops::IMUData - Struct containing roll, pitch, and yaw/heading info.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-NavigationBoard::IMUData NavigationBoard::GetIMUData() const
+geoops::IMUData NavigationBoard::GetIMUData() const
 {
-    //
+    // Return the orientation struct member variable.
+    return m_stOrientation;
 }
 
 /******************************************************************************
@@ -143,10 +89,7 @@ NavigationBoard::IMUData NavigationBoard::GetIMUData() const
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-geoops::GPSCoordinate NavigationBoard::GetGPSData() const
-{
-    //
-}
+geoops::GPSCoordinate NavigationBoard::GetGPSData() const {}
 
 /******************************************************************************
  * @brief Accesor for most recent GPS data recieved from NavBoard converted to UTM coords.
