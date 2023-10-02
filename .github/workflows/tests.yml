@@ -50,14 +50,14 @@ jobs:
           cmake ..
           make
 
-      - name: Check File Existence (${{ matrix.arch }} Tests)
+      - name: Check File Existence (${{ matrix.type }} Tests)
         id: check
         uses: andstor/file-existence-action@v2
         with:
-          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.arch }}Tests"
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
 
-      - name: Run ${{ matrix.arch }} Tests
+      - name: Run ${{ matrix.type }} Tests
         if: steps.check.outputs.files_exists == 'true'
         run: |
           cd /opt/Autonomy_Software/build
-          if test -f "Autonomy_Software_${{ matrix.arch }}Tests"; then ./Autonomy_Software_${{ matrix.arch }}Tests ; else echo "No ${{ matrix.arch }} Tests Exist" ; fi
+          if test -f "Autonomy_Software_${{ matrix.type }}Tests"; then ./Autonomy_Software_${{ matrix.type }}Tests ; else echo "No ${{ matrix.type }} Tests Exist" ; fi
