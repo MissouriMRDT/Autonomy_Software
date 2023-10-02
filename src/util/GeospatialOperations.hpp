@@ -1,8 +1,8 @@
 /******************************************************************************
- * @brief Defines and implements functions related to operations on numbers within
- * 		the GeospatialOperations namespace.
+ * @brief Defines and implements functions related to operations on location or orientation
+ *      coordinate systems within the GeospatialOperations namespace.
  *
- * @file NumberOperations.hpp
+ * @file GeospatialOperations.hpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  *
@@ -22,6 +22,56 @@
  ******************************************************************************/
 namespace geoops
 {
+
+    /******************************************************************************
+     * @brief This struct stores/contains information about orientation.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-23
+     ******************************************************************************/
+    struct IMUData
+    {
+        public:
+            // Declare struct public member variables.
+            double dPitch;
+            double dRoll;
+            double dHeading;
+
+            /******************************************************************************
+             * @brief Construct a new IMUData object.
+             *
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-09-23
+             ******************************************************************************/
+            IMUData()
+            {
+                // Initialize member variables to default values.
+                dPitch   = 0.0;
+                dRoll    = 0.0;
+                dHeading = 0.0;
+            }
+
+            /******************************************************************************
+             * @brief Construct a new IMUData object.
+             *
+             * @param dPitch - The pitch of the navboard in degrees.
+             * @param dRoll - The roll of the navboard in degrees.
+             * @param dHeading - The heading/yaw of the navboard in degrees.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-09-23
+             ******************************************************************************/
+            IMUData(double dPitch, double dRoll, double dHeading)
+            {
+                // Initialize member variables with given values.
+                this->dPitch   = dPitch;
+                this->dRoll    = dRoll;
+                this->dHeading = dHeading;
+            }
+    };
+
     /******************************************************************************
      * @brief This struct stores/contains information about a GPS data.
      *

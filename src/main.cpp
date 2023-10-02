@@ -67,14 +67,17 @@ int main()
         globals::g_pCameraHandler = new CameraHandlerThread();
         globals::g_pCameraHandler->StartAllCameras();
 
-        // TODO: Initialize RoveComm
+        // TODO: Initialize RoveComm.
+
+        /////////////////////////////////////////
+        // Cleanup.
+        /////////////////////////////////////////
+        // Delete dynamically allocated objects.
+        delete globals::g_pCameraHandler;
+
+        // Set dangling pointers to null.
+        globals::g_pCameraHandler = nullptr;
     }
-
-    // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
-
-    // Set dangling pointers to null.
-    globals::g_pCameraHandler = nullptr;
 
     // Successful exit.
     return 0;
