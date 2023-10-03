@@ -16,7 +16,7 @@
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
-#include "threads/CameraHandlerThread.h"
+#include "threads/CameraHandler.h"
 
 #include <chrono>
 #include <ctime>
@@ -50,7 +50,7 @@ namespace globals
     extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
 
     // Camera Handler:
-    extern CameraHandlerThread* g_pCameraHandler;    // Global Camera Handler
+    extern CameraHandler* g_pCameraHandler;    // Global Camera Handler
 
     // Board Interfaces:
     extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface

@@ -42,11 +42,11 @@ const bool ENABLE_SPATIAL_MAPPING = false;
 void RunExample()
 {
     // Initialize and start Threads
-    globals::g_pCameraHandler = new CameraHandlerThread();
+    globals::g_pCameraHandler = new CameraHandler();
     globals::g_pCameraHandler->StartAllCameras();
 
     // Get pointer to camera.
-    ZEDCam* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+    ZEDCam* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
 
     // Turn on ZED features.
     ExampleZEDCam1->EnablePositionalTracking();
