@@ -50,6 +50,8 @@ class SIMCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const int nNumFrameRetrievalThreads = 10);
         ~SIMCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
+        std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
+        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
 
         /////////////////////////////////////////
         // Getters.
@@ -63,6 +65,7 @@ class SIMCam : public Camera<cv::Mat>, public AutonomyThread<void>
         // Declare private member variables.
         /////////////////////////////////////////
         // Basic Camera specific.
+
         cv::VideoCapture m_cvCamera;
         std::string m_szCameraPath;
         bool m_bCameraIsConnectedOnVideoIndex;
@@ -70,7 +73,11 @@ class SIMCam : public Camera<cv::Mat>, public AutonomyThread<void>
         int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
+
         cv::Mat m_cvFrame;
+        cv::Mat m_cvDepthImage;
+        cv::Mat m_cvDepthMeasure;
+        cv::Mat m_cvPointCloud;
 
         /////////////////////////////////////////
         // Declare private methods.
