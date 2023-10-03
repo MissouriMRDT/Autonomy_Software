@@ -111,7 +111,7 @@ namespace globals
     IdentitySoftware g_pIdentifySoftware;
 
     // Camera handler:
-    CameraHandlerThread* g_pCameraHandler;
+    CameraHandler* g_pCameraHandler;
 
     // Drivers:
     DriveBoard g_pDriveBoardInterface;
