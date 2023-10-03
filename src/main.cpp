@@ -64,7 +64,7 @@ int main()
     else
     {
         // Initialize and start Threads
-        globals::g_pCameraHandler = new CameraHandlerThread();
+        globals::g_pCameraHandler = new CameraHandler();
         globals::g_pCameraHandler->StartAllCameras();
 
         // TODO: Initialize RoveComm.

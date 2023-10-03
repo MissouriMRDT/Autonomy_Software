@@ -1,14 +1,14 @@
 /******************************************************************************
- * @brief Implements the CameraHandlerThread class.
+ * @brief Implements the CameraHandler class.
  *
- * @file CameraHandlerThread.cpp
+ * @file CameraHandler.cpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "CameraHandlerThread.h"
+#include "CameraHandler.h"
 #include "../AutonomyConstants.h"
 
 /******************************************************************************
@@ -18,7 +18,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-CameraHandlerThread::CameraHandlerThread()
+CameraHandler::CameraHandler()
 {
     // Initialize main ZED camera.
     m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
@@ -51,7 +51,7 @@ CameraHandlerThread::CameraHandlerThread()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-CameraHandlerThread::~CameraHandlerThread()
+CameraHandler::~CameraHandler()
 {
     // Signal and wait for cameras to stop.
     m_pMainCam->RequestStop();
@@ -75,7 +75,7 @@ CameraHandlerThread::~CameraHandlerThread()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-void CameraHandlerThread::StartAllCameras()
+void CameraHandler::StartAllCameras()
 {
     // Start ZED cams.
     m_pMainCam->Start();
@@ -93,7 +93,7 @@ void CameraHandlerThread::StartAllCameras()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
+ZEDCam* CameraHandler::GetZED(ZEDCamName eCameraName)
 {
     // Determine which camera should be returned.
     switch (eCameraName)
@@ -112,7 +112,7 @@ ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-BasicCam* CameraHandlerThread::GetBasicCam(BasicCamName eCameraName)
+BasicCam* CameraHandler::GetBasicCam(BasicCamName eCameraName)
 {
     // Determine which camera should be returned.
     switch (eCameraName)
