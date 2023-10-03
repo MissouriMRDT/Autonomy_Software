@@ -1,22 +1,4 @@
-\dir src/threads
-
-# Threads Directory
-
-The **Threads** directory is dedicated to storing C++ files related to multithreading in the rover project. This directory focuses on managing the main classes of states, vision, and other modules that require their own dedicated threads for parallel execution.
-
-## Directory Structure
-
-The **Threads** directory stores files representing the main classes of different modules, each of which will spawn its own thread for parallel execution. The structure within the directory will typically resemble the organization of the corresponding modules, such as states, vision, and other relevant components.
-
-## General Usage
-
-Here's a general guideline for organizing files within the **Threads** directory:
-
-- Create a separate file for each main class that requires its own dedicated thread.
-- Use descriptive names for the files that reflect the purpose or functionality of each class.
-- Inherit the `AutonomyThread` abstract class in the interfaces folder, to ensure the class you want to thread will integrate with the rest of the codebase.
-- Ensure that the files are properly documented with comments explaining the class's role, its interaction with other modules, and any relevant details.
-- Implement the necessary thread management mechanisms within each class, adhering to best practices for multithreading.
+\dir examples/threading
 
 ## Detailed Walkthrough
 

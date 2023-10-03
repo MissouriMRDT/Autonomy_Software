@@ -16,7 +16,7 @@
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
-#include "threads/CameraHandler.h"
+#include "handlers/CameraHandler.h"
 
 #include <chrono>
 #include <ctime>
