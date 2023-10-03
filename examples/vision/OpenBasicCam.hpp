@@ -34,10 +34,12 @@ void RunExample()
 {
     // Initialize and start Threads
     globals::g_pCameraHandler = new CameraHandler();
-    globals::g_pCameraHandler->StartAllCameras();
 
     // Get reference to camera.
     BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
+    // Start basic cam.
+    ExampleBasicCam1->Start();
+
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvNormalFrame2;
