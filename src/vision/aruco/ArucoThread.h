@@ -67,19 +67,18 @@ class ArucoThread : public AutonomyThread<void>
          * @author jspencerpittman (jspencerpittman@gmail.com)
          * @date 2023-09-30
          ******************************************************************************/
-        std::future<bool> RequestDetectedArucoTags(std::vector<ArucoTag>& vArucoTagVec);
+        std::future<bool> RequestDetectedArucoTags(std::vector<aruco::ArucoTag>& vArucoTagVec);
 
     private:
-        ArucoDetector m_arucoDetector;
         ZEDCam* m_pZedCam;
         int m_nNumDetectedTagsRetrievalThreads;
 
         /* detected tags */
-        std::vector<ArucoTag> m_vDetectedTags;
+        std::vector<aruco::ArucoTag> m_vDetectedTags;
         std::shared_mutex m_muDetectedTagsMutex;
 
         /* scheduling queue */
-        std::queue<containers::DataFetchContainer<std::vector<ArucoTag>>> m_qDetectedTagCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<aruco::ArucoTag>>> m_qDetectedTagCopySchedule;
         std::mutex m_muPoolScheduleMatrix;
 
         /* threading functionality */
