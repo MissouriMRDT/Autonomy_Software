@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Defines and implements functions related to operations on location or orientation
- *      coordinate systems within the GeospatialOperations namespace.
+ *      coordinate systems within the geoops namespace.
  *
  * @file GeospatialOperations.hpp
  * @author ClayJay3 (claytonraycowen@gmail.com)

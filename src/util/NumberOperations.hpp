@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Defines and implements functions related to operations on numbers within
- * 		the NumberOperations namespace.
+ * 		the numops namespace.
  *
  * @file NumberOperations.hpp
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
