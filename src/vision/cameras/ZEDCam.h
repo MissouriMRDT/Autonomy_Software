@@ -58,8 +58,8 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame);
         std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
         std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true);
-        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
-        std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud);
+        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud, const bool bAddColor = false);
+        std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud, const bool bAddColor = false);
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
@@ -86,7 +86,6 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
         bool GetPositionalTrackingEnabled();
-        std::future<bool> RequestIMUDataCopy(std::vector<double>& vIMUValues);
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
         bool GetObjectDetectionEnabled();
@@ -105,7 +104,6 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::MEASURE m_slDepthMeasureType;
-        sl::SensorsData m_slSensorData;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::Pose m_slCameraPose;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
@@ -133,7 +131,6 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
         std::mutex m_muCustomBoxInjestMutex;
         std::mutex m_muPoseCopyMutex;
-        std::mutex m_muIMUDataCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
 

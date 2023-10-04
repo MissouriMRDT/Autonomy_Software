@@ -283,21 +283,6 @@ void ZEDCam::ThreadedContinuousCode()
                             sl::toString(slReturnCode).get());
             }
 
-            // Get and store the SensorData object from the camera. Get data from the most recent image grab.
-            // Using TIME_REFERENCE::CURRENT requires high rate polling and can introduce error as the most recent
-            // IMU data could be in the future of the camera image.
-            slReturnCode = m_slCamera.getSensorsData(m_slSensorData, sl::TIME_REFERENCE::IMAGE);
-            // Check that the regular frame was retrieved successfully.
-            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to retrieve new sensors data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
-                            sl::toString(slReturnCode).get());
-            }
-
             // Check if positional tracking is enabled.
             if (m_slCamera.isPositionalTrackingEnabled())
             {
@@ -428,6 +413,10 @@ void ZEDCam::PooledLinearCode()
                 case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
                 case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
                 case eXYZ: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                case eXYZBGRA:
+                    *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud);
+                    //
+                    break;
                 default: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
@@ -467,6 +456,10 @@ void ZEDCam::PooledLinearCode()
                 case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
                 case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
                 case eXYZ: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                case eXYZBGRA:
+                    *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud);
+                    // Test
+                    break;
                 default: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
@@ -508,39 +501,6 @@ void ZEDCam::PooledLinearCode()
     }
 
     /////////////////////////////
-    //  IMU data queue.
-    /////////////////////////////
-    // Aqcuire mutex for getting frames out of the pose queue.
-    std::unique_lock<std::mutex> lkIMUQueue(m_muIMUDataCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qIMUDataCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<double>> stContainer = m_qIMUDataCopySchedule.front();
-        // Pop out of queue.
-        m_qIMUDataCopySchedule.pop();
-        // Release lock.
-        lkIMUQueue.unlock();
-
-        // Get IMU orientation in degrees.
-        sl::float3 slAngles = m_slSensorData.imu.pose.getEulerAngles(false);
-        // Get IMU linear acceleration.
-        sl::float3 slLinearAccels = m_slSensorData.imu.linear_acceleration;
-        // Clear the data vector that the IMUData will be copied to.
-        stContainer.pData->clear();
-        // Repackage angles and accels into vector.
-        stContainer.pData->emplace_back(slAngles.x);
-        stContainer.pData->emplace_back(slAngles.y);
-        stContainer.pData->emplace_back(slAngles.z);
-        stContainer.pData->emplace_back(slLinearAccels.x);
-        stContainer.pData->emplace_back(slLinearAccels.y);
-        stContainer.pData->emplace_back(slLinearAccels.z);
-
-        // Signal future that the data has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
-    }
-
-    /////////////////////////////
     //  ObjectData queue.
     /////////////////////////////
     // Aqcuire mutex for getting frames out of the pose queue.
@@ -553,7 +513,7 @@ void ZEDCam::PooledLinearCode()
         // Pop out of queue.
         m_qObjectDataCopySchedule.pop();
         // Release lock.
-        lkIMUQueue.unlock();
+        lkObjectDataQueue.unlock();
 
         // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
         *(stContainer.pData) = m_slDetectedObjects.object_list;
@@ -575,7 +535,7 @@ void ZEDCam::PooledLinearCode()
         // Pop out of queue.
         m_qObjectBatchedDataCopySchedule.pop();
         // Release lock.
-        lkIMUQueue.unlock();
+        lkObjectBatchedDataQueue.unlock();
 
         // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
         *(stContainer.pData) = m_slDetectedObjectsBatched;
@@ -722,16 +682,23 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @param bAddColor - Whether or not the BGRA value should be appended to the point cloud. This will be much slower
+ *                  and should not be used unless you need color and pointcloud data that is synced.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
  *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
+std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud, const bool bAddColor)
 {
+    // Create instance variables.
+    PIXEL_FORMATS eFrameType;
+
+    // Check if the container should be set to retrieve an image or a measure.
+    bAddColor ? eFrameType = eXYZ : eFrameType = eXYZBGRA;
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eXYZ);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eFrameType);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -753,16 +720,22 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @param bAddColor - Whether or not the BGRA value should be appended to the point cloud.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
  *                          Value will be true if frame was succesfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
+std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud, const bool bAddColor)
 {
+    // Create instance variables.
+    PIXEL_FORMATS eFrameType;
+
+    // Check if the container should be set to retrieve an image or a measure.
+    bAddColor ? eFrameType = eXYZ : eFrameType = eXYZBGRA;
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, eXYZ);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, eFrameType);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1242,34 +1215,6 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
 bool ZEDCam::GetPositionalTrackingEnabled()
 {
     return m_slCamera.isPositionalTrackingEnabled();
-}
-
-/******************************************************************************
- * @brief Requests the IMU data from the ZED camera.
- *      Puts a std::vector pointer into a queue so a copy of a frame from the camera can be written to it.
- *      If getting the data fails, the last successfully retrieved value is returned.
- *
- * @param vIMUValues - A 1x6 vector containing X_deg, Y_deg, Z_deg, X_liner_accel, Y_liner_accel, Z_liner_accel.
- * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if frame was succesfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-27
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestIMUDataCopy(std::vector<double>& vIMUValues)
-{
-    // Assemble the data container.
-    containers::DataFetchContainer<std::vector<double>> stContainer(vIMUValues);
-
-    // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qIMUDataCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkSchedulers.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedDataStatus->get_future();
 }
 
 /******************************************************************************
