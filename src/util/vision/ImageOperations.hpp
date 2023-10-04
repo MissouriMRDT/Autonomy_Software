@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Defines and implements functions related to operations on images. All
- *      functions are defined within the ImageOperations namespace.
+ *      functions are defined within the imgops namespace.
  *
  * @file ImageOperations.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
