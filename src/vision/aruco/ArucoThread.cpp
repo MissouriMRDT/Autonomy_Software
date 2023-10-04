@@ -7,10 +7,10 @@ ArucoThread::ArucoThread(const int nNumDetectedTagsRetrievalThreads)
     m_pZedCam                          = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
 }
 
-std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<ArucoTag>& arucoTagVec)
+std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<aruco::ArucoTag>& arucoTagVec)
 {
     // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<std::vector<ArucoTag>> stContainer(arucoTagVec);
+    containers::DataFetchContainer<std::vector<aruco::ArucoTag>> stContainer(arucoTagVec);
 
     // Acquire lock on detected tags copy queue.
     std::unique_lock<std::mutex> lkScheduler(m_muPoolScheduleMatrix);
@@ -58,7 +58,7 @@ void ArucoThread::ThreadedContinuousCode()
         }
 
         // Update detected tags
-        m_vDetectedTags = m_arucoDetector.Detect(cvNormalFrame);
+        m_vDetectedTags = aruco::Detect(cvNormalFrame);
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
@@ -85,7 +85,7 @@ void ArucoThread::PooledLinearCode()
     if (!m_qDetectedTagCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<ArucoTag>> stContainer = m_qDetectedTagCopySchedule.front();
+        containers::DataFetchContainer<std::vector<aruco::ArucoTag>> stContainer = m_qDetectedTagCopySchedule.front();
         // Pop out of queue.
         m_qDetectedTagCopySchedule.pop();
         // Release lock.
