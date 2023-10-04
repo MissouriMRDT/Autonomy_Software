@@ -96,7 +96,7 @@ namespace constants
     const bool ZED_MAINCAM_USE_GPU_MAT              = true;        // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;        // Whether of not to use float32 or unsigned short (16) for depth measure.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 20;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAN_SERIAL                    = 31237348;    // The serial number of the camera.
+    const int ZED_MAINCAN_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one.
 
     // Left Side Cam.
     const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.

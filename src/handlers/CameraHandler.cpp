@@ -54,10 +54,7 @@ CameraHandler::CameraHandler()
 CameraHandler::~CameraHandler()
 {
     // Signal and wait for cameras to stop.
-    m_pMainCam->RequestStop();
-    m_pLeftCam->RequestStop();
-    m_pMainCam->Join();
-    m_pLeftCam->Join();
+    this->StopAllCameras();
 
     // Delete dynamic memory.
     delete m_pMainCam;

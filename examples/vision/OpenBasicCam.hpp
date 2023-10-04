@@ -108,4 +108,15 @@ void RunExample()
 
     // Close all OpenCV windows.
     cv::destroyAllWindows();
+
+    /////////////////////////////////////////
+    // Cleanup.
+    /////////////////////////////////////////
+    // Stop camera threads.
+    globals::g_pCameraHandler->StopAllCameras();
+
+    // Delete dynamically allocated objects.
+    delete globals::g_pCameraHandler;
+    // Set dangling pointers to null.
+    globals::g_pCameraHandler = nullptr;
 }
