@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/OpenBasicCam.hpp"
+#include "../examples/vision/OpenZEDCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -72,9 +72,11 @@ int main()
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
+        // Stop camera threads.
+        globals::g_pCameraHandler->StopAllCameras();
+
         // Delete dynamically allocated objects.
         delete globals::g_pCameraHandler;
-
         // Set dangling pointers to null.
         globals::g_pCameraHandler = nullptr;
     }

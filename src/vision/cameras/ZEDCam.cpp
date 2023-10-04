@@ -195,7 +195,7 @@ ZEDCam::~ZEDCam()
     m_slCamera.close();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been succsessfully opened.", m_unCameraSerialNumber);
+    LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been succsessfully closed.", m_unCameraSerialNumber);
 }
 
 /******************************************************************************
