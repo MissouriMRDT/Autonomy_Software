@@ -129,7 +129,7 @@ BasicCam::~BasicCam()
     m_cvCamera.release();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at video index {} has been successfully closed.", m_cvCamera.getBackendName(), m_nCameraIndex);
+    LOG_DEBUG(logging::g_qSharedLogger, "Basic camera at video index {} has been successfully closed.", m_nCameraIndex);
 }
 
 /******************************************************************************

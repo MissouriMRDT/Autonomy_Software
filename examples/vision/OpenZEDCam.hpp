@@ -160,4 +160,15 @@ void RunExample()
         sl::Mesh slSpatialMap = fuSpatialMap.get();
         slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
     }
+
+    /////////////////////////////////////////
+    // Cleanup.
+    /////////////////////////////////////////
+    // Stop camera threads.
+    globals::g_pCameraHandler->StopAllCameras();
+
+    // Delete dynamically allocated objects.
+    delete globals::g_pCameraHandler;
+    // Set dangling pointers to null.
+    globals::g_pCameraHandler = nullptr;
 }
