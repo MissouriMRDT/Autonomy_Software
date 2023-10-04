@@ -85,6 +85,24 @@ void CameraHandler::StartAllCameras()
 }
 
 /******************************************************************************
+ * @brief Signals all cameras to stop their threads.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-03
+ ******************************************************************************/
+void CameraHandler::StopAllCameras()
+{
+    // Stop ZED cams.
+    m_pMainCam->RequestStop();
+    m_pMainCam->Join();
+
+    // Stop basic cams.
+    m_pLeftCam->RequestStop();
+    m_pLeftCam->Join();
+}
+
+/******************************************************************************
  * @brief Accessor for ZED cameras.
  *
  * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
