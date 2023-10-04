@@ -59,6 +59,7 @@ class CameraHandler
         CameraHandler();
         ~CameraHandler();
         void StartAllCameras();
+        void StopAllCameras();
 
         /////////////////////////////////////////
         // Accessors.
