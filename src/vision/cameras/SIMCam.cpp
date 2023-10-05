@@ -76,7 +76,7 @@ SIMCam::~SIMCam()
 }
 
 /******************************************************************************
- * @brief The code inside this private method runs in a seperate thread, but still
+ * @brief The code inside this private method runs in a separate thread, but still
  *      has access to this*. This method continuously get new frames from the OpenCV
  *      VideoCapture object and stores it in a member variable. Then a thread pool is
  *      started and joined once per iteration to mass copy the frames and/or measure
@@ -136,7 +136,7 @@ void SIMCam::PooledLinearCode()
     //  Frame queue.
     /////////////////////////////
 
-    // Aqcuire mutex for getting frames out of the queue.
+    // Acquire mutex for getting frames out of the queue.
     std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
@@ -169,7 +169,7 @@ void SIMCam::PooledLinearCode()
  *
  * @param cvFrame - A reference to the cv::Mat to store the frame in.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
@@ -181,7 +181,7 @@ std::future<bool> SIMCam::RequestFrameCopy(cv::Mat& cvFrame)
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the scedule queue.
+    // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
@@ -200,7 +200,7 @@ std::future<bool> SIMCam::RequestFrameCopy(cv::Mat& cvFrame)
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
  *                  purposes other than displaying depth.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -236,7 +236,7 @@ std::future<bool> SIMCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
  *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26

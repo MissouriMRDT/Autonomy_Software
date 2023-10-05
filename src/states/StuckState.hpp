@@ -18,7 +18,7 @@
  *        to get the Rover unstuck when we detect that it has become stuck.
  *
  *        It also listens for state events that pertain to the Stuck
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *

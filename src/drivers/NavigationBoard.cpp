@@ -68,7 +68,7 @@ void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
 }
 
 /******************************************************************************
- * @brief Accessor for most recent IMU data recieved from NavBoard.
+ * @brief Accessor for most recent IMU data received from NavBoard.
  *
  * @return geoops::IMUData - Struct containing roll, pitch, and yaw/heading info.
  *
@@ -82,7 +82,7 @@ geoops::IMUData NavigationBoard::GetIMUData() const
 }
 
 /******************************************************************************
- * @brief Accessor for most recent GPS data recieved from NavBoard.
+ * @brief Accessor for most recent GPS data received from NavBoard.
  *
  * @return geoops::GPSCoordinate - Struct containing lat, lon, alt, and accuracy data.
  *
@@ -96,7 +96,7 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData() const
 }
 
 /******************************************************************************
- * @brief Accesor for most recent GPS data recieved from NavBoard converted to UTM coords.
+ * @brief Accessor for most recent GPS data received from NavBoard converted to UTM coords.
  *
  * @return geoops::UTMCoordinate - Struct containing easting, northing, alt, zone,
  *                                          and accuracy data.

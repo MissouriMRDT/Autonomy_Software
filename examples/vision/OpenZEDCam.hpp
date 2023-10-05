@@ -29,7 +29,7 @@ const bool ENABLE_SPATIAL_MAPPING = false;
  *      Inside the camera thread, the cv::Mat pointer that points to the cv::Mat within THIS class
  *      is written to and an std::promise is set to TRUE. The future that was return now contains this
  *      TRUE value. When the get() method is called on the returned future, the code will block until
- *      the promise is fullfilled (set to TRUE). Once the get() method returns, the cv::Mat within
+ *      the promise is fulfilled (set to TRUE). Once the get() method returns, the cv::Mat within
  *      this class now contains a complete frame and can be display or used in other computer vision
  *      things.
  *
