@@ -34,7 +34,7 @@ namespace imgops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-08-31
      ******************************************************************************/
-    int GetSLToOpenCVMatType(const sl::MAT_TYPE slType)
+    inline int GetSLToOpenCVMatType(const sl::MAT_TYPE slType)
     {
         // Create instance variables.
         int nOpenCVType = -1;
@@ -67,7 +67,7 @@ namespace imgops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-08-31
      ******************************************************************************/
-    sl::MAT_TYPE GetCVToOpenSLMatType(const int cvType)
+    inline sl::MAT_TYPE GetCVToOpenSLMatType(const int cvType)
     {
         // Create instance variables.
         sl::MAT_TYPE slMatType = sl::MAT_TYPE::U8_C1;
@@ -100,7 +100,7 @@ namespace imgops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-08-31
      ******************************************************************************/
-    cv::Mat ConvertSLMatToCVMat(sl::Mat& slInputMat)
+    inline cv::Mat ConvertSLMatToCVMat(sl::Mat& slInputMat)
     {
         // Since cv::Mat data requires a uchar* pointer, we get the uchar1 pointer from sl::Mat (getPtr<T>())
         // cv::Mat and sl::Mat will share a single memory structure.
@@ -121,7 +121,7 @@ namespace imgops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-08-31
      ******************************************************************************/
-    cv::cuda::GpuMat ConvertSLMatToGPUMat(sl::Mat& slInputMat)
+    inline cv::cuda::GpuMat ConvertSLMatToGPUMat(sl::Mat& slInputMat)
     {
         // Since cv::Mat data requires a uchar* pointer, we get the uchar1 pointer from sl::Mat (getPtr<T>())
         // cv::Mat and sl::Mat will share a single memory structure
@@ -142,7 +142,7 @@ namespace imgops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-03
      ******************************************************************************/
-    sl::Mat ConvertCVMatToSLMat(cv::Mat& cvInputMat)
+    inline sl::Mat ConvertCVMatToSLMat(cv::Mat& cvInputMat)
     {
         // Copy and convert the Mat and return.
         return sl::Mat(cvInputMat.rows, cvInputMat.cols, GetCVToOpenSLMatType(cvInputMat.type()), cvInputMat.data, cvInputMat.step, sl::MEM::CPU);
@@ -152,16 +152,66 @@ namespace imgops
      * @brief Convert an OpenCV cv::Mat object into a ZEDSDK sl::Mat object. This copies
      *      the mat from CPU memory to GPU memory.
      *
-     * @param input - The OpenCV Mat to be converted.
+     * @param input - The OpenCV GPU Mat to be converted.
      * @return sl::Mat - The resultant ZEDSDK mat object.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-03
      ******************************************************************************/
-    sl::Mat ConvertGPUMatToSLMat(cv::Mat& cvInputMat)
+    inline sl::Mat ConvertGPUMatToSLMat(cv::cuda::GpuMat& cvInputMat)
     {
         // Copy and convert the Mat and return.
         return sl::Mat(cvInputMat.rows, cvInputMat.cols, GetCVToOpenSLMatType(cvInputMat.type()), cvInputMat.data, cvInputMat.step, sl::MEM::GPU);
+    }
+
+    /******************************************************************************
+     * @brief Given a cv::Mat containing X, Y, Z, and BGRA values for each pixel in
+     *      the third dimension, cutoff and repackage the colors values and store them
+     *      in a new mat.
+     *
+     * @param cvInputPointCloud - The input point cloud containing X, Y, Z, and BGRA values for each pixel.
+     * @param cvOutputColors - The output colored image made from the BGRA values in the point cloud.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-05
+     ******************************************************************************/
+    inline void SplitPointCloudColors(cv::Mat& cvInputPointCloud, cv::Mat& cvOutputColors)
+    {
+        // Create instance variables.
+        std::vector<cv::Mat> vChannels(4);
+        // Initialize output color mat if necessary.
+        if (cvOutputColors.empty())
+        {
+            // Fill mat with zeros, same size as input point cloud, but with 4 char values in third dimension.
+            cvOutputColors = cv::Mat(cvInputPointCloud.rows, cvInputPointCloud.cols, CV_8UC4, cv::Scalar(0));
+        }
+
+        // Split the 4-channel point cloud into individual channels.
+        cv::split(cvInputPointCloud, vChannels);
+
+        // Loop through the color values of the point cloud and convert them to four char values instead of a float32.
+        for (int nY = 0; nY < cvInputPointCloud.rows; ++nY)
+        {
+            for (int nX = 0; nX < cvInputPointCloud.cols; ++nX)
+            {
+                // Get the current color value for the current pixel.
+                unsigned int unColor = static_cast<unsigned int>(vChannels[3].at<float>(nY, nX));
+                // Separate float32 BGRA values into four char values. Uses bitshift right and bitwise AND mask.
+                unsigned char ucB = (unColor >> 24) & 0xFF;
+                unsigned char ucG = (unColor >> 16) & 0xFF;
+                unsigned char ucR = (unColor >> 8) & 0xFF;
+                unsigned char ucA = (unColor >> 0) & 0xFF;
+                LOG_DEBUG(logging::g_qConsoleLogger, "unColor: {}, B: {}, G: {}, R: {}, A: {}", unColor, ucB, ucG, ucR, ucA);
+
+                // Store char color values in the output mat.
+                cvOutputColors.at<cv::Vec4b>(nY, nX) = cv::Vec4b(ucB, ucG, ucR, ucA);
+            }
+        }
+
+        // Remove the 4th color float32 layer.
+        vChannels.pop_back();
+        // Rejoin the split channels of the pointcloud, color no longer exists.
+        cv::merge(vChannels, cvInputPointCloud);
     }
 }    // namespace imgops
 #endif
