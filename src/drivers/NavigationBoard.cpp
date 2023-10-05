@@ -89,7 +89,11 @@ geoops::IMUData NavigationBoard::GetIMUData() const
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-geoops::GPSCoordinate NavigationBoard::GetGPSData() const {}
+geoops::GPSCoordinate NavigationBoard::GetGPSData() const
+{
+    // TODO: Return empty coordinate for now.
+    return geoops::GPSCoordinate();
+}
 
 /******************************************************************************
  * @brief Accesor for most recent GPS data recieved from NavBoard converted to UTM coords.
@@ -102,5 +106,6 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData() const {}
  ******************************************************************************/
 geoops::UTMCoordinate NavigationBoard::GetUTMData() const
 {
-    //
+    // TODO: Return empty coordinate for now.
+    return geoops::UTMCoordinate();
 }
