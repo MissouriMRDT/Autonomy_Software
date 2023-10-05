@@ -31,7 +31,7 @@ CameraHandler::CameraHandler()
                             constants::ZED_MAINCAM_USE_GPU_MAT,
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
                             constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
-                            constants::ZED_MAINCAN_SERIAL);
+                            constants::ZED_MAINCAM_SERIAL);
 
     // Initialize Left aruco eye.
     m_pLeftCam = new BasicCam(constants::BASICCAM_LEFTCAM_INDEX,
