@@ -16,11 +16,11 @@
  *
  *        Primarily the Reverse State Handler, handles the navigation of
  *        the Rover away from a gate or marker. However, in the event the
- *        Rover becomes stuck, one of the methods we can use to attept to
+ *        Rover becomes stuck, one of the methods we can use to attempt to
  *        become unstuck, is to navigate in reverse.
  *
  *        It also listens for state events that pertain to the Reverse
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -106,7 +106,7 @@ struct Reverse_AbortTransition : sc::event<Reverse_AbortTransition>
  * @brief Reverse State - Transition to Stuck
  *
  *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        Autonomy will navigate to the Stuck State and attempt a series
  *        of algorithms to become unstuck.
  *
  *

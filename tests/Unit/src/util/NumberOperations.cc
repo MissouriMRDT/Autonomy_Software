@@ -15,7 +15,7 @@
 #include "../../../../src/util/NumberOperations.hpp"
 
 /******************************************************************************
- * @brief Test the funtionality of the MapRange function.
+ * @brief Test the functionality of the MapRange function.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)

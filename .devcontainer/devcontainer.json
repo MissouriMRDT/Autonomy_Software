@@ -56,7 +56,8 @@
                 "jbockle.jbockle-format-files",
                 "codezombiech.gitignore",
                 "cschlosser.doxdocgen",
-                "gruntfuggly.todo-tree"
+                "gruntfuggly.todo-tree",
+                "streetsidesoftware.code-spell-checker"
             ],
             "settings": {
                 // VSCode settings.
@@ -193,6 +194,17 @@
                         "foreground": "#000000",
                         "background": "#808080"
                     }
+                },
+                // Spell Checker Extension Settings.
+                "cSpell.customDictionaries": {
+                    "project-words": {
+                        "name": "Autonomy-Project-Words",
+                        "path": "${workspaceRoot}/data/Custom_Dictionaries/Autonomy-Dictionary.txt",
+                        "description": "Words used in the Autonomy_Software project",
+                        "addWords": true
+                    },
+                    "custom": true, // Enable the `custom` dictionary
+                    "internal-terms": false // Disable the `internal-terms` dictionary
                 }
             }
         }

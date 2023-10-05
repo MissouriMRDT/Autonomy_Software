@@ -33,7 +33,7 @@ CameraHandler::CameraHandler()
                             constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                             constants::ZED_MAINCAN_SERIAL);
 
-    // Initialize Left acruco eye.
+    // Initialize Left aruco eye.
     m_pLeftCam = new BasicCam(constants::BASICCAM_LEFTCAM_INDEX,
                               constants::BASICCAM_LEFTCAM_RESOLUTIONX,
                               constants::BASICCAM_LEFTCAM_RESOLUTIONY,
@@ -133,7 +133,7 @@ BasicCam* CameraHandler::GetBasicCam(BasicCamName eCameraName)
     switch (eCameraName)
     {
         case eHeadLeftArucoEye: return m_pLeftCam;     // Return the left fisheye cam in the autonomy head.
-        case eHeadRightAcuroEye: return m_pLeftCam;    // No camera to return yet.
+        case eHeadRightArucoEye: return m_pLeftCam;    // No camera to return yet.
         default: return m_pLeftCam;
     }
 }

@@ -158,7 +158,7 @@ void MultimediaBoard::SendRGB(RGB stRGBVal)
     m_dCustomGreen = stRGBVal.dGreen;
     m_dCustomBlue  = stRGBVal.dBlue;
 
-    // Send RGB values to mutlimedia board over RoveComm.
+    // Send RGB values to multimedia board over RoveComm.
     // TODO: Add RoveComm sendpacket.
 }
 

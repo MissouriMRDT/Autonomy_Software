@@ -140,7 +140,7 @@ TEST(IPSTest, MetricsFunctionality)
 }
 
 /******************************************************************************
- * @brief Test the funtionality of the reset method.
+ * @brief Test the functionality of the reset method.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
