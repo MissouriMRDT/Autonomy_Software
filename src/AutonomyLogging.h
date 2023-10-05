@@ -45,41 +45,18 @@
  * @date 2023-08-22
  ******************************************************************************/
 
-/******************************************************************************
- * @brief File Logger - Send logging message to only a file
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-08-22
- ******************************************************************************/
-extern quill::Logger* g_qFileLogger;
+namespace logging
+{
+    //////////////////////////////////////////
+    // Declare namespace external variables and objects.
+    /////////////////////////////////////////
+    extern quill::Logger* g_qFileLogger;
+    extern quill::Logger* g_qConsoleLogger;
+    extern quill::Logger* g_qSharedLogger;
 
-/******************************************************************************
- * @brief Console Logger - Send logging message to only the console
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-08-22
- ******************************************************************************/
-extern quill::Logger* g_qConsoleLogger;
-
-/******************************************************************************
- * @brief Shared Logger - Send logging message to both the consle and a file.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-08-22
- ******************************************************************************/
-extern quill::Logger* g_qSharedLogger;
-
-/******************************************************************************
- * @brief Logger Initializer - Sets Up all the logging handlers required for
- *        having the above loggers.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-08-22
- ******************************************************************************/
-void InitializeLoggers();
-
+    /////////////////////////////////////////
+    // Declare namespace methods.
+    /////////////////////////////////////////
+    void InitializeLoggers();
+}    // namespace logging
 #endif    // AUTONOMY_LOGGING_H

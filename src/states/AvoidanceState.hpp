@@ -27,7 +27,7 @@
  ******************************************************************************/
 struct AvoidanceState : sc::simple_state<AvoidanceState, StateMachine>
 {
-        AvoidanceState() { LOG_INFO(g_qSharedLogger, "In State: Avoidance"); }
+        AvoidanceState() { LOG_INFO(logging::g_qSharedLogger, "In State: Avoidance"); }
 
         typedef mpl::
             list<sc::custom_reaction<Avoidance_EndAvoidanceTransition>, sc::custom_reaction<Avoidance_AbortTransition>, sc::custom_reaction<Avoidance_StuckTransition>>
@@ -72,7 +72,7 @@ struct AvoidanceState : sc::simple_state<AvoidanceState, StateMachine>
  ******************************************************************************/
 struct Avoidance_EndAvoidanceTransition : sc::event<Avoidance_EndAvoidanceTransition>
 {
-        Avoidance_EndAvoidanceTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Avoidance (End Avoidance)"); }
+        Avoidance_EndAvoidanceTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Avoidance (End Avoidance)"); }
 };
 
 /******************************************************************************
@@ -87,7 +87,7 @@ struct Avoidance_EndAvoidanceTransition : sc::event<Avoidance_EndAvoidanceTransi
  ******************************************************************************/
 struct Avoidance_AbortTransition : sc::event<Avoidance_AbortTransition>
 {
-        Avoidance_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Avoidance (Abort)"); }
+        Avoidance_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Avoidance (Abort)"); }
 };
 
 /******************************************************************************
@@ -103,5 +103,5 @@ struct Avoidance_AbortTransition : sc::event<Avoidance_AbortTransition>
  ******************************************************************************/
 struct Avoidance_StuckTransition : sc::event<Avoidance_StuckTransition>
 {
-        Avoidance_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Avoidance (Stuck)"); }
+        Avoidance_StuckTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Avoidance (Stuck)"); }
 };
