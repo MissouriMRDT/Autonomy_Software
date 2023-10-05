@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Unit test for IPS utility class.
+ * @brief Unit test for NumberOperations utility class.
  *
  * @file NumberOperations.cc
  * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -15,7 +15,7 @@
 #include "../../../../src/util/NumberOperations.hpp"
 
 /******************************************************************************
- * @brief Test the funtionality of the reset method.
+ * @brief Test the funtionality of the MapRange function.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
