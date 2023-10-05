@@ -61,8 +61,10 @@ void RunExample()
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
+    cv::Mat cvPointCloud1;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     cv::cuda::GpuMat cvGPUDepthFrame1;
+    cv::cuda::GpuMat cvGPUPointCloud1;
     // Declare other data types to store data in.
     sl::Pose slPose;
 
@@ -75,25 +77,28 @@ void RunExample()
         // Create instance variables.
         std::future<bool> fuFrameCopyStatus;
         std::future<bool> fuDepthCopyStatus;
+        std::future<bool> fuPointCloudCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (constants::ZED_MAINCAM_USE_GPU_MAT)
         {
             // Grab frames from camera.
-            fuFrameCopyStatus = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
-            fuDepthCopyStatus = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
+            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
         }
         else
         {
             // Grab frames from camera.
-            fuFrameCopyStatus = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
-            fuDepthCopyStatus = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
+            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
         std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
 
         // Wait for the frames to be copied.
-        if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get())
+        if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
         {
             // Check if the camera is setup to use CPU or GPU mats.
             if (constants::ZED_MAINCAM_USE_GPU_MAT)
