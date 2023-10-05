@@ -184,7 +184,7 @@ namespace imgops
             cvOutputColors = cv::Mat(cvInputPointCloud.rows, cvInputPointCloud.cols, CV_8UC4, cv::Scalar(0));
         }
 
-        // Loop through the color values of the point cloud and convert them to four char values instead of a float32.
+        // Loop through the color values of the point cloud and convert them to four char values instead of a float32. 
         for (int nY = 0; nY < cvInputPointCloud.rows; ++nY)
         {
             for (int nX = 0; nX < cvInputPointCloud.cols; ++nX)

@@ -49,7 +49,7 @@ class CameraHandler
         enum BasicCamName    // Enum for different basic cameras.
         {
             eHeadLeftArucoEye,
-            eHeadRightAcuroEye
+            eHeadRightArucoEye
         };
 
         /////////////////////////////////////////

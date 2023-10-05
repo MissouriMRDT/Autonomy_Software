@@ -19,7 +19,7 @@
  *        up to and stopping at a the end of a marker leg.
  *
  *        It also listens for state events that pertain to the Approaching
- *        Marker State and calls the approprate transition handler to transition
+ *        Marker State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
