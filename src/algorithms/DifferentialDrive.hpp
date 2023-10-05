@@ -178,6 +178,5 @@ namespace diffdrive
         // Return result drive powers.
         return {dLeftSpeed, dRightSpeed};
     }
-}   // diffdrive
-
+}    // namespace diffdrive
 #endif

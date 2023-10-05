@@ -66,9 +66,9 @@ std::array<float, 2> DriveBoard::CalculateMove(const float fSpeed, const float f
         case eArcadeDrive: aDrivePowers = diffdrive::CalculateArcadeDrive(double(fSpeed), double(fAngle), constants::DRIVE_MIN_POWER); break;
         case eCurvatureDrive:
             aDrivePowers = diffdrive::CalculateCurvatureDrive(double(fSpeed),
-                                                                      double(fAngle),
-                                                                      constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
-                                                                      constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                                                              double(fAngle),
+                                                              constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
+                                                              constants::DRIVE_SQUARE_CONTROL_INPUTS);
             break;
     }
 
