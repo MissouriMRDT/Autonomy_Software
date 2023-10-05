@@ -63,9 +63,9 @@ std::array<float, 2> DriveBoard::CalculateMove(const float fSpeed, const float f
     // Check what kinematics model we should use.
     switch (eKinematicsMethod)
     {
-        case eArcadeDrive: aDrivePowers = DifferentialDrive::CalculateArcadeDrive(double(fSpeed), double(fAngle), constants::DRIVE_MIN_POWER); break;
+        case eArcadeDrive: aDrivePowers = diffdrive::CalculateArcadeDrive(double(fSpeed), double(fAngle), constants::DRIVE_MIN_POWER); break;
         case eCurvatureDrive:
-            aDrivePowers = DifferentialDrive::CalculateCurvatureDrive(double(fSpeed),
+            aDrivePowers = diffdrive::CalculateCurvatureDrive(double(fSpeed),
                                                                       double(fAngle),
                                                                       constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
                                                                       constants::DRIVE_SQUARE_CONTROL_INPUTS);

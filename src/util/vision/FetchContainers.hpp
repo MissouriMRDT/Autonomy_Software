@@ -32,7 +32,7 @@ enum PIXEL_FORMATS
     eRGBE,
     eXYZ,
     eXYZBGRA,
-    eXYZBGRA,
+    eXYZRGBA,
     eZED,
     eGrayscale,
     eDepthImage,
