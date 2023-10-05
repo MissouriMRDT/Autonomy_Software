@@ -43,7 +43,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-namespace DifferentialDrive
+namespace diffdrive
 {
     /******************************************************************************
      * @brief Tank drive inverse kinematics for differential drive robots.
@@ -178,6 +178,6 @@ namespace DifferentialDrive
         // Return result drive powers.
         return {dLeftSpeed, dRightSpeed};
     }
-}    // namespace DifferentialDrive
+}   // diffdrive
 
 #endif

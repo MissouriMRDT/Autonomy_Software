@@ -14,6 +14,7 @@ deadband
 deque
 Desaturate
 devcontainer
+diffdrive
 Doxygen
 driveboard
 flightsticks
@@ -62,6 +63,7 @@ UART
 valgrind
 Watchpoints
 XYZBGRA
+XYZRGBA
 YUVJ
 YUYV
 ZEDCAM
