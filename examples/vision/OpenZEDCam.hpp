@@ -11,7 +11,7 @@
 #include "../../src/AutonomyGlobals.h"
 #include "../../src/AutonomyLogging.h"
 #include "../../src/util/ExampleChecker.h"
-#include "../../src/vision/cameras/ZEDCam.h"
+#include "../../src/util/vision/ImageOperations.hpp"
 
 // Declare file constants.
 const bool ENABLE_SPATIAL_MAPPING = false;
@@ -62,6 +62,7 @@ void RunExample()
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
     cv::Mat cvPointCloud1;
+    cv::Mat cvPointCloudColor1;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     cv::cuda::GpuMat cvGPUDepthFrame1;
     cv::cuda::GpuMat cvGPUPointCloud1;
@@ -106,6 +107,7 @@ void RunExample()
                 // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
                 cvGPUDepthFrame1.download(cvDepthFrame1);
+                cvGPUPointCloud1.download(cvPointCloud1);
             }
 
             // Put FPS on normal frame.
@@ -119,9 +121,13 @@ void RunExample()
             // Put FPS on depth frame.
             cv::putText(cvDepthFrame1, std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
+            // Split color from point cloud.
+            imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
+
             // Display frame.
             cv::imshow("FRAME1", cvNormalFrame1);
             cv::imshow("DEPTH1", cvDepthFrame1);
+            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
 
             // Wait for the other info to be copied.
             if (fuPoseCopyStatus.get())

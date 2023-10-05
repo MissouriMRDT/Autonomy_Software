@@ -39,7 +39,7 @@ namespace numops
      * @date 2023-09-22
      ******************************************************************************/
     template<typename T>
-    T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
+    inline T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
     {
         // Check if the ranges are valid.
         if (tOldMinimum == tOldMaximum || tNewMinimum == tNewMaximum)

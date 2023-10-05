@@ -68,6 +68,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Signed Double  > `d` > Example: `double dExampleSignedDouble`
 
 #### Unsigned Types
+- Unsugned Char    > `uc` > Example: `unsigned char ucExampleUnsignedChar`
 - Unsigned Integer > `un` > Example: `unsigned int unExampleUnsignedInteger`
 - Unsigned Long    > `ul` > Example: `unsigned long ulExampleUnsignedLong`
 - Unsigned Short   > `us` > Example: `unsigned short usExampleUnsignedShort`

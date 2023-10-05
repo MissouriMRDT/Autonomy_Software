@@ -679,8 +679,6 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @param bAddColor - Whether or not the BGRA value should be appended to the point cloud. This will be much slower
- *                  and should not be used unless you need color and pointcloud data that is synced.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
  *                          Value will be true if frame was succesfully retrieved.
  *
@@ -717,7 +715,6 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @param bAddColor - Whether or not the BGRA value should be appended to the point cloud.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
  *                          Value will be true if frame was succesfully retrieved.
  *
