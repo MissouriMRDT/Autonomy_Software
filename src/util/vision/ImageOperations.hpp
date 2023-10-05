@@ -115,8 +115,8 @@ namespace imgops
      * @brief Convert a ZEDSDK sl::Mat object into an OpenCV cv::cuda::GpuMat object.
      *      Keeps all Mat memory in GPU VRAM for faster processing.
      *
-     * @param slInputMat -
-     * @return cv::cuda::GpuMat -
+     * @param slInputMat - The ZEDSDK Mat to be converted.
+     * @return cv::cuda::GpuMat - The resultant OpenCV mat object.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-08-31
@@ -130,6 +130,38 @@ namespace imgops
                                 GetSLToOpenCVMatType(slInputMat.getDataType()),
                                 slInputMat.getPtr<sl::uchar1>(sl::MEM::GPU),
                                 slInputMat.getStepBytes(sl::MEM::GPU));
+    }
+
+    /******************************************************************************
+     * @brief Convert an OpenCV cv::Mat object into a ZEDSDK sl::Mat object. This copies
+     *      the mat from CPU memory to GPU memory.
+     *
+     * @param input - The OpenCV Mat to be converted.
+     * @return sl::Mat - The resultant ZEDSDK mat object.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-03
+     ******************************************************************************/
+    sl::Mat ConvertCVMatToSLMat(cv::Mat& cvInputMat)
+    {
+        // Copy and convert the Mat and return.
+        return sl::Mat(cvInputMat.rows, cvInputMat.cols, GetCVToOpenSLMatType(cvInputMat.type()), cvInputMat.data, cvInputMat.step, sl::MEM::CPU);
+    }
+
+    /******************************************************************************
+     * @brief Convert an OpenCV cv::Mat object into a ZEDSDK sl::Mat object. This copies
+     *      the mat from CPU memory to GPU memory.
+     *
+     * @param input - The OpenCV Mat to be converted.
+     * @return sl::Mat - The resultant ZEDSDK mat object.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-03
+     ******************************************************************************/
+    sl::Mat ConvertGPUMatToSLMat(cv::Mat& cvInputMat)
+    {
+        // Copy and convert the Mat and return.
+        return sl::Mat(cvInputMat.rows, cvInputMat.cols, GetCVToOpenSLMatType(cvInputMat.type()), cvInputMat.data, cvInputMat.step, sl::MEM::GPU);
     }
 }    // namespace imgops
 #endif
