@@ -13,6 +13,8 @@
 #include "../../src/util/ExampleChecker.h"
 #include "../../src/util/vision/ImageOperations.hpp"
 
+#include <chrono>
+
 // Declare file constants.
 const bool ENABLE_SPATIAL_MAPPING = false;
 

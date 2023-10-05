@@ -166,19 +166,17 @@ namespace imgops
 
     /******************************************************************************
      * @brief Given a cv::Mat containing X, Y, Z, and BGRA values for each pixel in
-     *      the third dimension, cutoff and repackage the colors values and store them
+     *      the third dimension, repackage the colors values and store them
      *      in a new mat.
      *
      * @param cvInputPointCloud - The input point cloud containing X, Y, Z, and BGRA values for each pixel.
-     * @param cvOutputColors - The output colored image made from the BGRA values in the point cloud.
+     * @param cvOutputColors - The output colored image made from the BGRA values in the point cloud. Third dimension length is 4 (B, G, R, A)
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-05
      ******************************************************************************/
     inline void SplitPointCloudColors(cv::Mat& cvInputPointCloud, cv::Mat& cvOutputColors)
     {
-        // Create instance variables.
-        std::vector<cv::Mat> vChannels(4);
         // Initialize output color mat if necessary.
         if (cvOutputColors.empty())
         {
@@ -186,32 +184,23 @@ namespace imgops
             cvOutputColors = cv::Mat(cvInputPointCloud.rows, cvInputPointCloud.cols, CV_8UC4, cv::Scalar(0));
         }
 
-        // Split the 4-channel point cloud into individual channels.
-        cv::split(cvInputPointCloud, vChannels);
-
         // Loop through the color values of the point cloud and convert them to four char values instead of a float32.
         for (int nY = 0; nY < cvInputPointCloud.rows; ++nY)
         {
             for (int nX = 0; nX < cvInputPointCloud.cols; ++nX)
             {
-                // Get the current color value for the current pixel.
-                unsigned int unColor = static_cast<unsigned int>(vChannels[3].at<float>(nY, nX));
+                // Get the current color value for the current pixel. Reinterpret case doesn't convert number, just copies bits.
+                unsigned int unColor = *reinterpret_cast<unsigned int*>(&cvInputPointCloud.at<cv::Vec4f>(nY, nX)[3]);
                 // Separate float32 BGRA values into four char values. Uses bitshift right and bitwise AND mask.
-                unsigned char ucB = (unColor >> 24) & 0xFF;
-                unsigned char ucG = (unColor >> 16) & 0xFF;
-                unsigned char ucR = (unColor >> 8) & 0xFF;
-                unsigned char ucA = (unColor >> 0) & 0xFF;
-                LOG_DEBUG(logging::g_qConsoleLogger, "unColor: {}, B: {}, G: {}, R: {}, A: {}", unColor, ucB, ucG, ucR, ucA);
+                unsigned char ucB = (unColor >> 0) & 0xFF;
+                unsigned char ucG = (unColor >> 8) & 0xFF;
+                unsigned char ucR = (unColor >> 16) & 0xFF;
+                unsigned char ucA = (unColor >> 24) & 0xFF;
 
                 // Store char color values in the output mat.
                 cvOutputColors.at<cv::Vec4b>(nY, nX) = cv::Vec4b(ucB, ucG, ucR, ucA);
             }
         }
-
-        // Remove the 4th color float32 layer.
-        vChannels.pop_back();
-        // Rejoin the split channels of the pointcloud, color no longer exists.
-        cv::merge(vChannels, cvInputPointCloud);
     }
 }    // namespace imgops
 #endif
