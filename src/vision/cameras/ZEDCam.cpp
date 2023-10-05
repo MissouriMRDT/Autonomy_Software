@@ -271,7 +271,7 @@ void ZEDCam::ThreadedContinuousCode()
             }
 
             // Grab regular resized image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZ, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
             // Check that the regular frame was retrieved successfully.
             if (slReturnCode != sl::ERROR_CODE::SUCCESS)
             {
@@ -412,11 +412,7 @@ void ZEDCam::PooledLinearCode()
                 case eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
                 case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
                 case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case eXYZ: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
-                case eXYZBGRA:
-                    *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud);
-                    //
-                    break;
+                case eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
                 default: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
@@ -455,11 +451,7 @@ void ZEDCam::PooledLinearCode()
                 case eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
                 case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
                 case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZ: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                case eXYZBGRA:
-                    *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud);
-                    // Test
-                    break;
+                case eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
                 default: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
@@ -679,6 +671,11 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
  *
+ *      A 4th value in the 3rd dimension exists as a float32 storing the BGRA values. Each color value
+ *      is 8-bits and is in this order:
+ *                          00000000 00000000 00000000 00000000 = 32 bits (float32)
+ *                              B       G         R       A
+ *
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
@@ -690,15 +687,10 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud, const bool bAddColor)
+std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
-    // Create instance variables.
-    PIXEL_FORMATS eFrameType;
-
-    // Check if the container should be set to retrieve an image or a measure.
-    bAddColor ? eFrameType = eXYZ : eFrameType = eXYZBGRA;
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eFrameType);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eXYZBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -717,6 +709,11 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud, const boo
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
  *      constants set in AutonomyConstants.h.
  *
+ *      A 4th value in the 3rd dimension exists as a float32 storing the BGRA values. Each color value
+ *      is 8-bits and is in this order:
+ *                          00000000 00000000 00000000 00000000 = 32 bits (float32)
+ *                              B       G         R       A
+ *
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
@@ -727,15 +724,10 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud, const boo
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud, const bool bAddColor)
+std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
 {
-    // Create instance variables.
-    PIXEL_FORMATS eFrameType;
-
-    // Check if the container should be set to retrieve an image or a measure.
-    bAddColor ? eFrameType = eXYZ : eFrameType = eXYZBGRA;
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, eFrameType);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, eXYZBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);

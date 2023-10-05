@@ -58,8 +58,8 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame);
         std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
         std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true);
-        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud, const bool bAddColor = false);
-        std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud, const bool bAddColor = false);
+        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
+        std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud);
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
