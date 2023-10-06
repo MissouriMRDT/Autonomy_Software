@@ -106,6 +106,7 @@ namespace constants
 
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_5X5_50;    // The predefined ArUco dictionary to use for detections.
+    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015;                     // side of the black border in meters
 
     ///////////////////////////////////////////////////////////////////////////
 

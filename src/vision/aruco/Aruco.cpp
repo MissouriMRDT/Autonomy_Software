@@ -2,6 +2,21 @@
 
 namespace aruco
 {
+    cv::Point2f findTagCenter(const ArucoTag& tag)
+    {
+        // Average of the four corners
+        cv::Point2f center{0, 0};
+        for (auto& corner : tag.corners)
+        {
+            center.x += corner.x;
+            center.y += corner.y;
+        }
+        center.x /= 4;
+        center.y /= 4;
+
+        return center;
+    }
+
     std::vector<ArucoTag> Detect(const cv::Mat& image)
     {
         // vector containing ids of all detected tags
@@ -30,39 +45,50 @@ namespace aruco
         return detectedTags;
     }
 
-    /******************************************************************************
-     * @brief Estimate the pose of a position with respect to the observer using a point cloud
-     *
-     * @param cvPointCloud - A point cloud of x,y,z coordinates
-     * @param nPixelRow - What row the target is in the image
-     * @param nPixelCol - What column the target is in the image
-     * @return std::pair<double, double> - the distance and angle of the target with respect to the observer
-     *
-     * The angle only takes into account how far forward or backward the object is and how far to
-     * the right or left the object is of the observer. I did not use how far the target is up or
-     * down with respect to the observer for determining the angle.
-     *
-     * @author jspencerpittman (jspencerpittman@gmail.com)
-     * @date 2023-10-05
-     ******************************************************************************/
-    std::pair<double, double> EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, int nPixelRow, int nPixelCol)
+    void EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, ArucoTag& tag)
     {
         if (constants::ZED_COORD_SYSTEM != sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP)
         {
             // TODO: throw some error here to signal the code won't work in a different orientation
         }
 
+        cv::Point2f center = findTagCenter(tag);
+
         // FIXME: Jason - I have no clue what the type of each value will be in the point cloud so I just guess cv::Vec3d for now even though it's four channels.
         // Grab (x,y,z) coordinates from where the tag was detected
-        cv::Vec3d coordinate = cvPointCloud.at<cv::Vec3d>(nPixelRow, nPixelCol);
+        cv::Vec3f coordinate = cvPointCloud.at<cv::Vec3f>(center.y, center.x);
         double forward = coordinate[2], right = coordinate[0], up = coordinate[1];
 
         // Calculate euclidean distance from ZED camera left eye to the point of interest
-        double distance = sqrt(pow(forward, 2) + pow(right, 2) + pow(up, 2));
+        tag.distance = sqrt(pow(forward, 2) + pow(right, 2) + pow(up, 2));
 
         // Calculate the angle on plane horizontal to the viewpoint
-        double angle = atan2(right, forward);
+        tag.angle = atan2(right, forward);
+    }
 
-        return {distance, angle};
+    void EstimatePoseFromPNP(cv::Mat& cvCameraMatrix, cv::Mat& cvDistCoeffs, ArucoTag& tag)
+    {
+        // rotVec is how the tag is orientated with respect to the camera. It's 3 numbers defining an axis of rotation around which we rotate the angle which is the
+        // euclidean distance of the vector. transVec is the XYZ translation of the tag from the camera if you image the convergence of light as a pinhole sitting at
+        // (0,0,0) in space.
+        cv::Vec3d rotVec, transVec;
+
+        // Set object coordinate system
+        cv::Mat objPoints(4, 1, CV_32FC3);
+        objPoints.at<cv::Vec3f>(0) = cv::Vec3f{0, 0, 0};
+        objPoints.at<cv::Vec3f>(1) = cv::Vec3f{constants::ARUCO_TAG_SIDE_LENGTH, 0, 0};
+        objPoints.at<cv::Vec3f>(2) = cv::Vec3f{0, constants::ARUCO_TAG_SIDE_LENGTH, 0};
+        objPoints.at<cv::Vec3f>(3) = cv::Vec3f{constants::ARUCO_TAG_SIDE_LENGTH, constants::ARUCO_TAG_SIDE_LENGTH, 0};
+
+        solvePnP(objPoints, tag.corners, cvCameraMatrix, cvDistCoeffs, rotVec, transVec);
+
+        // Grab (x,y,z) coordinates from where the tag was detected
+        double forward = transVec[2], right = transVec[0], up = transVec[1];
+
+        // Calculate euclidean distance from ZED camera left eye to the point of interest
+        tag.distance = sqrt(pow(forward, 2) + pow(right, 2) + pow(up, 2));
+
+        // Calculate the angle on plane horizontal to the viewpoint
+        tag.angle = atan2(right, forward);
     }
 }    // namespace aruco
