@@ -19,7 +19,7 @@
  *        up to and stopping at a the end of a marker leg.
  *
  *        It also listens for state events that pertain to the Approaching
- *        Marker State and calls the approprate transition handler to transition
+ *        Marker State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -28,7 +28,7 @@
  ******************************************************************************/
 struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMachine>
 {
-        ApproachingMarkerState() { LOG_INFO(g_qSharedLogger, "In State: Approaching Marker"); }
+        ApproachingMarkerState() { LOG_INFO(logging::g_qSharedLogger, "In State: Approaching Marker"); }
 
         typedef mpl::list<sc::custom_reaction<ApproachingMarker_MarkerLostTransition>,
                           sc::custom_reaction<ApproachingMarker_AbortTransition>,
@@ -67,7 +67,7 @@ struct ApproachingMarkerState : sc::simple_state<ApproachingMarkerState, StateMa
  ******************************************************************************/
 struct ApproachingMarker_MarkerLostTransition : sc::event<ApproachingMarker_MarkerLostTransition>
 {
-        ApproachingMarker_MarkerLostTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Marker (Marker Lost)"); }
+        ApproachingMarker_MarkerLostTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Approaching Marker (Marker Lost)"); }
 };
 
 /******************************************************************************
@@ -82,7 +82,7 @@ struct ApproachingMarker_MarkerLostTransition : sc::event<ApproachingMarker_Mark
  ******************************************************************************/
 struct ApproachingMarker_AbortTransition : sc::event<ApproachingMarker_AbortTransition>
 {
-        ApproachingMarker_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Marker (Abort)"); }
+        ApproachingMarker_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Approaching Marker (Abort)"); }
 };
 
 /******************************************************************************
@@ -98,5 +98,5 @@ struct ApproachingMarker_AbortTransition : sc::event<ApproachingMarker_AbortTran
  ******************************************************************************/
 struct ApproachingMarker_ReachedMarkerTransition : sc::event<ApproachingMarker_ReachedMarkerTransition>
 {
-        ApproachingMarker_ReachedMarkerTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Marker (Reached Marker)"); }
+        ApproachingMarker_ReachedMarkerTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Approaching Marker (Reached Marker)"); }
 };

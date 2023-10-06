@@ -20,6 +20,9 @@ docs/Doxygen/*
 # Data. Ignore optimized models, but push base model.
 data/models/zed/.*
 
+### Dev Extensions ###
+.cspell/*
+
 ### MacOS Temp Files ###
 # Filesystem
 .DS_Store
