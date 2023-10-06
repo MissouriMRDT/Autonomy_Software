@@ -30,11 +30,13 @@ void ArucoThread::UpdateDetectedTags(std::vector<aruco::ArucoTag>& vNewlyDetecte
     auto newItr = vNewlyDetectedTags.begin();
     auto oldItr = m_vDetectedTags.begin();
 
-    std::vector<int> vForgetTags;
+    std::vector<aruco::ArucoTag> newTags;
 
-    while (newItr != vNewlyDetectedTags.end() && oldItr != m_vDetectedTags.end())
+    // Here we process tags from both the newly detected and previously detected tags in the order of increasing id
+    while (newItr != vNewlyDetectedTags.end() || oldItr != m_vDetectedTags.end())
     {
-        if (oldItr->id == newItr->id)
+        // If the id's match then update the previously detected tag
+        if (newItr != vNewlyDetectedTags.end() && oldItr != m_vDetectedTags.end() && oldItr->id == newItr->id)
         {
             oldItr->angle              = newItr->angle;
             oldItr->distance           = newItr->distance;
@@ -45,70 +47,33 @@ void ArucoThread::UpdateDetectedTags(std::vector<aruco::ArucoTag>& vNewlyDetecte
             oldItr++;
             newItr++;
         }
-        else if (oldItr->id < newItr->id)
+        // If a previously detected tag wasn't detected in the frame
+        else if (oldItr != m_vDetectedTags.end() && (newItr == vNewlyDetectedTags.end() || oldItr->id < newItr->id))
         {
             oldItr->framesSinceLastHit++;
-            bool deletion = false;
-            if (oldItr->hits == constants::ARUCO_VALIDATION_THRESHOLD)
-            {
-                if (oldItr->framesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD)
-                {
-                    oldItr   = m_vDetectedTags.erase(oldItr);
-                    deletion = true;
-                }
-            }
-            else
-            {
-                if (oldItr->framesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD)
-                {
-                    oldItr   = m_vDetectedTags.erase(oldItr);
-                    deletion = true;
-                }
-            }
+            bool validated = oldItr->hits >= constants::ARUCO_VALIDATION_THRESHOLD;
 
-            if (!deletion)
+            if ((validated && oldItr->framesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD) ||
+                (!validated && oldItr->framesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD))
+                oldItr = m_vDetectedTags.erase(oldItr);
+            else
                 oldItr++;
         }
-        else
+        // A tag was detected for the first time
+        else if (newItr != vNewlyDetectedTags.end())
         {
-            m_vDetectedTags.push_back(*newItr);
+            newItr->hits               = 1;
+            newItr->framesSinceLastHit = 0;
+            newTags.push_back(*newItr);
             newItr++;
         }
     }
 
-    while (newItr != vNewlyDetectedTags.end())
-    {
-        newItr->hits               = 1;
-        newItr->framesSinceLastHit = 0;
-        m_vDetectedTags.push_back(*newItr);
-        newItr++;
-    }
+    // Add the newly detected tags to the list
+    for (auto& tag : newTags)
+        vNewlyDetectedTags.push_back(tag);
 
-    while (oldItr != m_vDetectedTags.end())
-    {
-        oldItr->framesSinceLastHit++;
-        bool deletion = false;
-        if (oldItr->hits == constants::ARUCO_VALIDATION_THRESHOLD)
-        {
-            if (oldItr->framesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD)
-            {
-                oldItr   = m_vDetectedTags.erase(oldItr);
-                deletion = true;
-            }
-        }
-        else
-        {
-            if (oldItr->framesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD)
-            {
-                oldItr   = m_vDetectedTags.erase(oldItr);
-                deletion = true;
-            }
-        }
-
-        if (!deletion)
-            oldItr++;
-    }
-
+    // keep the list of detected tags sorted
     std::sort(m_vDetectedTags.begin(), m_vDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { a.id < b.id; });
 }
 
