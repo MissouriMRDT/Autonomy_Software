@@ -19,7 +19,7 @@
  *        through the gate.
  *
  *        It also listens for state events that pertain to the Approaching
- *        Gate State and calls the approprate transition handler to transition
+ *        Gate State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
