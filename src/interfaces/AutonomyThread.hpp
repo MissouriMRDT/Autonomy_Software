@@ -39,16 +39,16 @@ class AutonomyThread
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
-        virtual T PooledLinearCode()          = 0;    // This is where user's offshoot, highly parallelizable code will go. Helpful for intensive shortlived tasks.
+        virtual T PooledLinearCode()          = 0;    // This is where user's offshoot, highly parallelizable code will go. Helpful for intensive short-lived tasks.
                                                       // Can be ran from inside the ThreadedContinuousCode() method.
 
         // Declare and define private interface methods.
         /******************************************************************************
-         * @brief This method is ran in a seperate thread. It is a middleware between the
+         * @brief This method is ran in a separate thread. It is a middleware between the
          *      class member thread and the user code that handles graceful stopping of
          *      user code. This method is intentionally designed to not return anything.
          *
-         * @param bStopThread - Atomic shared variable that signals the thread to stop interating.
+         * @param bStopThread - Atomic shared variable that signals the thread to stop iterating.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-07-24
@@ -70,10 +70,10 @@ class AutonomyThread
          *      used as an internal utility of the child class to further improve parallelization.
          *      Default value for nNumThreads is 2.
          *
-         *      If this method is called directly after itself or RunDetechedPool(), it will just add more
+         *      If this method is called directly after itself or RunDetachedPool(), it will just add more
          *      tasks to the queue. If the bForceStopCurrentThreads is enabled, it will signal
          *      for those threads to stop and wait until they exit on their next iteration. Any number of
-         *      tasks that are still queued will be cleared. Old results will be destoyed. If you want
+         *      tasks that are still queued will be cleared. Old results will be destroyed. If you want
          *      to wait until they fully execute their code, then call the Join() method before this one.
          *
          *      Once the pool is created it stays alive for as long as the program runs or until
@@ -105,7 +105,7 @@ class AutonomyThread
                 m_thPool.purge();
                 // Wait for open threads to terminate, then resize the pool.
                 m_thPool.reset(nNumThreads);
-                // Upause queue.
+                // Unpause queue.
                 m_thPool.unpause();
 
                 // Clear results vector.
@@ -124,7 +124,7 @@ class AutonomyThread
                 m_thPool.purge();
                 // Wait for threadpool to join.
                 m_thPool.wait_for_tasks();
-                // Upause queue.
+                // Unpause queue.
                 m_thPool.unpause();
 
                 // Reset stop toggle.
@@ -156,7 +156,7 @@ class AutonomyThread
          *      If this method is called directly after itself or RunPool(), it will just add more
          *      tasks to the queue. If the bForceStopCurrentThreads is enabled, it will signal
          *      for those threads to stop and wait until they exit on their next iteration.
-         *      Any number of tasks that are still queued will be cleared. Old results will be destoyed.
+         *      Any number of tasks that are still queued will be cleared. Old results will be destroyed.
          *      If you want to wait until they fully execute their code, then call the Join() method before this one.
          *
          *      Once the pool is created it stays alive for as long as the program runs or until
@@ -188,7 +188,7 @@ class AutonomyThread
                 m_thPool.purge();
                 // Wait for open threads to terminate, then resize the pool.
                 m_thPool.reset(nNumThreads);
-                // Upause queue.
+                // Unpause queue.
                 m_thPool.unpause();
 
                 // Clear results vector.
@@ -207,7 +207,7 @@ class AutonomyThread
                 m_thPool.purge();
                 // Wait for threadpool to join.
                 m_thPool.wait_for_tasks();
-                // Upause queue.
+                // Unpause queue.
                 m_thPool.unpause();
 
                 // Reset stop toggle.
@@ -385,11 +385,11 @@ class AutonomyThread
         /******************************************************************************
          * @brief When this method is called, it starts a new thread that runs the
          *      code within the ThreadedContinuousCode method. This is the users
-         *      main code that will run the important and continous code for the class.
+         *      main code that will run the important and continuous code for the class.
          *
          *      If this method is called directly after itself, RunPool(), or RunDetachedPool(), it will signal
          *      for those threads to stop and wait until they exit on their next iteration. Any
-         *      number of tasks that are still queued will be cleared. Old results will be destoyed.
+         *      number of tasks that are still queued will be cleared. Old results will be destroyed.
          *      If you want to wait until they fully execute their code, then call the Join()
          *      method before starting a new thread.
          *

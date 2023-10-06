@@ -19,7 +19,7 @@
  *        stays in most of the time.
  *
  *        It also listens for state events that pertain to the Navigation
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -94,7 +94,7 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
  *
  *        When the state machine reaches the 'New Waypoint' transition handler,
  *        Autonomy will stop navigating to the current position and restart
- *        by navigating to the new position it recieved.
+ *        by navigating to the new position it received.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
@@ -124,7 +124,7 @@ struct Navigation_AbortTransition : sc::event<Navigation_AbortTransition>
  * @brief Navigation State - Transition to Stuck
  *
  *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        Autonomy will navigate to the Stuck State and attempt a series
  *        of algorithms to become unstuck.
  *
  *
@@ -158,7 +158,7 @@ struct Navigation_ReachedGPSTransition : sc::event<Navigation_ReachedGPSTransiti
  * @brief Navigation State - Transition to Seen Tag
  *
  *        When the state machine reaches the 'Seen Tag' transition handler,
- *        Autonomy will navigate into to appropraite approach state based on
+ *        Autonomy will navigate into to appropriate approach state based on
  *        the ID of the tag it recognized.
  *
  *
