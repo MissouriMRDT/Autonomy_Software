@@ -28,13 +28,13 @@
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
     // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
-    "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-focal:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-    // "build": {
-    //     // "dockerfile": "Dockerfile_Jammy"
-    //     "dockerfile": "Dockerfile_Focal"
-    //     // "dockerfile": "Dockerfile_JetPack"
-    // },
+    "build": {
+        // "dockerfile": "Dockerfile_Jammy"
+        "dockerfile": "Dockerfile_Focal"
+        // "dockerfile": "Dockerfile_JetPack"
+    },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -94,7 +94,9 @@
                     "/usr/local/include/gmock/",
                     "/usr/local/include/gmock/**",
                     "/usr/local/include/gtest/",
-                    "/usr/local/include/gtest/**"
+                    "/usr/local/include/gtest/**",
+                    "/usr/local/include/GeographicLib/",
+                    "/usr/local/include/GeographicLib/**"
                 ],
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
