@@ -4,7 +4,7 @@ ArucoThread::ArucoThread(const int nNumDetectedTagsRetrievalThreads)
 {
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
 
-    m_pZedCam                          = g_pCameraHandler->GetZED(CameraHandlerThread::eHeadMainCam);
+    m_pZedCam                          = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
 }
 
 std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<aruco::ArucoTag>& arucoTagVec)
