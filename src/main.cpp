@@ -51,7 +51,7 @@ int main()
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
-    InitializeLoggers();
+    logging::InitializeLoggers();
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -62,10 +62,21 @@ int main()
     else
     {
         // Initialize and start Threads
-        g_pCameraHandler = new CameraHandlerThread();
-        g_pCameraHandler->StartAllCameras();
+        globals::g_pCameraHandler = new CameraHandler();
+        globals::g_pCameraHandler->StartAllCameras();
 
-        // TODO: Initialize RoveComm
+        // TODO: Initialize RoveComm.
+
+        /////////////////////////////////////////
+        // Cleanup.
+        /////////////////////////////////////////
+        // Stop camera threads.
+        globals::g_pCameraHandler->StopAllCameras();
+
+        // Delete dynamically allocated objects.
+        delete globals::g_pCameraHandler;
+        // Set dangling pointers to null.
+        globals::g_pCameraHandler = nullptr;
     }
 
     // Successful exit.
