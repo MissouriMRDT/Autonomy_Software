@@ -16,10 +16,10 @@
  *
  *        Primarily the Abort State Handler, handles the stopping of any
  *        navigation commands and exiting of the application in the event of
- *        a catastropic system failure during the Autonomy Mission.
+ *        a catastrophic system failure during the Autonomy Mission.
  *
  *        However, it also listens for state events that pertain to the Abort
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -28,7 +28,7 @@
  ******************************************************************************/
 struct AbortState : sc::simple_state<AbortState, StateMachine>
 {
-        AbortState() { LOG_INFO(g_qSharedLogger, "In State: Abort"); }
+        AbortState() { LOG_INFO(logging::g_qSharedLogger, "In State: Abort"); }
 
         typedef mpl::list<sc::custom_reaction<Abort_RestartTransition>, sc::custom_reaction<Abort_ExitTransition>> reactions;
 
@@ -49,7 +49,7 @@ struct AbortState : sc::simple_state<AbortState, StateMachine>
  * @brief Abort State - Transition to Restart
  *
  *        When the state machine reaches the 'Restart' transition
- *        handler, Autonomy will stop all naviagation processes and attempt
+ *        handler, Autonomy will stop all navigation processes and attempt
  *        to reboot the State Machine.
  *
  *
@@ -58,7 +58,7 @@ struct AbortState : sc::simple_state<AbortState, StateMachine>
  ******************************************************************************/
 struct Abort_RestartTransition : sc::event<Abort_RestartTransition>
 {
-        Abort_RestartTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Abort (Restart)"); }
+        Abort_RestartTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Abort (Restart)"); }
 };
 
 /******************************************************************************
@@ -73,5 +73,5 @@ struct Abort_RestartTransition : sc::event<Abort_RestartTransition>
  ******************************************************************************/
 struct Abort_ExitTransition : sc::event<Abort_ExitTransition>
 {
-        Abort_ExitTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Abort (Exit)"); }
+        Abort_ExitTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Abort (Exit)"); }
 };

@@ -83,7 +83,7 @@ class PrimeCalculatorThread : public AutonomyThread<void>
         }
 
         /******************************************************************************
-         * @brief This code will run in a seperate thread. Main code goes here.
+         * @brief This code will run in a separate thread. Main code goes here.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -174,7 +174,7 @@ void RunExample()
     PrimeCalculatorThread ThreadedPrimeCalculator5;
 
     /******************************************************************************
-     * Seperate threads.
+     * Separate threads.
      ******************************************************************************/
     // Calc 1.
     ThreadedPrimeCalculator1.SetPrimeCount(5);
@@ -202,7 +202,7 @@ void RunExample()
     ThreadedPrimeCalculator5.Join();
 
     // Print length of calculated primes vectors.
-    std::cout << "Creating seperate threads:" << std::endl;
+    std::cout << "Creating separate threads:" << std::endl;
     std::vector<int> vPrimes = ThreadedPrimeCalculator1.GetPrimes();
     std::cout << "Calculator1 Primes Length: " << vPrimes.size() << std::endl;
     vPrimes = ThreadedPrimeCalculator2.GetPrimes();

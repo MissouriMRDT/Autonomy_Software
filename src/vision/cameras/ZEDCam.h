@@ -35,11 +35,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public structs that are specific to and used within this class.
         /////////////////////////////////////////
+
         struct ZedObjectData;
 
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
+
         ZEDCam(const int nPropResolutionX,
                const int nPropResolutionY,
                const int nPropFramesPerSecond,
@@ -65,6 +67,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Setters for class member variables.
         /////////////////////////////////////////
+
         sl::ERROR_CODE EnablePositionalTracking();
         void DisablePositionalTracking();
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
@@ -76,13 +79,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Accessors for class member variables.
         /////////////////////////////////////////
+
         bool GetCameraIsOpen() override;
         bool GetUsingGPUMem() const;
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
         bool GetPositionalTrackingEnabled();
-        std::future<bool> RequestIMUDataCopy(std::vector<double>& vIMUValues);
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
         bool GetObjectDetectionEnabled();
@@ -93,13 +96,14 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
+
         // ZED Camera specific.
+
         sl::Camera m_slCamera;
         std::shared_mutex m_muCameraMutex;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::MEASURE m_slDepthMeasureType;
-        sl::SensorsData m_slSensorData;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::Pose m_slCameraPose;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
@@ -112,6 +116,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         unsigned int m_unCameraSerialNumber;
 
         // Mats for storing frames and measures.
+
         sl::Mat m_slFrame;
         sl::Mat m_slDepthImage;
         sl::Mat m_slDepthMeasure;
@@ -119,20 +124,20 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxInjestSchedule;
+        std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
-        std::mutex m_muCustomBoxInjestMutex;
+        std::mutex m_muCustomBoxIngestMutex;
         std::mutex m_muPoseCopyMutex;
-        std::mutex m_muIMUDataCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
 
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
+
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 };

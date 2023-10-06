@@ -25,22 +25,40 @@
 namespace numops
 {
     /******************************************************************************
-     * @brief Clamps a given value from going above or below a given threshold.
+     * @brief Maps a value to a new range given the old range.
      *
-     * @tparam T - Template argument for given value type.
-     * @param tValue - The value to clamp.
-     * @param tMin - Minimum value quantity.
-     * @param tMax - Maximum value quantity.
-     * @return T - The clamped value.
+     * @tparam T - Template value specifying the type of the number to map to new range.
+     * @param tValue - The value to remap.
+     * @param tOldMinimum - The current range's minimum value.
+     * @param tOldMaximum - The current range's maximum value.
+     * @param tNewMinimum - The new range's minimum value.
+     * @param tNewMaximum - The new range's maximum value.
+     * @return T - The resultant templated type mapped to the new range.
      *
-     * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
-     * @date 2023-06-20
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-09-22
      ******************************************************************************/
     template<typename T>
-    T Clamp(T tValue, T tMin, T tMax)
+    inline T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
     {
-        return std::max(std::min(tMax, tValue), tMin);
-    }
-}    // namespace numops
+        // Check if the ranges are valid.
+        if (tOldMinimum == tOldMaximum || tNewMinimum == tNewMaximum)
+        {
+            // Submit logger message.
+            std::cerr << "MAPRANGE: The old/new range is not valid." << std::endl;
 
-#endif    // NUMBER_OPERATIONS_H
+            // Return old, given value.
+            return tValue;
+        }
+
+        // Perform the mapping using linear interpolation.
+        T tOldValueRange = tOldMaximum - tOldMinimum;
+        T tNewValueRange = tNewMaximum - tNewMinimum;
+        T tScaledValue   = (tValue - tOldMinimum) / tOldValueRange;
+
+        // Return new mapped value.
+        return tNewMinimum + tScaledValue * tNewValueRange;
+    }
+
+}    // namespace numops
+#endif

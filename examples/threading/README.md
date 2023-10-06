@@ -1,32 +1,14 @@
-\dir src/threads
-
-# Threads Directory
-
-The **Threads** directory is dedicated to storing C++ files related to multithreading in the rover project. This directory focuses on managing the main classes of states, vision, and other modules that require their own dedicated threads for parallel execution.
-
-## Directory Structure
-
-The **Threads** directory stores files representing the main classes of different modules, each of which will spawn its own thread for parallel execution. The structure within the directory will typically resemble the organization of the corresponding modules, such as states, vision, and other relevant components.
-
-## General Usage
-
-Here's a general guideline for organizing files within the **Threads** directory:
-
-- Create a separate file for each main class that requires its own dedicated thread.
-- Use descriptive names for the files that reflect the purpose or functionality of each class.
-- Inherit the `AutonomyThread` abstract class in the interfaces folder, to ensure the class you want to thread will integrate with the rest of the codebase.
-- Ensure that the files are properly documented with comments explaining the class's role, its interaction with other modules, and any relevant details.
-- Implement the necessary thread management mechanisms within each class, adhering to best practices for multithreading.
+\dir examples/threading
 
 ## Detailed Walkthrough
 
 ### Step 0: Do I really need this to run in a new thread?
 Before continuing, ask yourself if the code you've written will actually benefit from being ran outside of the main program:
-- **_Is your code for a new subsystem that hasn't aleady been implemented?_** 
-- **_Will your code actually benefit from running in a seperate thread; is the code parallelizable or does it wait/depend on other external code running first?_**
+- **_Is your code for a new subsystem that hasn't already been implemented?_** 
+- **_Will your code actually benefit from running in a separate thread; is the code parallelizable or does it wait/depend on other external code running first?_**
 - **_What kind of system or program resources does my code access?_**
 
-All these question are extremely valid when you are writing code for a new system that you think could benefit from multithreading. Sharing memory between threads is not generally something that you want to do, so plan carefully when designing your class. Have the main class do all of the resource locking by creating getters and/or setters for each piece of data that you want to be accesible from outside of your threaded code. Since the `AutonomyThread` interface was designed so that only a single special method is ran in a different thread, resource handling should be relative simple if you are familiar with the different methods of mutexes and locking in C++. It will also be useful to know how to correctly use atomics in C++, as these let you freely share certain resources between threads without needed to manually lock and unlock them.
+All these question are extremely valid when you are writing code for a new system that you think could benefit from multithreading. Sharing memory between threads is not generally something that you want to do, so plan carefully when designing your class. Have the main class do all of the resource locking by creating getters and/or setters for each piece of data that you want to be accessible from outside of your threaded code. Since the `AutonomyThread` interface was designed so that only a single special method is ran in a different thread, resource handling should be relative simple if you are familiar with the different methods of mutexes and locking in C++. It will also be useful to know how to correctly use atomics in C++, as these let you freely share certain resources between threads without needed to manually lock and unlock them.
 
 **NOTE: Look in the `examples/threading` directory to see example implementations of what this guide discusses.**
 
@@ -53,9 +35,9 @@ The `AutonomyThread` base class contains some [virtual](https://www.geeksforgeek
 
 The two methods that you need to implement are called [ThreadedContinuousCode()](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a856f865268995d910a4c5deafe1a47f1) and [PooledLinearCode()](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a442ce800c8d195164bb8caa25622551a).
 - ThreadedContinuousCode is where you will put your main code for the thread, this is the code that you want to loop forever until either you or the program stops it. The code that you put in this method should not block the rest of the code, **do not put a `while(true)` loop inside this method.** The parent class that you inherited will handle the looping and stop signaling internally, as shown [here](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#aeafe6a5ff40437d14425d5af73b48019).
-- PooledLinearCode is where you can optionally put any _highly parallelizable sub-routine code_ that you want to run in an arbitrarly large pool of threads. For example, if you have four images from four different cameras and they all need the AR tag detection algorithms ran, you can start a thread pool and process all four in roughly the same time it would normally take one to process. (Assuming your AR tag detector can be ran in parallel without blocking). This code can only be called from within your class, your code inside of the ThreadedContinuousCode method should handle the [starting](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#ad763e85a17af864687366c44462bd44a), [stopping](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#af7c99c41b6512725fc0715dabe7f500d), and [results fetching](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a6f9941fe0b02013a0be3eba330b68b73) of your thread pool.
+- PooledLinearCode is where you can optionally put any _highly parallelizable sub-routine code_ that you want to run in an arbitrarily large pool of threads. For example, if you have four images from four different cameras and they all need the AR tag detection algorithms ran, you can start a thread pool and process all four in roughly the same time it would normally take one to process. (Assuming your AR tag detector can be ran in parallel without blocking). This code can only be called from within your class, your code inside of the ThreadedContinuousCode method should handle the [starting](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#ad763e85a17af864687366c44462bd44a), [stopping](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#af7c99c41b6512725fc0715dabe7f500d), and [results fetching](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a6f9941fe0b02013a0be3eba330b68b73) of your thread pool.
 
-Take a look at [this example](https://missourimrdt.github.io/Autonomy_Software/classArucoGenerateTagsThreaded.html) and [this example](https://missourimrdt.github.io/Autonomy_Software/classPrimeCalculatorThread.html) for how to implement the inherited funtions. 
+Take a look at [this example](https://missourimrdt.github.io/Autonomy_Software/classArucoGenerateTagsThreaded.html) and [this example](https://missourimrdt.github.io/Autonomy_Software/classPrimeCalculatorThread.html) for how to implement the inherited functions. 
 
 **To stop all threads, call the [RequestStop()](https://missourimrdt.github.io/Autonomy_Software/classAutonomyThread.html#a83a49c4a92e0c983909d24edfa74843d) method from inside or outside of your class. _You CAN call the RequestStop() method from inside of your threaded code._**
 

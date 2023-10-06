@@ -19,7 +19,7 @@
  *        stays in most of the time.
  *
  *        It also listens for state events that pertain to the Navigation
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -28,7 +28,7 @@
  ******************************************************************************/
 struct NavigationState : sc::simple_state<NavigationState, StateMachine>
 {
-        NavigationState() { LOG_INFO(g_qSharedLogger, "In State: Navigation"); }
+        NavigationState() { LOG_INFO(logging::g_qSharedLogger, "In State: Navigation"); }
 
         typedef mpl::list<sc::custom_reaction<Navigation_NewWaypointTransition>,
                           sc::custom_reaction<Navigation_AbortTransition>,
@@ -94,7 +94,7 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
  *
  *        When the state machine reaches the 'New Waypoint' transition handler,
  *        Autonomy will stop navigating to the current position and restart
- *        by navigating to the new position it recieved.
+ *        by navigating to the new position it received.
  *
  *
  * @author Eli Byrd (edbgkk@mst.edu)
@@ -102,7 +102,7 @@ struct NavigationState : sc::simple_state<NavigationState, StateMachine>
  ******************************************************************************/
 struct Navigation_NewWaypointTransition : sc::event<Navigation_NewWaypointTransition>
 {
-        Navigation_NewWaypointTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (New Waypoint)"); }
+        Navigation_NewWaypointTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (New Waypoint)"); }
 };
 
 /******************************************************************************
@@ -117,14 +117,14 @@ struct Navigation_NewWaypointTransition : sc::event<Navigation_NewWaypointTransi
  ******************************************************************************/
 struct Navigation_AbortTransition : sc::event<Navigation_AbortTransition>
 {
-        Navigation_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Abort)"); }
+        Navigation_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Abort)"); }
 };
 
 /******************************************************************************
  * @brief Navigation State - Transition to Stuck
  *
  *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        Autonomy will navigate to the Stuck State and attempt a series
  *        of algorithms to become unstuck.
  *
  *
@@ -133,7 +133,7 @@ struct Navigation_AbortTransition : sc::event<Navigation_AbortTransition>
  ******************************************************************************/
 struct Navigation_StuckTransition : sc::event<Navigation_StuckTransition>
 {
-        Navigation_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Stuck)"); }
+        Navigation_StuckTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Stuck)"); }
 };
 
 /******************************************************************************
@@ -151,14 +151,14 @@ struct Navigation_StuckTransition : sc::event<Navigation_StuckTransition>
  ******************************************************************************/
 struct Navigation_ReachedGPSTransition : sc::event<Navigation_ReachedGPSTransition>
 {
-        Navigation_ReachedGPSTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Reached GPS)"); }
+        Navigation_ReachedGPSTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Reached GPS)"); }
 };
 
 /******************************************************************************
  * @brief Navigation State - Transition to Seen Tag
  *
  *        When the state machine reaches the 'Seen Tag' transition handler,
- *        Autonomy will navigate into to appropraite approach state based on
+ *        Autonomy will navigate into to appropriate approach state based on
  *        the ID of the tag it recognized.
  *
  *
@@ -167,7 +167,7 @@ struct Navigation_ReachedGPSTransition : sc::event<Navigation_ReachedGPSTransiti
  ******************************************************************************/
 struct Navigation_SeenTagTransition : sc::event<Navigation_SeenTagTransition>
 {
-        Navigation_SeenTagTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Seen Tag)"); }
+        Navigation_SeenTagTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Seen Tag)"); }
 };
 
 /******************************************************************************
@@ -183,5 +183,5 @@ struct Navigation_SeenTagTransition : sc::event<Navigation_SeenTagTransition>
  ******************************************************************************/
 struct Navigation_ObstacleAvoidanceTransition : sc::event<Navigation_ObstacleAvoidanceTransition>
 {
-        Navigation_ObstacleAvoidanceTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Navigation (Obstacle Avoidance)"); }
+        Navigation_ObstacleAvoidanceTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Navigation (Obstacle Avoidance)"); }
 };

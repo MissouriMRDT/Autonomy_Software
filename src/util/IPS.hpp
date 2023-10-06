@@ -1,6 +1,5 @@
 /******************************************************************************
- * @brief This util provides an easy way to keep track of iterations per second for
- *      any body of code.
+ * @brief Define and implement the IPS class.
  *
  * @file IPS.hpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -17,7 +16,8 @@
 #include <deque>
 
 /******************************************************************************
- * @brief Define and implement the IPS class.
+ * @brief This util class provides an easy way to keep track of iterations per second for
+ *      any body of code.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -169,7 +169,7 @@ class IPS
                 dSum += dVal;
             }
 
-            // Return calulated average.
+            // Return calculated average.
             return dSum / m_dqIPSHistory.size();
         }
 
