@@ -24,7 +24,6 @@
 #include "./../../AutonomyGlobals.h"
 #include "./../../interfaces/AutonomyThread.hpp"
 #include "./../../interfaces/Camera.hpp"
-#include "./../../util/vision/ArucoSamplesUtility.hpp"
 #include "./../../util/vision/FetchContainers.hpp"
 #include "./Aruco.h"
 
