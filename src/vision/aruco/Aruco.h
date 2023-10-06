@@ -41,6 +41,9 @@ namespace aruco
      * @date 2023-09-28
      ******************************************************************************/
     std::vector<ArucoTag> Detect(const cv::Mat& image);
+
+    std::pair<double, double> EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, int nPixelRow, int nPixelCol);
+
 }    // namespace aruco
 
 #endif
