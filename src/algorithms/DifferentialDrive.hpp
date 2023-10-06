@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Defines and implements namspaces and functions for algorithms
+ * @brief Defines and implements namespaces and functions for algorithms
  *      that pertain to differential drive (tank drive) robots.
  *
  * @file DifferentialDrive.hpp
@@ -43,7 +43,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-namespace DifferentialDrive
+namespace diffdrive
 {
     /******************************************************************************
      * @brief Tank drive inverse kinematics for differential drive robots.
@@ -105,7 +105,7 @@ namespace DifferentialDrive
         // Find the maximum possible value of throttle and turn along the vector that the speed and rotation is pointing.
         double dGreaterInput = std::max(std::abs(dSpeed), std::abs(dRotation));
         double dLesserInput  = std::min(std::abs(dSpeed), std::abs(dRotation));
-        // If the biggest input is zero, then the wheelspeeds should be zero.
+        // If the biggest input is zero, then the wheel speeds should be zero.
         if (dGreaterInput)
         {
             // Return zero drive power output.
@@ -178,6 +178,5 @@ namespace DifferentialDrive
         // Return result drive powers.
         return {dLeftSpeed, dRightSpeed};
     }
-}    // namespace DifferentialDrive
-
+}    // namespace diffdrive
 #endif
