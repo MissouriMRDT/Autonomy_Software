@@ -28,6 +28,9 @@ namespace aruco
             std::vector<cv::Point2f> corners;    // Corners of the tag in the image
             double distance;                     // Distance between the tag and the camera
             double angle;                        //  This is the yaw angle so roll and pitch are ignored
+
+            int hits;
+            int framesSinceLastHit;
     };
 
     cv::Point2f findTagCenter(const ArucoTag& tag);
