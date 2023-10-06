@@ -49,12 +49,12 @@ BasicCam::BasicCam(const std::string szCameraPath,
     if (m_cvCamera.open(szCameraPath))
     {
         // Submit logger message.
-        LOG_DEBUG(g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
+        LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
     }
 }
 
@@ -103,12 +103,12 @@ BasicCam::BasicCam(const int nCameraIndex,
     if (m_cvCamera.isOpened())
     {
         // Submit logger message.
-        LOG_DEBUG(g_qSharedLogger, "Camera {} at video index {} has been successfully opened.", m_cvCamera.getBackendName(), m_nCameraIndex);
+        LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at video index {} has been successfully opened.", m_cvCamera.getBackendName(), m_nCameraIndex);
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
     }
 }
 
@@ -127,10 +127,13 @@ BasicCam::~BasicCam()
 
     // Release camera capture object.
     m_cvCamera.release();
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Basic camera at video index {} has been successfully closed.", m_nCameraIndex);
 }
 
 /******************************************************************************
- * @brief The code inside this private method runs in a seperate thread, but still
+ * @brief The code inside this private method runs in a separate thread, but still
  *      has access to this*. This method continuously get new frames from the OpenCV
  *      VideoCapture object and stores it in a member variable. Then a thread pool is
  *      started and joined once per iteration to mass copy the frames and/or measure
@@ -150,7 +153,7 @@ void BasicCam::ThreadedContinuousCode()
         this->RequestStop();
 
         // Submit logger message.
-        LOG_CRITICAL(g_qSharedLogger,
+        LOG_CRITICAL(logging::g_qSharedLogger,
                      "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
                      m_nCameraIndex,
                      m_szCameraPath);
@@ -169,7 +172,7 @@ void BasicCam::ThreadedContinuousCode()
         else
         {
             // Submit logger message.
-            LOG_ERROR(g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
+            LOG_ERROR(logging::g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
         }
 
         // Acquire a shared_lock on the frame copy queue.
@@ -199,7 +202,7 @@ void BasicCam::ThreadedContinuousCode()
  ******************************************************************************/
 void BasicCam::PooledLinearCode()
 {
-    // Aqcuire mutex for getting frames out of the queue.
+    // Acquire mutex for getting frames out of the queue.
     std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
@@ -224,7 +227,7 @@ void BasicCam::PooledLinearCode()
  *
  * @param cvFrame - A reference to the cv::Mat to store the frame in.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
@@ -236,7 +239,7 @@ std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the scedule queue.
+    // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();

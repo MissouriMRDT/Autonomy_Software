@@ -28,7 +28,7 @@ sudo chmod +x ./run_valgrind.sh
 
 ## HOW TO INTERPRET VALGRIND OUTPUT
 
-The output of valgrind will likely never show `All heap blocks were freed -- no leaks are possible` unless all of our external libraries fix their code. So valgrinds output with suppressions might look a little different then you're used to. Don't worry though, as long as all of the leaked memory is within the suppressed or still reachable category, we're fine. The example below shows a compile of the Autonomy_Software code that doesn't leak any additional memory.
+The output of valgrind will likely never show `All heap blocks were freed -- no leaks are possible` unless all of our external libraries fix their code. So valgrind's output with suppressions might look a little different then you're used to. Don't worry though, as long as all of the leaked memory is within the suppressed or still reachable category, we're fine. The example below shows a compile of the Autonomy_Software code that doesn't leak any additional memory.
 
 ```
 ==23697== HEAP SUMMARY:
