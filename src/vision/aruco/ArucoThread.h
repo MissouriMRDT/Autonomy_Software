@@ -25,6 +25,7 @@
 #include "./../../interfaces/AutonomyThread.hpp"
 #include "./../../interfaces/Camera.hpp"
 #include "./../../util/vision/FetchContainers.hpp"
+#include "./../../util/vision/ImageOperations.hpp"
 #include "./Aruco.h"
 
 /******************************************************************************
@@ -69,6 +70,20 @@ class ArucoThread : public AutonomyThread<void>
         std::future<bool> RequestDetectedArucoTags(std::vector<aruco::ArucoTag>& vArucoTagVec);
 
     private:
+        /******************************************************************************
+         * @brief Updates the threads detected tags including forgetting tags that haven't been seen for long enough
+         *
+         * @param vecDetectedTags - newly detected tags
+         *
+         * If a new tag is spotted: add it to the detected tags vector
+         * If a tag has been spotted again: update the tags distance and angle
+         * If a tag hasn't been seen for a while: remove it from the vector
+         *
+         * @author jspencerpittman (jspencerpittman@gmail.com)
+         * @date 2023-10-06
+         ******************************************************************************/
+        void UpdateDetectedTags(std::vector<aruco::ArucoTag>& vNewlyDetectedTags);
+
         ZEDCam* m_pZedCam;
         int m_nNumDetectedTagsRetrievalThreads;
 

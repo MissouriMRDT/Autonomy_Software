@@ -23,42 +23,137 @@ std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<aruco::Aruco
     return stContainer.pCopiedDataStatus->get_future();
 }
 
+void ArucoThread::UpdateDetectedTags(std::vector<aruco::ArucoTag>& vNewlyDetectedTags)
+{
+    std::sort(vNewlyDetectedTags.begin(), vNewlyDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { a.id < b.id; });
+
+    auto newItr = vNewlyDetectedTags.begin();
+    auto oldItr = m_vDetectedTags.begin();
+
+    std::vector<int> vForgetTags;
+
+    while (newItr != vNewlyDetectedTags.end() && oldItr != m_vDetectedTags.end())
+    {
+        if (oldItr->id == newItr->id)
+        {
+            oldItr->angle              = newItr->angle;
+            oldItr->distance           = newItr->distance;
+            oldItr->corners            = newItr->corners;
+            oldItr->framesSinceLastHit = 0;
+            oldItr->hits               = std::max(oldItr->hits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
+
+            oldItr++;
+            newItr++;
+        }
+        else if (oldItr->id < newItr->id)
+        {
+            oldItr->framesSinceLastHit++;
+            bool deletion = false;
+            if (oldItr->hits == constants::ARUCO_VALIDATION_THRESHOLD)
+            {
+                if (oldItr->framesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD)
+                {
+                    oldItr   = m_vDetectedTags.erase(oldItr);
+                    deletion = true;
+                }
+            }
+            else
+            {
+                if (oldItr->framesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD)
+                {
+                    oldItr   = m_vDetectedTags.erase(oldItr);
+                    deletion = true;
+                }
+            }
+
+            if (!deletion)
+                oldItr++;
+        }
+        else
+        {
+            m_vDetectedTags.push_back(*newItr);
+            newItr++;
+        }
+    }
+
+    while (newItr != vNewlyDetectedTags.end())
+    {
+        newItr->hits               = 1;
+        newItr->framesSinceLastHit = 0;
+        m_vDetectedTags.push_back(*newItr);
+        newItr++;
+    }
+
+    while (oldItr != m_vDetectedTags.end())
+    {
+        oldItr->framesSinceLastHit++;
+        bool deletion = false;
+        if (oldItr->hits == constants::ARUCO_VALIDATION_THRESHOLD)
+        {
+            if (oldItr->framesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD)
+            {
+                oldItr   = m_vDetectedTags.erase(oldItr);
+                deletion = true;
+            }
+        }
+        else
+        {
+            if (oldItr->framesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD)
+            {
+                oldItr   = m_vDetectedTags.erase(oldItr);
+                deletion = true;
+            }
+        }
+
+        if (!deletion)
+            oldItr++;
+    }
+
+    std::sort(m_vDetectedTags.begin(), m_vDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { a.id < b.id; });
+}
+
 void ArucoThread::ThreadedContinuousCode()
 {
-    // TODO: support pose estimation-this would include depth maps
-    // TODO: pass reference to vector to ArucoDetector.Detect instead
-
     // hold camera frames
-    cv::Mat cvNormalFrame;
-    cv::cuda::GpuMat cvGPUNormalFrame;
+    cv::Mat cvPointCloud;
+    cv::Mat cvPointCloudColor;
+    cv::cuda::GpuMat cvGPUPointCloud;
 
     // indicates when the frame has been copied
-    std::future<bool> fuFrameCopyStatus;
+    std::future<bool> fuPointCloudCopyStatus;
 
     // Check if the camera is setup to use CPU or GPU mats.
     if (constants::ZED_MAINCAM_USE_GPU_MAT)
     {
         // Grab frames from camera.
-        fuFrameCopyStatus = m_pZedCam->RequestFrameCopy(cvGPUNormalFrame);
+        fuPointCloudCopyStatus = m_pZedCam->RequestPointCloudCopy(cvGPUPointCloud);
     }
     else
     {
         // Grab frames from camera.
-        fuFrameCopyStatus = m_pZedCam->RequestFrameCopy(cvNormalFrame);
+        fuPointCloudCopyStatus = m_pZedCam->RequestFrameCopy(cvPointCloud);
     }
 
     // Wait for the frames to be copied.
-    if (fuFrameCopyStatus.get())
+    if (fuPointCloudCopyStatus.get())
     {
         // Check if the camera is setup to use CPU or GPU mats.
         if (constants::ZED_MAINCAM_USE_GPU_MAT)
         {
             // Download memory from gpu mats if necessary.
-            cvGPUNormalFrame.download(cvNormalFrame);
+            cvGPUPointCloud.download(cvPointCloud);
         }
+        imgops::SplitPointCloudColors(cvPointCloud, cvPointCloudColor);
 
-        // Update detected tags
-        m_vDetectedTags = aruco::Detect(cvNormalFrame);
+        // Detect tags in the image
+        std::vector vNewlyDetectedTags = aruco::Detect(cvPointCloudColor);
+
+        // Estimate the positions of the tags using the point cloud
+        for (auto& tag : vNewlyDetectedTags)
+            EstimatePoseFromPointCloud(cvPointCloud, tag);
+
+        // Merge the newly detected tags with the pre-existing detected tags
+        UpdateDetectedTags(vNewlyDetectedTags);
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
