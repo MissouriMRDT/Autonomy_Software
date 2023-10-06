@@ -12,21 +12,58 @@
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
 
-#include <vector>
+#include <array>
 
+/******************************************************************************
+ * @brief This class handles communication with the drive board on the rover by
+ *      sending RoveComm packets over the network.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
+ ******************************************************************************/
 class DriveBoard
 {
     private:
-        int m_iTargetSpeedLeft;
-        int m_iTargetSpeedRight;
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+
+        float m_fTargetSpeedLeft;
+        float m_fTargetSpeedRight;
 
     public:
+        /////////////////////////////////////////
+        // Declare public enums that are specific to and used withing this class.
+        /////////////////////////////////////////
+
+        // Enumerator used to specify what method of drive control to use.
+        enum DifferentialControlMethod
+        {
+            eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
+            eCurvatureDrive    // Similar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
+        };
+
+        /////////////////////////////////////////
+        // Declare public methods and member variables.
+        /////////////////////////////////////////
+
         DriveBoard();
         ~DriveBoard();
-
-        std::vector<int> CalculateMove(float fSpeed, float fAngle);
-        void SendDrive(/*int iLeftTarget, int iRightTarget*/);
+        std::array<float, 2> CalculateMove(const float fSpeed, const float fAngle, const DifferentialControlMethod eKinematicsMethod);
+        void SendDrive(float fLeftSpeed, float fRightSpeed);
         void SendStop();
-};
 
-#endif    // DRIVEBOARD_H
+        /////////////////////////////////////////
+        // Setters
+        /////////////////////////////////////////
+
+        void SetMaxDrivePower();
+
+        /////////////////////////////////////////
+        // Getters
+        /////////////////////////////////////////
+
+        float GetMaxDrivePower() const;
+};
+#endif

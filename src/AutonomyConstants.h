@@ -29,8 +29,17 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
     //// Drive Constants.
     ///////////////////////////////////////////////////////////////////////////
-    const int MAX_DRIVE_POWER = 250;
-    const int MIN_DRIVE_POWER = 50;
+
+    // Power constants.
+    const float DRIVE_MAX_POWER  = 1.0;
+    const float DRIVE_MIN_POWER  = -1.0;
+    const float DRIVE_MAX_EFFORT = 0.5;
+    const float DRIVE_MIN_EFFORT = -0.5;
+
+    // Control constants.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
+    ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
     //// Camera Constants.
@@ -87,7 +96,7 @@ namespace constants
     const bool ZED_MAINCAM_USE_GPU_MAT              = true;        // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;        // Whether of not to use float32 or unsigned short (16) for depth measure.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 20;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAN_SERIAL                    = 31237348;    // The serial number of the camera.
+    const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one.
 
     // Left Side Cam.
     const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
