@@ -18,7 +18,7 @@
 #include "../opencv/TagGenerator.hpp"
 
 /******************************************************************************
- * @brief This class inherits the AutonomyThread interface and implments the threaded
+ * @brief This class inherits the AutonomyThread interface and implements the threaded
  * container methods. It also utilizes the ability to create a thread pool
  * of subroutines and the ability to parallelize loops.
  *
@@ -35,7 +35,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
         std::mutex m_muDictMutex;    // This mutex is used for locking write access to the dictionary in threads.
 
         /******************************************************************************
-         * @brief This code will run in a seperate thread. This is the main code.
+         * @brief This code will run in a separate thread. This is the main code.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -58,7 +58,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          * @brief Any highly parallelizable code that can be used in the main thread
          *       goes here.
          *
-         *      This is not required and is only used at the users convienence.
+         *      This is not required and is only used at the users convenience.
          *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
@@ -66,7 +66,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
          ******************************************************************************/
         void PooledLinearCode() override
         {
-            // Aquire resource lock for dictionary vector.
+            // Acquire resource lock for dictionary vector.
             std::unique_lock<std::mutex> lock(m_muDictMutex);
             // Get dictionary enum from back of dictionary vector.
             cv::aruco::PredefinedDictionaryType cvDictType = m_vDictionaries.back();
@@ -112,7 +112,7 @@ class ArucoGenerateTagsThreaded : public AutonomyThread<void>
 
         /******************************************************************************
          * @brief Mutator for the Num Tags To Generate private member. Given number
-         *      must not excede the dictionary type limit.
+         *      must not exceed the dictionary type limit.
          *
          * @param nNumTags - The number of tags to generate.
          *
@@ -173,7 +173,7 @@ class ArucoGenerateTagsLinear
 
         /******************************************************************************
          * @brief Mutator for the Num Tags To Generate private member. Given number
-         *      must not excede the dictionary type limit.
+         *      must not exceed the dictionary type limit.
          *
          * @param nNumTags - The number of tags to generate.
          *

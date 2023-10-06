@@ -169,7 +169,7 @@ class IPS
                 dSum += dVal;
             }
 
-            // Return calulated average.
+            // Return calculated average.
             return dSum / m_dqIPSHistory.size();
         }
 

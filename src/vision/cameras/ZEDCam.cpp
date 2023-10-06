@@ -72,7 +72,7 @@ struct ZEDCam::ZedObjectData
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
  * @param fMinSenseDistance - The minimum distance to include in depth measures.
- * @param fMaxSenseDistance - The maximim distance to include in depth measures.
+ * @param fMaxSenseDistance - The maximum distance to include in depth measures.
  * @param bMemTypeGPU - Whether or not to use the GPU memory for operations.
  * @param unCameraSerialNumber - The serial number of the camera to open.
  *
@@ -163,7 +163,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     {
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger,
-                  "{} stereo camera with serial number {} has been succsessfully opened.",
+                  "{} stereo camera with serial number {} has been successfully opened.",
                   this->GetCameraModel(),
                   m_slCamera.getCameraInformation().serial_number);
     }
@@ -195,11 +195,11 @@ ZEDCam::~ZEDCam()
     m_slCamera.close();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been succsessfully closed.", m_unCameraSerialNumber);
+    LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been successfully closed.", m_unCameraSerialNumber);
 }
 
 /******************************************************************************
- * @brief The code inside this private method runs in a seperate thread, but still
+ * @brief The code inside this private method runs in a separate thread, but still
  *      has access to this*. This method continuously calls the grab() function of
  *      the ZEDSDK, which updates all frames (RGB, depth, cloud) and all other data
  *      such as positional and spatial mapping. Then a thread pool is started and joined
@@ -354,13 +354,13 @@ void ZEDCam::ThreadedContinuousCode()
         // Acquire a shared_lock on the frame copy queue.
         std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Check if the frame copy queue is empty.
-        if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxInjestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
+        if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
             !m_qIMUDataCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
         {
             // Find the queue with the longest length.
             size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
                                                 m_qGPUFrameCopySchedule.size(),
-                                                m_qCustomBoxInjestSchedule.size(),
+                                                m_qCustomBoxIngestSchedule.size(),
                                                 m_qPoseCopySchedule.size(),
                                                 m_qIMUDataCopySchedule.size(),
                                                 m_qObjectDataCopySchedule.size(),
@@ -394,7 +394,7 @@ void ZEDCam::PooledLinearCode()
     // Check if we are using CPU or GPU mats.
     if (m_slMemoryType == sl::MEM::CPU)
     {
-        // Aqcuire mutex for getting frames out of the queue.
+        // Acquire mutex for getting frames out of the queue.
         std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
@@ -433,7 +433,7 @@ void ZEDCam::PooledLinearCode()
     // Use GPU mat.
     else
     {
-        // Aqcuire mutex for getting frames out of the queue.
+        // Acquire mutex for getting frames out of the queue.
         std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
@@ -473,7 +473,7 @@ void ZEDCam::PooledLinearCode()
     /////////////////////////////
     //  Pose queue.
     /////////////////////////////
-    // Aqcuire mutex for getting frames out of the pose queue.
+    // Acquire mutex for getting frames out of the pose queue.
     std::unique_lock<std::mutex> lkPoseQueue(m_muPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qPoseCopySchedule.empty())
@@ -495,7 +495,7 @@ void ZEDCam::PooledLinearCode()
     /////////////////////////////
     //  ObjectData queue.
     /////////////////////////////
-    // Aqcuire mutex for getting frames out of the pose queue.
+    // Acquire mutex for getting frames out of the pose queue.
     std::unique_lock<std::mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectDataCopySchedule.empty())
@@ -507,7 +507,7 @@ void ZEDCam::PooledLinearCode()
         // Release lock.
         lkObjectDataQueue.unlock();
 
-        // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
+        // Make copy of object vector. (Apparently the assignment operator actually does a deep copy)
         *(stContainer.pData) = m_slDetectedObjects.object_list;
 
         // Signal future that the data has been successfully retrieved.
@@ -517,7 +517,7 @@ void ZEDCam::PooledLinearCode()
     /////////////////////////////
     //  ObjectData Batched queue.
     /////////////////////////////
-    // Aqcuire mutex for getting frames out of the pose queue.
+    // Acquire mutex for getting frames out of the pose queue.
     std::unique_lock<std::mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectBatchedDataCopySchedule.empty())
@@ -529,7 +529,7 @@ void ZEDCam::PooledLinearCode()
         // Release lock.
         lkObjectBatchedDataQueue.unlock();
 
-        // Make copy of object vector. (Apparently the assignement operator actually does a deep copy)
+        // Make copy of object vector. (Apparently the assignment operator actually does a deep copy)
         *(stContainer.pData) = m_slDetectedObjectsBatched;
 
         // Signal future that the data has been successfully retrieved.
@@ -544,7 +544,7 @@ void ZEDCam::PooledLinearCode()
  *
  * @param cvFrame - A reference to the cv::Mat to copy the normal frame to.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
@@ -572,7 +572,7 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
  *
  * @param cvGPUFrame - A reference to the cv::Mat to copy the normal frame to.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
@@ -603,7 +603,7 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
  *                  purposes other than displaying depth.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -639,7 +639,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
  * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
  *                  purposes other than displaying depth.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -679,10 +679,8 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @param bAddColor - Whether or not the BGRA value should be appended to the point cloud. This will be much slower
- *                  and should not be used unless you need color and pointcloud data that is synced.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -717,9 +715,8 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
  *
  * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @param bAddColor - Whether or not the BGRA value should be appended to the point cloud.
  * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -758,7 +755,7 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     sl::Rotation slZeroRotation;
     slZeroRotation.setEulerAngles(sl::float3(0.0, 0.0, 0.0), false);
 
-    // Store new translation and rotation in a tranform object.
+    // Store new translation and rotation in a transform object.
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
     // Acquire write lock.
@@ -785,7 +782,7 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
  ******************************************************************************/
 sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects)
 {
-    // Create instance varables.
+    // Create instance variables.
     std::vector<sl::CustomBoxObjectData> vCustomBoxData;
 
     // Repack detection data into sl specific object.
@@ -882,7 +879,7 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
 }
 
 /******************************************************************************
- * @brief Disable to positional tracking funcionality of the camera.
+ * @brief Disable to positional tracking functionality of the camera.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -924,7 +921,7 @@ sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const
     sl::Rotation slZeroRotation;
     slZeroRotation.setEulerAngles(sl::float3(dXO, dYO, dZO), false);
 
-    // Store new translation and rotation in a tranform object.
+    // Store new translation and rotation in a transform object.
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
     // Acquire write lock.
@@ -957,7 +954,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
         this->EnablePositionalTracking();
     }
 
-    // Wait for positional tracking state to be OK. Defualt Timeout of 10 seconds.
+    // Wait for positional tracking state to be OK. Default Timeout of 10 seconds.
     while (m_slCamera.getPosition(slCameraPose) != sl::POSITIONAL_TRACKING_STATE::OK &&
            std::chrono::steady_clock::now() - tmStartTime <= std::chrono::seconds(nTimeoutSeconds))
     {
@@ -1156,7 +1153,7 @@ unsigned int ZEDCam::GetCameraSerial()
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
  * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -1312,7 +1309,7 @@ bool ZEDCam::GetObjectDetectionEnabled()
  *
  * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
  * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -1353,7 +1350,7 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
 
 /******************************************************************************
  * @brief If batching is enabled, this requests the normal objects and passes them to
- *  the the iternal batching queue of the zed api. This performs short-term re-identification
+ *  the the internal batching queue of the zed api. This performs short-term re-identification
  *  with deep learning and trajectories filtering. Batching must have been set to enabled when
  *  EnableObjectDetection() was called. Most of the time the vector will be empty and will be
  *  filled every ZED_OBJDETECTION_BATCH_LATENCY.
@@ -1361,7 +1358,7 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
  * @param vBatchedObjectData - A vector containing objects of sl::ObjectsBatch object that will
  *                              have object data copied to.
  * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if frame was succesfully retrieved.
+ *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-30

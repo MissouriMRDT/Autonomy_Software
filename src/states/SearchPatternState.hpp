@@ -15,11 +15,11 @@
  * @brief Search Pattern State Handler
  *
  *        Primarily the Search Pattern State Handler, handles the search
- *        algorithmn to attept and find a tag after reaching the GPS Point
+ *        algorithm to attempt and find a tag after reaching the GPS Point
  *        for a Gate or Marker Leg.
  *
  *        It also listens for state events that pertain to the Search
- *        Pattern State and calls the approprate transition handler to
+ *        Pattern State and calls the appropriate transition handler to
  *        transition states as needed.
  *
  *
@@ -135,7 +135,7 @@ struct SeachPattern_AbortTransition : sc::event<SeachPattern_AbortTransition>
  * @brief Search Pattern State - Transition to Stuck
  *
  *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        Autonomy will navigate to the Stuck State and attempt a series
  *        of algorithms to become unstuck.
  *
  *

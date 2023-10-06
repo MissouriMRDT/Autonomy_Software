@@ -15,11 +15,11 @@
  * @brief Idle State Handler
  *
  *        Primarily the Idle State Handler, handles the routing that
- *        occures at the beginning of each leg. This is also the state
+ *        occurs at the beginning of each leg. This is also the state
  *        which Autonomy will sit in if moving.
  *
  *        It also listens for state events that pertain to the Idle State
- *        and calls the approprate transition handler to transition states
+ *        and calls the appropriate transition handler to transition states
  *        as needed.
  *
  *
