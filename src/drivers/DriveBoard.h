@@ -41,7 +41,7 @@ class DriveBoard
         enum DifferentialControlMethod
         {
             eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
-            eCurvatureDrive    // Similiar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
+            eCurvatureDrive    // Similar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
         };
 
         /////////////////////////////////////////

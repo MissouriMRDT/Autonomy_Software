@@ -30,8 +30,8 @@ namespace numops
      * @tparam T - Template value specifying the type of the number to map to new range.
      * @param tValue - The value to remap.
      * @param tOldMinimum - The current range's minimum value.
-     * @param tOldMaximum - The current range's maximim value.
-     * @param tNewMinimum - The new range's minimim value.
+     * @param tOldMaximum - The current range's maximum value.
+     * @param tNewMinimum - The new range's minimum value.
      * @param tNewMaximum - The new range's maximum value.
      * @return T - The resultant templated type mapped to the new range.
      *
@@ -39,7 +39,7 @@ namespace numops
      * @date 2023-09-22
      ******************************************************************************/
     template<typename T>
-    T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
+    inline T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
     {
         // Check if the ranges are valid.
         if (tOldMinimum == tOldMaximum || tNewMinimum == tNewMaximum)
