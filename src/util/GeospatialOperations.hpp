@@ -13,7 +13,7 @@
 #define GEOSPATIAL_OPERATIONS_HPP
 
 /******************************************************************************
- * @brief Namespace containing functions related to operations on gobal position number
+ * @brief Namespace containing functions related to operations on global position number
  *      systems and other datatypes.
  *
  *

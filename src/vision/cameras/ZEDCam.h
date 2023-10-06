@@ -124,12 +124,12 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxInjestSchedule;
+        std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
-        std::mutex m_muCustomBoxInjestMutex;
+        std::mutex m_muCustomBoxIngestMutex;
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;

@@ -11,7 +11,9 @@
 #include "../../src/AutonomyGlobals.h"
 #include "../../src/AutonomyLogging.h"
 #include "../../src/util/ExampleChecker.h"
-#include "../../src/vision/cameras/ZEDCam.h"
+#include "../../src/util/vision/ImageOperations.hpp"
+
+#include <chrono>
 
 // Declare file constants.
 const bool ENABLE_SPATIAL_MAPPING = false;
@@ -27,7 +29,7 @@ const bool ENABLE_SPATIAL_MAPPING = false;
  *      Inside the camera thread, the cv::Mat pointer that points to the cv::Mat within THIS class
  *      is written to and an std::promise is set to TRUE. The future that was return now contains this
  *      TRUE value. When the get() method is called on the returned future, the code will block until
- *      the promise is fullfilled (set to TRUE). Once the get() method returns, the cv::Mat within
+ *      the promise is fulfilled (set to TRUE). Once the get() method returns, the cv::Mat within
  *      this class now contains a complete frame and can be display or used in other computer vision
  *      things.
  *
@@ -62,6 +64,7 @@ void RunExample()
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
     cv::Mat cvPointCloud1;
+    cv::Mat cvPointCloudColor1;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     cv::cuda::GpuMat cvGPUDepthFrame1;
     cv::cuda::GpuMat cvGPUPointCloud1;
@@ -106,6 +109,7 @@ void RunExample()
                 // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
                 cvGPUDepthFrame1.download(cvDepthFrame1);
+                cvGPUPointCloud1.download(cvPointCloud1);
             }
 
             // Put FPS on normal frame.
@@ -119,9 +123,13 @@ void RunExample()
             // Put FPS on depth frame.
             cv::putText(cvDepthFrame1, std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
 
+            // Split color from point cloud.
+            imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
+
             // Display frame.
             cv::imshow("FRAME1", cvNormalFrame1);
             cv::imshow("DEPTH1", cvDepthFrame1);
+            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
 
             // Wait for the other info to be copied.
             if (fuPoseCopyStatus.get())

@@ -18,7 +18,7 @@
  *        detection and navigation of the Rover around obstacles.
  *
  *        It also listens for state events that pertain to the Obstacle
- *        Avoidance State and calls the approprate transition handler to
+ *        Avoidance State and calls the appropriate transition handler to
  *        transition states as needed.
  *
  *
@@ -94,7 +94,7 @@ struct Avoidance_AbortTransition : sc::event<Avoidance_AbortTransition>
  * @brief Obstacle Avoidance State - Transition to Stuck
  *
  *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        Autonomy will navigate to the Stuck State and attempt a series
  *        of algorithms to become unstuck.
  *
  *
