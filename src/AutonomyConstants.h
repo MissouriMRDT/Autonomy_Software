@@ -115,10 +115,10 @@ namespace constants
 
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_5X5_50;    // The predefined ArUco dictionary to use for detections.
-    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015;                     // side of the black border in meters
-    const int ARUCO_VALIDATION_THRESHOLD                            = 5;    // how many times does the tag need to be detected(hit) before being validated as an actual aruco tag
-    const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD = 5; // how many times can an unvalidated tag be missing from frame before being forgotten
-    const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD = 10; // how many times can a validated tag be missing from frame before being forgotten
+    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015;                     // Size of the white borders around the tag.
+    const int ARUCO_VALIDATION_THRESHOLD             = 5;     // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
+    const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD = 5;     // How many times can an unvalidated tag be missing from frame before being forgotten.
+    const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;    // How many times can a validated tag be missing from frame before being forgotten.
 
     ///////////////////////////////////////////////////////////////////////////
 

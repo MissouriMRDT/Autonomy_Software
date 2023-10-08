@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Defines and implements functions related to operations on images. All
+ * @brief Defines and implements functions related to GENERAL operations on images. All
  *      functions are defined within the imgops namespace.
  *
  * @file ImageOperations.hpp
@@ -16,7 +16,7 @@
 #include <sl/Camera.hpp>
 
 /******************************************************************************
- * @brief Namespace containing functions related to operations on images or other
+ * @brief Namespace containing functions related to GENERAL operations on images or other
  *      large binary operations.
  *
  *
