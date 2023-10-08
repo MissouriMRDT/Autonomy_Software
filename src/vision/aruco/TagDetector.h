@@ -2,7 +2,7 @@
  * @brief Provides aruco detection and pose estimation capabilities in a multithreaded
  *      fashion using both OpenCV's ArUco library and a custom Tensorflow detection model.
  *
- * @file ArucoThread.h
+ * @file TagDetector.h
  * @author jspencerpittman (jspencerpittman@gmail.com)
  * @date 2023-10-01
  *
@@ -38,14 +38,14 @@
  * @author jspencerpittman (jspencerpittman@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-class ArucoThread : public AutonomyThread<void>
+class TagDetector : public AutonomyThread<void>
 {
     public:
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        ArucoThread(const CameraHandler::BasicCamName eCameraName, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        ArucoThread(const CameraHandler::ZEDCamName eCameraName, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        TagDetector(const CameraHandler::BasicCamName eCameraName, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        TagDetector(const CameraHandler::ZEDCamName eCameraName, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
 
