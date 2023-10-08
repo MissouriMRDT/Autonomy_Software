@@ -22,7 +22,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-ArucoThread::ArucoThread(const CameraHandler::BasicCamName eCameraName, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
+TagDetector::TagDetector(const CameraHandler::BasicCamName eCameraName, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                          = globals::g_pCameraHandler->GetBasicCam(eCameraName);
@@ -42,7 +42,7 @@ ArucoThread::ArucoThread(const CameraHandler::BasicCamName eCameraName, int nNum
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-ArucoThread::ArucoThread(const CameraHandler::ZEDCamName eCameraName, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
+TagDetector::TagDetector(const CameraHandler::ZEDCamName eCameraName, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                          = globals::g_pCameraHandler->GetZED(eCameraName);
@@ -60,7 +60,7 @@ ArucoThread::ArucoThread(const CameraHandler::ZEDCamName eCameraName, int nNumDe
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-void ArucoThread::ThreadedContinuousCode()
+void TagDetector::ThreadedContinuousCode()
 {
     // Create persistent object for holding frames.
     cv::Mat cvFrame;
@@ -166,7 +166,7 @@ void ArucoThread::ThreadedContinuousCode()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-08
  ******************************************************************************/
-void ArucoThread::PooledLinearCode()
+void TagDetector::PooledLinearCode()
 {
     /////////////////////////////
     //  ArucoTag queue.
@@ -224,7 +224,7 @@ void ArucoThread::PooledLinearCode()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags)
+std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags)
 {
     // Assemble the DataFetchContainer.
     containers::DataFetchContainer<std::vector<arucotag::ArucoTag>> stContainer(vArucoTags);
@@ -251,7 +251,7 @@ std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<arucotag::Ar
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-std::future<bool> ArucoThread::RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags)
+std::future<bool> TagDetector::RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags)
 {
     // Assemble the DataFetchContainer.
     containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>> stContainer(vTensorflowTags);
@@ -278,7 +278,7 @@ std::future<bool> ArucoThread::RequestDetectedTensorflowTags(std::vector<tensorf
  * @author jspencerpittman (jspencerpittman@gmail.com)
  * @date 2023-10-06
  ******************************************************************************/
-void ArucoThread::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags)
+void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags)
 {
     // Sort tags from least to greatest.
     std::sort(vNewlyDetectedTags.begin(),
@@ -362,7 +362,7 @@ void ArucoThread::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-void ArucoThread::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags)
+void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags)
 {
     // Sort tags from least to greatest.
     std::sort(vNewlyDetectedTags.begin(),
