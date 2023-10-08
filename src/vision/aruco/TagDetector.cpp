@@ -14,7 +14,7 @@
 /******************************************************************************
  * @brief Construct a new TagDetector object.
  *
- * @param eCameraName - The name of the camera to get frames from for detection.
+ * @param pBasicCam - A pointer to the BasicCam camera to get frames from for detection.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
@@ -22,10 +22,10 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-TagDetector::TagDetector(const CameraHandler::BasicCamName eCameraName, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
+TagDetector::TagDetector(BasicCam* pBasicCam, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
-    m_pCamera                          = globals::g_pCameraHandler->GetBasicCam(eCameraName);
+    m_pCamera                          = dynamic_cast<BasicCam*>(pBasicCam);
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
@@ -34,7 +34,7 @@ TagDetector::TagDetector(const CameraHandler::BasicCamName eCameraName, int nNum
 /******************************************************************************
  * @brief Construct a new TagDetector object.
  *
- * @param eCameraName - The name of the camera to get frames from for detection. Override for ZED camera.
+ * @param pZEDCam - A pointer to the ZEDCam camera to get frames from for detection. Override for ZED camera.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
@@ -42,10 +42,10 @@ TagDetector::TagDetector(const CameraHandler::BasicCamName eCameraName, int nNum
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-TagDetector::TagDetector(const CameraHandler::ZEDCamName eCameraName, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
+TagDetector::TagDetector(ZEDCam* pZEDCam, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
-    m_pCamera                          = globals::g_pCameraHandler->GetZED(eCameraName);
+    m_pCamera                          = dynamic_cast<ZEDCam*>(pZEDCam);
     m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;

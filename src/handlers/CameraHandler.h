@@ -8,8 +8,8 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef CAMERA_HANDLER__H
-#define CAMERA_HANDLER__H
+#ifndef CAMERA_HANDLER_H
+#define CAMERA_HANDLER_H
 
 #include <opencv2/core.hpp>
 

@@ -9,17 +9,16 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef ARUCO_THREAD_H
-#define ARUCO_THREAD_H
+#ifndef TAG_DETECTOR_H
+#define TAG_DETECTOR_H
 
 #include <future>
 #include <shared_mutex>
 #include <vector>
 
-#include "../../AutonomyGlobals.h"
 #include "../../interfaces/AutonomyThread.hpp"
-#include "../../interfaces/Camera.hpp"
-#include "../../util/vision/FetchContainers.hpp"
+#include "../../vision/cameras/BasicCam.h"
+#include "../../vision/cameras/ZEDCam.h"
 #include "./ArucoDetection.hpp"
 #include "./TensorflowDetection.hpp"
 
@@ -44,8 +43,8 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        TagDetector(const CameraHandler::BasicCamName eCameraName, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        TagDetector(const CameraHandler::ZEDCamName eCameraName, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        TagDetector(BasicCam* pBasicCam, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        TagDetector(ZEDCam* pZEDCam, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
 
