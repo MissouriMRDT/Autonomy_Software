@@ -59,6 +59,7 @@ SIMCAM
 statechart
 Struct
 Styleguides
+TAGDETECT
 Tele
 tensorflowtag
 threadpool
