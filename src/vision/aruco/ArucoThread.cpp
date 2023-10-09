@@ -25,7 +25,7 @@ std::future<bool> ArucoThread::RequestDetectedArucoTags(std::vector<aruco::Aruco
 
 void ArucoThread::UpdateDetectedTags(std::vector<aruco::ArucoTag>& vNewlyDetectedTags)
 {
-    std::sort(vNewlyDetectedTags.begin(), vNewlyDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { a.id < b.id; });
+    std::sort(vNewlyDetectedTags.begin(), vNewlyDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { return a.id < b.id; });
 
     auto newItr = vNewlyDetectedTags.begin();
     auto oldItr = m_vDetectedTags.begin();
@@ -74,7 +74,7 @@ void ArucoThread::UpdateDetectedTags(std::vector<aruco::ArucoTag>& vNewlyDetecte
         vNewlyDetectedTags.push_back(tag);
 
     // keep the list of detected tags sorted
-    std::sort(m_vDetectedTags.begin(), m_vDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { a.id < b.id; });
+    std::sort(m_vDetectedTags.begin(), m_vDetectedTags.end(), [](const aruco::ArucoTag& a, const aruco::ArucoTag& b) { return a.id < b.id; });
 }
 
 void ArucoThread::ThreadedContinuousCode()
