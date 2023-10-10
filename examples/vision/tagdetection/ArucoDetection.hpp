@@ -55,12 +55,6 @@ void RunExample()
         // Show first frame copy.
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
         {
-            // Print info.
-            LOG_INFO(logging::g_qConsoleLogger,
-                     "BasicCam Getter FPS: {} | 1% Low: {}",
-                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
-                     ExampleBasicCam1->GetIPS().Get1PercentLow());
-
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
                         std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
@@ -84,6 +78,13 @@ void RunExample()
         FPS.Tick();
         // Print FPS of main loop.
         LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
+        // Print camera FPS info.
+        LOG_INFO(logging::g_qConsoleLogger,
+                 "BasicCam Getter FPS: {} | 1% Low: {}",
+                 ExampleBasicCam1->GetIPS().GetAverageIPS(),
+                 ExampleBasicCam1->GetIPS().Get1PercentLow());
+        // Print detector FPS info.
+        LOG_INFO(logging::g_qConsoleLogger, "Detector FPS: {}", ExampleTagDetector1->GetIPS().GetExactIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit
