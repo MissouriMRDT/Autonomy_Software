@@ -27,7 +27,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
 
     // Initialize detector for left aruco BasicCam.
-    m_pTagDetectorMainCam =
+    m_pTagDetectorLeftCam =
         new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye), constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS, false);
 }
 
