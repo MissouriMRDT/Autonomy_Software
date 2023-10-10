@@ -47,6 +47,7 @@ class TagDetector : public AutonomyThread<void>
         TagDetector(ZEDCam* pZEDCam, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
+        IPS& GetIPS();
 
     private:
         /////////////////////////////////////////
@@ -58,6 +59,7 @@ class TagDetector : public AutonomyThread<void>
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         int m_nNumDetectedTagsRetrievalThreads;
+        IPS m_IPS;
 
         // Detected tags storage.
         std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
