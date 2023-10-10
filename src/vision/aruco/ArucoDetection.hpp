@@ -86,21 +86,19 @@ namespace arucotag
      * @brief detect ArUco tags in the provided image
      *
      * @param cvFrame - The camera frame to run ArUco detection on.
+     * @param cvArucoDetector - The configured aruco detector to use for detection.
      * @return std::vector<ArucoTag> - The resultant vector containing the detected tags in the frame.
      *
      * @author jspencerpittman (jspencerpittman@gmail.com)
      * @date 2023-09-28
      ******************************************************************************/
-    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame)
+    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
     {
         // Create instance variables.
         std::vector<int> vIDs;
         std::vector<std::vector<cv::Point2f>> cvMarkerCorners, cvRejectedCandidates;
-        cv::aruco::DetectorParameters cvArucoDetectionParams = cv::aruco::DetectorParameters();
 
-        // Detect the tags in the image.
-        cv::aruco::Dictionary cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
-        cv::aruco::ArucoDetector cvArucoDetector(cvTagDictionary, cvArucoDetectionParams);
+        // Run Aruco detection algorithm.
         cvArucoDetector.detectMarkers(cvFrame, cvMarkerCorners, vIDs, cvRejectedCandidates);
 
         // Store all of the detected tags as ArucoTag.
