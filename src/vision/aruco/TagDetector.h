@@ -62,7 +62,6 @@ class TagDetector : public AutonomyThread<void>
         // Detected tags storage.
         std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> m_vDetectedTensorTags;
-        std::shared_mutex m_muDetectedTagsMutex;
 
         // Queues and mutexes for scheduling and copying data to other threads.
 
