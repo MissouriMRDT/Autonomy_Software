@@ -23,12 +23,23 @@ TagDetectionHandler::TagDetectionHandler()
 {
     // Initialize detector for main ZEDcam.
     m_pTagDetectorMainCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam),
+                                            constants::TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER,
+                                            constants::TAGDETECT_MAINCAM_CORNER_REFINE_METHOD,
+                                            constants::TAGDETECT_MAINCAM_MARKER_BORDER_BITS,
+                                            constants::TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER,
+                                            constants::TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION,
                                             constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
 
     // Initialize detector for left aruco BasicCam.
-    m_pTagDetectorLeftCam =
-        new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye), constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS, false);
+    m_pTagDetectorLeftCam = new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye),
+                                            constants::TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER,
+                                            constants::TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD,
+                                            constants::TAGDETECT_LEFTCAM_MARKER_BORDER_BITS,
+                                            constants::TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER,
+                                            constants::TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION,
+                                            constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
+                                            false);
 }
 
 /******************************************************************************
