@@ -91,4 +91,41 @@ namespace aruco
         // Calculate the angle on plane horizontal to the viewpoint
         tag.angle = atan2(right, forward);
     }
+
+    /******************************************************************************
+     * @brief Preprocess images for Detect() method. Specifically, make the image
+     *      greyscale, apply a bilateral filter for denoising, then apply a white-mask
+     *      with the threshold() method. Currently investigating openCV models for
+     *      super-resolution.
+     *
+     * @param cvInputFrame - cv::Mat of the image to pre-process
+     * @param cvOutputFrame - cv::Mat that gets overwritten to be the output
+     * @param usSuperResScale - Scale multiplier for super resolution
+     *
+     * @todo Determine optimal order for speed and accuracy
+     * @todo Tune parameters to lib calls
+     * @todo Get openCV model working
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2023-10-10
+     ******************************************************************************/
+    inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame /*, const unsigned short usSuperResScale*/)
+    {
+        cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGR2GRAY);
+        // De-noise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
+        cv::bilateralFilter(cvInputFrame, cvOutputFrame, /*diameter =*/2, /*sigmaColor =*/0, /*sigmaSpace =*/0);
+        // De-blur? (Would require determining point spread function that caused the blur)
+
+        // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)
+        cv::threshold(cvInputFrame, cvOutputFrame, ARUCO_PIXEL_THRESHOLD, ARUCO_PIXEL_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
+
+        // Super-Resolution
+        // TODO fix below
+        // std::string szModelPath = "ESPCN_x3.pb";
+        // std::string szModelName = "espcn";
+        // dnn_superres::DnnSuperResImpl dnSuperResModel;
+        // dnSuperResModel.readModel(/*path*/); PUT THIS IN CLASS
+        // dnSuperResModel.setModel(/*path, scale*/);
+        // dnSuperResModel.upsample(cvInputFrame, cvOutputFrame);
+    }
 }    // namespace aruco
