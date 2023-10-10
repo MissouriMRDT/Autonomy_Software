@@ -152,10 +152,10 @@ namespace arucotag
         cv::Point2f cvCenter = FindTagCenter(stTag);
 
         // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
-        sl::float4 cvCoordinate = cvPointCloud.at<sl::float4>(cvCenter.y, cvCenter.x);
-        float fForward          = cvCoordinate.w;
-        float fRight            = cvCoordinate.x;
-        float fUp               = cvCoordinate.y;
+        cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);
+        float fForward         = cvCoordinate[2];    // Z
+        float fRight           = cvCoordinate[0];    // X
+        float fUp              = cvCoordinate[1];    // Y
 
         // Calculate euclidean distance from ZED camera left eye to the point of interest
         stTag.dStraightLineDistance = sqrt(pow(fForward, 2) + pow(fRight, 2) + pow(fUp, 2));
