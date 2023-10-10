@@ -47,12 +47,12 @@ struct ZEDCam::ZedObjectData
 
     public:
         // Declare and define public struct member variables.
-        struct Corner CornerTL;    // The top left corner of the bounding box.
-        struct Corner CornerTR;    // The top right corner of the bounding box.
-        struct Corner CornerBL;    // The bottom left corner of the bounding box.
-        struct Corner CornerBR;    // The bottom right corner of bounding box.
-        int nClassNumber;          // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the
-        float fConfidence;         // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
+        Corner CornerTL;      // The top left corner of the bounding box.
+        Corner CornerTR;      // The top right corner of the bounding box.
+        Corner CornerBL;      // The bottom left corner of the bounding box.
+        Corner CornerBR;      // The bottom right corner of bounding box.
+        int nClassNumber;     // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the
+        float fConfidence;    // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
         // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by class
         // to avoid issues.
         bool bObjectRemainsOnFloorPlane = false;
@@ -380,7 +380,7 @@ void ZEDCam::ThreadedContinuousCode()
  * @brief This method holds the code that is ran in the thread pool started by
  *      the ThreadedLinearCode() method. It copies the data from the different
  *      data objects to references of the same type stored in a queue filled by the
- *      Grab methods.
+ *      Request methods.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)

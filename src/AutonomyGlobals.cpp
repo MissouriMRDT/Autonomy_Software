@@ -113,6 +113,9 @@ namespace globals
     // Camera handler:
     CameraHandler* g_pCameraHandler;
 
+    // Tag Detection Handler:
+    TagDetectionHandler* g_pTagDetectionHandler;
+
     // Drivers:
     DriveBoard g_pDriveBoardInterface;
     MultimediaBoard g_pMultimediaBoard;

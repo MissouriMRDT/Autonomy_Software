@@ -17,6 +17,7 @@
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
 #include "handlers/CameraHandler.h"
+#include "handlers/TagDetectionHandler.h"
 
 #include <chrono>
 #include <ctime>
@@ -51,6 +52,9 @@ namespace globals
 
     // Camera Handler:
     extern CameraHandler* g_pCameraHandler;    // Global Camera Handler
+
+    // Tag Detection Handler:
+    extern TagDetectionHandler* g_pTagDetectionHandler;    // Global Tag Detection Handler
 
     // Board Interfaces:
     extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface
