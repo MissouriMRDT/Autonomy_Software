@@ -82,4 +82,9 @@ extern quill::Logger* g_qSharedLogger;
  ******************************************************************************/
 void InitializeLoggers();
 
+//detect USB
+//initialize input and output stream
+//while loop iterate through input file
+	//parse and log input file onto USB
+
 #endif    // AUTONOMY_LOGGING_H
