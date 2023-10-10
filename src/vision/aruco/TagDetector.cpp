@@ -15,14 +15,26 @@
  * @brief Construct a new TagDetector object.
  *
  * @param pBasicCam - A pointer to the BasicCam camera to get frames from for detection.
+ * @param nArucoCornerRefinementMaxIterations - The number of iterations to use when refining marker corners.
+ * @param nArucoCornerRefinementMethod - The refinement method to use.
+ * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
+ * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
+ * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
+ * @date 2023-10-10
  ******************************************************************************/
-TagDetector::TagDetector(BasicCam* pBasicCam, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
+TagDetector::TagDetector(BasicCam* pBasicCam,
+                         const int nArucoCornerRefinementMaxIterations,
+                         const int nArucoCornerRefinementMethod,
+                         const int nArucoMarkerBorderBits,
+                         const bool bArucoDetectInvertedMarkers,
+                         const bool bUseAruco3Detection,
+                         const int nNumDetectedTagsRetrievalThreads,
+                         const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                          = dynamic_cast<BasicCam*>(pBasicCam);
@@ -30,12 +42,28 @@ TagDetector::TagDetector(BasicCam* pBasicCam, int nNumDetectedTagsRetrievalThrea
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_IPS                              = IPS();
+
+    // Setup aruco detector params.
+    m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
+    m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
+    m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
+    m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
+    m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
+    m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
+    // Get aruco dictionary and initialize aruco detector.
+    m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
+    m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 }
 
 /******************************************************************************
  * @brief Construct a new TagDetector object.
  *
  * @param pZEDCam - A pointer to the ZEDCam camera to get frames from for detection. Override for ZED camera.
+ * @param nArucoCornerRefinementMaxIterations - The number of iterations to use when refining marker corners.
+ * @param nArucoCornerRefinementMethod - The refinement method to use.
+ * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
+ * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
+ * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
@@ -43,13 +71,31 @@ TagDetector::TagDetector(BasicCam* pBasicCam, int nNumDetectedTagsRetrievalThrea
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-TagDetector::TagDetector(ZEDCam* pZEDCam, int nNumDetectedTagsRetrievalThreads, const bool bUsingGpuMats)
+TagDetector::TagDetector(ZEDCam* pZEDCam,
+                         const int nArucoCornerRefinementMaxIterations,
+                         const int nArucoCornerRefinementMethod,
+                         const int nArucoMarkerBorderBits,
+                         const bool bArucoDetectInvertedMarkers,
+                         const bool bUseAruco3Detection,
+                         const int nNumDetectedTagsRetrievalThreads,
+                         const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                          = dynamic_cast<ZEDCam*>(pZEDCam);
     m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
+
+    // Setup aruco detector params.
+    m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
+    m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
+    m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
+    m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
+    m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
+    m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
+    // Get aruco dictionary and initialize aruco detector.
+    m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
+    m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 }
 
 /******************************************************************************
@@ -129,7 +175,7 @@ void TagDetector::ThreadedContinuousCode()
     // Actual detection logic goes here.
     /////////////////////////////////////////
     // Detect tags in the image
-    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(cvFrame);
+    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(cvFrame, m_cvArucoDetector);
 
     // // Estimate the positions of the tags using the point cloud
     // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)

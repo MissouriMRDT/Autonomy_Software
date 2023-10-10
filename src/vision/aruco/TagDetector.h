@@ -43,8 +43,22 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        TagDetector(BasicCam* pBasicCam, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        TagDetector(ZEDCam* pZEDCam, const int nNumDetectedTagsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        TagDetector(BasicCam* pBasicCam,
+                    const int nArucoCornerRefinementMaxIterations = 30,
+                    const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
+                    const int nArucoMarkerBorderBits              = 1,
+                    const bool bArucoDetectInvertedMarkers        = false,
+                    const bool bUseAruco3Detection                = false,
+                    const int nNumDetectedTagsRetrievalThreads    = 5,
+                    const bool bUsingGpuMats                      = false);
+        TagDetector(ZEDCam* pZEDCam,
+                    const int nArucoCornerRefinementMaxIterations = 30,
+                    const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
+                    const int nArucoMarkerBorderBits              = 1,
+                    const bool bArucoDetectInvertedMarkers        = false,
+                    const bool bUseAruco3Detection                = false,
+                    const int nNumDetectedTagsRetrievalThreads    = 5,
+                    const bool bUsingGpuMats                      = false);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
         IPS& GetIPS();
@@ -56,6 +70,9 @@ class TagDetector : public AutonomyThread<void>
         // Class member variables.
 
         Camera<cv::Mat>* m_pCamera;
+        cv::aruco::ArucoDetector m_cvArucoDetector;
+        cv::aruco::DetectorParameters m_cvArucoDetectionParams;
+        cv::aruco::Dictionary m_cvTagDictionary;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         int m_nNumDetectedTagsRetrievalThreads;
