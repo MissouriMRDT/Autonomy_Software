@@ -87,7 +87,7 @@ namespace constants
     //// Camera Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
-    // MainCam
+    // Main ZED Camera.
     const int ZED_MAINCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_FPS                       = 60;          // The FPS to use for the maincam.
@@ -126,8 +126,11 @@ namespace constants
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
-    // MainCam
+    // Main ZED Camera.
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
+
+    // Left Side Cam.
+    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants

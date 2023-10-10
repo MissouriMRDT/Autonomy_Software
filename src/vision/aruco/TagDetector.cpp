@@ -130,12 +130,12 @@ void TagDetector::ThreadedContinuousCode()
     // Detect tags in the image
     std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(cvFrame);
 
-    // Estimate the positions of the tags using the point cloud
-    for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
-    {
-        // Use the point cloud to get the location of the tag.
-        arucotag::EstimatePoseFromPointCloud(cvPointCloud, stTag);
-    }
+    // // Estimate the positions of the tags using the point cloud
+    // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+    // {
+    //     // Use the point cloud to get the location of the tag.
+    //     arucotag::EstimatePoseFromPointCloud(cvPointCloud, stTag);
+    // }
 
     // Merge the newly detected tags with the pre-existing detected tags
     this->UpdateDetectedTags(vNewlyDetectedTags);
@@ -144,7 +144,7 @@ void TagDetector::ThreadedContinuousCode()
     // Acquire a shared_lock on the detected tags copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected tag copy queue is empty.
-    if (!m_qDetectedArucoTagCopySchedule.empty() || m_qDetectedTensorflowTagCopySchedule.empty())
+    if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty())
     {
         size_t siQueueLength = std::max({m_qDetectedArucoTagCopySchedule.size(), m_qDetectedTensorflowTagCopySchedule.size()});
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads

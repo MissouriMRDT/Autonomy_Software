@@ -25,6 +25,10 @@ TagDetectionHandler::TagDetectionHandler()
     m_pTagDetectorMainCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam),
                                             constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
+
+    // Initialize detector for left aruco BasicCam.
+    m_pTagDetectorMainCam =
+        new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye), constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS, false);
 }
 
 /******************************************************************************
@@ -41,9 +45,11 @@ TagDetectionHandler::~TagDetectionHandler()
 
     // Delete dynamic memory.
     delete m_pTagDetectorMainCam;
+    delete m_pTagDetectorLeftCam;
 
     // Set dangling pointers to nullptr.
     m_pTagDetectorMainCam = nullptr;
+    m_pTagDetectorLeftCam = nullptr;
 }
 
 /******************************************************************************
@@ -57,6 +63,9 @@ void TagDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pTagDetectorMainCam->Start();
+
+    // Start the left and right aruco eyes.
+    m_pTagDetectorLeftCam->Start();
 }
 
 /******************************************************************************
@@ -71,6 +80,10 @@ void TagDetectionHandler::StopAllDetectors()
     // Stop ZED maincam detector.
     m_pTagDetectorMainCam->RequestStop();
     m_pTagDetectorMainCam->Join();
+
+    // Stop BasicCam left aruco eye detector.
+    m_pTagDetectorLeftCam->RequestStop();
+    m_pTagDetectorLeftCam->Join();
 }
 
 /******************************************************************************
@@ -88,6 +101,7 @@ TagDetector* TagDetectionHandler::GetTagDetector(TagDetectors eDetectorName)
     switch (eDetectorName)
     {
         case eHeadMainCam: return m_pTagDetectorMainCam;
+        case eHeadLeftArucoEye: return m_pTagDetectorLeftCam;
         default: return m_pTagDetectorMainCam;
     }
 }
