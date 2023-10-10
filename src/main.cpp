@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/OpenBasicCam.hpp"
+#include "../examples/vision/tagdetection/ArucoDetection.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -63,22 +63,29 @@ int main()
     }
     else
     {
-        // Initialize and start Threads
-        globals::g_pCameraHandler = new CameraHandler();
+        // Initialize handlers.
+        globals::g_pCameraHandler       = new CameraHandler();
+        globals::g_pTagDetectionHandler = new TagDetectionHandler();
+        // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
+        globals::g_pTagDetectionHandler->StartAllDetectors();
 
         // TODO: Initialize RoveComm.
 
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
-        // Stop camera threads.
+        // Stop handlers.
         globals::g_pCameraHandler->StopAllCameras();
+        globals::g_pTagDetectionHandler->StopAllDetectors();
 
         // Delete dynamically allocated objects.
         delete globals::g_pCameraHandler;
+        delete globals::g_pTagDetectionHandler;
+
         // Set dangling pointers to null.
-        globals::g_pCameraHandler = nullptr;
+        globals::g_pCameraHandler       = nullptr;
+        globals::g_pTagDetectionHandler = nullptr;
     }
 
     // Successful exit.
