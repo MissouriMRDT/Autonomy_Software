@@ -396,8 +396,8 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
     // Loop through the new tag vector.
     for (arucotag::ArucoTag& stTag : vNewTags)
     {
-        // Add the newly detected tags to the list
-        vNewlyDetectedTags.push_back(stTag);
+        // Add the newly detected tags to the member variable list
+        m_vDetectedArucoTags.push_back(stTag);
     }
 }
 
@@ -480,8 +480,8 @@ void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& 
     // Loop through the new tag vector.
     for (tensorflowtag::TensorflowTag& stTag : vNewTags)
     {
-        // Add the newly detected tags to the list
-        vNewlyDetectedTags.push_back(stTag);
+        // Add the newly detected tags to the member variable list
+        m_vDetectedTensorTags.push_back(stTag);
     }
 }
 
