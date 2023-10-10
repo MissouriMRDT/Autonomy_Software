@@ -3,6 +3,7 @@ ABGR
 alloc
 allocs
 Aruco
+arucotag
 AUTONOMYTHREAD
 BASICCAM
 CALIB
@@ -23,7 +24,9 @@ Geospatial
 hyperthreaded
 imgops
 imshow
+inferencing
 jetpack
+jspencerpittman
 jthread
 LEFTCAM
 MAINCAM
@@ -56,10 +59,13 @@ SIMCAM
 statechart
 Struct
 Styleguides
+TAGDETECT
 Tele
+tensorflowtag
 threadpool
 tparam
 UART
+UNVALIDATED
 valgrind
 Watchpoints
 XYZBGRA

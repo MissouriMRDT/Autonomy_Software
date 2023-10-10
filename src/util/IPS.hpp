@@ -103,6 +103,28 @@ class IPS
         }
 
         /******************************************************************************
+         * @brief Operator equals for IPS class.
+         *
+         * @param OtherIPS - The IPS object to copy values from.
+         * @return IPS& - A reference to this object.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-10-10
+         ******************************************************************************/
+        IPS& operator=(const IPS& OtherIPS)
+        {
+            // Copy values from other IPS object.
+            m_dCurrentIPS  = OtherIPS.m_dCurrentIPS;
+            m_dHighestIPS  = OtherIPS.m_dHighestIPS;
+            m_dLowestIPS   = OtherIPS.m_dLowestIPS;
+            m_d1PercentLow = OtherIPS.m_d1PercentLow;
+            m_dqIPSHistory = OtherIPS.m_dqIPSHistory;
+
+            // Return this object.
+            return *this;
+        }
+
+        /******************************************************************************
          * @brief This method is used to update the iterations per second counter and
          *      recalculate all of the IPS metrics.
          *

@@ -1,72 +1,63 @@
 /******************************************************************************
- * @brief Defines the CameraHandler class.
+ * @brief Defines the TagDetectionHandler class.
  *
- * @file CameraHandler.h
+ * @file TagDetectionHandler.h
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-08-17
+ * @date 2023-10-07
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef CAMERA_HANDLER_H
-#define CAMERA_HANDLER_H
+#ifndef TAG_DETECTION_HANDLER_H
+#define TAG_DETECTION_HANDLER_H
 
-#include <opencv2/core.hpp>
-
-#include "../vision/cameras/BasicCam.h"
-#include "../vision/cameras/ZEDCam.h"
+#include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
- * @brief The CameraHandler class is responsible for managing all of the
- *      camera feeds that Autonomy_Software uses for computer vision. Whether
- *      it be a USB webcam, a MJPEG stream, or a ZED camera, this class is responsible
- *      for initializing that camera and configuring it.
+ * @brief The TagDetectionHandler class is responsible for managing all of the
+ *      different detectors that Autonomy_Software uses for AR tag detection.
+ *      Whether it be for detection using OpenCV's ArUco or detection using a custom
+ *      tensorflow model, the detectors are created and stored here.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-08-17
+ * @date 2023-10-07
  ******************************************************************************/
-class CameraHandler
+class TagDetectionHandler
 {
     private:
         /////////////////////////////////////////
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        ZEDCam* m_pMainCam;
-        BasicCam* m_pLeftCam;
+        TagDetector* m_pTagDetectorMainCam;
+        TagDetector* m_pTagDetectorLeftCam;
 
     public:
         /////////////////////////////////////////
         // Define public enumerators specific to this class.
         /////////////////////////////////////////
 
-        enum ZEDCamName    // Enum for different zed cameras.
+        enum TagDetectors    // Enum for different cameras that detectors are being ran on.
         {
-            eHeadMainCam
-        };
-
-        enum BasicCamName    // Enum for different basic cameras.
-        {
-            eHeadLeftArucoEye,
-            eHeadRightArucoEye
+            eHeadMainCam,
+            eHeadLeftArucoEye
         };
 
         /////////////////////////////////////////
         // Declare public class methods and variables.
         /////////////////////////////////////////
 
-        CameraHandler();
-        ~CameraHandler();
-        void StartAllCameras();
-        void StopAllCameras();
+        TagDetectionHandler();
+        ~TagDetectionHandler();
+        void StartAllDetectors();
+        void StopAllDetectors();
 
         /////////////////////////////////////////
         // Accessors.
         /////////////////////////////////////////
 
-        ZEDCam* GetZED(ZEDCamName eCameraName);
-        BasicCam* GetBasicCam(BasicCamName eCameraName);
+        TagDetector* GetTagDetector(TagDetectors eDetectorName);
 };
 
 #endif

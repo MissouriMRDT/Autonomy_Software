@@ -87,7 +87,7 @@ namespace constants
     //// Camera Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
-    // MainCam
+    // Main ZED Camera.
     const int ZED_MAINCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_FPS                       = 60;          // The FPS to use for the maincam.
@@ -121,6 +121,27 @@ namespace constants
     const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // how many times can a validated tag be missing from frame before being forgotten
     const double ARUCO_PIXEL_THRESHOLD               = 200;    // Pixel value threshold for pre-process threshold mask
     const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE     = 255;    // Pixel value to set to if pixel is within threshold
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Tag Detection Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Main ZED Camera.
+    const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
+    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
+
+    // Left Side Cam.
+    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants
