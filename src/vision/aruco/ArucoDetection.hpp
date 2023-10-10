@@ -230,10 +230,10 @@ namespace arucotag
         // Super-Resolution
         // std::string szModelPath = "ESPCN_x3.pb";
         // std::string szModelName = "espcn";
-        dnn_superres::DnnSuperResImpl dnSuperResModel;
-        dnSuperResModel.readModel(/*path*/);
-        dnSuperResModel.setModel(/*path, scale*/);
-        dnSuperResModel.upsample(cvInputFrame, cvOutputFrame);
+        // dnn_superres::DnnSuperResImpl dnSuperResModel;
+        // dnSuperResModel.readModel(/*path*/);
+        // dnSuperResModel.setModel(/*path, scale*/);
+        // dnSuperResModel.upsample(cvInputFrame, cvOutputFrame);
     }
 }    // namespace arucotag
 
