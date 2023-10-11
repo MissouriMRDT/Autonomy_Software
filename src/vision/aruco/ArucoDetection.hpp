@@ -221,7 +221,9 @@ namespace arucotag
      ******************************************************************************/
     inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame)
     {
-                // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
+        // Greyscale
+        cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGR2GRAY);
+        // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         cv::bilateralFilter(cvInputFrame, cvOutputFrame, /*diameter =*/1, /*sigmaColor =*/0, /*sigmaSpace =*/0);
         // Deblur? (Would require determining point spread function that caused the blur)
 
