@@ -151,8 +151,8 @@ namespace arucotag
             // Copy corners.
             stDetectedTag.CornerTL = cvMarkerCorners[unIter][0];
             stDetectedTag.CornerTR = cvMarkerCorners[unIter][1];
-            stDetectedTag.CornerBL = cvMarkerCorners[unIter][2];
-            stDetectedTag.CornerBR = cvMarkerCorners[unIter][3];
+            stDetectedTag.CornerBR = cvMarkerCorners[unIter][2];
+            stDetectedTag.CornerBL = cvMarkerCorners[unIter][3];
 
             // Add new tag to detected tags vector.
             vDetectedTags.push_back(stDetectedTag);
