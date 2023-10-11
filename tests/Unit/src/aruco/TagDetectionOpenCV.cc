@@ -22,6 +22,24 @@
 #include "./../../../../src/vision/aruco/ArucoDetection.hpp"
 
 /******************************************************************************
+ * @brief Are two points equal to each other
+ *
+ * @tparam T - Data type of the points coordinates (int, double, float, ..)
+ * @param p1 - first point
+ * @param p2 - second point
+ * @return true - points are equal to each other
+ * @return false - points are not equal to each other
+ *
+ * @author JSpencerPittman (jspencerpittman@gmail.com)
+ * @date 2023-10-11
+ ******************************************************************************/
+template<typename T>
+bool PointsAreEqual(const cv::Point_<T>& p1, const cv::Point_<T>& p2)
+{
+    return p1.x == p2.x && p1.y == p2.y;
+}
+
+/******************************************************************************
  * @brief Test the functionality of the FindTagCenter method
  *
  *
@@ -39,8 +57,7 @@ TEST(TagDetectOpenCVTest, FindCenter)
     cv::Point2f predictedCenter = FindTagCenter(tag);
 
     cv::Point2f expectedCenter{6.75, 3.5};
-    EXPECT_FLOAT_EQ(predictedCenter.x, expectedCenter.x);
-    EXPECT_FLOAT_EQ(predictedCenter.y, expectedCenter.y);
+    EXPECT_PRED2(PointsAreEqual<float>, predictedCenter, expectedCenter);
 }
 
 /******************************************************************************
@@ -78,12 +95,8 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
     cv::Point2f expectedCornerBL{220, 419};
     cv::Point2f expectedCornerBR{419, 419};
 
-    EXPECT_FLOAT_EQ(expectedCornerTL.x, detTag.CornerTL.x);
-    EXPECT_FLOAT_EQ(expectedCornerTL.y, detTag.CornerTL.y);
-    EXPECT_FLOAT_EQ(expectedCornerTR.x, detTag.CornerTR.x);
-    EXPECT_FLOAT_EQ(expectedCornerTR.y, detTag.CornerTR.y);
-    EXPECT_FLOAT_EQ(expectedCornerBL.x, detTag.CornerBL.x);
-    EXPECT_FLOAT_EQ(expectedCornerBL.y, detTag.CornerBL.y);
-    EXPECT_FLOAT_EQ(expectedCornerBR.x, detTag.CornerBR.x);
-    EXPECT_FLOAT_EQ(expectedCornerBR.y, detTag.CornerBR.y);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTL, detTag.CornerTL);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTR, detTag.CornerTR);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBL, detTag.CornerBL);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBR, detTag.CornerBR);
 }
