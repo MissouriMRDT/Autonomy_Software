@@ -84,6 +84,37 @@ namespace arucotag
     }
 
     /******************************************************************************
+     * @brief Preprocess images for Detect() method.
+     *
+     * @param cvInputFrame - cv::Mat of the image to pre-process
+     *
+     * @todo Determine optimal order for speed
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2023-10-10
+     ******************************************************************************/
+    inline void PreprocessFrame(cv::Mat& cvInputFrame)
+    {
+        // Create instance variables.
+
+        // Greyscale.
+        cv::cvtColor(cvInputFrame, cvInputFrame, cv::COLOR_BGR2GRAY);
+        // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
+        // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/1, /*sigmaColor =*/0, /*sigmaSpace =*/0);
+        // Deblur? (Would require determining point spread function that caused the blur)
+
+        // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)
+        cv::threshold(cvInputFrame, cvInputFrame, constants::ARUCO_PIXEL_THRESHOLD, constants::ARUCO_PIXEL_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
+
+        // Super-Resolution
+        // std::string szModelPath = "ESPCN_x3.pb";
+        // std::string szModelName = "espcn";
+        // dnn_superres::DnnSuperResImpl dnSuperResModel;
+        // dnSuperResModel.readModel(/*path*/);
+        // dnSuperResModel.setModel(/*path, scale*/);
+        // dnSuperResModel.upsample(cvInputFrame, cvOutputFrame);
+    }
+
+    /******************************************************************************
      * @brief Detect ArUco tags in the provided image.
      *
      * @param cvFrame - The camera frame to run ArUco detection on.
@@ -94,12 +125,14 @@ namespace arucotag
      * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
      ******************************************************************************/
-    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector, const bool bDrawMarkerOverlay = false)
+    inline std::vector<ArucoTag> Detect(cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector, const bool bDrawMarkerOverlay = false)
     {
         // Create instance variables.
         std::vector<int> vIDs;
         std::vector<std::vector<cv::Point2f>> cvMarkerCorners, cvRejectedCandidates;
 
+        // Perform pre-processing for camera frame.
+        PreprocessFrame(cvFrame);
         // Run Aruco detection algorithm.
         cvArucoDetector.detectMarkers(cvFrame, cvMarkerCorners, vIDs, cvRejectedCandidates);
 
@@ -215,36 +248,6 @@ namespace arucotag
 
         // Calculate the angle on plane horizontal to the viewpoint
         stTag.dYawAngle = std::atan2(dRight, dForward);
-    }
-
-    /******************************************************************************
-     * @brief Preprocess images for Detect() method.
-     *
-     * @param cvInputFrame - cv::Mat of the image to pre-process
-     * @param cvOutputFrame - cv::Mat that gets overwritten to be the output
-     *
-     * @todo Determine optimal order for speed
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2023-10-10
-     ******************************************************************************/
-    inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame)
-    {
-        // Greyscale
-        cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGR2GRAY);
-        // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
-        cv::bilateralFilter(cvInputFrame, cvOutputFrame, /*diameter =*/1, /*sigmaColor =*/0, /*sigmaSpace =*/0);
-        // Deblur? (Would require determining point spread function that caused the blur)
-
-        // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)
-        cv::threshold(cvInputFrame, cvOutputFrame, constants::ARUCO_PIXEL_THRESHOLD, constants::ARUCO_PIXEL_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
-
-        // Super-Resolution
-        // std::string szModelPath = "ESPCN_x3.pb";
-        // std::string szModelName = "espcn";
-        // dnn_superres::DnnSuperResImpl dnSuperResModel;
-        // dnSuperResModel.readModel(/*path*/);
-        // dnSuperResModel.setModel(/*path, scale*/);
-        // dnSuperResModel.upsample(cvInputFrame, cvOutputFrame);
     }
 }    // namespace arucotag
 
