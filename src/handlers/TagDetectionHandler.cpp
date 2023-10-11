@@ -40,6 +40,16 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION,
                                             constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
                                             false);
+
+    // Initialize detector for right aruco BasicCam.
+    m_pTagDetectorRightCam = new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye),
+                                             constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER,
+                                             constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD,
+                                             constants::TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS,
+                                             constants::TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER,
+                                             constants::TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION,
+                                             constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
+                                             false);
 }
 
 /******************************************************************************
@@ -57,10 +67,12 @@ TagDetectionHandler::~TagDetectionHandler()
     // Delete dynamic memory.
     delete m_pTagDetectorMainCam;
     delete m_pTagDetectorLeftCam;
+    delete m_pTagDetectorRightCam;
 
     // Set dangling pointers to nullptr.
-    m_pTagDetectorMainCam = nullptr;
-    m_pTagDetectorLeftCam = nullptr;
+    m_pTagDetectorMainCam  = nullptr;
+    m_pTagDetectorLeftCam  = nullptr;
+    m_pTagDetectorRightCam = nullptr;
 }
 
 /******************************************************************************
@@ -77,6 +89,7 @@ void TagDetectionHandler::StartAllDetectors()
 
     // Start the left and right aruco eyes.
     m_pTagDetectorLeftCam->Start();
+    m_pTagDetectorRightCam->Start();
 }
 
 /******************************************************************************
@@ -94,7 +107,9 @@ void TagDetectionHandler::StopAllDetectors()
 
     // Stop BasicCam left aruco eye detector.
     m_pTagDetectorLeftCam->RequestStop();
+    m_pTagDetectorRightCam->RequestStop();
     m_pTagDetectorLeftCam->Join();
+    m_pTagDetectorRightCam->Join();
 }
 
 /******************************************************************************
@@ -113,6 +128,7 @@ TagDetector* TagDetectionHandler::GetTagDetector(TagDetectors eDetectorName)
     {
         case eHeadMainCam: return m_pTagDetectorMainCam;
         case eHeadLeftArucoEye: return m_pTagDetectorLeftCam;
+        case eHeadRightArucoEye: return m_pTagDetectorRightCam;
         default: return m_pTagDetectorMainCam;
     }
 }
