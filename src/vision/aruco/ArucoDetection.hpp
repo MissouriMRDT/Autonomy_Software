@@ -14,6 +14,7 @@
 
 #include <vector>
 
+#include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -218,14 +219,14 @@ namespace arucotag
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2023-10-10
      ******************************************************************************/
-    inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame, const unsigned short usSuperResScale)
+    inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame)
     {
-        // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
+                // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         cv::bilateralFilter(cvInputFrame, cvOutputFrame, /*diameter =*/1, /*sigmaColor =*/0, /*sigmaSpace =*/0);
         // Deblur? (Would require determining point spread function that caused the blur)
 
         // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)
-        cv::threshold(cvInputFrame, cvOutputFrame, ARUCO_IMAGE_THRESHOLD, ARUCO_IMAGE_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
+        cv::threshold(cvInputFrame, cvOutputFrame, constants::ARUCO_PIXEL_THRESHOLD, constants::ARUCO_PIXEL_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
 
         // Super-Resolution
         // std::string szModelPath = "ESPCN_x3.pb";
