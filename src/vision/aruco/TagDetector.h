@@ -82,6 +82,12 @@ class TagDetector : public AutonomyThread<void>
         std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> m_vDetectedTensorTags;
 
+        // Create frames for storing images and point clouds.
+
+        cv::Mat m_cvFrame;
+        cv::Mat m_cvPointCloud;
+        cv::cuda::GpuMat m_cvGPUPointCloud;
+
         // Queues and mutexes for scheduling and copying data to other threads.
 
         std::queue<containers::DataFetchContainer<std::vector<arucotag::ArucoTag>>> m_qDetectedArucoTagCopySchedule;

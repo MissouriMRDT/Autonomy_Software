@@ -83,16 +83,17 @@ namespace arucotag
     }
 
     /******************************************************************************
-     * @brief detect ArUco tags in the provided image
+     * @brief Detect ArUco tags in the provided image.
      *
      * @param cvFrame - The camera frame to run ArUco detection on.
      * @param cvArucoDetector - The configured aruco detector to use for detection.
+     * @param bDrawMarkerOverlay - Whether or not to draw the tag detection annotations onto the image.
      * @return std::vector<ArucoTag> - The resultant vector containing the detected tags in the frame.
      *
-     * @author jspencerpittman (jspencerpittman@gmail.com)
+     * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
      ******************************************************************************/
-    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
+    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector, const bool bDrawMarkerOverlay = false)
     {
         // Create instance variables.
         std::vector<int> vIDs;
@@ -100,6 +101,13 @@ namespace arucotag
 
         // Run Aruco detection algorithm.
         cvArucoDetector.detectMarkers(cvFrame, cvMarkerCorners, vIDs, cvRejectedCandidates);
+
+        // Check if the tag overlays should be drawn onto the image. (This is mostly for debugging.)
+        if (bDrawMarkerOverlay)
+        {
+            // Draw markers onto image.
+            cv::aruco::drawDetectedMarkers(cvFrame, cvMarkerCorners, vIDs);
+        }
 
         // Store all of the detected tags as ArucoTag.
         std::vector<ArucoTag> vDetectedTags;
