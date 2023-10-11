@@ -170,7 +170,7 @@ void TagDetector::ThreadedContinuousCode()
     // Actual detection logic goes here.
     /////////////////////////////////////////
     // Detect tags in the image
-    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector, constants::ARUCO_DRAW_DETECTED_TAG_MARKERS);
+    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector);
 
     // // Estimate the positions of the tags using the point cloud
     // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
@@ -189,9 +189,9 @@ void TagDetector::ThreadedContinuousCode()
     // Acquire a shared_lock on the detected tags copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected tag copy queue is empty.
-    if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty())
+    if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty() || !m_qDetectedTagDrawnOverlayFrames.empty())
     {
-        size_t siQueueLength = std::max({m_qDetectedArucoTagCopySchedule.size(), m_qDetectedTensorflowTagCopySchedule.size()});
+        size_t siQueueLength = std::max({m_qDetectedArucoTagCopySchedule.size(), m_qDetectedTensorflowTagCopySchedule.size(), m_qDetectedTagDrawnOverlayFrames.size()});
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
         // Wait for thread pool to finish.
@@ -213,6 +213,34 @@ void TagDetector::ThreadedContinuousCode()
  ******************************************************************************/
 void TagDetector::PooledLinearCode()
 {
+    /////////////////////////////
+    //  Detection Overlay Frame queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedTagCopySchedule.
+    std::unique_lock<std::mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qDetectedTagDrawnOverlayFrames.empty())
+    {
+        // Get frame container out of queue.
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedTagDrawnOverlayFrames.front();
+        // Pop out of queue.
+        m_qDetectedTagDrawnOverlayFrames.pop();
+        // Release lock.
+        lkTagOverlayFrameQueue.unlock();
+
+        // Check which frame we should copy.
+        switch (stContainer.eFrameType)
+        {
+            case eArucoDetection: *(stContainer.pFrame) = m_cvFrame; break;
+            case eTensorflowDetection: *(stContainer.pFrame) = m_cvFrame; break;
+            default: *(stContainer.pFrame) = m_cvFrame;
+        }
+        // Copy the detected tags to the target location
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
+    }
+
     /////////////////////////////
     //  ArucoTag queue.
     /////////////////////////////
@@ -259,12 +287,66 @@ void TagDetector::PooledLinearCode()
 }
 
 /******************************************************************************
+ * @brief Request a copy of a frame containing the tag detection overlays from the
+ *      aruco library.
+ *
+ * @param cvFrame - The frame to copy the detection overlay image to.
+ * @return std::future<bool> - The future that should be waited on before using the passed in frame.
+ *                      Future will be true or false based on whether or not the frame was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-11
+ ******************************************************************************/
+std::future<bool> TagDetector::RequestArucoDetectionOverlayFrame(cv::Mat& cvFrame)
+{
+    // Assemble the DataFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eArucoDetection);
+
+    // Acquire lock on detected tags copy queue.
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    // Append detected tag fetch container to the schedule queue.
+    m_qDetectedTagDrawnOverlayFrames.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkScheduler.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Request a copy of a frame containing the tag detection overlays from the
+ *      tensorflow model.
+ *
+ * @param cvFrame - The frame to copy the detection overlay image to.
+ * @return std::future<bool> - The future that should be waited on before using the passed in frame.
+ *                      Future will be true or false based on whether or not the frame was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-11
+ ******************************************************************************/
+std::future<bool> TagDetector::RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame)
+{
+    // Assemble the DataFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eTensorflowDetection);
+
+    // Acquire lock on detected tags copy queue.
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    // Append detected tag fetch container to the schedule queue.
+    m_qDetectedTagDrawnOverlayFrames.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkScheduler.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
  * @brief Request the most up to date vector of detected tags from OpenCV's Aruco
  *      algorithm.
  *
  * @param vArucoTags - The vector the detected aruco tags will be saved to.
  * @return std::future<bool> - The future that should be waited on before using the passed in tag vector.
- *                      Future will be true or false based on whether or not the tags where successfully retrieved.
+ *                      Future will be true or false based on whether or not the tags were successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
@@ -291,7 +373,7 @@ std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<arucotag::Ar
  *
  * @param vTensorflowTags - The vector the detected tensorflow tags will be saved to.
  * @return std::future<bool> - The future that should be waited on before using the passed in tag vector.
- *                      Future will be true or false based on whether or not the tags where successfully retrieved.
+ *                      Future will be true or false based on whether or not the tags were successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07

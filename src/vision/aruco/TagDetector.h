@@ -59,6 +59,8 @@ class TagDetector : public AutonomyThread<void>
                     const bool bUseAruco3Detection                = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
+        std::future<bool> RequestArucoDetectionOverlayFrame(cv::Mat& cvFrame);
+        std::future<bool> RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
         IPS& GetIPS();
@@ -89,10 +91,11 @@ class TagDetector : public AutonomyThread<void>
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
-
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFrames;
         std::queue<containers::DataFetchContainer<std::vector<arucotag::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>>> m_qDetectedTensorflowTagCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
+        std::mutex m_muFrameCopyMutex;
         std::mutex m_muArucoDataCopyMutex;
         std::mutex m_muTensorflowDataCopyMutex;
 

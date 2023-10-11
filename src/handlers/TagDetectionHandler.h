@@ -32,6 +32,7 @@ class TagDetectionHandler
 
         TagDetector* m_pTagDetectorMainCam;
         TagDetector* m_pTagDetectorLeftCam;
+        TagDetector* m_pTagDetectorRightCam;
 
     public:
         /////////////////////////////////////////
@@ -41,7 +42,8 @@ class TagDetectionHandler
         enum TagDetectors    // Enum for different cameras that detectors are being ran on.
         {
             eHeadMainCam,
-            eHeadLeftArucoEye
+            eHeadLeftArucoEye,
+            eHeadRightArucoEye
         };
 
         /////////////////////////////////////////

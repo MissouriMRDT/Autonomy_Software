@@ -53,6 +53,7 @@ reprojection
 RESOLUTIONX
 RESOLUTIONY
 RGBE
+RIGHTCAM
 rovecomm
 searchbar
 SIMCAM
