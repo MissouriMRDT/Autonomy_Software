@@ -149,7 +149,7 @@ list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
     add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC})
-    target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main)
+    target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main ${OpenCV_LIBS})
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
 else()
     message("No Unit Tests!")
