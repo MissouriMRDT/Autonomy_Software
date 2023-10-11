@@ -42,6 +42,16 @@ CameraHandler::CameraHandler()
                               constants::BASICCAM_LEFTCAM_HORIZONTAL_FOV,
                               constants::BASICCAM_LEFTCAM_VERTICAL_FOV,
                               constants::BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS);
+
+    // Initialize Right aruco eye.
+    m_pRightCam = new BasicCam(constants::BASICCAM_RIGHTCAM_INDEX,
+                               constants::BASICCAM_RIGHTCAM_RESOLUTIONX,
+                               constants::BASICCAM_RIGHTCAM_RESOLUTIONY,
+                               constants::BASICCAM_RIGHTCAM_FPS,
+                               constants::BASICCAM_RIGHTCAM_PIXELTYPE,
+                               constants::BASICCAM_RIGHTCAM_HORIZONTAL_FOV,
+                               constants::BASICCAM_RIGHTCAM_VERTICAL_FOV,
+                               constants::BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS);
 }
 
 /******************************************************************************
@@ -59,10 +69,12 @@ CameraHandler::~CameraHandler()
     // Delete dynamic memory.
     delete m_pMainCam;
     delete m_pLeftCam;
+    delete m_pRightCam;
 
     // Set dangling pointers to nullptr.
-    m_pMainCam = nullptr;
-    m_pLeftCam = nullptr;
+    m_pMainCam  = nullptr;
+    m_pLeftCam  = nullptr;
+    m_pRightCam = nullptr;
 }
 
 /******************************************************************************
@@ -79,6 +91,7 @@ void CameraHandler::StartAllCameras()
 
     // Start basic cams.
     m_pLeftCam->Start();
+    m_pRightCam->Start();
 }
 
 /******************************************************************************
@@ -96,7 +109,9 @@ void CameraHandler::StopAllCameras()
 
     // Stop basic cams.
     m_pLeftCam->RequestStop();
+    m_pRightCam->RequestStop();
     m_pLeftCam->Join();
+    m_pRightCam->Join();
 }
 
 /******************************************************************************
@@ -132,8 +147,8 @@ BasicCam* CameraHandler::GetBasicCam(BasicCamName eCameraName)
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case eHeadLeftArucoEye: return m_pLeftCam;     // Return the left fisheye cam in the autonomy head.
-        case eHeadRightArucoEye: return m_pLeftCam;    // No camera to return yet.
+        case eHeadLeftArucoEye: return m_pLeftCam;      // Return the left fisheye cam in the autonomy head.
+        case eHeadRightArucoEye: return m_pRightCam;    // No camera to return yet.
         default: return m_pLeftCam;
     }
 }

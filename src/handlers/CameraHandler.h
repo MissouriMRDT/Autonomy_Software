@@ -35,6 +35,7 @@ class CameraHandler
 
         ZEDCam* m_pMainCam;
         BasicCam* m_pLeftCam;
+        BasicCam* m_pRightCam;
 
     public:
         /////////////////////////////////////////
