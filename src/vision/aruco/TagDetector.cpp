@@ -109,11 +109,6 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
  ******************************************************************************/
 void TagDetector::ThreadedContinuousCode()
 {
-    // Create persistent object for holding frames.
-    cv::Mat cvFrame;
-    cv::Mat cvPointCloud;
-    cv::cuda::GpuMat cvGPUPointCloud;
-
     // Create future for indicating when the frame has been copied.
     std::future<bool> fuPointCloudCopyStatus;
 
@@ -124,15 +119,15 @@ void TagDetector::ThreadedContinuousCode()
         if (m_bUsingGpuMats)
         {
             // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCam* so we can use ZEDCam methods.
-            fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(cvGPUPointCloud);
+            fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
 
             // Wait for point cloud to be retrieved.
             if (fuPointCloudCopyStatus.get())
             {
                 // Download mat from GPU memory.
-                cvGPUPointCloud.download(cvPointCloud);
+                m_cvGPUPointCloud.download(m_cvPointCloud);
                 // Split and store colors from point cloud.
-                imgops::SplitPointCloudColors(cvPointCloud, cvFrame);
+                imgops::SplitPointCloudColors(m_cvPointCloud, m_cvFrame);
             }
             else
             {
@@ -143,13 +138,13 @@ void TagDetector::ThreadedContinuousCode()
         else
         {
             // Grabs point cloud from ZEDCam.
-            fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(cvPointCloud);
+            fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
 
             // Wait for point cloud to be retrieved.
             if (fuPointCloudCopyStatus.get())
             {
                 // Split and store colors from point cloud.
-                imgops::SplitPointCloudColors(cvPointCloud, cvFrame);
+                imgops::SplitPointCloudColors(m_cvPointCloud, m_cvFrame);
             }
             else
             {
@@ -161,7 +156,7 @@ void TagDetector::ThreadedContinuousCode()
     else
     {
         // Grab frames from camera.
-        fuPointCloudCopyStatus = dynamic_cast<BasicCam*>(m_pCamera)->RequestFrameCopy(cvFrame);
+        fuPointCloudCopyStatus = dynamic_cast<BasicCam*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
         // Wait for point cloud to be retrieved.
         if (!fuPointCloudCopyStatus.get())
@@ -175,7 +170,7 @@ void TagDetector::ThreadedContinuousCode()
     // Actual detection logic goes here.
     /////////////////////////////////////////
     // Detect tags in the image
-    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(cvFrame, m_cvArucoDetector);
+    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector, constants::ARUCO_DRAW_DETECTED_TAG_MARKERS);
 
     // // Estimate the positions of the tags using the point cloud
     // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
