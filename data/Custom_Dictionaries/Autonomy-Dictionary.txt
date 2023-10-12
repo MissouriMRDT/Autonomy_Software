@@ -28,6 +28,7 @@ flightsticks
 geoops
 Geospatial
 gmock
+GPSMDRS
 gruntfuggly
 gtest
 hyperthreaded
@@ -62,6 +63,7 @@ reprojection
 RESOLUTIONX
 RESOLUTIONY
 RGBE
+Rolla
 rovecomm
 searchbar
 SIMCAM
@@ -73,6 +75,7 @@ threadpool
 tparam
 twxs
 UART
+UTMMDRS
 UTMUPS
 valgrind
 Watchpoints

@@ -141,53 +141,75 @@ namespace geoops
             // Declare struct public attributes.
             double dEasting;                   // The eastward displacement from the UTM zone's central meridian in meters.
             double dNorthing;                  // The northward displacement from the equator in meters.
-            double dAltitude;                  // The elevation above sea level in meters.
             int nZone;                         // The UTM zone number identifying the region on the Earth's surface.
+            bool bWithinNorthernHemisphere;    // Indicates whether the coordinate is located in the northern hemisphere.
+            double dAltitude;                  // The elevation above sea level in meters.
             double d2DAccuracy;                // The horizontal accuracy of the UTM coordinates in meters.
             double d3DAccuracy;                // The three-dimensional accuracy, including altitude, in meters.
             double dMeridianConvergence;       // The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
             double dScale;                     // The scale factor applied to the UTM coordinates for map projection.
-            bool bWithinNorthernHemisphere;    // Indicates whether the coordinate is located in the northern hemisphere.
 
             /////////////////////////////////////////
             // Declare public methods.
             /////////////////////////////////////////
+
+            /******************************************************************************
+             * @brief Default Construct a new UTMCoordinate object.
+             *
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-10-12
+             ******************************************************************************/
+            UTMCoordinate()
+            {
+                // Initialize member variables.
+                this->dEasting                  = 0.0;
+                this->dNorthing                 = 0.0;
+                this->nZone                     = 0;
+                this->bWithinNorthernHemisphere = true;
+                this->dAltitude                 = 0.0;
+                this->d2DAccuracy               = -1.0;
+                this->d3DAccuracy               = -1.0;
+                this->dMeridianConvergence      = 0.0;
+                this->dScale                    = 0.0;
+            }
+
             /******************************************************************************
              * @brief Construct a new UTMCoordinate object.
              *
              * @param dEasting - The eastward displacement from the UTM zone's central meridian in meters.
              * @param dNorthing - The northward displacement from the equator in meters.
-             * @param dAltitude - The elevation above sea level in meters.
              * @param nZone - The UTM zone number identifying the region on the Earth's surface.
+             * @param bWithinNorthernHemisphere - Indicates whether the coordinate is located in the northern hemisphere.
+             * @param dAltitude - The elevation above sea level in meters.
              * @param d2DAccuracy - The horizontal accuracy of the UTM coordinates in meters.
              * @param d3DAccuracy - The three-dimensional accuracy, including altitude, in meters.
              * @param dMeridianConvergence - The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
              * @param dScale - The scale factor applied to the UTM coordinates for map projection.
-             * @param bWithinNorthernHemisphere - Indicates whether the coordinate is located in the northern hemisphere.
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            UTMCoordinate(double dEasting                = 0.0,
-                          double dNorthing               = 0.0,
-                          double dAltitude               = 0.0,
-                          int nZone                      = 0,
-                          double d2DAccuracy             = -1.0,
-                          double d3DAccuracy             = -1.0,
-                          double dMeridianConvergence    = -1.0,
-                          double dScale                  = 0.0,
-                          bool bWithinNorthernHemisphere = true)
+            UTMCoordinate(double dEasting,
+                          double dNorthing,
+                          int nZone,
+                          bool bWithinNorthernHemisphere,
+                          double dAltitude            = 0.0,
+                          double d2DAccuracy          = -1.0,
+                          double d3DAccuracy          = -1.0,
+                          double dMeridianConvergence = -1.0,
+                          double dScale               = 0.0)
             {
                 // Initialize member variables with given values.
                 this->dEasting                  = dEasting;
                 this->dNorthing                 = dNorthing;
-                this->dAltitude                 = dAltitude;
                 this->nZone                     = nZone;
+                this->bWithinNorthernHemisphere = bWithinNorthernHemisphere;
+                this->dAltitude                 = dAltitude;
                 this->d2DAccuracy               = d2DAccuracy;
                 this->d3DAccuracy               = d3DAccuracy;
                 this->dMeridianConvergence      = dMeridianConvergence;
                 this->dScale                    = dScale;
-                this->bWithinNorthernHemisphere = bWithinNorthernHemisphere;
             }
     };
 
