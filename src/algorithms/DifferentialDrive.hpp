@@ -17,8 +17,6 @@
 #include <array>
 #include <math.h>
 
-// TODO: Write Unit Tests
-
 /******************************************************************************
  * @brief Namespace containing algorithms related to calculating drive powers,
  *      odometry, trajectories, kinematics, etc of differential drive (tank drive) robots.
@@ -46,17 +44,34 @@
 namespace diffdrive
 {
     /******************************************************************************
+     * @brief This struct is used to store the left and right drive powers for the robot.
+     *      Storing these values in a struct allows for easy handling and access to said
+     *      variables.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-13
+     ******************************************************************************/
+    struct DrivePowers
+    {
+        public:
+            // Define public struct attributes.
+            double dLeftDrivePower;
+            double dRightDrivePower;
+    };
+
+    /******************************************************************************
      * @brief Tank drive inverse kinematics for differential drive robots.
      *
      * @param dLeftSpeed - The left drive power input for the drive. (-1.0 - 1.0)
      * @param dRightSpeed - The right drive power input for the drive. (-1.0 - 1.0)
      * @param bSquareInputs - Decreases the input sensitivity at low input speeds.
-     * @return std::array<double, 2> - The result drive powers. [left, right]
+     * @return DrivePowers - The result drive powers. [left, right]
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-22
      ******************************************************************************/
-    std::array<double, 2> CalculateTankDrive(double dLeftSpeed, double dRightSpeed, bool bSquareInputs = false)
+    inline DrivePowers CalculateTankDrive(double dLeftSpeed, double dRightSpeed, bool bSquareInputs = false)
     {
         // Limit the input powers.
         dLeftSpeed  = std::clamp(dLeftSpeed, -1.0, 1.0);
@@ -80,12 +95,12 @@ namespace diffdrive
      * @param dSpeed - Speed at which the robot should drive forward/backward. Forward is positive. (-1.0 - 1.0)
      * @param dRotation - The rotation rate of the robot. Clockwise is positive. (-1.0 - 1.0)
      * @param bSquareInputs - Decreases the input sensitivity at low input speeds.
-     * @return std::array<double, 2> - The result drive powers. [left, right]
+     * @return DrivePowers - The result drive powers. [left, right]
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-22
      ******************************************************************************/
-    std::array<double, 2> CalculateArcadeDrive(double dSpeed, double dRotation, const bool bSquareInputs = true)
+    inline DrivePowers CalculateArcadeDrive(double dSpeed, double dRotation, const bool bSquareInputs = false)
     {
         // Limit the input powers.
         dSpeed    = std::clamp(dSpeed, -1.0, 1.0);
@@ -99,19 +114,19 @@ namespace diffdrive
             dRotation = std::copysign(dRotation * dRotation, dRotation);
         }
 
-        // Differential drive inverse kinematics for arcade drive.
-        double dLeftSpeed  = dSpeed - dRotation;
-        double dRightSpeed = dSpeed + dRotation;
         // Find the maximum possible value of throttle and turn along the vector that the speed and rotation is pointing.
         double dGreaterInput = std::max(std::abs(dSpeed), std::abs(dRotation));
         double dLesserInput  = std::min(std::abs(dSpeed), std::abs(dRotation));
         // If the biggest input is zero, then the wheel speeds should be zero.
-        if (dGreaterInput)
+        if (dGreaterInput == 0.0)
         {
             // Return zero drive power output.
             return {0.0, 0.0};
         }
 
+        // Differential drive inverse kinematics for arcade drive.
+        double dLeftSpeed  = dSpeed + dRotation;
+        double dRightSpeed = dSpeed - dRotation;
         // Desaturate the input. Normalize to (-1.0, 1.0).
         double dSaturatedInput = (dGreaterInput + dLesserInput) / dGreaterInput;
         dLeftSpeed /= dSaturatedInput;
@@ -130,12 +145,12 @@ namespace diffdrive
      * @param dRotation - The normalized curvature of the robot. Clockwise is positive. (-1.0, 1.0)
      * @param bAllowTurnInPlace - Whether or not forward input is required to turn. True makes this control exactly like a car.
      * @param bSquareInputs - Decreases the input sensitivity at low input speeds.
-     * @return std::array<double, 2> - The result drive powers. [left, right]
+     * @return DrivePowers - The result drive powers. [left, right]
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-22
      ******************************************************************************/
-    std::array<double, 2> CalculateCurvatureDrive(double dSpeed, double dRotation, const bool bAllowTurnInPlace, const bool bSquareInputs = false)
+    inline DrivePowers CalculateCurvatureDrive(double dSpeed, double dRotation, const bool bAllowTurnInPlace, const bool bSquareInputs = false)
     {
         // Create instance variables.
         double dLeftSpeed  = 0.0;
@@ -154,17 +169,17 @@ namespace diffdrive
         }
 
         // Check if turn-in-place is allowed.
-        if (bAllowTurnInPlace)
+        if (bAllowTurnInPlace && dSpeed == 0.0)
         {
             // Differential drive inverse kinematics for curvature drive with turn while stopped.
-            dLeftSpeed  = dSpeed - dRotation;
-            dRightSpeed = dSpeed + dRotation;
+            dLeftSpeed  = dSpeed + dRotation;
+            dRightSpeed = dSpeed - dRotation;
         }
         else
         {
             // Differential drive inverse kinematics for curvature drive.
-            dLeftSpeed  = dSpeed - std::abs(dSpeed) * dRotation;
-            dRightSpeed = dSpeed + std::abs(dSpeed) * dRotation;
+            dLeftSpeed  = dSpeed + std::abs(dSpeed) * dRotation;
+            dRightSpeed = dSpeed - std::abs(dSpeed) * dRotation;
         }
 
         // Desaturate the input. Normalize to (-1.0, 1.0).
