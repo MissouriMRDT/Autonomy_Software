@@ -58,23 +58,23 @@ DriveBoard::~DriveBoard()
 std::array<float, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAngle, const DifferentialControlMethod eKinematicsMethod)
 {
     // Create instance variables.
-    std::array<double, 2> aDrivePowers;
+    diffdrive::DrivePowers stDrivePowers;
 
     // Check what kinematics model we should use.
     switch (eKinematicsMethod)
     {
-        case eArcadeDrive: aDrivePowers = diffdrive::CalculateArcadeDrive(double(fSpeed), double(fAngle), constants::DRIVE_MIN_POWER); break;
+        case eArcadeDrive: stDrivePowers = diffdrive::CalculateArcadeDrive(double(fSpeed), double(fAngle), constants::DRIVE_MIN_POWER); break;
         case eCurvatureDrive:
-            aDrivePowers = diffdrive::CalculateCurvatureDrive(double(fSpeed),
-                                                              double(fAngle),
-                                                              constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
-                                                              constants::DRIVE_SQUARE_CONTROL_INPUTS);
+            stDrivePowers = diffdrive::CalculateCurvatureDrive(double(fSpeed),
+                                                               double(fAngle),
+                                                               constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
+                                                               constants::DRIVE_SQUARE_CONTROL_INPUTS);
             break;
     }
 
     // Update member variables with new targets speeds. Adjust to match power range.
-    m_fTargetSpeedLeft  = double(aDrivePowers[0]);
-    m_fTargetSpeedRight = double(aDrivePowers[1]);
+    m_fTargetSpeedLeft  = double(stDrivePowers.dLeftDrivePower);
+    m_fTargetSpeedRight = double(stDrivePowers.dRightDrivePower);
 
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_fTargetSpeedLeft, m_fTargetSpeedRight);
