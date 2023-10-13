@@ -29,6 +29,7 @@ geoops
 Geospatial
 gmock
 GPSMDRS
+GPSSDELC
 gruntfuggly
 gtest
 hyperthreaded

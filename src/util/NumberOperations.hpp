@@ -37,7 +37,7 @@ namespace numops
      * @date 2023-06-20
      ******************************************************************************/
     template<typename T>
-    T Clamp(T tValue, T tMin, T tMax)
+    inline T Clamp(T tValue, T tMin, T tMax)
     {
         return std::max(std::min(tMax, tValue), tMin);
     }
