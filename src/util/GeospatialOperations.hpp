@@ -12,6 +12,7 @@
 #ifndef GEOSPATIAL_OPERATIONS_HPP
 #define GEOSPATIAL_OPERATIONS_HPP
 
+#include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/UTMUPS.hpp>
 
 /******************************************************************************
@@ -24,6 +25,30 @@
  ******************************************************************************/
 namespace geoops
 {
+    /////////////////////////////////////////
+    // Declare public variables.
+    /////////////////////////////////////////
+    // Constants retrieved from: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html
+    const double dEarthEquilateralRadius   = 6378137.0;    // Earth's radius in meters.
+    const double dEarthEllipsoidFlattening = 0.003353;     // The flattening factor of the earth due to its spin.
+
+    /******************************************************************************
+     * @brief This struct is used to store the distance and arc length for a calculated
+     *      geographic distance. Storing these values in a struct allows for easy
+     *      handling and access to said variables.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-13
+     ******************************************************************************/
+    struct GeoDistance
+    {
+        public:
+            // Define public struct attributes.
+            double dDistanceMeters;
+            double dArcLengthDegrees;
+    };
+
     /******************************************************************************
      * @brief This struct stores/contains information about orientation.
      *
@@ -273,6 +298,34 @@ namespace geoops
 
         // Return the converted UTM coordinate.
         return stConvertCoord;
+    }
+
+    /******************************************************************************
+     * @brief The shortest path between two points on an ellipsoid at (lat1, lon1) and (lat2, lon2) is called the geodesic.
+     *      Given those two points create an ellipsoid with earth's characteristics and find the distance between them.
+     *
+     * @param stCoord1 - The first GPS coordinate.
+     * @param stCoord2 - The second GPS coordinate.
+     * @return GeoDistance - Struct containing the distance in meters and arc length degrees.
+     *
+     * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-13
+     ******************************************************************************/
+    inline GeoDistance CalculateGeoDistance(const GPSCoordinate stCoord1, const GPSCoordinate stCoord2)
+    {
+        // Create instance variables.
+        GeoDistance stDistances;
+
+        // Construct a geodesic with earth characteristics.
+        GeographicLib::Geodesic geGeodesic(dEarthEquilateralRadius, dEarthEllipsoidFlattening);
+
+        // Solve the inverse geodesic.
+        stDistances.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude, stCoord1.dLongitude, stCoord2.dLatitude, stCoord2.dLongitude, stDistances.dDistanceMeters);
+
+        // Return result distance.
+        return stDistances;
     }
 }    // namespace geoops
 #endif
