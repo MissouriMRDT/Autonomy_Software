@@ -48,7 +48,7 @@ DriveBoard::~DriveBoard()
  * 		given heading at a given speed
  *
  * @param fSpeed - The speed to drive at (-1 to 1)
- * @param fAngle - The angle to drive towards.
+ * @param fAngle - The angle to drive towards. (0 - 360) 0 is North.
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
  * @return std::array<int, 2> - 1D array of length 2 containing two values. (left power, right power)
  *

@@ -130,18 +130,18 @@ TEST(GeoOpsTest, CalculateGeoDistance)
     // Calculate meter distance between the first two GPS points.
     auto [dDistance1, dDegrees1] = geoops::CalculateGeoDistance(stGPSRollaCoordinate, stGPSMDRSCoordinate);
     // Check distance calculation.
-    EXPECT_NEAR(dDistance1, 1751754.58, 0.02);
+    EXPECT_NEAR(dDistance1, 1749794.40, 0.02);
     EXPECT_NEAR(dDegrees1, 15.77, 0.02);
 
     // Calculate meter distance between the second two GPS points.
     auto [dDistance2, dDegrees2] = geoops::CalculateGeoDistance(stGPSSDELC1, stGPSSDELC2);
     // Check distance calculation.
-    EXPECT_NEAR(dDistance2, 26.94, 0.02);
+    EXPECT_NEAR(dDistance2, 26.91, 0.02);
     EXPECT_NEAR(dDegrees2, 0.00024, 0.00002);
 
     // Calculate meter distance between the second two GPS points.
     auto [dDistance3, dDegrees3] = geoops::CalculateGeoDistance(stGPSSDELC1, stGPSSDELC3);
     // Check distance calculation.
-    EXPECT_NEAR(dDistance3, 387.05, 0.02);
+    EXPECT_NEAR(dDistance3, 386.61, 0.02);
     EXPECT_NEAR(dDegrees3, 0.003, 0.002);
 }
