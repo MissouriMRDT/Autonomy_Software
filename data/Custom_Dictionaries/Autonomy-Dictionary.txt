@@ -24,6 +24,7 @@ doxdocgen
 Doxygen
 driveboard
 Extention
+feedforward
 flightsticks
 geoops
 Geospatial
@@ -67,6 +68,8 @@ RGBE
 Rolla
 rovecomm
 searchbar
+setpoint
+setpoints
 SIMCAM
 statechart
 Struct
