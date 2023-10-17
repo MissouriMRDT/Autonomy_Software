@@ -80,12 +80,12 @@ TEST(DifferentialDriveTest, ArcadeDrive)
 TEST(DifferentialDriveTest, CurvatureDrive)
 {
     // Create array for storing input and expect output values.
-    const int nTestValuesLength                            = 11;
-    const double aSpeedInput[nTestValuesLength]            = {-1.0, -0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.3, 1.5};
-    const double aRotationInput[nTestValuesLength]         = {0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -0.5, 0.5, 1.0, 1.0, 1.5};
-    const double aAllowTurnInPlaceInput[nTestValuesLength] = {true, true, true, true, true, true, true, true, true, true, true};
-    const double aLeftSpeedOutput[nTestValuesLength]       = {-1.0, -0.5, 0.0, 0.5, 1.0, -1.0, -0.5, 0.5, 1.0, 0.59, 1.0};
-    const double aRightSpeedOutput[nTestValuesLength]      = {-1.0, -0.5, 0.0, 0.5, 1.0, 1.0, 0.5, -0.5, -1.0, 0.0, 0.0};
+    const int nTestValuesLength                          = 11;
+    const double aSpeedInput[nTestValuesLength]          = {-1.0, -0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.3, 1.5};
+    const double aRotationInput[nTestValuesLength]       = {0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -0.5, 0.5, 1.0, 1.0, 1.5};
+    const bool aAllowTurnInPlaceInput[nTestValuesLength] = {true, true, true, true, true, true, true, true, true, true, true};
+    const double aLeftSpeedOutput[nTestValuesLength]     = {-1.0, -0.5, 0.0, 0.5, 1.0, -1.0, -0.5, 0.5, 1.0, 0.59, 1.0};
+    const double aRightSpeedOutput[nTestValuesLength]    = {-1.0, -0.5, 0.0, 0.5, 1.0, 1.0, 0.5, -0.5, -1.0, 0.0, 0.0};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
