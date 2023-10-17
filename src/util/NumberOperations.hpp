@@ -43,6 +43,35 @@ namespace numops
     }
 
     /******************************************************************************
+     * @brief Checks if a given value is between the given maximum and minimum ranges.
+     *
+     * @tparam T - Template argument for given value type.
+     * @param tValue - The value to check.
+     * @param tMin - The
+     * @param tMax -
+     * @return true -
+     * @return false -
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-16
+     ******************************************************************************/
+    template<typename T>
+    inline bool Bounded(T tValue, T tMin, T tMax, const bool bInclusive = true)
+    {
+        // Check if value is inclusive or not.
+        if (bInclusive)
+        {
+            // Return true if the given value is valid.
+            return (tValue >= tMin) && (tValue <= tMax);
+        }
+        else
+        {
+            // Return true if the given value is valid.
+            return (tValue > tMin) && (tValue < tMax);
+        }
+    }
+
+    /******************************************************************************
      * @brief Maps a value to a new range given the old range.
      *
      * @tparam T - Template value specifying the type of the number to map to new range.
