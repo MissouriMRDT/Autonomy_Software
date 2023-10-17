@@ -210,3 +210,305 @@ void PIDController::Reset()
     m_bFirstCalculation = true;
     m_dErrorSum         = 0.0;
 }
+
+/******************************************************************************
+ * @brief Configure the proportional gain parameter. This quickly responds to changes in setpoint,
+ *      and provides most of the initial driving force to make corrections.
+ *      Some systems can be used with only a P gain, and many can be operated with only PI.
+ *      For position based controllers, Proportional gain the first parameter to tune, with integral gain second.
+ *      For rate controlled systems, Proportional is often the second after feedforward.
+ *
+ * @param dKp - The proportional gain for the controller to use for calculation.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetProportional(const double dKp)
+{
+    // Assign member variables.
+    m_dKp = dKp;
+
+    // Check signs of gains.
+    this->CheckGainSigns();
+}
+
+/******************************************************************************
+ * @brief Configure the integral gain parameter. This is used for overcoming disturbances, and ensuring that
+ *      the controller always minimizes error, when the control actual is close to the setpoint.
+ *      Typically tuned second for "Position" based modes, and third for "Rate" or continuous based modes.
+ *
+ * @param dKi - The integral gain for the controller to use for calculation.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetIntegral(const double dKi)
+{
+    // Check if the current I gain is not zero and we need to scale our current error.
+    if (m_dKi != 0)
+    {
+        // Scale the current error sum, to match the new integral gain.
+        m_dErrorSum = m_dErrorSum * (m_dKi / dKi);
+    }
+    // Check if max integral term effort is enabled.
+    if (m_dMaxIEffort != 0)
+    {
+        // Update max error from new integral and max effort.
+        m_dMaxError = m_dMaxIEffort / dKi;
+    }
+
+    // Assign integral gain member variable.
+    m_dKi = dKi;
+
+    // Check the signs of the PID gains.
+    this->CheckGainSigns();
+}
+
+/******************************************************************************
+ * @brief Configure the derivative gain parameter. This acts as a brake or dampener on the control effort.
+ *  The more the controller tries to change the value, the more it counteracts the effort. Typically this
+ *  Parameter is tuned last and only used to reduce overshoot in systems. When using derivative gain, you
+ *  can usually get a more responsive controller by over-tuning proportional gain so that small oscillations
+ *  are visible and then bringing derivative gain up until the oscillations disappear.
+ *
+ * @param dKd - The derivative gain for the controller to use for calculation.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetDerivative(const double dKd)
+{
+    // Assign member variables.
+    m_dKd = dKd;
+
+    // Check signs of gains.
+    this->CheckGainSigns();
+}
+
+/******************************************************************************
+ * @brief Configure the feedforward gain parameter. This is excellent for velocity, rate,
+ *      and other continuous control modes where you can expect a rough output value based
+ *      solely on the setpoint. This should not be used in "position" based control modes.
+ *
+ * @param dKff - The feedforward gain for the controller to use for calculation.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetFeedforward(const double dKff)
+{
+    // Assign member variables.
+    m_dKff = dKff;
+
+    // Check signs of gains.
+    this->CheckGainSigns();
+}
+
+/******************************************************************************
+ * @brief Mutator for PID gains of the controller.
+ *
+ * @param dKp - The proportional gain for the controller to use for calculation.
+ * @param dKi - The integral gain for the controller to use for calculation.
+ * @param dKd - The derivative gain for the controller to use for calculation.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetPID(const double dKp, const double dKi, const double dKd)
+{
+    // Update member variables.
+    m_dKp = dKp;
+    m_dKd = dKd;
+
+    // Call SetIntegral since is scales the accumulated error and checks signs.
+    this->SetIntegral(dKi);
+}
+
+/******************************************************************************
+ * @brief Mutator for PID and Feedforward gains of the controller.
+ *
+ * @param dKp - The proportional gain for the controller to use for calculation.
+ * @param dKi - The integral gain for the controller to use for calculation.
+ * @param dKd - The derivative gain for the controller to use for calculation.
+ * @param dKff - The feedforward gain for the controller to use for calculation.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetPID(const double dKp, const double dKi, const double dKd, const double dKff)
+{
+    // Update member variables.
+    m_dKp  = dKp;
+    m_dKd  = dKd;
+    m_dKff = dKff;
+
+    // Call SetIntegral since is scales the accumulated error and checks signs.
+    this->SetIntegral(dKi);
+}
+
+/******************************************************************************
+ * @brief Mutator for the setpoint for the PID controller.
+ *
+ * @param dSetpoint - The setpoint that the controller should aim to get the actual to.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetSetpoint(const double dSetpoint)
+{
+    // Assign member variable.
+    m_dSetpoint = dSetpoint;
+}
+
+/******************************************************************************
+ * @brief Mutator for the maximum allowable distance of the setpoint from the actual value.
+ *      This doesn't limit the setable value of the setpoint. It only limits the value that the
+ *      controller is given specify the error from the setpoint.
+ *
+ * @param dMaxSetpointDifference - The allowable distance of the setpoint from the actual.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetMaxSetpointDifference(const double dMaxSetpointDifference)
+{
+    // Assign member variables.
+    m_dMaxSetpointDifference = dMaxSetpointDifference;
+}
+
+/******************************************************************************
+ * @brief Mutator for the max value of the integral term during PID calculation.
+ *      This is useful for preventing integral wind-up runaways.
+ *
+ * @param dMaxIEffort - The max allowable value of the integral term.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetMaxIntegralEffort(const double dMaxIEffort)
+{
+    // Assign member variable.
+    m_dMaxIEffort = dMaxIEffort;
+}
+
+/******************************************************************************
+ * @brief Mutator for setting the minimum and maximum allowable values of the
+ *      control output from the controller.
+ *
+ * @param dMinEffort - The minimum allowable output from the PID controller.
+ * @param dMaxEffort - The maximum allowable output from the PID controller.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetOutputLimits(const double dMinEffort, const double dMaxEffort)
+{
+    // Check if the maximum is greater than the minimum.
+    if (dMaxEffort > dMinEffort)
+    {
+        // Assign member variables.
+        m_dMinEffort = dMinEffort;
+        m_dMaxEffort = dMaxEffort;
+
+        // Ensure the bounds of the integral term are within the bounds of the allowable output range.
+        if (m_dMaxIEffort == 0 || m_dMaxIEffort > (dMaxEffort - dMinEffort))
+        {
+            // Set new integral max output.
+            this->SetMaxIntegralEffort(dMaxEffort - dMinEffort);
+        }
+    }
+}
+
+/******************************************************************************
+ * @brief Mutator for setting the minimum and maximum allowable values of the
+ *      control output from the controller.
+ *
+ * @param dMinMax - The overall output range of the controller. Must be positive.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetOutputLimits(const double dMinMax)
+{
+    // Set output limits with the same max and min.
+    this->SetOutputLimits(-dMinMax, dMinMax);
+}
+
+/******************************************************************************
+ * @brief Mutator for the maximum rate that the output can change per iteration.
+ *
+ * @param dOutputRampRate - The maximum ramp rate of the output for the controller.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::SetOutputRampRate(const double dOutputRampRate)
+{
+    // Assign member variable.
+    m_dOutputRampRate = dOutputRampRate;
+}
+
+void PIDController::SetOutputFilter(const double dStrength)
+{
+    // Check if the
+}
+
+/******************************************************************************
+ * @brief To operate correctly, all PID parameters require the same sign.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::CheckGainSigns()
+{
+    // Check if the gains are supposed to be reversed.
+    if (m_bReversed)
+    {
+        // All values should be below zero.
+        if (m_dKp > 0)
+        {
+            // Flip sign sign for proportional gain.
+            m_dKi *= -1;
+        }
+        if (m_dKi > 0)
+        {
+            // Flip sign for integral gain.
+            m_dKi *= -1;
+        }
+        if (m_dKd > 0)
+        {
+            // Flip sign for derivative gain.
+            m_dKd *= -1;
+        }
+        if (m_dKff > 0)
+        {
+            // Flip sign for feedforward gain.
+            m_dKff *= -1;
+        }
+    }
+    else
+    {
+        // All values should be above zero.
+        if (m_dKp < 0)
+        {
+            // Flip sign sign for proportional gain.
+            m_dKi *= -1;
+        }
+        if (m_dKi < 0)
+        {
+            // Flip sign for integral gain.
+            m_dKi *= -1;
+        }
+        if (m_dKd < 0)
+        {
+            // Flip sign for derivative gain.
+            m_dKd *= -1;
+        }
+        if (m_dKff < 0)
+        {
+            // Flip sign for feedforward gain.
+            m_dKff *= -1;
+        }
+    }
+}

@@ -54,16 +54,16 @@ class PIDController
         // Setters
         /////////////////////////////////////////
         void SetProportional(const double dKp);
-        void SetIntegral(const double sKi);
+        void SetIntegral(const double dKi);
         void SetDerivative(const double dKd);
         void SetFeedforward(const double dKff);
         void SetPID(const double dKp, const double dKi, const double dKd);
         void SetPID(const double dKp, const double dKi, const double dKd, const double dKff);
         void SetSetpoint(const double dSetpoint);
-        void SetMaxSetpointDifference(const double dMaxDifference);
+        void SetMaxSetpointDifference(const double dMaxSetpointDifference);
         void SetMaxIntegralEffort(const double dMaxIEffort);
-        void SetOutputLimits(const double dMaxMin);
         void SetOutputLimits(const double dMinEffort, const double dMaxEffort);
+        void SetOutputLimits(const double dMaxMin);
         void SetOutputRampRate(const double dOutputRampRate);
         void SetOutputFilter(const double dStrength);
         void SetDirection(bool bReversed = false);
@@ -86,7 +86,7 @@ class PIDController
         /////////////////////////////////////////
         // Declare public methods.
         /////////////////////////////////////////
-        double CheckGainSigns();
+        void CheckGainSigns();
 
         /////////////////////////////////////////
         // Declare private member variables.
