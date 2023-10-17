@@ -8,5 +8,6 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-
+#include "AutonomyGlobals.h"
+#include "AutonomyLogging.h"
 
