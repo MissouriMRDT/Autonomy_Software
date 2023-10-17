@@ -47,10 +47,10 @@ namespace numops
      *
      * @tparam T - Template argument for given value type.
      * @param tValue - The value to check.
-     * @param tMin - The
-     * @param tMax -
-     * @return true -
-     * @return false -
+     * @param tMin - The minimum bound for the value to be valid.
+     * @param tMax - The maximum bound for the value to be valid.
+     * @return true - The value is within the bounds.
+     * @return false - The value is not within the bounds.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-16
