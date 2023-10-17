@@ -165,3 +165,48 @@ double PIDController::Calculate(const double dActual, const double dSetpoint)
     // Return the PID controller calculated output effort.
     return dOutput;
 }
+
+/******************************************************************************
+ * @brief Calculate the next control output given the current actual and using the
+ *      previously set setpoint.
+ *
+ * @param dActual - The current actual position of the system.
+ * @return double - The resultant PID controller output.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+double PIDController::Calculate(const double dActual)
+{
+    // Calculate and return the output from the PIDController using the same setpoint.
+    return this->Calculate(dActual, m_dSetpoint);
+}
+
+/******************************************************************************
+ * @brief Calculates the control output using the last provided setpoint and actual.
+ *
+ * @return double -
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+double PIDController::Calculate()
+{
+    // Calculate and return the output from the PIDController using the previous actual and setpoint.
+    return this->Calculate(m_dLastActual, m_dSetpoint);
+}
+
+/******************************************************************************
+ * @brief Resets the controller. This erases the integral term buildup, and removes
+ *      derivative term on the next iteration.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-17
+ ******************************************************************************/
+void PIDController::Reset()
+{
+    // Reset necessary values to reset the controller.
+    m_bFirstCalculation = true;
+    m_dErrorSum         = 0.0;
+}
