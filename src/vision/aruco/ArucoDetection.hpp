@@ -20,6 +20,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include "../../util/vision/ImageOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing functions related to ArUco operations on images.
@@ -100,6 +101,8 @@ namespace arucotag
         cv::cvtColor(cvInputFrame, cvInputFrame, cv::COLOR_BGR2GRAY);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/5, /*sigmaColor =*/0.2, /*sigmaSpace =*/3);
+        // imgops::CustomBilateralFilter(cvInputFrame, 3, 0.1, 3);
+        imgops::ColorReduce(cvInputFrame);
         // Deblur? (Would require determining point spread function that caused the blur)
 
         // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)

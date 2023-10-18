@@ -215,7 +215,7 @@ namespace imgops
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2023-10-17
      ******************************************************************************/
-    void CustomBilateralFilter(cv::Mat& cvInputFrame, ushort usDiameter, double dSigmaColor, double dSigmaSpace)
+    inline void CustomBilateralFilter(cv::Mat& cvInputFrame, ushort usDiameter, double dSigmaColor, double dSigmaSpace)
     {
         int rows = cvInputFrame.rows;
         int cols = cvInputFrame.cols;
@@ -260,6 +260,37 @@ namespace imgops
                 // Calculate the filtered pixel value
                 uchar filteredPixel          = sumIntensity / sumWeight;
                 cvInputFrame.at<uchar>(y, x) = filteredPixel;
+            }
+        }
+    }
+
+    /******************************************************************************
+     * @brief Given an image and a divisor, divide the precision of the elements.
+     *
+     * @param cvFrame - The frame to alter.
+     * @param nDiv - The amount that the precision should be decreased.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-18
+     ******************************************************************************/
+    inline void ColorReduce(cv::Mat& cvFrame, int nDiv = 64)
+    {
+        // Number of lines.
+        int nLines = cvFrame.rows;
+        // Number of elements per line.
+        int nElements = cvFrame.cols * cvFrame.channels();
+
+        //
+        for (int nI = 0; nI < nLines; nI++)
+        {
+            // Get the address of row j.
+            uchar* chData = cvFrame.ptr<uchar>(nI);
+
+            // Loop through the elements and decrease precision.
+            for (int nJ = 0; nJ < nElements; nJ++)
+            {
+                // Process each pixel.
+                chData[nJ] = chData[nJ] / nDiv * nDiv + nDiv / 2;
             }
         }
     }
