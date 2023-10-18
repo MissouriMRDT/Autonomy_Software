@@ -180,7 +180,7 @@ void TagDetector::ThreadedContinuousCode()
     // }
 
     // Merge the newly detected tags with the pre-existing detected tags
-    this->UpdateDetectedTags(vNewlyDetectedTags);
+    // this->UpdateDetectedTags(vNewlyDetectedTags);
 
     // Call FPS tick.
     m_IPS.Tick();
