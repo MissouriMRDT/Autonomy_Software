@@ -30,28 +30,17 @@ void RunExample()
     BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
     // Start basic cam.
     ExampleBasicCam1->Start();
-    // Get pointer to camera.
-    BasicCam* ExampleBasicCam2 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
-    // Start basic cam.
-    ExampleBasicCam2->Start();
 
     // Get pointer to the tag detector for the basic cam.
     TagDetector* ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
     // Start the basic cam detector.
     ExampleTagDetector1->Start();
-    // Get pointer to the tag detector for the basic cam.
-    TagDetector* ExampleTagDetector2 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
-    // Start the basic cam detector.
-    ExampleTagDetector2->Start();
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
-    cv::Mat cvNormalFrame2;
     cv::Mat cvDetectionsFrame1;
-    cv::Mat cvDetectionsFrame2;
     // Declare vector to store tag detections in.
     std::vector<arucotag::ArucoTag> vTagDetections1;
-    std::vector<arucotag::ArucoTag> vTagDetections2;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -65,12 +54,6 @@ void RunExample()
         std::future<bool> fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
         // Get detections overlay frame from detector.
         std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestArucoDetectionOverlayFrame(cvDetectionsFrame1);
-        // Grab normal frame from camera.
-        std::future<bool> fuCopyStatus2 = ExampleBasicCam2->RequestFrameCopy(cvNormalFrame2);
-        // Get detections from tag detector for BasicCam.
-        std::future<bool> fuDetectionCopyStatus2 = ExampleTagDetector2->RequestDetectedArucoTags(vTagDetections2);
-        // Get detections overlay frame from detector.
-        std::future<bool> fuDetectionFrameCopyStatus2 = ExampleTagDetector2->RequestArucoDetectionOverlayFrame(cvDetectionsFrame2);
 
         // Show first frame copy.
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
@@ -85,20 +68,6 @@ void RunExample()
 
             // Display frame.
             cv::imshow("BasicCamExample Frame1", cvNormalFrame1);
-        }
-        // Show first frame copy.
-        if (fuCopyStatus2.get() && !cvNormalFrame2.empty())
-        {
-            // Put FPS on normal frame.
-            cv::putText(cvNormalFrame2,
-                        std::to_string(ExampleBasicCam2->GetIPS().GetExactIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
-
-            // Display frame.
-            cv::imshow("BasicCamExample Frame2", cvNormalFrame2);
         }
 
         // Show detections overlay frame.
@@ -115,20 +84,6 @@ void RunExample()
             // Display frame.
             cv::imshow("Detections Overlay Frame1", cvDetectionsFrame1);
         }
-        // Show detections overlay frame.
-        if (fuDetectionFrameCopyStatus2.get() && !cvDetectionsFrame2.empty())
-        {
-            // Put detector FPS on frame.
-            cv::putText(cvDetectionsFrame2,
-                        std::to_string(ExampleTagDetector2->GetIPS().GetExactIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
-
-            // Display frame.
-            cv::imshow("Detections Overlay Frame2", cvDetectionsFrame2);
-        }
 
         // Wait for detections to be copied.
         if (fuDetectionCopyStatus1.get())
@@ -136,25 +91,13 @@ void RunExample()
             // Print length of detections vector.
             LOG_INFO(logging::g_qConsoleLogger, "Detections1 vector length: {}", vTagDetections1.size());
         }
-        // Wait for detections to be copied.
-        if (fuDetectionCopyStatus2.get())
-        {
-            // Print length of detections vector.
-            LOG_INFO(logging::g_qConsoleLogger, "Detections2 vector length: {}", vTagDetections2.size());
-        }
 
         // Tick FPS counter.
         FPS.Tick();
         // Print FPS of main loop.
         LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
-        // Print camera FPS info.
-        LOG_INFO(logging::g_qConsoleLogger,
-                 "BasicCam Getter FPS: {} | 1% Low: {}",
-                 ExampleBasicCam1->GetIPS().GetAverageIPS(),
-                 ExampleBasicCam1->GetIPS().Get1PercentLow());
         // Print detector FPS info.
         LOG_INFO(logging::g_qConsoleLogger, "Detector1 FPS: {}", ExampleTagDetector1->GetIPS().GetExactIPS());
-        LOG_INFO(logging::g_qConsoleLogger, "Detector2 FPS: {}", ExampleTagDetector2->GetIPS().GetExactIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit

@@ -99,11 +99,11 @@ namespace arucotag
         // Greyscale.
         cv::cvtColor(cvInputFrame, cvInputFrame, cv::COLOR_BGR2GRAY);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
-        // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/1, /*sigmaColor =*/0, /*sigmaSpace =*/0);
+        // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/5, /*sigmaColor =*/0.2, /*sigmaSpace =*/3);
         // Deblur? (Would require determining point spread function that caused the blur)
 
         // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)
-        cv::threshold(cvInputFrame, cvInputFrame, constants::ARUCO_PIXEL_THRESHOLD, constants::ARUCO_PIXEL_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
+        // cv::threshold(cvInputFrame, cvInputFrame, constants::ARUCO_PIXEL_THRESHOLD, constants::ARUCO_PIXEL_THRESHOLD_MAX_VALUE, cv::THRESH_BINARY);
 
         // Super-Resolution
         // std::string szModelPath = "ESPCN_x3.pb";

@@ -235,7 +235,6 @@ void TagDetector::PooledLinearCode()
             case eTensorflowDetection: *(stContainer.pFrame) = m_cvFrame; break;
             default: *(stContainer.pFrame) = m_cvFrame;
         }
-        // Copy the detected tags to the target location
 
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedFrameStatus->set_value(true);
