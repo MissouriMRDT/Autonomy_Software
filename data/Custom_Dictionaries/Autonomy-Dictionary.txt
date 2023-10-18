@@ -2,6 +2,7 @@
 ABGR
 alloc
 allocs
+APRILTAG
 Aruco
 arucotag
 AUTONOMYTHREAD
