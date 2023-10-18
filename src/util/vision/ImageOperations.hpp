@@ -190,15 +190,15 @@ namespace imgops
             for (int nX = 0; nX < cvInputPointCloud.cols; ++nX)
             {
                 // Get the current color value for the current pixel. Reinterpret case doesn't convert number, just copies bits.
-                unsigned int* unColor = reinterpret_cast<unsigned int*>(&cvInputPointCloud.ptr<cv::Vec4f>(nY, nX)[3]);
+                unsigned int unColor = *reinterpret_cast<unsigned int*>(&cvInputPointCloud.at<cv::Vec4f>(nY, nX)[3]);
                 // Separate float32 BGRA values into four char values. Uses bitshift right and bitwise AND mask.
-                unsigned char ucB = (*(unColor) >> 0) & 0xFF;
-                unsigned char ucG = (*(unColor) >> 8) & 0xFF;
-                unsigned char ucR = (*(unColor) >> 16) & 0xFF;
-                unsigned char ucA = (*(unColor) >> 24) & 0xFF;
+                unsigned char ucB = (unColor >> 0) & 0xFF;
+                unsigned char ucG = (unColor >> 8) & 0xFF;
+                unsigned char ucR = (unColor >> 16) & 0xFF;
+                unsigned char ucA = (unColor >> 24) & 0xFF;
 
                 // Store char color values in the output mat.
-                *(cvOutputColors.ptr<cv::Vec4b>(nY, nX)) = cv::Vec4b(ucB, ucG, ucR, ucA);
+                cvOutputColors.at<cv::Vec4b>(nY, nX) = cv::Vec4b(ucB, ucG, ucR, ucA);
             }
         }
     }
@@ -280,7 +280,7 @@ namespace imgops
         // Number of elements per line.
         int nElements = cvFrame.cols * cvFrame.channels();
 
-        //
+        // Loop through each row of the image.
         for (int nI = 0; nI < nLines; nI++)
         {
             // Get the address of row j.
