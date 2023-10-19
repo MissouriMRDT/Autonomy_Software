@@ -24,6 +24,7 @@ geoops
 Geospatial
 hyperthreaded
 imgops
+imread
 imshow
 inferencing
 jetpack

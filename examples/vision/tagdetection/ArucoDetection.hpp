@@ -38,6 +38,7 @@ void RunExample()
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
+    cv::Mat cvPreProcessFrame1;
     cv::Mat cvDetectionsFrame1;
     // Declare vector to store tag detections in.
     std::vector<arucotag::ArucoTag> vTagDetections1;
@@ -96,8 +97,6 @@ void RunExample()
         FPS.Tick();
         // Print FPS of main loop.
         LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
-        // Print detector FPS info.
-        LOG_INFO(logging::g_qConsoleLogger, "Detector1 FPS: {}", ExampleTagDetector1->GetIPS().GetExactIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit
