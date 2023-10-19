@@ -87,6 +87,7 @@ class TagDetector : public AutonomyThread<void>
         // Create frames for storing images and point clouds.
 
         cv::Mat m_cvFrame;
+        cv::Mat m_cvProcFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
