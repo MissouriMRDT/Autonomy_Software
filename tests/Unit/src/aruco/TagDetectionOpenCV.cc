@@ -14,12 +14,7 @@
 #include <gtest/gtest.h>
 #include <thread>
 
-#include <opencv2/imgproc.hpp>
-#include <opencv2/objdetect/aruco_detector.hpp>
-#include <opencv2/opencv.hpp>
-
-#include "./../../../../src/AutonomyConstants.h"
-#include "./../../../../src/vision/aruco/ArucoDetection.hpp"
+#include "../../../../src/vision/aruco/ArucoDetection.hpp"
 
 /******************************************************************************
  * @brief Are two points equal to each other
@@ -78,19 +73,19 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
 {
     // initialize aruco detector
     cv::aruco::Dictionary cvDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
-    cv::aruco::ArucoDetector detector(cvDictionary);
+    cv::aruco::ArucoDetector cvDetector(cvDictionary);
 
     // Load the image containing the sample ArUco tag
     cv::Mat cvTestImageMat = LoadImageFromRelativePath("rsc/cleanArucoMarker0.png");
 
     // Detect tags in the image
-    std::vector<arucotag::ArucoTag> vecDetectedTags;
-    vecDetectedTags = arucotag::Detect(cvTestImageMat, detector);
+    std::vector<arucotag::ArucoTag> vDetectedTags;
+    vDetectedTags = arucotag::Detect(cvTestImageMat, cvDetector);
 
     // Should have only detected one tag
-    ASSERT_EQ(vecDetectedTags.size(), 1);
+    ASSERT_EQ(vDetectedTags.size(), 1);
 
-    arucotag::ArucoTag detTag = vecDetectedTags[0];
+    arucotag::ArucoTag detTag = vDetectedTags[0];
 
     // Verify ID is 0
     EXPECT_EQ(detTag.nID, 0);
@@ -121,14 +116,14 @@ TEST(TagDetectOpenCVTest, MultiCleanTagDetect)
 
     // initialize aruco detector
     cv::aruco::Dictionary cvDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
-    cv::aruco::ArucoDetector detector(cvDictionary);
+    cv::aruco::ArucoDetector cvDetector(cvDictionary);
 
     // Load the image containing the sample ArUco tags
     cv::Mat cvTestImageMat = LoadImageFromRelativePath("rsc/cleanArucoMarkersMultiple.png");
 
     // Detect tags in the image
     std::vector<arucotag::ArucoTag> vecDetectedTags;
-    vecDetectedTags = arucotag::Detect(cvTestImageMat, detector);
+    vecDetectedTags = arucotag::Detect(cvTestImageMat, cvDetector);
 
     // Should have three detected tags
     ASSERT_EQ(vecDetectedTags.size(), unNumTags);
