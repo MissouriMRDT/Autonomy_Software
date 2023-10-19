@@ -66,7 +66,7 @@ class PIDController
         void SetOutputLimits(const double dMaxMin);
         void SetOutputRampRate(const double dOutputRampRate);
         void SetOutputFilter(const double dStrength);
-        void SetDirection(bool bReversed = false);
+        void SetDirection(const bool bReversed = false);
 
         /////////////////////////////////////////
         // Getters

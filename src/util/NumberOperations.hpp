@@ -13,6 +13,7 @@
 #define NUMBER_OPERATIONS_HPP
 
 #include <algorithm>
+#include <iostream>
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and
