@@ -169,8 +169,14 @@ void TagDetector::ThreadedContinuousCode()
     /////////////////////////////////////////
     // Actual detection logic goes here.
     /////////////////////////////////////////
+    // Drop the Alpha channel from the image copy to preproc frame.
+    cv::cvtColor(m_cvFrame, m_cvProcFrame, cv::COLOR_BGRA2BGR);
+    // Run image through some pre-processing step to improve detection.
+    arucotag::PreprocessFrame(m_cvProcFrame, m_cvProcFrame);
     // Detect tags in the image
-    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector);
+    std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvProcFrame, m_cvArucoDetector);
+    // Draw tag overlays onto normal image.
+    arucotag::DrawDetections(m_cvProcFrame, vNewlyDetectedTags);
 
     // // Estimate the positions of the tags using the point cloud
     // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
@@ -180,7 +186,7 @@ void TagDetector::ThreadedContinuousCode()
     // }
 
     // Merge the newly detected tags with the pre-existing detected tags
-    // this->UpdateDetectedTags(vNewlyDetectedTags);
+    this->UpdateDetectedTags(vNewlyDetectedTags);
 
     // Call FPS tick.
     m_IPS.Tick();
@@ -231,9 +237,9 @@ void TagDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case eArucoDetection: *(stContainer.pFrame) = m_cvFrame; break;
-            case eTensorflowDetection: *(stContainer.pFrame) = m_cvFrame; break;
-            default: *(stContainer.pFrame) = m_cvFrame;
+            case eArucoDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
+            case eTensorflowDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
+            default: *(stContainer.pFrame) = m_cvProcFrame;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -301,9 +307,9 @@ std::future<bool> TagDetector::RequestArucoDetectionOverlayFrame(cv::Mat& cvFram
     // Assemble the DataFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eArucoDetection);
 
-    // Acquire lock on detected tags copy queue.
+    // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append detected tag fetch container to the schedule queue.
+    // Append frame fetch container to the schedule queue.
     m_qDetectedTagDrawnOverlayFrames.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
@@ -328,9 +334,9 @@ std::future<bool> TagDetector::RequestTensorflowDetectionOverlayFrame(cv::Mat& c
     // Assemble the DataFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eTensorflowDetection);
 
-    // Acquire lock on detected tags copy queue.
+    // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append detected tag fetch container to the schedule queue.
+    // Append frame fetch container to the schedule queue.
     m_qDetectedTagDrawnOverlayFrames.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
@@ -355,7 +361,7 @@ std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<arucotag::Ar
     // Assemble the DataFetchContainer.
     containers::DataFetchContainer<std::vector<arucotag::ArucoTag>> stContainer(vArucoTags);
 
-    // Acquire lock on detected tags copy queue.
+    // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append detected tag fetch container to the schedule queue.
     m_qDetectedArucoTagCopySchedule.push(stContainer);
@@ -382,7 +388,7 @@ std::future<bool> TagDetector::RequestDetectedTensorflowTags(std::vector<tensorf
     // Assemble the DataFetchContainer.
     containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>> stContainer(vTensorflowTags);
 
-    // Acquire lock on detected tags copy queue.
+    // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append detected tag fetch container to the schedule queue.
     m_qDetectedTensorflowTagCopySchedule.push(stContainer);

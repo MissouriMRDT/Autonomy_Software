@@ -85,24 +85,27 @@ namespace arucotag
     }
 
     /******************************************************************************
-     * @brief Preprocess images for Detect() method.
+     * @brief Preprocess images for specifically for the Aruco Detect() method.
+     *      This method creates a copy of the camera frame so as
+     *      to not alter the original in case it's used after the call to this function
+     *      completes.
      *
-     * @param cvInputFrame - cv::Mat of the image to pre-process
+     * @param cvInputFrame - cv::Mat of the image to pre-process.
+     * @param cvOutputFrame - cv::Mat to write the pre-processed image to.
      *
      * @todo Determine optimal order for speed
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2023-10-10
      ******************************************************************************/
-    inline void PreprocessFrame(cv::Mat& cvInputFrame)
+    inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame)
     {
-        // Create instance variables.
-
-        // Greyscale.
-        cv::cvtColor(cvInputFrame, cvInputFrame, cv::COLOR_BGR2GRAY);
+        // Grayscale.
+        cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGRA2GRAY);
+        // Reduce number of colors/gradients in the image.
+        imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/5, /*sigmaColor =*/0.2, /*sigmaSpace =*/3);
         // imgops::CustomBilateralFilter(cvInputFrame, 3, 0.1, 3);
-        imgops::ColorReduce(cvInputFrame);
         // Deblur? (Would require determining point spread function that caused the blur)
 
         // Threshold mask (could use OTSU or TRIANGLE, just a const threshold for now)
@@ -127,19 +130,14 @@ namespace arucotag
      * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
      ******************************************************************************/
-    inline std::vector<ArucoTag> Detect(cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
+    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
     {
-        // Create instance variables.
+        /// Create instance variables.
         std::vector<int> vIDs;
         std::vector<std::vector<cv::Point2f>> cvMarkerCorners, cvRejectedCandidates;
 
-        // Perform pre-processing for camera frame.
-        PreprocessFrame(cvFrame);
         // Run Aruco detection algorithm.
         cvArucoDetector.detectMarkers(cvFrame, cvMarkerCorners, vIDs, cvRejectedCandidates);
-
-        // Draw markers onto image.
-        cv::aruco::drawDetectedMarkers(cvFrame, cvMarkerCorners, vIDs);
 
         // Store all of the detected tags as ArucoTag.
         std::vector<ArucoTag> vDetectedTags;
@@ -163,6 +161,54 @@ namespace arucotag
 
         // Return the detected tags.
         return vDetectedTags;
+    }
+
+    /******************************************************************************
+     * @brief Given a vector of ArucoTag structs draw each tag corner and ID onto the given image.
+     *      Image must be a 1 or 3 channel image and image must match dimensions of image when used for
+     *      detection of the given tags.
+     *
+     * @param cvDetectionsFrame - The frame to draw overlay onto.
+     * @param vDetectedTags - The vector of ArucoTag struct used to draw tag corners and IDs onto image.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-19
+     ******************************************************************************/
+    inline void DrawDetections(cv::Mat& cvDetectionsFrame, std::vector<ArucoTag> vDetectedTags)
+    {
+        // Create instance variables.
+        std::vector<int> vIDs;
+        std::vector<std::vector<cv::Point2f>> cvMarkers;
+
+        // Loop through each of the given AR tags and repackage them so that the draw function can read them.
+        for (long unsigned int nIter = 0; nIter < vDetectedTags.size(); ++nIter)
+        {
+            // Append tag ID.
+            vIDs.emplace_back(vDetectedTags[nIter].nID);
+
+            // Assemble vector of marker corners.
+            std::vector<cv::Point2f> cvMarkerCorners;
+            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerTL);
+            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerTR);
+            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerBR);
+            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerBL);
+            // Append vector of marker corners.
+            cvMarkers.emplace_back(cvMarkerCorners);
+        }
+
+        // Check if the given frame is a 1 or 3 channel image. (not BGRA)
+        if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
+        {
+            // Draw markers onto normal given image.
+            cv::aruco::drawDetectedMarkers(cvDetectionsFrame, cvMarkers, vIDs, cv::Scalar(0, 0, 0));
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "ArucoDetect: Unable to draw markers on image because it is empty or it has {} channels. (Should be 1 or 3)",
+                      cvDetectionsFrame.channels());
+        }
     }
 
     /******************************************************************************
