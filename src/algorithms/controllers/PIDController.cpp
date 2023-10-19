@@ -448,9 +448,38 @@ void PIDController::SetOutputRampRate(const double dOutputRampRate)
     m_dOutputRampRate = dOutputRampRate;
 }
 
+/******************************************************************************
+ * @brief Set a filter on the output to reduce sharp oscillations. 0.1 is likely a good
+ *      starting point.
+ *
+ * @param dStrength - The output filtering strength.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
 void PIDController::SetOutputFilter(const double dStrength)
 {
-    // Check if the
+    // Check if the strength is valid.
+    if (dStrength == 0 || numops::Bounded(dStrength, 0.0, 1.0))
+    {
+        // Assign member variable.
+        m_dOutputFilter = dStrength;
+    }
+}
+
+/******************************************************************************
+ * @brief Set the operating direction of the PID controller. Set true to reverse PID
+ *      output.
+ *
+ * @param bReversed - Whether or not eh PID output should be negated.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+void PIDController::SetDirection(const bool bReversed)
+{
+    // Assign member variable.
+    m_bReversed = bReversed;
 }
 
 /******************************************************************************
