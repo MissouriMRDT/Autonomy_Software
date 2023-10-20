@@ -197,7 +197,7 @@ double PIDController::Calculate(const double dActual)
 /******************************************************************************
  * @brief Calculates the control output using the last provided setpoint and actual.
  *
- * @return double -
+ * @return double - The resultant PID controller output.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-17
