@@ -12,7 +12,9 @@
 #ifndef DIFFERENTIAL_DRIVE_HPP
 #define DIFFERENTIAL_DRIVE_HPP
 
+#include "../AutonomyConstants.h"
 #include "../util/NumberOperations.hpp"
+#include "controllers/PIDController.h"
 
 #include <array>
 #include <math.h>
@@ -43,6 +45,19 @@
  ******************************************************************************/
 namespace diffdrive
 {
+    /////////////////////////////////////////
+    // Declare public enums that are specific to and used within this namespace.
+    /////////////////////////////////////////
+
+    // Enum for choosing the differential drive method for certain functions.
+    // Enumerator used to specify what method of drive control to use.
+    enum DifferentialControlMethod
+    {
+        eTankDrive,        // Simple controller. Left and right input is directly assigned to each side of the drivetrain.
+        eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
+        eCurvatureDrive    // Similar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
+    };
+
     /******************************************************************************
      * @brief This struct is used to store the left and right drive powers for the robot.
      *      Storing these values in a struct allows for easy handling and access to said
@@ -192,6 +207,56 @@ namespace diffdrive
 
         // Return result drive powers.
         return {dLeftSpeed, dRightSpeed};
+    }
+
+    /******************************************************************************
+     * @brief This function will calculate the drive powers for a given speed and
+     *      absolute heading. The method used to get the drive powers is determined by
+     *      the given enumerator (must be arcade or curvature). The turning rate or
+     *      curvature is determined by the given PID controller which must be properly
+     *      configured.
+     *
+     * @param dGoalSpeed - The goal speed for the robot.
+     * @param dGoalHeading - The goal absolute heading for the robot. (0-360 degrees, CW positive.)
+     * @param dActualHeading - The actual current heading of the robot.
+     * @param eDriveMethod - The differential drive method to use for navigation.
+     * @param PID - A reference to the PID controller to use for hitting the heading setpoint.
+     * @return DrivePowers - The resultant drive powers.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-19
+     ******************************************************************************/
+    inline DrivePowers CalculateMotorPowerFromHeading(double dGoalSpeed,
+                                                      double dGoalHeading,
+                                                      double dActualHeading,
+                                                      DifferentialControlMethod eDriveMethod,
+                                                      PIDController& PID)
+    {
+        // Create instance variables.
+        DrivePowers stOutputPowers;
+
+        // Get control output from PID controller.
+        double dTurnOutput = PID.Calculate(dActualHeading, dGoalHeading);
+        // Calculate drive powers from inverse kinematics of goal speed and turning adjustment.
+        switch (eDriveMethod)
+        {
+            case eArcadeDrive: stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, constants::DRIVE_SQUARE_CONTROL_INPUTS); break;
+            case eCurvatureDrive:
+                stOutputPowers = CalculateCurvatureDrive(dGoalSpeed,
+                                                         dTurnOutput,
+                                                         constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
+                                                         constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                break;
+            default:
+                stOutputPowers = CalculateCurvatureDrive(dGoalSpeed,
+                                                         dGoalHeading,
+                                                         constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
+                                                         constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                break;
+        }
+
+        // Return result powers.
+        return stOutputPowers;
     }
 }    // namespace diffdrive
 #endif

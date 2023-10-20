@@ -44,15 +44,19 @@ class PIDController
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
+
         PIDController(const double dKp, const double dKi, const double dKd, const double dKff = 0.0);
         double Calculate(const double dActual, const double dSetpoint);
         double Calculate(const double dActual);
         double Calculate();
+        void EnableContinuousInput(const double dMinimumInput, const double dMaximumInput);
+        void DisableContinuousInput();
         void Reset();
 
         /////////////////////////////////////////
         // Setters
         /////////////////////////////////////////
+
         void SetProportional(const double dKp);
         void SetIntegral(const double dKi);
         void SetDerivative(const double dKd);
@@ -71,6 +75,7 @@ class PIDController
         /////////////////////////////////////////
         // Getters
         /////////////////////////////////////////
+
         double GetProportional() const;
         double GetIntegral() const;
         double GetDerivative() const;
@@ -80,33 +85,39 @@ class PIDController
         double GetMaxIntegralEffort() const;
         double GetOutputRampRate() const;
         double GetOutputFilter() const;
-        double GetDirection() const;
+        double GetContinuousInputEnabled() const;
+        bool GetReversed() const;
 
     private:
         /////////////////////////////////////////
         // Declare public methods.
         /////////////////////////////////////////
+
         void CheckGainSigns();
 
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
-        double m_dKp;                       // Proportional gain.
-        double m_dKi;                       // Integral gain.
-        double m_dKd;                       // Derivative gain.
-        double m_dKff;                      // Feedforward gain.
-        double m_dSetpoint;                 // Current control setpoint.
-        double m_dErrorSum;                 // Error accumulation.
-        double m_dMaxError;                 // Max allowed error.
-        double m_dMaxIEffort;               // Max integral calculated term effort.
-        double m_dMinEffort;                // Min output of the PID controller.
-        double m_dMaxEffort;                // Max output of the PID controller.
-        double m_dLastActual;               // The previous process variable input.
-        double m_dOutputRampRate;           // The max rate of change of the controller output.
-        double m_dLastControlOutput;        // The previous control output of the controller.
-        double m_dOutputFilter;             // Strength of an exponential rolling sum filter. Used to reduce sharp oscillations.
-        double m_dMaxSetpointDifference;    // Limit on how far the setpoint can be from the current position.
-        bool m_bFirstCalculation;           // Whether or not this is the first iteration of the control loop.
-        bool m_bReversed;                   // Operating direction of the controller.
+
+        double m_dKp;                        // Proportional gain.
+        double m_dKi;                        // Integral gain.
+        double m_dKd;                        // Derivative gain.
+        double m_dKff;                       // Feedforward gain.
+        double m_dSetpoint;                  // Current control setpoint.
+        double m_dErrorSum;                  // Error accumulation.
+        double m_dMaxError;                  // Max allowed error.
+        double m_dMaxIEffort;                // Max integral calculated term effort.
+        double m_dMinEffort;                 // Min output of the PID controller.
+        double m_dMaxEffort;                 // Max output of the PID controller.
+        double m_dLastActual;                // The previous process variable input.
+        double m_dOutputRampRate;            // The max rate of change of the controller output.
+        double m_dLastControlOutput;         // The previous control output of the controller.
+        double m_dOutputFilter;              // Strength of an exponential rolling sum filter. Used to reduce sharp oscillations.
+        double m_dMaxSetpointDifference;     // Limit on how far the setpoint can be from the current position.
+        double m_dMinimumContinuousInput;    // The minimum wraparound value of the input for the controller.
+        double m_dMaximumContinuousInput;    // The maximum wraparound value of the input for the controller.
+        bool m_bControllerIsContinuous;      // Whether of not the controller is working with a circular position range. Good for setpoints that use degrees.
+        bool m_bFirstCalculation;            // Whether or not this is the first iteration of the control loop.
+        bool m_bReversed;                    // Operating direction of the controller.
 };
 #endif
