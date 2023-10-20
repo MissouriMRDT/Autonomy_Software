@@ -9,8 +9,8 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef ARUCO_DETECTION_H
-#define ARUCO_DETECTION_H
+#ifndef ARUCO_DETECTION_HPP
+#define ARUCO_DETECTION_HPP
 
 #include <vector>
 
