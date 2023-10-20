@@ -74,6 +74,10 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+## Find Geographic Lib.
+find_package(GeographicLib REQUIRED)
+include_directories(${GeographicLib_INCLUDE_DIRS})
+
 ## Find CUDA.
 find_package(CUDA 11.4 REQUIRED)
 message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
@@ -133,12 +137,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
                                                 quill::quill
 												${OpenCV_LIBS}
+                                                ${GeographicLib_LIBRARIES}
                                                 ${ZED_LIBS} 
                                                 RoveComm_CPP
     )
 
 ## Package Executable
-install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
@@ -150,7 +155,7 @@ list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
     add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC} ${Logging_SRC})
-    target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main ${OpenCV_LIBS} quill::quill)
+    target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
 else()
     message("No Unit Tests!")
@@ -158,7 +163,7 @@ endif()
 
 if (IntegrationTests_LEN GREATER 0)
     add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Logging_SRC})
-    target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill)
+    target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
 else()
     message("No Integration Tests!")
