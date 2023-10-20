@@ -3,7 +3,7 @@
  *      functions are defined within the arucotag namespace.
  *
  * @file ArucoDetection.h
- * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
+ * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com), Kai Shafe (kasq5m@umsystem.edu)
  * @date 2023-10-07
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved

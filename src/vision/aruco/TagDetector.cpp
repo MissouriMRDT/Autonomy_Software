@@ -2,7 +2,7 @@
  * @brief Implements the TagDetector class.
  *
  * @file TagDetector.cpp
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), jspencerpittman (jspencerpittman@gmail.com)
  * @date 2023-10-07
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
