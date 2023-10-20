@@ -8,6 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../src/AutonomyLogging.h"
+
 #include <gtest/gtest.h>
 
 /******************************************************************************
@@ -20,6 +22,10 @@
  ******************************************************************************/
 int main()
 {
+    // Setup logging.
+    logging::InitializeLoggers();
+
+    // Initialize tests.
     testing::InitGoogleTest();
     return RUN_ALL_TESTS();
 }
