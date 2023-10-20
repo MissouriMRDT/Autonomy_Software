@@ -3,14 +3,14 @@
  *      functions are defined within the tensorflowtag namespace.
  *
  * @file TensorflowDetection.h
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), jspencerpittman (jspencerpittman@gmail.com)
  * @date 2023-10-07
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef TENSORFLOW_DETECTION_H
-#define TENSORFLOW_DETECTION_H
+#ifndef TENSORFLOW_DETECTION_HPP
+#define TENSORFLOW_DETECTION_HPP
 
 #include <vector>
 

@@ -21,7 +21,7 @@
  ******************************************************************************/
 TagDetectionHandler::TagDetectionHandler()
 {
-    // Initialize detector for main ZEDcam.
+    // Initialize detector for main ZEDCam.
     m_pTagDetectorMainCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam),
                                             constants::TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER,
                                             constants::TAGDETECT_MAINCAM_CORNER_REFINE_METHOD,
