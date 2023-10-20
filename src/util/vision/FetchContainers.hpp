@@ -45,6 +45,8 @@ enum PIXEL_FORMATS
     eHSL,
     eSRGB,
     eLAB,
+    eArucoDetection,
+    eTensorflowDetection,
     eUNKNOWN
 };
 
