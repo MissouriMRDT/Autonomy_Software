@@ -107,3 +107,30 @@ TEST(NumOpsTest, MapRange)
     // Make sure original value is returned.
     EXPECT_EQ(dActualValue, dOldValue);
 }
+
+/******************************************************************************
+ * @brief Test the functionality of the InputModulus function.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+TEST(NumOpsTest, InputModulus)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength               = 6;
+    const double aValues[nTestValuesLength]   = {1.0, -1.0, 4.0, 360, 350, 170};
+    const double aMinimums[nTestValuesLength] = {0.0, 0.0, -2.0, -180, -180, -180};
+    const double aMaximums[nTestValuesLength] = {2.0, 2.0, 2.0, 180, 180, 180};
+    const double aOutput[nTestValuesLength]   = {1.0, 1.0, 0.0, 0, -10, 170};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Calculate valid bounds.
+        double dResult = numops::InputModulus(aValues[nIter], aMinimums[nIter], aMaximums[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_EQ(dResult, aOutput[nIter]);
+    }
+}
