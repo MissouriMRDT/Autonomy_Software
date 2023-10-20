@@ -1,5 +1,7 @@
 /******************************************************************************
  * @brief Implements the PIDController class.
+ *      Design is based off of https://github.com/tekdemo/MiniPID and
+ *      https://github.com/wpilibsuite/allwpilib/blob/b3eb64b0f774130833e6b5f8c18cd61403f420f3/wpimath/src/main/native/cpp/controller/PIDController.cpp
  *
  * @file PIDController.cpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -75,6 +77,16 @@ double PIDController::Calculate(const double dActual, const double dSetpoint)
 
     // Determine error from setpoint.
     double dError = dSetpoint - dActual;
+
+    // TODO: Ensure this wraparound login is correct.
+    // Check if the input, and therefor controller is continuous.
+    if (m_bControllerIsContinuous)
+    {
+        // Calculate error bounds.
+        double dErrorBound = (m_dMaximumContinuousInput - m_dMinimumContinuousInput) / 2.0;
+        // Wrap heading.
+        dError = numops::InputModulus(dError, -dErrorBound, dErrorBound);
+    }
 
     // Calculate feedforward term.
     dFFTermOutput = m_dKff * dSetpoint;
@@ -194,6 +206,42 @@ double PIDController::Calculate()
 {
     // Calculate and return the output from the PIDController using the previous actual and setpoint.
     return this->Calculate(m_dLastActual, m_dSetpoint);
+}
+
+/******************************************************************************
+ * @brief Enables continuous wraparound of PID controller input. Use for setpoints
+ *      that exists on a circle. For example, if using degrees for setpoint and actual
+ *      calling this method with 0, 360 will treat 0 and 360 as the same number. This
+ *      prevents the controller from going the long way around the circle when the setpoint
+ *      and actual are near the wraparound point.
+ *
+ * @param dMinimumInput - Minimum input before wraparound.
+ * @param dMaximumInput - Maximum input before wraparound.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+void PIDController::EnableContinuousInput(const double dMinimumInput, const double dMaximumInput)
+{
+    // Assign member variables.
+    m_dMinimumContinuousInput = dMinimumInput;
+    m_dMaximumContinuousInput = dMaximumInput;
+
+    // Enable continuous input.
+    m_bControllerIsContinuous = true;
+}
+
+/******************************************************************************
+ * @brief Disable continuous input wraparound of the PID controller.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+void PIDController::DisableContinuousInput()
+{
+    // Disable continuous input.
+    m_bControllerIsContinuous = false;
 }
 
 /******************************************************************************
@@ -480,6 +528,151 @@ void PIDController::SetDirection(const bool bReversed)
 {
     // Assign member variable.
     m_bReversed = bReversed;
+}
+
+/******************************************************************************
+ * @brief Accessor for proportional gain of the PID controller.
+ *
+ * @return double - dKp proportional gain of the controller.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetProportional() const
+{
+    // Return the member variable.
+    return m_dKp;
+}
+
+/******************************************************************************
+ * @brief Accessor for integral gain of the PID controller.
+ *
+ * @return double - dKi integral gain of the controller.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetIntegral() const
+{
+    // Return the member variable.
+    return m_dKi;
+}
+
+/******************************************************************************
+ * @brief Accessor for derivative gain of the PID controller.
+ *
+ * @return double - dKd derivative gain of the controller.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetDerivative() const
+{
+    // Return the member variable.
+    return m_dKd;
+}
+
+/******************************************************************************
+ * @brief Accessor for feedforward gain of the PID controller.
+ *
+ * @return double - dKff feedforward gain of the controller.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetFeedforward() const
+{
+    // Return the member variable.
+    return m_dKff;
+}
+
+/******************************************************************************
+ * @brief Accessor for the current setpoint that the controller is trying to reach.
+ *
+ * @return double - The current setpoint.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetSetpoint() const
+{
+    // Return the member variable.
+    return m_dSetpoint;
+}
+
+/******************************************************************************
+ * @brief Accessor for the maximum allowable difference the setpoint can be
+ *      from the actual. Doesn't limit the setpoint, just the max error.
+ *      0 = disabled.
+ *
+ * @return double - The maximum setpoint difference from the actual.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetMaxSetpointDifference() const
+{
+    // Return the member variable.
+    return m_dMaxSetpointDifference;
+}
+
+/******************************************************************************
+ * @brief Accessor for the maximum contribution of the integral term within the
+ *      controller. 0 = disabled.
+ *
+ * @return double - The maximum allowed integral value.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetMaxIntegralEffort() const
+{
+    // Return the member variable.
+    return m_dMaxIEffort;
+}
+
+/******************************************************************************
+ * @brief Accessor the the maximum allowed output ramp rate of the PID controller.
+ *
+ * @return double - The max ramp rate of the controller output.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetOutputRampRate() const
+{
+    // Return the member variable.
+    return m_dOutputRampRate;
+}
+
+/******************************************************************************
+ * @brief Accessor for the exponential rolling sum filter strength. Used to
+ *      reduce sharp output oscillations or jumps.
+ *
+ * @return double - Strength of the output filtering.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+double PIDController::GetOutputFilter() const
+{
+    // Return the member variable.
+    return m_dOutputFilter;
+}
+
+/******************************************************************************
+ * @brief Accessor for if the controller outputs are set to be negated or reversed.
+ *
+ * @return true - The output is negated.
+ * @return false - The output is not negated.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+bool PIDController::GetReversed() const
+{
+    // Return the member variable.
+    return m_bReversed;
 }
 
 /******************************************************************************
