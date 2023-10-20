@@ -1,10 +1,12 @@
 /******************************************************************************
- * @brief Example file that demonstrates opening a camera, starting a detector
+ * @brief Example file that demonstrates opening a Basic camera, starting a detector
  *      for that camera, and getting the detections.
  *
- *
+ * @file ArucoDetectionBasicCam.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-08
+ * @date 2023-10-19
+ *
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../src/AutonomyGlobals.h"
@@ -27,12 +29,12 @@ void RunExample()
     globals::g_pTagDetectionHandler = new TagDetectionHandler();
 
     // Get pointer to camera.
-    ZEDCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
     // Start basic cam.
     ExampleBasicCam1->Start();
 
     // Get pointer to the tag detector for the basic cam.
-    TagDetector* ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
+    TagDetector* ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
     // Start the basic cam detector.
     ExampleTagDetector1->Start();
 

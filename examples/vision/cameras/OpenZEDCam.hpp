@@ -2,9 +2,11 @@
  * @brief Example file that demonstrates opening and using multiple different
  *      features of the ZED camera.
  *
- *
+ * @file OpenZEDCam.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-16
+ *
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../src/AutonomyConstants.h"
