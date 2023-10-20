@@ -228,7 +228,6 @@ namespace imgops
      * @param dSigmaColor - Std.Dev for color weights
      * @param dSigmaSpace - Std.Dev for spatial weights
      *
-     * @todo Test this!
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2023-10-17
      ******************************************************************************/

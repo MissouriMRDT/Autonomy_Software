@@ -76,7 +76,7 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
     cv::aruco::ArucoDetector cvDetector(cvDictionary);
 
     // Load the image containing the sample ArUco tag
-    cv::Mat cvTestImageMat = LoadImageFromRelativePath("rsc/cleanArucoMarker0.png");
+    cv::Mat cvTestImageMat = LoadImageFromRelativePath("../../../../data/Tests/images/cleanArucoMarker0.png");
 
     // Detect tags in the image
     std::vector<arucotag::ArucoTag> vDetectedTags;
@@ -119,7 +119,7 @@ TEST(TagDetectOpenCVTest, MultiCleanTagDetect)
     cv::aruco::ArucoDetector cvDetector(cvDictionary);
 
     // Load the image containing the sample ArUco tags
-    cv::Mat cvTestImageMat = LoadImageFromRelativePath("rsc/cleanArucoMarkersMultiple.png");
+    cv::Mat cvTestImageMat = LoadImageFromRelativePath("../../../../data/Tests/images/cleanArucoMarkersMultiple.png");
 
     // Detect tags in the image
     std::vector<arucotag::ArucoTag> vecDetectedTags;
