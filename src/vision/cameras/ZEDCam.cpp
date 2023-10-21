@@ -10,6 +10,7 @@
 
 #include "ZEDCam.h"
 #include "../../AutonomyLogging.h"
+#include "../../util/NumberOperations.hpp"
 #include "../../util/vision/ImageOperations.hpp"
 
 /******************************************************************************
@@ -226,6 +227,9 @@ void ZEDCam::ThreadedContinuousCode()
     }
     else
     {
+        // Record the start time of this block of code.
+        auto tmStartTime = std::chrono::high_resolution_clock::now();
+
         // Acquire write lock for camera object.
         std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
         // Call generalized update method of zed api.
@@ -233,14 +237,9 @@ void ZEDCam::ThreadedContinuousCode()
         // Check if new frame was computed successfully.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
-            // Acquire a shared_lock on the frame copy queue.
-            std::shared_lock<std::shared_mutex> lkFrameSchedulers(m_muPoolScheduleMutex);
-            // Check if the frame copy queue is empty.
-            if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty())
+            // Check if it's necessary to update frames.
+            if (m_bFramesAreQueued)
             {
-                // Release lock on frame copy queue.
-                lkFrameSchedulers.unlock();
-
                 // Grab regular image and store it in member variable.
                 slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
                 // Check that the regular frame was retrieved successfully.
@@ -294,89 +293,59 @@ void ZEDCam::ThreadedContinuousCode()
                 }
             }
 
-            // Check if positional tracking is enabled.
-            if (m_slCamera.isPositionalTrackingEnabled())
+            // Check if positional tracking is enabled and poses are being requested.
+            if (m_slCamera.isPositionalTrackingEnabled() && m_bPosesAreQueued)
             {
-                // Acquire a shared_lock on the pose copy queue.
-                std::shared_lock<std::shared_mutex> lkPoseScheduler(m_muPoseScheduleMutex);
-                // Check if the pose copy queue is empty.
-                if (!m_qPoseCopySchedule.empty())
+                // Get the current pose of the camera.
+                sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+                // Check that the regular frame was retrieved successfully.
+                if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
                 {
-                    // Release lock on the pose copy queue.
-                    lkPoseScheduler.unlock();
-
-                    // Get the current pose of the camera.
-                    sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-                    // Check that the regular frame was retrieved successfully.
-                    if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger,
-                                    "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
-                                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                    m_slCamera.getCameraInformation().serial_number,
-                                    sl::toString(slPoseTrackReturnCode).get());
-                    }
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number,
+                                sl::toString(slPoseTrackReturnCode).get());
                 }
             }
 
-            // Check if object detection is enabled.
-            if (m_slCamera.isObjectDetectionEnabled())
+            // Check if object detection is enabled and objects are being requested.
+            if (m_slCamera.isObjectDetectionEnabled() && m_bObjectsAreQueued)
             {
-                // Acquire a shared_lock on the object copy queue.
-                std::shared_lock<std::shared_mutex> lkObjectScheduler(m_muObjectDataScheduleMutex);
-                // Check if the object copy queue is empty.
-                if (!m_qObjectDataCopySchedule.empty())
+                // Get updated objects from camera.
+                slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+                // Check that the regular frame was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                 {
-                    // Release lock on the object copy queue.
-                    lkObjectScheduler.unlock();
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number,
+                                sl::toString(slReturnCode).get());
+                }
 
-                    // Get updated objects from camera.
-                    slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+                // Check if batched object data is enabled and being requested.
+                if (m_slObjectDetectionBatchParams.enable && m_bBatchObjectsAreQueued)
+                {
+                    // Get updated batched objects from camera.
+                    slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
                     // Check that the regular frame was retrieved successfully.
                     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
-                                    "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                    "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                     m_slCamera.getCameraInformation().serial_number,
                                     sl::toString(slReturnCode).get());
-                    }
-                }
-
-                // Check if batched object data is enabled.
-                if (m_slObjectDetectionBatchParams.enable)
-                {
-                    // Acquire a shared_lock on the pose copy queue.
-                    std::shared_lock<std::shared_mutex> lkBatchedObjectScheduler(m_muObjectBatchedDataScheduleMutex);
-                    // Check if the pose copy queue is empty.
-                    if (!m_qObjectBatchedDataCopySchedule.empty())
-                    {
-                        // Release lock on the pose copy queue.
-                        lkBatchedObjectScheduler.unlock();
-
-                        // Get updated batched objects from camera.
-                        slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
-                        // Check that the regular frame was retrieved successfully.
-                        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
-                        {
-                            // Submit logger message.
-                            LOG_WARNING(logging::g_qSharedLogger,
-                                        "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                        m_slCamera.getCameraInformation().serial_number,
-                                        sl::toString(slReturnCode).get());
-                        }
                     }
                 }
             }
 
             // Release camera lock.
             lkSharedCameraLock.unlock();
-
-            // Call FPS tick.
-            m_IPS.Tick();
         }
         else
         {
@@ -388,11 +357,10 @@ void ZEDCam::ThreadedContinuousCode()
                       sl::toString(slReturnCode).get());
         }
 
-        // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Acquire a shared_lock on all of the copy queues.
+        std::shared_lock<std::shared_mutex> lkFrameSchedulers(m_muPoolScheduleMutex);
         // Check if the frame copy queue is empty.
-        if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-            !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
+        if (m_bFramesAreQueued || m_bPosesAreQueued || m_bObjectsAreQueued || m_bBatchObjectsAreQueued)
         {
             // Find the queue with the longest length.
             size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
@@ -406,9 +374,34 @@ void ZEDCam::ThreadedContinuousCode()
             this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
             // Wait for thread pool to finish.
             this->JoinPool();
-            // Release lock on frame copy queue.
-            lkSchedulers.unlock();
+
+            // Reset copy toggles.
+            m_bFramesAreQueued       = false;
+            m_bPosesAreQueued        = false;
+            m_bObjectsAreQueued      = false;
+            m_bBatchObjectsAreQueued = false;
         }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Sleep so that the main camera thread doesn't hog resources and mutexes. (It's doing nothing do it will loop very fast.)
+        // Not using condition variables cause we still want the camera to update if nothing is being requested.
+        // This sleep is variable and can be zero depending on the load of the camera class.
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Record the current time.
+        auto tmEndTime = std::chrono::high_resolution_clock::now();
+        // Calculate the actual runtime of the code block.
+        auto tmActualRuntime = std::chrono::duration_cast<std::chrono::microseconds>(tmEndTime - tmStartTime);
+        // Calculate the sleep time required to reach the target duration.
+        auto tmSleepTime = std::chrono::microseconds(int((1.0 / m_nPropFramesPerSecond) * 1000000)) - tmActualRuntime;
+        // Check if we actually need to sleep.
+        if (tmSleepTime.count() > 0)
+        {
+            // Sleep for the remaining time.
+            std::this_thread::sleep_for(tmSleepTime);
+        }
+
+        // Call FPS tick.
+        m_IPS.Tick();
     }
 }
 
@@ -597,6 +590,9 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
+    // Signify that the frame queue is not empty.
+    m_bFramesAreQueued = true;
+
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
@@ -624,6 +620,12 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
+
+    // Signify that the frame queue is not empty.
+    if (!m_bFramesAreQueued)
+    {
+        m_bFramesAreQueued = true;
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -661,6 +663,9 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
+    // Signify that the frame queue is not empty.
+    m_bFramesAreQueued = true;
+
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
@@ -696,6 +701,9 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
+
+    // Signify that the frame queue is not empty.
+    m_bFramesAreQueued = true;
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -733,6 +741,9 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
+    // Signify that the frame queue is not empty.
+    m_bFramesAreQueued = true;
+
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
@@ -768,6 +779,9 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
+
+    // Signify that the frame queue is not empty.
+    m_bFramesAreQueued = true;
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -1203,11 +1217,14 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         containers::DataFetchContainer<sl::Pose> stContainer(slPose);
 
         // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoseScheduleMutex);
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Append data fetch container to the schedule queue.
         m_qPoseCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
+        // Release lock on the pose schedule queue.
         lkSchedulers.unlock();
+
+        // Signify that the pose queue is not empty.
+        m_bPosesAreQueued = true;
 
         // Return the future from the promise stored in the container.
         return stContainer.pCopiedDataStatus->get_future();
@@ -1359,11 +1376,14 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
         containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer(vObjectData);
 
         // Acquire lock on object copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muObjectDataScheduleMutex);
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Append data fetch container to the schedule queue.
         m_qObjectDataCopySchedule.push(stContainer);
-        // Release lock on the data schedule queue.
+        // Release lock on the object schedule queue.
         lkSchedulers.unlock();
+
+        // Signify that the object queue is not empty.
+        m_bObjectsAreQueued = true;
 
         // Return the future from the promise stored in the container.
         return stContainer.pCopiedDataStatus->get_future();
@@ -1408,11 +1428,14 @@ std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch
         containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer(vBatchedObjectData);
 
         // Acquire lock on batched object copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muObjectBatchedDataScheduleMutex);
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Append data fetch container to the schedule queue.
         m_qObjectBatchedDataCopySchedule.push(stContainer);
         // Release lock on the data schedule queue.
         lkSchedulers.unlock();
+
+        // Signify that the batched object queue is not empty.
+        m_bBatchObjectsAreQueued = true;
 
         // Return the future from the promise stored in the container.
         return stContainer.pCopiedDataStatus->get_future();

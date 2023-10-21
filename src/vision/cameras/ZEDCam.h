@@ -133,13 +133,14 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
-        std::shared_mutex m_muPoseScheduleMutex;
-        std::shared_mutex m_muObjectDataScheduleMutex;
-        std::shared_mutex m_muObjectBatchedDataScheduleMutex;
         std::mutex m_muCustomBoxIngestMutex;
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
+        std::atomic<bool> m_bFramesAreQueued;
+        std::atomic<bool> m_bPosesAreQueued;
+        std::atomic<bool> m_bObjectsAreQueued;
+        std::atomic<bool> m_bBatchObjectsAreQueued;
 
         /////////////////////////////////////////
         // Declare private methods.

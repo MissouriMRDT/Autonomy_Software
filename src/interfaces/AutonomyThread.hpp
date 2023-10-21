@@ -31,9 +31,9 @@ class AutonomyThread
 {
     private:
         // Declare and define interface class private member variables.
-        std::atomic_bool m_bStopThreads = false;
-        BS::thread_pool m_thMainThread  = BS::thread_pool(1);
-        BS::thread_pool m_thPool        = BS::thread_pool(2);
+        std::atomic<bool> m_bStopThreads = false;
+        BS::thread_pool m_thMainThread   = BS::thread_pool(1);
+        BS::thread_pool m_thPool         = BS::thread_pool(2);
         std::future<void> m_fuMainReturn;
         std::vector<std::future<T>> m_vPoolReturns;
 
@@ -53,7 +53,7 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-07-24
          ******************************************************************************/
-        void RunThread(std::atomic_bool& bStopThread)
+        void RunThread(std::atomic<bool>& bStopThread)
         {
             // Loop until stop flag is set.
             while (!bStopThread)
@@ -132,7 +132,7 @@ class AutonomyThread
             }
 
             // Loop nNumThreads times and queue tasks.
-            for (int i = 0; i < nNumTasksToQueue; ++i)
+            for (unsigned int i = 0; i < nNumTasksToQueue; ++i)
             {
                 // Submit single task to pool queue.
                 m_vPoolReturns.emplace_back(m_thPool.submit(
