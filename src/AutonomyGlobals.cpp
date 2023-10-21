@@ -10,6 +10,7 @@
 
 #include "AutonomyGlobals.h"
 #include "AutonomyLogging.h"
+#include <filesystem>
 
 // Forward Declarations
 quill::Logger* g_qFileLogger;
@@ -38,7 +39,15 @@ void InitializeLoggers()
     szFilenameWithExtension = cCurrentTime;
     szFilenameWithExtension += ".log";
 
+    // Check for USB drive
+    std::filesystem::path pathToDrive = "/dev/bus/usb/nameOfUSB/AutonomyTextLogs";
+    if (std::filesystem::exists(pathToDrive))
+    {
+        szFilenamewithExtension = pathToDrive + szFilenameWithExtension;
+    }
+
     // Create Handlers
+
     std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFilenameWithExtension);
     std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
 
