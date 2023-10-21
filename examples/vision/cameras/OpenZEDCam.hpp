@@ -81,37 +81,37 @@ void RunExample()
     {
         // Create instance variables.
         std::future<bool> fuFrameCopyStatus;
-        std::future<bool> fuDepthCopyStatus;
-        std::future<bool> fuPointCloudCopyStatus;
+        // std::future<bool> fuDepthCopyStatus;
+        // std::future<bool> fuPointCloudCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (constants::ZED_MAINCAM_USE_GPU_MAT)
         {
             // Grab frames from camera.
-            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
-            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
-            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
+            fuFrameCopyStatus = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
+            // fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            // fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
         }
         else
         {
             // Grab frames from camera.
-            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
-            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
-            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
+            fuFrameCopyStatus = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
+            // fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            // fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
         std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
 
         // Wait for the frames to be copied.
-        if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
+        if (fuFrameCopyStatus.get())    // && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
         {
             // Check if the camera is setup to use CPU or GPU mats.
             if (constants::ZED_MAINCAM_USE_GPU_MAT)
             {
                 // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
-                cvGPUDepthFrame1.download(cvDepthFrame1);
-                cvGPUPointCloud1.download(cvPointCloud1);
+                // cvGPUDepthFrame1.download(cvDepthFrame1);
+                // cvGPUPointCloud1.download(cvPointCloud1);
             }
 
             // Put FPS on normal frame.
@@ -122,27 +122,28 @@ void RunExample()
                         1,
                         cv::Scalar(255, 255, 255));
 
-            // Put FPS on depth frame.
-            cv::putText(cvDepthFrame1, std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            // // Put FPS on depth frame.
+            // cv::putText(cvDepthFrame1, std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255,
+            // 255));
 
-            // Split color from point cloud.
-            imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
+            // // Split color from point cloud.
+            // imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
             // Display frame.
             cv::imshow("FRAME1", cvNormalFrame1);
-            cv::imshow("DEPTH1", cvDepthFrame1);
-            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
+            // cv::imshow("DEPTH1", cvDepthFrame1);
+            // cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
 
-            // Wait for the other info to be copied.
-            if (fuPoseCopyStatus.get())
-            {
-                // Wait for the
-                sl::Translation slTranslation = slPose.getTranslation();
-                sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
+            // // Wait for the other info to be copied.
+            // if (fuPoseCopyStatus.get())
+            // {
+            //     // Wait for the
+            //     sl::Translation slTranslation = slPose.getTranslation();
+            //     sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
 
-                LOG_INFO(logging::g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-                LOG_INFO(logging::g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
-            }
+            //     LOG_INFO(logging::g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
+            //     LOG_INFO(logging::g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+            // }
 
             // Print info.
             LOG_INFO(logging::g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", ExampleZEDCam1->GetIPS().GetAverageIPS(), ExampleZEDCam1->GetIPS().Get1PercentLow());

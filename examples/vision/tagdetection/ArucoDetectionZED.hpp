@@ -51,6 +51,7 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
+        LOG_INFO(logging::g_qConsoleLogger, "{}", ExampleZEDCam1->GetIPS().GetExactIPS());
         // Grab normal frame from camera.
         std::future<bool> fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
         // Get detections from tag detector for BasicCam.
