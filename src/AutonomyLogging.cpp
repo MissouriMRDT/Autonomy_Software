@@ -50,6 +50,13 @@ namespace logging
         szFilenameWithExtension = cCurrentTime;
         szFilenameWithExtension += ".log";
 
+        // Check for USB drive
+        std::filesystem::path pathToDrive = "/dev/bus/usb/nameOfUSB/AutonomyTextLogs";
+        if (std::filesystem::exists(pathToDrive))
+        {
+            szFilenameWithExtension = pathToDrive + szFilenameWithExtension;
+        }
+
         // Create Handlers
         std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFilenameWithExtension);
         std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
