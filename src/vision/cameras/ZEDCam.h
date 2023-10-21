@@ -47,12 +47,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
-               const float fMinSenseDistance           = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-               const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-               const bool bMemTypeGPU                  = false,
-               const bool bUseHalfDepthPrecision       = false,
-               const int nNumFrameRetrievalThreads     = 10,
-               const unsigned int unCameraSerialNumber = 0);
+               const float fMinSenseDistance                       = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+               const float fMaxSenseDistance                       = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+               const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR,
+               const bool bMemTypeGPU                              = false,
+               const bool bUseHalfDepthPrecision                   = false,
+               const int nNumFrameRetrievalThreads                 = 10,
+               const unsigned int unCameraSerialNumber             = 0);
         ~ZEDCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
         std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame);
@@ -111,9 +112,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::BatchParameters m_slObjectDetectionBatchParams;
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
+        sl::Plane m_slFloorPlane;
+        sl::Transform m_slFloorTrackingFrame;
         sl::MEM m_slMemoryType;
         int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
+        float m_fExpectedCameraHeightFromFloor;
+        float m_fExpectedCameraHeightFromFloorTolerance;
 
         // Mats for storing frames and measures.
 
@@ -126,9 +131,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
+        std::shared_mutex m_muPoseScheduleMutex;
+        std::shared_mutex m_muObjectDataScheduleMutex;
+        std::shared_mutex m_muObjectBatchedDataScheduleMutex;
         std::mutex m_muCustomBoxIngestMutex;
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
