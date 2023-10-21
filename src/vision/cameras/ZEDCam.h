@@ -11,7 +11,6 @@
 #ifndef ZEDCAM_H
 #define ZEDCAM_H
 
-#include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
 
@@ -137,10 +136,10 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
-        std::atomic<bool> m_bFramesAreQueued;
-        std::atomic<bool> m_bPosesAreQueued;
-        std::atomic<bool> m_bObjectsAreQueued;
-        std::atomic<bool> m_bBatchObjectsAreQueued;
+        std::atomic<int> m_nFramesAreQueued;
+        std::atomic<int> m_nPosesAreQueued;
+        std::atomic<int> m_nObjectsAreQueued;
+        std::atomic<int> m_nBatchObjectsAreQueued;
 
         /////////////////////////////////////////
         // Declare private methods.
