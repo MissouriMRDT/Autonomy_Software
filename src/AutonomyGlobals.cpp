@@ -41,7 +41,7 @@ namespace globals
     MultimediaBoard g_pMultimediaBoard;
     NavigationBoard g_pNavigationBoard;
 
-    void adjustAutonomyConstants()
+    void AdjustAutonomyConstants()
     {
         // Check for USB drive
         std::filesystem::path pathToDrive = "/media/auto/AutonomyConfigs";
@@ -53,7 +53,7 @@ namespace globals
 
             if (!fin)
             {
-                std::cerr << "Couldn't open AutonomyConstants.json file" << std::endl;
+                LOG_ERROR(g_qSharedLogger, "Couldn't open AutonomyConstants.json file");
             }
 
             try
@@ -62,7 +62,7 @@ namespace globals
             }
             catch (const std::exception& e)
             {
-                std::cerr << "Error parsing AutonomyConstants.json" << std::endl;
+                LOG_ERROR(g_qSharedLogger, "Error parsing AutonomyConstants.json");
             }
 
             ///////////////////////////////////////////////////////////////////////////

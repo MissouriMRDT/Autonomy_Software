@@ -52,6 +52,9 @@ int main()
     std::cout << szHeaderText << std::endl;
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
+    //
+    AdjustAutonomyConstants();
+
     // Initialize Loggers
     logging::InitializeLoggers();
 

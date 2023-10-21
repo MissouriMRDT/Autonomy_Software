@@ -48,9 +48,9 @@ namespace ants
     bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
     bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
-                                                                        ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
-                                                                        ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     //// Camera  ants.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -126,9 +126,9 @@ namespace ants
     int BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
     int BASICCAM_RIGHTCAM_INDEX                   = 1;       // The /dev/video index of the camera.
     PIXEL_FORMATS BASICCAM_RIGHTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
-                                                                            ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
-                                                                            ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     //// ArUco Vision  ants.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -140,9 +140,9 @@ namespace ants
     int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD             = 10;     // How many times can a validated tag be missing from frame before being forgotten.
     double ARUCO_PIXEL_THRESHOLD                         = 175;    // Pixel value threshold for pre-process threshold mask
     double ARUCO_PIXEL_THRESHOLD_MAX_VALUE               = 255;    // Pixel value to set to if pixel is within threshold
-                                                                   ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
-                                                                   ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 

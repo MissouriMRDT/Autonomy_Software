@@ -60,6 +60,8 @@ namespace globals
     extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface
     extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
     extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
+
+    void AdjustAutonomyConstants();
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H
