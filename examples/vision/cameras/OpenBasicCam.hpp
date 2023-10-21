@@ -2,15 +2,17 @@
  * @brief Example file that demonstrates opening and using multiple different
  *      features of the basic camera.
  *
- *
+ * @file OpenBasicCam.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-16
+ *
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../../src/AutonomyGlobals.h"
-#include "../../src/AutonomyLogging.h"
-#include "../../src/util/ExampleChecker.h"
-#include "../../src/vision/cameras/BasicCam.h"
+#include "../../../src/AutonomyGlobals.h"
+#include "../../../src/AutonomyLogging.h"
+#include "../../../src/util/ExampleChecker.h"
+#include "../../../src/vision/cameras/BasicCam.h"
 
 /******************************************************************************
  * @brief This example demonstrates the proper way to interact with the CameraHandler.
@@ -32,7 +34,7 @@
  ******************************************************************************/
 void RunExample()
 {
-    // Initialize and start Threads
+    // Initialize and start handlers
     globals::g_pCameraHandler = new CameraHandler();
 
     // Get reference to camera.

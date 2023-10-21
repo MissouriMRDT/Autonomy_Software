@@ -13,7 +13,6 @@
 
 #include "../AutonomyConstants.h"
 #include "../AutonomyLogging.h"
-#include "../algorithms/DifferentialDrive.hpp"
 #include "../util/NumberOperations.hpp"
 
 /******************************************************************************
@@ -26,8 +25,17 @@
 DriveBoard::DriveBoard()
 {
     // Initialize member variables.
-    m_fTargetSpeedLeft  = 0.0;
-    m_fTargetSpeedRight = 0.0;
+    m_stDrivePowers.dLeftDrivePower  = 0.0;
+    m_stDrivePowers.dRightDrivePower = 0.0;
+
+    // Configure PID controller for heading hold function.
+    m_pPID = new PIDController(constants::DRIVE_PID_PROPORTIONAL, constants::DRIVE_PID_INTEGRAL, constants::DRIVE_PID_DERIVATIVE);
+    m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR_PER_ITER);
+    m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
+    m_pPID->SetOutputLimits(constants::DRIVE_PID_MAX_OUTPUT_EFFORT);
+    m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
+    m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
+    m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
 }
 
 /******************************************************************************
@@ -41,72 +49,67 @@ DriveBoard::~DriveBoard()
 {
     // Stop drivetrain.
     this->SendStop();
+
+    // Delete dynamically allocated memory.
+    delete m_pPID;
+
+    // Set dangling pointers to null.
+    m_pPID = nullptr;
 }
 
 /******************************************************************************
  * @brief This method determines drive powers to make the Rover drive towards a
  * 		given heading at a given speed
  *
- * @param fSpeed - The speed to drive at (-1 to 1)
- * @param fAngle - The angle to drive towards.
+ * @param dGoalSpeed - The speed to drive at (-1 to 1)
+ * @param dGoalHeading - The angle to drive towards. (0 - 360) 0 is North.
+ * @param dActualHeading -
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
- * @return std::array<int, 2> - 1D array of length 2 containing two values. (left power, right power)
+ * @return diffdrive::DrivePowers - A struct containing two values. (left power, right power)
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-std::array<float, 2> DriveBoard::CalculateMove(const float fSpeed, const float fAngle, const DifferentialControlMethod eKinematicsMethod)
+diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
+                                                 const double dGoalHeading,
+                                                 const double dActualHeading,
+                                                 const diffdrive::DifferentialControlMethod eKinematicsMethod)
 {
-    // Create instance variables.
-    std::array<double, 2> aDrivePowers;
-
-    // Check what kinematics model we should use.
-    switch (eKinematicsMethod)
-    {
-        case eArcadeDrive: aDrivePowers = diffdrive::CalculateArcadeDrive(double(fSpeed), double(fAngle), constants::DRIVE_MIN_POWER); break;
-        case eCurvatureDrive:
-            aDrivePowers = diffdrive::CalculateCurvatureDrive(double(fSpeed),
-                                                              double(fAngle),
-                                                              constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
-                                                              constants::DRIVE_SQUARE_CONTROL_INPUTS);
-            break;
-    }
-
-    // Update member variables with new targets speeds. Adjust to match power range.
-    m_fTargetSpeedLeft  = double(aDrivePowers[0]);
-    m_fTargetSpeedRight = double(aDrivePowers[1]);
+    // Calculate the drive powers from the current heading, goal heading, and goal speed.
+    m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed, dGoalHeading, dActualHeading, eKinematicsMethod, *m_pPID);
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_fTargetSpeedLeft, m_fTargetSpeedRight);
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
 
-    return {m_fTargetSpeedLeft, m_fTargetSpeedRight};
+    return m_stDrivePowers;
 }
 
 /******************************************************************************
  * @brief Sets the left and right drive powers of the drive board.
  *
- * @param fLeftSpeed - Left drive speed (-1 to 1)
- * @param fRightSpeed - Right drive speed (-1 to 1)
+ * @param dLeftSpeed - Left drive speed (-1 to 1)
+ * @param dRightSpeed - Right drive speed (-1 to 1)
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-void DriveBoard::SendDrive(float fLeftSpeed, float fRightSpeed)
+void DriveBoard::SendDrive(double dLeftSpeed, double dRightSpeed)
 {
     // Limit input values.
-    fLeftSpeed  = std::clamp(fLeftSpeed, -1.0f, 1.0f);
-    fRightSpeed = std::clamp(fRightSpeed, -1.0f, 1.0f);
+    dLeftSpeed  = std::clamp(dLeftSpeed, -1.0, 1.0);
+    dRightSpeed = std::clamp(dRightSpeed, -1.0, 1.0);
 
     // Update member variables with new target speeds.
-    m_fTargetSpeedLeft  = fLeftSpeed;
-    m_fTargetSpeedRight = fRightSpeed;
+    m_stDrivePowers.dLeftDrivePower  = dLeftSpeed;
+    m_stDrivePowers.dRightDrivePower = dRightSpeed;
 
-    // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-    m_fTargetSpeedLeft  = numops::MapRange(m_fTargetSpeedLeft, -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    m_fTargetSpeedRight = numops::MapRange(m_fTargetSpeedRight, -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    // Limit the power to max and min effort defined in constants.
-    m_fTargetSpeedLeft  = std::clamp(m_fTargetSpeedLeft, constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
-    m_fTargetSpeedRight = std::clamp(m_fTargetSpeedRight, constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+    // TODO: Uncomment once RoveComm is implemented. This is commented to gid rid of unused variable warnings.
+    // // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
+    // float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    // float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    // // Limit the power to max and min effort defined in constants.
+    // fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+    // fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
 
     // Send drive command over RoveComm to drive board.
     // TODO: Add RoveComm sendpacket.
@@ -122,9 +125,23 @@ void DriveBoard::SendDrive(float fLeftSpeed, float fRightSpeed)
 void DriveBoard::SendStop()
 {
     // Update member variables with new target speeds.
-    m_fTargetSpeedLeft  = 0.0;
-    m_fTargetSpeedRight = 0.0;
+    m_stDrivePowers.dLeftDrivePower  = 0.0;
+    m_stDrivePowers.dRightDrivePower = 0.0;
 
     // Send drive command over RoveComm to drive board.
     // TODO: Add RoveComm sendpacket.
+}
+
+/******************************************************************************
+ * @brief Accessor for the current drive powers of the robot.
+ *
+ * @return diffdrive::DrivePowers - A struct containing the left and right drive power of the drivetrain.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-20
+ ******************************************************************************/
+diffdrive::DrivePowers DriveBoard::GetDrivePowers() const
+{
+    // Return the current drive powers.
+    return m_stDrivePowers;
 }

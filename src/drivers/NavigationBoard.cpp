@@ -39,6 +39,8 @@ NavigationBoard::~NavigationBoard() {}
  ******************************************************************************/
 void NavigationBoard::ProcessIMUData(geoops::IMUData stPacket)
 {
+    // Acquire write lock for writing to IMU struct.
+    std::unique_lock<std::shared_mutex> lkIMUProcessLock(m_muOrientationMutex);
     // Update member variables attributes.
     m_stOrientation.dPitch   = stPacket.dPitch;
     m_stOrientation.dRoll    = stPacket.dRoll;
@@ -58,6 +60,8 @@ void NavigationBoard::ProcessIMUData(geoops::IMUData stPacket)
  ******************************************************************************/
 void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
 {
+    // Acquire write lock for writing to IMU struct.
+    std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger,
               "Incoming GPS Data: ({} lat, {} lon, {} alt, {} acc)",
@@ -65,6 +69,9 @@ void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
               stPacket.dLongitude,
               stPacket.dAltitude,
               stPacket.d2DAccuracy);
+
+    // Convert to UTM coord and store in member variable.
+    m_stLocation = geoops::ConvertGPSToUTM(stPacket);
 }
 
 /******************************************************************************
@@ -75,8 +82,10 @@ void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-geoops::IMUData NavigationBoard::GetIMUData() const
+geoops::IMUData NavigationBoard::GetIMUData()
 {
+    // Acquire read lock for getting IMU struct.
+    std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muOrientationMutex);
     // Return the orientation struct member variable.
     return m_stOrientation;
 }
@@ -89,10 +98,12 @@ geoops::IMUData NavigationBoard::GetIMUData() const
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-geoops::GPSCoordinate NavigationBoard::GetGPSData() const
+geoops::GPSCoordinate NavigationBoard::GetGPSData()
 {
-    // TODO: Return empty coordinate for now.
-    return geoops::GPSCoordinate();
+    // Acquire read lock for getting UTM struct.
+    std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muLocationMutex);
+    // Convert the currently stored UTM coord to GPS and return.
+    return geoops::ConvertUTMToGPS(m_stLocation);
 }
 
 /******************************************************************************
@@ -104,8 +115,9 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData() const
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-23
  ******************************************************************************/
-geoops::UTMCoordinate NavigationBoard::GetUTMData() const
+geoops::UTMCoordinate NavigationBoard::GetUTMData()
 {
-    // TODO: Return empty coordinate for now.
-    return geoops::UTMCoordinate();
+    // Acquire read lock for getting UTM struct.
+    std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muLocationMutex);
+    return m_stLocation;
 }
