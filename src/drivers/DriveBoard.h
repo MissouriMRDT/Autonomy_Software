@@ -12,21 +12,55 @@
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
 
-#include <vector>
+#include "../algorithms/DifferentialDrive.hpp"
+#include "../algorithms/controllers/PIDController.h"
 
+#include <array>
+
+/******************************************************************************
+ * @brief This class handles communication with the drive board on the rover by
+ *      sending RoveComm packets over the network.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-21
+ ******************************************************************************/
 class DriveBoard
 {
     private:
-        int m_iTargetSpeedLeft;
-        int m_iTargetSpeedRight;
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+
+        diffdrive::DrivePowers m_stDrivePowers;    // Struct used to store the left and right drive powers of the robot.
+        PIDController* m_pPID;                     // The PID controller used for drive towards a heading.
 
     public:
+        /////////////////////////////////////////
+        // Declare public enums that are specific to and used within this class.
+        /////////////////////////////////////////
+
+        /////////////////////////////////////////
+        // Declare public methods and member variables.
+        /////////////////////////////////////////
+
         DriveBoard();
         ~DriveBoard();
-
-        std::vector<int> CalculateMove(float fSpeed, float fAngle);
-        void SendDrive(/*int iLeftTarget, int iRightTarget*/);
+        diffdrive::DrivePowers CalculateMove(const double dGoalSpeed,
+                                             const double dGoalHeading,
+                                             const double dActualHeading,
+                                             const diffdrive::DifferentialControlMethod eKinematicsMethod);
+        void SendDrive(double dLeftSpeed, double dRightSpeed);
         void SendStop();
-};
 
-#endif    // DRIVEBOARD_H
+        /////////////////////////////////////////
+        // Setters
+        /////////////////////////////////////////
+
+        /////////////////////////////////////////
+        // Getters
+        /////////////////////////////////////////
+
+        diffdrive::DrivePowers GetDrivePowers() const;
+};
+#endif

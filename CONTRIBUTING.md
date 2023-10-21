@@ -51,7 +51,7 @@ Pull Request names should be no more than 50 characters. The description should 
 ## Styleguides
 ### Variable Names
 
-Variable names should be in camel case with the lower case portion being the identifer from below. The name should give a good description of what the variable is for but should not excede 32-48 characters.
+Variable names should be in camel case with the lower case portion being the identifier from below. The name should give a good description of what the variable is for but should not exceed 32-48 characters.
 
 
 #### Member and Global Variables
@@ -68,6 +68,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Signed Double  > `d` > Example: `double dExampleSignedDouble`
 
 #### Unsigned Types
+- Unsigned Char    > `uc` > Example: `unsigned char ucExampleUnsignedChar`
 - Unsigned Integer > `un` > Example: `unsigned int unExampleUnsignedInteger`
 - Unsigned Long    > `ul` > Example: `unsigned long ulExampleUnsignedLong`
 - Unsigned Short   > `us` > Example: `unsigned short usExampleUnsignedShort`
@@ -81,6 +82,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Array     > `a`  > Example: `int aExampleArray[4]`
 - Deque     > `dq` > Example: `deque dqExampleDeque`
 - Queue     > `q`  > Example: `queue<int> qExampleQueue`
+- Iterator  > `it` > Example: `iterator itExampleIterator`
 - String    > `sz` > Example: `string szExampleString`
 - Pointer   > `p`  > Example: `string* pExamplePointer`
 - Enum      > `e`  > Example: `ExampleEnum eExampleUseOfEnum`
@@ -101,20 +103,21 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Boost:
     - State Chart > `sc`  > Example: `sc::simple_state<IdleState, StateMachine>`
 - Quill  > `q` > Example: `quill::Config qConfig`
+- GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
 
 ### Macro Names
-Macros should be in all caps using underscores to seperate words. They should be detailed enough to not require an additional comment.
+Macros should be in all caps using underscores to separate words. They should be detailed enough to not require an additional comment.
 
 Example:`#define ARUCO_DEBUG_PRINTS false` or `#define AUTONOMY_MAJOR_VERSION 24`
 
 ### Function Names
-Functions should use Pascal Case for names. They should use detailed names but also include a doxgen comment. Doxgen comments can be created by typing `/** <enter>`.
+Functions should use Pascal Case for names. They should use detailed names but also include a doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
 
 ### Class Names
-Class should use Pascal Case for names. They should use short names but also include a doxgen comment. Doxgen comments can be created by typing `/** <enter>`.
+Class should use Pascal Case for names. They should use short names but also include a Doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
 
 ### Struct Names
-Struct should use Pascal Case for names. They should use short names but also include a doxgen comment. Doxgen comments can be created by typing `/** <enter>`.
+Struct should use Pascal Case for names. They should use short names but also include a Doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
 
 ## Join The Team
 Do you go to the Missouri University of Science and Technology? Are you interested in contributing and being a part of our team? If so go to [design.mst.edu](https://design.mst.edu) to learn how to sign up today!

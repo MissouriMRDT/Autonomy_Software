@@ -16,11 +16,11 @@
  *
  *        Primarily the Reverse State Handler, handles the navigation of
  *        the Rover away from a gate or marker. However, in the event the
- *        Rover becomes stuck, one of the methods we can use to attept to
+ *        Rover becomes stuck, one of the methods we can use to attempt to
  *        become unstuck, is to navigate in reverse.
  *
  *        It also listens for state events that pertain to the Reverse
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -29,7 +29,7 @@
  ******************************************************************************/
 struct ReverseState : sc::simple_state<ReverseState, StateMachine>
 {
-        ReverseState() { LOG_INFO(g_qSharedLogger, "In State: Reverse"); }
+        ReverseState() { LOG_INFO(logging::g_qSharedLogger, "In State: Reverse"); }
 
         typedef mpl::list<sc::custom_reaction<Reverse_ContinueTransition>, sc::custom_reaction<Reverse_AbortTransition>, sc::custom_reaction<Reverse_StuckTransition>>
             reactions;
@@ -84,7 +84,7 @@ struct ReverseState : sc::simple_state<ReverseState, StateMachine>
  ******************************************************************************/
 struct Reverse_ContinueTransition : sc::event<Reverse_ContinueTransition>
 {
-        Reverse_ContinueTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Reverse (Continue)"); }
+        Reverse_ContinueTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Reverse (Continue)"); }
 };
 
 /******************************************************************************
@@ -99,14 +99,14 @@ struct Reverse_ContinueTransition : sc::event<Reverse_ContinueTransition>
  ******************************************************************************/
 struct Reverse_AbortTransition : sc::event<Reverse_AbortTransition>
 {
-        Reverse_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Reverse (Abort)"); }
+        Reverse_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Reverse (Abort)"); }
 };
 
 /******************************************************************************
  * @brief Reverse State - Transition to Stuck
  *
  *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attenpt a series
+ *        Autonomy will navigate to the Stuck State and attempt a series
  *        of algorithms to become unstuck.
  *
  *
@@ -115,5 +115,5 @@ struct Reverse_AbortTransition : sc::event<Reverse_AbortTransition>
  ******************************************************************************/
 struct Reverse_StuckTransition : sc::event<Reverse_StuckTransition>
 {
-        Reverse_StuckTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Reverse (Stuck)"); }
+        Reverse_StuckTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Reverse (Stuck)"); }
 };

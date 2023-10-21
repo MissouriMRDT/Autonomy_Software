@@ -9,117 +9,115 @@
  ******************************************************************************/
 
 #include "NavigationBoard.h"
-
-#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Construct a new Navigation Board:: Navigation Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-NavigationBoard::NavigationBoard()
-{
-    m_dPitch            = 0;
-    m_dRoll             = 0;
-    m_dHeading          = 0;
-
-    m_sLocation         = {0, 0};
-
-    m_iDistanceToGround = 0;
-    m_iLidarQuality     = 0;
-
-    m_tLastTime         = time(nullptr);
-}
+NavigationBoard::NavigationBoard() {}
 
 /******************************************************************************
  * @brief Destroy the Navigation Board:: Navigation Board object.
  *
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
 NavigationBoard::~NavigationBoard() {}
 
 /******************************************************************************
  * @brief Unpack and store data from an IMU packet.
  *
- * @param packet - The special nav board packet containing IMU data.
+ * @param stPacket - The special nav board packet containing IMU data.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-void NavigationBoard::ProcessIMUData(NavBoardPacket_IMU packet)
+void NavigationBoard::ProcessIMUData(geoops::IMUData stPacket)
 {
-    m_dPitch   = packet.dPitch;
-    m_dRoll    = packet.dRoll;
-    m_dHeading = packet.dHeading;
+    // Acquire write lock for writing to IMU struct.
+    std::unique_lock<std::shared_mutex> lkIMUProcessLock(m_muOrientationMutex);
+    // Update member variables attributes.
+    m_stOrientation.dPitch   = stPacket.dPitch;
+    m_stOrientation.dRoll    = stPacket.dRoll;
+    m_stOrientation.dHeading = stPacket.dHeading;
 
-    LOG_INFO(g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_dPitch, m_dRoll, m_dHeading);
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming IMU Data: ({}, {}, {})", m_stOrientation.dPitch, m_stOrientation.dRoll, m_stOrientation.dHeading);
 }
 
 /******************************************************************************
  * @brief Unpack and store data from a GPS packet.
  *
- * @param packet - The special nav board packet containing GPS data.
+ * @param stPacket - The special nav board struct containing GPS data.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-void NavigationBoard::ProcessGPSData(NavBoardPacket_GPS packet)
+void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
 {
-    m_sLocation.dLatitude  = packet.dLatitude;
-    m_sLocation.dLongitude = packet.dLongitude;
+    // Acquire write lock for writing to IMU struct.
+    std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger,
+              "Incoming GPS Data: ({} lat, {} lon, {} alt, {} acc)",
+              stPacket.dLatitude,
+              stPacket.dLongitude,
+              stPacket.dAltitude,
+              stPacket.d2DAccuracy);
 
-    m_tLastTime            = time(nullptr);
-
-    LOG_INFO(g_qSharedLogger, "Incoming GPS Data: ({}, {})", m_sLocation.dLatitude, m_sLocation.dLongitude);
+    // Convert to UTM coord and store in member variable.
+    m_stLocation = geoops::ConvertGPSToUTM(stPacket);
 }
 
 /******************************************************************************
- * @brief Get stored nav board IMU data.
+ * @brief Accessor for most recent IMU data received from NavBoard.
  *
- * @param eKey - Enum detailing which component to retrieve.
- * @return double - The Roll, Pitch, or Heading data.
+ * @return geoops::IMUData - Struct containing roll, pitch, and yaw/heading info.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-double NavigationBoard::GetDData(NavigationBoardPacketDoubleComponents eKey) const
+geoops::IMUData NavigationBoard::GetIMUData()
 {
-    double dValue = 0.0;
-
-    switch (eKey)
-    {
-        case NBPC_PITCH: dValue = m_dPitch; break;
-        case NBPC_ROLL: dValue = m_dRoll; break;
-        case NBPC_HEADING: dValue = m_dHeading; break;
-        default: break;
-    }
-
-    return dValue;
+    // Acquire read lock for getting IMU struct.
+    std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muOrientationMutex);
+    // Return the orientation struct member variable.
+    return m_stOrientation;
 }
 
 /******************************************************************************
- * @brief Get stored GPS data.
+ * @brief Accessor for most recent GPS data received from NavBoard.
  *
- * @param eKey - Enum detailing which data to retrieve.
- * @return NavBoardPacket_GPS - Struct storing GPS data.
+ * @return geoops::GPSCoordinate - Struct containing lat, lon, alt, and accuracy data.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
  ******************************************************************************/
-NavBoardPacket_GPS NavigationBoard::GetSData(NavigationBoardPacketCoordinateComponents eKey) const
+geoops::GPSCoordinate NavigationBoard::GetGPSData()
 {
-    NavBoardPacket_GPS sValue = NavBoardPacket_GPS();
+    // Acquire read lock for getting UTM struct.
+    std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muLocationMutex);
+    // Convert the currently stored UTM coord to GPS and return.
+    return geoops::ConvertUTMToGPS(m_stLocation);
+}
 
-    switch (eKey)
-    {
-        case NBPCC_LOCATION: sValue = m_sLocation; break;
-        default: break;
-    }
-
-    return sValue;
+/******************************************************************************
+ * @brief Accessor for most recent GPS data received from NavBoard converted to UTM coords.
+ *
+ * @return geoops::UTMCoordinate - Struct containing easting, northing, alt, zone,
+ *                                          and accuracy data.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-23
+ ******************************************************************************/
+geoops::UTMCoordinate NavigationBoard::GetUTMData()
+{
+    // Acquire read lock for getting UTM struct.
+    std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muLocationMutex);
+    return m_stLocation;
 }

@@ -19,7 +19,7 @@
  *        through the gate.
  *
  *        It also listens for state events that pertain to the Approaching
- *        Gate State and calls the approprate transition handler to transition
+ *        Gate State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -28,7 +28,7 @@
  ******************************************************************************/
 struct ApproachingGateState : sc::simple_state<ApproachingGateState, StateMachine>
 {
-        ApproachingGateState() { LOG_INFO(g_qSharedLogger, "In State: Approaching Gate"); }
+        ApproachingGateState() { LOG_INFO(logging::g_qSharedLogger, "In State: Approaching Gate"); }
 
         typedef mpl::list<sc::custom_reaction<ApproachingGate_MarkerLostTransition>,
                           sc::custom_reaction<ApproachingGate_AbortTransition>,
@@ -67,7 +67,7 @@ struct ApproachingGateState : sc::simple_state<ApproachingGateState, StateMachin
  ******************************************************************************/
 struct ApproachingGate_MarkerLostTransition : sc::event<ApproachingGate_MarkerLostTransition>
 {
-        ApproachingGate_MarkerLostTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Gate (Marker Lost)"); }
+        ApproachingGate_MarkerLostTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Approaching Gate (Marker Lost)"); }
 };
 
 /******************************************************************************
@@ -82,7 +82,7 @@ struct ApproachingGate_MarkerLostTransition : sc::event<ApproachingGate_MarkerLo
  ******************************************************************************/
 struct ApproachingGate_AbortTransition : sc::event<ApproachingGate_AbortTransition>
 {
-        ApproachingGate_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Gate (Abort)"); }
+        ApproachingGate_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Approaching Gate (Abort)"); }
 };
 
 /******************************************************************************
@@ -98,5 +98,5 @@ struct ApproachingGate_AbortTransition : sc::event<ApproachingGate_AbortTransiti
  ******************************************************************************/
 struct ApproachingGate_ReachedMarkerTransition : sc::event<ApproachingGate_ReachedMarkerTransition>
 {
-        ApproachingGate_ReachedMarkerTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Approaching Gate (Reached Marker)"); }
+        ApproachingGate_ReachedMarkerTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Approaching Gate (Reached Marker)"); }
 };

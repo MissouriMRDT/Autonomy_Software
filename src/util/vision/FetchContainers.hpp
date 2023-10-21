@@ -31,8 +31,8 @@ enum PIXEL_FORMATS
     eABGR,
     eRGBE,
     eXYZ,
-    eRGBXZY,
-    eRGBAXYZ,
+    eXYZBGRA,
+    eXYZRGBA,
     eZED,
     eGrayscale,
     eDepthImage,
@@ -45,6 +45,8 @@ enum PIXEL_FORMATS
     eHSL,
     eSRGB,
     eLAB,
+    eArucoDetection,
+    eTensorflowDetection,
     eUNKNOWN
 };
 

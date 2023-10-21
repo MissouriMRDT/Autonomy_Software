@@ -1,14 +1,14 @@
 /******************************************************************************
- * @brief Implements the CameraHandlerThread class.
+ * @brief Implements the CameraHandler class.
  *
- * @file CameraHandlerThread.cpp
+ * @file CameraHandler.cpp
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "CameraHandlerThread.h"
+#include "CameraHandler.h"
 #include "../AutonomyConstants.h"
 
 /******************************************************************************
@@ -18,7 +18,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-CameraHandlerThread::CameraHandlerThread()
+CameraHandler::CameraHandler()
 {
     // Initialize main ZED camera.
     m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
@@ -31,9 +31,9 @@ CameraHandlerThread::CameraHandlerThread()
                             constants::ZED_MAINCAM_USE_GPU_MAT,
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
                             constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
-                            constants::ZED_MAINCAN_SERIAL);
+                            constants::ZED_MAINCAM_SERIAL);
 
-    // Initialize Left acruco eye.
+    // Initialize Left aruco eye.
     m_pLeftCam = new BasicCam(constants::BASICCAM_LEFTCAM_INDEX,
                               constants::BASICCAM_LEFTCAM_RESOLUTIONX,
                               constants::BASICCAM_LEFTCAM_RESOLUTIONY,
@@ -42,6 +42,16 @@ CameraHandlerThread::CameraHandlerThread()
                               constants::BASICCAM_LEFTCAM_HORIZONTAL_FOV,
                               constants::BASICCAM_LEFTCAM_VERTICAL_FOV,
                               constants::BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS);
+
+    // Initialize Right aruco eye.
+    m_pRightCam = new BasicCam(constants::BASICCAM_RIGHTCAM_INDEX,
+                               constants::BASICCAM_RIGHTCAM_RESOLUTIONX,
+                               constants::BASICCAM_RIGHTCAM_RESOLUTIONY,
+                               constants::BASICCAM_RIGHTCAM_FPS,
+                               constants::BASICCAM_RIGHTCAM_PIXELTYPE,
+                               constants::BASICCAM_RIGHTCAM_HORIZONTAL_FOV,
+                               constants::BASICCAM_RIGHTCAM_VERTICAL_FOV,
+                               constants::BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS);
 }
 
 /******************************************************************************
@@ -51,21 +61,20 @@ CameraHandlerThread::CameraHandlerThread()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-CameraHandlerThread::~CameraHandlerThread()
+CameraHandler::~CameraHandler()
 {
     // Signal and wait for cameras to stop.
-    m_pMainCam->RequestStop();
-    m_pLeftCam->RequestStop();
-    m_pMainCam->Join();
-    m_pLeftCam->Join();
+    this->StopAllCameras();
 
     // Delete dynamic memory.
     delete m_pMainCam;
     delete m_pLeftCam;
+    delete m_pRightCam;
 
     // Set dangling pointers to nullptr.
-    m_pMainCam = nullptr;
-    m_pLeftCam = nullptr;
+    m_pMainCam  = nullptr;
+    m_pLeftCam  = nullptr;
+    m_pRightCam = nullptr;
 }
 
 /******************************************************************************
@@ -75,13 +84,34 @@ CameraHandlerThread::~CameraHandlerThread()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
-void CameraHandlerThread::StartAllCameras()
+void CameraHandler::StartAllCameras()
 {
     // Start ZED cams.
     m_pMainCam->Start();
 
     // Start basic cams.
     m_pLeftCam->Start();
+    m_pRightCam->Start();
+}
+
+/******************************************************************************
+ * @brief Signals all cameras to stop their threads.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-03
+ ******************************************************************************/
+void CameraHandler::StopAllCameras()
+{
+    // Stop ZED cams.
+    m_pMainCam->RequestStop();
+    m_pMainCam->Join();
+
+    // Stop basic cams.
+    m_pLeftCam->RequestStop();
+    m_pRightCam->RequestStop();
+    m_pLeftCam->Join();
+    m_pRightCam->Join();
 }
 
 /******************************************************************************
@@ -93,7 +123,7 @@ void CameraHandlerThread::StartAllCameras()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
+ZEDCam* CameraHandler::GetZED(ZEDCamName eCameraName)
 {
     // Determine which camera should be returned.
     switch (eCameraName)
@@ -112,13 +142,13 @@ ZEDCam* CameraHandlerThread::GetZED(ZEDCamName eCameraName)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-BasicCam* CameraHandlerThread::GetBasicCam(BasicCamName eCameraName)
+BasicCam* CameraHandler::GetBasicCam(BasicCamName eCameraName)
 {
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case eHeadLeftArucoEye: return m_pLeftCam;     // Return the left fisheye cam in the autonomy head.
-        case eHeadRightAcuroEye: return m_pLeftCam;    // No camera to return yet.
+        case eHeadLeftArucoEye: return m_pLeftCam;      // Return the left fisheye cam in the autonomy head.
+        case eHeadRightArucoEye: return m_pRightCam;    // No camera to return yet.
         default: return m_pLeftCam;
     }
 }

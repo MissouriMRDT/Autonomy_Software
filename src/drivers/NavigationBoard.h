@@ -11,88 +11,65 @@
 #ifndef NAVIGATIONBOARD_H
 #define NAVIGATIONBOARD_H
 
-#include <chrono>
-#include <ctime>
+#include "../util/GeospatialOperations.hpp"
 
-struct NavBoardPacket_IMU
-{
-        double dPitch;
-        double dRoll;
-        double dHeading;
+#include <shared_mutex>
 
-        NavBoardPacket_IMU()
-        {
-            dPitch   = 0.0;
-            dRoll    = 0.0;
-            dHeading = 0.0;
-        }
-
-        NavBoardPacket_IMU(double dPitch, double dRoll, double dHeading)
-        {
-            this->dPitch   = dPitch;
-            this->dRoll    = dRoll;
-            this->dHeading = dHeading;
-        }
-};
-
-struct NavBoardPacket_GPS
-{
-        double dLatitude;
-        double dLongitude;
-
-        NavBoardPacket_GPS()
-        {
-            dLatitude  = 0.0;
-            dLongitude = 0.0;
-        }
-
-        NavBoardPacket_GPS(double dLatitude, double dLongitude)
-        {
-            this->dLatitude  = dLatitude;
-            this->dLongitude = dLongitude;
-        }
-};
-
-enum NavigationBoardPacketDoubleComponents
-{
-    NBPC_PITCH,
-    NBPC_ROLL,
-    NBPC_HEADING
-};
-
-enum NavigationBoardPacketCoordinateComponents
-{
-    NBPCC_LOCATION
-};
-
+/******************************************************************************
+ * @brief This class handles communication with the navigation board on the rover
+ *      by sending RoveComm packets over the network.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-30
+ ******************************************************************************/
 class NavigationBoard
 {
-    private:
-        int m_iDistanceToGround;
-        int m_iLidarQuality;
-
-        double m_dPitch;
-        double m_dRoll;
-        double m_dHeading;
-
-        time_t m_tLastTime;
-
-        NavBoardPacket_GPS m_sLocation;
-
-        // TODO: RoveComm Node
-
-        // TODO: RoveComm Callback -> IMU Data
-        // TODO: RoveComm Callback -> GPS Data
-
     public:
+        /////////////////////////////////////////
+        // Declare public enums and structs that are specific to and used withing this class.
+        /////////////////////////////////////////
+
+        /////////////////////////////////////////
+        // Declare public methods and member variables.
+        /////////////////////////////////////////
+
         NavigationBoard();
         ~NavigationBoard();
 
-        void ProcessIMUData(NavBoardPacket_IMU packet);
-        void ProcessGPSData(NavBoardPacket_GPS packet);
+        /////////////////////////////////////////
+        // Setters
+        /////////////////////////////////////////
 
-        double GetDData(NavigationBoardPacketDoubleComponents eKey) const;
-        NavBoardPacket_GPS GetSData(NavigationBoardPacketCoordinateComponents eKey) const;
+        /////////////////////////////////////////
+        // Getters
+        /////////////////////////////////////////
+
+        geoops::IMUData GetIMUData();
+        geoops::GPSCoordinate GetGPSData();
+        geoops::UTMCoordinate GetUTMData();
+
+    private:
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        void ProcessIMUData(geoops::IMUData stPacket);
+        void ProcessGPSData(geoops::GPSCoordinate stPacket);
+
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+
+        geoops::UTMCoordinate m_stLocation;        // Store current global position in UTM format.
+        geoops::IMUData m_stOrientation;           // Store current IMU orientation.
+        std::shared_mutex m_muLocationMutex;       // Mutex for acquiring read and write lock on location member variable.
+        std::shared_mutex m_muOrientationMutex;    // Mutex for acquiring read and write lock on orientation member variable.
+
+                                                   // TODO: RoveComm Node
+
+        // TODO: RoveComm Callback -> IMU Data
+        // TODO: RoveComm Callback -> GPS Data
 };
 
 #endif    // NAVIGATIONBOARD_H

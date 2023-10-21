@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/OpenBasicCam.hpp"
+#include "../examples/vision/tagdetection/ArucoDetectionBasicCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -53,7 +53,7 @@ int main()
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
-    InitializeLoggers();
+    logging::InitializeLoggers();
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -63,11 +63,29 @@ int main()
     }
     else
     {
-        // Initialize and start Threads
-        g_pCameraHandler = new CameraHandlerThread();
-        g_pCameraHandler->StartAllCameras();
+        // Initialize handlers.
+        globals::g_pCameraHandler       = new CameraHandler();
+        globals::g_pTagDetectionHandler = new TagDetectionHandler();
+        // Start handlers.
+        globals::g_pCameraHandler->StartAllCameras();
+        globals::g_pTagDetectionHandler->StartAllDetectors();
 
-        // TODO: Initialize RoveComm
+        // TODO: Initialize RoveComm.
+
+        /////////////////////////////////////////
+        // Cleanup.
+        /////////////////////////////////////////
+        // Stop handlers.
+        globals::g_pCameraHandler->StopAllCameras();
+        globals::g_pTagDetectionHandler->StopAllDetectors();
+
+        // Delete dynamically allocated objects.
+        delete globals::g_pCameraHandler;
+        delete globals::g_pTagDetectionHandler;
+
+        // Set dangling pointers to null.
+        globals::g_pCameraHandler       = nullptr;
+        globals::g_pTagDetectionHandler = nullptr;
     }
 
     // Successful exit.

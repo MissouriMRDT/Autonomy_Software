@@ -18,7 +18,7 @@
  *        to get the Rover unstuck when we detect that it has become stuck.
  *
  *        It also listens for state events that pertain to the Stuck
- *        State and calls the approprate transition handler to transition
+ *        State and calls the appropriate transition handler to transition
  *        states as needed.
  *
  *
@@ -27,7 +27,7 @@
  ******************************************************************************/
 struct StuckState : sc::simple_state<StuckState, StateMachine>
 {
-        StuckState() { LOG_INFO(g_qSharedLogger, "In State: Stuck"); }
+        StuckState() { LOG_INFO(logging::g_qSharedLogger, "In State: Stuck"); }
 
         typedef mpl::list<sc::custom_reaction<Stuck_AbortTransition>, sc::custom_reaction<Stuck_ReverseTransition>> reactions;
 
@@ -56,7 +56,7 @@ struct StuckState : sc::simple_state<StuckState, StateMachine>
  ******************************************************************************/
 struct Stuck_AbortTransition : sc::event<Stuck_AbortTransition>
 {
-        Stuck_AbortTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Stuck (Abort)"); }
+        Stuck_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Stuck (Abort)"); }
 };
 
 /******************************************************************************
@@ -71,5 +71,5 @@ struct Stuck_AbortTransition : sc::event<Stuck_AbortTransition>
  ******************************************************************************/
 struct Stuck_ReverseTransition : sc::event<Stuck_ReverseTransition>
 {
-        Stuck_ReverseTransition() { LOG_INFO(g_qSharedLogger, "In Transition: Stuck (Reverse)"); }
+        Stuck_ReverseTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Stuck (Reverse)"); }
 };
