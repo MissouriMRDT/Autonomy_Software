@@ -1,0 +1,78 @@
+
+{
+    "DriveConstants" : {
+        "drive_max_power":1.0,
+        "drive_min_power":-1.0,
+        "drive_max_effort":0.5,
+        "drive_min_effort":-0.5,
+
+        "drive_pid_proportional":0.1,
+        "drive_pid_integral":0.01,
+        "drive_pid_derivative":0.0,
+        "drive_pid_max_error_per_iter":100,
+        "drive_pid_max_integral_term":0.3,
+        "drive_pid_max_output_effort":0.5,
+        "drive_pid_max_ramp_rate":0.4,
+        "drive_pid_output_filter":0.0,
+        "drive_pid_output_reversed":false,
+        "drive_square_control_inputs":false,
+        "drive_curvature_kinematics_allow_turn_while_stopped":true
+    },
+
+    "CameraConstants" : {
+        "zed_base_resolution":"sl::RESOLUTION::HD720",
+        "zed_measure_units":"sl::UNIT::METER",
+        "zed_coord_system":"sl::DEPTH_MODE::NEURAL",
+        "zed_retrieve_view":"sl::VIEW::LEFT",
+        "zed_sensing_fill":false,
+        "zed_default_min_distance":0.2,
+        "zed_default_max_distance":40.0,
+        "zed_depth_stabilization":1,
+
+        "zed_posetrack_mode":"sl::POSITIONAL_TRACKING_MODE::STANDARD",
+        "zed_posetrack_area_memory":true,
+        "zed_posetrack_pose_smoothing":false,
+        "zed_posetrack_floor_is_origin":true,
+        "zed_posetrack_enable_imu_fusion":true,
+        "zed_posetrack_usable_depth_min":0.2,
+        "zed_posetrack_use_gravity_origin":true,
+
+        "zed_mapping_type":"sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH",
+        "zed_mapping_range_meter":20.0,
+        "zed_mapping_resolution_meter":0.01,
+        "zed_mapping_max_memory":4096,
+        "zed_mapping_use_chunk_only":true,
+        "zed_mapping_stability_counter":4,
+
+        "zed_objdetection_img_sync":true,
+        "zed_objdetection_track_obj":true,
+        "zed_objdetection_segmentation":false,
+        "zed_objdetection_filtering":"sl::OBJECT_FILTERING_MODE::NMS3D_PER_CLASS",
+        "zed_objdetection_tracking_prediction_timeout":0.5,
+        "zed_objdetection_batch_retention_time":240,
+        "zed_objdetection_batch_latency":2,
+
+        "basiccam_resize_interpolation_method":"cv::InterpolationFlags::INTER_LINEAR"
+    },
+
+    "CameraHandlerAdjustments" : {
+        "zed_maincam_resolutionx":1280,
+        "zed_maincam_resolutiony":720,
+        "zed_maincam_fps":60,
+        "zed_maincam_horizontal_fov":110,
+        "zed_maincam_vertical_fov":70,
+        "zed_maincam_use_gpu_mat":true,
+        "zed_maincam_use_half_precision_depth":true,
+        "zed_maincam_frame_retrieval_threads":20,
+        "zed_maincam_serial":31237348,
+
+        "basiccam_leftcam_resolutionx":1280,
+        "basiccam_leftcam_resolutiony":720,
+        "basiccam_leftcam_fps":30,
+        "basiccam_leftcam_horizontal_fov":110,
+        "basiccam_leftcam_vertical_fov":70,
+        "basiccam_leftcam_frame_retrieval_threads":10,
+        "basiccam_leftcam_index":0,
+        "basiccam_leftcam_pixeltype":"PIXEL_FORMATS::eBGR"
+    }
+}
