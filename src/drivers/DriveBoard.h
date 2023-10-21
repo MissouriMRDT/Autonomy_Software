@@ -12,6 +12,9 @@
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
 
+#include "../algorithms/DifferentialDrive.hpp"
+#include "../algorithms/controllers/PIDController.h"
+
 #include <array>
 
 /******************************************************************************
@@ -29,20 +32,13 @@ class DriveBoard
         // Declare private member variables.
         /////////////////////////////////////////
 
-        float m_fTargetSpeedLeft;
-        float m_fTargetSpeedRight;
+        diffdrive::DrivePowers m_stDrivePowers;    // Struct used to store the left and right drive powers of the robot.
+        PIDController* m_pPID;                     // The PID controller used for drive towards a heading.
 
     public:
         /////////////////////////////////////////
-        // Declare public enums that are specific to and used withing this class.
+        // Declare public enums that are specific to and used within this class.
         /////////////////////////////////////////
-
-        // Enumerator used to specify what method of drive control to use.
-        enum DifferentialControlMethod
-        {
-            eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
-            eCurvatureDrive    // Similar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
-        };
 
         /////////////////////////////////////////
         // Declare public methods and member variables.
@@ -50,20 +46,21 @@ class DriveBoard
 
         DriveBoard();
         ~DriveBoard();
-        std::array<float, 2> CalculateMove(const float fSpeed, const float fAngle, const DifferentialControlMethod eKinematicsMethod);
-        void SendDrive(float fLeftSpeed, float fRightSpeed);
+        diffdrive::DrivePowers CalculateMove(const double dGoalSpeed,
+                                             const double dGoalHeading,
+                                             const double dActualHeading,
+                                             const diffdrive::DifferentialControlMethod eKinematicsMethod);
+        void SendDrive(double dLeftSpeed, double dRightSpeed);
         void SendStop();
 
         /////////////////////////////////////////
         // Setters
         /////////////////////////////////////////
 
-        void SetMaxDrivePower();
-
         /////////////////////////////////////////
         // Getters
         /////////////////////////////////////////
 
-        float GetMaxDrivePower() const;
+        diffdrive::DrivePowers GetDrivePowers() const;
 };
 #endif
