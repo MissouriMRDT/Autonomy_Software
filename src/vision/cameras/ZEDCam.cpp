@@ -86,6 +86,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const double dPropVerticalFOV,
                const float fMinSenseDistance,
                const float fMaxSenseDistance,
+               const float fExpectedCameraHeightFromFloorTolerance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
                const int nNumFrameRetrievalThreads,
@@ -93,6 +94,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
+    m_fExpectedCameraHeightFromFloorTolerance = fExpectedCameraHeightFromFloorTolerance;
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
@@ -231,107 +233,145 @@ void ZEDCam::ThreadedContinuousCode()
         // Check if new frame was computed successfully.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
-            // Grab regular image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-            // Check that the regular frame was retrieved successfully.
-            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+            // Acquire a shared_lock on the frame copy queue.
+            std::shared_lock<std::shared_mutex> lkFrameSchedulers(m_muPoolScheduleMutex);
+            // Check if the frame copy queue is empty.
+            if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty())
             {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
-                            sl::toString(slReturnCode).get());
-            }
+                // Release lock on frame copy queue.
+                lkFrameSchedulers.unlock();
 
-            // Grab depth measure and store it in member variable.
-            slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-            // Check that the regular frame was retrieved successfully.
-            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
-                            sl::toString(slReturnCode).get());
-            }
-
-            // Grab depth grayscale image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-            // Check that the regular frame was retrieved successfully.
-            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
-                            sl::toString(slReturnCode).get());
-            }
-
-            // Grab regular resized image and store it in member variable.
-            slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
-            // Check that the regular frame was retrieved successfully.
-            if (slReturnCode != sl::ERROR_CODE::SUCCESS)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
-                            sl::toString(slReturnCode).get());
-            }
-
-            // Check if positional tracking is enabled.
-            if (m_slCamera.isPositionalTrackingEnabled())
-            {
-                // Get the current pose of the camera.
-                sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-                // Check that the regular frame was retrieved successfully.
-                if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger,
-                                "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
-                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                m_slCamera.getCameraInformation().serial_number,
-                                sl::toString(slPoseTrackReturnCode).get());
-                }
-            }
-            // Check if object detection is enabled.
-            if (m_slCamera.isObjectDetectionEnabled())
-            {
-                // Get updated objects from camera.
-                slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+                // Grab regular image and store it in member variable.
+                slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
                 // Check that the regular frame was retrieved successfully.
                 if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                 m_slCamera.getCameraInformation().serial_number,
                                 sl::toString(slReturnCode).get());
                 }
 
-                // Check if batched object data is enabled.
-                if (m_slObjectDetectionBatchParams.enable)
+                // Grab depth measure and store it in member variable.
+                slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+                // Check that the regular frame was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                 {
-                    // Get updated batched objects from camera.
-                    slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number,
+                                sl::toString(slReturnCode).get());
+                }
+
+                // Grab depth grayscale image and store it in member variable.
+                slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+                // Check that the regular frame was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number,
+                                sl::toString(slReturnCode).get());
+                }
+
+                // Grab regular resized image and store it in member variable.
+                slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+                // Check that the regular frame was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number,
+                                sl::toString(slReturnCode).get());
+                }
+            }
+
+            // Check if positional tracking is enabled.
+            if (m_slCamera.isPositionalTrackingEnabled())
+            {
+                // Acquire a shared_lock on the pose copy queue.
+                std::shared_lock<std::shared_mutex> lkPoseScheduler(m_muPoseScheduleMutex);
+                // Check if the pose copy queue is empty.
+                if (!m_qPoseCopySchedule.empty())
+                {
+                    // Release lock on the pose copy queue.
+                    lkPoseScheduler.unlock();
+
+                    // Get the current pose of the camera.
+                    sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+                    // Check that the regular frame was retrieved successfully.
+                    if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
+                                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                    m_slCamera.getCameraInformation().serial_number,
+                                    sl::toString(slPoseTrackReturnCode).get());
+                    }
+                }
+            }
+
+            // Check if object detection is enabled.
+            if (m_slCamera.isObjectDetectionEnabled())
+            {
+                // Acquire a shared_lock on the object copy queue.
+                std::shared_lock<std::shared_mutex> lkObjectScheduler(m_muObjectDataScheduleMutex);
+                // Check if the object copy queue is empty.
+                if (!m_qObjectDataCopySchedule.empty())
+                {
+                    // Release lock on the object copy queue.
+                    lkObjectScheduler.unlock();
+
+                    // Get updated objects from camera.
+                    slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
                     // Check that the regular frame was retrieved successfully.
                     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
-                                    "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                    "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                     m_slCamera.getCameraInformation().serial_number,
                                     sl::toString(slReturnCode).get());
                     }
                 }
+
+                // Check if batched object data is enabled.
+                if (m_slObjectDetectionBatchParams.enable)
+                {
+                    // Acquire a shared_lock on the pose copy queue.
+                    std::shared_lock<std::shared_mutex> lkBatchedObjectScheduler(m_muObjectBatchedDataScheduleMutex);
+                    // Check if the pose copy queue is empty.
+                    if (!m_qObjectBatchedDataCopySchedule.empty())
+                    {
+                        // Release lock on the pose copy queue.
+                        lkBatchedObjectScheduler.unlock();
+
+                        // Get updated batched objects from camera.
+                        slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
+                        // Check that the regular frame was retrieved successfully.
+                        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger,
+                                        "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                        m_slCamera.getCameraInformation().serial_number,
+                                        sl::toString(slReturnCode).get());
+                        }
+                    }
+                }
             }
+
             // Release camera lock.
             lkSharedCameraLock.unlock();
 
@@ -340,9 +380,6 @@ void ZEDCam::ThreadedContinuousCode()
         }
         else
         {
-            // Release camera lock.
-            lkSharedCameraLock.unlock();
-
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger,
                       "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
@@ -355,14 +392,13 @@ void ZEDCam::ThreadedContinuousCode()
         std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Check if the frame copy queue is empty.
         if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-            !m_qIMUDataCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
+            !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
         {
             // Find the queue with the longest length.
             size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
                                                 m_qGPUFrameCopySchedule.size(),
                                                 m_qCustomBoxIngestSchedule.size(),
                                                 m_qPoseCopySchedule.size(),
-                                                m_qIMUDataCopySchedule.size(),
                                                 m_qObjectDataCopySchedule.size(),
                                                 m_qObjectBatchedDataCopySchedule.size()});
 
@@ -1148,12 +1184,12 @@ unsigned int ZEDCam::GetCameraSerial()
 
 /******************************************************************************
  * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
- *      Puts a Pose pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      Puts a Pose pointer into a queue so a copy of the pose from the camera can be written to it.
  *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
  * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
- *                          Value will be true if frame was successfully retrieved.
+ *                          Value will be true if data was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -1166,9 +1202,9 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         // Assemble the data container.
         containers::DataFetchContainer<sl::Pose> stContainer(slPose);
 
-        // Acquire lock on frame copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
+        // Acquire lock on pose copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoseScheduleMutex);
+        // Append data fetch container to the schedule queue.
         m_qPoseCopySchedule.push(stContainer);
         // Release lock on the frame schedule queue.
         lkSchedulers.unlock();
@@ -1309,7 +1345,7 @@ bool ZEDCam::GetObjectDetectionEnabled()
  *
  * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
  * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if frame was successfully retrieved.
+ *                          Value will be true if data was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -1322,11 +1358,11 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
         // Assemble the data container.
         containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer(vObjectData);
 
-        // Acquire lock on frame copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
+        // Acquire lock on object copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muObjectDataScheduleMutex);
+        // Append data fetch container to the schedule queue.
         m_qObjectDataCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
+        // Release lock on the data schedule queue.
         lkSchedulers.unlock();
 
         // Return the future from the promise stored in the container.
@@ -1358,7 +1394,7 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
  * @param vBatchedObjectData - A vector containing objects of sl::ObjectsBatch object that will
  *                              have object data copied to.
  * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if frame was successfully retrieved.
+ *                          Value will be true if data was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-30
@@ -1371,11 +1407,11 @@ std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch
         // Assemble the data container.
         containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer(vBatchedObjectData);
 
-        // Acquire lock on frame copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
+        // Acquire lock on batched object copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muObjectBatchedDataScheduleMutex);
+        // Append data fetch container to the schedule queue.
         m_qObjectBatchedDataCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
+        // Release lock on the data schedule queue.
         lkSchedulers.unlock();
 
         // Return the future from the promise stored in the container.
