@@ -51,7 +51,7 @@ namespace logging
         szFilenameWithExtension += ".log";
 
         // Check for USB drive
-        std::filesystem::path pathToDrive = "/dev/bus/usb/nameOfUSB/AutonomyTextLogs";
+        std::filesystem::path pathToDrive = "/media/auto/AutonomyTextLogs";
         if (std::filesystem::exists(pathToDrive))
         {
             szFilenameWithExtension = pathToDrive + szFilenameWithExtension;
