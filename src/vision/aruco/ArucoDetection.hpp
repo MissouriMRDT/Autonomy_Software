@@ -206,7 +206,7 @@ namespace arucotag
         {
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger,
-                      "ArucoDetect: Unable to draw markers on image because it is empty or it has {} channels. (Should be 1 or 3)",
+                      "ArucoDetect: Unable to draw markers on image because it is empty or because it has {} channels. (Should be 1 or 3)",
                       cvDetectionsFrame.channels());
         }
     }
