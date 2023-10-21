@@ -6,7 +6,7 @@ ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="11"
 ARG CUDA_MINOR="7"
 ARG CUDA_PATCH="0"
-ARG RUNNER_VERSION="2.309.0"
+ARG RUNNER_VERSION="2.310.2"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set Labels
@@ -32,17 +32,19 @@ RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
 # install some additional dependencies
 RUN chown -R docker ~docker && /home/docker/actions-runner/bin/installdependencies.sh
 
-# add over the start.sh script
-COPY scripts/start.sh start.sh
-
-# make the script executable
-RUN chmod +x start.sh
-
 # Set Ownership of Autonomy Software
 RUN chown -R docker /opt/Autonomy_Software/
+RUN chown docker -R /usr/local/zed
+RUN chown docker -R /usr/local/cuda
 
 # set the user to "docker" so all subsequent commands are run as the docker user
 USER docker
+
+# add over the start.sh script
+RUN wget https://raw.githubusercontent.com/MissouriMRDT/Autonomy_Software/development/tools/action-runners/scripts/start.sh start.sh
+
+# make the script executable
+RUN chmod +x start.sh
 
 # set the entrypoint to the start.sh script
 ENTRYPOINT ["./start.sh"]
