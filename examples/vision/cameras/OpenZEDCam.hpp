@@ -72,6 +72,7 @@ void RunExample()
     cv::cuda::GpuMat cvGPUPointCloud1;
     // Declare other data types to store data in.
     sl::Pose slPose;
+    sl::Plane slPlane;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -100,7 +101,8 @@ void RunExample()
             fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
+        std::future<bool> fuPlaneCopyStatus = ExampleZEDCam1->RequestFloorPlaneCopy(slPlane);
+        std::future<bool> fuPoseCopyStatus  = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
 
         // Wait for the frames to be copied.
         // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -129,10 +131,11 @@ void RunExample()
             // Split color from point cloud.
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
-            // Display frame.
-            cv::imshow("FRAME1", cvNormalFrame1);
-            cv::imshow("DEPTH1", cvDepthFrame1);
-            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
+            // Wait for the other info to be copied.
+            if (fuPlaneCopyStatus.get())
+            {
+                // Get the
+            }
 
             // Wait for the other info to be copied.
             if (fuPoseCopyStatus.get())
@@ -152,6 +155,11 @@ void RunExample()
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(ExampleZEDCam1->GetSpatialMappingState()).get());
             }
+
+            // Display frames.
+            cv::imshow("FRAME1", cvNormalFrame1);
+            cv::imshow("DEPTH1", cvDepthFrame1);
+            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
         }
 
         // Tick FPS counter.
