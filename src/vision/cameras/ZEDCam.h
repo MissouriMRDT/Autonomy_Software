@@ -136,10 +136,10 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
-        std::atomic<int> m_nFramesAreQueued;
-        std::atomic<int> m_nPosesAreQueued;
-        std::atomic<int> m_nObjectsAreQueued;
-        std::atomic<int> m_nBatchObjectsAreQueued;
+        std::atomic<bool> m_bFramesQueued;
+        std::atomic<bool> m_bPosesQueued;
+        std::atomic<bool> m_bObjectsQueued;
+        std::atomic<bool> m_bBatchedObjectsQueued;
 
         /////////////////////////////////////////
         // Declare private methods.
