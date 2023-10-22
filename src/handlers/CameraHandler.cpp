@@ -28,7 +28,6 @@ CameraHandler::CameraHandler()
                             constants::ZED_MAINCAM_VERTICAL_FOV,
                             constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-                            constants::ZED_DEFAULT_FLOOR_PLANE_ERROR,
                             constants::ZED_MAINCAM_USE_GPU_MAT,
                             constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
                             constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
