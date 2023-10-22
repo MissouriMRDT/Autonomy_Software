@@ -87,7 +87,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const double dPropVerticalFOV,
                const float fMinSenseDistance,
                const float fMaxSenseDistance,
-               const float fExpectedCameraHeightFromFloorTolerance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
                const int nNumFrameRetrievalThreads,
@@ -95,16 +94,15 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
 {
     // Assign member variables.
-    m_fExpectedCameraHeightFromFloorTolerance = fExpectedCameraHeightFromFloorTolerance;
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
     m_unCameraSerialNumber      = unCameraSerialNumber;
     // Initialize queue toggles.
-    m_bFramesQueued.store(true, std::memory_order_relaxed);
-    m_bPosesQueued.store(true, std::memory_order_relaxed);
-    m_bObjectsQueued.store(true, std::memory_order_relaxed);
-    m_bBatchedObjectsQueued.store(true, std::memory_order_relaxed);
+    m_bFramesQueued.store(false, std::memory_order_relaxed);
+    m_bPosesQueued.store(false, std::memory_order_relaxed);
+    m_bObjectsQueued.store(false, std::memory_order_relaxed);
+    m_bBatchedObjectsQueued.store(false, std::memory_order_relaxed);
 
     // Setup camera params.
     m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
@@ -298,37 +296,75 @@ void ZEDCam::ThreadedContinuousCode()
                 }
             }
 
-            // Check if positional tracking is enabled and poses are being requested.
-            if (m_slCamera.isPositionalTrackingEnabled() && m_bPosesQueued.load(std::memory_order_relaxed))
+            // Check if positional tracking is enabled.
+            if (m_slCamera.isPositionalTrackingEnabled())
             {
-                // Get the current pose of the camera.
-                sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-                // Check that the regular frame was retrieved successfully.
-                if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
+                // Check if poses are being requested.
+                if (m_bPosesQueued.load(std::memory_order_relaxed) || m_bFloorsQueued.load(std::memory_order_relaxed))
                 {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger,
-                                "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
-                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                m_slCamera.getCameraInformation().serial_number,
-                                sl::toString(slPoseTrackReturnCode).get());
+                    // Get the current pose of the camera.
+                    sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+                    // Check that the regular frame was retrieved successfully.
+                    if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
+                                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                    m_slCamera.getCameraInformation().serial_number,
+                                    sl::toString(slPoseTrackReturnCode).get());
+                    }
                 }
+
+                // Check if floor planes are being requested.
+                if (m_bFloorsQueued.load(std::memory_order_relaxed))
+                {
+                    // Get the current pose of the camera.
+                    slReturnCode = m_slCamera.findFloorPlane(m_slFloorPlane,
+                                                             m_slFloorTrackingTransform,
+                                                             m_slCameraPose.getTranslation().y,
+                                                             m_slCameraPose.getRotationMatrix(),
+                                                             m_fExpectedCameraHeightFromFloorTolerance);
+                    // Check that the regular frame was retrieved successfully.
+                    if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "Unable to retrieve new floor plane for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                    m_slCamera.getCameraInformation().serial_number,
+                                    sl::toString(slReturnCode).get());
+                    }
+                }
+            }
+            // Pose tracking not enabled but got a request.
+            else if (m_bPosesQueued.load(std::memory_order_relaxed) || m_bFloorsQueued.load(std::memory_order_relaxed))
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to retrieve new positional tracking pose or floor plane for stereo camera {} ({})! Positional tracking is disabled!",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_slCamera.getCameraInformation().serial_number);
             }
 
             // Check if object detection is enabled and objects are being requested.
-            if (m_slCamera.isObjectDetectionEnabled() && m_bObjectsQueued.load(std::memory_order_relaxed))
+            if (m_slCamera.isObjectDetectionEnabled())
             {
-                // Get updated objects from camera.
-                slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
-                // Check that the regular frame was retrieved successfully.
-                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                // Check if objects are being requested.
+                if (m_bObjectsQueued.load(std::memory_order_relaxed) || m_bBatchedObjectsQueued.load(std::memory_order_relaxed))
                 {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger,
-                                "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
-                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                m_slCamera.getCameraInformation().serial_number,
-                                sl::toString(slReturnCode).get());
+                    // Get updated objects from camera.
+                    slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
+                    // Check that the regular frame was retrieved successfully.
+                    if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                    m_slCamera.getCameraInformation().serial_number,
+                                    sl::toString(slReturnCode).get());
+                    }
                 }
 
                 // Check if batched object data is enabled and being requested.
@@ -347,6 +383,24 @@ void ZEDCam::ThreadedContinuousCode()
                                     sl::toString(slReturnCode).get());
                     }
                 }
+                // Batched detection not enabled, but got a request.
+                else if (m_bBatchedObjectsQueued.load(std::memory_order_relaxed))
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new batched object data for stereo camera {} ({})! Batched object detection is disabled!",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_slCamera.getCameraInformation().serial_number);
+                }
+            }
+            // Detection not enabled, but got requests.
+            else if (m_bObjectsQueued.load(std::memory_order_relaxed) || m_bBatchedObjectsQueued.load(std::memory_order_relaxed))
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to retrieve new object data for stereo camera {} ({})! Object detection is disabled!",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_slCamera.getCameraInformation().serial_number);
             }
 
             // Release camera lock.
@@ -366,13 +420,14 @@ void ZEDCam::ThreadedContinuousCode()
         std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Check if any requests have been made.
         if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-            !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
+            !m_qPlaneCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
         {
             // Find the queue with the longest length.
             size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
                                                 m_qGPUFrameCopySchedule.size(),
                                                 m_qCustomBoxIngestSchedule.size(),
                                                 m_qPoseCopySchedule.size(),
+                                                m_qPlaneCopySchedule.size(),
                                                 m_qObjectDataCopySchedule.size(),
                                                 m_qObjectBatchedDataCopySchedule.size()});
 
@@ -388,6 +443,7 @@ void ZEDCam::ThreadedContinuousCode()
                 // Reset queue counters.
                 m_bFramesQueued.store(false, std::memory_order_relaxed);
                 m_bPosesQueued.store(false, std::memory_order_relaxed);
+                m_bFloorsQueued.store(false, std::memory_order_relaxed);
                 m_bObjectsQueued.store(false, std::memory_order_relaxed);
                 m_bBatchedObjectsQueued.store(false, std::memory_order_relaxed);
 
@@ -543,6 +599,28 @@ void ZEDCam::PooledLinearCode()
 
         // Copy pose.
         *(stContainer.pData) = sl::Pose(m_slCameraPose);
+
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
+    }
+
+    /////////////////////////////
+    //  Plane queue.
+    /////////////////////////////
+    // Acquire mutex for getting frames out of the plane queue.
+    std::unique_lock<std::mutex> lkPlaneQueue(m_muFloorCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qPlaneCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::DataFetchContainer<sl::Plane> stContainer = m_qPlaneCopySchedule.front();
+        // Pop out of queue.
+        m_qPlaneCopySchedule.pop();
+        // Release lock.
+        lkPlaneQueue.unlock();
+
+        // Copy pose.
+        *(stContainer.pData) = sl::Plane(m_slFloorPlane);
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -947,13 +1025,18 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
 /******************************************************************************
  * @brief Enable the positional tracking functionality of the camera.
  *
+ * @param fExpectedCameraHeightFromFloorTolerance - The expected height of the camera from the floor.
+ *              This aids with floor plane detection.
  * @return sl::ERROR_CODE - Whether or not positional tracking was successfully enabled.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
+ * @date 2023-10-22
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
+sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance)
 {
+    // Assign member variable.
+    m_fExpectedCameraHeightFromFloorTolerance = fExpectedCameraHeightFromFloorTolerance;
+
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Enable pose tracking and store return code.
@@ -1285,6 +1368,59 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
     {
         // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
+}
+
+/******************************************************************************
+ * @brief Requests the current floor plane of the camera relative to it's current pose.
+ *      Puts a Plane pointer into a queue so a copy of the floor plane from the camera can be written to it.
+ *      If positional tracking is not enabled, this method will return false and the sl::Plane may be uninitialized.
+ *
+ * @param slPlane - A reference to the sl::Plane object to copy the current camera floor plane to.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::Plane is used.
+ *                          Value will be true if data was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-22
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
+{
+    // Check if positional tracking has been enabled.
+    if (m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Assemble the data container.
+        containers::DataFetchContainer<sl::Plane> stContainer(slPlane);
+
+        // Acquire lock on pose copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append data fetch container to the schedule queue.
+        m_qPlaneCopySchedule.push(stContainer);
+        // Release lock on the pose schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if pose queue toggle has already been set.
+        if (!m_bFloorsQueued.load(std::memory_order_relaxed))
+        {
+            // Signify that the pose queue is not empty.
+            m_bFloorsQueued.store(true, std::memory_order_relaxed);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED floor plane but positional tracking is not enabled!");
 
         // Create dummy promise to return the future.
         std::promise<bool> pmDummyPromise;

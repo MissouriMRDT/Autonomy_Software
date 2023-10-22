@@ -46,13 +46,12 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
-               const float fMinSenseDistance                       = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-               const float fMaxSenseDistance                       = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-               const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR,
-               const bool bMemTypeGPU                              = false,
-               const bool bUseHalfDepthPrecision                   = false,
-               const int nNumFrameRetrievalThreads                 = 10,
-               const unsigned int unCameraSerialNumber             = 0);
+               const float fMinSenseDistance           = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+               const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+               const bool bMemTypeGPU                  = false,
+               const bool bUseHalfDepthPrecision       = false,
+               const int nNumFrameRetrievalThreads     = 10,
+               const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
         std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame);
@@ -68,7 +67,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         // Setters for class member variables.
         /////////////////////////////////////////
 
-        sl::ERROR_CODE EnablePositionalTracking();
+        sl::ERROR_CODE EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR);
         void DisablePositionalTracking();
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
         sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 10);
@@ -85,6 +84,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
+        std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane);
         bool GetPositionalTrackingEnabled();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
@@ -106,17 +106,16 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::MEASURE m_slDepthMeasureType;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::Pose m_slCameraPose;
+        sl::Plane m_slFloorPlane;
+        sl::Transform m_slFloorTrackingTransform;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
         sl::ObjectDetectionParameters m_slObjectDetectionParams;
         sl::BatchParameters m_slObjectDetectionBatchParams;
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
-        sl::Plane m_slFloorPlane;
-        sl::Transform m_slFloorTrackingFrame;
         sl::MEM m_slMemoryType;
         int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
-        float m_fExpectedCameraHeightFromFloor;
         float m_fExpectedCameraHeightFromFloorTolerance;
 
         // Mats for storing frames and measures.
@@ -130,14 +129,17 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
+        std::queue<containers::DataFetchContainer<sl::Plane>> m_qPlaneCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
         std::mutex m_muCustomBoxIngestMutex;
         std::mutex m_muPoseCopyMutex;
+        std::mutex m_muFloorCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
         std::atomic<bool> m_bFramesQueued;
         std::atomic<bool> m_bPosesQueued;
+        std::atomic<bool> m_bFloorsQueued;
         std::atomic<bool> m_bObjectsQueued;
         std::atomic<bool> m_bBatchedObjectsQueued;
 
