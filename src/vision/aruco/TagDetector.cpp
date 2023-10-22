@@ -82,7 +82,7 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
 {
     // Initialize member variables.
     m_pCamera                          = dynamic_cast<ZEDCam*>(pZEDCam);
-    m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
+    m_bUsingZedCamera                  = true;    // Toggle ZED functions on.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
 
