@@ -100,6 +100,11 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
     m_unCameraSerialNumber      = unCameraSerialNumber;
+    // Initialize queue toggles.
+    m_bFramesQueued.store(true, std::memory_order_relaxed);
+    m_bPosesQueued.store(true, std::memory_order_relaxed);
+    m_bObjectsQueued.store(true, std::memory_order_relaxed);
+    m_bBatchedObjectsQueued.store(true, std::memory_order_relaxed);
 
     // Setup camera params.
     m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
@@ -228,9 +233,7 @@ void ZEDCam::ThreadedContinuousCode()
     else
     {
         // Record the start time of this block of code.
-        auto tmStartTime = std::chrono::high_resolution_clock::now();
-        // Store the number of updates happening to member variables.
-        int nNumMemberVariablesCopied = 0;
+        auto tmStartTime = std::chrono::high_resolution_clock::now().time_since_epoch();
 
         // Acquire write lock for camera object.
         std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
@@ -240,7 +243,7 @@ void ZEDCam::ThreadedContinuousCode()
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
             // Check if it's necessary to update frames.
-            if (m_nFramesAreQueued)
+            if (m_bFramesQueued.load(std::memory_order_relaxed))
             {
                 // Grab regular image and store it in member variable.
                 slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
@@ -293,13 +296,10 @@ void ZEDCam::ThreadedContinuousCode()
                                 m_slCamera.getCameraInformation().serial_number,
                                 sl::toString(slReturnCode).get());
                 }
-
-                // Increment number of queues copied.
-                nNumMemberVariablesCopied += 4;
             }
 
             // Check if positional tracking is enabled and poses are being requested.
-            if (m_slCamera.isPositionalTrackingEnabled() && m_nPosesAreQueued)
+            if (m_slCamera.isPositionalTrackingEnabled() && m_bPosesQueued.load(std::memory_order_relaxed))
             {
                 // Get the current pose of the camera.
                 sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
@@ -313,13 +313,10 @@ void ZEDCam::ThreadedContinuousCode()
                                 m_slCamera.getCameraInformation().serial_number,
                                 sl::toString(slPoseTrackReturnCode).get());
                 }
-
-                // Increment number of queues copied.
-                nNumMemberVariablesCopied += 1;
             }
 
             // Check if object detection is enabled and objects are being requested.
-            if (m_slCamera.isObjectDetectionEnabled() && m_nObjectsAreQueued)
+            if (m_slCamera.isObjectDetectionEnabled() && m_bObjectsQueued.load(std::memory_order_relaxed))
             {
                 // Get updated objects from camera.
                 slReturnCode = m_slCamera.retrieveObjects(m_slDetectedObjects);
@@ -335,7 +332,7 @@ void ZEDCam::ThreadedContinuousCode()
                 }
 
                 // Check if batched object data is enabled and being requested.
-                if (m_slObjectDetectionBatchParams.enable && m_nBatchObjectsAreQueued)
+                if (m_slObjectDetectionBatchParams.enable && m_bBatchedObjectsQueued.load(std::memory_order_relaxed))
                 {
                     // Get updated batched objects from camera.
                     slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
@@ -350,9 +347,6 @@ void ZEDCam::ThreadedContinuousCode()
                                     sl::toString(slReturnCode).get());
                     }
                 }
-
-                // Increment number of queues copied.
-                nNumMemberVariablesCopied += 2;
             }
 
             // Release camera lock.
@@ -369,22 +363,50 @@ void ZEDCam::ThreadedContinuousCode()
         }
 
         // Acquire a shared_lock on all of the copy queues.
-        std::shared_lock<std::shared_mutex> lkFrameSchedulers(m_muPoolScheduleMutex);
+        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Check if any requests have been made.
-        if (nNumMemberVariablesCopied)
+        if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
+            !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
         {
             // Find the queue with the longest length.
-            // size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
-            //                                     m_qGPUFrameCopySchedule.size(),
-            //                                     m_qCustomBoxIngestSchedule.size(),
-            //                                     m_qPoseCopySchedule.size(),
-            //                                     m_qObjectDataCopySchedule.size(),
-            //                                     m_qObjectBatchedDataCopySchedule.size()});
+            size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
+                                                m_qGPUFrameCopySchedule.size(),
+                                                m_qCustomBoxIngestSchedule.size(),
+                                                m_qPoseCopySchedule.size(),
+                                                m_qObjectDataCopySchedule.size(),
+                                                m_qObjectBatchedDataCopySchedule.size()});
 
             // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
-            this->RunDetachedPool(m_nNumFrameRetrievalThreads, m_nNumFrameRetrievalThreads);
+            this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
             // Wait for thread pool to finish.
             this->JoinPool();
+
+            // Only reset once every couple seconds.
+            static bool bAlreadyReset = false;
+            if (std::chrono::duration_cast<std::chrono::seconds>(tmStartTime).count() % 31 == 0 && !bAlreadyReset)
+            {
+                // Reset queue counters.
+                m_bFramesQueued.store(false, std::memory_order_relaxed);
+                m_bPosesQueued.store(false, std::memory_order_relaxed);
+                m_bObjectsQueued.store(false, std::memory_order_relaxed);
+                m_bBatchedObjectsQueued.store(false, std::memory_order_relaxed);
+
+                // Set reset toggle.
+                bAlreadyReset = true;
+            }
+            else if (bAlreadyReset)
+            {
+                // Reset reset toggle.
+                bAlreadyReset = false;
+            }
+
+            // Release lock on pool schedule queues.
+            lkSchedulers.unlock();
+        }
+        else
+        {
+            // Release lock on pool schedule queues.
+            lkSchedulers.unlock();
         }
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -393,7 +415,7 @@ void ZEDCam::ThreadedContinuousCode()
         // This sleep is variable and can be zero depending on the load of the camera class.
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Record the current time.
-        auto tmEndTime = std::chrono::high_resolution_clock::now();
+        auto tmEndTime = std::chrono::high_resolution_clock::now().time_since_epoch();
         // Calculate the actual runtime of the code block.
         auto tmActualRuntime = std::chrono::duration_cast<std::chrono::microseconds>(tmEndTime - tmStartTime);
         // Calculate the sleep time required to reach the target duration.
@@ -595,8 +617,12 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Signify that the frame queue is not empty.
-    ++m_nFramesAreQueued;
+    // Check if frame queue toggle has already been set.
+    if (!m_bFramesQueued.load(std::memory_order_relaxed))
+    {
+        // Signify that the frame queue is not empty.
+        m_bFramesQueued.store(true, std::memory_order_relaxed);
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -626,8 +652,12 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Signify that the frame queue is not empty.
-    ++m_nFramesAreQueued;
+    // Check if frame queue toggle has already been set.
+    if (!m_bFramesQueued.load(std::memory_order_relaxed))
+    {
+        // Signify that the frame queue is not empty.
+        m_bFramesQueued.store(true, std::memory_order_relaxed);
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -665,8 +695,12 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Signify that the frame queue is not empty.
-    ++m_nFramesAreQueued;
+    // Check if frame queue toggle has already been set.
+    if (!m_bFramesQueued.load(std::memory_order_relaxed))
+    {
+        // Signify that the frame queue is not empty.
+        m_bFramesQueued.store(true, std::memory_order_relaxed);
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -704,8 +738,12 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Signify that the frame queue is not empty.
-    ++m_nFramesAreQueued;
+    // Check if frame queue toggle has already been set.
+    if (!m_bFramesQueued.load(std::memory_order_relaxed))
+    {
+        // Signify that the frame queue is not empty.
+        m_bFramesQueued.store(true, std::memory_order_relaxed);
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -743,8 +781,12 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Signify that the frame queue is not empty.
-    ++m_nFramesAreQueued;
+    // Check if frame queue toggle has already been set.
+    if (!m_bFramesQueued.load(std::memory_order_relaxed))
+    {
+        // Signify that the frame queue is not empty.
+        m_bFramesQueued.store(true, std::memory_order_relaxed);
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -782,8 +824,12 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Signify that the frame queue is not empty.
-    ++m_nFramesAreQueued;
+    // Check if frame queue toggle has already been set.
+    if (!m_bFramesQueued.load(std::memory_order_relaxed))
+    {
+        // Signify that the frame queue is not empty.
+        m_bFramesQueued.store(true, std::memory_order_relaxed);
+    }
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -1225,8 +1271,12 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         // Release lock on the pose schedule queue.
         lkSchedulers.unlock();
 
-        // Signify that the pose queue is not empty.
-        ++m_nPosesAreQueued;
+        // Check if pose queue toggle has already been set.
+        if (!m_bPosesQueued.load(std::memory_order_relaxed))
+        {
+            // Signify that the pose queue is not empty.
+            m_bPosesQueued.store(true, std::memory_order_relaxed);
+        }
 
         // Return the future from the promise stored in the container.
         return stContainer.pCopiedDataStatus->get_future();
@@ -1384,8 +1434,12 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
         // Release lock on the object schedule queue.
         lkSchedulers.unlock();
 
-        // Signify that the object queue is not empty.
-        ++m_nObjectsAreQueued;
+        // Check if object queue toggle has already been set.
+        if (!m_bObjectsQueued.load(std::memory_order_relaxed))
+        {
+            // Signify that the object queue is not empty.
+            m_bObjectsQueued.store(true, std::memory_order_relaxed);
+        }
 
         // Return the future from the promise stored in the container.
         return stContainer.pCopiedDataStatus->get_future();
@@ -1436,8 +1490,12 @@ std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch
         // Release lock on the data schedule queue.
         lkSchedulers.unlock();
 
-        // Signify that the batched object queue is not empty.
-        ++m_nBatchObjectsAreQueued;
+        // Check if batched object queue toggle has already been set.
+        if (!m_bBatchedObjectsQueued.load(std::memory_order_relaxed))
+        {
+            // Signify that the batched object queue is not empty.
+            m_bBatchedObjectsQueued.store(true, std::memory_order_relaxed);
+        }
 
         // Return the future from the promise stored in the container.
         return stContainer.pCopiedDataStatus->get_future();
