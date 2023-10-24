@@ -13,7 +13,7 @@
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/cameras/OpenZEDCam.hpp"
+#include "../examples/vision/tagdetection/ArucoDetectionBasicCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
