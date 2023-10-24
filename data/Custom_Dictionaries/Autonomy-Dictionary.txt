@@ -40,6 +40,7 @@ hyperthreaded
 imgops
 imread
 imshow
+inferenced
 inferencing
 jbockle
 jetpack
@@ -61,6 +62,7 @@ navboard
 NAVIGATIONBOARD
 nullptr
 OBJDETECTION
+OBJECTDETECT
 odometry
 parallelizable
 Parens
@@ -83,7 +85,9 @@ Struct
 Styleguides
 TAGDETECT
 Tele
+tensorflowobject
 tensorflowtag
+tflite
 threadpool
 tparam
 twxs

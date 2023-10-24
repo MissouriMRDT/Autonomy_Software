@@ -170,6 +170,19 @@ namespace constants
     const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Object Detection Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Main ZED Camera.
+    const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
+
+    // Left Side Cam.
+    const int OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
+
+    // Right Side Cam.
+    const int OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants
