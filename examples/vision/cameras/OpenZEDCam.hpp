@@ -18,7 +18,8 @@
 #include <chrono>
 
 // Declare file constants.
-const bool ENABLE_SPATIAL_MAPPING = false;
+const bool ENABLE_SPATIAL_MAPPING       = false;
+const bool ENABLE_FLOOR_PLANE_DETECTION = false;
 
 /******************************************************************************
  * @brief This example demonstrates the proper way to interact with the CameraHandler.
@@ -84,6 +85,7 @@ void RunExample()
         std::future<bool> fuFrameCopyStatus;
         std::future<bool> fuDepthCopyStatus;
         std::future<bool> fuPointCloudCopyStatus;
+        std::future<bool> fuPlaneCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (constants::ZED_MAINCAM_USE_GPU_MAT)
@@ -101,8 +103,13 @@ void RunExample()
             fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        std::future<bool> fuPlaneCopyStatus = ExampleZEDCam1->RequestFloorPlaneCopy(slPlane);
-        std::future<bool> fuPoseCopyStatus  = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
+        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
+        // Check if floor plane detection is enabled.
+        if (ENABLE_FLOOR_PLANE_DETECTION)
+        {
+            // Request copy of floor plane.
+            fuPlaneCopyStatus = ExampleZEDCam1->RequestFloorPlaneCopy(slPlane);
+        }
 
         // Wait for the frames to be copied.
         // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -132,9 +139,9 @@ void RunExample()
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
             // Wait for the other info to be copied.
-            if (fuPlaneCopyStatus.get())
+            if (ENABLE_FLOOR_PLANE_DETECTION && fuPlaneCopyStatus.get())
             {
-                // Get the
+                // TODO: Overlay floor plane onto image.
             }
 
             // Wait for the other info to be copied.
