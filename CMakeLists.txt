@@ -12,6 +12,7 @@ cmake_minimum_required(VERSION 3.24.3)
 ## C++ Version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
 project(Autonomy_Software VERSION 24.01.00)
@@ -55,6 +56,12 @@ if(NOT RoveComm_CPP)
     add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
 endif()
 
+## Determine if shared or static libraries will be used.
+option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+if (NOT LINK_SHARED_ZED AND MSVC)
+    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
+endif()
+
 ## Find Threads
 find_package(Threads REQUIRED)
 
@@ -78,12 +85,8 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
 
-## Find CUDA.
-find_package(CUDA 11.4 REQUIRED)
-message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
-
 ## Find ZEDSDK. Add as system package to supress library warnings.
-find_package(ZED REQUIRED)
+find_package(ZED 3 REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 link_directories(${ZED_LIBRARY_DIRS})
 
@@ -91,23 +94,28 @@ link_directories(${ZED_LIBRARY_DIRS})
 find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
 link_directories(${CUDA_LIBRARY_DIRS})
-## Determine if shared or static libraries will be used.
-option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 
-if (NOT LINK_SHARED_ZED AND MSVC)
-    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
-endif()
+## Find TensorflowLite.
+find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
+link_directories(${TENSORFLOWLITE_LIBRARY_DIRS})
+
+## Find Libedgetpu. This is used for interfacing with all Coral devices.
+find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
+link_directories(${LIBEDGETPU_LIBRARY_DIRS})
+
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
-    SET(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
+    set(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
 else()
-    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} CUDA::toolkit)
+    set(ZED_LIBS ${ZED_STATIC_LIBRARIES} CUDA::toolkit)
 endif()
 
 ## Add special flag if compiling on aarch64.
-IF (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+if (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
     add_definitions(-DJETSON_STYLE)
-ENDIF()
+endif()
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
@@ -140,6 +148,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
                                                 ${GeographicLib_LIBRARIES}
                                                 ${ZED_LIBS} 
                                                 RoveComm_CPP
+                                                ${TENSORFLOWLITE_LIBS}
+                                                ${LIBEDGETPU_LIBS}
     )
 
 ## Package Executable
