@@ -16,8 +16,10 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
-ARG TENSORFLOW_VERSION="v2.14.0"
-ARG TENSORFLOW_BAZEL_VERSION="6.1.0"
+ARG TENSORFLOW_VERSION="v2.5.0"
+ARG TENSORFLOW_BAZEL_VERSION="4.0.0"
+ARG FLATBUFFERS_VERSION="v1.12.1"
+ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
 ARG QUILL_VERSION="v3.3.1"
 ARG GTEST_VERSION="v1.14.0"
@@ -41,26 +43,21 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
 
-# Add EdgeTPU runtime, bazel, and libcoral repositories to apt. This is for the Coral USB accelerators.
+# Add APT Repo for PCIe drivers.
 RUN apt update && apt install -y curl && \
-    curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg && \
-    mv bazel-archive-keyring.gpg /usr/share/keyrings && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
-
+    echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y apt-utils iputils-ping \
-    build-essential gdb wget less udev zstd sudo libgomp1 libswscale-dev \
+    build-essential gdb wget less udev zstd curl sudo libgomp1 libswscale-dev \
     cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev tzdata \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
-    bazel-${TENSORFLOW_BAZEL_VERSION}
-
-# Symbolically link bazel-(version) install to /usr/bin/bazel.
-RUN ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
+    vim-common gasket-dkms
 
 # Install Required Python Packages and link python3 executable to python.
 RUN ln -s /usr/bin/python3 /usr/bin/python && \
@@ -128,31 +125,55 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     cd ../.. && \
     rm -rf opencv_contrib && rm -rf opencv
 
-# Copy Bazel Config to Tensorflow Folder
-COPY .tf_configure.bazelrc /tmp/
-# Install Tensorflow Lite and Flatbuffers from Source
-RUN git clone --depth 1 --branch v2.14.0 https://github.com/tensorflow/tensorflow.git && \
-    cd tensorflow && cp /tmp/.tf_configure.bazelrc ./ && \
-    bazel build -c opt //tensorflow/lite:tensorflowlite && \
-    cp ./bazel-out/k8-opt/bin/tensorflow/lite/libtensorflowlite.so /usr/local/lib/ && \
-    cd ./bazel-tensorflow/external/flatbuffers && \
+# Install Tensorflow Lite from Source
+RUN git clone --depth 1 --branch ${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow.git && \
+    mkdir tensorflow/tflite_build && cd tensorflow/tflite_build && \
+    cmake ../tensorflow/lite && \
+    make -j 10 && \
+    make install && \
+    cp /opt/tensorflow/tflite_build/libtensorflow-lite.a /usr/local/lib/ && \
+    mkdir -p /usr/local/include/tensorflow/lite && cp -r /opt/tensorflow/tensorflow/lite /usr/local/include/tensorflow/ && \
+    cd ../../ && \
+    cp -r ./tensorflow /opt/temp && \
+    rm -rf tensorflow && \
+    mv /opt/temp /opt/tensorflow
+
+# Install Flatbuffers
+RUN cd /opt/tensorflow/tflite_build/flatbuffers/ && \
     mkdir build && cd build && \
-    cmake \
-    -DCMAKE_CXX_FLAGS="-Wno-error=class-memaccess" .. && \
+    CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
     make -j && \
     make install && \
-    cd ../../../../../ && \
-    cp -r ./tensorflow/tensorflow /opt/temp && \
-    rm -rf tensorflow && \
-    mv /opt/temp /opt/tensorflow && \
-    rm -rf /tmp/.tf_configure.bazelrc
+    CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
+    cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
+    cd /opt
+
+# Install Abseil-CPP
+RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
+    mkdir abseil-cpp/build && cd abseil-cpp/build && \
+    cmake .. && \
+    make -j && \
+    make install && \
+    cp /usr/local/lib/libabsl* /usr/lib/ && \
+    cd /opt
+
+# Install Libedgetpu
+RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
+    cd libedgetpu && \
+    TFROOT=/opt/tensorflow make -j -f makefile_build/Makefile libedgetpu && \
+    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
+    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
+    mkdir -p /usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
+    cd /opt && \
+    rm -rf libedgetpu
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
     mkdir geographiclib/build && \
     cd geographiclib/build && \
     cmake \
-    -D CMAKE_BUILD_TYPE=Release .. && \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D BUILD_SHARED_LIBS=BOTH .. && \
     make -j && \
     make install && \
     cd ../.. && \
@@ -178,14 +199,6 @@ RUN git clone --depth 1 --branch ${GTEST_VERSION} https://github.com/google/goog
     make install && \
     cd ../.. && \
     rm -rf googletest
-
-# # Install LibCoral from Source
-# RUN git clone --depth 1 --recurse-submodules https://github.com/google-coral/libcoral && \
-#     cd libcoral/ && \
-#     make && \
-#     make install && \
-#     cd ../.. && \
-#     rm -rf libcoral
 
 # Enable Make Threads
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> /root/.bashrc
