@@ -97,7 +97,11 @@
                     "/usr/local/include/gtest/",
                     "/usr/local/include/gtest/**",
                     "/usr/local/include/GeographicLib/",
-                    "/usr/local/include/GeographicLib/**"
+                    "/usr/local/include/GeographicLib/**",
+                    "/usr/local/include/tensorflow/lite/",
+                    "/usr/local/include/tensorflow/lite/**",
+                    "/usr/local/include/edgetpu/",
+                    "usr/local/include/edgetpu/**"
                 ],
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
