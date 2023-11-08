@@ -16,9 +16,9 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
-ARG TENSORFLOW_COMMIT="d5b57ca93e506df258271ea00fc29cf98383a374"
-ARG TENSORFLOW_COMMIT_MD5_HASH="37abf3d45a34e11012ef60ee6dcd79e317384b62d319b6346cc2a94eb447e172"
-ARG TENSORFLOW_BAZEL_VERSION="6.1.0"
+ARG TENSORFLOW_COMMIT="8e2b6655c0c488290179ab90a0daed0f6d3006f7"
+ARG TENSORFLOW_COMMIT_MD5_HASH="31a4ba0abab134e632c8e71ac6d1f92443858f04e8485f51ba7eeaad8d0cf9c4"
+ARG TENSORFLOW_BAZEL_VERSION="5.3.0"
 ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
 ARG QUILL_VERSION="v3.3.1"
@@ -167,18 +167,17 @@ RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abs
     cp /usr/local/lib/libabsl* /usr/lib/ && \
     cd /opt
 
-# Install Libedgetpu
-RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
-    cd libedgetpu && \
-    sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
-    sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
-    make && \
-    ./scripts/install.sh && \
-    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
-    mkdir -p ./tflite/public/edgetpu.h && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt && \
-    rm -rf libedgetpu
+# # Install Libedgetpu
+# RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
+#     cd libedgetpu && \
+#     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
+#     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
+#     make && \
+#     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
+#     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
+#     mkdir -p ./tflite/public/edgetpu.h && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
+#     cd /opt && \
+#     rm -rf libedgetpu
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
