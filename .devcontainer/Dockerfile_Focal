@@ -16,9 +16,8 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
-ARG TENSORFLOW_VERSION="v2.5.0"
-ARG TENSORFLOW_BAZEL_VERSION="4.0.0"
-ARG FLATBUFFERS_VERSION="v1.12.1"
+ARG TENSORFLOW_COMMIT="d5b57ca93e506df258271ea00fc29cf98383a374"
+ARG TENSORFLOW_BAZEL_VERSION="6.1.0"
 ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
 ARG QUILL_VERSION="v3.3.1"
@@ -43,10 +42,13 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
 
-# Add APT Repo for PCIe drivers.
+# Add APT Repo for PCIe drivers and Bazel.
 RUN apt update && apt install -y curl && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg && \
+    mv bazel-archive-keyring.gpg /usr/share/keyrings && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y apt-utils iputils-ping \
@@ -57,7 +59,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-utils iputi
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
-    vim-common gasket-dkms
+    vim-common gasket-dkms bazel-${TENSORFLOW_BAZEL_VERSION}
+
+# Symbolically link bazel-(version) install to /usr/bin/bazel.
+RUN ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
 
 # Install Required Python Packages and link python3 executable to python.
 RUN ln -s /usr/bin/python3 /usr/bin/python && \
@@ -126,7 +131,8 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     rm -rf opencv_contrib && rm -rf opencv
 
 # Install Tensorflow Lite from Source
-RUN git clone --depth 1 --branch ${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow.git && \
+RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
+    unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
     mkdir tensorflow/tflite_build && cd tensorflow/tflite_build && \
     cmake ../tensorflow/lite && \
     make -j 10 && \
@@ -136,22 +142,25 @@ RUN git clone --depth 1 --branch ${TENSORFLOW_VERSION} https://github.com/tensor
     cd ../../ && \
     cp -r ./tensorflow /opt/temp && \
     rm -rf tensorflow && \
+    rm -rf ${TENSORFLOW_COMMIT}.zip && \
     mv /opt/temp /opt/tensorflow
 
 # Install Flatbuffers
 RUN cd /opt/tensorflow/tflite_build/flatbuffers/ && \
     mkdir build && cd build && \
-    CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
+    # CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
+    cmake -G "Unix Makefiles" .. && \
     make -j && \
     make install && \
-    CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
+    # CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
     cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
     cd /opt
 
 # Install Abseil-CPP
 RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
     mkdir abseil-cpp/build && cd abseil-cpp/build && \
-    cmake .. && \
+    cmake \
+    -D ABSL_ENABLE_INSTALL=ON .. && \
     make -j && \
     make install && \
     cp /usr/local/lib/libabsl* /usr/lib/ && \
@@ -162,10 +171,12 @@ RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
     cd libedgetpu && \
     TFROOT=/opt/tensorflow make -j -f makefile_build/Makefile libedgetpu && \
     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
+    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/lib/x86_64-linux-gnu/ && \
     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
     mkdir -p /usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
     cd /opt && \
     rm -rf libedgetpu
+#d5b57ca93e506df258271ea00fc29cf98383a374
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \

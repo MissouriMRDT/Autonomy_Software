@@ -4,8 +4,8 @@ alloc
 allocs
 APRILTAG
 Aruco
-autofetch
 arucotag
+autofetch
 AUTONOMYTHREAD
 BASICCAM
 CALIB
@@ -40,8 +40,8 @@ hyperthreaded
 imgops
 imread
 imshow
-jbockle
 inferencing
+jbockle
 jetpack
 jspencerpittman
 jthread
@@ -71,8 +71,8 @@ reprojection
 RESOLUTIONX
 RESOLUTIONY
 RGBE
-Rolla
 RIGHTCAM
+Rolla
 rovecomm
 searchbar
 setpoint
@@ -84,13 +84,14 @@ Styleguides
 TAGDETECT
 Tele
 tensorflowtag
+tflite
 threadpool
 tparam
 twxs
 UART
+UNVALIDATED
 UTMMDRS
 UTMUPS
-UNVALIDATED
 valgrind
 Watchpoints
 wslg
