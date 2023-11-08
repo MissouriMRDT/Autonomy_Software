@@ -63,7 +63,7 @@ if (NOT LINK_SHARED_ZED AND MSVC)
 endif()
 
 ## Determine if all variables should be listed. Nice for finding available vars when using find_package.
-option(LIST_ALL_VARS "Print all CMAKE variables." ON)
+option(LIST_ALL_VARS "Print all CMAKE variables." OFF)
 
 ## Find Threads
 find_package(Threads REQUIRED)
@@ -79,7 +79,7 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-include_directories(${EIGEN3_INCLUDE_DIRS})
+# include_directories(${EIGEN3_INCLUDE_DIRS})
 
 ## Find OpenCV.
 find_package(OpenCV REQUIRED)
@@ -173,10 +173,10 @@ endif()
 ## Link Libraries to Executable
 target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
+                                                quill::quill
 												${OpenCV_LIBS}
                                                 ${GeographicLib_LIBRARIES}
                                                 ${ZED_LIBS} 
-                                                quill::quill
                                                 RoveComm_CPP
                                                 flatbuffers::flatbuffers
                                                 ${ABSL_LIBRARY_DIRS}
