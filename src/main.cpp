@@ -42,11 +42,6 @@ CHECK_IF_EXAMPLE_INCLUDED
  ******************************************************************************/
 int main()
 {
-    // Create model objects.
-    std::unique_ptr<tflite::FlatBufferModel> tfliteModel;
-    std::shared_ptr<edgetpu::EdgeTpuContext> edgetpuContext;
-    std::unique_ptr<tflite::Interpreter> tfliteModelInterpreter;
-
     // Print Software Header
     std::ifstream fHeaderText("../data/ASCII/v24.txt");
     std::string szHeaderText;
@@ -62,6 +57,15 @@ int main()
 
     // Initialize Loggers
     logging::InitializeLoggers();
+
+    // Create model objects.
+    std::vector<edgetpu::EdgeTpuManager::DeviceEnumerationRecord> vEdgeTPUDevices = edgetpu::EdgeTpuManager::GetSingleton()->EnumerateEdgeTpu();
+    // Loop through each device.
+    for (long unsigned int nIter = 0; nIter < vEdgeTPUDevices.size(); ++nIter)
+    {
+        // Submit logger info.
+        LOG_INFO(logging::g_qConsoleLogger, "Device {}: Type={}, Path={}", nIter, int(vEdgeTPUDevices[nIter].type), vEdgeTPUDevices[nIter].path);
+    }
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
