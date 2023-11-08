@@ -8,7 +8,7 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <edgetpu.h>
+// #include <edgetpu.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>

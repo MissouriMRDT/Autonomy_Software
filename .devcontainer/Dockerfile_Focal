@@ -17,6 +17,7 @@ ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
 ARG TENSORFLOW_COMMIT="d5b57ca93e506df258271ea00fc29cf98383a374"
+ARG TENSORFLOW_COMMIT_MD5_HASH="37abf3d45a34e11012ef60ee6dcd79e317384b62d319b6346cc2a94eb447e172"
 ARG TENSORFLOW_BAZEL_VERSION="6.1.0"
 ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
@@ -169,14 +170,15 @@ RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abs
 # Install Libedgetpu
 RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
     cd libedgetpu && \
-    TFROOT=/opt/tensorflow make -j -f makefile_build/Makefile libedgetpu && \
+    sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
+    sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
+    make && \
+    ./scripts/install.sh && \
     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/lib/x86_64-linux-gnu/ && \
     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
-    mkdir -p /usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
+    mkdir -p ./tflite/public/edgetpu.h && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
     cd /opt && \
     rm -rf libedgetpu
-#d5b57ca93e506df258271ea00fc29cf98383a374
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
