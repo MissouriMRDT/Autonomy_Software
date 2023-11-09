@@ -122,9 +122,9 @@ set(ABSL_LIBRARY_DIRS absl::algorithm
 find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
 include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
 
-# ## Find Libedgetpu. This is used for interfacing with all Coral devices.
-# find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
-# include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
+## Find Libedgetpu. This is used for interfacing with all Coral devices.
+find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
 
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
@@ -181,7 +181,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
                                                 flatbuffers::flatbuffers
                                                 ${ABSL_LIBRARY_DIRS}
                                                 ${TENSORFLOWLITE_LIBS}
-                                                # ${LIBEDGETPU_LIBS}
+                                                ${LIBEDGETPU_LIBS}
     )
 
 ## Package Executable
