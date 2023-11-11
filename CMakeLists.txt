@@ -56,6 +56,15 @@ if(NOT RoveComm_CPP)
     add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
 endif()
 
+## Determine if shared or static libraries will be used.
+option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+if (NOT LINK_SHARED_ZED AND MSVC)
+    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
+endif()
+
+## Determine if all variables should be listed. Nice for finding available vars when using find_package.
+option(LIST_ALL_VARS "Print all CMAKE variables." OFF)
+
 ## Find Threads
 find_package(Threads REQUIRED)
 
@@ -70,6 +79,7 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# include_directories(${EIGEN3_INCLUDE_DIRS})
 
 ## Find OpenCV.
 find_package(OpenCV REQUIRED)
@@ -79,36 +89,63 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
 
-## Find CUDA.
-find_package(CUDA 11.4 REQUIRED)
-message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
-
 ## Find ZEDSDK. Add as system package to supress library warnings.
-find_package(ZED REQUIRED)
+find_package(ZED 3 REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
-link_directories(${ZED_LIBRARY_DIRS})
 
 ## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
 find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
-include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
-link_directories(${CUDA_LIBRARY_DIRS})
-## Determine if shared or static libraries will be used.
-option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
-if (NOT LINK_SHARED_ZED AND MSVC)
-    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
-endif()
+## Find flatbuffers. This is a dependency of tensorflow.
+find_package(Flatbuffers REQUIRED)
+# include_directories("/usr/local/include/flatbuffers/")
+
+## Find Abseil. This is a dependency of tensorflow.
+find_package(absl REQUIRED)
+set(ABSL_LIBRARY_DIRS absl::algorithm 
+                    absl::base 
+                    absl::debugging 
+                    absl::flat_hash_map 
+                    absl::flags 
+                    absl::memory 
+                    absl::meta 
+                    absl::numeric 
+                    absl::random_random 
+                    absl::strings 
+                    absl::synchronization 
+                    absl::time 
+                    absl::utility
+    )
+
+## Find TensorflowLite.
+find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
+
+## Find Libedgetpu. This is used for interfacing with all Coral devices.
+find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
+
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
-    SET(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
+    set(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
 else()
-    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} CUDA::toolkit)
+    set(ZED_LIBS ${ZED_LIBRARIES_STATIC_RELEASE} CUDA::toolkit)
 endif()
 
 ## Add special flag if compiling on aarch64.
-IF (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+if (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
     add_definitions(-DJETSON_STYLE)
-ENDIF()
+endif()
+
+## Check if all variables should be listed.
+if (LIST_ALL_VARS)
+    get_cmake_property(_variableNames VARIABLES)
+    list (SORT _variableNames)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
+endif()
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
@@ -141,6 +178,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
                                                 ${GeographicLib_LIBRARIES}
                                                 ${ZED_LIBS} 
                                                 RoveComm_CPP
+                                                flatbuffers::flatbuffers
+                                                ${ABSL_LIBRARY_DIRS}
+                                                ${TENSORFLOWLITE_LIBS}
+                                                ${LIBEDGETPU_LIBS}
     )
 
 ## Package Executable
