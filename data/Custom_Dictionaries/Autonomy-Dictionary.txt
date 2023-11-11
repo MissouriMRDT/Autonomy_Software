@@ -86,6 +86,7 @@ Struct
 Styleguides
 TAGDETECT
 Tele
+tensorflowmodel
 tensorflowobject
 tensorflowtag
 tflite
