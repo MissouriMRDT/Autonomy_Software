@@ -8,10 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include <edgetpu.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <tensorflow/lite/interpreter.h>
+#include <tensorflow/lite/model.h>
 
 #include "../examples/vision/tagdetection/ArucoDetectionBasicCam.hpp"
 #include "./AutonomyGlobals.h"
@@ -54,6 +57,15 @@ int main()
 
     // Initialize Loggers
     logging::InitializeLoggers();
+
+    // Create model objects.
+    std::vector<edgetpu::EdgeTpuManager::DeviceEnumerationRecord> vEdgeTPUDevices = edgetpu::EdgeTpuManager::GetSingleton()->EnumerateEdgeTpu();
+    // Loop through each device.
+    for (long unsigned int nIter = 0; nIter < vEdgeTPUDevices.size(); ++nIter)
+    {
+        // Submit logger info.
+        LOG_INFO(logging::g_qConsoleLogger, "Device {}: Type={}, Path={}", nIter, int(vEdgeTPUDevices[nIter].type), vEdgeTPUDevices[nIter].path);
+    }
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
