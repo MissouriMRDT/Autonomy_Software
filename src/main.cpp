@@ -65,6 +65,10 @@ int main()
         LOG_INFO(logging::g_qConsoleLogger, "Device {}: Type={}, Path={}", nIter, int(vEdgeTPUDevices[nIter].type), vEdgeTPUDevices[nIter].path);
     }
 
+    // Test tensorflow model.
+    tensorflowmodel::EdgeTPU EdgeTPUTest = tensorflowmodel::EdgeTPU("../data/models/yolo_models/coco_v5n/best.tflite");
+    EdgeTPUTest.OpenAndLoad();
+
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
     {
