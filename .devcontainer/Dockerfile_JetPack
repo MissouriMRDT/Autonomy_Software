@@ -16,9 +16,9 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
-ARG TENSORFLOW_VERSION="v2.5.0"
-ARG TENSORFLOW_BAZEL_VERSION="4.0.0"
-ARG FLATBUFFERS_VERSION="v1.12.1"
+ARG TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
+ARG TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
+ARG TENSORFLOW_BAZEL_VERSION="5.3.0"
 ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
 ARG QUILL_VERSION="v3.3.1"
@@ -42,7 +42,7 @@ ENV LOGNAME root
 # Set L4T Version
 RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}.${L4T_PATCH}" > /etc/nv_tegra_release
 
-# Add APT Repo for PCIe drivers.
+# Add APT Repo for PCIe drivers and Bazel.
 RUN apt update && apt install -y curl && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -57,7 +57,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
     v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz nano \
-    vim-common gasket-dkms ca-certificates
+    vim-common gasket-dkms ca-certificates 
+
+# Download special bazel pre-built binary for amd64/aarch64 machines.
+RUN wget https://github.com/bazelbuild/bazel/releases/download/${TENSORFLOW_BAZEL_VERSION}/bazel-${TENSORFLOW_BAZEL_VERSION}-linux-arm64 && \
+    mv ./bazel-${TENSORFLOW_BAZEL_VERSION}-linux-arm64 /usr/bin/ && \
+    ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION}-linux-arm64 /usr/bin/bazel && \
+    chmod +x /usr/bin/bazel
 
 # This symbolic link is needed to use the streaming features on Jetson inside a container
 RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so
@@ -127,7 +133,8 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     rm -rf opencv_contrib && rm -rf opencv
 
 # Install Tensorflow Lite from Source
-RUN git clone --depth 1 --branch ${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow.git && \
+RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
+    unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
     mkdir tensorflow/tflite_build && cd tensorflow/tflite_build && \
     cmake ../tensorflow/lite && \
     make -j 10 && \
@@ -137,36 +144,40 @@ RUN git clone --depth 1 --branch ${TENSORFLOW_VERSION} https://github.com/tensor
     cd ../../ && \
     cp -r ./tensorflow /opt/temp && \
     rm -rf tensorflow && \
+    rm -rf ${TENSORFLOW_COMMIT}.zip && \
     mv /opt/temp /opt/tensorflow
 
 # Install Flatbuffers
 RUN cd /opt/tensorflow/tflite_build/flatbuffers/ && \
     mkdir build && cd build && \
-    CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
+    cmake -G "Unix Makefiles" .. && \
     make -j && \
     make install && \
-    CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
     cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
     cd /opt
 
 # Install Abseil-CPP
 RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
     mkdir abseil-cpp/build && cd abseil-cpp/build && \
-    cmake .. && \
+    cmake \
+    -D ABSL_ENABLE_INSTALL=ON \
+    -D BUILD_TESTING=OFF .. && \
     make -j && \
     make install && \
     cp /usr/local/lib/libabsl* /usr/lib/ && \
     cd /opt
 
 # Install Libedgetpu
-RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
-    cd libedgetpu && \
-    TFROOT=/opt/tensorflow make -j -f makefile_build/Makefile libedgetpu && \
-    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
-    mkdir -p /usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt && \
-    rm -rf libedgetpu
+# RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
+#     cd libedgetpu && \
+#     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
+#     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
+#     CPU=aarch64 make && \
+#     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
+#     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
+#     mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
+#     cd /opt && \
+#     rm -rf libedgetpu
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
