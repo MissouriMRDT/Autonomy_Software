@@ -16,8 +16,8 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
-ARG TENSORFLOW_COMMIT="8e2b6655c0c488290179ab90a0daed0f6d3006f7"
-ARG TENSORFLOW_COMMIT_MD5_HASH="31a4ba0abab134e632c8e71ac6d1f92443858f04e8485f51ba7eeaad8d0cf9c4"
+ARG TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
+ARG TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
 ARG TENSORFLOW_BAZEL_VERSION="5.3.0"
 ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
@@ -149,11 +149,9 @@ RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.z
 # Install Flatbuffers
 RUN cd /opt/tensorflow/tflite_build/flatbuffers/ && \
     mkdir build && cd build && \
-    # CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
     cmake -G "Unix Makefiles" .. && \
     make -j && \
     make install && \
-    # CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
     cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
     cd /opt
 
@@ -161,7 +159,8 @@ RUN cd /opt/tensorflow/tflite_build/flatbuffers/ && \
 RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
     mkdir abseil-cpp/build && cd abseil-cpp/build && \
     cmake \
-    -D ABSL_ENABLE_INSTALL=ON .. && \
+    -D ABSL_ENABLE_INSTALL=ON \
+    -D BUILD_TESTING=OFF .. && \
     make -j && \
     make install && \
     cp /usr/local/lib/libabsl* /usr/lib/ && \
