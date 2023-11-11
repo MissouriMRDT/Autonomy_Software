@@ -135,7 +135,10 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
 RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
     unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
     mkdir tensorflow/tflite_build && cd tensorflow/tflite_build && \
-    cmake ../tensorflow/lite && \
+    cmake \
+    -D DCMAKE_BUILD_TYPE=Release \
+    -D TFLITE_ENABLE_INSTALL \
+    -D ../tensorflow/lite && \
     make -j 10 && \
     make install && \
     cp /opt/tensorflow/tflite_build/libtensorflow-lite.a /usr/local/lib/ && \
