@@ -104,6 +104,8 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
     - State Chart > `sc`  > Example: `sc::simple_state<IdleState, StateMachine>`
 - Quill  > `q` > Example: `quill::Config qConfig`
 - GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
+- Tensorflow > `tf` > Example: `tflite::Interpreter tfExampleTensorflowType`
+- Libedgetpu > `tpu` > Example: `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType`
 
 ### Macro Names
 Macros should be in all caps using underscores to separate words. They should be detailed enough to not require an additional comment.

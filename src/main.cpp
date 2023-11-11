@@ -8,18 +8,16 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include <edgetpu.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <tensorflow/lite/interpreter.h>
-#include <tensorflow/lite/model.h>
 
 #include "../examples/vision/tagdetection/ArucoDetectionBasicCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
+#include "util/vision/TensorflowModel.hpp"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -58,8 +56,8 @@ int main()
     // Initialize Loggers
     logging::InitializeLoggers();
 
-    // Create model objects.
-    std::vector<edgetpu::EdgeTpuManager::DeviceEnumerationRecord> vEdgeTPUDevices = edgetpu::EdgeTpuManager::GetSingleton()->EnumerateEdgeTpu();
+    // Get list of tpu devices.
+    std::vector<edgetpu::EdgeTpuManager::DeviceEnumerationRecord> vEdgeTPUDevices = tensorflowmodel::EdgeTPU::GetHardwareDevices();
     // Loop through each device.
     for (long unsigned int nIter = 0; nIter < vEdgeTPUDevices.size(); ++nIter)
     {
