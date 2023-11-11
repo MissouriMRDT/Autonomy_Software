@@ -29,6 +29,7 @@ driveboard
 edgetpu
 Extention
 feedforward
+flatbuffer
 flightsticks
 geoops
 Geospatial
@@ -46,8 +47,10 @@ inferencing
 jbockle
 jetpack
 jspencerpittman
+Jter
 jthread
 LEFTCAM
+libedgetpu
 MAINCAM
 MAINCAN
 mainpage
@@ -61,6 +64,7 @@ MULTIMEDIABOARD
 multithreads
 navboard
 NAVIGATIONBOARD
+nJter
 nullptr
 OBJDETECTION
 OBJECTDETECT
@@ -100,6 +104,7 @@ UTMUPS
 valgrind
 Watchpoints
 wslg
+XNNPACK
 XYZBGRA
 XYZRGBA
 YUVJ
