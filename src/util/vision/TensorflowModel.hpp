@@ -215,7 +215,7 @@ namespace tensorflowmodel
                             m_pEdgeTPUContext = this->GetEdgeManager()->OpenDevice(vValidDevices[nIter].type, vValidDevices[nIter].path, m_tpuDeviceOptions);
 
                             // Only proceed if device opened.
-                            if (m_pEdgeTPUContext->IsReady())
+                            if (m_pEdgeTPUContext != nullptr && m_pEdgeTPUContext->IsReady())
                             {
                                 // Create custom tflite operations for edge tpu.
                                 tflite::ops::builtin::BuiltinOpResolverWithXNNPACK tfResolver;
@@ -272,6 +272,15 @@ namespace tensorflowmodel
                                         m_bDeviceOpened = true;
                                     }
                                 }
+                            }
+                            else
+                            {
+                                // Submit logger message.
+                                LOG_WARNING(logging::g_qSharedLogger,
+                                            "Unable to open device {} ({}) for model {}.",
+                                            vValidDevices[nIter].path,
+                                            this->DeviceTypeToString(vValidDevices[nIter].type),
+                                            m_szModelPath);
                             }
                         }
                     }
