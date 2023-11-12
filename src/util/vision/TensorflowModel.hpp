@@ -34,8 +34,25 @@
 namespace tensorflowmodel
 {
     /******************************************************************************
+     * @brief This struct is used to store the dimensions of a tensor.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-12
+     ******************************************************************************/
+    struct TensorDimensions
+    {
+        public:
+            // Define public struct attributes.
+            int nHeight;
+            int nWidth;
+            int nChannels;
+    };
+
+    /******************************************************************************
      * @brief This class is designed to enable quick, easy, and robust handling of .tflite
      *      models for deployment and inference on the Coral EdgeTPU Accelerator.
+     *      This class was built to work with YOLO models only!
      *
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
@@ -124,7 +141,16 @@ namespace tensorflowmodel
              ******************************************************************************/
             ~EdgeTPU()
             {
-                // Nothing to destroy.
+                // Check if device has been opened.
+                if (m_bDeviceOpened)
+                {
+                    // Close tflite interpreter.
+                    m_pInterpreter.reset();
+                    // Close edgetpu hardware.
+                    m_pEdgeTPUContext.reset();
+                    // Close model.
+                    m_pTFLiteModel.reset();
+                }
             }
 
             /******************************************************************************
@@ -310,6 +336,72 @@ namespace tensorflowmodel
             /////////////////////////////////////////
             // Getters
             /////////////////////////////////////////
+
+            /******************************************************************************
+             * @brief Get the input shape of the tensor at the given index. Requires the device
+             *      to have been successfully opened.
+             *
+             * @param nInputIndex - The index of the input tensor to use. YOLO models that
+             *          have been converted to a edgetpu quantized .tflite file will only have one
+             *          input at index 0.
+             * @return TensorDimensions - A struct containing the height, width, and channels of the input tensor.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-11-12
+             ******************************************************************************/
+            TensorDimensions GetInputShape(const int nInputIndex = 0)
+            {
+                // Create instance variables.
+                TensorDimensions stInputDimensions = {0, 0, 0};
+
+                // Check if interpreter has been built.
+                if (m_bDeviceOpened)
+                {
+                    // Get the desired input tensor shape of the model.
+                    int nTensorIndex             = m_pInterpreter->inputs()[nInputIndex];
+                    TfLiteIntArray* tfDimensions = m_pInterpreter->tensor(nTensorIndex)->dims;
+
+                    // Package dimensions into struct.
+                    stInputDimensions.nHeight   = tfDimensions->data[1];
+                    stInputDimensions.nWidth    = tfDimensions->data[2];
+                    stInputDimensions.nChannels = tfDimensions->data[3];
+                }
+
+                return stInputDimensions;
+            }
+
+            /******************************************************************************
+             * @brief Get the output shape of the tensor at the given index. Requires the device
+             *      to have been successfully opened.
+             *
+             * @param nOutputIndex - The index of the input tensor to use. YOLO models that
+             *          have been converted to a edgetpu quantized .tflite file will only have one
+             *          output at index 0.
+             * @return TensorDimensions - A struct containing the height, width, and channels of the output tensor.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-11-12
+             ******************************************************************************/
+            TensorDimensions GetOutputShape(const int nOutputIndex = 0)
+            {
+                // Create instance variables.
+                TensorDimensions stOutputDimensions = {0, 0, 0};
+
+                // Check if interpreter has been built.
+                if (m_bDeviceOpened)
+                {
+                    // Get the desired output tensor shape of the model.
+                    int nTensorIndex             = m_pInterpreter->inputs()[nOutputIndex];
+                    TfLiteIntArray* tfDimensions = m_pInterpreter->tensor(nTensorIndex)->dims;
+
+                    // Package dimensions into struct.
+                    stOutputDimensions.nHeight   = tfDimensions->data[1];
+                    stOutputDimensions.nWidth    = tfDimensions->data[2];
+                    stOutputDimensions.nChannels = tfDimensions->data[3];
+                }
+
+                return stOutputDimensions;
+            }
 
             /******************************************************************************
              * @brief Accessor for the Device Is Opened private member.
