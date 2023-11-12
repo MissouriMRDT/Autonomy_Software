@@ -133,46 +133,46 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     rm -rf opencv_contrib && rm -rf opencv
 
 # Install Tensorflow Lite from Source
-RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
-    unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
-    cd tensorflow && \
-    bazel build -c opt --config=monolithic --verbose_failures --local_ram_resources=HOST_RAM*0.5 --local_cpu_resources=HOST_CPUS*0.5 //tensorflow/lite:libtensorflowlite.so && \
-    cp bazel-bin/tensorflow/lite/libtensorflowlite.so /usr/local/lib/ && \
-    mkdir -p /usr/local/include/tensorflow/lite && cp -r /opt/tensorflow/tensorflow/lite /usr/local/include/tensorflow/ && \
-    cd ../ && \
-    rm -rf ${TENSORFLOW_COMMIT}.zip
+# RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
+#     unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
+#     cd tensorflow && \
+#     bazel build -c opt --config=elinux_aarch64 --config=monolithic --verbose_failures --local_ram_resources=HOST_RAM*0.5 --local_cpu_resources=HOST_CPUS*0.5 //tensorflow/lite:libtensorflowlite.so && \
+#     cp bazel-bin/tensorflow/lite/libtensorflowlite.so /usr/local/lib/ && \
+#     mkdir -p /usr/local/include/tensorflow/lite && cp -r /opt/tensorflow/tensorflow/lite /usr/local/include/tensorflow/ && \
+#     cd ../ && \
+#     rm -rf ${TENSORFLOW_COMMIT}.zip
 
-# Install Flatbuffers
-RUN cd /opt/tensorflow/bazel-tensorflow/external/flatbuffers && \
-    mkdir build && cd build && \
-    # CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
-    cmake -G "Unix Makefiles" .. && \
-    make -j && \
-    make install && \
-    # CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
-    cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
-    cd /opt
+# # Install Flatbuffers
+# RUN cd /opt/tensorflow/bazel-tensorflow/external/flatbuffers && \
+#     mkdir build && cd build && \
+#     # CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
+#     cmake -G "Unix Makefiles" .. && \
+#     make -j && \
+#     make install && \
+#     # CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
+#     cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
+#     cd /opt
 
-# Install Abseil-CPP
-RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
-    mkdir abseil-cpp/build && cd abseil-cpp/build && \
-    cmake \
-    -D ABSL_ENABLE_INSTALL=ON .. && \
-    make -j && \
-    make install && \
-    cp /usr/local/lib/libabsl* /usr/lib/ && \
-    cd /opt
+# # Install Abseil-CPP
+# RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
+#     mkdir abseil-cpp/build && cd abseil-cpp/build && \
+#     cmake \
+#     -D ABSL_ENABLE_INSTALL=ON .. && \
+#     make -j && \
+#     make install && \
+#     cp /usr/local/lib/libabsl* /usr/lib/ && \
+#     cd /opt
 
-# Install Libedgetpu
-RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
-    cd libedgetpu && \
-    sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
-    sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
-    make && \
-    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
-    mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt
+# # Install Libedgetpu
+# RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
+#     cd libedgetpu && \
+#     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
+#     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
+#     make && \
+#     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
+#     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
+#     mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
+#     cd /opt
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
