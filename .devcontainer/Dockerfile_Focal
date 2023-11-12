@@ -135,7 +135,7 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
 RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
     unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
     cd tensorflow && \
-    bazel build -c opt --config=monolithic --verbose_failures --local_ram_resources=HOST_RAM*0.5 --local_cpu_resources=HOST_CPUS*0.5 //tensorflow/lite:libtensorflowlite.so && \
+    bazel build -c opt --config=monolithic --config=cuda --config=tensorrt --verbose_failures --local_ram_resources=HOST_RAM*0.5 --local_cpu_resources=HOST_CPUS*0.5 //tensorflow/lite:libtensorflowlite.so && \
     cp bazel-bin/tensorflow/lite/libtensorflowlite.so /usr/local/lib/ && \
     mkdir -p /usr/local/include/tensorflow/lite && cp -r /opt/tensorflow/tensorflow/lite /usr/local/include/tensorflow/ && \
     cd ../ && \
