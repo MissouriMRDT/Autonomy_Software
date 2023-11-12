@@ -262,11 +262,11 @@ namespace tensorflowmodel
                                     else
                                     {
                                         // Submit logger message.
-                                        LOG_WARNING(logging::g_qSharedLogger,
-                                                    "Successfully opened and loaded model {} with device {} ({})",
-                                                    m_szModelPath,
-                                                    vValidDevices[nIter].path,
-                                                    this->DeviceTypeToString(vValidDevices[nIter].type));
+                                        LOG_INFO(logging::g_qSharedLogger,
+                                                 "Successfully opened and loaded model {} with device {} ({})",
+                                                 m_szModelPath,
+                                                 vValidDevices[nIter].path,
+                                                 this->DeviceTypeToString(vValidDevices[nIter].type));
 
                                         // Set toggle that model is opened with device.
                                         m_bDeviceOpened = true;
