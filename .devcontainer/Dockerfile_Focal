@@ -134,22 +134,15 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
 # Install Tensorflow Lite from Source
 RUN wget https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
     unzip ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
-    mkdir tensorflow/tflite_build && cd tensorflow/tflite_build && \
-    cmake ../tensorflow/lite && \
-    # -D DCMAKE_BUILD_TYPE=Release \
-    # -D TFLITE_ENABLE_INSTALL=ON ../tensorflow/lite && \
-    make -j 10 && \
-    make install && \
-    cp /opt/tensorflow/tflite_build/libtensorflow-lite.a /usr/local/lib/ && \
+    cd tensorflow && \
+    bazel build -c opt --config=monolithic --verbose_failures --local_ram_resources=HOST_RAM*0.5 --local_cpu_resources=HOST_CPUS*0.5 //tensorflow/lite:libtensorflowlite.so && \
+    cp bazel-bin/tensorflow/lite/libtensorflowlite.so /usr/local/lib/ && \
     mkdir -p /usr/local/include/tensorflow/lite && cp -r /opt/tensorflow/tensorflow/lite /usr/local/include/tensorflow/ && \
-    cd ../../ && \
-    cp -r ./tensorflow /opt/temp && \
-    rm -rf tensorflow && \
-    rm -rf ${TENSORFLOW_COMMIT}.zip && \
-    mv /opt/temp /opt/tensorflow
+    cd ../ && \
+    rm -rf ${TENSORFLOW_COMMIT}.zip
 
 # Install Flatbuffers
-RUN cd /opt/tensorflow/tflite_build/flatbuffers/ && \
+RUN cd /opt/tensorflow/bazel-tensorflow/external/flatbuffers && \
     mkdir build && cd build && \
     # CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
     cmake -G "Unix Makefiles" .. && \
@@ -176,10 +169,9 @@ RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
     make && \
     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so && \
+    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
     mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt && \
-    rm -rf libedgetpu
+    cd /opt
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
