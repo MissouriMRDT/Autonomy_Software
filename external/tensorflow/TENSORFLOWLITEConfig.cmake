@@ -1,6 +1,6 @@
 # Find library path and object files, store them in INCLUDE_DIR and LIBS variables.
 set(TENSORFLOWLITE_INCLUDE_DIRS "/usr/local/include/tensorflow")
-find_library(TENSORFLOWLITE_LIBS NAMES tensorflow-lite PATHS /usr/local/lib)
+find_library(TENSORFLOWLITE_LIBS NAMES tensorflowlite PATHS /usr/local/lib)
 
 # Include package handler and create new package.
 include(FindPackageHandleStandardArgs)
