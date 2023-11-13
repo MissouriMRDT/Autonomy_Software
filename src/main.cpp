@@ -17,7 +17,7 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
-#include "util/vision/TensorflowModel.hpp"
+#include "util/vision/YOLOModel.hpp"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -57,7 +57,7 @@ int main()
     logging::InitializeLoggers();
 
     // Get list of tpu devices.
-    std::vector<edgetpu::EdgeTpuManager::DeviceEnumerationRecord> vEdgeTPUDevices = tensorflowmodel::EdgeTPU::GetHardwareDevices();
+    std::vector<edgetpu::EdgeTpuManager::DeviceEnumerationRecord> vEdgeTPUDevices = yolomodel::tensorflow::TPUInterpreter::GetHardwareDevices();
     // Loop through each device.
     for (long unsigned int nIter = 0; nIter < vEdgeTPUDevices.size(); ++nIter)
     {
@@ -66,7 +66,7 @@ int main()
     }
 
     // Test tensorflow model.
-    tensorflowmodel::EdgeTPU EdgeTPUTest = tensorflowmodel::EdgeTPU("../data/models/yolo_models/coco_v5n/best.tflite");
+    yolomodel::tensorflow::TPUInterpreter EdgeTPUTest = yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco_v5n/best.tflite");
     EdgeTPUTest.OpenAndLoad();
 
     // Check whether or not we should run example code or continue with normal operation.

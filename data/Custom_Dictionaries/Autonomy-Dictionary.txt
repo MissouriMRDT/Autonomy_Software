@@ -90,9 +90,9 @@ Struct
 Styleguides
 TAGDETECT
 Tele
-tensorflowmodel
 tensorflowobject
 tensorflowtag
+tensorflowyolo
 tflite
 threadpool
 tparam
@@ -108,6 +108,7 @@ XNNPACK
 XYZBGRA
 XYZRGBA
 YOLO
+yolomodel
 YUVJ
 YUYV
 Zain
