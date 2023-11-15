@@ -1,0 +1,8 @@
+ar_tag
+boulder
+fence
+odd_ledge
+person
+shrubbery
+tree
+tree_stump

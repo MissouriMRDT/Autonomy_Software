@@ -163,7 +163,7 @@ class TensorflowTPU
 
                 // Get list of valid, unopened devices.
                 // Loop through available devices.
-                for (unsigned int nIter = 0; nIter < vDevices.size(); ++nIter)
+                for (unsigned int unIter = 0; unIter < vDevices.size(); ++unIter)
                 {
                     // Create instance variables.
                     bool bValidDevice = true;
@@ -172,7 +172,7 @@ class TensorflowTPU
                     for (unsigned int nJter = 0; nJter < vAlreadyOpenedDevices.size(); ++nJter)
                     {
                         // Check if current available device has already been opened.
-                        if (vAlreadyOpenedDevices[nJter]->GetDeviceEnumRecord().path == vDevices[nIter].path)
+                        if (vAlreadyOpenedDevices[nJter]->GetDeviceEnumRecord().path == vDevices[unIter].path)
                         {
                             // Set device as not valid.
                             bValidDevice = false;
@@ -181,7 +181,7 @@ class TensorflowTPU
                         else if (eDeviceType != eAuto)
                         {
                             // Check if device type matches.
-                            if (vDevices[nIter].type != m_tpuDevice.type)
+                            if (vDevices[unIter].type != m_tpuDevice.type)
                             {
                                 // Set device as not valid.
                                 bValidDevice = false;
@@ -193,7 +193,7 @@ class TensorflowTPU
                     if (bValidDevice)
                     {
                         // Append to valid devices vector.
-                        vValidDevices.emplace_back(vDevices[nIter]);
+                        vValidDevices.emplace_back(vDevices[unIter]);
                     }
                 }
 
@@ -201,18 +201,18 @@ class TensorflowTPU
                 if (vValidDevices.size() > 0)
                 {
                     // Loop through each device until one successfully opens.
-                    for (unsigned int nIter = 0; nIter < vValidDevices.size() && !m_bDeviceOpened; ++nIter)
+                    for (unsigned int unIter = 0; unIter < vValidDevices.size() && !m_bDeviceOpened; ++unIter)
                     {
                         // Submit logger message.
                         LOG_INFO(logging::g_qSharedLogger,
                                  "Attempting to load {} onto {} device at {} ({})...",
                                  m_szModelPath,
-                                 this->DeviceTypeToString(vValidDevices[nIter].type),
-                                 vValidDevices[nIter].path,
-                                 this->DeviceTypeToString(vValidDevices[nIter].type));
+                                 this->DeviceTypeToString(vValidDevices[unIter].type),
+                                 vValidDevices[unIter].path,
+                                 this->DeviceTypeToString(vValidDevices[unIter].type));
 
                         // Attempt to open device.
-                        m_pEdgeTPUContext = this->GetEdgeManager()->OpenDevice(vValidDevices[nIter].type, vValidDevices[nIter].path, m_tpuDeviceOptions);
+                        m_pEdgeTPUContext = this->GetEdgeManager()->OpenDevice(vValidDevices[unIter].type, vValidDevices[unIter].path, m_tpuDeviceOptions);
 
                         // Only proceed if device opened.
                         if (m_pEdgeTPUContext != nullptr && m_pEdgeTPUContext->IsReady())
@@ -227,8 +227,8 @@ class TensorflowTPU
                                 LOG_WARNING(logging::g_qSharedLogger,
                                             "Unable to build interpreter for model {} with device {} ({})",
                                             m_szModelPath,
-                                            vValidDevices[nIter].path,
-                                            this->DeviceTypeToString(vValidDevices[nIter].type));
+                                            vValidDevices[unIter].path,
+                                            this->DeviceTypeToString(vValidDevices[unIter].type));
 
                                 // Release interpreter and context.
                                 m_pInterpreter.reset();
@@ -248,8 +248,8 @@ class TensorflowTPU
                                     LOG_WARNING(logging::g_qSharedLogger,
                                                 "Even though device was opened and interpreter was built, allocation of tensors failed for model {} with device {} ({})",
                                                 m_szModelPath,
-                                                vValidDevices[nIter].path,
-                                                this->DeviceTypeToString(vValidDevices[nIter].type));
+                                                vValidDevices[unIter].path,
+                                                this->DeviceTypeToString(vValidDevices[unIter].type));
 
                                     // Release interpreter and context.
                                     m_pInterpreter.reset();
@@ -264,8 +264,8 @@ class TensorflowTPU
                                     LOG_INFO(logging::g_qSharedLogger,
                                              "Successfully opened and loaded model {} with device {} ({})",
                                              m_szModelPath,
-                                             vValidDevices[nIter].path,
-                                             this->DeviceTypeToString(vValidDevices[nIter].type));
+                                             vValidDevices[unIter].path,
+                                             this->DeviceTypeToString(vValidDevices[unIter].type));
 
                                     // Set toggle that model is opened with device.
                                     m_bDeviceOpened = true;
@@ -277,8 +277,8 @@ class TensorflowTPU
                             // Submit logger message.
                             LOG_WARNING(logging::g_qSharedLogger,
                                         "Unable to open device {} ({}) for model {}.",
-                                        vValidDevices[nIter].path,
-                                        this->DeviceTypeToString(vValidDevices[nIter].type),
+                                        vValidDevices[unIter].path,
+                                        this->DeviceTypeToString(vValidDevices[unIter].type),
                                         m_szModelPath);
                         }
                     }
@@ -295,7 +295,7 @@ class TensorflowTPU
             else
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Unable to load model {}. Is this actually compiled for the EdgeTPU?", m_szModelPath);
+                LOG_ERROR(logging::g_qSharedLogger, "Unable to load model {}. Does it exist at this path? Is this actually compiled for the EdgeTPU?", m_szModelPath);
             }
 
             // Return status.
@@ -442,7 +442,7 @@ class TensorflowTPU
         /////////////////////////////////////////
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual T Inference(P& tInput) = 0;
+        virtual T Inference(P& tInput, float fMinObjectConfidence, float fNMSThreshold) = 0;
 
         /////////////////////////////////////////
         // Declare private member variables.
