@@ -60,6 +60,7 @@ microcontrollers
 missourimrdt
 MJPEG
 MRDT
+mrdtavoidance
 MULTIMEDIABOARD
 multithreads
 navboard
@@ -68,6 +69,7 @@ nJter
 nullptr
 OBJDETECTION
 OBJECTDETECT
+Objectness
 odometry
 parallelizable
 Parens
