@@ -43,9 +43,54 @@ namespace yolomodel
 
             int nClassID;              // The class index of the object. Dependent on class order when trained.
             float fConfidence;         // The detection confidence of the object.
-            float fObjectness;         // The likelihood that this detection is actually any type of object.
             cv::Rect cvBoundingBox;    // An object used to access the dimensions and other properties of the objects bounding box.
     };
+
+    /******************************************************************************
+     * @brief Perform non max suppression for the given predictions. This eliminates/combines
+     *      predictions that overlap with each other.
+     *
+     * @param vObjects - A vector that will be filled with all of the valid/filtered predictions with their data stored in an easy-to-use struct.
+     * @param vClassIDs - A reference to a vector that contains class IDs for each prediction.
+     * @param vClassConfidences - A reference to a vector that contains the highest class confidence for that prediction.
+     * @param vBoundingBoxes - A reference to a vector that contains a cv::Rect bounding box for each prediction.
+     * @param fMinObjectConfidence - The minimum confidence for determining which predictions to throw out.
+     * @param fNMSThreshold - The threshold value for filtering out weaker bounding boxes or detections.
+     * @return std::vector<Detection> -
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-15
+     ******************************************************************************/
+    std::vector<Detection> NonMaxSuppression(std::vector<Detection>& vObjects,
+                                             std::vector<int>& vClassIDs,
+                                             std::vector<float>& vClassConfidences,
+                                             std::vector<cv::Rect>& vBoundingBoxes,
+                                             float fMinObjectConfidence,
+                                             float fNMSThreshold)
+    {
+        // Create instance variables.
+        std::vector<int> vNMSValidIndices;
+
+        // Perform Non-Max Suppression using OpenCV's implementation.
+        cv::dnn::NMSBoxes(vBoundingBoxes, vClassConfidences, fMinObjectConfidence, fNMSThreshold, vNMSValidIndices);
+
+        // Loop through each valid index.
+        for (int nValidIndex : vNMSValidIndices)
+        {
+            // Create new Detection struct.
+            Detection stNewDetection;
+            // Repackage prediction data into easy-to-use struct.
+            stNewDetection.nClassID      = vClassIDs[nValidIndex];
+            stNewDetection.fConfidence   = vClassConfidences[nValidIndex];
+            stNewDetection.cvBoundingBox = vBoundingBoxes[nValidIndex];
+
+            // Append new object detection to objects vector.
+            vObjects.emplace_back(stNewDetection);
+        }
+
+        // Return the vector of filtered and valid objects.
+        return vObjects;
+    }
 
     /******************************************************************************
      * @brief Namespace containing functions or objects/structs used to run inference on
@@ -97,7 +142,7 @@ namespace yolomodel
 
                 int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
                 int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
-                                                   // the model has. The first five values are objectness_score, xmin, ymin, width, height.
+                                                   // the model has. The first five values are objectness_score, X_min, Y_min, width, height.
                 int nIndex;                        // The index of the tensor used to retrieve it from the interpreter.
                 int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
                 float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
@@ -243,10 +288,58 @@ namespace yolomodel
                                                           fMinObjectConfidence,
                                                           cvInputFrame.cols,
                                                           cvInputFrame.rows);
+
+                            // Perform NMS to filter out bad/duplicate detections.
+                            NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
                         }
                     }
 
                     return vObjects;
+                }
+
+                /******************************************************************************
+                 * @brief
+                 *
+                 * @param cvInputFrame -
+                 * @param vObjects -
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2023-11-15
+                 ******************************************************************************/
+                void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
+                {
+                    // Loop through each detection.
+                    for (Detection stObject : vObjects)
+                    {
+                        // Calculate the hue value based on the class ID.
+                        int nHue = static_cast<int>(stObject.nClassID / (this->GetOutputShape().nObjectnessLocationClasses - 5) * 360.0);
+                        // Set saturation and value to 1.0 for full intensity colors.
+                        int nSaturation = 255;
+                        int nValue      = 255;
+
+                        // Convert HSV to RGB
+                        cv::Mat cvHSV(1, 1, CV_8UC3, cv::Scalar(nHue, nSaturation, nValue));
+                        cv::cvtColor(cvHSV, cvHSV, cv::COLOR_HSV2BGR);
+                        // Extract the RGB values
+                        cv::Vec3b cvConvertedValues = cvHSV.at<cv::Vec3b>(0, 0);
+                        cv::Scalar cvBoxColor(cvConvertedValues[2], cvConvertedValues[1], cvConvertedValues[0]);
+
+                        // Draw bounding box onto image.
+                        cv::rectangle(cvInputFrame, stObject.cvBoundingBox, cvBoxColor, 2);
+                        // Draw classID background box onto image.
+                        cv::rectangle(cvInputFrame,
+                                      cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 20),
+                                      cv::Point(stObject.cvBoundingBox.x + stObject.cvBoundingBox.width, stObject.cvBoundingBox.y),
+                                      cvBoxColor,
+                                      cv::FILLED);
+                        // Draw class text onto image.
+                        cv::putText(cvInputFrame,
+                                    std::to_string(stObject.nClassID) + " " + std::to_string(stObject.fConfidence),
+                                    cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 5),
+                                    cv::FONT_HERSHEY_SIMPLEX,
+                                    0.5,
+                                    cv::Scalar(0, 0, 0));
+                    }
                 }
 
             private:
@@ -290,11 +383,11 @@ namespace yolomodel
                        of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (RGB), and each anchor contains a vector 5 + nc long, where nc is the number of
                        classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
                     */
-                    for (int unIter = 0; unIter < stOutputDimensions.nAnchors; ++unIter)
+                    for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
                     {
                         // Get objectness confidence. This is the 5th value for each grid/anchor prediction. (4th index)
                         float fObjectnessConfidence =
-                            (tfOutputTensor->data.uint8[(unIter * stOutputDimensions.nObjectnessLocationClasses) + 4] - stOutputDimensions.nQuantZeroPoint) *
+                            (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + 4] - stOutputDimensions.nQuantZeroPoint) *
                             stOutputDimensions.fQuantScale;
 
                         // Check if the object confidence is greater than or equal to the threshold.
@@ -305,12 +398,12 @@ namespace yolomodel
 
                             // Loop through the number of object info and class confidences in the 2nd dimension.
                             // Predictions have format {center_x, center_y, width, height, conf, class0_conf, class1_conf, ...}
-                            for (int unJter = 0; unJter < stOutputDimensions.nObjectnessLocationClasses; ++unJter)
+                            for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
                             {
                                 // Repackage value into more usable vector. Also undo quantization the data.
-                                vGridPrediction[unJter] =
-                                    (tfOutputTensor->data.uint8[(unIter * stOutputDimensions.nObjectnessLocationClasses) + unJter] - stOutputDimensions.nQuantZeroPoint) *
-                                    stOutputDimensions.fQuantScale;
+                                vGridPrediction.emplace_back(
+                                    (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
+                                    stOutputDimensions.fQuantScale);
                             }
 
                             // Find class ID based on which class confidence has the highest score.
