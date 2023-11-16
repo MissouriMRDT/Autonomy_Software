@@ -52,7 +52,7 @@ void RunExample()
 
     // Initialize a new YOLOModel object.
     yolomodel::tensorflow::TPUInterpreter ExampleEdgeTPUModel =
-        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco_v5n_x224/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
+        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco_v5n_x640/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
     // Open and load a new YOLOModel from the given path into an EdgeTPU device.
     ExampleEdgeTPUModel.OpenAndLoad();
 
@@ -86,7 +86,7 @@ void RunExample()
                         cv::Scalar(255, 255, 255));
 
             // Run inference on YOLO model with current image.
-            std::vector<yolomodel::Detection> vObjects = ExampleEdgeTPUModel.Inference(cvNormalFrame1, 1.0f);
+            std::vector<yolomodel::Detection> vObjects = ExampleEdgeTPUModel.Inference(cvNormalFrame1, 0.50f, 0.99f);
             // Draw detected objects on frame.
             ExampleEdgeTPUModel.DrawDetections(cvNormalFrame1, vObjects);
 
