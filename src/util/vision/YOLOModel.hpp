@@ -282,11 +282,12 @@ namespace yolomodel
                             std::vector<cv::Rect> vBoundingBoxes;
 
                             // Retrieve output tensor from interpreter.
-                            TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(this->GetOutputShape().nTensorIndex);
-                            // uint8_t* pOutput             = m_pInterpreter->typed_output_tensor<uint8_t>();
+                            // TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(this->GetOutputShape().nTensorIndex);
+                            float* pOutputData = m_pInterpreter->typed_output_tensor<float>(this->GetOutputShape().nTensorIndex);
 
                             // Parse inferenced output from tensor.
-                            this->ParseTensorOutputYOLOv5(tfOutputTensor,
+                            this->ParseTensorOutputYOLOv5(pOutputData,
+                                                          this->GetOutputShape(),
                                                           vClassIDs,
                                                           vClassConfidences,
                                                           vBoundingBoxes,
@@ -371,7 +372,8 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-15
                  ******************************************************************************/
-                void ParseTensorOutputYOLOv5(TfLiteTensor* tfOutputTensor,
+                void ParseTensorOutputYOLOv5(float* pOutputTensorData,
+                                             OutputTensorDimensions stOutputDimensions,
                                              std::vector<int>& vClassIDs,
                                              std::vector<float>& vClassConfidences,
                                              std::vector<cv::Rect>& vBoundingBoxes,
@@ -379,9 +381,6 @@ namespace yolomodel
                                              int nOriginalFrameWidth,
                                              int nOriginalFrameHeight)
                 {
-                    // Get output tensor shape.
-                    OutputTensorDimensions stOutputDimensions = this->GetOutputShape();
-
                     // Create vector for storing temporary values for this prediction.
                     std::vector<float> vGridPrediction;
                     // Resize the Grid prediction vector to match the number of classes + bounding_box + objectness score.
@@ -397,9 +396,7 @@ namespace yolomodel
                     for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
                     {
                         // Get objectness confidence. This is the 5th value for each grid/anchor prediction. (4th index)
-                        float fObjectnessConfidence =
-                            (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + 4] - stOutputDimensions.nQuantZeroPoint) *
-                            stOutputDimensions.fQuantScale;
+                        float fObjectnessConfidence = pOutputTensorData[(nIter * stOutputDimensions.nObjectnessLocationClasses) + 4];
 
                         // Check if the object confidence is greater than or equal to the threshold.
                         if (fObjectnessConfidence >= fMinObjectConfidence)
@@ -409,9 +406,7 @@ namespace yolomodel
                             for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
                             {
                                 // Repackage value into more usable vector. Also undo quantization the data.
-                                vGridPrediction[nJter] =
-                                    (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
-                                    stOutputDimensions.fQuantScale;
+                                vGridPrediction[nJter] = pOutputTensorData[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter];
                             }
 
                             // Find class ID based on which class confidence has the highest score.
