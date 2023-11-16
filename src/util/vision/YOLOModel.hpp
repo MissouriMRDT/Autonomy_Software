@@ -119,10 +119,12 @@ namespace yolomodel
                 // Define public struct attributes.
                 /////////////////////////////////////////
 
-                int nHeight;      // The height of the input image.
-                int nWidth;       // The width of the input image.
-                int nChannels;    // The number of channels of the input image.
-                int nIndex;       // The index of the tensor used to retrieve it from the interpreter.
+                int nHeight;            // The height of the input image.
+                int nWidth;             // The width of the input image.
+                int nChannels;          // The number of channels of the input image.
+                int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
+                int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
+                float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
         };
 
         /******************************************************************************
@@ -142,8 +144,8 @@ namespace yolomodel
 
                 int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
                 int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
-                                                   // the model has. The first five values are objectness_score, X_min, Y_min, width, height.
-                int nIndex;                        // The index of the tensor used to retrieve it from the interpreter.
+                                                   // The model has. The first five values are objectness_score, X_min, Y_min, width, height.
+                int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
                 int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
                 float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
         };
@@ -223,7 +225,7 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-13
                  ******************************************************************************/
-                std::vector<Detection> Inference(cv::Mat& cvInputFrame, float fMinObjectConfidence = 0.75, float fNMSThreshold = 0.6) override
+                std::vector<Detection> Inference(cv::Mat& cvInputFrame, float fMinObjectConfidence = 0.85, float fNMSThreshold = 0.6) override
                 {
                     // Create instance variables.
                     std::vector<Detection> vObjects;
@@ -254,11 +256,13 @@ namespace yolomodel
                                        constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
                         }
 
+                        // Quantize the input image.
+                        cv::imshow("TSET", m_cvFrame);
                         // Create a vector to store reshaped input image in 1 dimension.
                         std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
-                        // Retrieve a new input tensor from the TPU interpreter and copy data to it.
-                        uint8_t* unInput = m_pInterpreter->typed_input_tensor<uint8_t>(m_pInterpreter->inputs()[stInputDimensions.nIndex]);
-                        std::memcpy(unInput, vInputData.data(), vInputData.size());
+                        // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
+                        uint8_t* pInput = m_pInterpreter->typed_input_tensor<uint8_t>(stInputDimensions.nTensorIndex);
+                        std::memcpy(pInput, vInputData.data(), vInputData.size());
 
                         // Run inference on the EdgeTPU.
                         if (m_pInterpreter->Invoke() != kTfLiteOk)
@@ -278,7 +282,8 @@ namespace yolomodel
                             std::vector<cv::Rect> vBoundingBoxes;
 
                             // Retrieve output tensor from interpreter.
-                            TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(this->GetOutputShape().nIndex);
+                            TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(this->GetOutputShape().nTensorIndex);
+                            // uint8_t* pOutput             = m_pInterpreter->typed_output_tensor<uint8_t>();
 
                             // Parse inferenced output from tensor.
                             this->ParseTensorOutputYOLOv5(tfOutputTensor,
@@ -298,10 +303,11 @@ namespace yolomodel
                 }
 
                 /******************************************************************************
-                 * @brief
+                 * @brief Given an image and a vector of object structs, draw each object bounding box,
+                 *      class type, and confidence onto the image.
                  *
-                 * @param cvInputFrame -
-                 * @param vObjects -
+                 * @param cvInputFrame - A reference to the cv::Mat to draw overlays on.
+                 * @param vObjects - A reference to the vector containing the object detection structs.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-15
@@ -338,7 +344,7 @@ namespace yolomodel
                                     cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 5),
                                     cv::FONT_HERSHEY_SIMPLEX,
                                     0.5,
-                                    cv::Scalar(0, 0, 0));
+                                    cv::Scalar(255, 255, 255));
                     }
                 }
 
@@ -376,6 +382,11 @@ namespace yolomodel
                     // Get output tensor shape.
                     OutputTensorDimensions stOutputDimensions = this->GetOutputShape();
 
+                    // Create vector for storing temporary values for this prediction.
+                    std::vector<float> vGridPrediction;
+                    // Resize the Grid prediction vector to match the number of classes + bounding_box + objectness score.
+                    vGridPrediction.resize(stOutputDimensions.nObjectnessLocationClasses);
+
                     /*
                        Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
                        Then, repackage into nice detection structs.
@@ -393,17 +404,14 @@ namespace yolomodel
                         // Check if the object confidence is greater than or equal to the threshold.
                         if (fObjectnessConfidence >= fMinObjectConfidence)
                         {
-                            // Create new vector for storing temporary values for this prediction.
-                            std::vector<float> vGridPrediction;
-
                             // Loop through the number of object info and class confidences in the 2nd dimension.
                             // Predictions have format {center_x, center_y, width, height, conf, class0_conf, class1_conf, ...}
                             for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
                             {
                                 // Repackage value into more usable vector. Also undo quantization the data.
-                                vGridPrediction.emplace_back(
+                                vGridPrediction[nJter] =
                                     (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
-                                    stOutputDimensions.fQuantScale);
+                                    stOutputDimensions.fQuantScale;
                             }
 
                             // Find class ID based on which class confidence has the highest score.
@@ -446,20 +454,24 @@ namespace yolomodel
                 InputTensorDimensions GetInputShape(const int nInputIndex = 0)
                 {
                     // Create instance variables.
-                    InputTensorDimensions stInputDimensions = {0, 0, 0, 0};
+                    InputTensorDimensions stInputDimensions = {0, 0, 0, 0, 0, 0};
 
                     // Check if interpreter has been built.
                     if (m_bDeviceOpened)
                     {
                         // Get the desired input tensor shape of the model.
                         int nTensorIndex             = m_pInterpreter->inputs()[nInputIndex];
-                        TfLiteIntArray* tfDimensions = m_pInterpreter->tensor(nTensorIndex)->dims;
+                        TfLiteTensor* tfInputTensor  = m_pInterpreter->tensor(nTensorIndex);
+                        TfLiteIntArray* tfDimensions = tfInputTensor->dims;
 
                         // Package dimensions into struct.
-                        stInputDimensions.nHeight   = tfDimensions->data[1];
-                        stInputDimensions.nWidth    = tfDimensions->data[2];
-                        stInputDimensions.nChannels = tfDimensions->data[3];
-                        stInputDimensions.nIndex    = nTensorIndex;
+                        stInputDimensions.nHeight      = tfDimensions->data[1];
+                        stInputDimensions.nWidth       = tfDimensions->data[2];
+                        stInputDimensions.nChannels    = tfDimensions->data[3];
+                        stInputDimensions.nTensorIndex = nTensorIndex;
+                        // Get the quantization zero point and scale for output tensor.
+                        stInputDimensions.nQuantZeroPoint = tfInputTensor->params.zero_point;
+                        stInputDimensions.fQuantScale     = tfInputTensor->params.scale;
                     }
 
                     return stInputDimensions;
@@ -493,6 +505,7 @@ namespace yolomodel
                         // Package dimensions into struct.
                         stOutputDimensions.nAnchors                   = tfDimensions->data[1];
                         stOutputDimensions.nObjectnessLocationClasses = tfDimensions->data[2];
+                        stOutputDimensions.nTensorIndex               = nTensorIndex;
                         // Get the quantization zero point and scale for output tensor.
                         stOutputDimensions.nQuantZeroPoint = tfOutputTensor->params.zero_point;
                         stOutputDimensions.fQuantScale     = tfOutputTensor->params.scale;
