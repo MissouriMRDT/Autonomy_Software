@@ -13,6 +13,7 @@
 #ifndef YOLO_MODEL_HPP
 #define YOLO_MODEL_HPP
 
+#include "../../AutonomyConstants.h"
 #include "../../interfaces/TensorflowTPU.hpp"
 
 #include <opencv2/opencv.hpp>
@@ -56,17 +57,16 @@ namespace yolomodel
      * @param vBoundingBoxes - A reference to a vector that contains a cv::Rect bounding box for each prediction.
      * @param fMinObjectConfidence - The minimum confidence for determining which predictions to throw out.
      * @param fNMSThreshold - The threshold value for filtering out weaker bounding boxes or detections.
-     * @return std::vector<Detection> -
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-11-15
      ******************************************************************************/
-    std::vector<Detection> NonMaxSuppression(std::vector<Detection>& vObjects,
-                                             std::vector<int>& vClassIDs,
-                                             std::vector<float>& vClassConfidences,
-                                             std::vector<cv::Rect>& vBoundingBoxes,
-                                             float fMinObjectConfidence,
-                                             float fNMSThreshold)
+    void NonMaxSuppression(std::vector<Detection>& vObjects,
+                           std::vector<int>& vClassIDs,
+                           std::vector<float>& vClassConfidences,
+                           std::vector<cv::Rect>& vBoundingBoxes,
+                           float fMinObjectConfidence,
+                           float fNMSThreshold)
     {
         // Create instance variables.
         std::vector<int> vNMSValidIndices;
@@ -87,9 +87,6 @@ namespace yolomodel
             // Append new object detection to objects vector.
             vObjects.emplace_back(stNewDetection);
         }
-
-        // Return the vector of filtered and valid objects.
-        return vObjects;
     }
 
     /******************************************************************************
@@ -158,7 +155,7 @@ namespace yolomodel
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-10-24
          ******************************************************************************/
-        class TPUInterpreter : public TensorflowTPU<std::vector<Detection>, cv::Mat>
+        class TPUInterpreter : public TensorflowTPU<std::vector<std::vector<Detection>>, cv::Mat>
         {
             public:
                 /////////////////////////////////////////
@@ -186,7 +183,7 @@ namespace yolomodel
                  * @date 2023-11-11
                  ******************************************************************************/
                 TPUInterpreter(std::string szModelPath, PerformanceModes ePowerMode = eHigh, unsigned int unMaxBulkInQueueLength = 32, bool bUSBAlwaysDFU = false) :
-                    TensorflowTPU<std::vector<Detection>, cv::Mat>(szModelPath, ePowerMode, unMaxBulkInQueueLength, bUSBAlwaysDFU)
+                    TensorflowTPU<std::vector<std::vector<Detection>>, cv::Mat>(szModelPath, ePowerMode, unMaxBulkInQueueLength, bUSBAlwaysDFU)
 
                 {}
 
@@ -218,20 +215,21 @@ namespace yolomodel
                  * @param cvInputFrame - The RGB camera frame to run detection on.
                  * @param fMinObjectConfidence - Minimum confidence required for an object to be considered a valid detection
                  * @param fNMSThreshold - Threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
-                 * @return std::vector<Detection> - A vector of structs containing infomation about the valid object detections in the given image.
+                 * @return std::vector<std::vector<Detection>> - A 2D vector of structs containing infomation about the valid object detections in the given image.
+                 *                          There will be an std::vector<Detection> for each output tensor.
                  *
                  * @note The input image MUST BE RGB format, otherwise you will likely experience prediction accuracy problems.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-13
                  ******************************************************************************/
-                std::vector<Detection> Inference(cv::Mat& cvInputFrame, float fMinObjectConfidence = 0.85, float fNMSThreshold = 0.6) override
+                std::vector<std::vector<Detection>> Inference(cv::Mat& cvInputFrame, float fMinObjectConfidence = 0.85, float fNMSThreshold = 0.6) override
                 {
                     // Create instance variables.
-                    std::vector<Detection> vObjects;
+                    std::vector<std::vector<Detection>> vTensorObjectOutputs;
 
                     // Get the input tensor shape for the model.
-                    InputTensorDimensions stInputDimensions = this->GetInputShape();
+                    InputTensorDimensions stInputDimensions = this->GetInputShape(m_pInterpreter->inputs()[0]);
 
                     // Copy given frame to class member variable.
                     m_cvFrame = cvInputFrame;
@@ -242,8 +240,8 @@ namespace yolomodel
                         // Check if the image has the correct type.
                         if (m_cvFrame.type() != CV_8UC3)
                         {
-                            // Convert image to unsigned int 8 image.
-                            m_cvFrame.convertTo(m_cvFrame, CV_8U);
+                            // Convert image to unsigned int8 image.
+                            m_cvFrame.convertTo(m_cvFrame, CV_8UC3);
                         }
 
                         // Check if the input image matches the input tensor shape.
@@ -257,7 +255,7 @@ namespace yolomodel
                         }
 
                         // Quantize the input image.
-                        cv::imshow("TSET", m_cvFrame);
+                        // cv::imshow("TSET", m_cvFrame);
                         // Create a vector to store reshaped input image in 1 dimension.
                         std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
                         // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
@@ -280,27 +278,38 @@ namespace yolomodel
                             std::vector<int> vClassIDs;
                             std::vector<float> vClassConfidences;
                             std::vector<cv::Rect> vBoundingBoxes;
+                            // Create vector for storing all detections for this tensor output.
+                            std::vector<Detection> vObjects;
 
-                            // Retrieve output tensor from interpreter.
-                            // TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(this->GetOutputShape().nTensorIndex);
-                            float* pOutputData = m_pInterpreter->typed_output_tensor<float>(this->GetOutputShape().nTensorIndex);
+                            // Get output indices for output tensors.
+                            for (int nTensorIndex : m_pInterpreter->outputs())
+                            {
+                                // Clear prediction data vectors.
+                                vClassIDs.clear();
+                                vClassConfidences.clear();
+                                vBoundingBoxes.clear();
+                                // Clear object detections vector.
+                                vObjects.clear();
 
-                            // Parse inferenced output from tensor.
-                            this->ParseTensorOutputYOLOv5(pOutputData,
-                                                          this->GetOutputShape(),
-                                                          vClassIDs,
-                                                          vClassConfidences,
-                                                          vBoundingBoxes,
-                                                          fMinObjectConfidence,
-                                                          cvInputFrame.cols,
-                                                          cvInputFrame.rows);
+                                // Parse inferenced output from tensor.
+                                this->ParseTensorOutputYOLOv5(nTensorIndex,
+                                                              vClassIDs,
+                                                              vClassConfidences,
+                                                              vBoundingBoxes,
+                                                              fMinObjectConfidence,
+                                                              cvInputFrame.cols,
+                                                              cvInputFrame.rows);
 
-                            // Perform NMS to filter out bad/duplicate detections.
-                            NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
+                                // Perform NMS to filter out bad/duplicate detections.
+                                NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
+
+                                // Append object detections to the tensor outputs vector.
+                                vTensorObjectOutputs.emplace_back(vObjects);
+                            }
                         }
                     }
 
-                    return vObjects;
+                    return vTensorObjectOutputs;
                 }
 
                 /******************************************************************************
@@ -319,7 +328,7 @@ namespace yolomodel
                     for (Detection stObject : vObjects)
                     {
                         // Calculate the hue value based on the class ID.
-                        int nHue = static_cast<int>(stObject.nClassID / (this->GetOutputShape().nObjectnessLocationClasses - 5) * 360.0);
+                        int nHue = static_cast<int>(stObject.nClassID / (this->GetOutputShape(0).nObjectnessLocationClasses - 5) * 360.0);
                         // Set saturation and value to 1.0 for full intensity colors.
                         int nSaturation = 255;
                         int nValue      = 255;
@@ -360,7 +369,7 @@ namespace yolomodel
                  *      and one for cv::Rects storing the bounding box data for the prediction. A prediction will line up between the three vectors.
                  *      (vClassIDs[0], vClassConfidences[0], and vBoundingBoxes[0] correspond to the same prediction.)
                  *
-                 * @param tfOutputTensor - The output tensor from the model containing inference data.
+                 * @param nOutputIndex - The output tensor index from the model containing inference data.
                  * @param vClassIDs - A reference to a vector that will be filled with class IDs for each prediction. The class ID of a prediction will be choosen
                  *              by the highest class confidence for that prediction.
                  * @param vClassConfidences - A reference to a vector that will be filled with the highest class confidence for that prediction.
@@ -372,8 +381,7 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-15
                  ******************************************************************************/
-                void ParseTensorOutputYOLOv5(float* pOutputTensorData,
-                                             OutputTensorDimensions stOutputDimensions,
+                void ParseTensorOutputYOLOv5(int nOutputIndex,
                                              std::vector<int>& vClassIDs,
                                              std::vector<float>& vClassConfidences,
                                              std::vector<cv::Rect>& vBoundingBoxes,
@@ -381,6 +389,10 @@ namespace yolomodel
                                              int nOriginalFrameWidth,
                                              int nOriginalFrameHeight)
                 {
+                    // Retrieve output tensor from interpreter.
+                    TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(nOutputIndex);
+                    // Get output tensor shape.
+                    OutputTensorDimensions stOutputDimensions = this->GetOutputShape(nOutputIndex);
                     // Create vector for storing temporary values for this prediction.
                     std::vector<float> vGridPrediction;
                     // Resize the Grid prediction vector to match the number of classes + bounding_box + objectness score.
@@ -390,13 +402,15 @@ namespace yolomodel
                        Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
                        Then, repackage into nice detection structs.
                        For YOLO, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
-                       of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (RGB), and each anchor contains a vector 5 + nc long, where nc is the number of
-                       classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
+                       of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (RGB), and each anchor contains a vector 5 + nc long, where nc is the number
+                       of classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
                     */
                     for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
                     {
                         // Get objectness confidence. This is the 5th value for each grid/anchor prediction. (4th index)
-                        float fObjectnessConfidence = pOutputTensorData[(nIter * stOutputDimensions.nObjectnessLocationClasses) + 4];
+                        float fObjectnessConfidence =
+                            (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + 4] - stOutputDimensions.nQuantZeroPoint) *
+                            stOutputDimensions.fQuantScale;
 
                         // Check if the object confidence is greater than or equal to the threshold.
                         if (fObjectnessConfidence >= fMinObjectConfidence)
@@ -406,8 +420,13 @@ namespace yolomodel
                             for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
                             {
                                 // Repackage value into more usable vector. Also undo quantization the data.
-                                vGridPrediction[nJter] = pOutputTensorData[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter];
+                                vGridPrediction[nJter] =
+                                    (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
+                                    stOutputDimensions.fQuantScale;
+
+                                std::cout << vGridPrediction[nJter] << ", ";
                             }
+                            std::cout << std::endl;
 
                             // Find class ID based on which class confidence has the highest score.
                             std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 5;
@@ -438,7 +457,7 @@ namespace yolomodel
                  * @brief Get the input shape of the tensor at the given index. Requires the device
                  *      to have been successfully opened.
                  *
-                 * @param nInputIndex - The index of the input tensor to use. YOLO models that
+                 * @param nTensorIndex - The index of the input tensor to use. YOLO models that
                  *          have been converted to a edgetpu quantized .tflite file will only have one
                  *          input at index 0.
                  * @return TensorDimensions - A struct containing the height, width, and channels of the input tensor.
@@ -446,7 +465,7 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-12
                  ******************************************************************************/
-                InputTensorDimensions GetInputShape(const int nInputIndex = 0)
+                InputTensorDimensions GetInputShape(const int nTensorIndex = 0)
                 {
                     // Create instance variables.
                     InputTensorDimensions stInputDimensions = {0, 0, 0, 0, 0, 0};
@@ -455,7 +474,6 @@ namespace yolomodel
                     if (m_bDeviceOpened)
                     {
                         // Get the desired input tensor shape of the model.
-                        int nTensorIndex             = m_pInterpreter->inputs()[nInputIndex];
                         TfLiteTensor* tfInputTensor  = m_pInterpreter->tensor(nTensorIndex);
                         TfLiteIntArray* tfDimensions = tfInputTensor->dims;
 
@@ -476,7 +494,7 @@ namespace yolomodel
                  * @brief Get the output shape of the tensor at the given index. Requires the device
                  *      to have been successfully opened.
                  *
-                 * @param nOutputIndex - The index of the input tensor to use. YOLO models that
+                 * @param nTensorIndex - The index of the output tensor to use. YOLO models that
                  *          have been converted to a edgetpu quantized .tflite file will only have one
                  *          output at index 0.
                  * @return TensorDimensions - A struct containing the height, width, and channels of the output tensor.
@@ -484,7 +502,7 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-12
                  ******************************************************************************/
-                OutputTensorDimensions GetOutputShape(const int nOutputIndex = 0)
+                OutputTensorDimensions GetOutputShape(const int nTensorIndex = 0)
                 {
                     // Create instance variables.
                     OutputTensorDimensions stOutputDimensions = {0, 0, 0, 0, 0};
@@ -493,7 +511,6 @@ namespace yolomodel
                     if (m_bDeviceOpened)
                     {
                         // Get the desired output tensor shape of the model.
-                        int nTensorIndex             = m_pInterpreter->outputs()[nOutputIndex];
                         TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(nTensorIndex);
                         TfLiteIntArray* tfDimensions = tfOutputTensor->dims;
 

@@ -110,12 +110,12 @@ namespace constants
 
     // Left Side Cam.
     const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
-    const int BASICCAM_LEFTCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the maincam images to.
-    const int BASICCAM_LEFTCAM_FPS                     = 30;      // The FPS to use for the maincam.
-    const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int BASICCAM_LEFTCAM_INDEX                   = 0;       // The /dev/video index of the camera.
+    const int BASICCAM_LEFTCAM_RESOLUTIONY             = 720;    // The vertical pixel resolution to resize the maincam images to.
+    const int BASICCAM_LEFTCAM_FPS                     = 30;     // The FPS to use for the maincam.
+    const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;    // The horizontal FOV of the camera. Useful for future calculations.
+    const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;     // The vertical FOV of the camera. Useful for future calculations.
+    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;     // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_LEFTCAM_INDEX                   = 0;      // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_LEFTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
 
     // Right Side Cam.
@@ -151,25 +151,25 @@ namespace constants
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
-    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
 
     // Left Side Cam.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;       // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                                // Whether or not to detector upside-down tags.
-    const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                   // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                                // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
 
     // Right Side Cam.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;      // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
-    const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
