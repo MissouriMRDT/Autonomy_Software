@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile_Jammy
       args:
-        RUNNER_VERSION: '2.310.2'
+        RUNNER_VERSION: 'latest'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 2
@@ -23,7 +23,7 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: <PAT>
+      GH_TOKEN: <GH_PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
 
@@ -33,7 +33,7 @@ services:
       context: .
       dockerfile: Dockerfile_JetPack
       args:
-        RUNNER_VERSION: '2.310.2'
+        RUNNER_VERSION: 'latest'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 1
@@ -48,7 +48,7 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: <PAT>
+      GH_TOKEN: <GH_PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
 
