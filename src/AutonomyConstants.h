@@ -110,12 +110,12 @@ namespace constants
 
     // Left Side Cam.
     const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
-    const int BASICCAM_LEFTCAM_RESOLUTIONY             = 720;    // The vertical pixel resolution to resize the maincam images to.
-    const int BASICCAM_LEFTCAM_FPS                     = 30;     // The FPS to use for the maincam.
-    const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;    // The horizontal FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;     // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;     // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int BASICCAM_LEFTCAM_INDEX                   = 0;      // The /dev/video index of the camera.
+    const int BASICCAM_LEFTCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the maincam images to.
+    const int BASICCAM_LEFTCAM_FPS                     = 30;      // The FPS to use for the maincam.
+    const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
+    const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
+    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_LEFTCAM_INDEX                   = 0;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_LEFTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
 
     // Right Side Cam.
