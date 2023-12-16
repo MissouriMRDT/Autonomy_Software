@@ -90,6 +90,52 @@ namespace yolomodel
     }
 
     /******************************************************************************
+     * @brief Given an image and a vector of object structs, draw each object bounding box,
+     *      class type, and confidence onto the image.
+     *
+     * @param cvInputFrame - A reference to the cv::Mat to draw overlays on.
+     * @param vObjects - A reference to the vector containing the object detection structs.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-15
+     ******************************************************************************/
+    void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
+    {
+        // Loop through each detection.
+        for (Detection stObject : vObjects)
+        {
+            // Calculate the hue value based on the class ID.
+            int nHue = static_cast<int>(stObject.nClassID / 9999999);
+            // Set saturation and value to 1.0 for full intensity colors.
+            int nSaturation = 255;
+            int nValue      = 255;
+
+            // Convert HSV to RGB
+            cv::Mat cvHSV(1, 1, CV_8UC3, cv::Scalar(nHue, nSaturation, nValue));
+            cv::cvtColor(cvHSV, cvHSV, cv::COLOR_HSV2BGR);
+            // Extract the RGB values
+            cv::Vec3b cvConvertedValues = cvHSV.at<cv::Vec3b>(0, 0);
+            cv::Scalar cvBoxColor(cvConvertedValues[2], cvConvertedValues[1], cvConvertedValues[0]);
+
+            // Draw bounding box onto image.
+            cv::rectangle(cvInputFrame, stObject.cvBoundingBox, cvBoxColor, 2);
+            // Draw classID background box onto image.
+            cv::rectangle(cvInputFrame,
+                          cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 20),
+                          cv::Point(stObject.cvBoundingBox.x + stObject.cvBoundingBox.width, stObject.cvBoundingBox.y),
+                          cvBoxColor,
+                          cv::FILLED);
+            // Draw class text onto image.
+            cv::putText(cvInputFrame,
+                        std::to_string(stObject.nClassID) + " " + std::to_string(stObject.fConfidence),
+                        cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 5),
+                        cv::FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        cv::Scalar(255, 255, 255));
+        }
+    }
+
+    /******************************************************************************
      * @brief Namespace containing functions or objects/structs used to run inference on
      *      a YOLO model with the Tensorflow library. This namespace contains static functions
      *      for getting available hardware devices, and classes for running a .tflite model on each device.
@@ -142,6 +188,7 @@ namespace yolomodel
                 int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
                 int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
                                                    // The model has. The first five values are objectness_score, X_min, Y_min, width, height.
+                int nChannels;                     // The number of values/channels per anchor value.
                 int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
                 int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
                 float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
@@ -255,7 +302,7 @@ namespace yolomodel
                         }
 
                         // Quantize the input image.
-                        // cv::imshow("TSET", m_cvFrame);
+                        cv::imshow("TSET", m_cvFrame);
                         // Create a vector to store reshaped input image in 1 dimension.
                         std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
                         // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
@@ -310,52 +357,6 @@ namespace yolomodel
                     }
 
                     return vTensorObjectOutputs;
-                }
-
-                /******************************************************************************
-                 * @brief Given an image and a vector of object structs, draw each object bounding box,
-                 *      class type, and confidence onto the image.
-                 *
-                 * @param cvInputFrame - A reference to the cv::Mat to draw overlays on.
-                 * @param vObjects - A reference to the vector containing the object detection structs.
-                 *
-                 * @author clayjay3 (claytonraycowen@gmail.com)
-                 * @date 2023-11-15
-                 ******************************************************************************/
-                void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
-                {
-                    // Loop through each detection.
-                    for (Detection stObject : vObjects)
-                    {
-                        // Calculate the hue value based on the class ID.
-                        int nHue = static_cast<int>(stObject.nClassID / (this->GetOutputShape(0).nObjectnessLocationClasses - 5) * 360.0);
-                        // Set saturation and value to 1.0 for full intensity colors.
-                        int nSaturation = 255;
-                        int nValue      = 255;
-
-                        // Convert HSV to RGB
-                        cv::Mat cvHSV(1, 1, CV_8UC3, cv::Scalar(nHue, nSaturation, nValue));
-                        cv::cvtColor(cvHSV, cvHSV, cv::COLOR_HSV2BGR);
-                        // Extract the RGB values
-                        cv::Vec3b cvConvertedValues = cvHSV.at<cv::Vec3b>(0, 0);
-                        cv::Scalar cvBoxColor(cvConvertedValues[2], cvConvertedValues[1], cvConvertedValues[0]);
-
-                        // Draw bounding box onto image.
-                        cv::rectangle(cvInputFrame, stObject.cvBoundingBox, cvBoxColor, 2);
-                        // Draw classID background box onto image.
-                        cv::rectangle(cvInputFrame,
-                                      cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 20),
-                                      cv::Point(stObject.cvBoundingBox.x + stObject.cvBoundingBox.width, stObject.cvBoundingBox.y),
-                                      cvBoxColor,
-                                      cv::FILLED);
-                        // Draw class text onto image.
-                        cv::putText(cvInputFrame,
-                                    std::to_string(stObject.nClassID) + " " + std::to_string(stObject.fConfidence),
-                                    cv::Point(stObject.cvBoundingBox.x, stObject.cvBoundingBox.y - 5),
-                                    cv::FONT_HERSHEY_SIMPLEX,
-                                    0.5,
-                                    cv::Scalar(255, 255, 255));
-                    }
                 }
 
             private:
@@ -416,30 +417,35 @@ namespace yolomodel
                         if (fObjectnessConfidence >= fMinObjectConfidence)
                         {
                             // Loop through the number of object info and class confidences in the 2nd dimension.
-                            // Predictions have format {center_x, center_y, width, height, conf, class0_conf, class1_conf, ...}
+                            // Predictions have format {center_x, center_y, width, height, object_conf, class0_conf, class1_conf, ...}
                             for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
                             {
                                 // Repackage value into more usable vector. Also undo quantization the data.
                                 vGridPrediction[nJter] =
                                     (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
                                     stOutputDimensions.fQuantScale;
-
-                                std::cout << vGridPrediction[nJter] << ", ";
                             }
-                            std::cout << std::endl;
 
                             // Find class ID based on which class confidence has the highest score.
                             std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 5;
                             std::vector<float>::iterator pMaxConfidence = std::max_element(pStartIterator, vGridPrediction.end());
                             int nClassID                                = std::distance(pStartIterator, pMaxConfidence);
                             // Get prediction confidence for class ID.
-                            float fClassConfidence = vGridPrediction[nClassID];
+                            float fClassConfidence = vGridPrediction[nClassID + 5];
                             // Scale bounding box to match original input image size.
                             cv::Rect cvBoundingBox;
+                            LOG_WARNING(logging::g_qConsoleLogger, "BULLSHIT: {}, {}", vGridPrediction[0], nOriginalFrameWidth);
                             int nCenterX = vGridPrediction[0] * nOriginalFrameWidth;
                             int nCenterY = vGridPrediction[1] * nOriginalFrameHeight;
                             int nWidth   = vGridPrediction[2] * nOriginalFrameWidth;
                             int nHeight  = vGridPrediction[3] * nOriginalFrameHeight;
+                            LOG_WARNING(logging::g_qConsoleLogger,
+                                        "Center: ({}, {}), Width: {}, Height: {}, ClassConf: {}",
+                                        nCenterX,
+                                        nCenterY,
+                                        nWidth,
+                                        nHeight,
+                                        fClassConfidence);
                             // Repackaged bounding box data to be more readable.
                             cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
                             cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
@@ -505,7 +511,7 @@ namespace yolomodel
                 OutputTensorDimensions GetOutputShape(const int nTensorIndex = 0)
                 {
                     // Create instance variables.
-                    OutputTensorDimensions stOutputDimensions = {0, 0, 0, 0, 0};
+                    OutputTensorDimensions stOutputDimensions = {0, 0, 0, 0, 0, 0};
 
                     // Check if interpreter has been built.
                     if (m_bDeviceOpened)
@@ -517,6 +523,7 @@ namespace yolomodel
                         // Package dimensions into struct.
                         stOutputDimensions.nAnchors                   = tfDimensions->data[1];
                         stOutputDimensions.nObjectnessLocationClasses = tfDimensions->data[2];
+                        stOutputDimensions.nChannels                  = tfDimensions->data[3];
                         stOutputDimensions.nTensorIndex               = nTensorIndex;
                         // Get the quantization zero point and scale for output tensor.
                         stOutputDimensions.nQuantZeroPoint = tfOutputTensor->params.zero_point;
