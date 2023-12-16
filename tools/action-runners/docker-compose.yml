@@ -23,7 +23,7 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: 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
+      GH_TOKEN: <PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
 
@@ -48,7 +48,7 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: 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
+      GH_TOKEN: <PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
 
