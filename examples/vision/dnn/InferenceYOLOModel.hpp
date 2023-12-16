@@ -53,11 +53,13 @@ void RunExample()
     // Initialize a new YOLOModel object.
     yolomodel::tensorflow::TPUInterpreter ExampleEdgeTPUModel =
         yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco_v5n_x320/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
+    // yolomodel::tensorflow::GPUInterpreter ExampleEdgeTPUModel = yolomodel::tensorflow::GPUInterpreter("../data/models/yolo_models/coco_v5n_x320/best.tflite");
     // Open and load a new YOLOModel from the given path into an EdgeTPU device.
     ExampleEdgeTPUModel.OpenAndLoad();
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
+    cv::Mat cvInferenceFrame1;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -71,11 +73,16 @@ void RunExample()
         // Show first frame copy.
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
         {
-            // Print info.
-            LOG_INFO(logging::g_qConsoleLogger,
-                     "BasicCam Getter FPS: {} | 1% Low: {}",
-                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
-                     ExampleBasicCam1->GetIPS().Get1PercentLow());
+            // Convert camera frame from BGR to RGB format.
+            cv::cvtColor(cvNormalFrame1, cvInferenceFrame1, cv::COLOR_BGR2RGB);
+            // Run inference on YOLO model with current image.
+            std::vector<std::vector<yolomodel::Detection>> vOutputTensorObjects = ExampleEdgeTPUModel.Inference(cvInferenceFrame1, 0.30f, 0.40f);
+            // Loop through all output detection vectors for each tensor output.
+            for (std::vector<yolomodel::Detection> vObjects : vOutputTensorObjects)
+            {
+                // Draw detected objects on frame.
+                yolomodel::DrawDetections(cvNormalFrame1, vObjects);
+            }
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
@@ -85,17 +92,14 @@ void RunExample()
                         1,
                         cv::Scalar(255, 255, 255));
 
-            // Run inference on YOLO model with current image.
-            std::vector<std::vector<yolomodel::Detection>> vOutputTensorObjects = ExampleEdgeTPUModel.Inference(cvNormalFrame1, 0.40f, 0.60f);
-            // Loop through all output detection vectors for each tensor output.
-            for (std::vector<yolomodel::Detection> vObjects : vOutputTensorObjects)
-            {
-                // Draw detected objects on frame.
-                ExampleEdgeTPUModel.DrawDetections(cvNormalFrame1, vObjects);
-            }
-
             // Display frame.
             cv::imshow("BasicCamExample Frame1", cvNormalFrame1);
+
+            // Print info.
+            LOG_INFO(logging::g_qConsoleLogger,
+                     "BasicCam Getter FPS: {} | 1% Low: {}",
+                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
+                     ExampleBasicCam1->GetIPS().Get1PercentLow());
         }
 
         // Tick FPS counter.

@@ -11,7 +11,7 @@ services:
         RUNNER_VERSION: '2.310.2'
     command: unix-connect:/var/run/docker.sock
     deploy:
-      replicas: 5
+      replicas: 2
       resources:
         reservations:
           devices:
@@ -23,9 +23,10 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: <TOKEN>
+      GH_TOKEN: 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
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
+
   jetpack-runner:
     image: ghcr.io/missourimrdt/jetpack-runner:latest
     build:
@@ -47,7 +48,7 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: <TOKEN>
+      GH_TOKEN: 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
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
 

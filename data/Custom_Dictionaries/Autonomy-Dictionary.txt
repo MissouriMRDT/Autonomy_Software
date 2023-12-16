@@ -55,6 +55,7 @@ MAINCAM
 MAINCAN
 mainpage
 MAPRANGE
+marsrover
 Memcheck
 microcontrollers
 missourimrdt
