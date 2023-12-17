@@ -188,7 +188,6 @@ namespace yolomodel
                 int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
                 int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
                                                    // The model has. The first five values are objectness_score, X_min, Y_min, width, height.
-                int nChannels;                     // The number of values/channels per anchor value.
                 int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
                 int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
                 float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
@@ -301,8 +300,6 @@ namespace yolomodel
                                        constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
                         }
 
-                        // Quantize the input image.
-                        cv::imshow("TSET", m_cvFrame);
                         // Create a vector to store reshaped input image in 1 dimension.
                         std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
                         // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
@@ -338,14 +335,54 @@ namespace yolomodel
                                 // Clear object detections vector.
                                 vObjects.clear();
 
-                                // Parse inferenced output from tensor.
-                                this->ParseTensorOutputYOLOv5(nTensorIndex,
-                                                              vClassIDs,
-                                                              vClassConfidences,
-                                                              vBoundingBoxes,
-                                                              fMinObjectConfidence,
-                                                              cvInputFrame.cols,
-                                                              cvInputFrame.rows);
+                                /*
+                                    Check if the output tensor has a YOLOv5 format.
+                                */
+                                // Get the tensor output shape details.
+                                OutputTensorDimensions stOutputDimensions = this->GetOutputShape(nTensorIndex);
+                                // Calculate the general stride sizes for YOLO based on input tensor shape.
+                                int nImgSize  = stInputDimensions.nHeight;
+                                int nP3Stride = std::pow((nImgSize / 8), 2);
+                                int nP4Stride = std::pow((nImgSize / 16), 2);
+                                int nP5Stride = std::pow((nImgSize / 32), 2);
+                                // Calculate the proper prediction length for different YOLO versions.
+                                int nYOLOv5AnchorsPerGridPoint = 3;
+                                int nYOLOv8AnchorsPerGridPoint = 1;
+                                int nYOLOv5TotalPredictionLength =
+                                    (nP3Stride * nYOLOv5AnchorsPerGridPoint) + (nP4Stride * nYOLOv5AnchorsPerGridPoint) + (nP5Stride * nYOLOv5AnchorsPerGridPoint);
+                                int nYOLOv8TotalPredictionLength =
+                                    (nP3Stride * nYOLOv8AnchorsPerGridPoint) + (nP4Stride * nYOLOv8AnchorsPerGridPoint) + (nP5Stride * nYOLOv8AnchorsPerGridPoint);
+
+                                // Output tensor is YOLOv5 format.
+                                std::cout << stOutputDimensions.nAnchors << " " << nYOLOv8TotalPredictionLength << std::endl;
+                                LOG_WARNING(logging::g_qConsoleLogger,
+                                            "TENSOR_DIMS: {}, CALC_LENGTH_5: {}, CALC_LENGTH_8: {}",
+                                            stOutputDimensions.nAnchors,
+                                            nYOLOv5TotalPredictionLength,
+                                            nYOLOv8TotalPredictionLength);
+                                if (stOutputDimensions.nAnchors == nYOLOv5TotalPredictionLength)
+                                {
+                                    // Parse inferenced output from tensor.
+                                    this->ParseTensorOutputYOLOv5(nTensorIndex,
+                                                                  vClassIDs,
+                                                                  vClassConfidences,
+                                                                  vBoundingBoxes,
+                                                                  fMinObjectConfidence,
+                                                                  cvInputFrame.cols,
+                                                                  cvInputFrame.rows);
+                                }
+                                // Output tensor is YOLOv8 format.
+                                else if (stOutputDimensions.nAnchors == nYOLOv8TotalPredictionLength)
+                                {
+                                    // Parse inferenced output from tensor.
+                                    this->ParseTensorOutputYOLOv8(nTensorIndex,
+                                                                  vClassIDs,
+                                                                  vClassConfidences,
+                                                                  vBoundingBoxes,
+                                                                  fMinObjectConfidence,
+                                                                  cvInputFrame.cols,
+                                                                  cvInputFrame.rows);
+                                }
 
                                 // Perform NMS to filter out bad/duplicate detections.
                                 NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
@@ -354,6 +391,15 @@ namespace yolomodel
                                 vTensorObjectOutputs.emplace_back(vObjects);
                             }
                         }
+                    }
+                    else
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "Inferencing failed on an image for model {} with device {} ({})",
+                                    m_szModelPath,
+                                    m_tpuDevice.path,
+                                    this->DeviceTypeToString(m_tpuDevice.type));
                     }
 
                     return vTensorObjectOutputs;
@@ -402,9 +448,9 @@ namespace yolomodel
                     /*
                        Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
                        Then, repackage into nice detection structs.
-                       For YOLO, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
-                       of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (RGB), and each anchor contains a vector 5 + nc long, where nc is the number
-                       of classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
+                       For YOLOv5, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
+                       of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (anchor boxe values: small, medium, large), and each anchor contains a vector 5 +
+                       nc long, where nc is the number of classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
                     */
                     for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
                     {
@@ -434,18 +480,115 @@ namespace yolomodel
                             float fClassConfidence = vGridPrediction[nClassID + 5];
                             // Scale bounding box to match original input image size.
                             cv::Rect cvBoundingBox;
-                            LOG_WARNING(logging::g_qConsoleLogger, "BULLSHIT: {}, {}", vGridPrediction[0], nOriginalFrameWidth);
                             int nCenterX = vGridPrediction[0] * nOriginalFrameWidth;
                             int nCenterY = vGridPrediction[1] * nOriginalFrameHeight;
                             int nWidth   = vGridPrediction[2] * nOriginalFrameWidth;
                             int nHeight  = vGridPrediction[3] * nOriginalFrameHeight;
-                            LOG_WARNING(logging::g_qConsoleLogger,
-                                        "Center: ({}, {}), Width: {}, Height: {}, ClassConf: {}",
-                                        nCenterX,
-                                        nCenterY,
-                                        nWidth,
-                                        nHeight,
-                                        fClassConfidence);
+                            if (nWidth != 0)
+                            {
+                                LOG_WARNING(logging::g_qConsoleLogger, "BULLSHIT: {}, {}", vGridPrediction[0], nOriginalFrameWidth);
+                                LOG_WARNING(logging::g_qConsoleLogger,
+                                            "Center: ({}, {}), Width: {}, Height: {}, ClassConf: {}",
+                                            nCenterX,
+                                            nCenterY,
+                                            nWidth,
+                                            nHeight,
+                                            fClassConfidence);
+                            }
+                            // Repackaged bounding box data to be more readable.
+                            cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
+                            cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
+                            cvBoundingBox.width  = nWidth;
+                            cvBoundingBox.height = nHeight;
+                            // Add data to vectors.
+                            vClassIDs.emplace_back(nClassID);
+                            vClassConfidences.emplace_back(fClassConfidence);
+                            vBoundingBoxes.emplace_back(cvBoundingBox);
+                        }
+                    }
+                }
+
+                /******************************************************************************
+                 * @brief Given a TFLite output tensor from a YOLOv8 model, parse it's output into something more usable.
+                 *      The parsed output will be in the form of three vectors: one for class IDs, one for the prediction confidence for the class ID,
+                 *      and one for cv::Rects storing the bounding box data for the prediction. A prediction will line up between the three vectors.
+                 *      (vClassIDs[0], vClassConfidences[0], and vBoundingBoxes[0] correspond to the same prediction.)
+                 *
+                 * @param nOutputIndex - The output tensor index from the model containing inference data.
+                 * @param vClassIDs - A reference to a vector that will be filled with class IDs for each prediction. The class ID of a prediction will be choosen
+                 *              by the highest class confidence for that prediction.
+                 * @param vClassConfidences - A reference to a vector that will be filled with the highest class confidence for that prediction.
+                 * @param vBoundingBoxes - A reference to a vector that will be filled with cv::Rect bounding box for each prediction.
+                 * @param fMinObjectConfidence - The minimum confidence for determining which predictions to throw out.
+                 * @param nOriginalFrameWidth - The pixel width of the normal/original camera frame. This is not the size of the model input or resized image.
+                 * @param nOriginalFrameHeight - The pixel height of the normal/original camera frame. This is not the size of the model input or resized image.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2023-11-15
+                 ******************************************************************************/
+                void ParseTensorOutputYOLOv8(int nOutputIndex,
+                                             std::vector<int>& vClassIDs,
+                                             std::vector<float>& vClassConfidences,
+                                             std::vector<cv::Rect>& vBoundingBoxes,
+                                             float fMinObjectConfidence,
+                                             int nOriginalFrameWidth,
+                                             int nOriginalFrameHeight)
+                {
+                    // Retrieve output tensor from interpreter.
+                    TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(nOutputIndex);
+                    // Get output tensor shape.
+                    OutputTensorDimensions stOutputDimensions = this->GetOutputShape(nOutputIndex);
+                    // Create vector for storing temporary values for this prediction.
+                    std::vector<float> vGridPrediction;
+                    // Resize the Grid prediction vector to match the number of classes + bounding_box + objectness score.
+                    vGridPrediction.resize(stOutputDimensions.nObjectnessLocationClasses);
+
+                    /*
+                       Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
+                       Then, repackage into nice detection structs.
+                       For YOLOv8, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
+                       of 80x80, 40x40, 20x20. Each grid point has 1 anchor, and each anchor contains a vector 4 + nc long, where nc is the number
+                       of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400]
+                    */
+                    for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
+                    {
+                        // Loop through the number of object info and class confidences in the 2nd dimension.
+                        // Predictions have format {center_x, center_y, width, height, class0_conf, class1_conf, ...}
+                        for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
+                        {
+                            // Repackage value into more usable vector. Also undo quantization the data.
+                            vGridPrediction[nJter] =
+                                (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
+                                stOutputDimensions.fQuantScale;
+                        }
+
+                        // Find class ID based on which class confidence has the highest score.
+                        std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 4;
+                        std::vector<float>::iterator pMaxConfidence = std::max_element(pStartIterator, vGridPrediction.end());
+                        int nClassID                                = std::distance(pStartIterator, pMaxConfidence);
+                        // Get prediction confidence for class ID.
+                        float fClassConfidence = vGridPrediction[nClassID + 5];
+
+                        // Check if class confidence meets threshold.
+                        if (fClassConfidence == fMinObjectConfidence)
+                        {
+                            // Scale bounding box to match original input image size.
+                            cv::Rect cvBoundingBox;
+                            int nCenterX = vGridPrediction[0] * nOriginalFrameWidth;
+                            int nCenterY = vGridPrediction[1] * nOriginalFrameHeight;
+                            int nWidth   = vGridPrediction[2] * nOriginalFrameWidth;
+                            int nHeight  = vGridPrediction[3] * nOriginalFrameHeight;
+                            if (nWidth != 0)
+                            {
+                                LOG_WARNING(logging::g_qConsoleLogger, "BULLSHIT: {}, {}", vGridPrediction[0], nOriginalFrameWidth);
+                                LOG_WARNING(logging::g_qConsoleLogger,
+                                            "Center: ({}, {}), Width: {}, Height: {}, ClassConf: {}",
+                                            nCenterX,
+                                            nCenterY,
+                                            nWidth,
+                                            nHeight,
+                                            fClassConfidence);
+                            }
                             // Repackaged bounding box data to be more readable.
                             cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
                             cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
@@ -511,7 +654,7 @@ namespace yolomodel
                 OutputTensorDimensions GetOutputShape(const int nTensorIndex = 0)
                 {
                     // Create instance variables.
-                    OutputTensorDimensions stOutputDimensions = {0, 0, 0, 0, 0, 0};
+                    OutputTensorDimensions stOutputDimensions = {0, 0, 0, 0, 0};
 
                     // Check if interpreter has been built.
                     if (m_bDeviceOpened)
@@ -520,10 +663,9 @@ namespace yolomodel
                         TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(nTensorIndex);
                         TfLiteIntArray* tfDimensions = tfOutputTensor->dims;
 
-                        // Package dimensions into struct.
-                        stOutputDimensions.nAnchors                   = tfDimensions->data[1];
-                        stOutputDimensions.nObjectnessLocationClasses = tfDimensions->data[2];
-                        stOutputDimensions.nChannels                  = tfDimensions->data[3];
+                        // Package dimensions into struct. Assume anchors will always be the longer dimension.
+                        stOutputDimensions.nAnchors                   = std::max(tfDimensions->data[1], tfDimensions->data[2]);
+                        stOutputDimensions.nObjectnessLocationClasses = std::min(tfDimensions->data[1], tfDimensions->data[2]);
                         stOutputDimensions.nTensorIndex               = nTensorIndex;
                         // Get the quantization zero point and scale for output tensor.
                         stOutputDimensions.nQuantZeroPoint = tfOutputTensor->params.zero_point;
