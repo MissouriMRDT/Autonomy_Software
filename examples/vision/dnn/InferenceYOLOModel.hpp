@@ -52,8 +52,7 @@ void RunExample()
 
     // Initialize a new YOLOModel object.
     yolomodel::tensorflow::TPUInterpreter ExampleEdgeTPUModel =
-        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco_v8n_x224/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
-    // yolomodel::tensorflow::GPUInterpreter ExampleEdgeTPUModel = yolomodel::tensorflow::GPUInterpreter("../data/models/yolo_models/coco_v5n_x320/best.tflite");
+        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/marsrover_x640/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
     // Open and load a new YOLOModel from the given path into an EdgeTPU device.
     ExampleEdgeTPUModel.OpenAndLoad();
 
@@ -76,7 +75,7 @@ void RunExample()
             // Convert camera frame from BGR to RGB format.
             cv::cvtColor(cvNormalFrame1, cvInferenceFrame1, cv::COLOR_BGR2RGB);
             // Run inference on YOLO model with current image.
-            std::vector<std::vector<yolomodel::Detection>> vOutputTensorObjects = ExampleEdgeTPUModel.Inference(cvInferenceFrame1, 0.30f, 0.40f);
+            std::vector<std::vector<yolomodel::Detection>> vOutputTensorObjects = ExampleEdgeTPUModel.Inference(cvInferenceFrame1, 0.40f, 0.80f);
             // Loop through all output detection vectors for each tensor output.
             for (std::vector<yolomodel::Detection> vObjects : vOutputTensorObjects)
             {

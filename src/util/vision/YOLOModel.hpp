@@ -302,9 +302,15 @@ namespace yolomodel
 
                         // Create a vector to store reshaped input image in 1 dimension.
                         std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
+                        // Quantize input data.
+                        for (long unsigned int nIter = 0; nIter < vInputData.size(); ++nIter)
+                        {
+                            // Quantize value.
+                            vInputData[nIter] = std::round(vInputData[nIter] / stInputDimensions.fQuantScale) + stInputDimensions.nQuantZeroPoint;
+                        }
                         // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
-                        uint8_t* pInput = m_pInterpreter->typed_input_tensor<uint8_t>(stInputDimensions.nTensorIndex);
-                        std::memcpy(pInput, vInputData.data(), vInputData.size());
+                        TfLiteTensor* pInputTensor = m_pInterpreter->tensor(stInputDimensions.nTensorIndex);
+                        std::memcpy(pInputTensor->data.raw, vInputData.data(), vInputData.size());
 
                         // Run inference on the EdgeTPU.
                         if (m_pInterpreter->Invoke() != kTfLiteOk)
@@ -354,12 +360,6 @@ namespace yolomodel
                                     (nP3Stride * nYOLOv8AnchorsPerGridPoint) + (nP4Stride * nYOLOv8AnchorsPerGridPoint) + (nP5Stride * nYOLOv8AnchorsPerGridPoint);
 
                                 // Output tensor is YOLOv5 format.
-                                std::cout << stOutputDimensions.nAnchors << " " << nYOLOv8TotalPredictionLength << std::endl;
-                                LOG_WARNING(logging::g_qConsoleLogger,
-                                            "TENSOR_DIMS: {}, CALC_LENGTH_5: {}, CALC_LENGTH_8: {}",
-                                            stOutputDimensions.nAnchors,
-                                            nYOLOv5TotalPredictionLength,
-                                            nYOLOv8TotalPredictionLength);
                                 if (stOutputDimensions.nAnchors == nYOLOv5TotalPredictionLength)
                                 {
                                     // Parse inferenced output from tensor.
@@ -484,17 +484,6 @@ namespace yolomodel
                             int nCenterY = vGridPrediction[1] * nOriginalFrameHeight;
                             int nWidth   = vGridPrediction[2] * nOriginalFrameWidth;
                             int nHeight  = vGridPrediction[3] * nOriginalFrameHeight;
-                            if (nWidth != 0)
-                            {
-                                LOG_WARNING(logging::g_qConsoleLogger, "BULLSHIT: {}, {}", vGridPrediction[0], nOriginalFrameWidth);
-                                LOG_WARNING(logging::g_qConsoleLogger,
-                                            "Center: ({}, {}), Width: {}, Height: {}, ClassConf: {}",
-                                            nCenterX,
-                                            nCenterY,
-                                            nWidth,
-                                            nHeight,
-                                            fClassConfidence);
-                            }
                             // Repackaged bounding box data to be more readable.
                             cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
                             cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
@@ -558,7 +547,7 @@ namespace yolomodel
                         {
                             // Repackage value into more usable vector. Also undo quantization the data.
                             vGridPrediction[nJter] =
-                                (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
+                                (tfOutputTensor->data.int8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
                                 stOutputDimensions.fQuantScale;
                         }
 
@@ -567,7 +556,7 @@ namespace yolomodel
                         std::vector<float>::iterator pMaxConfidence = std::max_element(pStartIterator, vGridPrediction.end());
                         int nClassID                                = std::distance(pStartIterator, pMaxConfidence);
                         // Get prediction confidence for class ID.
-                        float fClassConfidence = vGridPrediction[nClassID + 5];
+                        float fClassConfidence = vGridPrediction[nClassID + 4];
 
                         // Check if class confidence meets threshold.
                         if (fClassConfidence == fMinObjectConfidence)
@@ -578,17 +567,6 @@ namespace yolomodel
                             int nCenterY = vGridPrediction[1] * nOriginalFrameHeight;
                             int nWidth   = vGridPrediction[2] * nOriginalFrameWidth;
                             int nHeight  = vGridPrediction[3] * nOriginalFrameHeight;
-                            if (nWidth != 0)
-                            {
-                                LOG_WARNING(logging::g_qConsoleLogger, "BULLSHIT: {}, {}", vGridPrediction[0], nOriginalFrameWidth);
-                                LOG_WARNING(logging::g_qConsoleLogger,
-                                            "Center: ({}, {}), Width: {}, Height: {}, ClassConf: {}",
-                                            nCenterX,
-                                            nCenterY,
-                                            nWidth,
-                                            nHeight,
-                                            fClassConfidence);
-                            }
                             // Repackaged bounding box data to be more readable.
                             cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
                             cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
