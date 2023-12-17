@@ -105,6 +105,7 @@
                 ],
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
+                "cmake.options.statusBarVisibility": "visible",
                 // Format Files extension settings.
                 "formatFiles.excludedFolders": [
                     "node_modules",
