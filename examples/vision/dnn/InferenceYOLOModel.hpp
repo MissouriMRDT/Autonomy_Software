@@ -52,7 +52,7 @@ void RunExample()
 
     // Initialize a new YOLOModel object.
     yolomodel::tensorflow::TPUInterpreter ExampleEdgeTPUModel =
-        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/marsrover_x640/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
+        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco_v5s_x320/best.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
     // Open and load a new YOLOModel from the given path into an EdgeTPU device.
     ExampleEdgeTPUModel.OpenAndLoad();
 
