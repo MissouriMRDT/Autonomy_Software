@@ -224,11 +224,11 @@ class TensorflowTPU
                             if (tflite::InterpreterBuilder(*m_pTFLiteModel, tfResolver)(&m_pInterpreter) != kTfLiteOk)
                             {
                                 // Submit logger message.
-                                LOG_WARNING(logging::g_qSharedLogger,
-                                            "Unable to build interpreter for model {} with device {} ({})",
-                                            m_szModelPath,
-                                            vValidDevices[unIter].path,
-                                            this->DeviceTypeToString(vValidDevices[unIter].type));
+                                LOG_ERROR(logging::g_qSharedLogger,
+                                          "Unable to build interpreter for model {} with device {} ({})",
+                                          m_szModelPath,
+                                          vValidDevices[unIter].path,
+                                          this->DeviceTypeToString(vValidDevices[unIter].type));
 
                                 // Release interpreter and context.
                                 m_pInterpreter.reset();
@@ -275,11 +275,11 @@ class TensorflowTPU
                         else
                         {
                             // Submit logger message.
-                            LOG_WARNING(logging::g_qSharedLogger,
-                                        "Unable to open device {} ({}) for model {}.",
-                                        vValidDevices[unIter].path,
-                                        this->DeviceTypeToString(vValidDevices[unIter].type),
-                                        m_szModelPath);
+                            LOG_ERROR(logging::g_qSharedLogger,
+                                      "Unable to open device {} ({}) for model {}.",
+                                      vValidDevices[unIter].path,
+                                      this->DeviceTypeToString(vValidDevices[unIter].type),
+                                      m_szModelPath);
                         }
                     }
                 }
