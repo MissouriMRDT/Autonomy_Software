@@ -302,12 +302,12 @@ namespace yolomodel
 
                         // Create a vector to store reshaped input image in 1 dimension.
                         std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
-                        // Quantize input data.
-                        for (long unsigned int nIter = 0; nIter < vInputData.size(); ++nIter)
-                        {
-                            // Quantize value.
-                            vInputData[nIter] = std::round(vInputData[nIter] / stInputDimensions.fQuantScale) + stInputDimensions.nQuantZeroPoint;
-                        }
+                        // // Quantize input data.
+                        // for (long unsigned int nIter = 0; nIter < vInputData.size(); ++nIter)
+                        // {
+                        //     // Quantize value.
+                        //     vInputData[nIter] = std::round(vInputData[nIter] / stInputDimensions.fQuantScale) + stInputDimensions.nQuantZeroPoint;
+                        // }
                         // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
                         TfLiteTensor* pInputTensor = m_pInterpreter->tensor(stInputDimensions.nTensorIndex);
                         std::memcpy(pInputTensor->data.raw, vInputData.data(), vInputData.size());
@@ -449,7 +449,7 @@ namespace yolomodel
                        Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
                        Then, repackage into nice detection structs.
                        For YOLOv5, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
-                       of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (anchor boxe values: small, medium, large), and each anchor contains a vector 5 +
+                       of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (anchor box values: small, medium, large), and each anchor contains a vector 5 +
                        nc long, where nc is the number of classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
                     */
                     for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
@@ -470,7 +470,10 @@ namespace yolomodel
                                 vGridPrediction[nJter] =
                                     (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
                                     stOutputDimensions.fQuantScale;
+
+                                std::cout << vGridPrediction[nJter] << ", ";
                             }
+                            std::cout << std::endl << std::endl;
 
                             // Find class ID based on which class confidence has the highest score.
                             std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 5;
@@ -549,7 +552,10 @@ namespace yolomodel
                             vGridPrediction[nJter] =
                                 (tfOutputTensor->data.int8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
                                 stOutputDimensions.fQuantScale;
+
+                            std::cout << vGridPrediction[nJter] << ", ";
                         }
+                        std::cout << std::endl << std::endl;
 
                         // Find class ID based on which class confidence has the highest score.
                         std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 4;
