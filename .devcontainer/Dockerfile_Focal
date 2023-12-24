@@ -16,8 +16,8 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.24.3"
 ARG OPENCV_VERSION="4.8.0"
-ARG TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
-ARG TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
+ARG TENSORFLOW_COMMIT="8e2b6655c0c488290179ab90a0daed0f6d3006f7"
+ARG TENSORFLOW_COMMIT_MD5_HASH="cb99f136dc5c89143669888a44bfdd134c086e1e2d9e36278c1eb0f03fe62d76"
 ARG TENSORFLOW_BAZEL_VERSION="5.3.0"
 ARG ABSEIL_VERSION="20230802.1"
 ARG GEOLIB_VERSION="v2.3"
@@ -58,9 +58,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-utils iputi
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay locales usbutils \
-    libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth \
+    libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
-    vim-common gasket-dkms bazel-${TENSORFLOW_BAZEL_VERSION}
+    vim-common gasket-dkms bazel-${TENSORFLOW_BAZEL_VERSION} libedgetpu1-std libedgetpu-dev
 
 # Symbolically link bazel-(version) install to /usr/bin/bazel.
 RUN ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
@@ -171,15 +171,15 @@ RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abs
     cd /opt
 
 # Install Libedgetpu
-RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
-    cd libedgetpu && \
-    sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
-    sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
-    make && \
-    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
-    mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt
+# RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
+#     cd libedgetpu && \
+#     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
+#     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
+#     make && \
+#     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
+#     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
+#     mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
+#     cd /opt
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
