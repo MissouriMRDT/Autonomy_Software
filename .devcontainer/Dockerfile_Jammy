@@ -61,7 +61,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay locales usbutils \
-    libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth \
+    libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
     vim-common gasket-dkms bazel-${TENSORFLOW_BAZEL_VERSION}
 
