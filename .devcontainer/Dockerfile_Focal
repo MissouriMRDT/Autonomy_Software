@@ -14,9 +14,10 @@ ARG CUDA_MINOR="7"
 ARG CUDA_PATCH="0"
 ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
-ARG CMAKE_VERSION="3.24.3"
-ARG OPENCV_VERSION="4.8.0"
-ARG QUILL_VERSION="v3.3.1"
+ARG CMAKE_VERSION="3.27.9"
+ARG OPENCV_VERSION="4.8.1"
+ARG GEOLIB_VERSION="v2.3"
+ARG QUILL_VERSION="v3.5.0"
 ARG GTEST_VERSION="v1.14.0"
 ARG TZ="America/Chicago"
 
@@ -113,11 +114,23 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     cd ../.. && \
     rm -rf opencv_contrib && rm -rf opencv
 
+# Install GeographicLib from Source
+RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
+    mkdir geographiclib/build && \
+    cd geographiclib/build && \
+    cmake \
+    -D CMAKE_BUILD_TYPE=Release .. && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf geographiclib
+
 # Install Quill from Source
 RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git && \
     mkdir quill/build && \
     cd quill/build && \
-    cmake .. && \
+    cmake \ 
+    -D CMAKE_BUILD_TYPE=Release .. && \
     make && \
     make install && \
     cd ../.. && \
