@@ -171,6 +171,18 @@ namespace constants
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
     ///////////////////////////////////////////////////////////////////////////
 
+    ///////////////////////////////////////////////////////////////////////////
+    //// Recording Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Recording adjustments.
+    const int GLOBAL_RECORDING_FPS = 30;    // The FPS all recordings should run at.
+    // Camera recording toggles.
+    const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
+    const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.
+    const bool BASICCAM_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera.
+    ///////////////////////////////////////////////////////////////////////////
+
 }    // namespace constants
 
 #endif    // CONSTS_H

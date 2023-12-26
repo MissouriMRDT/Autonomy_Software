@@ -28,30 +28,6 @@
 template<typename T>
 class Camera
 {
-    private:
-        // Declare private methods and member variables.
-
-    protected:
-        // Declare protected methods and member variables.
-        int m_nPropResolutionX;
-        int m_nPropResolutionY;
-        int m_nPropFramesPerSecond;
-        PIXEL_FORMATS m_ePropPixelFormat;
-        double m_dPropHorizontalFOV;
-        double m_dPropVerticalFOV;
-
-        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
-
-        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
-        virtual bool GetCameraIsOpen()                        = 0;    // This is where the code to check if the camera is current open goes.
-
-        // Declare protected object pointers.
-        IPS m_IPS = IPS();
-
     public:
         // Declare public methods and member variables.
         /******************************************************************************
@@ -72,7 +48,8 @@ class Camera
                const int nPropFramesPerSecond,
                const PIXEL_FORMATS ePropPixelFormat,
                const double dPropHorizontalFOV,
-               const double dPropVerticalFOV)
+               const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag)
         {
             // Initialize member variables.
             m_nPropResolutionX     = nPropResolutionX;
@@ -81,6 +58,7 @@ class Camera
             m_ePropPixelFormat     = ePropPixelFormat;
             m_dPropHorizontalFOV   = dPropHorizontalFOV;
             m_dPropVerticalFOV     = dPropVerticalFOV;
+            m_bEnableRecordingFlag = bEnableRecordingFlag;
         }
 
         /******************************************************************************
@@ -154,6 +132,17 @@ class Camera
         double GetPropVerticalFOV() const { return m_dPropVerticalFOV; }
 
         /******************************************************************************
+         * @brief Accessor for the Enable Recording Flag private member.
+         *
+         * @return true - Recording for this camera has been requested/flagged.
+         * @return false - This camera should not be recorded.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-26
+         ******************************************************************************/
+        bool GetEnableRecordingFlag() const { return m_bEnableRecordingFlag; }
+
+        /******************************************************************************
          * @brief Accessor for the Frame I P S private member.
          *
          * @return IPS& - A the camera objects iteration per second counter.
@@ -162,5 +151,40 @@ class Camera
          * @date 2023-08-20
          ******************************************************************************/
         virtual IPS& GetIPS() { return m_IPS; }
+
+        /******************************************************************************
+         * @brief Mutator for the Enable Recording Flag private member
+         *
+         * @param bEnableRecordingFlag - Whether or not recording should be enabled for this camera.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-26
+         ******************************************************************************/
+        void SetEnableRecordingFlag(const bool bEnableRecordingFlag) { m_bEnableRecordingFlag = bEnableRecordingFlag; }
+
+    protected:
+        // Declare protected methods and member variables.
+        int m_nPropResolutionX;
+        int m_nPropResolutionY;
+        int m_nPropFramesPerSecond;
+        PIXEL_FORMATS m_ePropPixelFormat;
+        double m_dPropHorizontalFOV;
+        double m_dPropVerticalFOV;
+        bool m_bEnableRecordingFlag;
+
+        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
+        std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;
+        std::shared_mutex m_muPoolScheduleMutex;
+        std::mutex m_muFrameCopyMutex;
+
+        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
+        virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
+        virtual bool GetCameraIsOpen()                        = 0;    // This is where the code to check if the camera is current open goes.
+
+        // Declare protected object pointers.
+        IPS m_IPS = IPS();
+
+    private:
+        // Declare private methods and member variables.
 };
 #endif
