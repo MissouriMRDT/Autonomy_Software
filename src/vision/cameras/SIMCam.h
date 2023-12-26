@@ -39,6 +39,7 @@ class SIMCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const PIXEL_FORMATS ePropPixelFormat,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag,
                const int nNumFrameRetrievalThreads = 10);
         SIMCam(const int nCameraIndex,
                const int nPropResolutionX,
@@ -47,6 +48,7 @@ class SIMCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const PIXEL_FORMATS ePropPixelFormat,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag,
                const int nNumFrameRetrievalThreads = 10);
         ~SIMCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;

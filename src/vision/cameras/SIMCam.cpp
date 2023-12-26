@@ -22,6 +22,7 @@
  * @param ePropPixelFormat - The pixel layout/format of the image.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param bEnableRecordingFlag - Whether or not this camera should be recorded.
  * @param nNumFrameRetrievalThreads - The number of threads to use for frame queueing and copying.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -34,8 +35,9 @@ SIMCam::SIMCam(const std::string szCameraPath,
                const PIXEL_FORMATS ePropPixelFormat,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag,
                const int nNumFrameRetrievalThreads) :
-    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV)
+    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
 {
     // Assign member variables.
     m_szCameraPath              = szCameraPath;

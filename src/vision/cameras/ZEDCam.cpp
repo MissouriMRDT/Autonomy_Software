@@ -71,6 +71,7 @@ struct ZEDCam::ZedObjectData
  * @param nPropFramesPerSecond - FPS camera is running at.
  * @param dPropHorizontalFOV - The horizontal field of view.
  * @param dPropVerticalFOV - The vertical field of view.
+ * @param bEnableRecordingFlag - Whether or not this camera should be recorded.
  * @param fMinSenseDistance - The minimum distance to include in depth measures.
  * @param fMaxSenseDistance - The maximum distance to include in depth measures.
  * @param bMemTypeGPU - Whether or not to use the GPU memory for operations.
@@ -84,13 +85,14 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag,
                const float fMinSenseDistance,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
                const int nNumFrameRetrievalThreads,
                const unsigned int unCameraSerialNumber) :
-    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV)
+    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
 {
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
