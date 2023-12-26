@@ -40,6 +40,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const PIXEL_FORMATS ePropPixelFormat,
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV,
+                 const bool bEnableRecordingFlag,
                  const int nNumFrameRetrievalThreads = 10);
         BasicCam(const int nCameraIndex,
                  const int nPropResolutionX,
@@ -48,6 +49,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const PIXEL_FORMATS ePropPixelFormat,
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV,
+                 const bool bEnableRecordingFlag,
                  const int nNumFrameRetrievalThreads = 10);
         ~BasicCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;

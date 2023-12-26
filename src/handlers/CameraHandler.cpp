@@ -26,6 +26,7 @@ CameraHandler::CameraHandler()
                             constants::ZED_MAINCAM_FPS,
                             constants::ZED_MAINCAM_HORIZONTAL_FOV,
                             constants::ZED_MAINCAM_VERTICAL_FOV,
+                            constants::ZED_MAINCAM_ENABLE_RECORDING,
                             constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                             constants::ZED_MAINCAM_USE_GPU_MAT,
@@ -41,6 +42,7 @@ CameraHandler::CameraHandler()
                               constants::BASICCAM_LEFTCAM_PIXELTYPE,
                               constants::BASICCAM_LEFTCAM_HORIZONTAL_FOV,
                               constants::BASICCAM_LEFTCAM_VERTICAL_FOV,
+                              constants::BASICCAM_LEFTCAM_ENABLE_RECORDING,
                               constants::BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS);
 
     // Initialize Right aruco eye.
@@ -51,6 +53,7 @@ CameraHandler::CameraHandler()
                                constants::BASICCAM_RIGHTCAM_PIXELTYPE,
                                constants::BASICCAM_RIGHTCAM_HORIZONTAL_FOV,
                                constants::BASICCAM_RIGHTCAM_VERTICAL_FOV,
+                               constants::BASICCAM_RIGHTCAM_ENABLE_RECORDING,
                                constants::BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS);
 }
 

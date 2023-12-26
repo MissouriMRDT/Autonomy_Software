@@ -47,6 +47,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag,
                const float fMinSenseDistance           = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,

@@ -34,7 +34,7 @@
  *  Copy the vector of detected tags to all of the threads requesting it through the
  *  RequestDetectedArucoTags(...) function.
  *
- * @author jspencerpittman (jspencerpittman@gmail.com)
+ * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
 class TagDetector : public AutonomyThread<void>
@@ -67,6 +67,15 @@ class TagDetector : public AutonomyThread<void>
 
     private:
         /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
+        void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
+        void UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags);
+
+        /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
         // Class member variables.
@@ -81,6 +90,7 @@ class TagDetector : public AutonomyThread<void>
         IPS m_IPS;
 
         // Detected tags storage.
+
         std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> m_vDetectedTensorTags;
 
@@ -92,6 +102,7 @@ class TagDetector : public AutonomyThread<void>
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
+
         std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFrames;
         std::queue<containers::DataFetchContainer<std::vector<arucotag::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>>> m_qDetectedTensorflowTagCopySchedule;
@@ -99,14 +110,6 @@ class TagDetector : public AutonomyThread<void>
         std::mutex m_muFrameCopyMutex;
         std::mutex m_muArucoDataCopyMutex;
         std::mutex m_muTensorflowDataCopyMutex;
-
-        /////////////////////////////////////////
-        // Declare private methods.
-        /////////////////////////////////////////
-        void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;
-        void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
-        void UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags);
 };
 
 #endif
