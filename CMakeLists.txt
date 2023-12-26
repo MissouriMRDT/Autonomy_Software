@@ -79,7 +79,6 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-# include_directories(${EIGEN3_INCLUDE_DIRS})
 
 ## Find OpenCV.
 find_package(OpenCV REQUIRED)
@@ -99,7 +98,6 @@ include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find flatbuffers. This is a dependency of tensorflow.
 find_package(Flatbuffers REQUIRED)
-# include_directories("/usr/local/include/flatbuffers/")
 
 ## Find Abseil. This is a dependency of tensorflow.
 find_package(absl REQUIRED)
