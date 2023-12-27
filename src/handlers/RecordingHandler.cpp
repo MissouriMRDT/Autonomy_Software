@@ -147,7 +147,7 @@ void RecordingHandler::ThreadedContinuousCode()
         if (m_vRecordingToggles[nIter])
         {
             // Request frame copy.
-                }
+        }
     }
 }
 
