@@ -270,21 +270,18 @@ bool BasicCam::GetCameraIsOpen()
 /******************************************************************************
  * @brief Accessor for the cameras path or video index.
  *
- * @tparam T - Either an int or string depending on if the camera is located at a
- *          hardware path or a dev/video index.
- * @return T - The path or index of the camera.
+ * @return std::string - The path or index of the camera.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-20
  ******************************************************************************/
-template<typename T>
-T BasicCam::GetCameraLocation() const
+std::string BasicCam::GetCameraLocation() const
 {
     // Check if camera location is a hardware path or video index.
     if (m_bCameraIsConnectedOnVideoIndex)
     {
         // If video index, return index integer.
-        return m_nCameraIndex;
+        return std::to_string(m_nCameraIndex);
     }
     else
     {

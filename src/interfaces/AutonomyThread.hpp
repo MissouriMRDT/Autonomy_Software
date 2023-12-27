@@ -34,7 +34,6 @@ class AutonomyThread
         std::atomic_bool m_bStopThreads = false;
         BS::thread_pool m_thMainThread  = BS::thread_pool(1);
         BS::thread_pool m_thPool        = BS::thread_pool(2);
-        std::future<void> m_fuMainReturn;
         std::vector<std::future<T>> m_vPoolReturns;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
@@ -417,7 +416,7 @@ class AutonomyThread
             m_bStopThreads = false;
 
             // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
-            m_fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
+            std::future<void> fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
 
             // Unpause pool queues.
             m_thPool.unpause();

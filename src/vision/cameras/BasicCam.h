@@ -58,8 +58,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         // Getters.
         /////////////////////////////////////////
 
-        template<typename T>
-        T GetCameraLocation() const;
+        std::string GetCameraLocation() const;
         bool GetCameraIsOpen() override;
 
     private:

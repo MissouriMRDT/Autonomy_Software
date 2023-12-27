@@ -176,7 +176,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Recording adjustments.
-    const int GLOBAL_RECORDING_FPS = 30;    // The FPS all recordings should run at.
+    const int RECORDER_FPS                          = 30;    // The FPS all recordings should run at.
+    const std::string RECORDER_OUTPUT_PATH_RELATIVE = "";    // The path relative to the programs current directory to write output files to.
     // Camera recording toggles.
     const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
     const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.

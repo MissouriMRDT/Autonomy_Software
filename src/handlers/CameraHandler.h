@@ -11,10 +11,11 @@
 #ifndef CAMERA_HANDLER_H
 #define CAMERA_HANDLER_H
 
-#include <opencv2/core.hpp>
-
 #include "../vision/cameras/BasicCam.h"
 #include "../vision/cameras/ZEDCam.h"
+#include "RecordingHandler.h"
+
+#include <opencv2/core.hpp>
 
 /******************************************************************************
  * @brief The CameraHandler class is responsible for managing all of the
@@ -36,6 +37,7 @@ class CameraHandler
         ZEDCam* m_pMainCam;
         BasicCam* m_pLeftCam;
         BasicCam* m_pRightCam;
+        RecordingHandler* m_pRecordingHandler;
 
     public:
         /////////////////////////////////////////
@@ -44,13 +46,17 @@ class CameraHandler
 
         enum ZEDCamName    // Enum for different zed cameras.
         {
-            eHeadMainCam
+            ZEDCAM_START,
+            eHeadMainCam,
+            ZEDCAM_END
         };
 
         enum BasicCamName    // Enum for different basic cameras.
         {
+            BASICCAM_START,
             eHeadLeftArucoEye,
-            eHeadRightArucoEye
+            eHeadRightArucoEye,
+            BASICCAM_END
         };
 
         /////////////////////////////////////////

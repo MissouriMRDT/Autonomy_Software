@@ -14,6 +14,7 @@
 #include "../util/IPS.hpp"
 #include "../util/vision/FetchContainers.hpp"
 
+#include <atomic>
 #include <future>
 #include <shared_mutex>
 
@@ -140,7 +141,7 @@ class Camera
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-26
          ******************************************************************************/
-        bool GetEnableRecordingFlag() const { return m_bEnableRecordingFlag; }
+        bool GetEnableRecordingFlag() const { return m_bEnableRecordingFlag.load(); }
 
         /******************************************************************************
          * @brief Accessor for the Frame I P S private member.
@@ -160,7 +161,7 @@ class Camera
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-26
          ******************************************************************************/
-        void SetEnableRecordingFlag(const bool bEnableRecordingFlag) { m_bEnableRecordingFlag = bEnableRecordingFlag; }
+        void SetEnableRecordingFlag(const bool bEnableRecordingFlag) { m_bEnableRecordingFlag.store(bEnableRecordingFlag); }
 
     protected:
         // Declare protected methods and member variables.
@@ -170,7 +171,7 @@ class Camera
         PIXEL_FORMATS m_ePropPixelFormat;
         double m_dPropHorizontalFOV;
         double m_dPropVerticalFOV;
-        bool m_bEnableRecordingFlag;
+        std::atomic_bool m_bEnableRecordingFlag;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
         std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;

@@ -26,6 +26,7 @@ namespace logging
     quill::Logger* g_qFileLogger;
     quill::Logger* g_qConsoleLogger;
     quill::Logger* g_qSharedLogger;
+    std::string g_szProgramStartTimeString;
 
     /******************************************************************************
      * @brief Logger Initializer - Sets Up all the logging handlers required for
@@ -44,6 +45,8 @@ namespace logging
 
         // Format the current time in a format that can be used as a file name
         std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", &sTimeStruct);
+        // Store start time string in member variable.
+        g_szProgramStartTimeString = cCurrentTime;
 
         // Turn the current time into a file name
         std::string szFilenameWithExtension;
