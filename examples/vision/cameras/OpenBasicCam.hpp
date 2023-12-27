@@ -39,8 +39,9 @@ void RunExample()
 
     // Get reference to camera.
     BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
-    // Start basic cam.
-    ExampleBasicCam1->Start();
+    // // Start basic cam.
+    // ExampleBasicCam1->Start();
+    globals::g_pCameraHandler->StartAllCameras();
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;

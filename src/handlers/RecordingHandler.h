@@ -12,8 +12,10 @@
 #define RECORDING_HANDLER_H
 
 #include "../interfaces/AutonomyThread.hpp"
-#include "../interfaces/Camera.hpp"
+#include "../vision/cameras/BasicCam.h"
+#include "../vision/cameras/ZEDCam.h"
 
+#include <opencv2/opencv.hpp>
 #include <vector>
 
 /******************************************************************************
@@ -39,8 +41,6 @@ class RecordingHandler : public AutonomyThread<void>
 
         RecordingHandler();
         ~RecordingHandler();
-        void StartRecording();
-        void StopRecording();
 
         /////////////////////////////////////////
         // Mutators.
@@ -65,6 +65,12 @@ class RecordingHandler : public AutonomyThread<void>
         /////////////////////////////////////////
 
         int m_nRecordingFPS;
-        std::vector<Camera<cv::Mat>> m_vCameras;
+        int m_nTotalCameras;
+        std::vector<ZEDCam*> m_vZEDCameras;
+        std::vector<BasicCam*> m_vBasicCameras;
+        std::vector<cv::VideoWriter> m_vCameraWriters;
+        std::vector<bool> m_vRecordingToggles;
+        std::vector<cv::Mat> m_vFrames;
+        std::vector<cv::cuda::GpuMat> m_vGPUFrames;
 };
 #endif
