@@ -55,6 +55,9 @@ CameraHandler::CameraHandler()
                                constants::BASICCAM_RIGHTCAM_VERTICAL_FOV,
                                constants::BASICCAM_RIGHTCAM_ENABLE_RECORDING,
                                constants::BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS);
+
+    // Initialize recording handler for cameras.
+    m_pRecordingHandler = new RecordingHandler();
 }
 
 /******************************************************************************
@@ -73,11 +76,13 @@ CameraHandler::~CameraHandler()
     delete m_pMainCam;
     delete m_pLeftCam;
     delete m_pRightCam;
+    delete m_pRecordingHandler;
 
     // Set dangling pointers to nullptr.
-    m_pMainCam  = nullptr;
-    m_pLeftCam  = nullptr;
-    m_pRightCam = nullptr;
+    m_pMainCam          = nullptr;
+    m_pLeftCam          = nullptr;
+    m_pRightCam         = nullptr;
+    m_pRecordingHandler = nullptr;
 }
 
 /******************************************************************************
@@ -95,6 +100,9 @@ void CameraHandler::StartAllCameras()
     // Start basic cams.
     m_pLeftCam->Start();
     m_pRightCam->Start();
+
+    // Start recording handler.
+    m_pRecordingHandler->Start();
 }
 
 /******************************************************************************
@@ -106,6 +114,10 @@ void CameraHandler::StartAllCameras()
  ******************************************************************************/
 void CameraHandler::StopAllCameras()
 {
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
+
     // Stop ZED cams.
     m_pMainCam->RequestStop();
     m_pMainCam->Join();
