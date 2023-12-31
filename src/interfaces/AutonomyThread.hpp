@@ -13,10 +13,11 @@
 #ifndef AUTONOMYTHREAD_H
 #define AUTONOMYTHREAD_H
 
-#include <atomic>
-#include <vector>
-
 #include "../../external/threadpool/BSThreadPool.hpp"
+
+#include <atomic>
+#include <chrono>
+#include <vector>
 
 /******************************************************************************
  * @brief Interface class used to easily multithread a child class.
@@ -31,10 +32,11 @@ class AutonomyThread
 {
     private:
         // Declare and define interface class private member variables.
-        std::atomic_bool m_bStopThreads = false;
-        BS::thread_pool m_thMainThread  = BS::thread_pool(1);
-        BS::thread_pool m_thPool        = BS::thread_pool(2);
+        BS::thread_pool m_thMainThread = BS::thread_pool(1);
+        BS::thread_pool m_thPool       = BS::thread_pool(2);
         std::vector<std::future<T>> m_vPoolReturns;
+        std::atomic_bool m_bStopThreads;
+        int m_nMainThreadMaxIterationPerSecond;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
@@ -57,8 +59,22 @@ class AutonomyThread
             // Loop until stop flag is set.
             while (!bStopThread)
             {
+                // Check if max IPS limit has been set.
+                if (m_nMainThreadMaxIterationPerSecond > 0)
+                {
+                    // Get start execution time.
+                    std::chrono::_V2::system_clock::time_point tmStartTime = std::chrono::system_clock::now();
+                }
+
                 // Call method containing user code.
                 this->ThreadedContinuousCode();
+
+                // Check if max IPS limit has been set.
+                if (m_nMainThreadMaxIterationPerSecond > 0)
+                {
+                    // Get end execution time.
+                    std::chrono::_V2::system_clock::time_point tmEndTime = std::chrono::system_clock::now();
+                }
             }
         }
 
@@ -315,6 +331,22 @@ class AutonomyThread
         }
 
         /******************************************************************************
+         * @brief Mutator for the Main Thread Max I P S private member
+         *
+         * @param nMaxIterationsPerSecond - The max iteration per second limit of the main thread.
+         *
+         * @note - Set to zero to disable the max iteration per second limit.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-30
+         ******************************************************************************/
+        void SetMainThreadMaxIPS(int nMaxIterationsPerSecond = 0)
+        {
+            // Assign member variable.
+            m_nMainThreadMaxIterationPerSecond = nMaxIterationsPerSecond;
+        }
+
+        /******************************************************************************
          * @brief Accessor for the Pool Num Of Threads private member.
          *
          * @return int - The number of threads available to the pool.
@@ -354,7 +386,36 @@ class AutonomyThread
             return vResults;
         }
 
-    public:
+        /******************************************************************************
+         * @brief Accessor for the Main Thread Max I P S private member.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-31
+         ******************************************************************************/
+        void GetMainThreadMaxIPS()
+        {
+            // Return member variable value.
+            return m_nMainThreadMaxIterationPerSecond;
+        }
+
+        void
+
+            public :
+            /******************************************************************************
+             * @brief Construct a new Autonomy Thread object.
+             *
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2023-12-30
+             ******************************************************************************/
+            AutonomyThread()
+        {
+            // Initialize member variables.
+            m_bStopThreads                         = false;
+            int m_nMainThreadMaxIterationPerSecond = 0;
+        }
+
         /******************************************************************************
          * @brief Destroy the Autonomy Thread object. If the parent object or main thread
          *      is destroyed or exited while this thread is still running, a race condition

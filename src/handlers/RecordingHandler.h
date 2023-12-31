@@ -72,5 +72,6 @@ class RecordingHandler : public AutonomyThread<void>
         std::vector<bool> m_vRecordingToggles;
         std::vector<cv::Mat> m_vFrames;
         std::vector<cv::cuda::GpuMat> m_vGPUFrames;
+        std::vector<std::future<bool>> m_vFrameFutures;
 };
 #endif
