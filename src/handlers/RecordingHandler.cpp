@@ -36,6 +36,9 @@ RecordingHandler::RecordingHandler()
     m_vFrames.resize(m_nTotalCameras);
     m_vGPUFrames.resize(m_nTotalCameras);
     m_vFrameFutures.resize(m_nTotalCameras);
+
+    // Set the max iterations per second of the recording handler.
+    this->SetMainThreadMaxIPS(m_nRecordingFPS);
 }
 
 /******************************************************************************
@@ -104,10 +107,15 @@ void RecordingHandler::ThreadedContinuousCode()
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
-                                  "Unable to create the output directory: {} for camera {}",
+                                  "Unable to create the VideoWriter output directory: {} for camera {}",
                                   szFilePath.string(),
                                   pBasicCamera->GetCameraLocation());
                     }
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_ERROR(logging::g_qSharedLogger, "Unable to create VideoWriter output directory {}: it already exists.", szFilePath.string());
                 }
 
                 // Construct the full output path.
