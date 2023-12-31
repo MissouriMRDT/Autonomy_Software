@@ -13,6 +13,8 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
+#include <filesystem>
+
 /******************************************************************************
  * @brief Construct a new Recording Handler:: Recording Handler object.
  *
@@ -26,13 +28,14 @@ RecordingHandler::RecordingHandler()
     m_nRecordingFPS = constants::RECORDER_FPS;
     m_nTotalCameras = CameraHandler::BasicCamName::BASICCAM_END + CameraHandler::ZEDCamName::ZEDCAM_END - 2;
 
-    // Resize the video writer vector to match total number of cameras.
+    // Resize vectors to match number of cameras.
     m_vZEDCameras.resize(m_nTotalCameras);
     m_vBasicCameras.resize(m_nTotalCameras);
     m_vCameraWriters.resize(m_nTotalCameras);
     m_vRecordingToggles.resize(m_nTotalCameras);
     m_vFrames.resize(m_nTotalCameras);
     m_vGPUFrames.resize(m_nTotalCameras);
+    m_vFrameFutures.resize(m_nTotalCameras);
 }
 
 /******************************************************************************
@@ -47,6 +50,13 @@ RecordingHandler::~RecordingHandler()
     // Signal and wait for recording thread to stop.
     this->RequestStop();
     this->Join();
+
+    // Loop through and close video writers.
+    for (cv::VideoWriter cvCameraWriter : m_vCameraWriters)
+    {
+        // Release video writer.
+        cvCameraWriter.release();
+    }
 }
 
 /******************************************************************************
@@ -80,16 +90,43 @@ void RecordingHandler::ThreadedContinuousCode()
             if (!m_vCameraWriters[nCamera - 1].isOpened())
             {
                 // Assemble filepath string.
-                std::string szFilenameWithExtension;
-                szFilenameWithExtension = constants::RECORDER_OUTPUT_PATH_RELATIVE + "/";    // Main location for all recordings.
-                szFilenameWithExtension += logging::g_szProgramStartTimeString + "/";        // Folder for each program run.
-                szFilenameWithExtension += pBasicCamera->GetCameraLocation() + ".mp4";       // Folder for each camera index or name.
+                std::filesystem::path szFilePath;
+                std::filesystem::path szFilenameWithExtension;
+                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                              // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/";                            // Folder for each program run.
+                szFilenameWithExtension = "camera" + pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
+
+                // Check if directory exists.
+                if (!std::filesystem::exists(szFilePath))
+                {
+                    // Create directory.
+                    if (!std::filesystem::create_directory(szFilePath))
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger,
+                                  "Unable to create the output directory: {} for camera {}",
+                                  szFilePath.string(),
+                                  pBasicCamera->GetCameraLocation());
+                    }
+                }
+
+                // Construct the full output path.
+                std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
-                m_vCameraWriters[nCamera - 1].open(szFilenameWithExtension,
-                                                   cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
-                                                   constants::RECORDER_FPS,
-                                                   cv::Size(pBasicCamera->GetPropResolutionX(), pBasicCamera->GetPropResolutionY()));
+                bool bWriterOpened = m_vCameraWriters[nCamera - 1].open(szFullOutputPath.string(),
+                                                                        cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                        constants::RECORDER_FPS,
+                                                                        cv::Size(pBasicCamera->GetPropResolutionX(), pBasicCamera->GetPropResolutionY()));
+
+                // Check writer opened status.
+                if (!bWriterOpened)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "RecordingHandler: Failed to open cv::VideoWriter for basic camera at path/index {}",
+                                pBasicCamera->GetCameraLocation());
+                }
             }
         }
         else
@@ -118,16 +155,45 @@ void RecordingHandler::ThreadedContinuousCode()
             if (!m_vCameraWriters[nCamera + nIndexOffset].isOpened())
             {
                 // Assemble filepath string.
-                std::string szFilenameWithExtension;
-                szFilenameWithExtension = constants::RECORDER_OUTPUT_PATH_RELATIVE + "/";             // Main location for all recordings.
-                szFilenameWithExtension += logging::g_szProgramStartTimeString + "/";                 // Folder for each program run.
-                szFilenameWithExtension += std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
+                std::filesystem::path szFilePath;
+                std::filesystem::path szFilenameWithExtension;
+                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                                              // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/";                                            // Folder for each program run.
+                szFilenameWithExtension =
+                    pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
+
+                // Check if directory exists.
+                if (!std::filesystem::exists(szFilePath))
+                {
+                    // Create directory.
+                    if (!std::filesystem::create_directory(szFilePath))
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger,
+                                  "Unable to create the output directory: {} for camera {} ({})",
+                                  szFilePath.string(),
+                                  pZEDCamera->GetCameraModel(),
+                                  pZEDCamera->GetCameraSerial());
+                    }
+                }
+
+                // Construct the full output path.
+                std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
-                m_vCameraWriters[nCamera + nIndexOffset].open(szFilenameWithExtension,
-                                                              cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
-                                                              constants::RECORDER_FPS,
-                                                              cv::Size(pZEDCamera->GetPropResolutionX(), pZEDCamera->GetPropResolutionY()));
+                bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset].open(szFullOutputPath,
+                                                                                   cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                                   constants::RECORDER_FPS,
+                                                                                   cv::Size(pZEDCamera->GetPropResolutionX(), pZEDCamera->GetPropResolutionY()));
+
+                // Check writer opened status.
+                if (!bWriterOpened)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "RecordingHandler: Failed to open cv::VideoWriter for ZED camera with serial {}",
+                                pZEDCamera->GetCameraSerial());
+                }
             }
         }
         else
@@ -146,7 +212,69 @@ void RecordingHandler::ThreadedContinuousCode()
         // Check if recording for the camera at this index is enabled.
         if (m_vRecordingToggles[nIter])
         {
-            // Request frame copy.
+            // Check if the camera at the current index is a BasicCam or ZEDCam.
+            if (m_vBasicCameras[nIter] != nullptr)
+            {
+                // Request frame.
+                m_vFrameFutures[nIter] = m_vBasicCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
+            }
+            else if (m_vZEDCameras[nIter] != nullptr)
+            {
+                // Check if the camera is setup to use CPU or GPU mats.
+                if (constants::ZED_MAINCAM_USE_GPU_MAT)
+                {
+                    // Grab frames from camera.
+                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vGPUFrames[nIter]);
+                }
+                else
+                {
+                    // Grab frames from camera.
+                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
+                }
+            }
+        }
+    }
+
+    // Loop through cameras and wait for frame requests to be fulfilled.
+    for (int nIter = 0; nIter < m_nTotalCameras; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled.
+        if (m_vRecordingToggles[nIter])
+        {
+            // Check if the camera at the current index is a BasicCam or ZEDCam.
+            if (m_vBasicCameras[nIter] != nullptr)
+            {
+                // Wait for future to be fulfilled.
+                if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+                {
+                    // Write frame to OpenCV video writer.
+                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                }
+            }
+            else if (m_vZEDCameras[nIter] != nullptr)
+            {
+                // Check if the camera is setup to use CPU or GPU mats.
+                if (constants::ZED_MAINCAM_USE_GPU_MAT)
+                {
+                    // Wait for future to be fulfilled.
+                    if (m_vFrameFutures[nIter].get() && !m_vGPUFrames[nIter].empty())
+                    {
+                        // Download GPU mat frame to normal mat.
+                        m_vGPUFrames[nIter].download(m_vFrames[nIter]);
+                        // Write frame to OpenCV video writer.
+                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                    }
+                }
+                else
+                {
+                    // Wait for future to be fulfilled.
+                    if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+                    {
+                        // Write frame to OpenCV video writer.
+                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                    }
+                }
+            }
         }
     }
 }
