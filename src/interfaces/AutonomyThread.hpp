@@ -389,27 +389,26 @@ class AutonomyThread
         /******************************************************************************
          * @brief Accessor for the Main Thread Max I P S private member.
          *
+         * @return int - The max iterations per second the main thread can reach.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-31
          ******************************************************************************/
-        void GetMainThreadMaxIPS()
+        int GetMainThreadMaxIPS()
         {
             // Return member variable value.
             return m_nMainThreadMaxIterationPerSecond;
         }
 
-        void
-
-            public :
-            /******************************************************************************
-             * @brief Construct a new Autonomy Thread object.
-             *
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2023-12-30
-             ******************************************************************************/
-            AutonomyThread()
+    public:
+        /******************************************************************************
+         * @brief Construct a new Autonomy Thread object.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-30
+         ******************************************************************************/
+        AutonomyThread()
         {
             // Initialize member variables.
             m_bStopThreads                         = false;
