@@ -57,7 +57,7 @@ CameraHandler::CameraHandler()
                                constants::BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS);
 
     // Initialize recording handler for cameras.
-    m_pRecordingHandler = new RecordingHandler();
+    m_pRecordingHandler = new RecordingHandler(RecordingHandler::RecordingMode::eCameraHandler);
 }
 
 /******************************************************************************
@@ -100,7 +100,17 @@ void CameraHandler::StartAllCameras()
     // Start basic cams.
     m_pLeftCam->Start();
     m_pRightCam->Start();
+}
 
+/******************************************************************************
+ * @brief Signal the RecordingHandler to start recording video feeds from the CameraHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void CameraHandler::StartRecording()
+{
     // Start recording handler.
     m_pRecordingHandler->Start();
 }
@@ -127,6 +137,20 @@ void CameraHandler::StopAllCameras()
     m_pRightCam->RequestStop();
     m_pLeftCam->Join();
     m_pRightCam->Join();
+}
+
+/******************************************************************************
+ * @brief Signal the RecordingHandler to stop recording video feeds from the CameraHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+void CameraHandler::StopRecording()
+{
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
 }
 
 /******************************************************************************

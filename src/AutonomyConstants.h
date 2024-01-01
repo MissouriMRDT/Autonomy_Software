@@ -182,6 +182,10 @@ namespace constants
     const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
     const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.
     const bool BASICCAM_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera.
+    // TagDetector recording toggles.
+    const bool TAGDETECT_MAINCAM_ENABLE_RECORDING  = true;    // Whether or not to record the main ZED camera tag detector.
+    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera tag detector.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera tag detector.
     ///////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants

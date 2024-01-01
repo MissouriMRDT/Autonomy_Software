@@ -15,27 +15,46 @@
 
 #include <filesystem>
 
-/******************************************************************************
- * @brief Construct a new Recording Handler:: Recording Handler object.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-12-26
- ******************************************************************************/
-RecordingHandler::RecordingHandler()
+RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
 {
     // Initialize member variables.
-    m_nRecordingFPS = constants::RECORDER_FPS;
-    m_nTotalCameras = CameraHandler::BasicCamName::BASICCAM_END + CameraHandler::ZEDCamName::ZEDCAM_END - 2;
+    m_nRecordingFPS  = constants::RECORDER_FPS;
+    m_eRecordingMode = eRecordingMode;
 
-    // Resize vectors to match number of cameras.
-    m_vZEDCameras.resize(m_nTotalCameras);
-    m_vBasicCameras.resize(m_nTotalCameras);
-    m_vCameraWriters.resize(m_nTotalCameras);
-    m_vRecordingToggles.resize(m_nTotalCameras);
-    m_vFrames.resize(m_nTotalCameras);
-    m_vGPUFrames.resize(m_nTotalCameras);
-    m_vFrameFutures.resize(m_nTotalCameras);
+    // Resize vectors to match number of video feeds.
+    switch (eRecordingMode)
+    {
+        // RecordingHandler was initialized to record feeds from the CameraHandler.
+        case eCameraHandler:
+            // Initialize member variables.
+            m_nTotalVideoFeeds = CameraHandler::BasicCamName::BASICCAM_END + CameraHandler::ZEDCamName::ZEDCAM_END - 2;
+            // Resize member vectors to match number of total video feeds to record.
+            m_vZEDCameras.resize(m_nTotalVideoFeeds);
+            m_vBasicCameras.resize(m_nTotalVideoFeeds);
+            m_vCameraWriters.resize(m_nTotalVideoFeeds);
+            m_vRecordingToggles.resize(m_nTotalVideoFeeds);
+            m_vFrames.resize(m_nTotalVideoFeeds);
+            m_vGPUFrames.resize(m_nTotalVideoFeeds);
+            m_vFrameFutures.resize(m_nTotalVideoFeeds);
+            break;
+
+        // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
+        case eTagDetectionHandler:
+            // Initialize member variables.
+            m_nTotalVideoFeeds = TagDetectionHandler::TagDetectors::TAGDETECTOR_END - 1;
+            // Resize member vectors to match number of total video feeds to record.
+            m_vTagDetectors.resize(m_nTotalVideoFeeds);
+            m_vCameraWriters.resize(m_nTotalVideoFeeds);
+            m_vRecordingToggles.resize(m_nTotalVideoFeeds);
+            m_vFrames.resize(m_nTotalVideoFeeds);
+            m_vGPUFrames.resize(m_nTotalVideoFeeds);
+            m_vFrameFutures.resize(m_nTotalVideoFeeds);
+            break;
+
+        default:
+            // Do nothing.
+            break;
+    }
 
     // Set the max iterations per second of the recording handler.
     this->SetMainThreadMaxIPS(m_nRecordingFPS);
@@ -73,9 +92,54 @@ RecordingHandler::~RecordingHandler()
  ******************************************************************************/
 void RecordingHandler::ThreadedContinuousCode()
 {
-    /////////////////////////////////////////
-    // Update recordable cameras.
-    /////////////////////////////////////////
+    // Check what mode recorder was initialized with.
+    switch (m_eRecordingMode)
+    {
+        // Record video feeds from the CameraHandler.
+        case eCameraHandler:
+            // Update recordable cameras.
+            this->UpdateRecordableCameras();
+            // Grab and write frames to VideoWriters.
+            this->RequestAndWriteCameraFrames();
+            break;
+
+        // Record video feeds from the TagDetectionHandler.
+        case eTagDetectionHandler:
+            // Update recordable detectors.
+            this->UpdateRecordableTagDetectors();
+            // Grab and write overlay frames to VideoWriters.
+            this->RequestAndWriteTagDetectorFrames();
+            break;
+
+        // Shutdown recording handler.
+        default:
+            // Request main thread stop.
+            this->RequestStop();
+            break;
+    }
+}
+
+/******************************************************************************
+ * @brief This method holds the code that is ran in the thread pool started by
+ *      the ThreadedLinearCode() method. It currently does nothing and is not
+ *      needed in the current implementation of the RecordingHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-26
+ ******************************************************************************/
+void RecordingHandler::PooledLinearCode() {}
+
+/******************************************************************************
+ * @brief This method is used internally by the class to update the number of cameras
+ *      that have recording enabled from the camera handler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void RecordingHandler::UpdateRecordableCameras()
+{
     // Loop through all Basic cameras from the CameraHandler.
     for (int nCamera = CameraHandler::BasicCamName::BASICCAM_START + 1; nCamera != CameraHandler::BasicCamName::BASICCAM_END; ++nCamera)
     {
@@ -96,8 +160,8 @@ void RecordingHandler::ThreadedContinuousCode()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                              // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/";                            // Folder for each program run.
-                szFilenameWithExtension = "camera" + pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                            // Folder for each program run.
+                szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -125,7 +189,7 @@ void RecordingHandler::ThreadedContinuousCode()
                 bool bWriterOpened = m_vCameraWriters[nCamera - 1].open(szFullOutputPath.string(),
                                                                         cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
                                                                         constants::RECORDER_FPS,
-                                                                        cv::Size(pBasicCamera->GetPropResolutionX(), pBasicCamera->GetPropResolutionY()));
+                                                                        pBasicCamera->GetPropResolution());
 
                 // Check writer opened status.
                 if (!bWriterOpened)
@@ -166,7 +230,7 @@ void RecordingHandler::ThreadedContinuousCode()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                                              // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/";                                            // Folder for each program run.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                                            // Folder for each program run.
                 szFilenameWithExtension =
                     pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
 
@@ -192,7 +256,7 @@ void RecordingHandler::ThreadedContinuousCode()
                 bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset].open(szFullOutputPath,
                                                                                    cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
                                                                                    constants::RECORDER_FPS,
-                                                                                   cv::Size(pZEDCamera->GetPropResolutionX(), pZEDCamera->GetPropResolutionY()));
+                                                                                   pZEDCamera->GetPropResolution());
 
                 // Check writer opened status.
                 if (!bWriterOpened)
@@ -210,12 +274,20 @@ void RecordingHandler::ThreadedContinuousCode()
             m_vRecordingToggles[nCamera + nIndexOffset] = false;
         }
     }
+}
 
-    /////////////////////////////////////////
-    // Request camera frames and write to files.
-    /////////////////////////////////////////
+/******************************************************************************
+ * @brief This method is used internally by the RecordingHandler to request and write
+ *      frames to from the cameras stored in the member variable vectors.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+void RecordingHandler::RequestAndWriteCameraFrames()
+{
     // Loop through total number of cameras and request frames.
-    for (int nIter = 0; nIter < m_nTotalCameras; ++nIter)
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
         // Check if recording for the camera at this index is enabled.
         if (m_vRecordingToggles[nIter])
@@ -244,7 +316,7 @@ void RecordingHandler::ThreadedContinuousCode()
     }
 
     // Loop through cameras and wait for frame requests to be fulfilled.
-    for (int nIter = 0; nIter < m_nTotalCameras; ++nIter)
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
         // Check if recording for the camera at this index is enabled.
         if (m_vRecordingToggles[nIter])
@@ -288,15 +360,120 @@ void RecordingHandler::ThreadedContinuousCode()
 }
 
 /******************************************************************************
- * @brief This method holds the code that is ran in the thread pool started by
- *      the ThreadedLinearCode() method. It currently does nothing and is not
- *      needed in the current implementation of the RecordingHandler.
+ * @brief This method is used internally by the class to update the number of TagDetectors
+ *      that have recording enabled from the camera handler.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-12-26
+ * @date 2023-12-31
  ******************************************************************************/
-void RecordingHandler::PooledLinearCode() {}
+void RecordingHandler::UpdateRecordableTagDetectors()
+{
+    // Loop through all Basic cameras from the CameraHandler.
+    for (int nDetector = TagDetectionHandler::TagDetectors::TAGDETECTOR_START + 1; nDetector != TagDetectionHandler::TagDetectors::TAGDETECTOR_END; ++nDetector)
+    {
+        // Get pointer to camera.
+        TagDetector* pTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(static_cast<TagDetectionHandler::TagDetectors>(nDetector));
+        // Store camera pointer in vector so we can get images later.
+        m_vTagDetectors[nDetector - 1] = pTagDetector;
+
+        // Check if recording for this camera is enabled.
+        if (pTagDetector->GetEnableRecordingFlag())
+        {
+            // Set recording toggle.
+            m_vRecordingToggles[nDetector - 1] = true;
+            // Setup VideoWriter if needed.
+            if (!m_vCameraWriters[nDetector - 1].isOpened())
+            {
+                // Assemble filepath string.
+                std::filesystem::path szFilePath;
+                std::filesystem::path szFilenameWithExtension;
+                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                               // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/tagdetector/";                             // Folder for each program run.
+                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mp4";    // Folder for each camera index or name.
+
+                // Check if directory exists.
+                if (!std::filesystem::exists(szFilePath))
+                {
+                    // Create directory.
+                    if (!std::filesystem::create_directory(szFilePath))
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger,
+                                  "Unable to create the VideoWriter output directory: {} for camera {}",
+                                  szFilePath.string(),
+                                  pTagDetector->GetCameraName());
+                    }
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_ERROR(logging::g_qSharedLogger, "Unable to create VideoWriter output directory {}: it already exists.", szFilePath.string());
+                }
+
+                // Construct the full output path.
+                std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
+
+                // Open writer.
+                bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
+                                                                          cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                          constants::RECORDER_FPS,
+                                                                          pTagDetector->GetProcessFrameResolution());
+
+                // Check writer opened status.
+                if (!bWriterOpened)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "RecordingHandler: Failed to open cv::VideoWriter for basic camera at path/index {}",
+                                pTagDetector->GetCameraName());
+                }
+            }
+        }
+        else
+        {
+            // Set recording toggle.
+            m_vRecordingToggles[nDetector - 1] = false;
+        }
+    }
+}
+
+/******************************************************************************
+ * @brief This method is used internally by the RecordingHandler to request and write
+ *      frames to from the TagDetectors stored in the member variable vectors.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+void RecordingHandler::RequestAndWriteTagDetectorFrames()
+{
+    // Loop through total number of cameras and request frames.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
+        if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
+        {
+            // Request frame.
+            m_vFrameFutures[nIter] = m_vTagDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
+        }
+    }
+
+    // Loop through cameras and wait for frame requests to be fulfilled.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled and tag detector is not null.
+        if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
+        {
+            // Wait for future to be fulfilled.
+            if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+            {
+                // Write frame to OpenCV video writer.
+                m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+            }
+        }
+    }
+}
 
 /******************************************************************************
  * @brief Mutator for the desired FPS for all camera recordings.

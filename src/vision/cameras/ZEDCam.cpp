@@ -1137,7 +1137,7 @@ std::string ZEDCam::GetCameraModel()
 /******************************************************************************
  * @brief Accessor for the camera's serial number.
  *
- * @return unsigned int -
+ * @return unsigned int - The serial number of the camera.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
