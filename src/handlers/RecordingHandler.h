@@ -12,6 +12,7 @@
 #define RECORDING_HANDLER_H
 
 #include "../interfaces/AutonomyThread.hpp"
+#include "../vision/aruco/TagDetector.h"
 #include "../vision/cameras/BasicCam.h"
 #include "../vision/cameras/ZEDCam.h"
 
@@ -35,11 +36,19 @@ class RecordingHandler : public AutonomyThread<void>
         // Define public enumerators specific to this class.
         /////////////////////////////////////////
 
+        // Enum used to select which mode the recorder should run in.
+        enum RecordingMode
+        {
+            eCameraHandler,            // Record video feeds from the CameraHandler.
+            eTagDetectionHandler,      // Record video feeds from the TagDetectionHandler.
+            eObjectDetectionHandler    // Record video feeds from the ObjectDetectionHandler.
+        };
+
         /////////////////////////////////////////
         // Declare public class methods and variables.
         /////////////////////////////////////////
 
-        RecordingHandler();
+        RecordingHandler(RecordingMode eRecordingMode);
         ~RecordingHandler();
 
         /////////////////////////////////////////
@@ -59,15 +68,21 @@ class RecordingHandler : public AutonomyThread<void>
 
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
+        void UpdateRecordableCameras();
+        void RequestAndWriteCameraFrames();
+        void UpdateRecordableTagDetectors();
+        void RequestAndWriteTagDetectorFrames();
 
         /////////////////////////////////////////
         // Declare private class member variables.
         /////////////////////////////////////////
 
         int m_nRecordingFPS;
-        int m_nTotalCameras;
+        int m_nTotalVideoFeeds;
+        RecordingMode m_eRecordingMode;
         std::vector<ZEDCam*> m_vZEDCameras;
         std::vector<BasicCam*> m_vBasicCameras;
+        std::vector<TagDetector*> m_vTagDetectors;
         std::vector<cv::VideoWriter> m_vCameraWriters;
         std::vector<bool> m_vRecordingToggles;
         std::vector<cv::Mat> m_vFrames;

@@ -20,6 +20,7 @@
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
@@ -33,6 +34,7 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
                          const bool bUsingGpuMats)
 {
@@ -42,6 +44,7 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_IPS                              = IPS();
+    m_bEnableRecordingFlag             = bEnableRecordingFlag;
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -64,6 +67,7 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
@@ -77,6 +81,7 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
                          const bool bUsingGpuMats)
 {
@@ -85,6 +90,7 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
+    m_bEnableRecordingFlag             = bEnableRecordingFlag;
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -238,7 +244,6 @@ void TagDetector::PooledLinearCode()
         switch (stContainer.eFrameType)
         {
             case eArucoDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
-            case eTensorflowDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
             default: *(stContainer.pFrame) = m_cvProcFrame;
         }
 
@@ -293,7 +298,7 @@ void TagDetector::PooledLinearCode()
 
 /******************************************************************************
  * @brief Request a copy of a frame containing the tag detection overlays from the
- *      aruco library.
+ *      aruco and tensorflow library.
  *
  * @param cvFrame - The frame to copy the detection overlay image to.
  * @return std::future<bool> - The future that should be waited on before using the passed in frame.
@@ -302,37 +307,10 @@ void TagDetector::PooledLinearCode()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-std::future<bool> TagDetector::RequestArucoDetectionOverlayFrame(cv::Mat& cvFrame)
+std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
 {
     // Assemble the DataFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eArucoDetection);
-
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qDetectedTagDrawnOverlayFrames.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Request a copy of a frame containing the tag detection overlays from the
- *      tensorflow model.
- *
- * @param cvFrame - The frame to copy the detection overlay image to.
- * @return std::future<bool> - The future that should be waited on before using the passed in frame.
- *                      Future will be true or false based on whether or not the frame was successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-11
- ******************************************************************************/
-std::future<bool> TagDetector::RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame)
-{
-    // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eTensorflowDetection);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -568,6 +546,19 @@ void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& 
 }
 
 /******************************************************************************
+ * @brief Mutator for the Enable Recording Flag private member
+ *
+ * @param bEnableRecordingFlag - Whether or not recording should be enabled for this detector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void TagDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
+{
+    m_bEnableRecordingFlag.store(bEnableRecordingFlag);
+}
+
+/******************************************************************************
  * @brief Accessor for the Frame I P S private member.
  *
  * @return IPS& - The detector objects iteration per second counter.
@@ -579,4 +570,71 @@ IPS& TagDetector::GetIPS()
 {
     // Return Iterations Per Second counter.
     return m_IPS;
+}
+
+/******************************************************************************
+ * @brief Accessor for the Enable Recording Flag private member.
+ *
+ * @return true - Recording for this detector has been requested/flagged.
+ * @return false - This detector should not be recorded.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+bool TagDetector::GetEnableRecordingFlag() const
+{
+    return m_bEnableRecordingFlag.load();
+}
+
+/******************************************************************************
+ * @brief Accessor for the camera name or path that this TagDetector is tied to.
+ *
+ * @return std::string - The name/path/index of the camera used by this TagDetector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+std::string TagDetector::GetCameraName()
+{
+    // Create instance variables.
+    std::string szCameraName;
+
+    // Check if using a ZED camera.
+    if (m_bUsingZedCamera)
+    {
+        // Concatenate camera model name and serial number.
+        szCameraName = dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraModel() + "_";
+        szCameraName += dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraSerial();
+    }
+    else
+    {
+        // Concatenate camera path or index.
+        szCameraName = dynamic_cast<BasicCam*>(m_pCamera)->GetCameraLocation();
+    }
+
+    // Return camera name.
+    return szCameraName;
+}
+
+/******************************************************************************
+ * @brief Accessor for the resolution of the process image used for tag detection.
+ *
+ * @return cv::Size - The resolution stored in an OpenCV cv::Size.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+cv::Size TagDetector::GetProcessFrameResolution() const
+{
+    // Check if using a ZED camera.
+    if (m_bUsingZedCamera)
+    {
+        // Concatenate camera model name and serial number.
+        return dynamic_cast<ZEDCam*>(m_pCamera)->GetPropResolution();
+    }
+    else
+    {
+        // Concatenate camera path or index.
+        return dynamic_cast<BasicCam*>(m_pCamera)->GetPropResolution();
+    }
 }

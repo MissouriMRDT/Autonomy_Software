@@ -30,8 +30,9 @@ void RunExample()
 
     // Get pointer to camera.
     BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
-    // Start basic cam.
-    ExampleBasicCam1->Start();
+    // // Start basic cam.
+    // ExampleBasicCam1->Start();
+    globals::g_pCameraHandler->StartAllCameras();
 
     // Get pointer to the tag detector for the basic cam.
     TagDetector* ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
@@ -56,7 +57,7 @@ void RunExample()
         // Get detections from tag detector for BasicCam.
         std::future<bool> fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
         // Get detections overlay frame from detector.
-        std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestArucoDetectionOverlayFrame(cvDetectionsFrame1);
+        std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestDetectionOverlayFrame(cvDetectionsFrame1);
 
         // Show first frame copy.
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())

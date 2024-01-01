@@ -40,6 +40,7 @@ class Camera
          * @param ePropPixelFormat - The pixel layout/format of the image.
          * @param dPropHorizontalFOV - The horizontal field of view.
          * @param dPropVerticalFOV - The vertical field of view.
+         * @param bEnableRecordingFlag - Whether or not this camera should be recorded.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-08-18
@@ -72,24 +73,14 @@ class Camera
         virtual ~Camera() {}
 
         /******************************************************************************
-         * @brief Accessor for the Prop Resolution X private member.
+         * @brief Accessor for the Prop Resolution private member.
          *
-         * @return int - The X resolution of the camera.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-08-19
-         ******************************************************************************/
-        int GetPropResolutionX() const { return m_nPropResolutionX; }
-
-        /******************************************************************************
-         * @brief Accessor for the Prop Resolution Y private member.
-         *
-         * @return int - The Y resolution of the camera.
+         * @return cv::Size - The resolution of the camera stored in OpenCV's cv::Size.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-08-19
          ******************************************************************************/
-        int GetPropResolutionY() const { return m_nPropResolutionY; }
+        cv::Size GetPropResolution() const { return cv::Size(m_nPropResolutionX, m_nPropResolutionY); }
 
         /******************************************************************************
          * @brief Accessor for the Prop Frames Per Second private member.

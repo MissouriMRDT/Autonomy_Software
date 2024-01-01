@@ -49,6 +49,7 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
         TagDetector(ZEDCam* pZEDCam,
@@ -57,13 +58,17 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
-        std::future<bool> RequestArucoDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame);
+        std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
+        void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
         IPS& GetIPS();
+        bool GetEnableRecordingFlag() const;
+        std::string GetCameraName();
+        cv::Size GetProcessFrameResolution() const;
 
     private:
         /////////////////////////////////////////
@@ -88,6 +93,7 @@ class TagDetector : public AutonomyThread<void>
         bool m_bUsingGpuMats;
         int m_nNumDetectedTagsRetrievalThreads;
         IPS m_IPS;
+        std::atomic_bool m_bEnableRecordingFlag;
 
         // Detected tags storage.
 

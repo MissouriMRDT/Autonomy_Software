@@ -82,6 +82,7 @@ statechart
 Struct
 Styleguides
 TAGDETECT
+TAGDETECTOR
 Tele
 tensorflowtag
 threadpool
