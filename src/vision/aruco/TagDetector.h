@@ -66,6 +66,7 @@ class TagDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
         IPS& GetIPS();
+        bool GetIsReady();
         bool GetEnableRecordingFlag() const;
         std::string GetCameraName();
         cv::Size GetProcessFrameResolution() const;

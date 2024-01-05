@@ -15,11 +15,20 @@
 
 #include <filesystem>
 
+/******************************************************************************
+ * @brief Construct a new Recording Handler:: Recording Handler object.
+ *
+ * @param eRecordingMode -
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-05
+ ******************************************************************************/
 RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
 {
     // Initialize member variables.
-    m_nRecordingFPS  = constants::RECORDER_FPS;
     m_eRecordingMode = eRecordingMode;
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetRecordingFPS(constants::RECORDER_FPS);
 
     // Resize vectors to match number of video feeds.
     switch (eRecordingMode)
@@ -47,7 +56,6 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
-            m_vGPUFrames.resize(m_nTotalVideoFeeds);
             m_vFrameFutures.resize(m_nTotalVideoFeeds);
             break;
 
@@ -55,9 +63,6 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             // Do nothing.
             break;
     }
-
-    // Set the max iterations per second of the recording handler.
-    this->SetMainThreadMaxIPS(m_nRecordingFPS);
 }
 
 /******************************************************************************
@@ -113,6 +118,9 @@ void RecordingHandler::ThreadedContinuousCode()
 
         // Shutdown recording handler.
         default:
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "The RecordingHandler was initialized with a RecordingMode enum value that doesn't make sense! Thread is shutting down...");
             // Request main thread stop.
             this->RequestStop();
             break;
@@ -159,15 +167,15 @@ void RecordingHandler::UpdateRecordableCameras()
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
-                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                              // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                            // Folder for each program run.
+                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                   // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";         // Folder for each program run.
                 szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
                 {
                     // Create directory.
-                    if (!std::filesystem::create_directory(szFilePath))
+                    if (!std::filesystem::create_directories(szFilePath))
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
@@ -230,7 +238,7 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                                              // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                                            // Folder for each program run.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                                    // Folder for each program run.
                 szFilenameWithExtension =
                     pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
 
@@ -238,7 +246,7 @@ void RecordingHandler::UpdateRecordableCameras()
                 if (!std::filesystem::exists(szFilePath))
                 {
                     // Create directory.
-                    if (!std::filesystem::create_directory(szFilePath))
+                    if (!std::filesystem::create_directories(szFilePath))
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
@@ -378,7 +386,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
         m_vTagDetectors[nDetector - 1] = pTagDetector;
 
         // Check if recording for this camera is enabled.
-        if (pTagDetector->GetEnableRecordingFlag())
+        if (pTagDetector->GetEnableRecordingFlag() && pTagDetector->GetIsReady())
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = true;
@@ -388,15 +396,15 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
-                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                               // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/tagdetector/";                             // Folder for each program run.
-                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mp4";    // Folder for each camera index or name.
+                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                 // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/tagdetector";    // Folder for each program run.
+                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mp4";      // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
                 {
                     // Create directory.
-                    if (!std::filesystem::create_directory(szFilePath))
+                    if (!std::filesystem::create_directories(szFilePath))
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
@@ -485,8 +493,8 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
  ******************************************************************************/
 void RecordingHandler::SetRecordingFPS(const int nRecordingFPS)
 {
-    // Assign member variable.
-    m_nRecordingFPS = nRecordingFPS;
+    // Set the max iterations per second of the recording handler.
+    this->SetMainThreadMaxIPS(nRecordingFPS);
 }
 
 /******************************************************************************
@@ -500,5 +508,5 @@ void RecordingHandler::SetRecordingFPS(const int nRecordingFPS)
 int RecordingHandler::GetRecordingFPS() const
 {
     // Return member variable value.
-    return m_nRecordingFPS;
+    return this->GetMainThreadMaxIPS();
 }
