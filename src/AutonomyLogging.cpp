@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
+#include "AutonomyConstants.h"
 
 /******************************************************************************
  * @brief Namespace containing all global type/structs that will be used project wide
@@ -48,13 +49,34 @@ namespace logging
         // Store start time string in member variable.
         g_szProgramStartTimeString = cCurrentTime;
 
-        // Turn the current time into a file name
-        std::string szFilenameWithExtension;
-        szFilenameWithExtension = cCurrentTime;
-        szFilenameWithExtension += ".log";
+        // Assemble filepath string.
+        std::filesystem::path szFilePath;
+        std::filesystem::path szFilenameWithExtension;
+        szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;             // Main location for all recordings.
+        szFilePath += "/console_output/";                                 // Folder for each program run.
+        szFilenameWithExtension = g_szProgramStartTimeString + ".log";    // Turn the current time into a file name.
+
+        // Check if directory exists.
+        if (!std::filesystem::exists(szFilePath))
+        {
+            // Create directory.
+            if (!std::filesystem::create_directories(szFilePath))
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "Unable to create the logging output directory: {} for console output file.", szFilePath.string());
+            }
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "Unable to create logging output directory {}: it already exists.", szFilePath.string());
+        }
+
+        // Construct the full output path.
+        std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
         // Create Handlers
-        std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFilenameWithExtension);
+        std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFullOutputPath);
         std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
 
         // Configure Patterns

@@ -167,7 +167,7 @@ void RecordingHandler::UpdateRecordableCameras()
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
-                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                   // Main location for all recordings.
+                szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                    // Main location for all recordings.
                 szFilePath += logging::g_szProgramStartTimeString + "/cameras/";         // Folder for each program run.
                 szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
 
@@ -237,7 +237,7 @@ void RecordingHandler::UpdateRecordableCameras()
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
-                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                                              // Main location for all recordings.
+                szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                                               // Main location for all recordings.
                 szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                                    // Folder for each program run.
                 szFilenameWithExtension =
                     pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
@@ -418,7 +418,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
-                szFilePath = constants::RECORDER_OUTPUT_PATH_ABSOLUTE;                 // Main location for all recordings.
+                szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                  // Main location for all recordings.
                 szFilePath += logging::g_szProgramStartTimeString + "/tagdetector";    // Folder for each program run.
                 szFilenameWithExtension = pTagDetector->GetCameraName() + ".mp4";      // Folder for each camera index or name.
 
