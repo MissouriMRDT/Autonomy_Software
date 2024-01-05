@@ -11,13 +11,13 @@
 #ifndef ZEDCAM_H
 #define ZEDCAM_H
 
-#include <future>
-#include <opencv2/opencv.hpp>
-#include <sl/Camera.hpp>
-
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+
+#include <future>
+#include <opencv2/opencv.hpp>
+#include <sl/Camera.hpp>
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common ZEDSDK cameras
