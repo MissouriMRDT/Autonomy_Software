@@ -32,14 +32,11 @@ void RunExample()
     BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
     // Start basic cam.
     ExampleBasicCam1->Start();
-    globals::g_pCameraHandler->StartRecording();
 
     // Get pointer to the tag detector for the basic cam.
     TagDetector* ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
     // Start the basic cam detector.
     ExampleTagDetector1->Start();
-    globals::g_pTagDetectionHandler->StartRecording();
-    
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
