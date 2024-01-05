@@ -52,9 +52,9 @@ namespace logging
         // Assemble filepath string.
         std::filesystem::path szFilePath;
         std::filesystem::path szFilenameWithExtension;
-        szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;             // Main location for all recordings.
-        szFilePath += "/console_output/";                                 // Folder for each program run.
-        szFilenameWithExtension = g_szProgramStartTimeString + ".log";    // Turn the current time into a file name.
+        szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/";    // Main location for all recordings.
+        szFilePath += g_szProgramStartTimeString + "/";                // Folder for each program run.
+        szFilenameWithExtension = "console_output.log";                // Turn the current time into a file name.
 
         // Check if directory exists.
         if (!std::filesystem::exists(szFilePath))
