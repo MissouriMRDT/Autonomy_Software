@@ -63,13 +63,13 @@ namespace logging
             if (!std::filesystem::create_directories(szFilePath))
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Unable to create the logging output directory: {} for console output file.", szFilePath.string());
+                std::cerr << "Unable to create the logging output directory: " << szFilePath.string() << " for console output file." << std::endl;
             }
         }
         else
         {
             // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Unable to create logging output directory {}: it already exists.", szFilePath.string());
+            std::cerr << "Unable to create logging output directory " << szFilePath.string() << ": it already exists." << std::endl;
         }
 
         // Construct the full output path.
