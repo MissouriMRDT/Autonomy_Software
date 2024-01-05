@@ -11,10 +11,10 @@
 #ifndef SIMCAM_H
 #define SIMCAM_H
 
-#include <opencv2/opencv.hpp>
-
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+
+#include <opencv2/opencv.hpp>
 
 /******************************************************************************
  * @brief This class implements and interfaces with the SIM cameras and data.
