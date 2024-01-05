@@ -36,6 +36,7 @@ class AutonomyThread
         BS::thread_pool m_thPool       = BS::thread_pool(2);
         std::vector<std::future<T>> m_vPoolReturns;
         std::atomic_bool m_bStopThreads;
+        bool m_bThreadIsRunning;
         int m_nMainThreadMaxIterationPerSecond;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
@@ -407,7 +408,7 @@ class AutonomyThread
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-31
          ******************************************************************************/
-        int GetMainThreadMaxIPS()
+        int GetMainThreadMaxIPS() const
         {
             // Return member variable value.
             return m_nMainThreadMaxIterationPerSecond;
@@ -425,6 +426,7 @@ class AutonomyThread
         {
             // Initialize member variables.
             m_bStopThreads                     = false;
+            m_bThreadIsRunning                 = false;
             m_nMainThreadMaxIterationPerSecond = 0;
         }
 
@@ -494,6 +496,9 @@ class AutonomyThread
             // Unpause pool queues.
             m_thPool.unpause();
             m_thMainThread.unpause();
+
+            // Set thread running toggle.
+            m_bThreadIsRunning = true;
         }
 
         /******************************************************************************
@@ -522,6 +527,9 @@ class AutonomyThread
             m_thPool.wait_for_tasks();
             // Wait for main thread to finish.
             m_thMainThread.wait_for_tasks();
+
+            // Set thread running toggle.
+            m_bThreadIsRunning = false;
         }
 
         /******************************************************************************
@@ -548,6 +556,17 @@ class AutonomyThread
                 return false;
             }
         }
+
+        /******************************************************************************
+         * @brief Accessor for the Threads Are Running private member.
+         *
+         * @return true - The main thread has been started and is running.
+         * @return false - All threads are stopped and joined.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-01-04
+         ******************************************************************************/
+        bool GetThreadsAreRunning() const { return m_bThreadIsRunning; }
 };
 
 #endif

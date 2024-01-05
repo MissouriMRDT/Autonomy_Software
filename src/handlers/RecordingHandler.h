@@ -77,7 +77,6 @@ class RecordingHandler : public AutonomyThread<void>
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        int m_nRecordingFPS;
         int m_nTotalVideoFeeds;
         RecordingMode m_eRecordingMode;
         std::vector<ZEDCam*> m_vZEDCameras;
