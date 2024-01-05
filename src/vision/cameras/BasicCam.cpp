@@ -158,7 +158,7 @@ void BasicCam::ThreadedContinuousCode()
 
         // Submit logger message.
         LOG_CRITICAL(logging::g_qSharedLogger,
-                     "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
+                     "Camera start was attempted for BasicCam at {}/{}, but camera never properly opened or it has become disconnected!",
                      m_nCameraIndex,
                      m_szCameraPath);
     }

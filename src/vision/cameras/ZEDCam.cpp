@@ -221,7 +221,7 @@ void ZEDCam::ThreadedContinuousCode()
         this->RequestStop();
         // Submit logger message.
         LOG_CRITICAL(logging::g_qSharedLogger,
-                     "Camera start was attempted for camera at {}, but camera never properly opened or it has been closed/rebooted!",
+                     "Camera start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
                      m_unCameraSerialNumber);
     }
     else
