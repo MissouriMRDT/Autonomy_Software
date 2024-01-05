@@ -93,6 +93,7 @@ UNVALIDATED
 UTMMDRS
 UTMUPS
 valgrind
+VIDEOWRITER
 Watchpoints
 wslg
 XYZBGRA
