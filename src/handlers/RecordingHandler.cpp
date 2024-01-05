@@ -335,6 +335,13 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                 // Wait for future to be fulfilled.
                 if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
                 {
+                    // Check if this is a grayscale or color image.
+                    if (m_vFrames[nIter].channels() == 1)
+                    {
+                        // Convert frame from 1 channel grayscale to 3 channel BGR.
+                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                    }
+
                     // Write frame to OpenCV video writer.
                     m_vCameraWriters[nIter].write(m_vFrames[nIter]);
                 }
@@ -349,6 +356,14 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                     {
                         // Download GPU mat frame to normal mat.
                         m_vGPUFrames[nIter].download(m_vFrames[nIter]);
+
+                        // Check if this is a grayscale or color image.
+                        if (m_vFrames[nIter].channels() == 1)
+                        {
+                            // Convert frame from 1 channel grayscale to 3 channel BGR.
+                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                        }
+
                         // Write frame to OpenCV video writer.
                         m_vCameraWriters[nIter].write(m_vFrames[nIter]);
                     }
@@ -358,6 +373,13 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                     // Wait for future to be fulfilled.
                     if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
                     {
+                        // Check if this is a grayscale or color image.
+                        if (m_vFrames[nIter].channels() == 1)
+                        {
+                            // Convert frame from 1 channel grayscale to 3 channel BGR.
+                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                        }
+
                         // Write frame to OpenCV video writer.
                         m_vCameraWriters[nIter].write(m_vFrames[nIter]);
                     }
@@ -476,6 +498,13 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
             // Wait for future to be fulfilled.
             if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
             {
+                // Check if this is a grayscale or color image.
+                if (m_vFrames[nIter].channels() == 1)
+                {
+                    // Convert frame from 1 channel grayscale to 3 channel BGR.
+                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                }
+
                 // Write frame to OpenCV video writer.
                 m_vCameraWriters[nIter].write(m_vFrames[nIter]);
             }
