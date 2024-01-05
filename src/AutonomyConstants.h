@@ -27,6 +27,14 @@
 namespace constants
 {
     ///////////////////////////////////////////////////////////////////////////
+    //// Logging Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Output Paths.
+    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "/workspaces/Autonomy_Software/build/logs/";    // The absolute to write output logging and video files to.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// Drive Constants.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -48,6 +56,22 @@ namespace constants
     const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
     const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Recording Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Recording adjustments.
+    const int RECORDER_FPS = 30;    // The FPS all recordings should run at.
+    // Camera recording toggles.
+    const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
+    const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.
+    const bool BASICCAM_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera.
+    // TagDetector recording toggles.
+    const bool TAGDETECT_MAINCAM_ENABLE_RECORDING  = true;    // Whether or not to record the main ZED camera tag detector.
+    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera tag detector.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera tag detector.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -170,24 +194,6 @@ namespace constants
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
     ///////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
-    //// Recording Handler Adjustments.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Recording adjustments.
-    const int RECORDER_FPS                          = 30;                                        // The FPS all recordings should run at.
-    const std::string RECORDER_OUTPUT_PATH_ABSOLUTE = "/workspaces/Autonomy_Software/build/";    // The absolute to write output files to.
-    // Camera recording toggles.
-    const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
-    const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.
-    const bool BASICCAM_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera.
-    // TagDetector recording toggles.
-    const bool TAGDETECT_MAINCAM_ENABLE_RECORDING  = true;    // Whether or not to record the main ZED camera tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera tag detector.
-    ///////////////////////////////////////////////////////////////////////////
-
 }    // namespace constants
 
 #endif    // CONSTS_H
