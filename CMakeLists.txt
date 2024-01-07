@@ -17,6 +17,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 ## Project Name and Software Version Number
 project(Autonomy_Software VERSION 24.01.00)
 
+## Allows use of "FindCUDA" function
+cmake_policy(SET CMP0146 OLD)
+
 ## Include Required CMake Packages
 if(NOT CPack_CMake_INCLUDED)
     include(CPack)                                                                  # CMake Packaging Library
