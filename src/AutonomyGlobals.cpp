@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include "AutonomyGlobals.h"
-#include "AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Namespace containing all global types/structs that will be used project
