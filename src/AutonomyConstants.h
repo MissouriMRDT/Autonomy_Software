@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief The  ants header for Autonomy Software
+ * @brief The  constants header for Autonomy Software
  *
  * @file  s.h
  * @author Eli Byrd (edbgkk@mst.edu)
@@ -17,14 +17,14 @@
 #include "./interfaces/Camera.hpp"
 
 /******************************************************************************
- * @brief Namespace containing all  ants for autonomy software. Including
+ * @brief Namespace containing all  constants for autonomy software. Including
  *      AutonomyGlobals.h will also include this namespace.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-05
  ******************************************************************************/
-namespace ants
+namespace constants
 {
     ///////////////////////////////////////////////////////////////////////////
     //// Logging Constants.
@@ -38,13 +38,13 @@ namespace ants
     //// Drive Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Power  ants.
+    // Power  constants.
     float DRIVE_MAX_POWER  = 1.0;
     float DRIVE_MIN_POWER  = -1.0;
     float DRIVE_MAX_EFFORT = 0.5;
     float DRIVE_MIN_EFFORT = -0.5;
 
-    // Control  ants.
+    // Control  constants.
     double DRIVE_PID_PROPORTIONAL       = 0.1;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
     double DRIVE_PID_INTEGRAL           = 0.01;     // The integral gain for the controller used to point the rover at a goal heading during navigation.
     double DRIVE_PID_DERIVATIVE         = 0.0;      // The derivative gain for the controller used to point the rover at a goal heading during navigation.
@@ -153,7 +153,7 @@ namespace ants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
-    //// ArUco Vision  ants.
+    //// ArUco Vision  constants.
     ///////////////////////////////////////////////////////////////////////////
 
     // OpenCV ArUco detection config.
@@ -194,6 +194,6 @@ namespace ants
     int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
     ///////////////////////////////////////////////////////////////////////////
-}    // namespace ants
+}    // namespace constants
 
 #endif    // CONSTS_H

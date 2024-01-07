@@ -53,7 +53,7 @@ namespace globals
 
             if (!fin)
             {
-                LOG_ERROR(g_qSharedLogger, "Couldn't open AutonomyConstants.json file");
+                LOG_ERROR(logging::g_qSharedLogger, "Couldn't open AutonomyConstants.json file");
             }
 
             try
@@ -62,7 +62,7 @@ namespace globals
             }
             catch (const std::exception& e)
             {
-                LOG_ERROR(g_qSharedLogger, "Error parsing AutonomyConstants.json");
+                LOG_ERROR(logging::g_qSharedLogger, "Error parsing AutonomyConstants.json");
             }
 
             ///////////////////////////////////////////////////////////////////////////
@@ -193,7 +193,7 @@ namespace globals
             constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS =
                 jsonData["CameraHandlerAdjustments"]
                         ["zed_maincam_frame_retrieval_threads"];    // The number of threads allocated to the threadpool for performing frame copies to other threads.
-            constants::ZED_MAINCAN_SERIAL = jsonData["CameraHandlerAdjustments"]["zed_maincam_serial"];    // The serial number of the camera.
+            constants::ZED_MAINCAM_SERIAL = jsonData["CameraHandlerAdjustments"]["zed_maincam_serial"];    // The serial number of the camera.
 
             // Left Side Cam.
             constants::BASICCAM_LEFTCAM_RESOLUTIONX =
