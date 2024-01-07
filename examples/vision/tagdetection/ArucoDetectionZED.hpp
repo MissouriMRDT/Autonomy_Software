@@ -68,7 +68,7 @@ void RunExample()
             fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
         }
         // Get detections overlay frame from detector.
-        fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestArucoDetectionOverlayFrame(cvDetectionsFrame1);
+        std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestDetectionOverlayFrame(cvDetectionsFrame1);
         // Grab other info from detector.
         fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
 

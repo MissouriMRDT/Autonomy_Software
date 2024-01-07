@@ -12,15 +12,14 @@
 #ifndef ARUCO_DETECTION_HPP
 #define ARUCO_DETECTION_HPP
 
-#include <vector>
+#include "../../AutonomyConstants.h"
+#include "../../AutonomyLogging.h"
+#include "../../util/vision/ImageOperations.hpp"
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
-
-#include "../../AutonomyConstants.h"
-#include "../../AutonomyLogging.h"
-#include "../../util/vision/ImageOperations.hpp"
+#include <vector>
 
 /******************************************************************************
  * @brief Namespace containing functions related to ArUco operations on images.

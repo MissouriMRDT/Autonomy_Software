@@ -31,6 +31,7 @@ Extention
 feedforward
 flatbuffer
 flightsticks
+fourcc
 geoops
 Geospatial
 gmock
@@ -92,6 +93,7 @@ statechart
 Struct
 Styleguides
 TAGDETECT
+TAGDETECTOR
 Tele
 tensorflowobject
 tensorflowtag
@@ -105,6 +107,7 @@ UNVALIDATED
 UTMMDRS
 UTMUPS
 valgrind
+VIDEOWRITER
 Watchpoints
 wslg
 XNNPACK
