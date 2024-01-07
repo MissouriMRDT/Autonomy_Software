@@ -11,10 +11,10 @@
 #ifndef BASICCAM_H
 #define BASICCAM_H
 
-#include <opencv2/opencv.hpp>
-
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+
+#include <opencv2/opencv.hpp>
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common USB cameras
@@ -40,6 +40,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const PIXEL_FORMATS ePropPixelFormat,
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV,
+                 const bool bEnableRecordingFlag,
                  const int nNumFrameRetrievalThreads = 10);
         BasicCam(const int nCameraIndex,
                  const int nPropResolutionX,
@@ -48,6 +49,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
                  const PIXEL_FORMATS ePropPixelFormat,
                  const double dPropHorizontalFOV,
                  const double dPropVerticalFOV,
+                 const bool bEnableRecordingFlag,
                  const int nNumFrameRetrievalThreads = 10);
         ~BasicCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
@@ -56,8 +58,7 @@ class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
         // Getters.
         /////////////////////////////////////////
 
-        template<typename T>
-        T GetCameraLocation() const;
+        std::string GetCameraLocation() const;
         bool GetCameraIsOpen() override;
 
     private:

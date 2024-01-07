@@ -53,6 +53,7 @@ namespace logging
     extern quill::Logger* g_qFileLogger;
     extern quill::Logger* g_qConsoleLogger;
     extern quill::Logger* g_qSharedLogger;
+    extern std::string g_szProgramStartTimeString;
 
     /////////////////////////////////////////
     // Declare namespace methods.

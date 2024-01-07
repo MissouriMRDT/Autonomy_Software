@@ -56,7 +56,7 @@ void RunExample()
         // Get detections from tag detector for BasicCam.
         std::future<bool> fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
         // Get detections overlay frame from detector.
-        std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestArucoDetectionOverlayFrame(cvDetectionsFrame1);
+        std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestDetectionOverlayFrame(cvDetectionsFrame1);
 
         // Show first frame copy.
         if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
