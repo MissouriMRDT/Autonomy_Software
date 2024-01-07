@@ -31,7 +31,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Output Paths.
-    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "/workspaces/Autonomy_Software/build/logs/";    // The absolute to write output logging and video files to.
+    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
