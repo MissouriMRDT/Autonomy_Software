@@ -12,13 +12,12 @@
 #ifndef TENSORFLOW_TAG_DETECTION_HPP
 #define TENSORFLOW_TAG_DETECTION_HPP
 
-#include <vector>
+#include "../../AutonomyConstants.h"
+#include "../../AutonomyLogging.h"
 
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
-
-#include "../../AutonomyConstants.h"
-#include "../../AutonomyLogging.h"
+#include <vector>
 
 /******************************************************************************
  * @brief Namespace containing functions related to tensorflow tag detections

@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
+#include "AutonomyConstants.h"
 
 /******************************************************************************
  * @brief Namespace containing all global type/structs that will be used project wide
@@ -26,6 +27,7 @@ namespace logging
     quill::Logger* g_qFileLogger;
     quill::Logger* g_qConsoleLogger;
     quill::Logger* g_qSharedLogger;
+    std::string g_szProgramStartTimeString;
 
     /******************************************************************************
      * @brief Logger Initializer - Sets Up all the logging handlers required for
@@ -44,14 +46,37 @@ namespace logging
 
         // Format the current time in a format that can be used as a file name
         std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", &sTimeStruct);
+        // Store start time string in member variable.
+        g_szProgramStartTimeString = cCurrentTime;
 
-        // Turn the current time into a file name
-        std::string szFilenameWithExtension;
-        szFilenameWithExtension = cCurrentTime;
-        szFilenameWithExtension += ".log";
+        // Assemble filepath string.
+        std::filesystem::path szFilePath;
+        std::filesystem::path szFilenameWithExtension;
+        szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/";    // Main location for all recordings.
+        szFilePath += g_szProgramStartTimeString + "/";                // Folder for each program run.
+        szFilenameWithExtension = "console_output.log";                // Turn the current time into a file name.
+
+        // Check if directory exists.
+        if (!std::filesystem::exists(szFilePath))
+        {
+            // Create directory.
+            if (!std::filesystem::create_directories(szFilePath))
+            {
+                // Submit logger message.
+                std::cerr << "Unable to create the logging output directory: " << szFilePath.string() << " for console output file." << std::endl;
+            }
+        }
+        else
+        {
+            // Submit logger message.
+            std::cerr << "Unable to create logging output directory " << szFilePath.string() << ": it already exists." << std::endl;
+        }
+
+        // Construct the full output path.
+        std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
         // Create Handlers
-        std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFilenameWithExtension);
+        std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFullOutputPath);
         std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
 
         // Configure Patterns

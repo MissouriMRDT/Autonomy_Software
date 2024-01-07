@@ -11,12 +11,13 @@
 #ifndef ZEDCAM_H
 #define ZEDCAM_H
 
-#include <opencv2/opencv.hpp>
-#include <sl/Camera.hpp>
-
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+
+#include <future>
+#include <opencv2/opencv.hpp>
+#include <sl/Camera.hpp>
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common ZEDSDK cameras
@@ -46,6 +47,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const int nPropFramesPerSecond,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
+               const bool bEnableRecordingFlag,
                const float fMinSenseDistance           = constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,
