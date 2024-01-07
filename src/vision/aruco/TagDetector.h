@@ -12,15 +12,15 @@
 #ifndef TAG_DETECTOR_H
 #define TAG_DETECTOR_H
 
-#include <future>
-#include <shared_mutex>
-#include <vector>
-
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../vision/cameras/BasicCam.h"
 #include "../../vision/cameras/ZEDCam.h"
 #include "./ArucoDetection.hpp"
 #include "./TensorflowDetection.hpp"
+
+#include <future>
+#include <shared_mutex>
+#include <vector>
 
 /******************************************************************************
  * @brief Run's Aruco detection & camera pose estimation in a multithreading environment
@@ -34,7 +34,7 @@
  *  Copy the vector of detected tags to all of the threads requesting it through the
  *  RequestDetectedArucoTags(...) function.
  *
- * @author jspencerpittman (jspencerpittman@gmail.com)
+ * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
 class TagDetector : public AutonomyThread<void>
@@ -49,6 +49,7 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
         TagDetector(ZEDCam* pZEDCam,
@@ -57,15 +58,29 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
-        std::future<bool> RequestArucoDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame);
+        std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
+        void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
         IPS& GetIPS();
+        bool GetIsReady();
+        bool GetEnableRecordingFlag() const;
+        std::string GetCameraName();
+        cv::Size GetProcessFrameResolution() const;
 
     private:
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
+        void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
+        void UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags);
+
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
@@ -79,8 +94,10 @@ class TagDetector : public AutonomyThread<void>
         bool m_bUsingGpuMats;
         int m_nNumDetectedTagsRetrievalThreads;
         IPS m_IPS;
+        std::atomic_bool m_bEnableRecordingFlag;
 
         // Detected tags storage.
+
         std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> m_vDetectedTensorTags;
 
@@ -92,6 +109,7 @@ class TagDetector : public AutonomyThread<void>
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
+
         std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFrames;
         std::queue<containers::DataFetchContainer<std::vector<arucotag::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>>> m_qDetectedTensorflowTagCopySchedule;
@@ -99,14 +117,6 @@ class TagDetector : public AutonomyThread<void>
         std::mutex m_muFrameCopyMutex;
         std::mutex m_muArucoDataCopyMutex;
         std::mutex m_muTensorflowDataCopyMutex;
-
-        /////////////////////////////////////////
-        // Declare private methods.
-        /////////////////////////////////////////
-        void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;
-        void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
-        void UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags);
 };
 
 #endif

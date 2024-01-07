@@ -12,6 +12,7 @@
 #define TAG_DETECTION_HANDLER_H
 
 #include "../vision/aruco/TagDetector.h"
+#include "RecordingHandler.h"
 
 /******************************************************************************
  * @brief The TagDetectionHandler class is responsible for managing all of the
@@ -33,6 +34,7 @@ class TagDetectionHandler
         TagDetector* m_pTagDetectorMainCam;
         TagDetector* m_pTagDetectorLeftCam;
         TagDetector* m_pTagDetectorRightCam;
+        RecordingHandler* m_pRecordingHandler;
 
     public:
         /////////////////////////////////////////
@@ -41,9 +43,11 @@ class TagDetectionHandler
 
         enum TagDetectors    // Enum for different cameras that detectors are being ran on.
         {
+            TAGDETECTOR_START,
             eHeadMainCam,
             eHeadLeftArucoEye,
-            eHeadRightArucoEye
+            eHeadRightArucoEye,
+            TAGDETECTOR_END
         };
 
         /////////////////////////////////////////
@@ -53,7 +57,9 @@ class TagDetectionHandler
         TagDetectionHandler();
         ~TagDetectionHandler();
         void StartAllDetectors();
+        void StartRecording();
         void StopAllDetectors();
+        void StopRecording();
 
         /////////////////////////////////////////
         // Accessors.

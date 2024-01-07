@@ -27,7 +27,15 @@
 namespace ants
 {
     ///////////////////////////////////////////////////////////////////////////
-    //// Drive  ants.
+    //// Logging Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Output Paths.
+    std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Drive Constants.
     ///////////////////////////////////////////////////////////////////////////
 
     // Power  ants.
@@ -51,7 +59,23 @@ namespace ants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
-    //// Camera  ants.
+    //// Recording Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Recording adjustments.
+    int RECORDER_FPS = 30;                              // The FPS all recordings should run at.
+                                                        // Camera recording toggles.
+    bool ZED_MAINCAM_ENABLE_RECORDING       = true;     // Whether or not to record the main ZED camera.
+    bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;     // Whether or not to record the left USB camera.
+    bool BASICCAM_RIGHTCAM_ENABLE_RECORDING = true;     // Whether or not to record the right USB camera.
+                                                        // TagDetector recording toggles.
+    bool TAGDETECT_MAINCAM_ENABLE_RECORDING  = true;    // Whether or not to record the main ZED camera tag detector.
+    bool TAGDETECT_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera tag detector.
+    bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera tag detector.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Camera Constants.
     ///////////////////////////////////////////////////////////////////////////
 
     // ZedCam Basic Config.
@@ -170,6 +194,6 @@ namespace ants
     int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
     ///////////////////////////////////////////////////////////////////////////
-}    // namespace  ants
+}    // namespace ants
 
-#endif    //  S_H
+#endif    // CONSTS_H
