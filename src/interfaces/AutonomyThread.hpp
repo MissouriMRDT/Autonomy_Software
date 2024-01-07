@@ -13,10 +13,11 @@
 #ifndef AUTONOMYTHREAD_H
 #define AUTONOMYTHREAD_H
 
-#include <atomic>
-#include <vector>
-
 #include "../../external/threadpool/BSThreadPool.hpp"
+
+#include <atomic>
+#include <chrono>
+#include <vector>
 
 /******************************************************************************
  * @brief Interface class used to easily multithread a child class.
@@ -31,11 +32,12 @@ class AutonomyThread
 {
     private:
         // Declare and define interface class private member variables.
-        std::atomic_bool m_bStopThreads = false;
-        BS::thread_pool m_thMainThread  = BS::thread_pool(1);
-        BS::thread_pool m_thPool        = BS::thread_pool(2);
-        std::future<void> m_fuMainReturn;
+        BS::thread_pool m_thMainThread = BS::thread_pool(1);
+        BS::thread_pool m_thPool       = BS::thread_pool(2);
         std::vector<std::future<T>> m_vPoolReturns;
+        std::atomic_bool m_bStopThreads;
+        bool m_bThreadIsRunning;
+        int m_nMainThreadMaxIterationPerSecond;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
@@ -55,11 +57,38 @@ class AutonomyThread
          ******************************************************************************/
         void RunThread(std::atomic_bool& bStopThread)
         {
+            // Declare instance variables.
+            std::chrono::_V2::system_clock::time_point tmStartTime;
+
             // Loop until stop flag is set.
             while (!bStopThread)
             {
+                // Check if max IPS limit has been set.
+                if (m_nMainThreadMaxIterationPerSecond > 0)
+                {
+                    // Get start execution time.
+                    tmStartTime = std::chrono::high_resolution_clock::now();
+                }
+
                 // Call method containing user code.
                 this->ThreadedContinuousCode();
+
+                // Check if max IPS limit has been set.
+                if (m_nMainThreadMaxIterationPerSecond > 0)
+                {
+                    // Get end execution time.
+                    std::chrono::_V2::system_clock::time_point tmEndTime = std::chrono::high_resolution_clock::now();
+                    // Get execution time of user code.
+                    std::chrono::microseconds tmElapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(tmEndTime - tmStartTime);
+                    // Check if the elapsed time is slower than the max iterations per seconds.
+                    if (tmElapsedTime.count() < (1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000)
+                    {
+                        // Calculate the time to wait to stay under IPS cap.
+                        int nSleepTime = ((1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000) - tmElapsedTime.count();
+                        // Make this thread sleep for the remaining time.
+                        std::this_thread::sleep_for(std::chrono::microseconds(nSleepTime));
+                    }
+                }
             }
         }
 
@@ -316,6 +345,22 @@ class AutonomyThread
         }
 
         /******************************************************************************
+         * @brief Mutator for the Main Thread Max I P S private member
+         *
+         * @param nMaxIterationsPerSecond - The max iteration per second limit of the main thread.
+         *
+         * @note - Set to zero to disable the max iteration per second limit.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-30
+         ******************************************************************************/
+        void SetMainThreadMaxIPS(int nMaxIterationsPerSecond = 0)
+        {
+            // Assign member variable.
+            m_nMainThreadMaxIterationPerSecond = nMaxIterationsPerSecond;
+        }
+
+        /******************************************************************************
          * @brief Accessor for the Pool Num Of Threads private member.
          *
          * @return int - The number of threads available to the pool.
@@ -355,7 +400,36 @@ class AutonomyThread
             return vResults;
         }
 
+        /******************************************************************************
+         * @brief Accessor for the Main Thread Max I P S private member.
+         *
+         * @return int - The max iterations per second the main thread can reach.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-31
+         ******************************************************************************/
+        int GetMainThreadMaxIPS() const
+        {
+            // Return member variable value.
+            return m_nMainThreadMaxIterationPerSecond;
+        }
+
     public:
+        /******************************************************************************
+         * @brief Construct a new Autonomy Thread object.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-30
+         ******************************************************************************/
+        AutonomyThread()
+        {
+            // Initialize member variables.
+            m_bStopThreads                     = false;
+            m_bThreadIsRunning                 = false;
+            m_nMainThreadMaxIterationPerSecond = 0;
+        }
+
         /******************************************************************************
          * @brief Destroy the Autonomy Thread object. If the parent object or main thread
          *      is destroyed or exited while this thread is still running, a race condition
@@ -417,11 +491,14 @@ class AutonomyThread
             m_bStopThreads = false;
 
             // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
-            m_fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
+            std::future<void> fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
 
             // Unpause pool queues.
             m_thPool.unpause();
             m_thMainThread.unpause();
+
+            // Set thread running toggle.
+            m_bThreadIsRunning = true;
         }
 
         /******************************************************************************
@@ -450,6 +527,9 @@ class AutonomyThread
             m_thPool.wait_for_tasks();
             // Wait for main thread to finish.
             m_thMainThread.wait_for_tasks();
+
+            // Set thread running toggle.
+            m_bThreadIsRunning = false;
         }
 
         /******************************************************************************
@@ -476,6 +556,17 @@ class AutonomyThread
                 return false;
             }
         }
+
+        /******************************************************************************
+         * @brief Accessor for the Threads Are Running private member.
+         *
+         * @return true - The main thread has been started and is running.
+         * @return false - All threads are stopped and joined.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-01-04
+         ******************************************************************************/
+        bool GetThreadsAreRunning() const { return m_bThreadIsRunning; }
 };
 
 #endif
