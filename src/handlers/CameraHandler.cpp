@@ -26,6 +26,7 @@ CameraHandler::CameraHandler()
                             constants::ZED_MAINCAM_FPS,
                             constants::ZED_MAINCAM_HORIZONTAL_FOV,
                             constants::ZED_MAINCAM_VERTICAL_FOV,
+                            constants::ZED_MAINCAM_ENABLE_RECORDING,
                             constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                             constants::ZED_MAINCAM_USE_GPU_MAT,
@@ -41,6 +42,7 @@ CameraHandler::CameraHandler()
                               constants::BASICCAM_LEFTCAM_PIXELTYPE,
                               constants::BASICCAM_LEFTCAM_HORIZONTAL_FOV,
                               constants::BASICCAM_LEFTCAM_VERTICAL_FOV,
+                              constants::BASICCAM_LEFTCAM_ENABLE_RECORDING,
                               constants::BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS);
 
     // Initialize Right aruco eye.
@@ -51,7 +53,11 @@ CameraHandler::CameraHandler()
                                constants::BASICCAM_RIGHTCAM_PIXELTYPE,
                                constants::BASICCAM_RIGHTCAM_HORIZONTAL_FOV,
                                constants::BASICCAM_RIGHTCAM_VERTICAL_FOV,
+                               constants::BASICCAM_RIGHTCAM_ENABLE_RECORDING,
                                constants::BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS);
+
+    // Initialize recording handler for cameras.
+    m_pRecordingHandler = new RecordingHandler(RecordingHandler::RecordingMode::eCameraHandler);
 }
 
 /******************************************************************************
@@ -70,11 +76,13 @@ CameraHandler::~CameraHandler()
     delete m_pMainCam;
     delete m_pLeftCam;
     delete m_pRightCam;
+    delete m_pRecordingHandler;
 
     // Set dangling pointers to nullptr.
-    m_pMainCam  = nullptr;
-    m_pLeftCam  = nullptr;
-    m_pRightCam = nullptr;
+    m_pMainCam          = nullptr;
+    m_pLeftCam          = nullptr;
+    m_pRightCam         = nullptr;
+    m_pRecordingHandler = nullptr;
 }
 
 /******************************************************************************
@@ -95,6 +103,19 @@ void CameraHandler::StartAllCameras()
 }
 
 /******************************************************************************
+ * @brief Signal the RecordingHandler to start recording video feeds from the CameraHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void CameraHandler::StartRecording()
+{
+    // Start recording handler.
+    m_pRecordingHandler->Start();
+}
+
+/******************************************************************************
  * @brief Signals all cameras to stop their threads.
  *
  *
@@ -103,6 +124,10 @@ void CameraHandler::StartAllCameras()
  ******************************************************************************/
 void CameraHandler::StopAllCameras()
 {
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
+
     // Stop ZED cams.
     m_pMainCam->RequestStop();
     m_pMainCam->Join();
@@ -112,6 +137,20 @@ void CameraHandler::StopAllCameras()
     m_pRightCam->RequestStop();
     m_pLeftCam->Join();
     m_pRightCam->Join();
+}
+
+/******************************************************************************
+ * @brief Signal the RecordingHandler to stop recording video feeds from the CameraHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+void CameraHandler::StopRecording()
+{
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
 }
 
 /******************************************************************************

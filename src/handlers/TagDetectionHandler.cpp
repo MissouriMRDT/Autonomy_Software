@@ -28,6 +28,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_MAINCAM_MARKER_BORDER_BITS,
                                             constants::TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER,
                                             constants::TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION,
+                                            constants::TAGDETECT_MAINCAM_ENABLE_RECORDING,
                                             constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
 
@@ -38,6 +39,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_LEFTCAM_MARKER_BORDER_BITS,
                                             constants::TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER,
                                             constants::TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION,
+                                            constants::TAGDETECT_LEFTCAM_ENABLE_RECORDING,
                                             constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
                                             false);
 
@@ -48,8 +50,12 @@ TagDetectionHandler::TagDetectionHandler()
                                              constants::TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS,
                                              constants::TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER,
                                              constants::TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION,
+                                             constants::TAGDETECT_RIGHTCAM_ENABLE_RECORDING,
                                              constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
                                              false);
+
+    // Initialize recording handler for detectors.
+    m_pRecordingHandler = new RecordingHandler(RecordingHandler::RecordingMode::eTagDetectionHandler);
 }
 
 /******************************************************************************
@@ -68,11 +74,13 @@ TagDetectionHandler::~TagDetectionHandler()
     delete m_pTagDetectorMainCam;
     delete m_pTagDetectorLeftCam;
     delete m_pTagDetectorRightCam;
+    delete m_pRecordingHandler;
 
     // Set dangling pointers to nullptr.
     m_pTagDetectorMainCam  = nullptr;
     m_pTagDetectorLeftCam  = nullptr;
     m_pTagDetectorRightCam = nullptr;
+    m_pRecordingHandler    = nullptr;
 }
 
 /******************************************************************************
@@ -93,6 +101,19 @@ void TagDetectionHandler::StartAllDetectors()
 }
 
 /******************************************************************************
+ * @brief Signal the RecordingHandler to start recording video feeds from the TagDetectionHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void TagDetectionHandler::StartRecording()
+{
+    // Start recording handler.
+    m_pRecordingHandler->Start();
+}
+
+/******************************************************************************
  * @brief Signals all detectors to stop their threads.
  *
  *
@@ -110,6 +131,20 @@ void TagDetectionHandler::StopAllDetectors()
     m_pTagDetectorRightCam->RequestStop();
     m_pTagDetectorLeftCam->Join();
     m_pTagDetectorRightCam->Join();
+}
+
+/******************************************************************************
+ * @brief Signal the RecordingHandler to stop recording video feeds from the TagDetectionHandler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+void TagDetectionHandler::StopRecording()
+{
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
 }
 
 /******************************************************************************
