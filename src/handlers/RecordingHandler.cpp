@@ -168,8 +168,8 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                    // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";         // Folder for each program run.
-                szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras";          // Folder for each program run.
+                szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mkv";    // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -195,7 +195,7 @@ void RecordingHandler::UpdateRecordableCameras()
 
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nCamera - 1].open(szFullOutputPath.string(),
-                                                                        cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                        cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                         constants::RECORDER_FPS,
                                                                         pBasicCamera->GetPropResolution());
 
@@ -238,9 +238,9 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                                               // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                                    // Folder for each program run.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras";                                     // Folder for each program run.
                 szFilenameWithExtension =
-                    pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
+                    pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mkv";    // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -262,7 +262,7 @@ void RecordingHandler::UpdateRecordableCameras()
 
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset].open(szFullOutputPath,
-                                                                                   cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                                   cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                                    constants::RECORDER_FPS,
                                                                                    pZEDCamera->GetPropResolution());
 
@@ -420,7 +420,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                  // Main location for all recordings.
                 szFilePath += logging::g_szProgramStartTimeString + "/tagdetector";    // Folder for each program run.
-                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mp4";      // Folder for each camera index or name.
+                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mkv";      // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -446,7 +446,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
 
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
-                                                                          cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                          cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                           constants::RECORDER_FPS,
                                                                           pTagDetector->GetProcessFrameResolution());
 

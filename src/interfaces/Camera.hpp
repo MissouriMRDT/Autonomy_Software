@@ -132,7 +132,7 @@ class Camera
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-26
          ******************************************************************************/
-        bool GetEnableRecordingFlag() const { return m_bEnableRecordingFlag.load(); }
+        bool GetEnableRecordingFlag() const { return m_bEnableRecordingFlag; }
 
         /******************************************************************************
          * @brief Accessor for the Frame I P S private member.
@@ -152,7 +152,7 @@ class Camera
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-26
          ******************************************************************************/
-        void SetEnableRecordingFlag(const bool bEnableRecordingFlag) { m_bEnableRecordingFlag.store(bEnableRecordingFlag); }
+        void SetEnableRecordingFlag(const bool bEnableRecordingFlag) { m_bEnableRecordingFlag = bEnableRecordingFlag; }
 
     protected:
         // Declare protected methods and member variables.
