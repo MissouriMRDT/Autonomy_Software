@@ -8,12 +8,12 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include <csignal>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 
-#include "../examples/vision/tagdetection/ArucoDetectionBasicCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"
@@ -28,6 +28,28 @@ void RunExample() {}
 #else
 CHECK_IF_EXAMPLE_INCLUDED
 #endif
+
+// Create a boolean used to handle a SIGINT and exit gracefully.
+volatile sig_atomic_t bMainStop = false;
+
+/******************************************************************************
+ * @brief Help function given to the C++ csignal standard library to run when
+ *      a CONTROL^C is given from the terminal.
+ *
+ * @param nSignal - Integer representing the interrupt value.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-08
+ ******************************************************************************/
+void SignalHandler(int nSignal)
+{
+    // Check signal type.
+    if (nSignal == SIGINT)
+    {
+        // Update stop signal.
+        bMainStop = true;
+    }
+}
 
 /******************************************************************************
  * @brief Autonomy main function.
@@ -52,6 +74,9 @@ int main()
     std::cout << szHeaderText << std::endl;
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
+    // Setup signal interrupt handler.
+    std::signal(SIGINT, SignalHandler);
+
     // Initialize Loggers
     logging::InitializeLoggers();
 
@@ -69,8 +94,17 @@ int main()
         // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
+        // // Enable Recording on Handlers.
+        globals::g_pCameraHandler->StartRecording();
+        globals::g_pTagDetectionHandler->StartRecording();
 
         // TODO: Initialize RoveComm.
+
+        // Loop until user sends sigkill or sigterm.
+        while (!bMainStop)
+        {
+            // Do nothing.
+        }
 
         /////////////////////////////////////////
         // Cleanup.
@@ -79,11 +113,11 @@ int main()
         globals::g_pCameraHandler->StopAllCameras();
         globals::g_pTagDetectionHandler->StopAllDetectors();
 
-        // Delete dynamically allocated objects.
+        // // Delete dynamically allocated objects.
         delete globals::g_pCameraHandler;
         delete globals::g_pTagDetectionHandler;
 
-        // Set dangling pointers to null.
+        // // Set dangling pointers to null.
         globals::g_pCameraHandler       = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
     }
