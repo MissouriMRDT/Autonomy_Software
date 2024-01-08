@@ -30,69 +30,191 @@
 template<class T>
 class AutonomyThread
 {
-    private:
-        // Declare and define interface class private member variables.
-        BS::thread_pool m_thMainThread = BS::thread_pool(1);
-        BS::thread_pool m_thPool       = BS::thread_pool(2);
-        std::vector<std::future<T>> m_vPoolReturns;
-        std::atomic_bool m_bStopThreads;
-        bool m_bThreadIsRunning;
-        int m_nMainThreadMaxIterationPerSecond;
+    public:
+        /////////////////////////////////////////
+        // Define public enumerators specific to this class.
+        /////////////////////////////////////////
 
-        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
-        virtual T PooledLinearCode()          = 0;    // This is where user's offshoot, highly parallelizable code will go. Helpful for intensive short-lived tasks.
-                                                      // Can be ran from inside the ThreadedContinuousCode() method.
+        // Define an enum for storing this classes state.
+        enum AutonomyThreadState
+        {
+            eStarting,
+            eRunning,
+            eStopping,
+            eStopped
+        };
 
-        // Declare and define private interface methods.
+        /////////////////////////////////////////
+        // Declare and define public class methods.
+        /////////////////////////////////////////
         /******************************************************************************
-         * @brief This method is ran in a separate thread. It is a middleware between the
-         *      class member thread and the user code that handles graceful stopping of
-         *      user code. This method is intentionally designed to not return anything.
+         * @brief Construct a new Autonomy Thread object.
          *
-         * @param bStopThread - Atomic shared variable that signals the thread to stop iterating.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-12-30
+         ******************************************************************************/
+        AutonomyThread()
+        {
+            // Initialize member variables.
+            m_bStopThreads                     = false;
+            m_eThreadState                     = eStopped;
+            m_nMainThreadMaxIterationPerSecond = 0;
+        }
+
+        /******************************************************************************
+         * @brief Destroy the Autonomy Thread object. If the parent object or main thread
+         *      is destroyed or exited while this thread is still running, a race condition
+         *      will occur. Stopping and joining the thread here insures that the main
+         *      program can't exit if the user forgot to stop and join the thread.
+         *
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-07-24
+         * @date 2023-07-23
          ******************************************************************************/
-        void RunThread(std::atomic_bool& bStopThread)
+        virtual ~AutonomyThread()
         {
-            // Declare instance variables.
-            std::chrono::_V2::system_clock::time_point tmStartTime;
+            // Tell all threads to stop executing user code.
+            m_bStopThreads = true;
+            // Update thread state.
+            m_eThreadState = eStopping;
 
-            // Loop until stop flag is set.
-            while (!bStopThread)
+            // Pause and clear pool queues.
+            m_thPool.pause();
+            m_thPool.purge();
+            m_thMainThread.pause();
+            m_thMainThread.purge();
+
+            // Wait for all pools to finish.
+            m_thPool.wait_for_tasks();
+            m_thMainThread.wait_for_tasks();
+            // Update thread state.
+            m_eThreadState = eStopped;
+        }
+
+        /******************************************************************************
+         * @brief When this method is called, it starts a new thread that runs the
+         *      code within the ThreadedContinuousCode method. This is the users
+         *      main code that will run the important and continuous code for the class.
+         *
+         *      If this method is called directly after itself, RunPool(), or RunDetachedPool(), it will signal
+         *      for those threads to stop and wait until they exit on their next iteration. Any
+         *      number of tasks that are still queued will be cleared. Old results will be destroyed.
+         *      If you want to wait until they fully execute their code, then call the Join()
+         *      method before starting a new thread.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-07-22
+         ******************************************************************************/
+        void Start()
+        {
+            // Tell any open thread to stop.
+            m_bStopThreads = true;
+            // Update thread state.
+            m_eThreadState = eStopping;
+
+            // Pause queuing of new tasks to the threads, then purge them.
+            m_thPool.pause();
+            m_thPool.purge();
+            m_thMainThread.pause();
+            m_thMainThread.purge();
+
+            // Wait for loop, pool and main thread to join.
+            this->Join();
+
+            // Update thread state.
+            m_eThreadState = eStarting;
+            // Clear results vector.
+            m_vPoolReturns.clear();
+            // Reset thread stop toggle.
+            m_bStopThreads = false;
+
+            // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
+            std::future<void> fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
+
+            // Unpause pool queues.
+            m_thPool.unpause();
+            m_thMainThread.unpause();
+        }
+
+        /******************************************************************************
+         * @brief Signals threads to stop executing user code, terminate. DOES NOT JOIN.
+         *      This method will not force the thread to exit, if the user code is not
+         *      written properly and contains WHILE statement or any other long-executing
+         *      or blocking code, then the thread will not exit until the next iteration.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-07-22
+         ******************************************************************************/
+        void RequestStop()
+        {
+            // Signal for any open threads to stop executing,
+            m_bStopThreads = true;
+            // Update thread state.
+            m_eThreadState = eStopping;
+        }
+
+        /******************************************************************************
+         * @brief Waits for thread to finish executing and then closes thread.
+         *      This method will block the calling code until thread is finished.
+         *
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-07-22
+         ******************************************************************************/
+        void Join()
+        {
+            // Wait for pool to finish all tasks.
+            m_thPool.wait_for_tasks();
+            // Wait for main thread to finish.
+            m_thMainThread.wait_for_tasks();
+
+            // Update thread state.
+            m_eThreadState = eStopped;
+        }
+
+        /******************************************************************************
+         * @brief Check if the code within the thread and all pools created by it are
+         *       finished executing and the thread is ready to be closed.
+         *
+         * @return true - The thread is finished and joinable.
+         * @return false - The thread is still running code.
+         *
+         * @author ClayJay3 (claytonraycowen@gmail.com)
+         * @date 2023-07-22
+         ******************************************************************************/
+        bool Joinable() const
+        {
+            // Check current number of running and queued tasks.
+            if (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() <= 0)
             {
-                // Check if max IPS limit has been set.
-                if (m_nMainThreadMaxIterationPerSecond > 0)
-                {
-                    // Get start execution time.
-                    tmStartTime = std::chrono::high_resolution_clock::now();
-                }
-
-                // Call method containing user code.
-                this->ThreadedContinuousCode();
-
-                // Check if max IPS limit has been set.
-                if (m_nMainThreadMaxIterationPerSecond > 0)
-                {
-                    // Get end execution time.
-                    std::chrono::_V2::system_clock::time_point tmEndTime = std::chrono::high_resolution_clock::now();
-                    // Get execution time of user code.
-                    std::chrono::microseconds tmElapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(tmEndTime - tmStartTime);
-                    // Check if the elapsed time is slower than the max iterations per seconds.
-                    if (tmElapsedTime.count() < (1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000)
-                    {
-                        // Calculate the time to wait to stay under IPS cap.
-                        int nSleepTime = ((1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000) - tmElapsedTime.count();
-                        // Make this thread sleep for the remaining time.
-                        std::this_thread::sleep_for(std::chrono::microseconds(nSleepTime));
-                    }
-                }
+                // Threads are joinable.
+                return true;
+            }
+            else
+            {
+                // Threads are still running.
+                return false;
             }
         }
 
+        /******************************************************************************
+         * @brief Accessor for the Threads State private member.
+         *
+         * @return AutonomyThreadState - The current state of the main thread.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-01-08
+         ******************************************************************************/
+        AutonomyThreadState GetThreadState() const { return m_eThreadState; }
+
     protected:
+        /////////////////////////////////////////
+        // Declare and define protected class methods.
+        /////////////////////////////////////////
+
         /******************************************************************************
          * @brief When this method is called, it starts/adds tasks to a thread pool that runs nNumTasksToQueue
          *      copies of the code within the PooledLinearCode() method using nNumThreads number of threads. This is meant to be
@@ -414,159 +536,81 @@ class AutonomyThread
             return m_nMainThreadMaxIterationPerSecond;
         }
 
-    public:
-        /******************************************************************************
-         * @brief Construct a new Autonomy Thread object.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-12-30
-         ******************************************************************************/
-        AutonomyThread()
-        {
-            // Initialize member variables.
-            m_bStopThreads                     = false;
-            m_bThreadIsRunning                 = false;
-            m_nMainThreadMaxIterationPerSecond = 0;
-        }
+    private:
+        /////////////////////////////////////////
+        // Declare private class member variables.
+        /////////////////////////////////////////
 
+        BS::thread_pool m_thMainThread = BS::thread_pool(1);
+        BS::thread_pool m_thPool       = BS::thread_pool(2);
+        std::vector<std::future<T>> m_vPoolReturns;
+        std::atomic_bool m_bStopThreads;
+        std::atomic<AutonomyThreadState> m_eThreadState;
+        int m_nMainThreadMaxIterationPerSecond;
+
+        /////////////////////////////////////////
+        // Declare and/or define private methods.
+        /////////////////////////////////////////
+
+        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
+        virtual void ThreadedContinuousCode() = 0;    // This is where user's main single threaded and continuously looping code will go.
+        virtual T PooledLinearCode()          = 0;    // This is where user's offshoot, highly parallelizable code will go. Helpful for intensive short-lived tasks.
+                                                      // Can be ran from inside the ThreadedContinuousCode() method.
+
+        // Declare and define private interface methods.
         /******************************************************************************
-         * @brief Destroy the Autonomy Thread object. If the parent object or main thread
-         *      is destroyed or exited while this thread is still running, a race condition
-         *      will occur. Stopping and joining the thread here insures that the main
-         *      program can't exit if the user forgot to stop and join the thread.
+         * @brief This method is ran in a separate thread. It is a middleware between the
+         *      class member thread and the user code that handles graceful stopping of
+         *      user code. This method is intentionally designed to not return anything.
          *
+         * @param bStopThread - Atomic shared variable that signals the thread to stop iterating.
          *
          * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-07-23
+         * @date 2023-07-24
          ******************************************************************************/
-        virtual ~AutonomyThread()
+        void RunThread(std::atomic_bool& bStopThread)
         {
-            // Tell all threads to stop executing user code.
-            m_bStopThreads = true;
+            // Declare instance variables.
+            std::chrono::_V2::system_clock::time_point tmStartTime;
 
-            // Pause and clear pool queues.
-            m_thPool.pause();
-            m_thPool.purge();
-            m_thMainThread.pause();
-            m_thMainThread.purge();
-
-            // Wait for all pools to finish.
-            m_thPool.wait_for_tasks();
-            m_thMainThread.wait_for_tasks();
-        }
-
-        /******************************************************************************
-         * @brief When this method is called, it starts a new thread that runs the
-         *      code within the ThreadedContinuousCode method. This is the users
-         *      main code that will run the important and continuous code for the class.
-         *
-         *      If this method is called directly after itself, RunPool(), or RunDetachedPool(), it will signal
-         *      for those threads to stop and wait until they exit on their next iteration. Any
-         *      number of tasks that are still queued will be cleared. Old results will be destroyed.
-         *      If you want to wait until they fully execute their code, then call the Join()
-         *      method before starting a new thread.
-         *
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-07-22
-         ******************************************************************************/
-        void Start()
-        {
-            // Tell any open thread to stop.
-            m_bStopThreads = true;
-
-            // Pause queuing of new tasks to the threads, then purge them.
-            m_thPool.pause();
-            m_thPool.purge();
-            m_thMainThread.pause();
-            m_thMainThread.purge();
-
-            // Wait for loop, pool and main thread to join.
-            this->Join();
-
-            // Clear results vector.
-            m_vPoolReturns.clear();
-            // Reset thread stop toggle.
-            m_bStopThreads = false;
-
-            // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
-            std::future<void> fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
-
-            // Unpause pool queues.
-            m_thPool.unpause();
-            m_thMainThread.unpause();
-
-            // Set thread running toggle.
-            m_bThreadIsRunning = true;
-        }
-
-        /******************************************************************************
-         * @brief Signals threads to stop executing user code, terminate. DOES NOT JOIN.
-         *      This method will not force the thread to exit, if the user code is not
-         *      written properly and contains WHILE statement or any other long-executing
-         *      or blocking code, then the thread will not exit until the next iteration.
-         *
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-07-22
-         ******************************************************************************/
-        void RequestStop() { m_bStopThreads = true; }
-
-        /******************************************************************************
-         * @brief Waits for thread to finish executing and then closes thread.
-         *      This method will block the calling code until thread is finished.
-         *
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-07-22
-         ******************************************************************************/
-        void Join()
-        {
-            // Wait for pool to finish all tasks.
-            m_thPool.wait_for_tasks();
-            // Wait for main thread to finish.
-            m_thMainThread.wait_for_tasks();
-
-            // Set thread running toggle.
-            m_bThreadIsRunning = false;
-        }
-
-        /******************************************************************************
-         * @brief Check if the code within the thread and all pools created by it are
-         *       finished executing and the thread is ready to be closed.
-         *
-         * @return true - The thread is finished and joinable.
-         * @return false - The thread is still running code.
-         *
-         * @author ClayJay3 (claytonraycowen@gmail.com)
-         * @date 2023-07-22
-         ******************************************************************************/
-        bool Joinable() const
-        {
-            // Check current number of running and queued tasks.
-            if (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() <= 0)
+            // Loop until stop flag is set.
+            while (!bStopThread)
             {
-                // Threads are joinable.
-                return true;
+                // Check if max IPS limit has been set.
+                if (m_nMainThreadMaxIterationPerSecond > 0)
+                {
+                    // Get start execution time.
+                    tmStartTime = std::chrono::high_resolution_clock::now();
+                }
+
+                // Call method containing user code.
+                this->ThreadedContinuousCode();
+
+                // Check if max IPS limit has been set.
+                if (m_nMainThreadMaxIterationPerSecond > 0)
+                {
+                    // Get end execution time.
+                    std::chrono::_V2::system_clock::time_point tmEndTime = std::chrono::high_resolution_clock::now();
+                    // Get execution time of user code.
+                    std::chrono::microseconds tmElapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(tmEndTime - tmStartTime);
+                    // Check if the elapsed time is slower than the max iterations per seconds.
+                    if (tmElapsedTime.count() < (1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000)
+                    {
+                        // Calculate the time to wait to stay under IPS cap.
+                        int nSleepTime = ((1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000) - tmElapsedTime.count();
+                        // Make this thread sleep for the remaining time.
+                        std::this_thread::sleep_for(std::chrono::microseconds(nSleepTime));
+                    }
+                }
             }
-            else
+
+            // Check if thread state needs to be updated.
+            if (m_eThreadState != eRunning && m_eThreadState != eStopping)
             {
-                // Threads are still running.
-                return false;
+                // Update thread state to running.
+                m_eThreadState = eRunning;
             }
         }
-
-        /******************************************************************************
-         * @brief Accessor for the Threads Are Running private member.
-         *
-         * @return true - The main thread has been started and is running.
-         * @return false - All threads are stopped and joined.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-01-04
-         ******************************************************************************/
-        bool GetThreadsAreRunning() const { return m_bThreadIsRunning; }
 };
 
 #endif

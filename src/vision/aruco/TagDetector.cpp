@@ -597,7 +597,7 @@ void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& 
  ******************************************************************************/
 void TagDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
 {
-    m_bEnableRecordingFlag.store(bEnableRecordingFlag);
+    m_bEnableRecordingFlag = bEnableRecordingFlag;
 }
 
 /******************************************************************************
@@ -629,7 +629,7 @@ bool TagDetector::GetIsReady()
     bool bDetectorIsReady = false;
 
     // Check if this detectors thread is currently running.
-    if (this->GetThreadsAreRunning())
+    if (this->GetThreadState() == eRunning)
     {
         // Check if using ZEDCam or BasicCam.
         if (m_bUsingZedCamera)
@@ -667,7 +667,7 @@ bool TagDetector::GetIsReady()
  ******************************************************************************/
 bool TagDetector::GetEnableRecordingFlag() const
 {
-    return m_bEnableRecordingFlag.load();
+    return m_bEnableRecordingFlag;
 }
 
 /******************************************************************************
