@@ -430,11 +430,6 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                                   pTagDetector->GetCameraName());
                     }
                 }
-                else
-                {
-                    // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "Unable to create VideoWriter output directory {}: it already exists.", szFilePath.string());
-                }
 
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
