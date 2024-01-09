@@ -602,13 +602,13 @@ class AutonomyThread
                         std::this_thread::sleep_for(std::chrono::microseconds(nSleepTime));
                     }
                 }
-            }
 
-            // Check if thread state needs to be updated.
-            if (m_eThreadState != eRunning && m_eThreadState != eStopping)
-            {
-                // Update thread state to running.
-                m_eThreadState = eRunning;
+                // Check if thread state needs to be updated.
+                if (m_eThreadState != eRunning && m_eThreadState != eStopping)
+                {
+                    // Update thread state to running.
+                    m_eThreadState = eRunning;
+                }
             }
         }
 };
