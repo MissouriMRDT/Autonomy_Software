@@ -151,7 +151,7 @@ void TagDetector::ThreadedContinuousCode()
 
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
-                         "Camera start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
+                         "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
                          dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraSerial());
         }
     }
@@ -167,7 +167,7 @@ void TagDetector::ThreadedContinuousCode()
 
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
-                         "Camera start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
+                         "TagDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
                          dynamic_cast<BasicCam*>(m_pCamera)->GetCameraLocation());
         }
     }

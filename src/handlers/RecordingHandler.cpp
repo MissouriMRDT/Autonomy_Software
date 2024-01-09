@@ -187,7 +187,7 @@ void RecordingHandler::UpdateRecordableCameras()
                 else
                 {
                     // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "Unable to create VideoWriter output directory {}: it already exists.", szFilePath.string());
+                    LOG_DEBUG(logging::g_qSharedLogger, "Not creating VideoWriter output directory {}: it already exists.", szFilePath.string());
                 }
 
                 // Construct the full output path.
@@ -255,6 +255,10 @@ void RecordingHandler::UpdateRecordableCameras()
                                   pZEDCamera->GetCameraModel(),
                                   pZEDCamera->GetCameraSerial());
                     }
+                }
+                {
+                    // Submit logger message.
+                    LOG_DEBUG(logging::g_qSharedLogger, "Not creating VideoWriter output directory {}: it already exists.", szFilePath.string());
                 }
 
                 // Construct the full output path.
