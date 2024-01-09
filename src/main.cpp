@@ -108,9 +108,32 @@ int main()
 
         // TODO: Initialize RoveComm.
 
-        // Loop until user sends sigkill or sigterm.
+        /*
+            This while loop is the main periodic loop for the Autonomy_Software program.
+            Loop until user sends sigkill or sigterm.
+        */
         while (!bMainStop)
-        {}
+        {
+            // No need to loop as fast as possible. Sleep...
+            // Only run this main thread once every 20ms.
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+            // Get Camera and Tag detector pointers .
+            BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
+            BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
+            TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
+            TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+            // Create a string to append FPS values to.
+            std::string szThreadsFPS = "";
+            // Get FPS of all cameras and detectors and construct the info into a string.
+            szThreadsFPS += "--------[ Threads FPS ]--------\n";
+            szThreadsFPS += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+            szThreadsFPS += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szThreadsFPS += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+            szThreadsFPS += "RightDetector GPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            // Submit logger message.
+            LOG_INFO(logging::g_qConsoleLogger, "{}", szThreadsFPS);
+        }
 
         /////////////////////////////////////////
         // Cleanup.
@@ -120,12 +143,12 @@ int main()
         globals::g_pCameraHandler->StopAllCameras();
 
         // Delete dynamically allocated objects.
-        delete globals::g_pCameraHandler;
         delete globals::g_pTagDetectionHandler;
+        delete globals::g_pCameraHandler;
 
         // Set dangling pointers to null.
-        globals::g_pCameraHandler       = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
+        globals::g_pCameraHandler       = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.
