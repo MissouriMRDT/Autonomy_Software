@@ -61,6 +61,7 @@ class TagDetector : public AutonomyThread<void>
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
+        ~TagDetector();
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
@@ -93,8 +94,9 @@ class TagDetector : public AutonomyThread<void>
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         int m_nNumDetectedTagsRetrievalThreads;
-        IPS m_IPS;
+        std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
+        IPS m_IPS;
 
         // Detected tags storage.
 
