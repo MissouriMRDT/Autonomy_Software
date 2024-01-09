@@ -46,6 +46,9 @@ void SignalHandler(int nSignal)
     // Check signal type.
     if (nSignal == SIGINT)
     {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "Ctrl+C received. Cleaning up...");
+
         // Update stop signal.
         bMainStop = true;
     }
@@ -75,7 +78,11 @@ int main()
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
     // Setup signal interrupt handler.
-    std::signal(SIGINT, SignalHandler);
+    struct sigaction stSigBreak;
+    stSigBreak.sa_handler = SignalHandler;
+    stSigBreak.sa_flags   = 0;
+    sigemptyset(&stSigBreak.sa_mask);
+    sigaction(SIGINT, &stSigBreak, nullptr);
 
     // Initialize Loggers
     logging::InitializeLoggers();
@@ -102,25 +109,26 @@ int main()
 
         // Loop until user sends sigkill or sigterm.
         while (!bMainStop)
-        {
-            // Do nothing.
-        }
+        {}
 
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
         // Stop handlers.
-        globals::g_pCameraHandler->StopAllCameras();
         globals::g_pTagDetectionHandler->StopAllDetectors();
+        globals::g_pCameraHandler->StopAllCameras();
 
-        // // Delete dynamically allocated objects.
+        // Delete dynamically allocated objects.
         delete globals::g_pCameraHandler;
         delete globals::g_pTagDetectionHandler;
 
-        // // Set dangling pointers to null.
+        // Set dangling pointers to null.
         globals::g_pCameraHandler       = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
     }
+
+    // Submit logger message that program is done cleaning up and is now exiting.
+    LOG_INFO(logging::g_qSharedLogger, "Exiting...");
 
     // Successful exit.
     return 0;
