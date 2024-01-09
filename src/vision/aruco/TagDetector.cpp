@@ -57,6 +57,9 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera at path/index: {}", m_szCameraName);
 }
 
 /******************************************************************************
@@ -105,6 +108,9 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera: {}", m_szCameraName);
 }
 
 /******************************************************************************
