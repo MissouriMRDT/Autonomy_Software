@@ -13,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
@@ -128,7 +129,7 @@ int main()
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.
-    LOG_INFO(logging::g_qSharedLogger, "Exiting...");
+    LOG_INFO(logging::g_qSharedLogger, "Clean up finished. Exiting...");
 
     // Successful exit.
     return 0;
