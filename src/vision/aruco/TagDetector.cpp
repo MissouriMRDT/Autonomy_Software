@@ -39,12 +39,13 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
                          const bool bUsingGpuMats)
 {
     // Initialize member variables.
-    m_pCamera                          = dynamic_cast<BasicCam*>(pBasicCam);
+    m_pCamera                          = pBasicCam;
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
-    m_IPS                              = IPS();
+    m_szCameraName                     = dynamic_cast<BasicCam*>(pBasicCam)->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
+    m_IPS                              = IPS();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -56,6 +57,9 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera at path/index: {}", m_szCameraName);
 }
 
 /******************************************************************************
@@ -86,11 +90,13 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
                          const bool bUsingGpuMats)
 {
     // Initialize member variables.
-    m_pCamera                          = dynamic_cast<ZEDCam*>(pZEDCam);
-    m_bUsingZedCamera                  = true;    // Toggle ZED functions on.
+    m_pCamera                          = pZEDCam;
+    m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
+    m_szCameraName                     = dynamic_cast<ZEDCam*>(pZEDCam)->GetCameraModel() + "_" + std::to_string(dynamic_cast<ZEDCam*>(pZEDCam)->GetCameraSerial());
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
+    m_IPS                              = IPS();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -102,6 +108,26 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera: {}", m_szCameraName);
+}
+
+/******************************************************************************
+ * @brief Destroy the Tag Detector:: Tag Detector object.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-09
+ ******************************************************************************/
+TagDetector::~TagDetector()
+{
+    // Stop threaded code.
+    this->RequestStop();
+    this->Join();
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully stopped.", this->GetCameraName());
 }
 
 /******************************************************************************
@@ -131,7 +157,7 @@ void TagDetector::ThreadedContinuousCode()
 
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
-                         "Camera start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
+                         "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
                          dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraSerial());
         }
     }
@@ -147,7 +173,7 @@ void TagDetector::ThreadedContinuousCode()
 
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
-                         "Camera start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
+                         "TagDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
                          dynamic_cast<BasicCam*>(m_pCamera)->GetCameraLocation());
         }
     }
@@ -597,7 +623,7 @@ void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& 
  ******************************************************************************/
 void TagDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
 {
-    m_bEnableRecordingFlag.store(bEnableRecordingFlag);
+    m_bEnableRecordingFlag = bEnableRecordingFlag;
 }
 
 /******************************************************************************
@@ -629,7 +655,7 @@ bool TagDetector::GetIsReady()
     bool bDetectorIsReady = false;
 
     // Check if this detectors thread is currently running.
-    if (this->GetThreadsAreRunning())
+    if (this->GetThreadState() == eRunning)
     {
         // Check if using ZEDCam or BasicCam.
         if (m_bUsingZedCamera)
@@ -667,7 +693,7 @@ bool TagDetector::GetIsReady()
  ******************************************************************************/
 bool TagDetector::GetEnableRecordingFlag() const
 {
-    return m_bEnableRecordingFlag.load();
+    return m_bEnableRecordingFlag;
 }
 
 /******************************************************************************
@@ -680,24 +706,7 @@ bool TagDetector::GetEnableRecordingFlag() const
  ******************************************************************************/
 std::string TagDetector::GetCameraName()
 {
-    // Create instance variables.
-    std::string szCameraName;
-
-    // Check if using a ZED camera.
-    if (m_bUsingZedCamera)
-    {
-        // Concatenate camera model name and serial number.
-        szCameraName = dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraModel() + "_";
-        szCameraName += dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraSerial();
-    }
-    else
-    {
-        // Concatenate camera path or index.
-        szCameraName = dynamic_cast<BasicCam*>(m_pCamera)->GetCameraLocation();
-    }
-
-    // Return camera name.
-    return szCameraName;
+    return m_szCameraName;
 }
 
 /******************************************************************************
