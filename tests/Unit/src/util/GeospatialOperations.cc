@@ -8,9 +8,12 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../../../src/util/GeospatialOperations.hpp"
+
+/// \cond
 #include <gtest/gtest.h>
 
-#include "../../../../src/util/GeospatialOperations.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief Test the functionality of the ConvertGPStoUTM function. Also tests functionality

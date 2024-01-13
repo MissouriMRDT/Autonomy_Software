@@ -8,11 +8,14 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../../../src/algorithms/DifferentialDrive.hpp"
+
+/// \cond
 #include <array>
 #include <chrono>
 #include <gtest/gtest.h>
 
-#include "../../../../src/algorithms/DifferentialDrive.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief Test DifferentialDrive TankDrive functionality.

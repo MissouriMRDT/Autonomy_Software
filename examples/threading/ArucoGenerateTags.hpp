@@ -9,13 +9,16 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../src/interfaces/AutonomyThread.hpp"
+#include "../../src/util/ExampleChecker.h"
+#include "../opencv/TagGenerator.hpp"
+
+/// \cond
 #include <chrono>
 #include <filesystem>
 #include <iostream>
 
-#include "../../src/interfaces/AutonomyThread.hpp"
-#include "../../src/util/ExampleChecker.h"
-#include "../opencv/TagGenerator.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief This class inherits the AutonomyThread interface and implements the threaded
