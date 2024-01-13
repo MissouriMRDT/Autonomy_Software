@@ -16,6 +16,7 @@
 
 #define BS_THREAD_POOL_VERSION "v3.5.0 (2023-05-25)"
 
+/// \cond
 #include <chrono>                // std::chrono
 #include <condition_variable>    // std::condition_variable
 #include <exception>             // std::current_exception
@@ -29,6 +30,8 @@
 #include <type_traits>           // std::common_type_t, std::conditional_t, std::decay_t, std::invoke_result_t, std::is_void_v
 #include <utility>               // std::forward, std::move, std::swap
 #include <vector>                // std::vector
+
+/// \endcond
 
 namespace BS
 {

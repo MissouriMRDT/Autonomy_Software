@@ -12,8 +12,11 @@
 #ifndef NUMBER_OPERATIONS_HPP
 #define NUMBER_OPERATIONS_HPP
 
+/// \cond
 #include <algorithm>
 #include <iostream>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and

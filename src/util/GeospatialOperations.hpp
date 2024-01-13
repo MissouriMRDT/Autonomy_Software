@@ -12,8 +12,11 @@
 #ifndef GEOSPATIAL_OPERATIONS_HPP
 #define GEOSPATIAL_OPERATIONS_HPP
 
+/// \cond
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/UTMUPS.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on global position number

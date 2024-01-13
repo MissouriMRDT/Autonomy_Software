@@ -13,9 +13,11 @@
 #define DRIVEBOARD_H
 
 #include "../algorithms/DifferentialDrive.hpp"
-#include "../algorithms/controllers/PIDController.h"
 
+/// \cond
 #include <array>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class handles communication with the drive board on the rover by
