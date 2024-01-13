@@ -13,7 +13,10 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
+/// \cond
 #include <filesystem>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Construct a new Recording Handler:: Recording Handler object.

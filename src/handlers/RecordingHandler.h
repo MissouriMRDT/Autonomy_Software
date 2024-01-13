@@ -16,8 +16,11 @@
 #include "../vision/cameras/BasicCam.h"
 #include "../vision/cameras/ZEDCam.h"
 
+/// \cond
 #include <opencv2/opencv.hpp>
 #include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief The RecordingHandler class serves to enumerate the cameras available from

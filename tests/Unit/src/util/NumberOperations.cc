@@ -8,11 +8,14 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../../../src/util/NumberOperations.hpp"
+
+/// \cond
 #include <chrono>
 #include <gtest/gtest.h>
 #include <thread>
 
-#include "../../../../src/util/NumberOperations.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief Test the functionality of the Clamp function.

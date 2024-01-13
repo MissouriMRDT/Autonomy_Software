@@ -11,7 +11,6 @@
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
 
-#include "AutonomyConstants.h"
 #include "IdentitySoftware.h"
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
@@ -19,6 +18,7 @@
 #include "handlers/CameraHandler.h"
 #include "handlers/TagDetectionHandler.h"
 
+/// \cond
 #include <chrono>
 #include <ctime>
 #include <iostream>
@@ -30,6 +30,7 @@
 #include <boost/statechart/transition.hpp>
 
 #include <boost/mpl/list.hpp>
+/// \endcond
 
 namespace sc  = boost::statechart;
 namespace mpl = boost::mpl;
