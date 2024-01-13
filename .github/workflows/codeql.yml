@@ -47,20 +47,20 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@master
+        uses: actions/checkout@v*
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@master
+        uses: github/codeql-action/init@v*
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@master
+        uses: github/codeql-action/autobuild@v*
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@master
+        uses: github/codeql-action/analyze@v*
         with:
           category: "/language:${{matrix.language}}"
