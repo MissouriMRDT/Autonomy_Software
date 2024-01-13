@@ -99,6 +99,10 @@ include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
+## Find TensorflowLite.
+find_package(Torch REQUIRED PATHS "/opt/libtorch")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
 ## Find flatbuffers. This is a dependency of tensorflow.
 find_package(Flatbuffers REQUIRED)
 
