@@ -11,10 +11,13 @@
 #ifndef CONSTS_H
 #define CONSTS_H
 
+#include "./interfaces/Camera.hpp"
+
+/// \cond
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
 
-#include "./interfaces/Camera.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all constants for autonomy software. Including

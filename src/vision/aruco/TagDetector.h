@@ -18,9 +18,12 @@
 #include "./ArucoDetection.hpp"
 #include "./TensorflowDetection.hpp"
 
+/// \cond
 #include <future>
 #include <shared_mutex>
 #include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Run's Aruco detection & camera pose estimation in a multithreading environment

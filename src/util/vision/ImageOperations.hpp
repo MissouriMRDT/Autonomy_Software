@@ -12,8 +12,11 @@
 #ifndef IMAGE_OPERATIONS_HPP
 #define IMAGE_OPERATIONS_HPP
 
+/// \cond
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to GENERAL operations on images or other
