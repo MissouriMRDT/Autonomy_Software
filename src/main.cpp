@@ -15,6 +15,7 @@
 #include <string>
 #include <thread>
 
+#include "../examples/vision/dnn/InferenceYOLOModel.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./interfaces/StateMachine.hpp"

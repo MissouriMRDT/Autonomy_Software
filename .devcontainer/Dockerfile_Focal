@@ -16,6 +16,8 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 ARG CMAKE_VERSION="3.27.9"
 ARG OPENCV_VERSION="4.8.1"
+ARG TORCH_VERSION="2.0.1"
+ARG TORCH_CUDA_VERSION="cu117"
 ARG TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
 ARG TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
 ARG TENSORFLOW_BAZEL_VERSION="6.1.0"
@@ -61,7 +63,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-utils iputi
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
     vim-common gasket-dkms bazel-${TENSORFLOW_BAZEL_VERSION} 
-    #libedgetpu1-std libedgetpu-dev
 
 # Symbolically link bazel-(version) install to /usr/bin/bazel.
 RUN ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
@@ -132,6 +133,11 @@ RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/ope
     cd ../.. && \
     rm -rf opencv_contrib && rm -rf opencv
 
+# Install PyTorch from LibTorch Builds.
+RUN wget -q -O torch.zip https://download.pytorch.org/libtorch/${TORCH_CUDA_VERSION}/libtorch-cxx11-abi-shared-with-deps-${TORCH_VERSION}%2B${TORCH_CUDA_VERSION}.zip && \
+    unzip -q torch.zip && \
+    rm -rf torch.zip
+
 # Install Tensorflow Lite from Source
 RUN wget -q https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
     unzip -q ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
@@ -159,7 +165,8 @@ RUN cd /opt/tensorflow/bazel-tensorflow/external/flatbuffers && \
     make install && \
     # CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
     cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
-    cd /opt
+    cd /opt && \
+    rm -rf /opt/tensorflow
 
 # Install Abseil-CPP
 RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
@@ -169,7 +176,8 @@ RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abs
     make -j && \
     make install && \
     cp /usr/local/lib/libabsl* /usr/lib/ && \
-    cd /opt
+    cd /opt && \
+    rm -rf /opt/abseil-cpp
 
 # Install Libedgetpu
 RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
@@ -180,7 +188,8 @@ RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
     cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
     ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
     mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt
+    cd /opt && \
+    rm -rf /opt/libedgetpu
 
 # Install GeographicLib from Source
 RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
