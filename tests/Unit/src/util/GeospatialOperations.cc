@@ -117,7 +117,7 @@ TEST(GeoOpsTest, ConvertUTMtoGPS)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-13
  ******************************************************************************/
-TEST(GeoOpsTest, CalculateGeoDistance)
+TEST(GeoOpsTest, CalculateGeoDistanceGPS)
 {
     // Initialize coordinates.
     geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
@@ -126,7 +126,7 @@ TEST(GeoOpsTest, CalculateGeoDistance)
     geoops::GPSCoordinate stGPSSDELC2(37.951670, -91.778537);
     geoops::GPSCoordinate stGPSSDELC3(37.950635, -91.782465);
 
-    // Convert GPS coordinates to UTM coordinate.
+    // Convert UTM coordinates to GPS coordinate.
     geoops::GPSCoordinate stGPSRollaCoordinate = geoops::ConvertUTMToGPS(stUTMRollaCoordinate);
     geoops::GPSCoordinate stGPSMDRSCoordinate  = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
 
@@ -147,4 +147,34 @@ TEST(GeoOpsTest, CalculateGeoDistance)
     // Check distance calculation.
     EXPECT_NEAR(dDistance3, 386.61, 0.02);
     EXPECT_NEAR(dDegrees3, 0.003, 0.002);
+}
+
+/******************************************************************************
+ * @brief Test the functionality of the CalculateGeoDistance function. Also tests functionality
+ *      of GPS and UTM Coordinate structs.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-13
+ ******************************************************************************/
+TEST(GeoOpsTest, CalculateGeoDistanceUTM)
+{
+    // Initialize coordinates.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+    geoops::UTMCoordinate stUTMMDRSCoordinate(519116.71, 3807223.16, 12, true);
+
+    // Convert UTM coordinates to GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate = geoops::ConvertUTMToGPS(stUTMRollaCoordinate);
+    geoops::GPSCoordinate stGPSMDRSCoordinate  = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
+
+    // Calculate meter distance between the first two GPS points.
+    auto [dDistance1, dDegrees1] = geoops::CalculateGeoDistance(stGPSRollaCoordinate, stGPSMDRSCoordinate);
+    // Check distance calculation.
+    EXPECT_NEAR(dDistance1, 1749794.40, 0.02);
+    EXPECT_NEAR(dDegrees1, 15.77, 0.02);
+    // Calculate meter distance between the first two GPS points.
+    auto [dDistance2, dDegrees2] = geoops::CalculateGeoDistance(stUTMRollaCoordinate, stUTMMDRSCoordinate);
+    // Check distance calculation.
+    EXPECT_NEAR(dDistance2, 1749794.40, 0.02);
+    EXPECT_NEAR(dDegrees2, 15.77, 0.02);
 }
