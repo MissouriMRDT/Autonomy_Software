@@ -250,7 +250,7 @@ namespace geoops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-12
      ******************************************************************************/
-    inline UTMCoordinate ConvertGPSToUTM(GPSCoordinate stGPSCoord)
+    inline UTMCoordinate ConvertGPSToUTM(const GPSCoordinate& stGPSCoord)
     {
         // Create instance variables.
         UTMCoordinate stConvertCoord;
@@ -281,7 +281,7 @@ namespace geoops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-12
      ******************************************************************************/
-    inline GPSCoordinate ConvertUTMToGPS(UTMCoordinate stUTMCoord)
+    inline GPSCoordinate ConvertUTMToGPS(const UTMCoordinate& stUTMCoord)
     {
         // Create instance variables.
         GPSCoordinate stConvertCoord;
@@ -316,7 +316,7 @@ namespace geoops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-13
      ******************************************************************************/
-    inline GeoDistance CalculateGeoDistance(const GPSCoordinate stCoord1, const GPSCoordinate stCoord2)
+    inline GeoDistance CalculateGeoDistance(const GPSCoordinate& stCoord1, const GPSCoordinate& stCoord2)
     {
         // Create instance variables.
         GeoDistance stDistances;
@@ -326,6 +326,39 @@ namespace geoops
 
         // Solve the inverse geodesic.
         stDistances.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude, stCoord1.dLongitude, stCoord2.dLatitude, stCoord2.dLongitude, stDistances.dDistanceMeters);
+
+        // Return result distance.
+        return stDistances;
+    }
+
+    /******************************************************************************
+     * @brief The shortest path between two points on an ellipsoid at (easting1, northing1) and (easting2, northing2) is called the geodesic.
+     *      Given those two points create an ellipsoid with earth's characteristics and find the distance between them.
+     *
+     * @param stCoord1 - The first UTM coordinate.
+     * @param stCoord2 - The second UTM coordinate.
+     * @return GeoDistance - Struct containing the distance in meters and arc length degrees.
+     *
+     * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-01-14
+     ******************************************************************************/
+    inline GeoDistance CalculateGeoDistance(const UTMCoordinate& stCoord1, const UTMCoordinate& stCoord2)
+    {
+        // Create instance variables.
+        GeoDistance stDistances;
+
+        // Construct a geodesic with earth characteristics.
+        GeographicLib::Geodesic geGeodesic(dEarthAverageRadius, dEarthEllipsoidFlattening);
+
+        // Convert the given UTM coords into GPS coords for temporary use.
+        GPSCoordinate stGPSCoord1 = ConvertUTMToGPS(stCoord1);
+        GPSCoordinate stGPSCoord2 = ConvertUTMToGPS(stCoord2);
+
+        // Solve the inverse geodesic.
+        stDistances.dArcLengthDegrees =
+            geGeodesic.Inverse(stGPSCoord1.dLatitude, stGPSCoord1.dLongitude, stGPSCoord2.dLatitude, stGPSCoord2.dLongitude, stDistances.dDistanceMeters);
 
         // Return result distance.
         return stDistances;
