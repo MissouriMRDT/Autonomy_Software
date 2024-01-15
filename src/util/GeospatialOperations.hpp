@@ -31,9 +31,6 @@ namespace geoops
     /////////////////////////////////////////
     // Declare public variables.
     /////////////////////////////////////////
-    // Constants retrieved from: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html
-    const double dEarthAverageRadius       = 6371000.0;    // Earth's radius in meters.
-    const double dEarthEllipsoidFlattening = 0.003353;     // The flattening factor of the earth due to its spin.
 
     /******************************************************************************
      * @brief This struct is used to store the distance and arc length for a calculated
@@ -321,8 +318,9 @@ namespace geoops
         // Create instance variables.
         GeoDistance stDistances;
 
-        // Construct a geodesic with earth characteristics.
-        GeographicLib::Geodesic geGeodesic(dEarthAverageRadius, dEarthEllipsoidFlattening);
+        // Construct a geodesic with earth characteristics. (Radius and flattening)
+        // The WGS84 standard is widely used and aligns with Google Maps.
+        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
 
         // Solve the inverse geodesic.
         stDistances.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude, stCoord1.dLongitude, stCoord2.dLatitude, stCoord2.dLongitude, stDistances.dDistanceMeters);
@@ -349,8 +347,9 @@ namespace geoops
         // Create instance variables.
         GeoDistance stDistances;
 
-        // Construct a geodesic with earth characteristics.
-        GeographicLib::Geodesic geGeodesic(dEarthAverageRadius, dEarthEllipsoidFlattening);
+        // Construct a geodesic with earth characteristics. (Radius and flattening)
+        // The WGS84 standard is widely used and aligns with Google Maps.
+        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
 
         // Convert the given UTM coords into GPS coords for temporary use.
         GPSCoordinate stGPSCoord1 = ConvertUTMToGPS(stCoord1);
