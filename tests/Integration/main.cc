@@ -8,7 +8,10 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+/// \cond
 #include <gtest/gtest.h>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Integration Tests - Main Function
