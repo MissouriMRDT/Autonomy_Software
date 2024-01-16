@@ -163,6 +163,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Check if the camera was successfully opened.
     if (m_slCamera.isOpened())
     {
+        // Update camera serial number if camera was opened with autodetect.
+        m_unCameraSerialNumber = m_slCamera.getCameraInformation().serial_number;
+
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{} stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
     }
@@ -1112,23 +1115,17 @@ bool ZEDCam::GetUsingGPUMem() const
  ******************************************************************************/
 std::string ZEDCam::GetCameraModel()
 {
-    // Declare instance variables.
-    std::string szCameraModel;
-
     // Check if the camera is opened.
     if (m_slCamera.isOpened())
     {
-        // Convert camera model to a string.
-        szCameraModel = sl::toString(m_slCamera.getCameraInformation().camera_model).get();
+        // Convert camera model to a string and return.
+        return sl::toString(m_slCamera.getCameraInformation().camera_model).get();
     }
     else
     {
-        // Set the model string to show camera isn't opened.
-        szCameraModel = "NOT_OPENED";
+        // Return the model string to show camera isn't opened.
+        return "NOT_OPENED";
     }
-
-    // Return model of camera represented as string.
-    return szCameraModel;
 }
 
 /******************************************************************************
@@ -1141,7 +1138,7 @@ std::string ZEDCam::GetCameraModel()
  ******************************************************************************/
 unsigned int ZEDCam::GetCameraSerial()
 {
-    // Return connected camera serial number.
+    // Return the model string to show camera isn't opened.
     return m_unCameraSerialNumber;
 }
 

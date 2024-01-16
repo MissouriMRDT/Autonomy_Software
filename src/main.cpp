@@ -112,16 +112,20 @@ int main()
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
             // Get Camera and Tag detector pointers .
+            ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
             BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
             BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
+            TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
             TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
             TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
             // Create a string to append FPS values to.
             std::string szThreadsFPS = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szThreadsFPS += "--------[ Threads FPS ]--------\n";
+            szThreadsFPS += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szThreadsFPS += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "RightDetector GPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
             // Submit logger message.
