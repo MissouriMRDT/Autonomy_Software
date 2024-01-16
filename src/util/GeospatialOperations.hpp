@@ -33,20 +33,24 @@ namespace geoops
     /////////////////////////////////////////
 
     /******************************************************************************
-     * @brief This struct is used to store the distance and arc length for a calculated
-     *      geographic distance. Storing these values in a struct allows for easy
+     * @brief This struct is used to store the distance, arc length, and relative heading for a calculated
+     *      geodesic between two points. Storing these values in a struct allows for easy
      *      handling and access to said variables.
      *
+     * @note The arc length degree measurement is always from the first to second point.
+     *      The relative heading measurements are always CW positive with North being zero.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-13
      ******************************************************************************/
-    struct GeoDistance
+    struct GeoMeasurement
     {
         public:
             // Define public struct attributes.
-            double dDistanceMeters;
-            double dArcLengthDegrees;
+            double dDistanceMeters;          // The great circle distance between the two points.
+            double dArcLengthDegrees;        // The degree measurement difference between the two points from the center of the sphere. (0, 180)
+            double dStartRelativeHeading;    // The relative heading in degrees from the first point to the second point for the shortest great circle path. (0, 360)
+            double dEndRelativeHeading;      // The relative heading in degrees from the second point to the first point for the shortest great circle path. (0, 360)
     };
 
     /******************************************************************************
@@ -306,27 +310,49 @@ namespace geoops
      *
      * @param stCoord1 - The first GPS coordinate.
      * @param stCoord2 - The second GPS coordinate.
-     * @return GeoDistance - Struct containing the distance in meters and arc length degrees.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the heading relative to the first point and second point.
      *
      * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-13
      ******************************************************************************/
-    inline GeoDistance CalculateGeoDistance(const GPSCoordinate& stCoord1, const GPSCoordinate& stCoord2)
+    inline GeoMeasurement CalculateGeoMeasurement(const GPSCoordinate& stCoord1, const GPSCoordinate& stCoord2)
     {
         // Create instance variables.
-        GeoDistance stDistances;
+        GeoMeasurement stMeasurements;
 
         // Construct a geodesic with earth characteristics. (Radius and flattening)
         // The WGS84 standard is widely used and aligns with Google Maps.
         GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
 
-        // Solve the inverse geodesic.
-        stDistances.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude, stCoord1.dLongitude, stCoord2.dLatitude, stCoord2.dLongitude, stDistances.dDistanceMeters);
+        // Solve the inverse geodesic for distance and arc length degrees at the center of the globe, and relative headings.
+        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude,
+                                                              stCoord1.dLongitude,
+                                                              stCoord2.dLatitude,
+                                                              stCoord2.dLongitude,
+                                                              stMeasurements.dDistanceMeters,
+                                                              stMeasurements.dStartRelativeHeading,
+                                                              stMeasurements.dEndRelativeHeading);
+
+        // // Map the -180, 180 range of the azimuths to 0, 360.
+        // stMeasurements.dStartRelativeHeading = std::fmod((stMeasurements.dStartRelativeHeading + 180), 360);
+        // stMeasurements.dEndRelativeHeading   = std::fmod((stMeasurements.dEndRelativeHeading + 180), 360);
+        // // Ensure the result angle is positive.
+        // if (stMeasurements.dStartRelativeHeading < 0)
+        // {
+        //     // Add 360 degrees.
+        //     stMeasurements.dStartRelativeHeading += 360;
+        // }
+        // // Ensure the result angle is positive.
+        // if (stMeasurements.dEndRelativeHeading < 0)
+        // {
+        //     // Add 360 degrees.
+        //     stMeasurements.dEndRelativeHeading += 360;
+        // }
 
         // Return result distance.
-        return stDistances;
+        return stMeasurements;
     }
 
     /******************************************************************************
@@ -335,17 +361,17 @@ namespace geoops
      *
      * @param stCoord1 - The first UTM coordinate.
      * @param stCoord2 - The second UTM coordinate.
-     * @return GeoDistance - Struct containing the distance in meters and arc length degrees.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the heading relative to the first point and second point.
      *
      * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2024-01-14
      ******************************************************************************/
-    inline GeoDistance CalculateGeoDistance(const UTMCoordinate& stCoord1, const UTMCoordinate& stCoord2)
+    inline GeoMeasurement CalculateGeoMeasurement(const UTMCoordinate& stCoord1, const UTMCoordinate& stCoord2)
     {
         // Create instance variables.
-        GeoDistance stDistances;
+        GeoMeasurement stMeasurements;
 
         // Construct a geodesic with earth characteristics. (Radius and flattening)
         // The WGS84 standard is widely used and aligns with Google Maps.
@@ -356,11 +382,32 @@ namespace geoops
         GPSCoordinate stGPSCoord2 = ConvertUTMToGPS(stCoord2);
 
         // Solve the inverse geodesic.
-        stDistances.dArcLengthDegrees =
-            geGeodesic.Inverse(stGPSCoord1.dLatitude, stGPSCoord1.dLongitude, stGPSCoord2.dLatitude, stGPSCoord2.dLongitude, stDistances.dDistanceMeters);
+        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stGPSCoord1.dLatitude,
+                                                              stGPSCoord1.dLongitude,
+                                                              stGPSCoord2.dLatitude,
+                                                              stGPSCoord2.dLongitude,
+                                                              stMeasurements.dDistanceMeters,
+                                                              stMeasurements.dStartRelativeHeading,
+                                                              stMeasurements.dEndRelativeHeading);
+
+        // // Map the -180, 180 range of the azimuths to 0, 360.
+        // stMeasurements.dStartRelativeHeading = std::fmod((stMeasurements.dStartRelativeHeading + 180), 360);
+        // stMeasurements.dEndRelativeHeading   = std::fmod((stMeasurements.dEndRelativeHeading + 180), 360);
+        // // Ensure the result angle is positive.
+        // if (stMeasurements.dStartRelativeHeading < 0)
+        // {
+        //     // Add 360 degrees.
+        //     stMeasurements.dStartRelativeHeading += 360;
+        // }
+        // // Ensure the result angle is positive.
+        // if (stMeasurements.dEndRelativeHeading < 0)
+        // {
+        //     // Add 360 degrees.
+        //     stMeasurements.dEndRelativeHeading += 360;
+        // }
 
         // Return result distance.
-        return stDistances;
+        return stMeasurements;
     }
 }    // namespace geoops
 #endif
