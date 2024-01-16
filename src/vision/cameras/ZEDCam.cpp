@@ -1144,7 +1144,7 @@ unsigned int ZEDCam::GetCameraSerial()
 
 /******************************************************************************
  * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
- *      Puts a Pose pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      Puts a Pose pointer into a queue so a copy of a pose from the camera can be written to it.
  *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
