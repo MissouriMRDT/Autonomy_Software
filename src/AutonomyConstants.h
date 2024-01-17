@@ -197,6 +197,70 @@ namespace constants
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
     ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// State Machine Constants.
+    ///////////////////////////////////////////////////////////////////////////
+    enum class States
+    {
+        Idle,
+        Navigating,
+        SearchPattern,
+        ApproachingMarker,
+        ApproachingObject,
+        VerifyingMarker,
+        VerifyingObject,
+        Avoidance,
+        Reversing,
+        Stuck,
+
+        NUM_STATES
+    };
+
+    inline std::string StateToString(States eState)
+    {
+        switch (eState)
+        {
+            case States::Idle: return "Idle";
+            case States::Navigating: return "Navigating";
+            case States::SearchPattern: return "Search Pattern";
+            case States::ApproachingMarker: return "Approaching Marker";
+            case States::ApproachingObject: return "Approaching Object";
+            case States::VerifyingMarker: return "Verifying Marker";
+            case States::VerifyingObject: return "Verifying Object";
+            case States::Avoidance: return "Avoidance";
+            case States::Reversing: return "Reversing";
+            case States::Stuck: return "Stuck";
+            default: return "Unknown";
+        }
+    }
+
+    enum class Event
+    {
+        Start,
+        ReachedGpsCoordinate,
+        ReachedMarker,
+        ReachedObject,
+        MarkerSeen,
+        ObjectSeen,
+        MarkerUnseen,
+        ObjectUnseen,
+        VerifyingComplete,
+        VerifyingFailed,
+        Abort,
+        Restart,
+        ObstacleAvoidance,
+        EndObstacleAvoidance,
+        NoWaypoint,
+        NewWaypoint,
+        Reverse,
+        ReverseComplete,
+        SearchFailed,
+        Stuck,
+
+        NUM_EVENTS
+    };
+    ///////////////////////////////////////////////////////////////////////////
 }    // namespace constants
 
 #endif    // CONSTS_H
