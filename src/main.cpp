@@ -91,9 +91,11 @@ int main()
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
+        globals::g_pStateMachineHandler = new statemachine::StateMachineHandler();
         // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
+        globals::g_pStateMachineHandler->StartStateMachine();
         // // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
@@ -125,6 +127,9 @@ int main()
             szThreadsFPS += "RightDetector GPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
             // Submit logger message.
             LOG_INFO(logging::g_qConsoleLogger, "{}", szThreadsFPS);
+
+            // Send Start Command
+            globals::g_pStateMachineHandler->HandleEvent(constants::Event::Start);
         }
 
         /////////////////////////////////////////
