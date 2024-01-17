@@ -37,4 +37,7 @@ namespace globals
     DriveBoard g_pDriveBoardInterface;
     MultimediaBoard g_pMultimediaBoard;
     NavigationBoard g_pNavigationBoard;
+
+    // State Machine Handler:
+    statemachine::StateMachineHandler* g_pStateMachineHandler;
 }    // namespace globals

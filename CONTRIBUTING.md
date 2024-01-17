@@ -76,32 +76,31 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Unsigned Double  > `ud` > Example: `unsigned double udExampleUnsignedDouble`
 
 #### Other Types
-- Boolean   > `b`  > Example: `bool bExampleBoolean`
-- Character > `c`  > Example: `char cExampleCharacter`
-- Vector    > `v`  > Example: `vector<int> vExampleVector`
-- Array     > `a`  > Example: `int aExampleArray[4]`
-- Deque     > `dq` > Example: `deque dqExampleDeque`
-- Queue     > `q`  > Example: `queue<int> qExampleQueue`
-- Iterator  > `it` > Example: `iterator itExampleIterator`
-- String    > `sz` > Example: `string szExampleString`
-- Pointer   > `p`  > Example: `string* pExamplePointer`
-- Enum      > `e`  > Example: `ExampleEnum eExampleUseOfEnum`
-- Time      > `tm` > Example: `time_t tmExampleUseOfTime`
-- Template  > `t`  > Example: `T tExampleUseOfTemplateType`
-- Size      > `si` > Example: `size_t siExampleUseOfTime`
-- Tuple     > `tp` > Example: `tuple tpExampleUseOfTuple`
-- Thread    > `th` > Example: `jthread thExampleUseOfThread`
-- Mutex     > `mu` > Example: `mutex muExampleUseOfMutex`
-- Lock      > `lk` > Example: `lock lkExampleUseOfLock`
-- Struct    > `st` > Example: `StructName stExampleUseOfStruct`
-- Future    > `fu` > Example: `future<void> fuExampleUseOfFuture`
-- Promise   > `pm` > Example: `promise<void> pmExampleUseIfPromise`
+- Boolean       > `b`  > Example: `bool bExampleBoolean`
+- Character     > `c`  > Example: `char cExampleCharacter`
+- Vector        > `v`  > Example: `vector<int> vExampleVector`
+- Array         > `a`  > Example: `int aExampleArray[4]`
+- Deque         > `dq` > Example: `deque dqExampleDeque`
+- Queue         > `q`  > Example: `queue<int> qExampleQueue`
+- Iterator      > `it` > Example: `iterator itExampleIterator`
+- String        > `sz` > Example: `string szExampleString`
+- Pointer       > `p`  > Example: `string* pExamplePointer`
+- Enum          > `e`  > Example: `ExampleEnum eExampleUseOfEnum`
+- Time          > `tm` > Example: `time_t tmExampleUseOfTime`
+- Template      > `t`  > Example: `T tExampleUseOfTemplateType`
+- Size          > `si` > Example: `size_t siExampleUseOfTime`
+- Tuple         > `tp` > Example: `tuple tpExampleUseOfTuple`
+- Thread        > `th` > Example: `jthread thExampleUseOfThread`
+- Mutex         > `mu` > Example: `mutex muExampleUseOfMutex`
+- Lock          > `lk` > Example: `lock lkExampleUseOfLock`
+- Struct        > `st` > Example: `StructName stExampleUseOfStruct`
+- Future        > `fu` > Example: `future<void> fuExampleUseOfFuture`
+- Promise       > `pm` > Example: `promise<void> pmExampleUseIfPromise`
+- Unordered Map > `um` > Example: `std::unordered_map<int, int> umExampleUseOfUnorderedMap`
 
 #### External Types
 - OpenCV > `cv` > Example: `cv::Mat cvExampleMat`
 - ZEDSDK > `sl` > Example: `sl::Mat slExampleZedMat`
-- Boost:
-    - State Chart > `sc`  > Example: `sc::simple_state<IdleState, StateMachine>`
 - Quill  > `q` > Example: `quill::Config qConfig`
 - GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
 
