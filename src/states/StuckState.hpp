@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The StuckState class implements the Stuck state for the Autonomy
+     *        State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class StuckState : public State
     {
         private:
@@ -54,16 +67,6 @@ namespace statemachine
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Exiting state.");
             }
 
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "Stuck"; }
-
         public:
             /******************************************************************************
              * @brief Construct a new State object.
@@ -72,7 +75,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            StuckState() : State()
+            StuckState() : State("Stuck")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -91,23 +94,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the Stuck state
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
-                return constants::States::Stuck;
+                return States::Stuck;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::Stuck; }
+            States GetState() const override { return States::Stuck; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -118,36 +121,36 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::Stuck;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::Stuck;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
-                        eNextState = constants::States::Reversing;
+                        eNextState = States::Reversing;
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::Stuck)
+                if (eNextState != States::Stuck)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)

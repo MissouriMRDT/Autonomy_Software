@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The VerifyingMarkerState class implements the Verifying Marker state for
+     *        the Autonomy State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class VerifyingMarkerState : public State
     {
         private:
@@ -57,16 +70,6 @@ namespace statemachine
                 m_vMarkerIDs.clear();
             }
 
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "VerifyingMarker"; }
-
         public:
             /******************************************************************************
              * @brief Construct a new State object.
@@ -75,7 +78,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            VerifyingMarkerState() : State()
+            VerifyingMarkerState() : State("Verifying Marker")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -94,23 +97,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the VerifyingMarker state
                 LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
 
-                return constants::States::VerifyingMarker;
+                return States::VerifyingMarker;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::VerifyingMarker; }
+            States GetState() const override { return States::VerifyingMarker; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -121,42 +124,42 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::VerifyingMarker;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::VerifyingMarker;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
-                        eNextState = constants::States::VerifyingMarker;
+                        eNextState = States::VerifyingMarker;
                         break;
                     }
-                    case constants::Event::VerifyingComplete:
+                    case Event::VerifyingComplete:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::VerifyingMarker)
+                if (eNextState != States::VerifyingMarker)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)

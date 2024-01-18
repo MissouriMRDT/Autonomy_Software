@@ -11,13 +11,81 @@
 #ifndef STATE_HPP
 #define STATE_HPP
 
-#include "../AutonomyConstants.h"
 #include "../AutonomyLogging.h"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    enum class States
+    {
+        Idle,
+        Navigating,
+        SearchPattern,
+        ApproachingMarker,
+        ApproachingObject,
+        VerifyingMarker,
+        VerifyingObject,
+        Avoidance,
+        Reversing,
+        Stuck,
+
+        NUM_STATES
+    };
+
+    inline std::string StateToString(States eState)
+    {
+        switch (eState)
+        {
+            case States::Idle: return "Idle";
+            case States::Navigating: return "Navigating";
+            case States::SearchPattern: return "Search Pattern";
+            case States::ApproachingMarker: return "Approaching Marker";
+            case States::ApproachingObject: return "Approaching Object";
+            case States::VerifyingMarker: return "Verifying Marker";
+            case States::VerifyingObject: return "Verifying Object";
+            case States::Avoidance: return "Avoidance";
+            case States::Reversing: return "Reversing";
+            case States::Stuck: return "Stuck";
+            default: return "Unknown";
+        }
+    }
+
+    enum class Event
+    {
+        Start,
+        ReachedGpsCoordinate,
+        ReachedMarker,
+        ReachedObject,
+        MarkerSeen,
+        ObjectSeen,
+        MarkerUnseen,
+        ObjectUnseen,
+        VerifyingComplete,
+        VerifyingFailed,
+        Abort,
+        Restart,
+        ObstacleAvoidance,
+        EndObstacleAvoidance,
+        NoWaypoint,
+        NewWaypoint,
+        Reverse,
+        ReverseComplete,
+        SearchFailed,
+        Stuck,
+
+        NUM_EVENTS
+    };
+
     class State
     {
+        private:
+            std::string m_szStateName;
+
         protected:
             /******************************************************************************
              * @brief This method is called when the state is first started. It is used to
@@ -49,6 +117,15 @@ namespace statemachine
              ******************************************************************************/
             State() { Start(); }
 
+            State(const std::string szStateName = "UNKNOWN")
+            {
+                // Set State Name
+                m_szStateName = szStateName;
+
+                // Start the State
+                Start();
+            }
+
             /******************************************************************************
              * @brief Destroy the State object.
              *
@@ -67,7 +144,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            virtual constants::States TriggerEvent(constants::Event eEvent) = 0;
+            virtual States TriggerEvent(Event eEvent) = 0;
 
             /******************************************************************************
              * @brief Run the state machine. Returns the next state.
@@ -75,17 +152,17 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            virtual constants::States Run() = 0;
+            virtual States Run() = 0;
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            virtual constants::States GetState() const = 0;
+            virtual States GetState() const = 0;
 
             /******************************************************************************
              * @brief Accessor for the State private member. Returns the state as a string.
@@ -95,7 +172,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            virtual std::string ToString() const { return typeid(*this).name(); }
+            virtual std::string ToString() const { return m_szStateName; }
 
             /******************************************************************************
              * @brief Checks to see if the current state is equal to the passed state.

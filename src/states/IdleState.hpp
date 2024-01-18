@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The IdleState class implements the Idle state for the Autonomy State
+     *        Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class IdleState : public State
     {
         private:
@@ -64,16 +77,6 @@ namespace statemachine
                 m_vRoverYPosition.clear();
             }
 
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "Idle"; }
-
         public:
             /******************************************************************************
              * @brief Construct a new State object.
@@ -82,7 +85,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            IdleState() : State()
+            IdleState() : State("Idle")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -101,23 +104,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the Idle state
                 LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
-                return constants::States::Idle;
+                return States::Idle;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::Idle; }
+            States GetState() const override { return States::Idle; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -128,14 +131,14 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::Idle;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::Idle;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Start event.");
 
@@ -146,40 +149,40 @@ namespace statemachine
                         if (tagInSight)
                         {
                             LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Detected ArUco marker. Transitioning to Reverse State.");
-                            eNextState = constants::States::Reversing;
+                            eNextState = States::Reversing;
                         }
                         // If the reverse always flag is set, transition to backup before navigating.
                         else if (reverseAlways)
                         {
                             LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Reverse always flag set. Transitioning to Reverse State.");
-                            eNextState = constants::States::Reversing;
+                            eNextState = States::Reversing;
                         }
                         // Otherwise, transition to navigating.
                         else
                         {
                             LOG_DEBUG(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
-                            eNextState = constants::States::Navigating;
+                            eNextState = States::Navigating;
                         }
 
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::Idle)
+                if (eNextState != States::Idle)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)

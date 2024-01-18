@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The ReversingState class implements the Reversing state for the Autonomy
+     *        State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class ReversingState : public State
     {
         private:
@@ -52,16 +65,6 @@ namespace statemachine
                 LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Exiting state.");
             }
 
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "Reversing"; }
-
         public:
             /******************************************************************************
              * @brief Construct a new State object.
@@ -70,7 +73,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            ReversingState() : State()
+            ReversingState() : State("Reversing")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -89,23 +92,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the Reversing state
                 LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
 
-                return constants::States::Reversing;
+                return States::Reversing;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::Reversing; }
+            States GetState() const override { return States::Reversing; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -116,42 +119,42 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::Reversing;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::Reversing;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
-                        eNextState = constants::States::Reversing;
+                        eNextState = States::Reversing;
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::ReverseComplete:
+                    case Event::ReverseComplete:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::Reversing)
+                if (eNextState != States::Reversing)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)

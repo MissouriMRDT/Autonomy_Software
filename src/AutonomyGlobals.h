@@ -31,7 +31,7 @@
  *      wide and ARE NOT SPECIFIC TO A CERTAIN CLASS.
  *
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
  * @date 2023-09-23
  ******************************************************************************/
 namespace globals
@@ -54,7 +54,7 @@ namespace globals
     extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
 
     // State Machine Handler:
-    extern statemachine::StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
+    extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H

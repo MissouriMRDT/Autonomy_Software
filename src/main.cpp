@@ -91,7 +91,7 @@ int main()
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
-        globals::g_pStateMachineHandler = new statemachine::StateMachineHandler();
+        globals::g_pStateMachineHandler = new StateMachineHandler();
         // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
@@ -133,7 +133,7 @@ int main()
             LOG_INFO(logging::g_qConsoleLogger, "{}", szThreadsFPS);
 
             // Send Start Command
-            globals::g_pStateMachineHandler->HandleEvent(constants::Event::Start);
+            globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::Start);
         }
 
         /////////////////////////////////////////
