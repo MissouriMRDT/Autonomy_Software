@@ -125,7 +125,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            AvoidanceState() : State(State::Avoidance)
+            AvoidanceState() : State(States::Avoidance)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
