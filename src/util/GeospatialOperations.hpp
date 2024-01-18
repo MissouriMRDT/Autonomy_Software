@@ -33,12 +33,12 @@ namespace geoops
     /////////////////////////////////////////
 
     /******************************************************************************
-     * @brief This struct is used to store the distance, arc length, and relative heading for a calculated
+     * @brief This struct is used to store the distance, arc length, and relative bearing for a calculated
      *      geodesic between two points. Storing these values in a struct allows for easy
      *      handling and access to said variables.
      *
      * @note The arc length degree measurement is always from the first to second point.
-     *      The relative heading measurements are always CW positive with North being zero.
+     *      The relative bearing measurements are always CW positive with North being zero.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-13
@@ -49,8 +49,8 @@ namespace geoops
             // Define public struct attributes.
             double dDistanceMeters;          // The great circle distance between the two points.
             double dArcLengthDegrees;        // The degree measurement difference between the two points from the center of the sphere. (0, 180)
-            double dStartRelativeHeading;    // The relative heading in degrees from the first point to the second point for the shortest great circle path. (0, 360)
-            double dEndRelativeHeading;      // The relative heading in degrees from the second point to the first point for the shortest great circle path. (0, 360)
+            double dStartRelativeBearing;    // The relative bearing in degrees from the first point to the second point for the shortest great circle path. (0, 360)
+            double dEndRelativeBearing;      // The relative bearing in degrees from the second point to the first point for the shortest great circle path. (0, 360)
     };
 
     /******************************************************************************
@@ -88,7 +88,7 @@ namespace geoops
              *
              * @param dPitch - The pitch of the navboard in degrees.
              * @param dRoll - The roll of the navboard in degrees.
-             * @param dHeading - The heading/yaw of the navboard in degrees.
+             * @param dHeading - The bearing/yaw of the navboard in degrees.
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
@@ -310,7 +310,7 @@ namespace geoops
      *
      * @param stCoord1 - The first GPS coordinate.
      * @param stCoord2 - The second GPS coordinate.
-     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the heading relative to the first point and second point.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
      *
      * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
      *
@@ -326,30 +326,32 @@ namespace geoops
         // The WGS84 standard is widely used and aligns with Google Maps.
         GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
 
-        // Solve the inverse geodesic for distance and arc length degrees at the center of the globe, and relative headings.
+        // Solve the inverse geodesic for distance and arc length degrees at the center of the globe, and relative bearings.
         stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude,
                                                               stCoord1.dLongitude,
                                                               stCoord2.dLatitude,
                                                               stCoord2.dLongitude,
                                                               stMeasurements.dDistanceMeters,
-                                                              stMeasurements.dStartRelativeHeading,
-                                                              stMeasurements.dEndRelativeHeading);
+                                                              stMeasurements.dStartRelativeBearing,
+                                                              stMeasurements.dEndRelativeBearing);
 
-        // // Map the -180, 180 range of the azimuths to 0, 360.
-        // stMeasurements.dStartRelativeHeading = std::fmod((stMeasurements.dStartRelativeHeading + 180), 360);
-        // stMeasurements.dEndRelativeHeading   = std::fmod((stMeasurements.dEndRelativeHeading + 180), 360);
-        // // Ensure the result angle is positive.
-        // if (stMeasurements.dStartRelativeHeading < 0)
-        // {
-        //     // Add 360 degrees.
-        //     stMeasurements.dStartRelativeHeading += 360;
-        // }
-        // // Ensure the result angle is positive.
-        // if (stMeasurements.dEndRelativeHeading < 0)
-        // {
-        //     // Add 360 degrees.
-        //     stMeasurements.dEndRelativeHeading += 360;
-        // }
+        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
+        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
+        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
+        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
+        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
+        // Ensure the result angle is positive.
+        if (stMeasurements.dStartRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dStartRelativeBearing += 360;
+        }
+        // Ensure the result angle is positive.
+        if (stMeasurements.dEndRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dEndRelativeBearing += 360;
+        }
 
         // Return result distance.
         return stMeasurements;
@@ -361,7 +363,7 @@ namespace geoops
      *
      * @param stCoord1 - The first UTM coordinate.
      * @param stCoord2 - The second UTM coordinate.
-     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the heading relative to the first point and second point.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
      *
      * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
      *
@@ -387,24 +389,26 @@ namespace geoops
                                                               stGPSCoord2.dLatitude,
                                                               stGPSCoord2.dLongitude,
                                                               stMeasurements.dDistanceMeters,
-                                                              stMeasurements.dStartRelativeHeading,
-                                                              stMeasurements.dEndRelativeHeading);
+                                                              stMeasurements.dStartRelativeBearing,
+                                                              stMeasurements.dEndRelativeBearing);
 
-        // // Map the -180, 180 range of the azimuths to 0, 360.
-        // stMeasurements.dStartRelativeHeading = std::fmod((stMeasurements.dStartRelativeHeading + 180), 360);
-        // stMeasurements.dEndRelativeHeading   = std::fmod((stMeasurements.dEndRelativeHeading + 180), 360);
-        // // Ensure the result angle is positive.
-        // if (stMeasurements.dStartRelativeHeading < 0)
-        // {
-        //     // Add 360 degrees.
-        //     stMeasurements.dStartRelativeHeading += 360;
-        // }
-        // // Ensure the result angle is positive.
-        // if (stMeasurements.dEndRelativeHeading < 0)
-        // {
-        //     // Add 360 degrees.
-        //     stMeasurements.dEndRelativeHeading += 360;
-        // }
+        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
+        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
+        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
+        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
+        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
+        // Ensure the result angle is positive.
+        if (stMeasurements.dStartRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dStartRelativeBearing += 360;
+        }
+        // Ensure the result angle is positive.
+        if (stMeasurements.dEndRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dEndRelativeBearing += 360;
+        }
 
         // Return result distance.
         return stMeasurements;

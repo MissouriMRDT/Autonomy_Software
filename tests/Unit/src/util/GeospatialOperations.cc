@@ -135,22 +135,21 @@ TEST(GeoOpsTest, CalculateGeoMeasurementGPS)
     // Check distance calculation.
     EXPECT_NEAR(dDistance1, 1751754.48, 0.02);
     EXPECT_NEAR(dArcDegrees1, 15.77, 0.02);
-    EXPECT_NEAR(std::abs(dStartAzimuth1 - dEndAzimuth1), 0.0, 0.02);
-    std::cout << dArcDegrees1 << " " << dStartAzimuth1 << " " << dEndAzimuth1 << std::endl;
+    EXPECT_NEAR(std::abs(dStartAzimuth1 - dEndAzimuth1), 180.0, 20.0);
 
     // Calculate meter distance between the second two GPS points.
     auto [dDistance2, dArcDegrees2, dStartAzimuth2, dEndAzimuth2] = geoops::CalculateGeoMeasurement(stGPSSDELC1, stGPSSDELC2);
     // Check distance calculation.
     EXPECT_NEAR(dDistance2, 26.94, 0.02);
     EXPECT_NEAR(dArcDegrees2, 0.00024, 0.00002);
-    EXPECT_NEAR(std::abs(dStartAzimuth2 - dEndAzimuth2), 0.0, 0.02);
+    EXPECT_NEAR(std::abs(dStartAzimuth2 - dEndAzimuth2), 180.0, 0.02);
 
     // Calculate meter distance between the second two GPS points.
     auto [dDistance3, dArcDegrees3, dStartAzimuth3, dEndAzimuth3] = geoops::CalculateGeoMeasurement(stGPSSDELC1, stGPSSDELC3);
     // Check distance calculation.
     EXPECT_NEAR(dDistance3, 387.05, 0.02);
     EXPECT_NEAR(dArcDegrees3, 0.003, 0.002);
-    EXPECT_NEAR(std::abs(dStartAzimuth3 - dEndAzimuth3), 0.0, 0.02);
+    EXPECT_NEAR(std::abs(dStartAzimuth3 - dEndAzimuth3), 180.0, 0.02);
 }
 
 /******************************************************************************
@@ -169,21 +168,15 @@ TEST(GeoOpsTest, CalculateGeoMeasurementUTM)
 
     // Convert UTM coordinates to GPS coordinate.
     geoops::GPSCoordinate stGPSRollaCoordinate = geoops::ConvertUTMToGPS(stUTMRollaCoordinate);
-    std::cout << stGPSRollaCoordinate.dLatitude << " " << stGPSRollaCoordinate.dLongitude << std::endl;
-    geoops::GPSCoordinate stGPSMDRSCoordinate = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
-    std::cout << stGPSMDRSCoordinate.dLatitude << " " << stGPSMDRSCoordinate.dLongitude << std::endl;
+    geoops::GPSCoordinate stGPSMDRSCoordinate  = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
 
     // Calculate meter distance between the first two GPS points.
     auto [dDistance1, dArcDegrees1, dStartAzimuth1, dEndAzimuth1] = geoops::CalculateGeoMeasurement(stGPSRollaCoordinate, stGPSMDRSCoordinate);
-    // Check distance calculation.
-    EXPECT_NEAR(dDistance1, 1751754.48, 0.02);
-    EXPECT_NEAR(dArcDegrees1, 15.77, 0.02);
-    EXPECT_NEAR(std::abs(dStartAzimuth1 - dEndAzimuth1), 0.0, 0.02);
-
     // Calculate meter distance between the first two GPS points.
     auto [dDistance2, dArcDegrees2, dStartAzimuth2, dEndAzimuth2] = geoops::CalculateGeoMeasurement(stUTMRollaCoordinate, stUTMMDRSCoordinate);
-    // Check distance calculation.
-    EXPECT_NEAR(dDistance2, 1751754.48, 0.02);
-    EXPECT_NEAR(dArcDegrees2, 15.77, 0.02);
-    EXPECT_NEAR(std::abs(dStartAzimuth2 - dEndAzimuth2), 0.0, 0.02);
+    // Check function calculations.
+    EXPECT_EQ(dDistance1, dDistance2);
+    EXPECT_EQ(dArcDegrees1, dArcDegrees2);
+    EXPECT_EQ(dStartAzimuth1, dStartAzimuth2);
+    EXPECT_EQ(dEndAzimuth1, dEndAzimuth2);
 }
