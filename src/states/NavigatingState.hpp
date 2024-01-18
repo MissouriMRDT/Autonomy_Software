@@ -89,7 +89,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            NavigatingState() : State("Navigating")
+            NavigatingState() : State(States::Navigating)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -115,16 +115,6 @@ namespace statemachine
 
                 return States::Navigating;
             }
-
-            /******************************************************************************
-             * @brief Accessor for the State private member.
-             *
-             * @return States - The current state.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            States GetState() const override { return States::Navigating; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.

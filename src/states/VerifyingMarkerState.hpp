@@ -78,7 +78,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            VerifyingMarkerState() : State("Verifying Marker")
+            VerifyingMarkerState() : State(States::VerifyingMarker)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -104,16 +104,6 @@ namespace statemachine
 
                 return States::VerifyingMarker;
             }
-
-            /******************************************************************************
-             * @brief Accessor for the State private member.
-             *
-             * @return States - The current state.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            States GetState() const override { return States::VerifyingMarker; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
