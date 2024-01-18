@@ -1,8 +1,11 @@
 \page md_CONTRIBUTING Contributing Guide
 
 # Contributing to Autonomy Software
+
 ## Contributing
+
 ### Reporting Bugs
+
 #### Before Submitting a Bug Report
 
 A good bug report shouldn't leave others needing to chase you down for more information. Therefore, we ask you to investigate carefully, collect information and describe the issue in detail in your report. Please complete the following steps in advance to help us fix any potential bug as fast as possible.
@@ -21,7 +24,7 @@ We use GitHub issues to track bugs and errors. If you run into an issue with the
 
 - Open an [Issue](https://github.com/MissouriMRDT/Autonomy_Software/issues/new).
 - Explain the behavior you would expect and the actual behavior.
-- Please provide as much context as possible and describe the *reproduction steps* that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
+- Please provide as much context as possible and describe the _reproduction steps_ that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
 - Provide the information you collected in the previous section.
 
 ### Suggesting Enhancements
@@ -43,80 +46,92 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Missou
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
 
 ### Commit Messages
+
 Commit names should be no more than 50 characters. They should have `#<issue num>` to link commits to the issue.
 
 ### Pull Requests
+
 Pull Request names should be no more than 50 characters. The description should be quite detailed in everything that was added and should have `closed #<issue num>` to mark that the pull request will fix an issue.
 
 ## Styleguides
+
 ### Variable Names
 
 Variable names should be in camel case with the lower case portion being the identifier from below. The name should give a good description of what the variable is for but should not exceed 32-48 characters.
 
-
 #### Member and Global Variables
+
 - **Member Variables** should always start with `m_` and then use the following standards to set the rest of their name.
 - **Global Variables** should always start with `g_` and then use the following standards to set the rest of their name.
 
 Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 
 #### Signed Types
+
 - Signed Integer > `n` > Example: `int nExampleSignedInteger`
-- Signed Long    > `l` > Example: `long lExampleSignedLong`
-- Signed Short   > `s` > Example: `short sExampleSignedShort`
-- Signed Float   > `f` > Example: `float fExampleSignedFloat`
-- Signed Double  > `d` > Example: `double dExampleSignedDouble`
+- Signed Long > `l` > Example: `long lExampleSignedLong`
+- Signed Short > `s` > Example: `short sExampleSignedShort`
+- Signed Float > `f` > Example: `float fExampleSignedFloat`
+- Signed Double > `d` > Example: `double dExampleSignedDouble`
 
 #### Unsigned Types
-- Unsigned Char    > `uc` > Example: `unsigned char ucExampleUnsignedChar`
+
+- Unsigned Char > `uc` > Example: `unsigned char ucExampleUnsignedChar`
 - Unsigned Integer > `un` > Example: `unsigned int unExampleUnsignedInteger`
-- Unsigned Long    > `ul` > Example: `unsigned long ulExampleUnsignedLong`
-- Unsigned Short   > `us` > Example: `unsigned short usExampleUnsignedShort`
-- Unsigned Float   > `uf` > Example: `unsigned float ufExampleUnsignedFloat`
-- Unsigned Double  > `ud` > Example: `unsigned double udExampleUnsignedDouble`
+- Unsigned Long > `ul` > Example: `unsigned long ulExampleUnsignedLong`
+- Unsigned Short > `us` > Example: `unsigned short usExampleUnsignedShort`
+- Unsigned Float > `uf` > Example: `unsigned float ufExampleUnsignedFloat`
+- Unsigned Double > `ud` > Example: `unsigned double udExampleUnsignedDouble`
 
 #### Other Types
-- Boolean       > `b`  > Example: `bool bExampleBoolean`
-- Character     > `c`  > Example: `char cExampleCharacter`
-- Vector        > `v`  > Example: `vector<int> vExampleVector`
-- Array         > `a`  > Example: `int aExampleArray[4]`
-- Deque         > `dq` > Example: `deque dqExampleDeque`
-- Queue         > `q`  > Example: `queue<int> qExampleQueue`
-- Iterator      > `it` > Example: `iterator itExampleIterator`
-- String        > `sz` > Example: `string szExampleString`
-- Pointer       > `p`  > Example: `string* pExamplePointer`
-- Enum          > `e`  > Example: `ExampleEnum eExampleUseOfEnum`
-- Time          > `tm` > Example: `time_t tmExampleUseOfTime`
-- Template      > `t`  > Example: `T tExampleUseOfTemplateType`
-- Size          > `si` > Example: `size_t siExampleUseOfTime`
-- Tuple         > `tp` > Example: `tuple tpExampleUseOfTuple`
-- Thread        > `th` > Example: `jthread thExampleUseOfThread`
-- Mutex         > `mu` > Example: `mutex muExampleUseOfMutex`
-- Lock          > `lk` > Example: `lock lkExampleUseOfLock`
-- Struct        > `st` > Example: `StructName stExampleUseOfStruct`
-- Future        > `fu` > Example: `future<void> fuExampleUseOfFuture`
-- Promise       > `pm` > Example: `promise<void> pmExampleUseIfPromise`
-- Unordered Map > `um` > Example: `std::unordered_map<int, int> umExampleUseOfUnorderedMap`
+
+- Boolean > `b` > Example: `bool bExampleBoolean`
+- Character > `c` > Example: `char cExampleCharacter`
+- Vector > `v` > Example: `vector<int> vExampleVector`
+- Array > `a` > Example: `int aExampleArray[4]`
+- Deque > `dq` > Example: `deque dqExampleDeque`
+- Queue > `q` > Example: `queue<int> qExampleQueue`
+- Iterator > `it` > Example: `iterator itExampleIterator`
+- String > `sz` > Example: `string szExampleString`
+- Pointer > `p` > Example: `string* pExamplePointer`
+- Enum > `e` > Example: `ExampleEnum eExampleUseOfEnum`
+- Time > `tm` > Example: `time_t tmExampleUseOfTime`
+- Template > `t` > Example: `T tExampleUseOfTemplateType`
+- Size > `si` > Example: `size_t siExampleUseOfTime`
+- Tuple > `tp` > Example: `tuple tpExampleUseOfTuple`
+- Thread > `th` > Example: `jthread thExampleUseOfThread`
+- Mutex > `mu` > Example: `mutex muExampleUseOfMutex`
+- Lock > `lk` > Example: `lock lkExampleUseOfLock`
+- Struct > `st` > Example: `StructName stExampleUseOfStruct`
+- Future > `fu` > Example: `future<void> fuExampleUseOfFuture`
+- Promise > `pm` > Example: `promise<void> pmExampleUseIfPromise`
+- Unordered Map > `um` > Example: `unordered_map<int, int> umExampleUseOfUnorderedMap`
 
 #### External Types
+
 - OpenCV > `cv` > Example: `cv::Mat cvExampleMat`
 - ZEDSDK > `sl` > Example: `sl::Mat slExampleZedMat`
-- Quill  > `q` > Example: `quill::Config qConfig`
+- Quill > `q` > Example: `quill::Config qConfig`
 - GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
 
 ### Macro Names
+
 Macros should be in all caps using underscores to separate words. They should be detailed enough to not require an additional comment.
 
 Example:`#define ARUCO_DEBUG_PRINTS false` or `#define AUTONOMY_MAJOR_VERSION 24`
 
 ### Function Names
+
 Functions should use Pascal Case for names. They should use detailed names but also include a doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
 
 ### Class Names
+
 Class should use Pascal Case for names. They should use short names but also include a Doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
 
 ### Struct Names
+
 Struct should use Pascal Case for names. They should use short names but also include a Doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
 
 ## Join The Team
+
 Do you go to the Missouri University of Science and Technology? Are you interested in contributing and being a part of our team? If so go to [design.mst.edu](https://design.mst.edu) to learn how to sign up today!

@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The ApproachingObjectState class implements the Approaching Object
+     *        state for the Autonomy State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class ApproachingObjectState : public State
     {
         private:
@@ -50,19 +63,7 @@ namespace statemachine
             {
                 // Clean up the state before exiting
                 LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Exiting state.");
-
-                return;
             }
-
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "Approaching Object"; }
 
         public:
             /******************************************************************************
@@ -72,7 +73,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            ApproachingObjectState() : State()
+            ApproachingObjectState() : State("Approaching Object")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -91,23 +92,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the Approaching Object state
                 LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
 
-                return constants::States::ApproachingObject;
+                return States::ApproachingObject;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::ApproachingObject; }
+            States GetState() const override { return States::ApproachingObject; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -118,48 +119,48 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::Idle;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::Idle;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::ReachedObject:
+                    case Event::ReachedObject:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling ReachedObject event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling Start event.");
-                        eNextState = constants::States::ApproachingObject;
+                        eNextState = States::ApproachingObject;
                         break;
                     }
-                    case constants::Event::ObjectUnseen:
+                    case Event::ObjectUnseen:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling ObjectUnseen event.");
-                        eNextState = constants::States::SearchPattern;
+                        eNextState = States::SearchPattern;
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::Idle)
+                if (eNextState != States::Idle)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)
