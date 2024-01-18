@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The NavigatingState class implements the Navigating state for the Autonomy
+     *        State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class NavigatingState : public State
     {
         private:
@@ -68,16 +81,6 @@ namespace statemachine
                 m_vRoverYPosition.clear();
             }
 
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "Navigating"; }
-
         public:
             /******************************************************************************
              * @brief Construct a new State object.
@@ -86,7 +89,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            NavigatingState() : State()
+            NavigatingState() : State("Navigating")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -105,23 +108,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the Navigating state
                 LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
-                return constants::States::Navigating;
+                return States::Navigating;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::Navigating; }
+            States GetState() const override { return States::Navigating; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -132,26 +135,26 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::Navigating;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::Navigating;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::NoWaypoint:
+                    case Event::NoWaypoint:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::ReachedMarker:
+                    case Event::ReachedMarker:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::ReachedGpsCoordinate:
+                    case Event::ReachedGpsCoordinate:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
 
@@ -159,62 +162,62 @@ namespace statemachine
 
                         if (gpsOrTagMarker)
                         {
-                            eNextState = constants::States::Idle;
+                            eNextState = States::Idle;
                         }
                         else
                         {
-                            eNextState = constants::States::SearchPattern;
+                            eNextState = States::SearchPattern;
                         }
 
                         break;
                     }
-                    case constants::Event::NewWaypoint:
+                    case Event::NewWaypoint:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
-                        eNextState = constants::States::Navigating;
+                        eNextState = States::Navigating;
                         break;
                     }
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Start event.");
-                        eNextState = constants::States::Navigating;
+                        eNextState = States::Navigating;
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::ObstacleAvoidance:
+                    case Event::ObstacleAvoidance:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
-                        eNextState = constants::States::Avoidance;
+                        eNextState = States::Avoidance;
                         break;
                     }
-                    case constants::Event::Reverse:
+                    case Event::Reverse:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reverse event.");
-                        eNextState = constants::States::Reversing;
+                        eNextState = States::Reversing;
                         break;
                     }
-                    case constants::Event::Stuck:
+                    case Event::Stuck:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
-                        eNextState = constants::States::Stuck;
+                        eNextState = States::Stuck;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::Navigating)
+                if (eNextState != States::Navigating)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)

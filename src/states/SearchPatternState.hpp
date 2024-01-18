@@ -13,8 +13,21 @@
 
 #include "../interfaces/State.hpp"
 
+/******************************************************************************
+ * @brief Namespace containing all state machine related classes.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The SearchPatternState class implements the Search Pattern state for the
+     *        Autonomy State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
     class SearchPatternState : public State
     {
         private:
@@ -66,16 +79,6 @@ namespace statemachine
                 m_vRoverYPosition.clear();
             }
 
-            /******************************************************************************
-             * @brief Accessor for the State private member. Returns the state as a string.
-             *
-             * @return std::string - The current state as a string.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            std::string ToString() const override { return "SearchPattern"; }
-
         public:
             /******************************************************************************
              * @brief Construct a new State object.
@@ -84,7 +87,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            SearchPatternState() : State()
+            SearchPatternState() : State("Search Pattern")
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -103,23 +106,23 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States Run() override
+            States Run() override
             {
                 // TODO: Implement the behavior specific to the SearchPattern state
                 LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
 
-                return constants::States::SearchPattern;
+                return States::SearchPattern;
             }
 
             /******************************************************************************
              * @brief Accessor for the State private member.
              *
-             * @return constants::States - The current state.
+             * @return States - The current state.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States GetState() const override { return constants::States::SearchPattern; }
+            States GetState() const override { return States::SearchPattern; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
@@ -130,60 +133,60 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            constants::States TriggerEvent(constants::Event eEvent) override
+            States TriggerEvent(Event eEvent) override
             {
-                constants::States eNextState = constants::States::SearchPattern;
-                bool bCompleteStateExit      = true;
+                States eNextState       = States::SearchPattern;
+                bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case constants::Event::MarkerSeen:
+                    case Event::MarkerSeen:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
-                        eNextState = constants::States::ApproachingMarker;
+                        eNextState = States::ApproachingMarker;
                         break;
                     }
-                    case constants::Event::ObjectSeen:
+                    case Event::ObjectSeen:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
-                        eNextState = constants::States::ApproachingObject;
+                        eNextState = States::ApproachingObject;
                         break;
                     }
-                    case constants::Event::Start:
+                    case Event::Start:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
-                        eNextState = constants::States::SearchPattern;
+                        eNextState = States::SearchPattern;
                         break;
                     }
-                    case constants::Event::SearchFailed:
+                    case Event::SearchFailed:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::Abort:
+                    case Event::Abort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
-                    case constants::Event::Stuck:
+                    case Event::Stuck:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Stuck event.");
-                        eNextState = constants::States::Stuck;
+                        eNextState = States::Stuck;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling unknown event.");
-                        eNextState = constants::States::Idle;
+                        eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != constants::States::SearchPattern)
+                if (eNextState != States::SearchPattern)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Transitioning to {} State.", constants::StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)
