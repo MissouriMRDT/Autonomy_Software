@@ -80,58 +80,47 @@ TEST(NumOpsTest, Bounded)
  ******************************************************************************/
 TEST(NumOpsTest, MapRange)
 {
-    // Declare ranges and expected results.
-    double dOldMin           = -1.0;
-    double dOldMax           = 1.0;
-    double dNewMin           = 0;
-    double dNewMax           = 10;
-    double dOldValue         = 0.0;
-    double dExpectedNewValue = 5.0;
-
-    // Remap new value.
-    double dActualValue = numops::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
-
-    // Get the calculated values and check that they are correct.
-    EXPECT_NE(dActualValue, 0);
-    EXPECT_EQ(dActualValue, 5.0);
-
-    // Check invalid input on old range.
-    dOldMin = 1.0;
-    // Remap new value.
-    dActualValue = numops::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
-    // Make sure original value is returned.
-    EXPECT_EQ(dActualValue, dOldValue);
-
-    // Check invalid input on new range.
-    dOldMin = -1.0;
-    dNewMin = 10;
-    // Remap new value.
-    dActualValue = numops::MapRange(dOldValue, dOldMin, dOldMax, dNewMin, dNewMax);
-    // Make sure original value is returned.
-    EXPECT_EQ(dActualValue, dOldValue);
-}
-
-/******************************************************************************
- * @brief Test the functionality of the InputModulus function.
- *
- *
- * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-10-19
- ******************************************************************************/
-TEST(NumOpsTest, InputModulus)
-{
     // Create array for storing input and expect output values.
-    const int nTestValuesLength               = 6;
-    const double aValues[nTestValuesLength]   = {1.0, -1.0, 4.0, 360, 350, 170};
-    const double aMinimums[nTestValuesLength] = {0.0, 0.0, -2.0, -180, -180, -180};
-    const double aMaximums[nTestValuesLength] = {2.0, 2.0, 2.0, 180, 180, 180};
-    const double aOutput[nTestValuesLength]   = {1.0, 1.0, 0.0, 0, -10, 170};
+    const int nTestValuesLength                  = 4;
+    const double aValues[nTestValuesLength]      = {0.0, -1.0, 2.0, 0};
+    const double aOldMinimums[nTestValuesLength] = {-1.0, -1.0, -4.0, -180};
+    const double aOldMaximums[nTestValuesLength] = {1.0, 1.0, 4.0, 180};
+    const double aNewMinimums[nTestValuesLength] = {0.0, 0.0, -2.0, 0};
+    const double aNewMaximums[nTestValuesLength] = {2.0, 2.0, 2.0, 360};
+    const double aOutput[nTestValuesLength]      = {1.0, 0.0, 1.0, 180};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
     {
         // Calculate valid bounds.
-        double dResult = numops::InputModulus(aValues[nIter], aMinimums[nIter], aMaximums[nIter]);
+        double dResult = numops::MapRange(aValues[nIter], aOldMinimums[nIter], aOldMaximums[nIter], aNewMinimums[nIter], aNewMaximums[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_EQ(dResult, aOutput[nIter]);
+    }
+}
+
+/******************************************************************************
+ * @brief Test the functionality of the InputAngleModulus function.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-19
+ ******************************************************************************/
+TEST(NumOpsTest, InputAngleModulus)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength               = 6;
+    const double aValues[nTestValuesLength]   = {1.0, -1.0, 4.0, 360.0, 350.0, 170.0};
+    const double aMinimums[nTestValuesLength] = {0.0, 0.0, -2.0, -180.0, -180.0, -180.0};
+    const double aMaximums[nTestValuesLength] = {2.0, 2.0, 2.0, 180.0, 180.0, 180.0};
+    const double aOutput[nTestValuesLength]   = {1.0, 1.0, 0.0, 0.0, -10.0, 170.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Calculate valid bounds.
+        double dResult = numops::InputAngleModulus(aValues[nIter], aMinimums[nIter], aMaximums[nIter]);
 
         // Check that the expected output values were calculated.
         EXPECT_EQ(dResult, aOutput[nIter]);

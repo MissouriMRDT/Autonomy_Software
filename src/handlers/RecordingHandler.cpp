@@ -339,6 +339,12 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         // Convert frame from 1 channel grayscale to 3 channel BGR.
                         cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
                     }
+                    // Check if this has an alpha channel.
+                    else if (m_vFrames[nIter].channels() == 4)
+                    {
+                        // Convert from from 4 channels to 3 channels.
+                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                    }
 
                     // Write frame to OpenCV video writer.
                     m_vCameraWriters[nIter].write(m_vFrames[nIter]);
@@ -361,6 +367,12 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                             // Convert frame from 1 channel grayscale to 3 channel BGR.
                             cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
                         }
+                        // Check if this has an alpha channel.
+                        else if (m_vFrames[nIter].channels() == 4)
+                        {
+                            // Convert from from 4 channels to 3 channels.
+                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                        }
 
                         // Write frame to OpenCV video writer.
                         m_vCameraWriters[nIter].write(m_vFrames[nIter]);
@@ -376,6 +388,12 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         {
                             // Convert frame from 1 channel grayscale to 3 channel BGR.
                             cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                        }
+                        // Check if this has an alpha channel.
+                        else if (m_vFrames[nIter].channels() == 4)
+                        {
+                            // Convert from from 4 channels to 3 channels.
+                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
                         }
 
                         // Write frame to OpenCV video writer.
@@ -496,6 +514,12 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
                 {
                     // Convert frame from 1 channel grayscale to 3 channel BGR.
                     cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                }
+                // Check if this has an alpha channel.
+                else if (m_vFrames[nIter].channels() == 4)
+                {
+                    // Convert from from 4 channels to 3 channels.
+                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
                 }
 
                 // Write frame to OpenCV video writer.
