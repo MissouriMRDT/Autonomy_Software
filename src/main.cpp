@@ -71,13 +71,6 @@ int main()
     std::cout << szHeaderText << std::endl;
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
-    // Setup signal interrupt handler.
-    struct sigaction stSigBreak;
-    stSigBreak.sa_handler = SignalHandler;
-    stSigBreak.sa_flags   = 0;
-    sigemptyset(&stSigBreak.sa_mask);
-    sigaction(SIGINT, &stSigBreak, nullptr);
-
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
 
@@ -89,6 +82,13 @@ int main()
     }
     else
     {
+        // Setup signal interrupt handler.
+        struct sigaction stSigBreak;
+        stSigBreak.sa_handler = SignalHandler;
+        stSigBreak.sa_flags   = 0;
+        sigemptyset(&stSigBreak.sa_mask);
+        sigaction(SIGINT, &stSigBreak, nullptr);
+
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
