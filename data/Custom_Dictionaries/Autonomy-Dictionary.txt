@@ -54,6 +54,7 @@ LEFTCAM
 MAINCAM
 MAINCAN
 mainpage
+MAPANGLE
 MAPRANGE
 Memcheck
 microcontrollers
