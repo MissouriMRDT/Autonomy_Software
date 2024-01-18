@@ -21,6 +21,12 @@
  ******************************************************************************/
 namespace statemachine
 {
+    /******************************************************************************
+     * @brief The states that the state machine can be in.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-18
+     ******************************************************************************/
     enum class States
     {
         Idle,
@@ -37,24 +43,12 @@ namespace statemachine
         NUM_STATES
     };
 
-    inline std::string StateToString(States eState)
-    {
-        switch (eState)
-        {
-            case States::Idle: return "Idle";
-            case States::Navigating: return "Navigating";
-            case States::SearchPattern: return "Search Pattern";
-            case States::ApproachingMarker: return "Approaching Marker";
-            case States::ApproachingObject: return "Approaching Object";
-            case States::VerifyingMarker: return "Verifying Marker";
-            case States::VerifyingObject: return "Verifying Object";
-            case States::Avoidance: return "Avoidance";
-            case States::Reversing: return "Reversing";
-            case States::Stuck: return "Stuck";
-            default: return "Unknown";
-        }
-    }
-
+    /******************************************************************************
+     * @brief The events that can be triggered in the state machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-18
+     ******************************************************************************/
     enum class Event
     {
         Start,
@@ -81,9 +75,43 @@ namespace statemachine
         NUM_EVENTS
     };
 
+    /******************************************************************************
+     * @brief Converts a state object to a string.
+     *
+     * @param eState -
+     * @return std::string -
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-18
+     ******************************************************************************/
+    inline std::string StateToString(States eState)
+    {
+        switch (eState)
+        {
+            case States::Idle: return "Idle";
+            case States::Navigating: return "Navigating";
+            case States::SearchPattern: return "Search Pattern";
+            case States::ApproachingMarker: return "Approaching Marker";
+            case States::ApproachingObject: return "Approaching Object";
+            case States::VerifyingMarker: return "Verifying Marker";
+            case States::VerifyingObject: return "Verifying Object";
+            case States::Avoidance: return "Avoidance";
+            case States::Reversing: return "Reversing";
+            case States::Stuck: return "Stuck";
+            default: return "Unknown";
+        }
+    }
+
+    /******************************************************************************
+     * @brief The abstract state class. All states inherit from this class.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-18
+     ******************************************************************************/
     class State
     {
         private:
+            States m_eState;
             std::string m_szStateName;
 
         protected:
@@ -111,16 +139,18 @@ namespace statemachine
             /******************************************************************************
              * @brief Construct a new State object.
              *
+             * @param eState - The state to start in.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
+             * @date 2024-01-18
              ******************************************************************************/
-            State() { Start(); }
-
-            State(const std::string szStateName = "UNKNOWN")
+            State(States eState)
             {
+                // Set State
+                m_eState = eState;
+
                 // Set State Name
-                m_szStateName = szStateName;
+                m_szStateName = StateToString(m_eState);
 
                 // Start the State
                 Start();
@@ -128,7 +158,6 @@ namespace statemachine
 
             /******************************************************************************
              * @brief Destroy the State object.
-             *
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
@@ -162,7 +191,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            virtual States GetState() const = 0;
+            States GetState() const { return m_eState; }
 
             /******************************************************************************
              * @brief Accessor for the State private member. Returns the state as a string.

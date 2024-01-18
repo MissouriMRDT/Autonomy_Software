@@ -73,7 +73,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            ApproachingObjectState() : State("Approaching Object")
+            ApproachingObjectState() : State(State::ApproachingObject)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -99,16 +99,6 @@ namespace statemachine
 
                 return States::ApproachingObject;
             }
-
-            /******************************************************************************
-             * @brief Accessor for the State private member.
-             *
-             * @return States - The current state.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-01-17
-             ******************************************************************************/
-            States GetState() const override { return States::ApproachingObject; }
 
             /******************************************************************************
              * @brief Trigger an event in the state machine. Returns the next state.
