@@ -85,7 +85,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            IdleState() : State(States::Idle)
+            IdleState() : State(States::eIdle)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -109,7 +109,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the Idle state
                 LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
-                return States::Idle;
+                return States::eIdle;
             }
 
             /******************************************************************************
@@ -123,12 +123,12 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Idle;
+                States eNextState       = States::eIdle;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Start event.");
 
@@ -139,38 +139,38 @@ namespace statemachine
                         if (tagInSight)
                         {
                             LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Detected ArUco marker. Transitioning to Reverse State.");
-                            eNextState = States::Reversing;
+                            eNextState = States::eReversing;
                         }
                         // If the reverse always flag is set, transition to backup before navigating.
                         else if (reverseAlways)
                         {
                             LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Reverse always flag set. Transitioning to Reverse State.");
-                            eNextState = States::Reversing;
+                            eNextState = States::eReversing;
                         }
                         // Otherwise, transition to navigating.
                         else
                         {
                             LOG_DEBUG(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
-                            eNextState = States::Navigating;
+                            eNextState = States::eNavigating;
                         }
 
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Idle)
+                if (eNextState != States::eIdle)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Transitioning to {} State.", StateToString(eNextState));
 
