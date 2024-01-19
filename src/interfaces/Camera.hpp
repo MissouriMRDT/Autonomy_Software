@@ -11,7 +11,6 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include "../util/IPS.hpp"
 #include "../util/vision/FetchContainers.hpp"
 
 /// \cond
@@ -138,16 +137,6 @@ class Camera
         bool GetEnableRecordingFlag() const { return m_bEnableRecordingFlag; }
 
         /******************************************************************************
-         * @brief Accessor for the Frame I P S private member.
-         *
-         * @return IPS& - A the camera objects iteration per second counter.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-08-20
-         ******************************************************************************/
-        virtual IPS& GetIPS() { return m_IPS; }
-
-        /******************************************************************************
          * @brief Mutator for the Enable Recording Flag private member
          *
          * @param bEnableRecordingFlag - Whether or not recording should be enabled for this camera.
@@ -175,9 +164,6 @@ class Camera
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
         virtual bool GetCameraIsOpen()                        = 0;    // This is where the code to check if the camera is current open goes.
-
-        // Declare protected object pointers.
-        IPS m_IPS = IPS();
 
     private:
         // Declare private methods and member variables.

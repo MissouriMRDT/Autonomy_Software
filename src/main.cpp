@@ -96,9 +96,12 @@ int main()
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
         globals::g_pStateMachineHandler->StartStateMachine();
-        // // Enable Recording on Handlers.
+        // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
+
+        // TEST: Send Start Command to enter navigating state.
+        globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::eStart);
 
         // TODO: Initialize RoveComm.
 
@@ -120,34 +123,37 @@ int main()
             TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
             TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
             // Create a string to append FPS values to.
-            std::string szThreadsFPS = "";
+            std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
-            szThreadsFPS += "--------[ Threads FPS ]--------\n";
-            szThreadsFPS += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szThreadsFPS += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
-            szThreadsFPS += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
-            szThreadsFPS += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-            szThreadsFPS += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
-            szThreadsFPS += "RightDetector GPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "--------[ Threads FPS ]--------\n";
+            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nStateMachine FPS:" + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\n--------[ State Machine Info ]--------\n";
+            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             // Submit logger message.
-            LOG_INFO(logging::g_qConsoleLogger, "{}", szThreadsFPS);
-
-            // Send Start Command
-            globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::Start);
+            LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
         }
 
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
         // Stop handlers.
+        globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
         // Delete dynamically allocated objects.
+        delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
 
         // Set dangling pointers to null.
+        globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
     }

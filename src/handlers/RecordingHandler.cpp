@@ -540,7 +540,7 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
 void RecordingHandler::SetRecordingFPS(const int nRecordingFPS)
 {
     // Set the max iterations per second of the recording handler.
-    this->SetMainThreadMaxIPS(nRecordingFPS);
+    this->SetMainThreadIPSLimit(nRecordingFPS);
 }
 
 /******************************************************************************
