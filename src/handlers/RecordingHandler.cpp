@@ -13,7 +13,10 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
+/// \cond
 #include <filesystem>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Construct a new Recording Handler:: Recording Handler object.
@@ -168,8 +171,8 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                    // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";         // Folder for each program run.
-                szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mp4";    // Folder for each camera index or name.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras";          // Folder for each program run.
+                szFilenameWithExtension = pBasicCamera->GetCameraLocation() + ".mkv";    // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -184,18 +187,13 @@ void RecordingHandler::UpdateRecordableCameras()
                                   pBasicCamera->GetCameraLocation());
                     }
                 }
-                else
-                {
-                    // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "Unable to create VideoWriter output directory {}: it already exists.", szFilePath.string());
-                }
 
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nCamera - 1].open(szFullOutputPath.string(),
-                                                                        cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                        cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                         constants::RECORDER_FPS,
                                                                         pBasicCamera->GetPropResolution());
 
@@ -238,9 +236,9 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                                               // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/cameras/";                                    // Folder for each program run.
+                szFilePath += logging::g_szProgramStartTimeString + "/cameras";                                     // Folder for each program run.
                 szFilenameWithExtension =
-                    pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mp4";    // Folder for each camera index or name.
+                    pZEDCamera->GetCameraModel() + "_" + std::to_string(pZEDCamera->GetCameraSerial()) + ".mkv";    // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -262,7 +260,7 @@ void RecordingHandler::UpdateRecordableCameras()
 
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset].open(szFullOutputPath,
-                                                                                   cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                                   cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                                    constants::RECORDER_FPS,
                                                                                    pZEDCamera->GetPropResolution());
 
@@ -341,6 +339,12 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         // Convert frame from 1 channel grayscale to 3 channel BGR.
                         cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
                     }
+                    // Check if this has an alpha channel.
+                    else if (m_vFrames[nIter].channels() == 4)
+                    {
+                        // Convert from from 4 channels to 3 channels.
+                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                    }
 
                     // Write frame to OpenCV video writer.
                     m_vCameraWriters[nIter].write(m_vFrames[nIter]);
@@ -363,6 +367,12 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                             // Convert frame from 1 channel grayscale to 3 channel BGR.
                             cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
                         }
+                        // Check if this has an alpha channel.
+                        else if (m_vFrames[nIter].channels() == 4)
+                        {
+                            // Convert from from 4 channels to 3 channels.
+                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                        }
 
                         // Write frame to OpenCV video writer.
                         m_vCameraWriters[nIter].write(m_vFrames[nIter]);
@@ -378,6 +388,12 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         {
                             // Convert frame from 1 channel grayscale to 3 channel BGR.
                             cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                        }
+                        // Check if this has an alpha channel.
+                        else if (m_vFrames[nIter].channels() == 4)
+                        {
+                            // Convert from from 4 channels to 3 channels.
+                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
                         }
 
                         // Write frame to OpenCV video writer.
@@ -420,7 +436,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 std::filesystem::path szFilenameWithExtension;
                 szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                  // Main location for all recordings.
                 szFilePath += logging::g_szProgramStartTimeString + "/tagdetector";    // Folder for each program run.
-                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mp4";      // Folder for each camera index or name.
+                szFilenameWithExtension = pTagDetector->GetCameraName() + ".mkv";      // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
@@ -435,18 +451,13 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                                   pTagDetector->GetCameraName());
                     }
                 }
-                else
-                {
-                    // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "Unable to create VideoWriter output directory {}: it already exists.", szFilePath.string());
-                }
 
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
-                                                                          cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+                                                                          cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                           constants::RECORDER_FPS,
                                                                           pTagDetector->GetProcessFrameResolution());
 
@@ -503,6 +514,12 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
                 {
                     // Convert frame from 1 channel grayscale to 3 channel BGR.
                     cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                }
+                // Check if this has an alpha channel.
+                else if (m_vFrames[nIter].channels() == 4)
+                {
+                    // Convert from from 4 channels to 3 channels.
+                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
                 }
 
                 // Write frame to OpenCV video writer.
