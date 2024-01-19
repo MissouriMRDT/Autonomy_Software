@@ -29,16 +29,16 @@ namespace statemachine
      ******************************************************************************/
     enum class States
     {
-        Idle,
-        Navigating,
-        SearchPattern,
-        ApproachingMarker,
-        ApproachingObject,
-        VerifyingMarker,
-        VerifyingObject,
-        Avoidance,
-        Reversing,
-        Stuck,
+        eIdle,
+        eNavigating,
+        eSearchPattern,
+        eApproachingMarker,
+        eApproachingObject,
+        eVerifyingMarker,
+        eVerifyingObject,
+        eAvoidance,
+        eReversing,
+        eStuck,
 
         NUM_STATES
     };
@@ -51,26 +51,26 @@ namespace statemachine
      ******************************************************************************/
     enum class Event
     {
-        Start,
-        ReachedGpsCoordinate,
-        ReachedMarker,
-        ReachedObject,
-        MarkerSeen,
-        ObjectSeen,
-        MarkerUnseen,
-        ObjectUnseen,
-        VerifyingComplete,
-        VerifyingFailed,
-        Abort,
-        Restart,
-        ObstacleAvoidance,
-        EndObstacleAvoidance,
-        NoWaypoint,
-        NewWaypoint,
-        Reverse,
-        ReverseComplete,
-        SearchFailed,
-        Stuck,
+        eStart,
+        eReachedGpsCoordinate,
+        eReachedMarker,
+        eReachedObject,
+        eMarkerSeen,
+        eObjectSeen,
+        eMarkerUnseen,
+        eObjectUnseen,
+        eVerifyingComplete,
+        eVerifyingFailed,
+        eAbort,
+        eRestart,
+        eObstacleAvoidance,
+        eEndObstacleAvoidance,
+        eNoWaypoint,
+        eNewWaypoint,
+        eReverse,
+        eReverseComplete,
+        eSearchFailed,
+        eStuck,
 
         NUM_EVENTS
     };
@@ -88,16 +88,16 @@ namespace statemachine
     {
         switch (eState)
         {
-            case States::Idle: return "Idle";
-            case States::Navigating: return "Navigating";
-            case States::SearchPattern: return "Search Pattern";
-            case States::ApproachingMarker: return "Approaching Marker";
-            case States::ApproachingObject: return "Approaching Object";
-            case States::VerifyingMarker: return "Verifying Marker";
-            case States::VerifyingObject: return "Verifying Object";
-            case States::Avoidance: return "Avoidance";
-            case States::Reversing: return "Reversing";
-            case States::Stuck: return "Stuck";
+            case States::eIdle: return "Idle";
+            case States::eNavigating: return "Navigating";
+            case States::eSearchPattern: return "Search Pattern";
+            case States::eApproachingMarker: return "Approaching Marker";
+            case States::eApproachingObject: return "Approaching Object";
+            case States::eVerifyingMarker: return "Verifying Marker";
+            case States::eVerifyingObject: return "Verifying Object";
+            case States::eAvoidance: return "Avoidance";
+            case States::eReversing: return "Reversing";
+            case States::eStuck: return "Stuck";
             default: return "Unknown";
         }
     }
