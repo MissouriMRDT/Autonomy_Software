@@ -114,6 +114,25 @@ void StateMachineHandler::StartStateMachine()
 }
 
 /******************************************************************************
+ * @brief This method will stop the state machine. It will signal whatever state
+ *  is currently running to abort back to idle and then stop the main code running
+ *  in the ThreadedContinuousCode() method.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-19
+ ******************************************************************************/
+void StateMachineHandler::StopStateMachine()
+{
+    // No matter the current state, abort back to idle.
+    this->HandleEvent(statemachine::Event::Abort);
+
+    // Stop main thread.
+    this->RequestStop();
+    this->Join();
+}
+
+/******************************************************************************
  * @brief This code will run continuously in a separate thread. The State
  *        Machine Handler will check the current state and run the state's
  *        logic. It will then check the state's transition conditions and
