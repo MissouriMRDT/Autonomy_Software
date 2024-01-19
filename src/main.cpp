@@ -18,7 +18,6 @@
 #include "../examples/vision/dnn/InferenceYOLOModel.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
-#include "./interfaces/StateMachine.hpp"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -79,15 +78,8 @@ int main()
     std::cout << szHeaderText << std::endl;
     std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
 
-    // Setup signal interrupt handler.
-    struct sigaction stSigBreak;
-    stSigBreak.sa_handler = SignalHandler;
-    stSigBreak.sa_flags   = 0;
-    sigemptyset(&stSigBreak.sa_mask);
-    sigaction(SIGINT, &stSigBreak, nullptr);
-
     // Initialize Loggers
-    logging::InitializeLoggers();
+    logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -97,12 +89,21 @@ int main()
     }
     else
     {
+        // Setup signal interrupt handler.
+        struct sigaction stSigBreak;
+        stSigBreak.sa_handler = SignalHandler;
+        stSigBreak.sa_flags   = 0;
+        sigemptyset(&stSigBreak.sa_mask);
+        sigaction(SIGINT, &stSigBreak, nullptr);
+
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
+        globals::g_pStateMachineHandler = new StateMachineHandler();
         // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
+        globals::g_pStateMachineHandler->StartStateMachine();
         // // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
@@ -120,20 +121,27 @@ int main()
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
             // Get Camera and Tag detector pointers .
+            ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
             BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
             BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
+            TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
             TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
             TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
             // Create a string to append FPS values to.
             std::string szThreadsFPS = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szThreadsFPS += "--------[ Threads FPS ]--------\n";
+            szThreadsFPS += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szThreadsFPS += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
             szThreadsFPS += "RightDetector GPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
             // Submit logger message.
             LOG_INFO(logging::g_qConsoleLogger, "{}", szThreadsFPS);
+
+            // Send Start Command
+            globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::Start);
         }
 
         /////////////////////////////////////////

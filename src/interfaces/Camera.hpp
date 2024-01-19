@@ -14,9 +14,12 @@
 #include "../util/IPS.hpp"
 #include "../util/vision/FetchContainers.hpp"
 
+/// \cond
 #include <atomic>
 #include <future>
 #include <shared_mutex>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This interface class serves as a base for all other classes that will

@@ -15,7 +15,10 @@
 #include "../vision/cameras/ZEDCam.h"
 #include "RecordingHandler.h"
 
+/// \cond
 #include <opencv2/core.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief The CameraHandler class is responsible for managing all of the

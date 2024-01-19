@@ -9,7 +9,11 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
-#include "AutonomyConstants.h"
+
+/// \cond
+#include <iostream>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all global type/structs that will be used project wide
@@ -33,11 +37,13 @@ namespace logging
      * @brief Logger Initializer - Sets Up all the logging handlers required for
      *        having the above loggers.
      *
+     * @param szLoggingOutputPath - A string containing the filepath to output log files to.
+     *                      Must be properly formatted.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2023-08-22
      ******************************************************************************/
-    void InitializeLoggers()
+    void InitializeLoggers(std::string szLoggingOutputPath)
     {
         // Retrieve the current time for the log file name
         time_t tCurrentTime   = time(nullptr);
@@ -52,9 +58,9 @@ namespace logging
         // Assemble filepath string.
         std::filesystem::path szFilePath;
         std::filesystem::path szFilenameWithExtension;
-        szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/";    // Main location for all recordings.
-        szFilePath += g_szProgramStartTimeString + "/";                // Folder for each program run.
-        szFilenameWithExtension = "console_output.log";                // Turn the current time into a file name.
+        szFilePath = szLoggingOutputPath + "/";            // Main location for all recordings.
+        szFilePath += g_szProgramStartTimeString + "/";    // Folder for each program run.
+        szFilenameWithExtension = "console_output.log";    // Turn the current time into a file name.
 
         // Check if directory exists.
         if (!std::filesystem::exists(szFilePath))

@@ -14,7 +14,9 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+/// \cond
 #include <quill/Quill.h>
+/// \endcond
 
 #ifndef AUTONOMY_LOGGING_H
 #define AUTONOMY_LOGGING_H
@@ -49,6 +51,7 @@ namespace logging
     //////////////////////////////////////////
     // Declare namespace external variables and objects.
     /////////////////////////////////////////
+
     extern quill::Logger* g_qFileLogger;
     extern quill::Logger* g_qConsoleLogger;
     extern quill::Logger* g_qSharedLogger;
@@ -57,6 +60,7 @@ namespace logging
     /////////////////////////////////////////
     // Declare namespace methods.
     /////////////////////////////////////////
-    void InitializeLoggers();
+
+    void InitializeLoggers(std::string szLoggingOutputPath);
 }    // namespace logging
 #endif    // AUTONOMY_LOGGING_H
