@@ -125,7 +125,7 @@ void StateMachineHandler::StartStateMachine()
 void StateMachineHandler::StopStateMachine()
 {
     // No matter the current state, abort back to idle.
-    this->HandleEvent(statemachine::Event::Abort);
+    this->HandleEvent(statemachine::Event::eAbort);
 
     // Stop main thread.
     this->RequestStop();
