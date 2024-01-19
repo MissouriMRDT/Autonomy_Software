@@ -1,101 +1,189 @@
 /******************************************************************************
- * @brief Idle State Implementation for Autonomy State Machine
+ * @brief Idle State Implementation for Autonomy State Machine.
  *
  * @file IdleState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
+ * @date 2024-01-17
  *
- * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#include "../AutonomyGlobals.h"
-#include "../AutonomyLogging.h"
+#ifndef IDLESTATE_HPP
+#define IDLESTATE_HPP
+
+#include "../interfaces/State.hpp"
 
 /******************************************************************************
- * @brief Idle State Handler
- *
- *        Primarily the Idle State Handler, handles the routing that
- *        occurs at the beginning of each leg. This is also the state
- *        which Autonomy will sit in if moving.
- *
- *        It also listens for state events that pertain to the Idle State
- *        and calls the appropriate transition handler to transition states
- *        as needed.
- *
+ * @brief Namespace containing all state machine related classes.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
+ * @date 2024-01-17
  ******************************************************************************/
-struct IdleState : sc::simple_state<IdleState, StateMachine>
+namespace statemachine
 {
-        IdleState() { LOG_INFO(logging::g_qSharedLogger, "In State: Idle"); }
+    /******************************************************************************
+     * @brief The IdleState class implements the Idle state for the Autonomy State
+     *        Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
+    class IdleState : public State
+    {
+        private:
+            time_t m_tIdleTime;
+            bool m_bRealigned;
+            std::vector<double> m_vRoverXPosition;
+            std::vector<double> m_vRoverYPosition;
+            int m_nMaxDataPoints;
+            bool m_bInitialized;
 
-        typedef mpl::list<sc::custom_reaction<Idle_AbortTransition>, sc::custom_reaction<Idle_NavigatingTransition>, sc::custom_reaction<Idle_ReverseTransition>>
-            reactions;
+        protected:
+            /******************************************************************************
+             * @brief This method is called when the state is first started. It is used to
+             *        initialize the state.
+             *
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            void Start() override
+            {
+                // Schedule the next run of the state's logic
+                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Scheduling next run of state logic.");
 
-        sc::result react(const Idle_AbortTransition& event)
-        {
-            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-            return transit<AbortState>();
-        }
+                m_tIdleTime      = time(nullptr);
+                m_bRealigned     = false;
+                m_nMaxDataPoints = 100;
 
-        sc::result react(const Idle_NavigatingTransition& event)
-        {
-            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-            return transit<NavigationState>();
-        }
+                m_vRoverXPosition.reserve(m_nMaxDataPoints);
+                m_vRoverYPosition.reserve(m_nMaxDataPoints);
+            }
 
-        sc::result react(const Idle_ReverseTransition& event)
-        {
-            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-            return transit<ReverseState>();
-        }
-};
+            /******************************************************************************
+             * @brief This method is called when the state is exited. It is used to clean up
+             *        the state.
+             *
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            void Exit() override
+            {
+                // Clean up the state before exiting
+                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Exiting state.");
 
-/******************************************************************************
- * @brief Idle State - Transition to Abort
- *
- *        When the state machine reaches the 'Abort' transition handler,
- *        Autonomy will stop all processes and transition to the Abort State.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
- ******************************************************************************/
-struct Idle_AbortTransition : sc::event<Idle_AbortTransition>
-{
-        Idle_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Idle (Abort)"); }
-};
+                m_vRoverXPosition.clear();
+                m_vRoverYPosition.clear();
+            }
 
-/******************************************************************************
- * @brief Idle State - Transition to Navigating
- *
- *        When the state machine reaches the 'Navigating' transition handler,
- *        Autonomy will begin navigating it's way towards the specified GPS
- *        coordinates while looking for Markers or Gates if in the appropriate
- *        leg of the Competition.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
- ******************************************************************************/
-struct Idle_NavigatingTransition : sc::event<Idle_NavigatingTransition>
-{
-        Idle_NavigatingTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Idle (Navigating)"); }
-};
+        public:
+            /******************************************************************************
+             * @brief Construct a new State object.
+             *
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            IdleState() : State(States::Idle)
+            {
+                LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-/******************************************************************************
- * @brief Idle State - Transition to Reverse
- *
- *        When the state machine reaches the 'Reverse' transition handler,
- *        Autonomy will use the reverse state to navigate away from the
- *        current marker or gate that it is currently at.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
- ******************************************************************************/
-struct Idle_ReverseTransition : sc::event<Idle_ReverseTransition>
-{
-        Idle_ReverseTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Idle (Reverse)"); }
-};
+                m_bInitialized = false;
+
+                if (!m_bInitialized)
+                {
+                    Start();
+                    m_bInitialized = true;
+                }
+            }
+
+            /******************************************************************************
+             * @brief Run the state machine. Returns the next state.
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            States Run() override
+            {
+                // TODO: Implement the behavior specific to the Idle state
+                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
+
+                return States::Idle;
+            }
+
+            /******************************************************************************
+             * @brief Trigger an event in the state machine. Returns the next state.
+             *
+             * @param eEvent - The event to trigger.
+             * @return std::shared_ptr<State> - The next state.
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            States TriggerEvent(Event eEvent) override
+            {
+                States eNextState       = States::Idle;
+                bool bCompleteStateExit = true;
+
+                switch (eEvent)
+                {
+                    case Event::Start:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Start event.");
+
+                        bool tagInSight    = false;    // TODO: Replace with actual tag detection
+                        bool reverseAlways = false;    // TODO: Replace with actual reverse always flag
+
+                        // If there is an ArUco marker in the camera's field of view, transition to backup before navigating.
+                        if (tagInSight)
+                        {
+                            LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Detected ArUco marker. Transitioning to Reverse State.");
+                            eNextState = States::Reversing;
+                        }
+                        // If the reverse always flag is set, transition to backup before navigating.
+                        else if (reverseAlways)
+                        {
+                            LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Reverse always flag set. Transitioning to Reverse State.");
+                            eNextState = States::Reversing;
+                        }
+                        // Otherwise, transition to navigating.
+                        else
+                        {
+                            LOG_DEBUG(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
+                            eNextState = States::Navigating;
+                        }
+
+                        break;
+                    }
+                    case Event::Abort:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
+                        eNextState = States::Idle;
+                        break;
+                    }
+                    default:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
+                        eNextState = States::Idle;
+                        break;
+                    }
+                }
+
+                if (eNextState != States::Idle)
+                {
+                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Transitioning to {} State.", StateToString(eNextState));
+
+                    // Exit the current state
+                    if (bCompleteStateExit)
+                    {
+                        Exit();
+                    }
+                }
+
+                return eNextState;
+            }
+    };
+}    // namespace statemachine
+
+#endif    // IDLESTATE_HPP

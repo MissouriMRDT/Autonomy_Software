@@ -9,11 +9,14 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../src/interfaces/AutonomyThread.hpp"
+#include "../../src/util/ExampleChecker.h"
+
+/// \cond
 #include <iostream>
 #include <vector>
 
-#include "../../src/interfaces/AutonomyThread.hpp"
-#include "../../src/util/ExampleChecker.h"
+/// \endcond
 
 /******************************************************************************
  * @brief This class creates a thread for calculating N prime numbers.

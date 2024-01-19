@@ -1,15 +1,15 @@
 /******************************************************************************
- * @brief Stuck State Implementation for Autonomy State Machine.
+ * @brief Navigating State Implementation for Autonomy State Machine.
  *
- * @file StuckState.hpp
+ * @file NavigatingState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-01-17
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef STUCKSTATE_HPP
-#define STUCKSTATE_HPP
+#ifndef NAVIGATINGSTATE_HPP
+#define NAVIGATINGSTATE_HPP
 
 #include "../interfaces/State.hpp"
 
@@ -22,16 +22,20 @@
 namespace statemachine
 {
     /******************************************************************************
-     * @brief The StuckState class implements the Stuck state for the Autonomy
+     * @brief The NavigatingState class implements the Navigating state for the Autonomy
      *        State Machine.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    class StuckState : public State
+    class NavigatingState : public State
     {
         private:
+            int m_nMaxDataPoints;
+            std::vector<double> m_vRoverXPosition;
+            std::vector<double> m_vRoverYPosition;
             time_t m_tStuckCheckTime;
+            double m_dStuckCheckLastPosition[2];
             bool m_bInitialized;
 
         protected:
@@ -46,11 +50,18 @@ namespace statemachine
             void Start() override
             {
                 // Schedule the next run of the state's logic
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
+                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
-                m_tStuckCheckTime = time(nullptr);
+                m_nMaxDataPoints             = 100;
+                m_tStuckCheckTime            = time(nullptr);
 
-                // TODO: Add Stop All Motors Command
+                m_dStuckCheckLastPosition[0] = 0;
+                m_dStuckCheckLastPosition[1] = 0;
+
+                m_vRoverXPosition.reserve(m_nMaxDataPoints);
+                m_vRoverYPosition.reserve(m_nMaxDataPoints);
+
+                // TODO: Add a Clear ArUco Tags Command
             }
 
             /******************************************************************************
@@ -64,7 +75,10 @@ namespace statemachine
             void Exit() override
             {
                 // Clean up the state before exiting
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Exiting state.");
+                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Exiting state.");
+
+                m_vRoverXPosition.clear();
+                m_vRoverYPosition.clear();
             }
 
         public:
@@ -75,7 +89,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            StuckState() : State(States::Stuck)
+            NavigatingState() : State(States::Navigating)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -96,10 +110,10 @@ namespace statemachine
              ******************************************************************************/
             States Run() override
             {
-                // TODO: Implement the behavior specific to the Stuck state
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
+                // TODO: Implement the behavior specific to the Navigating state
+                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
-                return States::Stuck;
+                return States::Navigating;
             }
 
             /******************************************************************************
@@ -113,34 +127,87 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Stuck;
+                States eNextState       = States::Navigating;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
+                    case Event::NoWaypoint:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
+                        eNextState = States::Idle;
+                        break;
+                    }
+                    case Event::ReachedMarker:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker event.");
+                        eNextState = States::Idle;
+                        break;
+                    }
+                    case Event::ReachedGpsCoordinate:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
+
+                        bool gpsOrTagMarker = false;    // TODO: Replace with determining if the rover is supposed to be navigating to a GPS coordinate or a tag / object.
+
+                        if (gpsOrTagMarker)
+                        {
+                            eNextState = States::Idle;
+                        }
+                        else
+                        {
+                            eNextState = States::SearchPattern;
+                        }
+
+                        break;
+                    }
+                    case Event::NewWaypoint:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
+                        eNextState = States::Navigating;
+                        break;
+                    }
                     case Event::Start:
                     {
-                        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
-                        eNextState = States::Reversing;
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Start event.");
+                        eNextState = States::Navigating;
                         break;
                     }
                     case Event::Abort:
                     {
-                        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Abort event.");
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Abort event.");
                         eNextState = States::Idle;
+                        break;
+                    }
+                    case Event::ObstacleAvoidance:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
+                        eNextState = States::Avoidance;
+                        break;
+                    }
+                    case Event::Reverse:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reverse event.");
+                        eNextState = States::Reversing;
+                        break;
+                    }
+                    case Event::Stuck:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
+                        eNextState = States::Stuck;
                         break;
                     }
                     default:
                     {
-                        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
+                        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling unknown event.");
                         eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Stuck)
+                if (eNextState != States::Navigating)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)
@@ -154,4 +221,4 @@ namespace statemachine
     };
 }    // namespace statemachine
 
-#endif    // STUCKSTATE_HPP
+#endif    // NAVIGATINGSTATE_HPP

@@ -15,9 +15,12 @@
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
 
+/// \cond
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
 #include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to tensorflow tag detections

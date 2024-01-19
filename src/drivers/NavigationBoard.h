@@ -13,7 +13,10 @@
 
 #include "../util/GeospatialOperations.hpp"
 
+/// \cond
 #include <shared_mutex>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class handles communication with the navigation board on the rover

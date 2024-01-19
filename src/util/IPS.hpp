@@ -11,9 +11,12 @@
 #ifndef IPS_HPP
 #define IPS_HPP
 
+/// \cond
 #include <algorithm>
 #include <chrono>
 #include <deque>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This util class provides an easy way to keep track of iterations per second for

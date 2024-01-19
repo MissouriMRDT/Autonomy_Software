@@ -14,11 +14,13 @@
 #ifndef FETCH_CONTAINERS_HPP
 #define FETCH_CONTAINERS_HPP
 
-#include "../../interfaces/Camera.hpp"
+/// \cond
 
 #include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
+
+/// \endcond
 
 // Declare global/file-scope enumerator.
 enum PIXEL_FORMATS

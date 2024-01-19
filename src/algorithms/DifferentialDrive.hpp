@@ -16,8 +16,11 @@
 #include "../util/NumberOperations.hpp"
 #include "controllers/PIDController.h"
 
+/// \cond
 #include <array>
 #include <math.h>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing algorithms related to calculating drive powers,

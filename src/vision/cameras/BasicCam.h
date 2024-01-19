@@ -14,7 +14,10 @@
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
 
+/// \cond
 #include <opencv2/opencv.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common USB cameras

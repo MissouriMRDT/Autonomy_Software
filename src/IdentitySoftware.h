@@ -11,7 +11,9 @@
 #ifndef IDENTITY_SOFTWARE_H
 #define IDENTITY_SOFTWARE_H
 
+/// \cond
 #include <string>
+/// \endcond
 
 #define AUTONOMY_MAJOR_VERSION 24
 #define AUTONOMY_MINOR_VERSION 0

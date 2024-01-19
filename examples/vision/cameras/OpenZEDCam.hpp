@@ -15,7 +15,9 @@
 #include "../../../src/util/ExampleChecker.h"
 #include "../../../src/util/vision/ImageOperations.hpp"
 
+/// \cond
 #include <chrono>
+/// \endcond
 
 // Declare file constants.
 const bool ENABLE_SPATIAL_MAPPING = false;
