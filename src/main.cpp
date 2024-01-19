@@ -100,7 +100,7 @@ int main()
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
 
-        // TSET: Send Start Command to enter navigating state.
+        // TEST: Send Start Command to enter navigating state.
         globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::Start);
 
         // TODO: Initialize RoveComm.
