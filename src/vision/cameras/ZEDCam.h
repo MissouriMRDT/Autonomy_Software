@@ -15,9 +15,12 @@
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
 
+/// \cond
 #include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class implements and interfaces with the most common ZEDSDK cameras

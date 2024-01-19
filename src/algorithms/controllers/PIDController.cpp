@@ -85,7 +85,7 @@ double PIDController::Calculate(const double dActual, const double dSetpoint)
         // Calculate error bounds.
         double dErrorBound = (m_dMaximumContinuousInput - m_dMinimumContinuousInput) / 2.0;
         // Wrap heading.
-        dError = numops::InputModulus(dError, -dErrorBound, dErrorBound);
+        dError = numops::InputAngleModulus(dError, -dErrorBound, dErrorBound);
     }
 
     // Calculate feedforward term.

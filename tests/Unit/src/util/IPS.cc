@@ -8,11 +8,14 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../../../src/util/IPS.hpp"
+
+/// \cond
 #include <chrono>
 #include <gtest/gtest.h>
 #include <thread>
 
-#include "../../../../src/util/IPS.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief Check that IPS doesn't leak any memory.

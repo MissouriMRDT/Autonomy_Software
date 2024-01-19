@@ -1,15 +1,15 @@
 /******************************************************************************
- * @brief Stuck State Implementation for Autonomy State Machine.
+ * @brief Verifying Object State Implementation for Autonomy State Machine.
  *
- * @file StuckState.hpp
+ * @file VerifyingObjectState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-01-17
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef STUCKSTATE_HPP
-#define STUCKSTATE_HPP
+#ifndef VERIFYINGOBJECTSTATE_HPP
+#define VERIFYINGOBJECTSTATE_HPP
 
 #include "../interfaces/State.hpp"
 
@@ -22,16 +22,17 @@
 namespace statemachine
 {
     /******************************************************************************
-     * @brief The StuckState class implements the Stuck state for the Autonomy
-     *        State Machine.
+     * @brief The VerifyingObjectState class implements the Verifying Object state for
+     *        the Autonomy State Machine.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    class StuckState : public State
+    class VerifyingObjectState : public State
     {
         private:
-            time_t m_tStuckCheckTime;
+            std::vector<int> m_vObjectIDs;
+            int m_nMaxObjectIDs;
             bool m_bInitialized;
 
         protected:
@@ -46,11 +47,11 @@ namespace statemachine
             void Start() override
             {
                 // Schedule the next run of the state's logic
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
+                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Scheduling next run of state logic.");
 
-                m_tStuckCheckTime = time(nullptr);
+                m_nMaxObjectIDs = 50;
 
-                // TODO: Add Stop All Motors Command
+                m_vObjectIDs.reserve(m_nMaxObjectIDs);
             }
 
             /******************************************************************************
@@ -64,18 +65,21 @@ namespace statemachine
             void Exit() override
             {
                 // Clean up the state before exiting
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Exiting state.");
+                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Exiting state.");
+
+                m_vObjectIDs.clear();
             }
 
         public:
             /******************************************************************************
-             * @brief Construct a new State object.
+             * @brief Accessor for the State private member. Returns the state as a string.
              *
+             * @return std::string - The current state as a string.
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            StuckState() : State(States::Stuck)
+            VerifyingObjectState() : State(States::VerifyingObject)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -96,10 +100,10 @@ namespace statemachine
              ******************************************************************************/
             States Run() override
             {
-                // TODO: Implement the behavior specific to the Stuck state
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
+                // TODO: Implement the behavior specific to the VerifyingObject state
+                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
-                return States::Stuck;
+                return States::VerifyingObject;
             }
 
             /******************************************************************************
@@ -113,34 +117,40 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Stuck;
+                States eNextState       = States::VerifyingObject;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
                     case Event::Start:
                     {
-                        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
-                        eNextState = States::Reversing;
+                        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Start event.");
+                        eNextState = States::VerifyingObject;
+                        break;
+                    }
+                    case Event::VerifyingComplete:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
+                        eNextState = States::Idle;
                         break;
                     }
                     case Event::Abort:
                     {
-                        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Abort event.");
+                        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Abort event.");
                         eNextState = States::Idle;
                         break;
                     }
                     default:
                     {
-                        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
+                        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling unknown event.");
                         eNextState = States::Idle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Stuck)
+                if (eNextState != States::VerifyingObject)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", StateToString(eNextState));
+                    LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Transitioning to {} State.", StateToString(eNextState));
 
                     // Exit the current state
                     if (bCompleteStateExit)
@@ -154,4 +164,4 @@ namespace statemachine
     };
 }    // namespace statemachine
 
-#endif    // STUCKSTATE_HPP
+#endif    // VERIFYINGOBJECTSTATE_HPP
