@@ -16,6 +16,7 @@
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
 #include "handlers/CameraHandler.h"
+#include "handlers/StateMachineHandler.h"
 #include "handlers/TagDetectionHandler.h"
 
 /// \cond
@@ -23,24 +24,14 @@
 #include <ctime>
 #include <iostream>
 
-#include <boost/statechart/custom_reaction.hpp>
-#include <boost/statechart/event.hpp>
-#include <boost/statechart/state.hpp>
-#include <boost/statechart/state_machine.hpp>
-#include <boost/statechart/transition.hpp>
-
-#include <boost/mpl/list.hpp>
 /// \endcond
-
-namespace sc  = boost::statechart;
-namespace mpl = boost::mpl;
 
 /******************************************************************************
  * @brief Namespace containing all global types/structs that will be used project
  *      wide and ARE NOT SPECIFIC TO A CERTAIN CLASS.
  *
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
  * @date 2023-09-23
  ******************************************************************************/
 namespace globals
@@ -61,6 +52,9 @@ namespace globals
     extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface
     extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
     extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
+
+    // State Machine Handler:
+    extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H
