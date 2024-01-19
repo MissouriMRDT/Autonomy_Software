@@ -8,9 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../src/AutonomyConstants.h"
 #include "../../src/AutonomyLogging.h"
 
+/// \cond
 #include <gtest/gtest.h>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Unit Tests - Main Function
@@ -23,7 +27,7 @@
 int main()
 {
     // Setup logging.
-    logging::InitializeLoggers();
+    logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
 
     // Initialize tests.
     testing::InitGoogleTest();

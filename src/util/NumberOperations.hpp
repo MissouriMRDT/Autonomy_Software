@@ -12,8 +12,11 @@
 #ifndef NUMBER_OPERATIONS_HPP
 #define NUMBER_OPERATIONS_HPP
 
+/// \cond
 #include <algorithm>
 #include <iostream>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to operations on numbers and
@@ -109,7 +112,7 @@ namespace numops
     }
 
     /******************************************************************************
-     * @brief Calculates the modulus of an input.
+     * @brief Calculates the modulus of an input angle to -180, 180
      *
      * @tparam T - Template value specifying the type of the number to find modulus of.
      * @param tValue - Input value to wrap.
@@ -121,7 +124,7 @@ namespace numops
      * @date 2023-10-19
      ******************************************************************************/
     template<typename T>
-    inline constexpr T InputModulus(T tValue, T tMinValue, T tMaxValue)
+    inline constexpr T InputAngleModulus(T tValue, T tMinValue, T tMaxValue)
     {
         // Determine the correct modulus number.
         T tModulus = tMaxValue - tMinValue;

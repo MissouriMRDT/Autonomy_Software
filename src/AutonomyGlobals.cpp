@@ -15,7 +15,7 @@
  *      wide and ARE NOT SPECIFIC TO A CERTAIN CLASS.
  *
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
  * @date 2023-09-23
  ******************************************************************************/
 namespace globals
@@ -37,4 +37,7 @@ namespace globals
     DriveBoard g_pDriveBoardInterface;
     MultimediaBoard g_pMultimediaBoard;
     NavigationBoard g_pNavigationBoard;
+
+    // State Machine Handler:
+    StateMachineHandler* g_pStateMachineHandler;
 }    // namespace globals
