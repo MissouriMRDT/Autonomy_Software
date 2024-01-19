@@ -55,6 +55,7 @@ class StateMachineHandler : public AutonomyThread<void>
         ~StateMachineHandler() = default;
 
         void StartStateMachine();
+        void StopStateMachine();
 
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
