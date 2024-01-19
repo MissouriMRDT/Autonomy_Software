@@ -196,6 +196,7 @@ namespace constants
     const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
+
     ///////////////////////////////////////////////////////////////////////////
 }    // namespace constants
 
