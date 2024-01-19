@@ -125,7 +125,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            AvoidanceState() : State(States::Avoidance)
+            AvoidanceState() : State(States::eAvoidance)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -149,7 +149,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the Avoidance state
                 LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Running state-specific behavior.");
 
-                return States::Avoidance;
+                return States::eAvoidance;
             }
 
             /******************************************************************************
@@ -163,44 +163,44 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Avoidance;
+                States eNextState       = States::eAvoidance;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Start event.");
-                        eNextState = States::Avoidance;
+                        eNextState = States::eAvoidance;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::EndObstacleAvoidance:
+                    case Event::eEndObstacleAvoidance:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling EndObstacleAvoidance event.");
                         eNextState = States::NUM_STATES;    // Replace with `get_prev_state()`
                         break;
                     }
-                    case Event::Stuck:
+                    case Event::eStuck:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Stuck event.");
-                        eNextState = States::Stuck;
+                        eNextState = States::eStuck;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Avoidance)
+                if (eNextState != States::eAvoidance)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Transitioning to {} State.", StateToString(eNextState));
 
