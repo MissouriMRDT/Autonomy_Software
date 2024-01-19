@@ -15,9 +15,12 @@
 
 #include "../../external/threadpool/BSThreadPool.hpp"
 
+/// \cond
 #include <atomic>
 #include <chrono>
 #include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Interface class used to easily multithread a child class.
