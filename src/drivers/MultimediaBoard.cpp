@@ -10,9 +10,6 @@
 
 #include "MultimediaBoard.h"
 
-#include "../AutonomyGlobals.h"
-#include "../AutonomyLogging.h"
-
 /******************************************************************************
  * @brief This struct serves as a container for RGB values, and provides a
  *      few overridden constructors for converting from hex to 8-bit RGB values.

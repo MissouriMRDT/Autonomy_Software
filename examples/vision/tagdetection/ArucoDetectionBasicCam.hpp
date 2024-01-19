@@ -40,7 +40,6 @@ void RunExample()
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
-    cv::Mat cvPreProcessFrame1;
     cv::Mat cvDetectionsFrame1;
     // Declare vector to store tag detections in.
     std::vector<arucotag::ArucoTag> vTagDetections1;
