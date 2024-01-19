@@ -133,7 +133,7 @@ int main()
             LOG_INFO(logging::g_qConsoleLogger, "{}", szThreadsFPS);
 
             // Send Start Command
-            globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::Start);
+            globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::eStart);
         }
 
         /////////////////////////////////////////

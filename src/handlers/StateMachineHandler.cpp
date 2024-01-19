@@ -23,16 +23,16 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
 {
     switch (eState)
     {
-        case statemachine::States::Idle: return std::make_shared<statemachine::IdleState>();
-        case statemachine::States::Navigating: return std::make_shared<statemachine::NavigatingState>();
-        case statemachine::States::SearchPattern: return std::make_shared<statemachine::SearchPatternState>();
-        case statemachine::States::ApproachingMarker: return std::make_shared<statemachine::ApproachingMarkerState>();
-        case statemachine::States::ApproachingObject: return std::make_shared<statemachine::ApproachingObjectState>();
-        case statemachine::States::VerifyingMarker: return std::make_shared<statemachine::VerifyingMarkerState>();
-        case statemachine::States::VerifyingObject: return std::make_shared<statemachine::VerifyingObjectState>();
-        case statemachine::States::Avoidance: return std::make_shared<statemachine::AvoidanceState>();
-        case statemachine::States::Reversing: return std::make_shared<statemachine::ReversingState>();
-        case statemachine::States::Stuck: return std::make_shared<statemachine::StuckState>();
+        case statemachine::States::eIdle: return std::make_shared<statemachine::IdleState>();
+        case statemachine::States::eNavigating: return std::make_shared<statemachine::NavigatingState>();
+        case statemachine::States::eSearchPattern: return std::make_shared<statemachine::SearchPatternState>();
+        case statemachine::States::eApproachingMarker: return std::make_shared<statemachine::ApproachingMarkerState>();
+        case statemachine::States::eApproachingObject: return std::make_shared<statemachine::ApproachingObjectState>();
+        case statemachine::States::eVerifyingMarker: return std::make_shared<statemachine::VerifyingMarkerState>();
+        case statemachine::States::eVerifyingObject: return std::make_shared<statemachine::VerifyingObjectState>();
+        case statemachine::States::eAvoidance: return std::make_shared<statemachine::AvoidanceState>();
+        case statemachine::States::eReversing: return std::make_shared<statemachine::ReversingState>();
+        case statemachine::States::eStuck: return std::make_shared<statemachine::StuckState>();
         default:
             // Handle the default case or throw an exception if needed
             LOG_ERROR(logging::g_qConsoleLogger, "State {} not found.", static_cast<int>(eState));
@@ -100,7 +100,7 @@ StateMachineHandler::StateMachineHandler()
 void StateMachineHandler::StartStateMachine()
 {
     // Initialize the state machine with the initial state
-    pCurrentState      = CreateState(statemachine::States::Idle);
+    pCurrentState      = CreateState(statemachine::States::eIdle);
 
     m_bInitialized     = true;
     m_bSwitchingStates = false;
@@ -190,7 +190,7 @@ statemachine::States StateMachineHandler::GetCurrentState() const
 statemachine::States StateMachineHandler::GetPreviousState() const
 {
     // Check if the previous state exists and return it if it does otherwise return Idle
-    return pPreviousState ? pPreviousState->GetState() : statemachine::States::Idle;
+    return pPreviousState ? pPreviousState->GetState() : statemachine::States::eIdle;
 }
 
 /******************************************************************************
