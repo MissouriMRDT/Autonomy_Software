@@ -495,7 +495,7 @@ class AutonomyThread
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-30
          ******************************************************************************/
-        void SetMainThreadMaxIPS(int nMaxIterationsPerSecond = 0)
+        void SetMainThreadIPSLimit(int nMaxIterationsPerSecond = 0)
         {
             // Assign member variable.
             m_nMainThreadMaxIterationPerSecond = nMaxIterationsPerSecond;
