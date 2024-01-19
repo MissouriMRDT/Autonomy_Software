@@ -8,13 +8,16 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../../../src/vision/aruco/ArucoDetection.hpp"
+
+/// \cond
 #include <chrono>
 #include <filesystem>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>
 
-#include "../../../../src/vision/aruco/ArucoDetection.hpp"
+/// \endcond
 
 /******************************************************************************
  * @brief Are two points equal to each other

@@ -163,11 +163,11 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Check if the camera was successfully opened.
     if (m_slCamera.isOpened())
     {
+        // Update camera serial number if camera was opened with autodetect.
+        m_unCameraSerialNumber = m_slCamera.getCameraInformation().serial_number;
+
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger,
-                  "{} stereo camera with serial number {} has been successfully opened.",
-                  this->GetCameraModel(),
-                  m_slCamera.getCameraInformation().serial_number);
+        LOG_DEBUG(logging::g_qSharedLogger, "{} stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
     }
     else
     {
@@ -175,7 +175,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         LOG_ERROR(logging::g_qSharedLogger,
                   "Unable to open stereo camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                  m_slCamera.getCameraInformation().serial_number,
+                  m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
     }
 }
@@ -242,7 +242,7 @@ void ZEDCam::ThreadedContinuousCode()
                 LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
+                            m_unCameraSerialNumber,
                             sl::toString(slReturnCode).get());
             }
 
@@ -255,7 +255,7 @@ void ZEDCam::ThreadedContinuousCode()
                 LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
+                            m_unCameraSerialNumber,
                             sl::toString(slReturnCode).get());
             }
 
@@ -268,7 +268,7 @@ void ZEDCam::ThreadedContinuousCode()
                 LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
+                            m_unCameraSerialNumber,
                             sl::toString(slReturnCode).get());
             }
 
@@ -281,7 +281,7 @@ void ZEDCam::ThreadedContinuousCode()
                 LOG_WARNING(logging::g_qSharedLogger,
                             "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_slCamera.getCameraInformation().serial_number,
+                            m_unCameraSerialNumber,
                             sl::toString(slReturnCode).get());
             }
 
@@ -297,7 +297,7 @@ void ZEDCam::ThreadedContinuousCode()
                     LOG_WARNING(logging::g_qSharedLogger,
                                 "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
                                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                m_slCamera.getCameraInformation().serial_number,
+                                m_unCameraSerialNumber,
                                 sl::toString(slPoseTrackReturnCode).get());
                 }
             }
@@ -313,7 +313,7 @@ void ZEDCam::ThreadedContinuousCode()
                     LOG_WARNING(logging::g_qSharedLogger,
                                 "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                m_slCamera.getCameraInformation().serial_number,
+                                m_unCameraSerialNumber,
                                 sl::toString(slReturnCode).get());
                 }
 
@@ -329,7 +329,7 @@ void ZEDCam::ThreadedContinuousCode()
                         LOG_WARNING(logging::g_qSharedLogger,
                                     "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
                                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                    m_slCamera.getCameraInformation().serial_number,
+                                    m_unCameraSerialNumber,
                                     sl::toString(slReturnCode).get());
                     }
                 }
@@ -349,7 +349,7 @@ void ZEDCam::ThreadedContinuousCode()
             LOG_ERROR(logging::g_qSharedLogger,
                       "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
                       sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                      m_slCamera.getCameraInformation().serial_number,
+                      m_unCameraSerialNumber,
                       sl::toString(slReturnCode).get());
         }
 
@@ -824,7 +824,7 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
         LOG_WARNING(logging::g_qSharedLogger,
                     "Failed to ingest new objects for camera {} ({})! sl::ERROR_CODE is: {}",
                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                    m_slCamera.getCameraInformation().serial_number,
+                    m_unCameraSerialNumber,
                     sl::toString(slReturnCode).get());
     }
 
@@ -845,7 +845,7 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Reboot this camera and return the status code.
-    return sl::Camera::reboot(m_slCamera.getCameraInformation().serial_number);
+    return sl::Camera::reboot(m_unCameraSerialNumber);
 }
 
 /******************************************************************************
@@ -872,7 +872,7 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
         LOG_ERROR(logging::g_qSharedLogger,
                   "Failed to enabled positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                  m_slCamera.getCameraInformation().serial_number,
+                  m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
     }
 
@@ -981,7 +981,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
             LOG_ERROR(logging::g_qSharedLogger,
                       "Failed to enabled spatial mapping for camera {} ({})! sl::ERROR_CODE is: {}",
                       sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                      m_slCamera.getCameraInformation().serial_number,
+                      m_unCameraSerialNumber,
                       sl::toString(slReturnCode).get());
         }
     }
@@ -991,7 +991,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
         LOG_ERROR(logging::g_qSharedLogger,
                   "Failed to enabled spatial mapping for camera {} ({}) because positional tracking could not be enabled! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                  m_slCamera.getCameraInformation().serial_number,
+                  m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
     }
 
@@ -1043,7 +1043,7 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
         LOG_ERROR(logging::g_qSharedLogger,
                   "Failed to enabled object detection for camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                  m_slCamera.getCameraInformation().serial_number,
+                  m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
     }
 
@@ -1115,23 +1115,17 @@ bool ZEDCam::GetUsingGPUMem() const
  ******************************************************************************/
 std::string ZEDCam::GetCameraModel()
 {
-    // Declare instance variables.
-    std::string szCameraModel;
-
     // Check if the camera is opened.
     if (m_slCamera.isOpened())
     {
-        // Convert camera model to a string.
-        szCameraModel = sl::toString(m_slCamera.getCameraInformation().camera_model).get();
+        // Convert camera model to a string and return.
+        return sl::toString(m_slCamera.getCameraInformation().camera_model).get();
     }
     else
     {
-        // Set the model string to show camera isn't opened.
-        szCameraModel = "NOT_OPENED";
+        // Return the model string to show camera isn't opened.
+        return "NOT_OPENED";
     }
-
-    // Return model of camera represented as string.
-    return szCameraModel;
 }
 
 /******************************************************************************
@@ -1144,13 +1138,13 @@ std::string ZEDCam::GetCameraModel()
  ******************************************************************************/
 unsigned int ZEDCam::GetCameraSerial()
 {
-    // Return connected camera serial number.
-    return m_slCamera.getCameraInformation().serial_number;
+    // Return the model string to show camera isn't opened.
+    return m_unCameraSerialNumber;
 }
 
 /******************************************************************************
  * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
- *      Puts a Pose pointer into a queue so a copy of a frame from the camera can be written to it.
+ *      Puts a Pose pointer into a queue so a copy of a pose from the camera can be written to it.
  *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.

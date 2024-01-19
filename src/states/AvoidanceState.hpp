@@ -1,107 +1,219 @@
 /******************************************************************************
- * @brief Obstacle Avoidance State Implementation for Autonomy State Machine
+ * @brief Avoidance State Implementation for Autonomy State Machine.
  *
  * @file AvoidanceState.hpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
+ * @date 2024-01-17
  *
- * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#include "../AutonomyGlobals.h"
-#include "../AutonomyLogging.h"
+#ifndef AVOIDANCESTATE_HPP
+#define AVOIDANCESTATE_HPP
+
+#include "../interfaces/State.hpp"
 
 /******************************************************************************
- * @brief Obstacle Avoidance State Handler
- *
- *        Primarily the Obstacle Avoidance State Handler, handles the
- *        detection and navigation of the Rover around obstacles.
- *
- *        It also listens for state events that pertain to the Obstacle
- *        Avoidance State and calls the appropriate transition handler to
- *        transition states as needed.
- *
+ * @brief Namespace containing all state machine related classes.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
+ * @date 2024-01-17
  ******************************************************************************/
-struct AvoidanceState : sc::simple_state<AvoidanceState, StateMachine>
+namespace statemachine
 {
-        AvoidanceState() { LOG_INFO(logging::g_qSharedLogger, "In State: Avoidance"); }
+    /******************************************************************************
+     * @brief The AvoidanceState class implements the Avoidance state for the Autonomy
+     *        State Machine.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-01-17
+     ******************************************************************************/
+    class AvoidanceState : public State
+    {
+        private:
+            std::vector<double> m_vRoverXPath;
+            std::vector<double> m_vRoverYPath;
+            std::vector<double> m_vRoverYawPath;
+            std::vector<double> m_vRoverXPosition;
+            std::vector<double> m_vRoverYPosition;
+            std::vector<double> m_vRoverYawPosition;
+            std::vector<double> m_vRoverVelocity;
+            double m_nLastIDX;
+            double m_nTargetIDX;
+            double m_nMaxDataPoints;
+            time_t m_tPathStartTime;
+            time_t m_tStuckCheckTime;
+            double m_dStuckCheckLastPosition[2];
+            // TODO: Add ASTAR Pathfinder
+            // TODO: Add Stanley Controller
+            bool m_bInitialized;
 
-        typedef mpl::
-            list<sc::custom_reaction<Avoidance_EndAvoidanceTransition>, sc::custom_reaction<Avoidance_AbortTransition>, sc::custom_reaction<Avoidance_StuckTransition>>
-                reactions;
+        protected:
+            /******************************************************************************
+             * @brief This method is called when the state is first started. It is used to
+             *        initialize the state.
+             *
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            void Start() override
+            {
+                // Schedule the next run of the state's logic
+                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
-        sc::result react(const Avoidance_EndAvoidanceTransition& event)
-        {
-            // If - Search Pattern
-            //      return transit<SearchPatternState>();
+                m_nMaxDataPoints = 100;
 
-            // If - Navigation
-            //      return transit<NavigationState>();
+                m_vRoverXPath.reserve(m_nMaxDataPoints);
+                m_vRoverYPath.reserve(m_nMaxDataPoints);
+                m_vRoverYawPath.reserve(m_nMaxDataPoints);
+                m_vRoverXPosition.reserve(m_nMaxDataPoints);
+                m_vRoverYPosition.reserve(m_nMaxDataPoints);
+                m_vRoverYawPosition.reserve(m_nMaxDataPoints);
+                m_vRoverVelocity.reserve(m_nMaxDataPoints);
 
-            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
+                m_nLastIDX                   = 0;
+                m_nTargetIDX                 = 0;
 
-            return transit<AbortState>();
-        }
+                m_tPathStartTime             = time(nullptr);
+                m_tStuckCheckTime            = time(nullptr);
 
-        sc::result react(const Avoidance_AbortTransition& event)
-        {
-            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-            return transit<AbortState>();
-        }
+                m_dStuckCheckLastPosition[0] = 0;
+                m_dStuckCheckLastPosition[1] = 0;
 
-        sc::result react(const Avoidance_StuckTransition& event)
-        {
-            (void) event;    // Will be removed in new implementation of State Machine that doesn't require boost.
-            return transit<StuckState>();
-        }
-};
+                // TODO: Add ASTAR Pathfinder
+                // TODO: Add Stanley Controller
+            }
 
-/******************************************************************************
- * @brief Obstacle Avoidance - Transition to End Avoidance
- *
- *        When the state machine reaches the 'End Avoidance' transition
- *        handler, Autonomy will transition into the state it was
- *        previously in.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
- ******************************************************************************/
-struct Avoidance_EndAvoidanceTransition : sc::event<Avoidance_EndAvoidanceTransition>
-{
-        Avoidance_EndAvoidanceTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Avoidance (End Avoidance)"); }
-};
+            /******************************************************************************
+             * @brief This method is called when the state is exited. It is used to clean up
+             *        the state.
+             *
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            void Exit() override
+            {
+                // Clean up the state before exiting
+                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Exiting state.");
 
-/******************************************************************************
- * @brief Obstacle Avoidance State - Transition to Abort
- *
- *        When the state machine reaches the 'Abort' transition handler,
- *        Autonomy will stop all processes and transition to the Abort State.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
- ******************************************************************************/
-struct Avoidance_AbortTransition : sc::event<Avoidance_AbortTransition>
-{
-        Avoidance_AbortTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Avoidance (Abort)"); }
-};
+                m_nMaxDataPoints = 100;
 
-/******************************************************************************
- * @brief Obstacle Avoidance State - Transition to Stuck
- *
- *        When the state machine reaches the 'Stuck' transition handler,
- *        Autonomy will navigate to the Stuck State and attempt a series
- *        of algorithms to become unstuck.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-31
- ******************************************************************************/
-struct Avoidance_StuckTransition : sc::event<Avoidance_StuckTransition>
-{
-        Avoidance_StuckTransition() { LOG_INFO(logging::g_qSharedLogger, "In Transition: Avoidance (Stuck)"); }
-};
+                m_vRoverXPath.clear();
+                m_vRoverYPath.clear();
+                m_vRoverYawPath.clear();
+                m_vRoverXPosition.clear();
+                m_vRoverYPosition.clear();
+                m_vRoverYawPosition.clear();
+                m_vRoverVelocity.clear();
+
+                m_nTargetIDX                 = 0;
+
+                m_dStuckCheckLastPosition[0] = 0;
+                m_dStuckCheckLastPosition[1] = 0;
+
+                // TODO: Clear ASTAR Pathfinder
+                // TODO: Clear Stanley Controller
+            }
+
+        public:
+            /******************************************************************************
+             * @brief Construct a new State object.
+             *
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            AvoidanceState() : State(States::Avoidance)
+            {
+                LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
+
+                m_bInitialized = false;
+
+                if (!m_bInitialized)
+                {
+                    Start();
+                    m_bInitialized = true;
+                }
+            }
+
+            /******************************************************************************
+             * @brief Run the state machine. Returns the next state.
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            States Run() override
+            {
+                // TODO: Implement the behavior specific to the Avoidance state
+                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Running state-specific behavior.");
+
+                return States::Avoidance;
+            }
+
+            /******************************************************************************
+             * @brief Trigger an event in the state machine. Returns the next state.
+             *
+             * @param eEvent - The event to trigger.
+             * @return std::shared_ptr<State> - The next state.
+             *
+             * @author Eli Byrd (edbgkk@mst.edu)
+             * @date 2024-01-17
+             ******************************************************************************/
+            States TriggerEvent(Event eEvent) override
+            {
+                States eNextState       = States::Avoidance;
+                bool bCompleteStateExit = true;
+
+                switch (eEvent)
+                {
+                    case Event::Start:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Start event.");
+                        eNextState = States::Avoidance;
+                        break;
+                    }
+                    case Event::Abort:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Abort event.");
+                        eNextState = States::Idle;
+                        break;
+                    }
+                    case Event::EndObstacleAvoidance:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling EndObstacleAvoidance event.");
+                        eNextState = States::NUM_STATES;    // Replace with `get_prev_state()`
+                        break;
+                    }
+                    case Event::Stuck:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Stuck event.");
+                        eNextState = States::Stuck;
+                        break;
+                    }
+                    default:
+                    {
+                        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling unknown event.");
+                        eNextState = States::Idle;
+                        break;
+                    }
+                }
+
+                if (eNextState != States::Avoidance)
+                {
+                    LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Transitioning to {} State.", StateToString(eNextState));
+
+                    // Exit the current state
+                    if (bCompleteStateExit)
+                    {
+                        Exit();
+                    }
+                }
+
+                return eNextState;
+            }
+    };
+}    // namespace statemachine
+
+#endif    // AVOIDANCESTATE_HPP

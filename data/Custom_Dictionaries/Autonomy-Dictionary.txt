@@ -2,11 +2,14 @@
 ABGR
 alloc
 allocs
+APPROACHINGMARKERSTATE
+APPROACHINGOBJECTSTATE
 APRILTAG
 Aruco
 arucotag
 autofetch
 AUTONOMYTHREAD
+AVOIDANCESTATE
 BASICCAM
 CALIB
 clayjay
@@ -25,6 +28,7 @@ diffdrive
 doxdocgen
 Doxygen
 driveboard
+endcond
 Extention
 feedforward
 flightsticks
@@ -37,6 +41,7 @@ GPSSDELC
 gruntfuggly
 gtest
 hyperthreaded
+IDLESTATE
 imgops
 imread
 imshow
@@ -49,6 +54,7 @@ LEFTCAM
 MAINCAM
 MAINCAN
 mainpage
+MAPANGLE
 MAPRANGE
 Memcheck
 microcontrollers
@@ -58,6 +64,7 @@ MRDT
 MULTIMEDIABOARD
 multithreads
 navboard
+NAVIGATINGSTATE
 NAVIGATIONBOARD
 nullptr
 OBJDETECTION
@@ -70,16 +77,21 @@ rdparty
 reprojection
 RESOLUTIONX
 RESOLUTIONY
+REVERSINGSTATE
 RGBE
 RIGHTCAM
 Rolla
 rovecomm
 searchbar
+SEARCHPATTERNSTATE
 setpoint
 setpoints
 SIMCAM
+statemachine
 statechart
+STATEMACHINEHANDLER
 Struct
+STUCKSTATE
 Styleguides
 TAGDETECT
 TAGDETECTOR
@@ -93,6 +105,8 @@ UNVALIDATED
 UTMMDRS
 UTMUPS
 valgrind
+VERIFYINGMARKERSTATE
+VERIFYINGOBJECTSTATE
 VIDEOWRITER
 Watchpoints
 wslg
