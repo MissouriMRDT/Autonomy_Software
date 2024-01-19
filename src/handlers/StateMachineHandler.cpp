@@ -87,7 +87,11 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState)
  ******************************************************************************/
 StateMachineHandler::StateMachineHandler()
 {
+    // Submit logger message.
     LOG_INFO(logging::g_qConsoleLogger, "Initializing State Machine.");
+
+    // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
+    this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
 }
 
 /******************************************************************************
