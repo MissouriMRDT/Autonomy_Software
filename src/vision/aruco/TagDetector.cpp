@@ -260,8 +260,6 @@ void TagDetector::ThreadedContinuousCode()
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
 
-        // Call FPS tick.
-        m_IPS.Tick();
         /////////////////////////////////////////////////////////////////////////////////////
 
         // Acquire a shared_lock on the detected tags copy queue.
@@ -624,20 +622,6 @@ void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& 
 void TagDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
 {
     m_bEnableRecordingFlag = bEnableRecordingFlag;
-}
-
-/******************************************************************************
- * @brief Accessor for the Frame I P S private member.
- *
- * @return IPS& - The detector objects iteration per second counter.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-10
- ******************************************************************************/
-IPS& TagDetector::GetIPS()
-{
-    // Return Iterations Per Second counter.
-    return m_IPS;
 }
 
 /******************************************************************************
