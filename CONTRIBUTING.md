@@ -94,7 +94,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Iterator > `it` > Example: `iterator itExampleIterator`
 - String > `sz` > Example: `string szExampleString`
 - Pointer > `p` > Example: `string* pExamplePointer`
-- Enum > `e` > Example: `ExampleEnum eExampleUseOfEnum`
+- Enum > `e` > Example: `ExampleEnum::eExampleUseOfEnum`
 - Time > `tm` > Example: `time_t tmExampleUseOfTime`
 - Template > `t` > Example: `T tExampleUseOfTemplateType`
 - Size > `si` > Example: `size_t siExampleUseOfTime`

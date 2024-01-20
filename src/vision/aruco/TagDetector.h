@@ -71,7 +71,6 @@ class TagDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
-        IPS& GetIPS();
         bool GetIsReady();
         bool GetEnableRecordingFlag() const;
         std::string GetCameraName();
@@ -101,7 +100,6 @@ class TagDetector : public AutonomyThread<void>
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
-        IPS m_IPS;
 
         // Detected tags storage.
 
