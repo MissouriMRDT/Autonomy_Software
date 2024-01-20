@@ -200,6 +200,13 @@
                         "iconColour": "#808080",
                         "foreground": "#000000",
                         "background": "#808080"
+                    },
+                    "TEST": {
+                        "icon": "book",
+                        "type": "line",
+                        "iconColour": "#c5cb04",
+                        "foreground": "#000000",
+                        "background": "#ccd514"
                     }
                 },
                 // Spell Checker Extension Settings.
