@@ -87,7 +87,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            SearchPatternState() : State(States::SearchPattern)
+            SearchPatternState() : State(States::eSearchPattern)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -111,7 +111,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the SearchPattern state
                 LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
 
-                return States::SearchPattern;
+                return States::eSearchPattern;
             }
 
             /******************************************************************************
@@ -125,56 +125,56 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::SearchPattern;
+                States eNextState       = States::eSearchPattern;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::MarkerSeen:
+                    case Event::eMarkerSeen:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
-                        eNextState = States::ApproachingMarker;
+                        eNextState = States::eApproachingMarker;
                         break;
                     }
-                    case Event::ObjectSeen:
+                    case Event::eObjectSeen:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
-                        eNextState = States::ApproachingObject;
+                        eNextState = States::eApproachingObject;
                         break;
                     }
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
-                        eNextState = States::SearchPattern;
+                        eNextState = States::eSearchPattern;
                         break;
                     }
-                    case Event::SearchFailed:
+                    case Event::eSearchFailed:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::Stuck:
+                    case Event::eStuck:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Stuck event.");
-                        eNextState = States::Stuck;
+                        eNextState = States::eStuck;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::SearchPattern)
+                if (eNextState != States::eSearchPattern)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Transitioning to {} State.", StateToString(eNextState));
 

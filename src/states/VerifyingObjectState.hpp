@@ -79,7 +79,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            VerifyingObjectState() : State(States::VerifyingObject)
+            VerifyingObjectState() : State(States::eVerifyingObject)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -103,7 +103,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the VerifyingObject state
                 LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
-                return States::VerifyingObject;
+                return States::eVerifyingObject;
             }
 
             /******************************************************************************
@@ -117,38 +117,38 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::VerifyingObject;
+                States eNextState       = States::eVerifyingObject;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Start event.");
-                        eNextState = States::VerifyingObject;
+                        eNextState = States::eVerifyingObject;
                         break;
                     }
-                    case Event::VerifyingComplete:
+                    case Event::eVerifyingComplete:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::VerifyingObject)
+                if (eNextState != States::eVerifyingObject)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Transitioning to {} State.", StateToString(eNextState));
 
