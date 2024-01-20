@@ -73,7 +73,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            ReversingState() : State(States::Reversing)
+            ReversingState() : State(States::eReversing)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -97,7 +97,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the Reversing state
                 LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
 
-                return States::Reversing;
+                return States::eReversing;
             }
 
             /******************************************************************************
@@ -111,38 +111,38 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Reversing;
+                States eNextState       = States::eReversing;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
-                        eNextState = States::Reversing;
+                        eNextState = States::eReversing;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::ReverseComplete:
+                    case Event::eReverseComplete:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Reversing)
+                if (eNextState != States::eReversing)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
 
