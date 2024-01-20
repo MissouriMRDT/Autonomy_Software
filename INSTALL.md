@@ -6,7 +6,7 @@
     
 - Download and install Visual Studio Code from [here](https://code.visualstudio.com/download)
 - Download and install git-scm from [here](https://git-scm.com/downloads)
-- Download and install Docker from [here](https://docs.docker.com/get-docker/)
+- Download and install Docker from [here](https://docs.docker.com/engine/install/) (NOTE: Only install Docker Desktop if you are on Windows! Only install Docker Engine for other OSs)
 
 (Optional) Needed for container GPU support.
     - Download and install NVIDIA Container Toolkit from [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) This is only applicable if your machine has a GPU with CUDA. Windows users should integrate WSL (Windows Subsystem for Linux) into their Docker install. [Medium](https://medium.com/htc-research-engineering-blog/nvidia-docker-on-wsl2-f891dfe34ab) has an okay guide.
