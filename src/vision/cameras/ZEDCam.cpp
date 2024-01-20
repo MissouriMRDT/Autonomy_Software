@@ -336,9 +336,6 @@ void ZEDCam::ThreadedContinuousCode()
             }
             // Release camera lock.
             lkSharedCameraLock.unlock();
-
-            // Call FPS tick.
-            m_IPS.Tick();
         }
         else
         {

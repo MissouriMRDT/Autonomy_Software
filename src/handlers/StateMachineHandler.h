@@ -36,7 +36,7 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-01-17
  ******************************************************************************/
-class StateMachineHandler : AutonomyThread<void>
+class StateMachineHandler : public AutonomyThread<void>
 {
     private:
         std::shared_ptr<statemachine::State> pCurrentState;
@@ -55,6 +55,7 @@ class StateMachineHandler : AutonomyThread<void>
         ~StateMachineHandler() = default;
 
         void StartStateMachine();
+        void StopStateMachine();
 
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;

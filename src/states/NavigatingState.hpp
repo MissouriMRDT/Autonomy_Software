@@ -89,7 +89,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            NavigatingState() : State(States::Navigating)
+            NavigatingState() : State(States::eNavigating)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -113,7 +113,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the Navigating state
                 LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
-                return States::Navigating;
+                return States::eNavigating;
             }
 
             /******************************************************************************
@@ -127,24 +127,24 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Navigating;
+                States eNextState       = States::eNavigating;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::NoWaypoint:
+                    case Event::eNoWaypoint:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::ReachedMarker:
+                    case Event::eReachedMarker:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::ReachedGpsCoordinate:
+                    case Event::eReachedGpsCoordinate:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
 
@@ -152,60 +152,60 @@ namespace statemachine
 
                         if (gpsOrTagMarker)
                         {
-                            eNextState = States::Idle;
+                            eNextState = States::eIdle;
                         }
                         else
                         {
-                            eNextState = States::SearchPattern;
+                            eNextState = States::eSearchPattern;
                         }
 
                         break;
                     }
-                    case Event::NewWaypoint:
+                    case Event::eNewWaypoint:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
-                        eNextState = States::Navigating;
+                        eNextState = States::eNavigating;
                         break;
                     }
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Start event.");
-                        eNextState = States::Navigating;
+                        eNextState = States::eNavigating;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::ObstacleAvoidance:
+                    case Event::eObstacleAvoidance:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
-                        eNextState = States::Avoidance;
+                        eNextState = States::eAvoidance;
                         break;
                     }
-                    case Event::Reverse:
+                    case Event::eReverse:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reverse event.");
-                        eNextState = States::Reversing;
+                        eNextState = States::eReversing;
                         break;
                     }
-                    case Event::Stuck:
+                    case Event::eStuck:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
-                        eNextState = States::Stuck;
+                        eNextState = States::eStuck;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Navigating)
+                if (eNextState != States::eNavigating)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Transitioning to {} State.", StateToString(eNextState));
 

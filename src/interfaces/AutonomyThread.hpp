@@ -14,6 +14,7 @@
 #define AUTONOMYTHREAD_H
 
 #include "../../external/threadpool/BSThreadPool.hpp"
+#include "../util/IPS.hpp"
 
 /// \cond
 #include <atomic>
@@ -213,7 +214,22 @@ class AutonomyThread
          ******************************************************************************/
         AutonomyThreadState GetThreadState() const { return m_eThreadState; }
 
+        /******************************************************************************
+         * @brief Accessor for the Frame I P S private member.
+         *
+         * @return IPS& - The iteration per second counter for the ThreadedContinuousCode()
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-08-20
+         ******************************************************************************/
+        IPS& GetIPS() { return m_IPS; }
+
     protected:
+        /////////////////////////////////////////
+        // Declare protected objects.
+        /////////////////////////////////////////
+        IPS m_IPS = IPS();
+
         /////////////////////////////////////////
         // Declare and define protected class methods.
         /////////////////////////////////////////
@@ -479,7 +495,7 @@ class AutonomyThread
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-12-30
          ******************************************************************************/
-        void SetMainThreadMaxIPS(int nMaxIterationsPerSecond = 0)
+        void SetMainThreadIPSLimit(int nMaxIterationsPerSecond = 0)
         {
             // Assign member variable.
             m_nMainThreadMaxIterationPerSecond = nMaxIterationsPerSecond;
@@ -612,6 +628,9 @@ class AutonomyThread
                     // Update thread state to running.
                     m_eThreadState = eRunning;
                 }
+
+                // Call iteration per second tracking tick.
+                m_IPS.Tick();
             }
         }
 };

@@ -78,7 +78,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            VerifyingMarkerState() : State(States::VerifyingMarker)
+            VerifyingMarkerState() : State(States::eVerifyingMarker)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -102,7 +102,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the VerifyingMarker state
                 LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
 
-                return States::VerifyingMarker;
+                return States::eVerifyingMarker;
             }
 
             /******************************************************************************
@@ -116,38 +116,38 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::VerifyingMarker;
+                States eNextState       = States::eVerifyingMarker;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
-                        eNextState = States::VerifyingMarker;
+                        eNextState = States::eVerifyingMarker;
                         break;
                     }
-                    case Event::VerifyingComplete:
+                    case Event::eVerifyingComplete:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::VerifyingMarker)
+                if (eNextState != States::eVerifyingMarker)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
