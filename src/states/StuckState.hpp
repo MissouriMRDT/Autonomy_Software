@@ -75,7 +75,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            StuckState() : State(States::Stuck)
+            StuckState() : State(States::eStuck)
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
@@ -99,7 +99,7 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the Stuck state
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
-                return States::Stuck;
+                return States::eStuck;
             }
 
             /******************************************************************************
@@ -113,32 +113,32 @@ namespace statemachine
              ******************************************************************************/
             States TriggerEvent(Event eEvent) override
             {
-                States eNextState       = States::Stuck;
+                States eNextState       = States::eStuck;
                 bool bCompleteStateExit = true;
 
                 switch (eEvent)
                 {
-                    case Event::Start:
+                    case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
-                        eNextState = States::Reversing;
+                        eNextState = States::eReversing;
                         break;
                     }
-                    case Event::Abort:
+                    case Event::eAbort:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Abort event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                     default:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
-                        eNextState = States::Idle;
+                        eNextState = States::eIdle;
                         break;
                     }
                 }
 
-                if (eNextState != States::Stuck)
+                if (eNextState != States::eStuck)
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", StateToString(eNextState));
 
