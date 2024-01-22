@@ -75,7 +75,14 @@ struct ZEDCam::ZedObjectData
  * @param fMinSenseDistance - The minimum distance to include in depth measures.
  * @param fMaxSenseDistance - The maximum distance to include in depth measures.
  * @param bMemTypeGPU - Whether or not to use the GPU memory for operations.
+ * @param bUseHalfPrecision - Whether or not to use a float16 instead of float32 for depth measurements.
+ * @param bEnableFusionMaster - Enables ZEDSDK Fusion integration for this camera. This camera will serve as the master instance for all fusion functions.
+ * @param nNumFrameRetrievalThreads - The number of threads to use for copying frames/data to requests.
  * @param unCameraSerialNumber - The serial number of the camera to open.
+ *
+ * @note Do not set bEnableFusionMaster to true if you want to subscribe the camera to another camera! Only one camera should have Fusion enabled!
+ *      To subscribe a camera to the camera running the master fusion instance, use the GetFusionInstance() and GetCameraSerial() functions.
+ *      Refer to Fusion documentation for info on working with fusion functions: https://www.stereolabs.com/docs/api/classsl_1_1Fusion.html
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
@@ -90,6 +97,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
+               const bool bEnableFusionMaster,
                const int nNumFrameRetrievalThreads,
                const unsigned int unCameraSerialNumber) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
@@ -97,6 +105,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
+    m_bCameraIsFusionMaster     = bEnableFusionMaster;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
     m_unCameraSerialNumber      = unCameraSerialNumber;
 
@@ -178,6 +187,37 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                   m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
     }
+
+    // Check if this camera should serve has the master Fusion instance.
+    if (bEnableFusionMaster)
+    {
+        // Setup Fusion params.
+        m_slFusionParams.coordinate_units  = constants::FUSION_MEASUREMENT_UNITS;
+        m_slFusionParams.coordinate_system = constants::FUSION_COORD_SYSTEM;
+        m_slFusionParams.verbose           = constants::FUSION_SDK_VERBOSE;
+        // Setup Fusion positional tracking parameters.
+        m_slFusionPoseTrackingParams.enable_GNSS_fusion = constants::FUSION_ENABLE_GNSS_FUSION;
+
+        // Initialize fusion instance for camera.
+        sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.init(m_slFusionParams);
+        // Check if fusion initialized properly.
+        if (slReturnCode == sl::FUSION_ERROR_CODE::SUCCESS)
+        {
+            // Enable odometry publishing for this ZED camera.
+            m_slCamera.startPublishing();
+            // Subscribe this camera to fusion instance.
+            m_slFusionInstance.subscribe(sl::CameraIdentifier(m_unCameraSerialNumber));
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "Unable to initialize FUSION instance for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
+                      sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                      m_unCameraSerialNumber,
+                      sl::toString(slReturnCode).get());
+        }
+    }
 }
 
 /******************************************************************************
@@ -194,7 +234,15 @@ ZEDCam::~ZEDCam()
     this->Join();
 
     // Close the ZEDCam.
+    m_slCamera.stopPublishing();
     m_slCamera.close();
+
+    // Check if fusion master instance has been started for this camera.
+    if (m_bCameraIsFusionMaster)
+    {
+        // Close Fusion instance.
+        m_slFusionInstance.close();
+    }
 
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been successfully closed.", m_unCameraSerialNumber);
@@ -348,6 +396,41 @@ void ZEDCam::ThreadedContinuousCode()
                       sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                       m_unCameraSerialNumber,
                       sl::toString(slReturnCode).get());
+        }
+
+        // Check if this camera is the fusion master instance.
+        if (m_bCameraIsFusionMaster)
+        {
+            // Call generalized process method of Fusion instance.
+            sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.process();
+            // Check if fusion data was processed correctly.
+            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger,
+                          "Unable to process fusion data for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
+                          sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                          m_unCameraSerialNumber,
+                          sl::toString(slReturnCode).get());
+            }
+
+            // // Get the current GPS location from the NavBoard.
+            // geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoardInterface->GetGPSData();
+            // // Repack gps data int sl::GNSSData object.
+            // sl::GNSSData slGNSSData = sl::GNSSData();
+            // slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
+            // // Publish GNSS data to fusion from the NavBoard.
+            // slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
+            // // Check if the GNSS data was successfully ingested by the Fusion instance.
+            // if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+            // {
+            //     // Submit logger message.
+            //     LOG_WARNING(logging::g_qSharedLogger,
+            //                 "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
+            //                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+            //                 m_unCameraSerialNumber,
+            //                 sl::toString(slReturnCode).get());
+            // }
         }
 
         // Acquire a shared_lock on the frame copy queue.
@@ -871,6 +954,12 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
+    }
+    // Check if fusion positional tracking should be enabled for this camera.
+    else if (m_bCameraIsFusionMaster)
+    {
+        // Enable fusion positional tracking.
+        m_slFusionInstance.enablePositionalTracking(m_slFusionPoseTrackingParams);
     }
 
     // Return error code.
