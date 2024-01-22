@@ -88,10 +88,15 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
+        // Initialize drivers.
+        globals::g_pDriveBoard      = new DriveBoard();
+        globals::g_pMultimediaBoard = new MultimediaBoard();
+        globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
         globals::g_pStateMachineHandler = new StateMachineHandler();
+
         // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();

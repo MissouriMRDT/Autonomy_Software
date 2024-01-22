@@ -36,6 +36,7 @@ fourcc
 geoops
 Geospatial
 gmock
+GNSS
 GPSMDRS
 GPSSDELC
 gruntfuggly
@@ -87,8 +88,8 @@ SEARCHPATTERNSTATE
 setpoint
 setpoints
 SIMCAM
-statemachine
 statechart
+statemachine
 STATEMACHINEHANDLER
 Struct
 STUCKSTATE

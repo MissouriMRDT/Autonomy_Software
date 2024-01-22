@@ -114,6 +114,11 @@ namespace constants
     const float ZED_OBJDETECTION_TRACKING_PREDICTION_TIMEOUT   = 0.5;    // 0-1 second. Timeout to keep guessing object position when not in sight.
     const float ZED_OBJDETECTION_BATCH_RETENTION_TIME          = 240;    // The time in seconds to search for an object UUID before expiring the object.
     const float ZED_OBJDETECTION_BATCH_LATENCY = 2;    // Short latency will limit the search for previously seen object IDs but will be closer to real time output.
+    // Zed Fusion Config.
+    const sl::UNIT FUSION_MEASUREMENT_UNITS         = ZED_MEASURE_UNITS;                          // The base measurement unit to use for depth and other measurements.
+    const sl::COORDINATE_SYSTEM FUSION_COORD_SYSTEM = sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP;    // Coordinate system to use for measurements.
+    const bool FUSION_SDK_VERBOSE                   = true;                                       // Enable verbose output from the internal fusion library in the ZEDSDK.
+    const bool FUSION_ENABLE_GNSS_FUSION            = true;    // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
 
     // BasicCam Basic Config.
     const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD = cv::InterpolationFlags::INTER_LINEAR;    // The algorithm used to fill in pixels when resizing.
@@ -131,6 +136,7 @@ namespace constants
     const int ZED_MAINCAM_VERTICAL_FOV              = 70;      // The vertical FOV of the camera. Useful for future calculations.
     const bool ZED_MAINCAM_USE_GPU_MAT              = true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_MAINCAM_FUSION_MASTER            = true;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
