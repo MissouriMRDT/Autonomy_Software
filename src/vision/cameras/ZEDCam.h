@@ -56,6 +56,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,
                const bool bUseHalfDepthPrecision       = false,
+               const bool bEnableFusionMaster          = false,
                const int nNumFrameRetrievalThreads     = 10,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
@@ -109,8 +110,10 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::Fusion m_slFusionInstance;
+        sl::InitFusionParameters m_slFusionParams;
         sl::MEASURE m_slDepthMeasureType;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
+        sl::PositionalTrackingFusionParameters m_slFusionPoseTrackingParams;
         sl::Pose m_slCameraPose;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
         sl::ObjectDetectionParameters m_slObjectDetectionParams;
@@ -118,6 +121,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
         sl::MEM m_slMemoryType;
+        bool m_bCameraIsFusionMaster;
         int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
 
