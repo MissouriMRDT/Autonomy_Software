@@ -52,6 +52,7 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const int nDetectorMaxFPS                     = 30,
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
@@ -61,6 +62,7 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const int nDetectorMaxFPS                     = 30,
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
@@ -68,8 +70,20 @@ class TagDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
+
+        /////////////////////////////////////////
+        // Mutators.
+        /////////////////////////////////////////
+
+        void SetDetectorFPS(const int nRecordingFPS);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
+
+        /////////////////////////////////////////
+        // Accessors.
+        /////////////////////////////////////////
+
         bool GetIsReady();
+        int GetDetectorFPS() const;
         bool GetEnableRecordingFlag() const;
         std::string GetCameraName();
         cv::Size GetProcessFrameResolution() const;
