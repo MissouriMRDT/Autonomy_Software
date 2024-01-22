@@ -19,6 +19,7 @@
 #include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
+#include <sl/Fusion.hpp>
 
 /// \endcond
 
@@ -107,6 +108,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::shared_mutex m_muCameraMutex;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
+        sl::Fusion m_slFusionInstance;
         sl::MEASURE m_slDepthMeasureType;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::Pose m_slCameraPose;
@@ -127,6 +129,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Mat m_slPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
+
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
