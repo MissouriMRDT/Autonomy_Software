@@ -208,6 +208,12 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
             m_slCamera.startPublishing();
             // Subscribe this camera to fusion instance.
             m_slFusionInstance.subscribe(sl::CameraIdentifier(m_unCameraSerialNumber));
+
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger,
+                      "Initialized FUSION instance for camera {} ({})!",
+                      sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                      m_unCameraSerialNumber);
         }
         else
         {
@@ -408,11 +414,11 @@ void ZEDCam::ThreadedContinuousCode()
             if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger,
-                          "Unable to process fusion data for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
-                          sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                          m_unCameraSerialNumber,
-                          sl::toString(slReturnCode).get());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to process fusion data for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_unCameraSerialNumber,
+                            sl::toString(slReturnCode).get());
             }
 
             // Get the current GPS location from the NavBoard.
@@ -951,7 +957,7 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking()
     {
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger,
-                  "Failed to enabled positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
+                  "Failed to enable positional tracking for camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
