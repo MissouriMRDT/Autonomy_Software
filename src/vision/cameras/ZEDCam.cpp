@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "ZEDCam.h"
+#include "../../AutonomyGlobals.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/vision/ImageOperations.hpp"
 
@@ -414,23 +415,23 @@ void ZEDCam::ThreadedContinuousCode()
                           sl::toString(slReturnCode).get());
             }
 
-            // // Get the current GPS location from the NavBoard.
-            // geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoardInterface->GetGPSData();
-            // // Repack gps data int sl::GNSSData object.
-            // sl::GNSSData slGNSSData = sl::GNSSData();
-            // slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
-            // // Publish GNSS data to fusion from the NavBoard.
-            // slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
-            // // Check if the GNSS data was successfully ingested by the Fusion instance.
-            // if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
-            // {
-            //     // Submit logger message.
-            //     LOG_WARNING(logging::g_qSharedLogger,
-            //                 "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
-            //                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-            //                 m_unCameraSerialNumber,
-            //                 sl::toString(slReturnCode).get());
-            // }
+            // Get the current GPS location from the NavBoard.
+            geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+            // Repack gps data int sl::GNSSData object.
+            sl::GNSSData slGNSSData = sl::GNSSData();
+            slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
+            // Publish GNSS data to fusion from the NavBoard.
+            slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
+            // Check if the GNSS data was successfully ingested by the Fusion instance.
+            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_unCameraSerialNumber,
+                            sl::toString(slReturnCode).get());
+            }
         }
 
         // Acquire a shared_lock on the frame copy queue.
