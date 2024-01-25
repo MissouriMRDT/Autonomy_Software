@@ -343,8 +343,20 @@ void ZEDCam::ThreadedContinuousCode()
             // Check if positional tracking is enabled.
             if (m_slCamera.isPositionalTrackingEnabled())
             {
-                // Get the current pose of the camera.
-                sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+                // Create instance variable for storing the result of retrieving the pose.
+                sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode;
+
+                // Check if this camera has Fusion instance enabled.
+                if (m_bCameraIsFusionMaster)
+                {
+                    // Get tracking pose from Fusion.
+                    slPoseTrackReturnCode = m_slFusionInstance.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+                }
+                else
+                {
+                    // Get normal vision tracking pose from camera.
+                    slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
+                }
                 // Check that the regular frame was retrieved successfully.
                 if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
                 {
@@ -411,7 +423,7 @@ void ZEDCam::ThreadedContinuousCode()
             // Call generalized process method of Fusion instance.
             sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.process();
             // Check if fusion data was processed correctly.
-            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS && slReturnCode != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger,
@@ -426,6 +438,9 @@ void ZEDCam::ThreadedContinuousCode()
             // Repack gps data int sl::GNSSData object.
             sl::GNSSData slGNSSData = sl::GNSSData();
             slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
+            // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
+            slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
+
             // Publish GNSS data to fusion from the NavBoard.
             slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
             // Check if the GNSS data was successfully ingested by the Fusion instance.
@@ -1243,6 +1258,9 @@ unsigned int ZEDCam::GetCameraSerial()
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
  * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
  *                          Value will be true if frame was successfully retrieved.
+ *
+ * @note If this camera is acting as the ZEDSDK Fusion master instance, then the positional pose returned will be from
+ *      the Fusion instance.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
