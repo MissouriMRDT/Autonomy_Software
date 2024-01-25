@@ -100,6 +100,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
     private:
         /////////////////////////////////////////
+        // Declare class constants.
+        /////////////////////////////////////////
+        const std::memory_order ATOMIC_MEMORY_ORDER_METHOD = std::memory_order_relaxed;
+
+        /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
 
@@ -144,6 +149,12 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::mutex m_muPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
+        std::atomic<bool> m_bNormalFramesQueued;
+        std::atomic<bool> m_bDepthFramesQueued;
+        std::atomic<bool> m_bPointCloudsQueued;
+        std::atomic<bool> m_bPosesQueued;
+        std::atomic<bool> m_bObjectsQueued;
+        std::atomic<bool> m_bBatchedObjectsQueued;
 
         /////////////////////////////////////////
         // Declare private methods.
