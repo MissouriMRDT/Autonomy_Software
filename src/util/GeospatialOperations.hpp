@@ -185,27 +185,6 @@ namespace geoops
             /////////////////////////////////////////
 
             /******************************************************************************
-             * @brief Default Construct a new UTMCoordinate object.
-             *
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2023-10-12
-             ******************************************************************************/
-            UTMCoordinate()
-            {
-                // Initialize member variables.
-                this->dEasting                  = 0.0;
-                this->dNorthing                 = 0.0;
-                this->nZone                     = 0;
-                this->bWithinNorthernHemisphere = true;
-                this->dAltitude                 = 0.0;
-                this->d2DAccuracy               = -1.0;
-                this->d3DAccuracy               = -1.0;
-                this->dMeridianConvergence      = 0.0;
-                this->dScale                    = 0.0;
-            }
-
-            /******************************************************************************
              * @brief Construct a new UTMCoordinate object.
              *
              * @param dEasting - The eastward displacement from the UTM zone's central meridian in meters.
@@ -221,15 +200,15 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            UTMCoordinate(double dEasting,
-                          double dNorthing,
-                          int nZone,
-                          bool bWithinNorthernHemisphere,
-                          double dAltitude            = 0.0,
-                          double d2DAccuracy          = -1.0,
-                          double d3DAccuracy          = -1.0,
-                          double dMeridianConvergence = -1.0,
-                          double dScale               = 0.0)
+            UTMCoordinate(double dEasting                = 0.0,
+                          double dNorthing               = 0.0,
+                          int nZone                      = 0,
+                          bool bWithinNorthernHemisphere = true,
+                          double dAltitude               = 0.0,
+                          double d2DAccuracy             = -1.0,
+                          double d3DAccuracy             = -1.0,
+                          double dMeridianConvergence    = -1.0,
+                          double dScale                  = 0.0)
             {
                 // Initialize member variables with given values.
                 this->dEasting                  = dEasting;
