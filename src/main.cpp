@@ -120,8 +120,10 @@ int main()
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
-        // Enable positional tracking for main ZED cam.
-        pMainCam->EnablePositionalTracking();
+
+        // Camera and TagDetector config.
+        pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
+
         // Used to store camera pose/location of the main cam.
         sl::Pose slCameraPosition;
         sl::GeoPose slGeoPosition;
