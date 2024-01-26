@@ -1439,6 +1439,21 @@ bool ZEDCam::GetUsingGPUMem() const
 }
 
 /******************************************************************************
+ * @brief Accessor for if this ZED is running a fusion instance.
+ *
+ * @return true - This ZEDCam is a fusion master and is running an sl::Fusion instance.
+ * @return false - This ZEDCam is not a fusion master and is not running a sl::Fusion instance.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-26
+ ******************************************************************************/
+bool ZEDCam::GetIsFusionMaster() const
+{
+    // Return if this camera is running a Fusion instance.
+    return m_bCameraIsFusionMaster;
+}
+
+/******************************************************************************
  * @brief Accessor for the model enum from the ZEDSDK and represents the camera model as a string.
  *
  * @return std::string - The model of the zed camera.

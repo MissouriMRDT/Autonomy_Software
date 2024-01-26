@@ -90,6 +90,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         bool GetCameraIsOpen() override;
         bool GetUsingGPUMem() const;
+        bool GetIsFusionMaster() const;
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
