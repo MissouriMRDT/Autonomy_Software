@@ -161,7 +161,7 @@ int main()
             sl::Translation slCameraLocation = slCameraPosition.getTranslation();
             // Append camera location to string.
             szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + "\n";
+                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
             // Wait for geo pose to be copied.
             fuGeoPoseStatus.get();
             // Get Translations from pose.
