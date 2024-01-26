@@ -215,13 +215,26 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
             // Enable odometry publishing for this ZED camera.
             m_slCamera.startPublishing();
             // Subscribe this camera to fusion instance.
-            m_slFusionInstance.subscribe(sl::CameraIdentifier(m_unCameraSerialNumber));
+            slReturnCode = m_slFusionInstance.subscribe(sl::CameraIdentifier(m_unCameraSerialNumber));
 
-            // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger,
-                      "Initialized FUSION instance for camera {} ({})!",
-                      sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                      m_unCameraSerialNumber);
+            // Check if this camera was successfully subscribed to the Fusion instance.
+            if (slReturnCode == sl::FUSION_ERROR_CODE::SUCCESS)
+            {
+                // Submit logger message.
+                LOG_DEBUG(logging::g_qSharedLogger,
+                          "Initialized FUSION instance for camera {} ({})!",
+                          sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                          m_unCameraSerialNumber);
+            }
+            else
+            {
+                // Submit logger message.
+                LOG_DEBUG(logging::g_qSharedLogger,
+                          "Unable to subscribe to internal FUSION instance for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
+                          sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                          m_unCameraSerialNumber,
+                          sl::toString(slReturnCode).get());
+            }
         }
         else
         {
@@ -1091,6 +1104,76 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
     // Reboot this camera and return the status code.
     return sl::Camera::reboot(m_unCameraSerialNumber);
+}
+
+/******************************************************************************
+ * @brief Give a UUID for another ZEDCam, subscribe that camera to this camera's Fusion instance.
+ *      This will tell this camera's Fusion instance to start ingesting and fusing data from the other camera.
+ *
+ * @param slCameraUUID - The Camera unique identifier given by the other camera's PublishCameraToFusion() method.
+ * @return sl::FUSION_ERROR_CODE - Whether or not the camera and fusion module has been successfully subscribed.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-26
+ ******************************************************************************/
+sl::FUSION_ERROR_CODE ZEDCam::SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID)
+{
+    // Create instance variables.
+    sl::FUSION_ERROR_CODE slReturnCode = sl::FUSION_ERROR_CODE::NOT_ENABLE;
+
+    // Check if this camera is a fusion master.
+    if (m_bCameraIsFusionMaster)
+    {
+        // Subscribe this camera to fusion instance.
+        sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.subscribe(slCameraUUID);
+    }
+
+    // Check if this camera was successfully subscribed to the Fusion instance.
+    if (slReturnCode == sl::FUSION_ERROR_CODE::SUCCESS)
+    {
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Subscribed stereo camera with serial number {} to Fusion instance ran by stereo camera {} ({})!",
+                  slCameraUUID.sn,
+                  sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                  m_unCameraSerialNumber);
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Unable to subscribe camera with serial number {} to FUSION instance for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
+                  slCameraUUID.sn,
+                  sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                  m_unCameraSerialNumber,
+                  sl::toString(slReturnCode).get());
+    }
+
+    // Return the sl::FUSION_ERROR_CODE status.
+    return slReturnCode;
+}
+
+/******************************************************************************
+ * @brief Signal this camera to make its data available to the Fusion module and
+ *      retrieve a UUID for this class's sl::Camera instance that can be used to
+ *      subscribe an sl::Fusion instance to this camera later.
+ *
+ * @return sl::CameraIdentifier - A globally unique identifier generated from this camera's serial number.
+ *
+ * @note Just calling this method does not send data to the ZEDSDK's fusion module. It just enables the capability.
+ *      The camera acting as the fusion master instance must be subscribed to this camera using the SubscribeFusionToCameraUUID()
+ *      method and the returned UUID.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-26
+ ******************************************************************************/
+sl::CameraIdentifier ZEDCam::PublishCameraToFusion()
+{
+    // Make this cameras data available to the Fusion module if it is later subscribed.
+    m_slCamera.startPublishing();
+
+    // Return a UUID for this camera. This is used by the camera running the master fusion instance to subscribe to the data being published.
+    return sl::CameraIdentifier(m_unCameraSerialNumber);
 }
 
 /******************************************************************************

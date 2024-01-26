@@ -69,6 +69,8 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
+        sl::FUSION_ERROR_CODE SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID);
+        sl::CameraIdentifier PublishCameraToFusion();
 
         /////////////////////////////////////////
         // Setters for class member variables.
