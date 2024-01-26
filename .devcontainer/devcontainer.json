@@ -40,7 +40,7 @@
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Enviroment!'",
+    "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
         // Configure properties specific to VS Code.
