@@ -91,6 +91,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
+        std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose);
         bool GetPositionalTrackingEnabled();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
@@ -120,6 +121,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
         sl::PositionalTrackingFusionParameters m_slFusionPoseTrackingParams;
         sl::Pose m_slCameraPose;
+        sl::GeoPose m_slFusionGeoPose;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
         sl::ObjectDetectionParameters m_slObjectDetectionParams;
         sl::BatchParameters m_slObjectDetectionBatchParams;
@@ -142,17 +144,20 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
+        std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
         std::mutex m_muCustomBoxIngestMutex;
         std::mutex m_muPoseCopyMutex;
+        std::mutex m_muGeoPoseCopyMutex;
         std::mutex m_muObjectDataCopyMutex;
         std::mutex m_muObjectBatchedDataCopyMutex;
         std::atomic<bool> m_bNormalFramesQueued;
         std::atomic<bool> m_bDepthFramesQueued;
         std::atomic<bool> m_bPointCloudsQueued;
         std::atomic<bool> m_bPosesQueued;
+        std::atomic<bool> m_bGeoPosesQueued;
         std::atomic<bool> m_bObjectsQueued;
         std::atomic<bool> m_bBatchedObjectsQueued;
 

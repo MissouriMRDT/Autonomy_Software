@@ -114,6 +114,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_bDepthFramesQueued    = false;
     m_bPointCloudsQueued    = false;
     m_bPosesQueued          = false;
+    m_bGeoPosesQueued       = false;
     m_bObjectsQueued        = false;
     m_bBatchedObjectsQueued = false;
 
@@ -391,6 +392,23 @@ void ZEDCam::ThreadedContinuousCode()
                                     sl::toString(slPoseTrackReturnCode).get());
                     }
                 }
+
+                // Check if geo poses have been requested.
+                if (m_bCameraIsFusionMaster && m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+                {
+                    // Get the fused geo pose from the camera.
+                    sl::GNSS_CALIBRATION_STATE slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
+                    // Check that the geo pose was retrieved successfully.
+                    if (slGeoPoseTrackReturnCode != sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "Geo pose tracking state for stereo camera {} ({}) is suboptimal! sl::GNSS_CALIBRATION_STATE is: {}",
+                                    sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                    m_unCameraSerialNumber,
+                                    sl::toString(slGeoPoseTrackReturnCode).get());
+                    }
+                }
             }
 
             // Check if object detection is enabled.
@@ -450,7 +468,7 @@ void ZEDCam::ThreadedContinuousCode()
                       sl::toString(slReturnCode).get());
         }
 
-        // Check if this camera is the fusion master instance.
+        // Check if this camera is the fusion master instance. Feed data to sl::Fusion.
         if (m_bCameraIsFusionMaster)
         {
             // Call generalized process method of Fusion instance.
@@ -492,13 +510,14 @@ void ZEDCam::ThreadedContinuousCode()
         std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
         // Check if the frame copy queue is empty.
         if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-            !m_qIMUDataCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
+            !m_qGeoPoseCopySchedule.empty() || !m_qIMUDataCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
         {
             // Find the queue with the longest length.
             size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
                                                 m_qGPUFrameCopySchedule.size(),
                                                 m_qCustomBoxIngestSchedule.size(),
                                                 m_qPoseCopySchedule.size(),
+                                                m_qGeoPoseCopySchedule.size(),
                                                 m_qIMUDataCopySchedule.size(),
                                                 m_qObjectDataCopySchedule.size(),
                                                 m_qObjectBatchedDataCopySchedule.size()});
@@ -518,6 +537,7 @@ void ZEDCam::ThreadedContinuousCode()
                 m_bDepthFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
                 m_bPointCloudsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
                 m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+                m_bGeoPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
                 m_bObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
                 m_bBatchedObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
 
@@ -636,12 +656,12 @@ void ZEDCam::PooledLinearCode()
     /////////////////////////////
     //  Pose queue.
     /////////////////////////////
-    // Acquire mutex for getting frames out of the pose queue.
+    // Acquire mutex for getting data out of the pose queue.
     std::unique_lock<std::mutex> lkPoseQueue(m_muPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qPoseCopySchedule.empty())
     {
-        // Get frame container out of queue.
+        // Get pose container out of queue.
         containers::DataFetchContainer<sl::Pose> stContainer = m_qPoseCopySchedule.front();
         // Pop out of queue.
         m_qPoseCopySchedule.pop();
@@ -656,9 +676,31 @@ void ZEDCam::PooledLinearCode()
     }
 
     /////////////////////////////
+    //  GeoPose queue.
+    /////////////////////////////
+    // Acquire mutex for getting data out of the pose queue.
+    std::unique_lock<std::mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qGeoPoseCopySchedule.empty())
+    {
+        // Get pose container out of queue.
+        containers::DataFetchContainer<sl::GeoPose> stContainer = m_qGeoPoseCopySchedule.front();
+        // Pop out of queue.
+        m_qGeoPoseCopySchedule.pop();
+        // Release lock.
+        lkGeoPoseQueue.unlock();
+
+        // Copy pose.
+        *(stContainer.pData) = sl::GeoPose(m_slFusionGeoPose);
+
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
+    }
+
+    /////////////////////////////
     //  ObjectData queue.
     /////////////////////////////
-    // Acquire mutex for getting frames out of the pose queue.
+    // Acquire mutex for getting data out of the pose queue.
     std::unique_lock<std::mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectDataCopySchedule.empty())
@@ -680,7 +722,7 @@ void ZEDCam::PooledLinearCode()
     /////////////////////////////
     //  ObjectData Batched queue.
     /////////////////////////////
-    // Acquire mutex for getting frames out of the pose queue.
+    // Acquire mutex for getting data out of the pose queue.
     std::unique_lock<std::mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectBatchedDataCopySchedule.empty())
@@ -1358,10 +1400,10 @@ unsigned int ZEDCam::GetCameraSerial()
  *
  * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
  * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
- *                          Value will be true if frame was successfully retrieved.
+ *                          Value will be true if pose was successfully retrieved.
  *
  * @note If this camera is acting as the ZEDSDK Fusion master instance, then the positional pose returned will be from
- *      the Fusion instance.
+ *      the Fusion instance. aka The Fused GNSS and visual inertial odometry will be returned.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -1374,11 +1416,11 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         // Assemble the data container.
         containers::DataFetchContainer<sl::Pose> stContainer(slPose);
 
-        // Acquire lock on frame copy queue.
+        // Acquire lock on pose copy queue.
         std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
+        // Append pose fetch container to the schedule queue.
         m_qPoseCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
+        // Release lock on the pose schedule queue.
         lkSchedulers.unlock();
 
         // Check if pose queue toggle has already been set.
@@ -1394,7 +1436,64 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled!");
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled or is still initializing!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
+}
+
+/******************************************************************************
+ * @brief Requests the current geo pose of the camera. This method should be used to retrieve ONLY the GNSS data from
+ *      the ZEDSDK's Fusion module. Puts a GeoPose pointer into a queue so a copy of a GeoPose from the
+ *      camera can be written to it. If positional tracking or fusion is disabled for this camera, then this method will return false
+ *      and the sl::GeoPose may be uninitialized.
+ *
+ * @param slGeoPose - A reference to the sl::GeoPose object to copy the current geo pose to.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::GeoPose is used.
+ *                          Value will be true if geo pose was successfully retrieved.
+ *
+ * @note This camera must be a Fusion Master and the NavBoard must be giving accurate info to the camera for this to be functional.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-25
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose)
+{
+    // Check if positional tracking has been enabled.
+    if (m_bCameraIsFusionMaster && m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Assemble the data container.
+        containers::DataFetchContainer<sl::GeoPose> stContainer(slGeoPose);
+
+        // Acquire lock on frame copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append frame fetch container to the schedule queue.
+        m_qGeoPoseCopySchedule.push(stContainer);
+        // Release lock on the frame schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if pose queue toggle has already been set.
+        if (!m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+        {
+            // Signify that the pose queue is not empty.
+            m_bGeoPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger,
+                    "Attempted to get ZED FUSION geo pose but positional tracking is not enabled and/or this camera was not initialized as a Fusion Master!");
 
         // Create dummy promise to return the future.
         std::promise<bool> pmDummyPromise;
