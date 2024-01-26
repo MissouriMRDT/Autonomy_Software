@@ -1125,7 +1125,7 @@ sl::FUSION_ERROR_CODE ZEDCam::SubscribeFusionToCameraUUID(sl::CameraIdentifier& 
     if (m_bCameraIsFusionMaster)
     {
         // Subscribe this camera to fusion instance.
-        sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.subscribe(slCameraUUID);
+        slReturnCode = m_slFusionInstance.subscribe(slCameraUUID);
     }
 
     // Check if this camera was successfully subscribed to the Fusion instance.
