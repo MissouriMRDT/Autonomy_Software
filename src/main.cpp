@@ -124,6 +124,7 @@ int main()
         pMainCam->EnablePositionalTracking();
         // Used to store camera pose/location of the main cam.
         sl::Pose slCameraPosition;
+        sl::GeoPose slGeoPosition;
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -132,7 +133,8 @@ int main()
         while (!bMainStop)
         {
             // Request for pose from main ZED camera.
-            std::future<bool> fuPoseStatus = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
+            std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
+            std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
 
             // No need to loop as fast as possible. Sleep...
             // Only run this main thread once every 20ms.
@@ -160,6 +162,13 @@ int main()
             // Append camera location to string.
             szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
                           " Z:" + std::to_string(slCameraLocation.z) + "\n";
+            // Wait for geo pose to be copied.
+            fuGeoPoseStatus.get();
+            // Get Translations from pose.
+            slCameraLocation = slGeoPosition.pose_data.getTranslation();
+            // Append camera location to string.
+            szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
+                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
 
             // Submit logger message.
             LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
