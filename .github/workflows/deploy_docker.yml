@@ -591,6 +591,7 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Login to Firebase
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
         run: |
           echo "$FIREBASE_SA_KEY" > firebase-key.json
           firebase login --no-localhost --token "$FIREBASE_SA_KEY"
