@@ -70,6 +70,7 @@ NAVIGATIONBOARD
 nullptr
 OBJDETECTION
 odometry
+opencv
 parallelizable
 Parens
 PIXELTYPE
