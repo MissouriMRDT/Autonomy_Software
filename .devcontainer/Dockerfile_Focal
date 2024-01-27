@@ -81,7 +81,7 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     rm ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /root/Documents/ZED/ && \
-    sed '/#pragma message.*/d' /usr/local/zed/include/sl/Fusion.hpp
+    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
 RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
