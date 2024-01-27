@@ -579,6 +579,22 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Setup Node.js
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Firebase
+        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+        id: firebase-install
+        run: npm install -g firebase-tools
+
+      - name: Login to Firebase
+        run: |
+          echo "$FIREBASE_SA_KEY" > firebase-key.json
+          firebase login --no-localhost --token "$FIREBASE_SA_KEY"
+
       - name: Login to Github Packages
         if: steps.changed-files.outputs.dev_any_changed  == 'true'
         uses: docker/login-action@v2
@@ -597,6 +613,49 @@ jobs:
           platform: "linux/${{ matrix.arch }}"
           push: true
 
+      - name: Update Firebase Database
+        if: ${{ github.event_name == 'pull_request' && steps.changed-files.outputs.dev_any_changed == 'true' }}
+        run: |
+          # Get the base URL from the secret
+          base_url="${{ secrets.FIREBASE_BASE_URL }}"
+      
+          # Convert matrix.image to lowercase
+          lowercase_image=$(echo "${{ matrix.image }}" | tr '[:upper:]' '[:lower:]')
+      
+          # Fetch tag data from Firebase
+          tag=$(curl -s "${base_url}/${lowercase_image}-tag.json" | jq -r '.')
+      
+          # Specify the path in the database where you want to update data
+          firebase_path="/${lowercase_image}-tag"
+      
+          # Get the updated value from the date step
+          updated_value="${{ steps.date.outputs.date }}"
+      
+          # Use the firebase database:set command to update records
+          firebase database:set --data "{\"tag\": \"$tag\", \"key\": \"$updated_value\"}" --url "$base_url/$firebase_path"
+        env:
+          FIREBASE_SA_KEY: ${{ secrets.FIREBASE_SA_KEY }}
+          FIREBASE_BASE_URL: ${{ secrets.FIREBASE_BASE_URL }}
+
+      - name: Pull Docker Image
+        id: pull-docker
+        if: ${{ github.event_name == 'push' && steps.changed-files.outputs.dev_any_changed == 'true' }}
+        run: |
+          # Get the base URL from the secret
+          base_url="${{ secrets.FIREBASE_BASE_URL }}"
+      
+          # Convert matrix.image to lowercase
+          lowercase_image=$(echo "${{ matrix.image }}" | tr '[:upper:]' '[:lower:]')
+      
+          # Fetch tag data from Firebase
+          tag=$(curl -s "${base_url}/${lowercase_image}-tag.json" | jq -r '.')
+      
+          # Pull the Docker image
+          docker pull "ghcr.io/missourimrdt/${{ matrix.image }}:${tag}" || true
+
+          # Set the tag as an output for other steps to access
+          echo "::set-output name=tag::${tag}"
+
       - name: Build and Push ${{ matrix.name }} Image with Latest Tag
         if: ${{ github.event_name == 'push' && steps.changed-files.outputs.dev_any_changed  == 'true' }}
         uses: docker/build-push-action@v5
@@ -604,7 +663,7 @@ jobs:
           context: ".devcontainer/"
           file: ".devcontainer/${{ matrix.file }}"
           tags: |
-            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
+            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.pull-docker.outputs.tag }}
             "ghcr.io/missourimrdt/${{ matrix.image }}:latest"
           platform: "linux/${{ matrix.arch }}"
           push: true
