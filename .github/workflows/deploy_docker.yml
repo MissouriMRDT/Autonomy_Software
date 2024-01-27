@@ -631,7 +631,7 @@ jobs:
           file: ".devcontainer/${{ matrix.file }}"
           tags: |
             "ghcr.io/missourimrdt/${{ matrix.image }}:buildcache"
-            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}
+            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
             "ghcr.io/missourimrdt/${{ matrix.image }}:latest"
           platform: "linux/${{ matrix.arch }}"
           push: true
