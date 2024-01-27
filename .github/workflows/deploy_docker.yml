@@ -610,11 +610,12 @@ jobs:
         with:
           context: ".devcontainer/"
           file: ".devcontainer/${{ matrix.file }}"
-          tags: "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
+          tags: |
+            "ghcr.io/missourimrdt/${{ matrix.image }}:buildcache"
+            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
           platform: "linux/${{ matrix.arch }}"
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache,mode=max
 
       # Whenever one of the docker files changes, we want to build and push the image with the latest tag to the registry.
       # This will happen once a PR is merged and will result in a new image being pushed to the registry. This image
@@ -629,12 +630,12 @@ jobs:
           context: ".devcontainer/"
           file: ".devcontainer/${{ matrix.file }}"
           tags: |
+            "ghcr.io/missourimrdt/${{ matrix.image }}:buildcache"
             "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}
             "ghcr.io/missourimrdt/${{ matrix.image }}:latest"
           platform: "linux/${{ matrix.arch }}"
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache,mode=max
 
       # This outputs a digest of everything that was pushed to the registry.
       - name: ${{ matrix.name }} Image digest
