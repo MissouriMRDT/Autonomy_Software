@@ -603,6 +603,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Pull Docker Image
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && steps.changed-files.outputs.dev_any_changed == 'true' }}
+        run: |
+          # Pull the Docker image
+          docker pull "ghcr.io/missourimrdt/${{ matrix.image }}:latest" || true
+
       - name: Build and Push ${{ matrix.name }} Image with Date Tag
         if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && steps.changed-files.outputs.dev_any_changed  == 'true' }}
         uses: docker/build-push-action@v5
@@ -612,9 +618,11 @@ jobs:
           tags: "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
           platform: "linux/${{ matrix.arch }}"
           push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache,mode=max
 
       - name: Update Firebase Database
-        if: ${{ github.event_name == 'pull_request' && steps.changed-files.outputs.dev_any_changed == 'true' }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && steps.changed-files.outputs.dev_any_changed == 'true' }}
         run: |
           # Get the base URL from the secret
           base_url="${{ secrets.FIREBASE_BASE_URL }}"
@@ -667,6 +675,8 @@ jobs:
             "ghcr.io/missourimrdt/${{ matrix.image }}:latest"
           platform: "linux/${{ matrix.arch }}"
           push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache,mode=max
 
       - name: ${{ matrix.name }} Image digest
         if: steps.changed-files.outputs.dev_any_changed  == 'true'
