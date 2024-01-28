@@ -70,7 +70,9 @@ jobs:
           if [ "${{ steps.changes.outputs.opencv-amd64 }}" == 'true' ]; then
             chmod +x opencv-amd64-pkg.sh
             ./opencv-amd64-pkg.sh
-            debfile=$(find /tmp/pkg/ -name "*.deb" -type f -print -quit)
+            mkdir -p /tmp/pkg/deb/
+            mv *.deb /tmp/pkg/deb/
+            debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
             echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
             echo "opencv-updated=true" >> $GITHUB_ENV
           fi
@@ -79,7 +81,9 @@ jobs:
           if [ "${{ steps.changes.outputs.opencv-arm64 }}" == 'true' ]; then
             chmod +x opencv-arm64-pkg.sh
             ./opencv-arm64-pkg.sh
-            debfile=$(find /tmp/pkg/ -name "*.deb" -type f -print -quit)
+            mkdir -p /tmp/pkg/deb/
+            mv *.deb /tmp/pkg/deb/
+            debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
             echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
             echo "opencv-updated=true" >> $GITHUB_ENV
           fi
