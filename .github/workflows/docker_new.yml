@@ -95,7 +95,7 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
           commit-message: "Update OpenCV Package"
-          source-directory: "/tmp/pkg/${{ steps.opencv-build.outputs.opencv-pkg }}"
+          source-directory: "/tmp/pkg/deb/"
           destination-github-username: "missourimrdt"
           destination-repository-name: "autonomy_packages"
           user-email: "mrdt.autonomy@gmail.com"
