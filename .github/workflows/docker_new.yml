@@ -70,7 +70,7 @@ jobs:
           if [ "${{ steps.changes.outputs.opencv-amd64 }}" == 'true' ]; then
             chmod +x opencv-amd64-pkg.sh
             ./opencv-amd64-pkg.sh
-            debfile=$(find /opt/pkg/ -name "*.deb" -type f -print -quit)
+            debfile=$(find /tmp/pkg/ -name "*.deb" -type f -print -quit)
             echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
             echo "opencv-updated=true" >> $GITHUB_ENV
           fi
@@ -79,7 +79,7 @@ jobs:
           if [ "${{ steps.changes.outputs.opencv-arm64 }}" == 'true' ]; then
             chmod +x opencv-arm64-pkg.sh
             ./opencv-arm64-pkg.sh
-            debfile=$(find /opt/pkg/ -name "*.deb" -type f -print -quit)
+            debfile=$(find /tmp/pkg/ -name "*.deb" -type f -print -quit)
             echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
             echo "opencv-updated=true" >> $GITHUB_ENV
           fi
@@ -91,7 +91,7 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
           commit-message: "Update OpenCV Package"
-          source-directory: "/opt/pkg/${{ steps.opencv-build.outputs.opencv-pkg }}"
+          source-directory: "/tmp/pkg/${{ steps.opencv-build.outputs.opencv-pkg }}"
           destination-github-username: "missourimrdt"
           destination-repository-name: "autonomy_packages"
           user-email: "mrdt.autonomy@gmail.com"
@@ -99,7 +99,7 @@ jobs:
 
       - name: Remove OpenCV Package
         if: ${{ steps.changes.outputs.opencv-arm64 == 'true' || steps.changes.outputs.opencv-amd64 == 'true' }}
-        run: rm -rf /opt/pkg/*
+        run: rm -rf /tmp/pkg/*
 
   # This job is used to build and push the new jammy docker images
   build-and-push-jammy:
