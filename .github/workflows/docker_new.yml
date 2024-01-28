@@ -1,0 +1,285 @@
+name: Build and Publish Docker Images
+
+on:
+  pull_request:
+    branches: ["development"]
+    paths:
+      - ".devcontainer/Dockerfile_Jammy"
+      - ".devcontainer/Dockerfile_Focal"
+      - ".devcontainer/Dockerfile_JetPack"
+      - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
+      - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+  push:
+    branches: ["development"]
+    paths:
+      - ".devcontainer/Dockerfile_Jammy"
+      - ".devcontainer/Dockerfile_Focal"
+      - ".devcontainer/Dockerfile_JetPack"
+      - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
+      - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+  workflow_dispatch:
+
+concurrency:
+  group: "docker"
+  cancel-in-progress: false
+
+jobs:
+  # This job is used to get the current date and time for tagging the docker images
+  time-and-date:
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Get Current Date and Time
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_OUTPUT
+    outputs:
+      date: ${{ steps.date.outputs.date }}
+
+  # This job is used to rebuild the OpenCV packages if the OpenCV package build scripts have been updated
+  build-opencv-packages:
+    needs: [time-and-date]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [[self-hosted, linux, X64], [self-hosted, linux, ARM64]]
+    runs-on: ${{ matrix.os }}
+    outputs:
+      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            opencv-arm64:
+              - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            opencv-amd64:
+              - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+
+      - name: Rebuild OpenCV Packages
+        id: opencv-build
+        if: ${{ steps.changes.outputs.opencv-arm64 == 'true' || steps.changes.outputs.opencv-amd64 == 'true' }}
+        run: |
+          cd tools/package-builders/opencv
+
+          # Rebuild OpenCV AMD64 Package
+          if [ "${{ steps.changes.outputs.opencv-amd64 }}" == 'true' ]; then
+            chmod +x opencv-amd64-pkg.sh
+            ./opencv-amd64-pkg.sh
+            debfile=$(find /opt/pkg/ -name "*.deb" -type f -print -quit)
+            echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
+            echo "opencv-updated=true" >> $GITHUB_ENV
+          fi
+
+          # Rebuild OpenCV ARM64 Package
+          if [ "${{ steps.changes.outputs.opencv-arm64 }}" == 'true' ]; then
+            chmod +x opencv-arm64-pkg.sh
+            ./opencv-arm64-pkg.sh
+            debfile=$(find /opt/pkg/ -name "*.deb" -type f -print -quit)
+            echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
+            echo "opencv-updated=true" >> $GITHUB_ENV
+          fi
+
+      - name: Push OpenCV Package
+        if: ${{ steps.changes.outputs.opencv-arm64 == 'true' || steps.changes.outputs.opencv-amd64 == 'true' }}
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          commit-message: "Update OpenCV Package"
+          source-directory: "/opt/pkg/${{ steps.opencv-build.outputs.opencv-pkg }}"
+          destination-github-username: "missourimrdt"
+          destination-repository-name: "autonomy_packages"
+          user-email: "mrdt.autonomy@gmail.com"
+          target-branch: main
+
+      - name: Remove OpenCV Package
+        if: ${{ steps.changes.outputs.opencv-arm64 == 'true' || steps.changes.outputs.opencv-amd64 == 'true' }}
+        run: rm -rf /opt/pkg/*
+
+  # This job is used to build and push the new jammy docker images
+  build-and-push-jammy:
+    needs: [time-and-date, build-opencv-packages]
+    runs-on: [self-hosted, linux, X64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - '.devcontainer/Dockerfile_Jammy'
+
+      - name: Setup Docker Buildx
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Packages
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Jammy Image with Date Tag
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-opencv-packages.outputs.opencv-updated) }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_Jammy"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-jammy:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jammy:${{ needs.time-and-date.outputs.date }}"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
+
+      - name: Build and Push Jammy Image with Latest Tag
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-opencv-packages.outputs.opencv-updated) }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_Jammy"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-jammy:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jammy:${{ needs.time-and-date.outputs.date }}"
+            "ghcr.io/missourimrdt/autonomy-jammy:latest"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
+
+  # This job is used to build and push the new focal docker images
+  build-and-push-focal:
+    needs: [time-and-date, build-opencv-packages]
+    runs-on: [self-hosted, linux, X64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - '.devcontainer/Dockerfile_Focal'
+
+      - name: Setup Docker Buildx
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Packages
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Focal Image with Date Tag
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-opencv-packages.outputs.opencv-updated) }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_Focal"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-focal:buildcache"
+            "ghcr.io/missourimrdt/autonomy-focal:${{ needs.time-and-date.outputs.date }}"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache,mode=max
+
+      - name: Build and Push Focal Image with Latest Tag
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-opencv-packages.outputs.opencv-updated) }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_Focal"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-focal:buildcache"
+            "ghcr.io/missourimrdt/autonomy-focal:${{ needs.time-and-date.outputs.date }}"
+            "ghcr.io/missourimrdt/autonomy-focal:latest"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache,mode=max
+
+  # This job is used to build and push the new jetpack docker images
+  build-and-push-jetpack:
+    needs: [time-and-date, build-opencv-packages]
+    runs-on: [self-hosted, linux, ARM64]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - '.devcontainer/Dockerfile_JetPack'
+
+      - name: Setup Docker Buildx
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Packages
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push JetPack Image with Date Tag
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-opencv-packages.outputs.opencv-updated) }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_JetPack"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
+
+      - name: Build and Push JetPack Image with Latest Tag
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-opencv-packages.outputs.opencv-updated) }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_JetPack"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
+            "ghcr.io/missourimrdt/autonomy-jetpack:latest"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
