@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Set Working Directory
-cd /opt
+cd /tmp
 
 # Install Variables
 OPENCV_VERSION="4.8.1"
 
 # Create Package Directory
-mkdir -p /opt/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local
-mkdir -p /opt/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
+mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local
+mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
 
 # Create Control File
-cat << EOF > /opt/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
+cat << EOF > /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
 Package: opencv-cuda
 Version: ${OPENCV_VERSION}
 Maintainer: OpenCV
@@ -49,8 +49,8 @@ cmake \
     ###
     -D WITH_CUBLAS=1 \
     -D WITH_FFMPEG=ON \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/aruco \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/cudev \
+    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
+    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
     -D HAVE_opencv_python3=ON ..
 
 cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
@@ -62,4 +62,4 @@ rm -rf opencv_contrib
 rm -rf opencv
 
 # Create Package
-dpkg --build /opt/pkg/opencv_${OPENCV_VERSION}_amd64
+dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_amd64
