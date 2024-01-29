@@ -73,8 +73,14 @@ jobs:
           git config --global user.email "mrdt.autonomy@gmail.com"
           git config --global user.name "MRDT-Software"
 
-          # Clone the destination repository
-          git clone https://${{ secrets.GITHUB_TOKEN_DESTINATION }}@github.com/MissouriMRDT/Autonomy_Packages.git
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Clone the destination repository using SSH
+          git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
           # Copy the new package into the repository
@@ -85,7 +91,7 @@ jobs:
           git commit -m "Upgrade OpenCV Package for AMD64"
           git push origin main
         env:
-          GITHUB_TOKEN_DESTINATION: ${{ secrets.API_TOKEN_GITHUB }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Remove OpenCV Package
         if: steps.changes.outputs.opencv-amd64 == 'true'
@@ -130,8 +136,14 @@ jobs:
           git config --global user.email "mrdt.autonomy@gmail.com"
           git config --global user.name "MRDT-Software"
 
-          # Clone the destination repository
-          git clone https://${{ secrets.GITHUB_TOKEN_DESTINATION }}@github.com/MissouriMRDT/Autonomy_Packages.git
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Clone the destination repository using SSH
+          git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
           # Copy the new package into the repository
@@ -142,7 +154,7 @@ jobs:
           git commit -m "Upgrade OpenCV Package for ARM64"
           git push origin main
         env:
-          GITHUB_TOKEN_DESTINATION: ${{ secrets.API_TOKEN_GITHUB }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Remove OpenCV Package
         if: steps.changes.outputs.opencv-arm64 == 'true'
