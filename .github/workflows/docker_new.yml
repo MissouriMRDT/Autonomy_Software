@@ -7,16 +7,28 @@ on:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_Focal"
       - ".devcontainer/Dockerfile_JetPack"
+      - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
+      - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/quill/quill-arm64-pkg.sh"
+      - "tools/package-builders/quill/quill-amd64-pkg.sh"
   push:
     branches: ["development"]
     paths:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_Focal"
       - ".devcontainer/Dockerfile_JetPack"
+      - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
+      - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/quill/quill-arm64-pkg.sh"
+      - "tools/package-builders/quill/quill-amd64-pkg.sh"
   workflow_dispatch:
 
 concurrency:
@@ -34,12 +46,10 @@ jobs:
     outputs:
       date: ${{ steps.date.outputs.date }}
 
-  # This job is used to rebuild the updated AMD64 packages and push them to the package repository
-  build-updated-amd64-packages:
+  # This job is used to check if any of the packages for AMD64 need to be rebuilt
+  check-amd64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, X64]
-    outputs:
-      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -51,23 +61,53 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
+            geolib-amd64:
+              - 'tools/package-builders/geolib/geolib-amd64-pkg.sh'
+            gtest-amd64:
+              - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
             opencv-amd64:
               - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+            quill-amd64:
+              - 'tools/package-builders/quill/quill-amd64-pkg.sh'
+    outputs:
+      geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
+      gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
+      opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
+      quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
 
-      - name: Rebuild OpenCV Packages
-        id: opencv-build
-        if: steps.changes.outputs.opencv-amd64 == 'true'
+  # This job is to rebuild the updated AMD64 packages and push them to the package repository
+  build-updated-amd64-packages:
+    needs: [time-and-date, check-amd64-packages]
+    runs-on: [self-hosted, linux, X64]
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [geolib, gtest, opencv, quill]
+    outputs:
+      geolib-updated: ${{ steps.geolib-build.outputs.geolib-updated }}
+      gtest-updated: ${{ steps.gtest-build.outputs.gtest-updated }}
+      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
+      quill-updated: ${{ steps.quill-build.outputs.quill-updated }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild ${{ matrix.package }} Package
+        id: ${{ matrix.package }}-build
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
         run: |
-          cd tools/package-builders/opencv
+          cd tools/package-builders/${{ matrix.package }}
 
-          chmod +x opencv-amd64-pkg.sh
-          ./opencv-amd64-pkg.sh
+          chmod +x ${{ matrix.package }}-amd64-pkg.sh
+          ./${{ matrix.package }}-amd64-pkg.sh
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
-          echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
-          echo "opencv-updated=true" >> $GITHUB_ENV
+          echo "${{ matrix.package }}-pkg=$debfile" >> $GITHUB_OUTPUT
+          echo "${{ matrix.package }}-updated=true" >> $GITHUB_ENV
 
-      - name: Push OpenCV Package
-        if: steps.changes.outputs.opencv-amd64 == 'true'
+      - name: Push Packages
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
         run: |
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
@@ -84,25 +124,23 @@ jobs:
           cd Autonomy_Packages
 
           # Copy the new package into the repository
-          cp -r /tmp/pkg/deb/ opencv/
+          cp -r /tmp/pkg/deb/ ${{ matrix.package }}/
 
           # Commit and push changes
           git add .
-          git commit -m "Upgrade OpenCV Package for AMD64"
+          git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Remove OpenCV Package
-        if: steps.changes.outputs.opencv-amd64 == 'true'
+      - name: Remove ${{ matrix.package }} Package
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
         run: rm -rf /tmp/pkg/*
 
-  # This job is used to rebuild the updated AMD64 packages and push them to the package repository
-  build-updated-arm64-packages:
+  # This job is used to check if any of the packages for ARM64 need to be rebuilt
+  check-arm64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, ARM64]
-    outputs:
-      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -114,23 +152,53 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
+            geolib-arm64:
+              - 'tools/package-builders/geolib/geolib-arm64-pkg.sh'
+            gtest-arm64:
+              - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
             opencv-arm64:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            quill-arm64:
+              - 'tools/package-builders/quill/quill-arm64-pkg.sh'
+    outputs:
+      geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
+      gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
+      opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
+      quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
 
-      - name: Rebuild OpenCV Packages
-        id: opencv-build
-        if: steps.changes.outputs.opencv-arm64 == 'true'
+  # This job is to rebuild the updated ARM64 packages and push them to the package repository
+  build-updated-arm64-packages:
+    needs: [time-and-date, check-arm64-packages]
+    runs-on: [self-hosted, linux, ARM64]
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [geolib, gtest, opencv, quill]
+    outputs:
+      geolib-updated: ${{ steps.geolib-build.outputs.geolib-updated }}
+      gtest-updated: ${{ steps.gtest-build.outputs.gtest-updated }}
+      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
+      quill-updated: ${{ steps.quill-build.outputs.quill-updated }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild ${{ matrix.package }} Package
+        id: ${{ matrix.package }}-build
+        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
         run: |
-          cd tools/package-builders/opencv
+          cd tools/package-builders/${{ matrix.package }}
 
-          chmod +x opencv-arm64-pkg.sh
-          ./opencv-arm64-pkg.sh
+          chmod +x ${{ matrix.package }}-arm64-pkg.sh
+          ./${{ matrix.package }}-arm64-pkg.sh
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
-          echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
-          echo "opencv-updated=true" >> $GITHUB_ENV
+          echo "${{ matrix.package }}-pkg=$debfile" >> $GITHUB_OUTPUT
+          echo "${{ matrix.package }}-updated=true" >> $GITHUB_ENV
 
-      - name: Push OpenCV Package
-        if: steps.changes.outputs.opencv-arm64 == 'true'
+      - name: Push Packages
+        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
         run: |
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
@@ -147,22 +215,22 @@ jobs:
           cd Autonomy_Packages
 
           # Copy the new package into the repository
-          cp -r /tmp/pkg/deb/ opencv/
+          cp -r /tmp/pkg/deb/ ${{ matrix.package }}/
 
           # Commit and push changes
           git add .
-          git commit -m "Upgrade OpenCV Package for ARM64"
+          git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Remove OpenCV Package
-        if: steps.changes.outputs.opencv-arm64 == 'true'
+      - name: Remove ${{ matrix.package }} Package
+        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
         run: rm -rf /tmp/pkg/*
 
   # This job is used to build and push the new jammy docker images
   build-and-push-jammy:
-    needs: [time-and-date, build-updated-amd64-packages]
+    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     steps:
       - name: Checkout Repository
@@ -193,7 +261,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Jammy Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.opencv-updated) }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -207,7 +275,7 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
 
       - name: Build and Push Jammy Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.opencv-updated) }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -223,7 +291,7 @@ jobs:
 
   # This job is used to build and push the new focal docker images
   build-and-push-focal:
-    needs: [time-and-date, build-updated-amd64-packages]
+    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     steps:
       - name: Checkout Repository
@@ -254,7 +322,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Focal Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.opencv-updated) }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -268,7 +336,7 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache,mode=max
 
       - name: Build and Push Focal Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.opencv-updated) }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -284,7 +352,7 @@ jobs:
 
   # This job is used to build and push the new jetpack docker images
   build-and-push-jetpack:
-    needs: [time-and-date, build-updated-arm64-packages]
+    needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
     steps:
       - name: Checkout Repository
@@ -315,7 +383,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push JetPack Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-arm64-packages.outputs.opencv-updated) }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-arm64-packages.outputs.geolib-updated || needs.build-updated-arm64-packages.outputs.gtest-updated || needs.build-updated-arm64-packages.outputs.opencv-updated || needs.build-updated-arm64-packages.outputs.quill-updated) }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -329,7 +397,7 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
 
       - name: Build and Push JetPack Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-arm64-packages.outputs.opencv-updated) }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-arm64-packages.outputs.geolib-updated || needs.build-updated-arm64-packages.outputs.gtest-updated || needs.build-updated-arm64-packages.outputs.opencv-updated || needs.build-updated-arm64-packages.outputs.quill-updated) }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
