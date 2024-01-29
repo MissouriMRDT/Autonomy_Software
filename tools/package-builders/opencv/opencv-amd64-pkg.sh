@@ -3,9 +3,6 @@
 # Set Working Directory
 cd /tmp
 
-# Fix Permissions
-# chmod 1777 /etc/
-
 # Install Variables
 OPENCV_VERSION="4.8.1"
 
@@ -15,7 +12,7 @@ mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
 
 # Create Control File
 cat << EOF > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-Package: opencv-cuda
+Package: opencv-mrdt
 Version: ${OPENCV_VERSION}
 Maintainer: OpenCV
 Depends: 
@@ -55,6 +52,7 @@ cmake \
 
 cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
 make install
+ldconfig
 
 cd ../..
 rm -rf opencv_contrib
