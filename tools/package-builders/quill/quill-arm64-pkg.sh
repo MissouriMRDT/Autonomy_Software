@@ -8,6 +8,7 @@ QUILL_VERSION="3.6.0"
 
 # Delete Old Packages
 rm -rf /tmp/pkg
+rm -rf /tmp/quill
 
 # Create Package Directory
 mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local

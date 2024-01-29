@@ -8,6 +8,8 @@ OPENCV_VERSION="4.8.1"
 
 # Delete Old Packages
 rm -rf /tmp/pkg
+rm -rf /tmp/opencv_contrib
+rm -rf /tmp/opencv
 
 # Create Package Directory
 mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local
