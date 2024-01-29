@@ -7,11 +7,11 @@ cd /tmp
 GTEST_VERSION="v1.14.0"
 
 # Create Package Directory
-mkdir -p /tmp/pkg/googletest_${GTEST_VERSION}_amd64/usr/local
-mkdir -p /tmp/pkg/googletest_${GTEST_VERSION}_amd64/DEBIAN
+mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_amd64/usr/local
+mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_amd64/DEBIAN
 
 # Create Control File
-cat << EOF > /tmp/pkg/googletest_${GTEST_VERSION}_amd64/DEBIAN/control
+cat << EOF > /tmp/pkg/gtest_${GTEST_VERSION}_amd64/DEBIAN/control
 Package: googletest-mrdt
 Version: ${GTEST_VERSION}
 Maintainer: Google
@@ -36,10 +36,10 @@ cd ../..
 rm -rf googletest
 
 # Create Package
-dpkg --build /tmp/pkg/googletest_${GTEST_VERSION}_amd64
+dpkg --build /tmp/pkg/gtest_${GTEST_VERSION}_amd64
 
 # Create Package Directory
 mkdir -p /tmp/pkg/deb
 
 # Copy Package
-cp /tmp/pkg/googletest_${GTEST_VERSION}_amd64.deb /tmp/pkg/deb/googletest_${GTEST_VERSION}_amd64.deb
+cp /tmp/pkg/gtest_${GTEST_VERSION}_amd64.deb /tmp/pkg/deb/gtest_${GTEST_VERSION}_amd64.deb

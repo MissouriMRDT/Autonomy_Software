@@ -7,11 +7,11 @@ cd /tmp
 GEOLIB_VERSION="v2.3"
 
 # Create Package Directory
-mkdir -p /tmp/pkg/geographiclib_${GEOLIB_VERSION}_amd64/usr/local
-mkdir -p /tmp/pkg/geographiclib_${GEOLIB_VERSION}_amd64/DEBIAN
+mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/usr/local
+mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN
 
 # Create Control File
-cat << EOF > /tmp/pkg/geographiclib_${GEOLIB_VERSION}_amd64/DEBIAN/control
+cat << EOF > /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
 Package: geographiclib-mrdt
 Version: ${GEOLIB_VERSION}
 Maintainer: GeographicLib
@@ -37,10 +37,10 @@ cd ../..
 rm -rf geographiclib
 
 # Create Package
-dpkg --build /tmp/pkg/geographiclib_${GEOLIB_VERSION}_amd64
+dpkg --build /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64
 
 # Create Package Directory
 mkdir -p /tmp/pkg/deb
 
 # Copy Package
-cp /tmp/pkg/geographiclib_${GEOLIB_VERSION}_amd64.deb /tmp/pkg/deb/geographiclib_${GEOLIB_VERSION}_amd64.deb
+cp /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64.deb /tmp/pkg/deb/geolib_${GEOLIB_VERSION}_amd64.deb
