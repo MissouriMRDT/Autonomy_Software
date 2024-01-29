@@ -31,27 +31,27 @@ mkdir opencv/build
 cd opencv/build
 
 cmake \
-    -D CMAKE_BUILD_TYPE=RELEASE \
-    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local \
-    -D INSTALL_PYTHON_EXAMPLES=OFF \
-    -D INSTALL_C_EXAMPLES=OFF \
-    -D BUILD_SHARED_LIBS=OFF \
-    -D WITH_CSTRIPES=ON \
-    -D WITH_OPENCL=ON \
-    -D WITH_CUDA=ON \
-    -D WITH_CUDNN=ON \
-    -D OPENCV_DNN_CUDA=ON \
-    -D ENABLE_FAST_MATH=1 \
-    -D CUDA_FAST_MATH=1 \
-    -D CUDA_ARCH_BIN=7.0 \
-    -D WITH_TBB=ON \
-    -D WITH_OPENMP=ON \
-    -D WITH_IPP=ON \
-    -D WITH_CUBLAS=1 \
-    -D WITH_FFMPEG=ON \
-    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
-    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
-    -D HAVE_opencv_python3=ON ..
+-D CMAKE_BUILD_TYPE=RELEASE \
+-D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local \
+-D INSTALL_PYTHON_EXAMPLES=OFF \
+-D INSTALL_C_EXAMPLES=OFF \
+-D BUILD_SHARED_LIBS=OFF \
+-D WITH_CSTRIPES=ON \
+-D WITH_OPENCL=ON \
+-D WITH_CUDA=ON \
+-D WITH_CUDNN=ON \
+-D OPENCV_DNN_CUDA=ON \
+-D ENABLE_FAST_MATH=1 \
+-D CUDA_FAST_MATH=1 \
+-D CUDA_ARCH_BIN=7.0 \
+-D WITH_TBB=ON \
+-D WITH_OPENMP=ON \
+-D WITH_IPP=ON \
+-D WITH_CUBLAS=1 \
+-D WITH_FFMPEG=ON \
+-D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
+-D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
+-D HAVE_opencv_python3=ON ..
 
 cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
 make install
