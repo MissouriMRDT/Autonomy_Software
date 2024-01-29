@@ -66,18 +66,26 @@ jobs:
           echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
           echo "opencv-updated=true" >> $GITHUB_ENV
 
-      - name: Push OpenCV Packages
+      - name: Push OpenCV Package
         if: steps.changes.outputs.opencv-amd64 == 'true'
-        uses: cpina/github-action-push-to-another-repository@main
+        run: |
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Clone the destination repository
+          git clone https://github.com/MissouriMRDT/Autonomy_Packages.git
+          cd Autonomy_Packages
+
+          # Copy the new package into the repository
+          cp -r /tmp/pkg/deb/ opencv/
+
+          # Commit and push changes
+          git add .
+          git commit -m "Upgrade OpenCV Package for AMD64"
+          git push origin main
         env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-        with:
-          commit-message: "Update OpenCV Package"
-          source-directory: "/tmp/pkg/deb/"
-          destination-github-username: "missourimrdt"
-          destination-repository-name: "autonomy_packages"
-          user-email: "mrdt.autonomy@gmail.com"
-          target-branch: main
+          GITHUB_TOKEN_DESTINATION: ${{ secrets.API_TOKEN_GITHUB }
 
       - name: Remove OpenCV Package
         if: steps.changes.outputs.opencv-amd64 == 'true'
@@ -115,18 +123,26 @@ jobs:
           echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
           echo "opencv-updated=true" >> $GITHUB_ENV
 
-      - name: Push OpenCV Packages
+      - name: Push OpenCV Package
         if: steps.changes.outputs.opencv-arm64 == 'true'
-        uses: cpina/github-action-push-to-another-repository@main
+        run: |
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Clone the destination repository
+          git clone https://github.com/MissouriMRDT/Autonomy_Packages.git
+          cd Autonomy_Packages
+
+          # Copy the new package into the repository
+          cp -r /tmp/pkg/deb/ opencv/
+
+          # Commit and push changes
+          git add .
+          git commit -m "Upgrade OpenCV Package for ARM64"
+          git push origin main
         env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-        with:
-          commit-message: "Update OpenCV Package"
-          source-directory: "/tmp/pkg/deb/"
-          destination-github-username: "missourimrdt"
-          destination-repository-name: "autonomy_packages"
-          user-email: "mrdt.autonomy@gmail.com"
-          target-branch: main
+          GITHUB_TOKEN_DESTINATION: ${{ secrets.API_TOKEN_GITHUB }
 
       - name: Remove OpenCV Package
         if: steps.changes.outputs.opencv-arm64 == 'true'
