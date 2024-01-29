@@ -57,7 +57,6 @@ cmake \
 
 cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
 make install
-ldconfig
 
 cd ../..
 rm -rf opencv_contrib
