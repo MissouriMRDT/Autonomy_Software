@@ -4,7 +4,7 @@
 cd /tmp
 
 # Fix Permissions
-chmod 1777 /etc/
+# chmod 1777 /etc/
 
 # Install Variables
 OPENCV_VERSION="4.8.1"
