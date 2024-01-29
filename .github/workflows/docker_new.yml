@@ -60,8 +60,8 @@ jobs:
         run: |
           cd tools/package-builders/opencv
 
-          chmod +x opencv-arm64-pkg.sh
-          ./opencv-arm64-pkg.sh
+          chmod +x opencv-amd64-pkg.sh
+          ./opencv-amd64-pkg.sh
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
           echo "opencv-pkg=$debfile" >> $GITHUB_OUTPUT
           echo "opencv-updated=true" >> $GITHUB_ENV
