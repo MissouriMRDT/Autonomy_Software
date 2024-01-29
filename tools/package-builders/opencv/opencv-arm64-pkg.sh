@@ -29,7 +29,6 @@ EOF
 # Install OpenCV
 git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git
 git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git
-ls
 mkdir opencv/build
 cd opencv/build
 
