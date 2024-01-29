@@ -56,7 +56,7 @@ jobs:
 
       - name: Rebuild OpenCV Packages
         id: opencv-build
-        if: steps.changes.outputs.opencv-arm64 == 'true'
+        if: steps.changes.outputs.opencv-amd64 == 'true'
         run: |
           cd tools/package-builders/opencv
 
@@ -67,7 +67,7 @@ jobs:
           echo "opencv-updated=true" >> $GITHUB_ENV
 
       - name: Push OpenCV Packages
-        if: steps.changes.outputs.opencv-arm64 == 'true'
+        if: steps.changes.outputs.opencv-amd64 == 'true'
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
@@ -80,7 +80,7 @@ jobs:
           target-branch: main
 
       - name: Remove OpenCV Package
-        if: steps.changes.outputs.opencv-arm64 == 'true'
+        if: steps.changes.outputs.opencv-amd64 == 'true'
         run: rm -rf /tmp/pkg/*
 
   # This job is used to rebuild the updated AMD64 packages and push them to the package repository
