@@ -6,6 +6,9 @@ cd /tmp
 # Install Variables
 OPENCV_VERSION="4.8.1"
 
+# Delete Old Packages
+rm -rf /tmp/pkg
+
 # Create Package Directory
 mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/usr/local
 mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN

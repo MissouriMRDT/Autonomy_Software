@@ -6,6 +6,9 @@ cd /tmp
 # Install Variables
 QUILL_VERSION="3.6.0"
 
+# Delete Old Packages
+rm -rf /tmp/pkg
+
 # Create Package Directory
 mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_amd64/usr/local
 mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN
