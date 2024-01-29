@@ -3,6 +3,9 @@
 # Set Working Directory
 cd /tmp
 
+# Fix Permissions
+chmod 1777 /etc/
+
 # Install Variables
 OPENCV_VERSION="4.8.1"
 
@@ -51,7 +54,7 @@ cmake \
     -D HAVE_opencv_python3=ON ..
 
 cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
-make install
+sudo make install
 ldconfig
 
 cd ../..
@@ -59,4 +62,4 @@ rm -rf opencv_contrib
 rm -rf opencv
 
 # Create Package
-dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_amd64
+dpkg --build /tmp/pkg/dep/opencv_${OPENCV_VERSION}_amd64
