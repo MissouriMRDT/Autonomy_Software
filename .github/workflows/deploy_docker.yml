@@ -344,7 +344,7 @@ jobs:
   build-and-push-jammy:
     needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
-    if: ${{ always() && !failure() && !cancelled()
+    if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
@@ -427,7 +427,7 @@ jobs:
   build-and-push-focal:
     needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
-    if: ${{ always() && !failure() && !cancelled()
+    if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
@@ -510,7 +510,7 @@ jobs:
   build-and-push-jetpack:
     needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
-    if: ${{ always() && !failure() && !cancelled()
+    if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
