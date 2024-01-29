@@ -26,7 +26,8 @@ git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git
 mkdir quill/build
 cd quill/build
 
-cmake ..
+cmake \
+-D CMAKE_INSTALL_PREFIX=/tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local ..
 
 make
 make install

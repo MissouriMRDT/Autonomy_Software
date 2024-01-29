@@ -27,6 +27,7 @@ mkdir geographiclib/build
 cd geographiclib/build
 
 cmake \
+-D CMAKE_INSTALL_PREFIX=/tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/usr/local \
 -D CMAKE_BUILD_TYPE=Release ..
 
 make
