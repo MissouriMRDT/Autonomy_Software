@@ -15,7 +15,7 @@ mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/usr/local
 mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN
 
 # Create Control File
-cat << EOF > /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+cat << EOF > /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
 Package: geographiclib-mrdt
 Version: ${GEOLIB_VERSION}
 Maintainer: GeographicLib
