@@ -105,7 +105,7 @@ jobs:
 
       - name: Rebuild OpenCV Packages
         id: opencv-build
-        if: steps.changes.outputs.opencv-amd64 == 'true'
+        if: steps.changes.outputs.opencv-arm64 == 'true'
         run: |
           cd tools/package-builders/opencv
 
