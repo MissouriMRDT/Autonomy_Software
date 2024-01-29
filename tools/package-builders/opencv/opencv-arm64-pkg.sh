@@ -67,5 +67,8 @@ rm -rf opencv
 # Create Package
 dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_arm64
 
+# Create Package Directory
+mkdir -p /tmp/pkg/deb
+
 # Copy Package
 cp /tmp/pkg/opencv_${OPENCV_VERSION}_arm64.deb /tmp/pkg/deb/opencv_${OPENCV_VERSION}_arm64.deb
