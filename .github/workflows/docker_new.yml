@@ -78,16 +78,24 @@ jobs:
   # This job is to rebuild the updated AMD64 packages and push them to the package repository
   build-updated-amd64-packages:
     needs: [time-and-date, check-amd64-packages]
+
     runs-on: [self-hosted, linux, X64]
+
     strategy:
       fail-fast: false
       matrix:
-        package: [geolib, gtest, opencv, quill]
+        package:
+          - geolib
+          - gtest
+          - opencv
+          - quill
+
     outputs:
       geolib-updated: ${{ steps.geolib-build.outputs.geolib-updated }}
       gtest-updated: ${{ steps.gtest-build.outputs.gtest-updated }}
       opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
       quill-updated: ${{ steps.quill-build.outputs.quill-updated }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -169,16 +177,24 @@ jobs:
   # This job is to rebuild the updated ARM64 packages and push them to the package repository
   build-updated-arm64-packages:
     needs: [time-and-date, check-arm64-packages]
+
     runs-on: [self-hosted, linux, ARM64]
+
     strategy:
       fail-fast: false
       matrix:
-        package: [geolib, gtest, opencv, quill]
+        package:
+          - geolib
+          - gtest
+          - opencv
+          - quill
+
     outputs:
       geolib-updated: ${{ steps.geolib-build.outputs.geolib-updated }}
       gtest-updated: ${{ steps.gtest-build.outputs.gtest-updated }}
       opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
       quill-updated: ${{ steps.quill-build.outputs.quill-updated }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
