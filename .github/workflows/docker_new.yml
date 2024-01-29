@@ -77,7 +77,7 @@ jobs:
 
   # This job is to rebuild the updated AMD64 packages and push them to the package repository
   build-updated-amd64-packages:
-    needs: [check-amd64-packages]
+    needs: [time-and-date, check-amd64-packages]
 
     runs-on: [self-hosted, linux, X64]
 
@@ -177,7 +177,7 @@ jobs:
 
   # This job is to rebuild the updated ARM64 packages and push them to the package repository
   build-updated-arm64-packages:
-    needs: [check-arm64-packages]
+    needs: [time-and-date, check-arm64-packages]
 
     runs-on: [self-hosted, linux, ARM64]
 
@@ -247,7 +247,7 @@ jobs:
 
   # This job is used to build and push the new jammy docker images
   build-and-push-jammy:
-    needs: [build-updated-amd64-packages]
+    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     steps:
       - name: Checkout Repository
@@ -308,7 +308,7 @@ jobs:
 
   # This job is used to build and push the new focal docker images
   build-and-push-focal:
-    needs: [build-updated-amd64-packages]
+    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     steps:
       - name: Checkout Repository
@@ -369,7 +369,7 @@ jobs:
 
   # This job is used to build and push the new jetpack docker images
   build-and-push-jetpack:
-    needs: [build-updated-arm64-packages]
+    needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
     steps:
       - name: Checkout Repository
