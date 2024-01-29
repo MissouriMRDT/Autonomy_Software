@@ -62,4 +62,7 @@ rm -rf opencv_contrib
 rm -rf opencv
 
 # Create Package
-dpkg --build /tmp/pkg/dep/opencv_${OPENCV_VERSION}_amd64
+dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_amd64
+
+# Copy Package
+cp /tmp/pkg/opencv_${OPENCV_VERSION}_amd64.deb /tmp/pkg/deb/opencv_${OPENCV_VERSION}_amd64.deb

@@ -10,8 +10,8 @@ chmod 1777 /etc/
 OPENCV_VERSION="4.8.1"
 
 # Create Package Directory
-mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local
-mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
+mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/usr/local
+mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN
 
 # Create Control File
 cat << EOF > /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
@@ -65,4 +65,7 @@ rm -rf opencv_contrib
 rm -rf opencv
 
 # Create Package
-dpkg --build /tmp/pkg/dep/opencv_${OPENCV_VERSION}_amd64
+dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_arm64
+
+# Copy Package
+cp /tmp/pkg/opencv_${OPENCV_VERSION}_arm64.deb /tmp/pkg/deb/opencv_${OPENCV_VERSION}_arm64.deb
