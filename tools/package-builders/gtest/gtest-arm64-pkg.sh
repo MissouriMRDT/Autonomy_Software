@@ -26,7 +26,8 @@ git clone --depth 1 --branch ${GTEST_VERSION} https://github.com/google/googlete
 mkdir googletest/build
 cd googletest/build
 
-cmake ..
+cmake \
+-D CMAKE_INSTALL_PREFIX=/tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local ..
 
 make
 make install
