@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="v3.6.0"
+QUILL_VERSION="3.6.0"
 
 # Create Package Directory
 mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_amd64/usr/local
@@ -22,7 +22,7 @@ Description: A prebuilt version of Quill. Made by the Mars Rover Design Team.
 EOF
 
 # Install Google Test
-git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git
+git clone --depth 1 --branch v${QUILL_VERSION} http://github.com/odygrd/quill.git
 mkdir quill/build
 cd quill/build
 

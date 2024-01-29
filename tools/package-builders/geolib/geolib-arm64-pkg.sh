@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-GEOLIB_VERSION="v2.3"
+GEOLIB_VERSION="2.3"
 
 # Create Package Directory
 mkdir -p /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64/usr/local
@@ -22,7 +22,7 @@ Description: A prebuilt version of GeographicLib. Made by the Mars Rover Design 
 EOF
 
 # Install GeographicLib
-git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git
+git clone --depth 1 --branch v${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git
 mkdir geographiclib/build
 cd geographiclib/build
 

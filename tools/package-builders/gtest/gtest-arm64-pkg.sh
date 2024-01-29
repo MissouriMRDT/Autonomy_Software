@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-GTEST_VERSION="v1.14.0"
+GTEST_VERSION="1.14.0"
 
 # Create Package Directory
 mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local
@@ -22,7 +22,7 @@ Description: A prebuilt version of Google Test. Made by the Mars Rover Design Te
 EOF
 
 # Install Google Test
-git clone --depth 1 --branch ${GTEST_VERSION} https://github.com/google/googletest.git
+git clone --depth 1 --branch v${GTEST_VERSION} https://github.com/google/googletest.git
 mkdir googletest/build
 cd googletest/build
 
