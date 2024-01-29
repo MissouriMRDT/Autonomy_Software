@@ -57,7 +57,7 @@ cmake \
     -D HAVE_opencv_python3=ON ..
 
 cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
-sudo make install
+make install
 ldconfig
 
 cd ../..
