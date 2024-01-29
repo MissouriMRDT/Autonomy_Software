@@ -77,25 +77,25 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
 
 # Install OpenCV
 ARG OPENCV_VERSION="4.8.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/opencv_${OPENCV_VERSION}_amd64.deb && \
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install GeographicLib
 ARG GEOLIB_VERSION="2.3"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/geolib_${GEOLIB_VERSION}_amd64.deb && \
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/amd64/geolib_${GEOLIB_VERSION}_amd64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
 # Install Quill
 ARG QUILL_VERSION="3.6.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/quill_${QUILL_VERSION}_amd64.deb && \
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb
 
 # Install Google Test
 ARG GTEST_VERSION="1.14.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/gtest_${GTEST_VERSION}_amd64.deb && \
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
 

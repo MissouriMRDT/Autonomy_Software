@@ -131,7 +131,8 @@ jobs:
           cd Autonomy_Packages
 
           # Copy the new package into the repository
-          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/
+          mkdir -p ${{ matrix.package }}/amd64/
+          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/amd64/
 
           # Commit and push changes
           git add .
@@ -230,7 +231,8 @@ jobs:
           cd Autonomy_Packages
 
           # Copy the new package into the repository
-          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/
+          mkdir -p ${{ matrix.package }}/arm64/
+          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/arm64/
 
           # Commit and push changes
           git add .
