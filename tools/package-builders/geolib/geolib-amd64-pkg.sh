@@ -6,6 +6,9 @@ cd /tmp
 # Install Variables
 GEOLIB_VERSION="2.3"
 
+# Delete Old Packages
+rm -rf /tmp/pkg
+
 # Create Package Directory
 mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/usr/local
 mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN
