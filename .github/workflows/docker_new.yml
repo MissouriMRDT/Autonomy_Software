@@ -74,7 +74,7 @@ jobs:
           git config --global user.name "MRDT-Software"
 
           # Clone the destination repository
-          git clone https://github.com/MissouriMRDT/Autonomy_Packages.git
+          git clone https://${{ secrets.GITHUB_TOKEN_DESTINATION }}@github.com/MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
           # Copy the new package into the repository
@@ -131,7 +131,7 @@ jobs:
           git config --global user.name "MRDT-Software"
 
           # Clone the destination repository
-          git clone https://github.com/MissouriMRDT/Autonomy_Packages.git
+          git clone https://${{ secrets.GITHUB_TOKEN_DESTINATION }}@github.com/MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
           # Copy the new package into the repository
