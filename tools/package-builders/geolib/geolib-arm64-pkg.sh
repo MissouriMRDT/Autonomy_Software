@@ -8,6 +8,7 @@ GEOLIB_VERSION="2.3"
 
 # Delete Old Packages
 rm -rf /tmp/pkg
+rm -rf /tmp/geographiclib
 
 # Create Package Directory
 mkdir -p /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64/usr/local

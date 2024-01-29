@@ -8,6 +8,7 @@ GTEST_VERSION="1.14.0"
 
 # Delete Old Packages
 rm -rf /tmp/pkg
+rm -rf /tmp/googletest
 
 # Create Package Directory
 mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_amd64/usr/local
