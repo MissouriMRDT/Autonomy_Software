@@ -11,8 +11,8 @@ rm -rf /tmp/pkg
 rm -rf /tmp/geographiclib
 
 # Create Package Directory
-mkdir -p /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64/usr/local
-mkdir -p /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64/DEBIAN
+mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/usr/local
+mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN
 
 # Create Control File
 cat << EOF > /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64/DEBIAN/control
@@ -41,10 +41,10 @@ cd ../..
 rm -rf geographiclib
 
 # Create Package
-dpkg --build /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64
+dpkg --build /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64
 
 # Create Package Directory
 mkdir -p /tmp/pkg/deb
 
 # Copy Package
-cp /tmp/pkg/geographiclib_${GEOLIB_VERSION}_arm64.deb /tmp/pkg/deb/geographiclib_${GEOLIB_VERSION}_arm64.deb
+cp /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64.deb /tmp/pkg/deb/geolib_${GEOLIB_VERSION}_arm64.deb
