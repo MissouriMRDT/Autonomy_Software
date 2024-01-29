@@ -103,7 +103,6 @@ jobs:
           fetch-depth: 0
 
       - name: Rebuild ${{ matrix.package }} Package
-        id: ${{ matrix.package }}-build
         if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
         run: |
           cd tools/package-builders/${{ matrix.package }}
@@ -168,6 +167,7 @@ jobs:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
+
     outputs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
@@ -202,7 +202,6 @@ jobs:
           fetch-depth: 0
 
       - name: Rebuild ${{ matrix.package }} Package
-        id: ${{ matrix.package }}-build
         if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
         run: |
           cd tools/package-builders/${{ matrix.package }}
