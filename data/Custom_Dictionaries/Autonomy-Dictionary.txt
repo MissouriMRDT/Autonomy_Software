@@ -38,6 +38,7 @@ Extention
 feedforward
 flightsticks
 fourcc
+geekyeggo
 geolib
 geoops
 Geospatial
@@ -96,6 +97,7 @@ SEARCHPATTERNSTATE
 setpoint
 setpoints
 SIMCAM
+softprops
 statechart
 statemachine
 STATEMACHINEHANDLER
