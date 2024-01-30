@@ -127,9 +127,9 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          - geolib
-          - gtest
-          - opencv
+          # - geolib
+          # - gtest
+          # - opencv
           - quill
 
     # This outputs a variable for each package that is set to true if the package was rebuilt. This is used to
@@ -158,15 +158,16 @@ jobs:
 
           chmod +x ${{ matrix.package }}-amd64-pkg.sh
           ./${{ matrix.package }}-amd64-pkg.sh
+
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
           echo "${{ matrix.package }}-pkg=$debfile" >> $GITHUB_OUTPUT
-          echo "${{ matrix.package }}-updated=true" >> $GITHUB_ENV
+          echo "${{ matrix.package }}-updated=true" >> $GITHUB_OUTPUT
 
       # This step is used to push the updated package to the package repository. It gets the list of packages
       # that need to be rebuilt from the previous job. It clones the package repository using SSH. It copies the
       # new package into the repository. It commits and pushes the changes.
       - name: Push Packages
-        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
+        if: ${{ needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
         run: |
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
@@ -198,7 +199,7 @@ jobs:
       # done so that the next package can be built without having to worry about the previous package causing
       # conflicts.
       - name: Remove ${{ matrix.package }} Package
-        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
+        if: ${{ needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
         run: rm -rf /tmp/pkg/*
 
   # This job is used to check if any of the packages for ARM64 need to be rebuilt. If any of the package build
@@ -261,9 +262,9 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          - geolib
-          - gtest
-          - opencv
+          # - geolib
+          # - gtest
+          # - opencv
           - quill
 
     # This outputs a variable for each package that is set to true if the package was rebuilt. This is used to
@@ -286,21 +287,23 @@ jobs:
       # from the previous job. It runs the package build script for the package that is being built. It outputs
       # a variable for each package that is set to true if the package was rebuilt.
       - name: Rebuild ${{ matrix.package }} Package
+        id: rebuild_pkg
         if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
         run: |
           cd tools/package-builders/${{ matrix.package }}
 
           chmod +x ${{ matrix.package }}-arm64-pkg.sh
           ./${{ matrix.package }}-arm64-pkg.sh
+
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
           echo "${{ matrix.package }}-pkg=$debfile" >> $GITHUB_OUTPUT
-          echo "${{ matrix.package }}-updated=true" >> $GITHUB_ENV
+          echo "${{ matrix.package }}-updated=true" >> $GITHUB_OUTPUT
 
       # This step is used to push the updated package to the package repository. It gets the list of packages
       # that need to be rebuilt from the previous job. It clones the package repository using SSH. It copies the
       # new package into the repository. It commits and pushes the changes.
       - name: Push Packages
-        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
+        if: ${{ needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
         run: |
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
@@ -332,7 +335,7 @@ jobs:
       # done so that the next package can be built without having to worry about the previous package causing
       # conflicts.
       - name: Remove ${{ matrix.package }} Package
-        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
+        if: ${{ needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
         run: rm -rf /tmp/pkg/*
 
   # This job is used to build and push the new jammy docker image. It is run on a self-hosted runner because
