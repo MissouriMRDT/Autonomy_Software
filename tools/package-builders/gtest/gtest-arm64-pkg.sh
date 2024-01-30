@@ -26,27 +26,28 @@ else
     mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN
 
     # Create Control File
-    cat << EOF > /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-Package: googletest-mrdt
-Version: ${GTEST_VERSION}
-Maintainer: Google
-Depends: 
-Architecture: arm64
-Homepage: https://google.github.io/googletest/
-Description: A prebuilt version of Google Test. Made by the Mars Rover Design Team.
-EOF
+    echo "Package: googletest-mrdt" > /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    echo "Version: ${GTEST_VERSION}" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    echo "Maintainer: Google" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    echo "Depends:" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    echo "Architecture: arm64" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    echo "Homepage: https://google.github.io/googletest/" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    echo "Description: A prebuilt version of Google Test. Made by the Mars Rover Design Team." >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
 
-    # Install Google Test
+    # Download Google Test
     git clone --depth 1 --branch v${GTEST_VERSION} https://github.com/google/googletest.git
     mkdir googletest/build
     cd googletest/build
 
+    # Build Google Test
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local ..
 
+    # Install Google Test
     make
     make install
 
+    # Cleanup Install
     cd ../..
     rm -rf googletest
 
