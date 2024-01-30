@@ -72,8 +72,7 @@ jobs:
 
       - name: Determine Version
         id: version
-        run: "echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Display Structure
         run: ls
