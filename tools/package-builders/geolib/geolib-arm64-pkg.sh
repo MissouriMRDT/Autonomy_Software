@@ -26,28 +26,29 @@ else
     mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN
 
     # Create Control File
-    cat << EOF > /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
-Package: geographiclib-mrdt
-Version: ${GEOLIB_VERSION}
-Maintainer: GeographicLib
-Depends: 
-Architecture: arm64
-Homepage: https://geographiclib.sourceforge.io/
-Description: A prebuilt version of GeographicLib. Made by the Mars Rover Design Team.
-EOF
+    echo "Package: geographiclib-mrdt" > /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+    echo "Version: ${GEOLIB_VERSION}" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+    echo "Maintainer: GeographicLib" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+    echo "Depends:" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+    echo "Architecture: arm64" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+    echo "Homepage: https://geographiclib.sourceforge.io/" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
+    echo "Description: A prebuilt version of GeographicLib. Made by the Mars Rover Design Team." >> /tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/DEBIAN/control
 
-    # Install GeographicLib
+    # Download GeographicLib
     git clone --depth 1 --branch v${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git
     mkdir geographiclib/build
     cd geographiclib/build
 
+    # Build GeographicLib
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/geolib_${GEOLIB_VERSION}_arm64/usr/local \
     -D CMAKE_BUILD_TYPE=RelWithDebInfo ..
 
+    # Install GeographicLib
     make
     make install
 
+    # Cleanup Install
     cd ../..
     rm -rf geographiclib
 

@@ -122,7 +122,8 @@ jobs:
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
     # packages to be rebuilt at the same time. The job will fail if any of the packages fail to build. But the
-    # other packages will continue to build. This is so that the packages can be rebuilt in parallel.
+    # other packages will continue to build. This is so that the packages can be rebuilt in parallel, if
+    # there are enough action runners in service.
     strategy:
       fail-fast: false
       matrix:
@@ -131,14 +132,6 @@ jobs:
           - gtest
           - opencv
           - quill
-
-    # This outputs a variable for each package that is set to true if the package was rebuilt. This is used to
-    # determine if the docker images need to be rebuilt.
-    outputs:
-      geolib-updated: ${{ steps.geolib-build.outputs.geolib-updated }}
-      gtest-updated: ${{ steps.gtest-build.outputs.gtest-updated }}
-      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
-      quill-updated: ${{ steps.quill-build.outputs.quill-updated }}
 
     steps:
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
@@ -160,7 +153,7 @@ jobs:
           ./${{ matrix.package }}-amd64-pkg.sh
 
       # This step is used to push the updated package to the package repository. It clones the package
-      # repository using SSH. It copies the new package into the repository. It commits and pushes
+      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
       # the changes.
       - name: Push Packages
         if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
@@ -266,14 +259,6 @@ jobs:
           - opencv
           - quill
 
-    # This outputs a variable for each package that is set to true if the package was rebuilt. This is used to
-    # determine if the docker images need to be rebuilt.
-    outputs:
-      geolib-updated: ${{ steps.geolib-build.outputs.geolib-updated }}
-      gtest-updated: ${{ steps.gtest-build.outputs.gtest-updated }}
-      opencv-updated: ${{ steps.opencv-build.outputs.opencv-updated }}
-      quill-updated: ${{ steps.quill-build.outputs.quill-updated }}
-
     steps:
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
@@ -294,7 +279,7 @@ jobs:
           ./${{ matrix.package }}-arm64-pkg.sh
 
       # This step is used to push the updated package to the package repository. It clones the package
-      # repository using SSH. It copies the new package into the repository. It commits and pushes
+      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
       # the changes.
       - name: Push Packages
         if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
@@ -386,7 +371,7 @@ jobs:
       # manual run. In either case the image is tagged with the date and time. It also saves a build cache so
       # that the next time the image is built, it has the potential to be faster.
       - name: Build and Push Jammy Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -404,7 +389,7 @@ jobs:
       # the image is tagged with the date and time and the latest tag. It also saves a build cache so that the
       # next time the image is built, it has the potential to be faster.
       - name: Build and Push Jammy Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -469,7 +454,7 @@ jobs:
       # manual run. In either case the image is tagged with the date and time. It also saves a build cache so
       # that the next time the image is built, it has the potential to be faster.
       - name: Build and Push Focal Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -487,7 +472,7 @@ jobs:
       # the image is tagged with the date and time and the latest tag. It also saves a build cache so that the
       # next time the image is built, it has the potential to be faster.
       - name: Build and Push Focal Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-amd64-packages.outputs.geolib-updated || needs.build-updated-amd64-packages.outputs.gtest-updated || needs.build-updated-amd64-packages.outputs.opencv-updated || needs.build-updated-amd64-packages.outputs.quill-updated) }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -552,7 +537,7 @@ jobs:
       # request or a manual run. In either case the image is tagged with the date and time. It also saves a
       # build cache so that the next time the image is built, it has the potential to be faster.
       - name: Build and Push JetPack Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-arm64-packages.outputs.geolib-updated || needs.build-updated-arm64-packages.outputs.gtest-updated || needs.build-updated-arm64-packages.outputs.opencv-updated || needs.build-updated-arm64-packages.outputs.quill-updated) }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -570,7 +555,7 @@ jobs:
       # this case the image is tagged with the date and time and the latest tag. It also saves a build cache so
       # that the next time the image is built, it has the potential to be faster.
       - name: Build and Push JetPack Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true' || needs.build-updated-arm64-packages.outputs.geolib-updated || needs.build-updated-arm64-packages.outputs.gtest-updated || needs.build-updated-arm64-packages.outputs.opencv-updated || needs.build-updated-arm64-packages.outputs.quill-updated) }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
