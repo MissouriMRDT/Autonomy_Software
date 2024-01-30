@@ -158,11 +158,11 @@ jobs:
           chmod +x ${{ matrix.package }}-amd64-pkg.sh
           ./${{ matrix.package }}-amd64-pkg.sh
 
-      # This step is used to push the updated package to the package repository. It clones the package 
+      # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. It commits and pushes
       # the changes.
       - name: Push Packages
-        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
         run: |
           # Find Debian Package
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
@@ -197,7 +197,7 @@ jobs:
       # done so that the next package can be built without having to worry about the previous package causing
       # conflicts.
       - name: Remove ${{ matrix.package }} Package
-        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
         run: rm -rf /tmp/pkg/*
 
   # This job is used to check if any of the packages for ARM64 need to be rebuilt. If any of the package build
@@ -292,11 +292,11 @@ jobs:
           chmod +x ${{ matrix.package }}-arm64-pkg.sh
           ./${{ matrix.package }}-arm64-pkg.sh
 
-      # This step is used to push the updated package to the package repository. It clones the package 
+      # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. It commits and pushes
       # the changes.
       - name: Push Packages
-        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
         run: |
           # Find Debian Package
           debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
@@ -331,7 +331,7 @@ jobs:
       # done so that the next package can be built without having to worry about the previous package causing
       # conflicts.
       - name: Remove ${{ matrix.package }} Package
-        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
         run: rm -rf /tmp/pkg/*
 
   # This job is used to build and push the new jammy docker image. It is run on a self-hosted runner because
