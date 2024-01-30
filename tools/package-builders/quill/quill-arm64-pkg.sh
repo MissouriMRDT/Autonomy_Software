@@ -6,9 +6,6 @@ cd /tmp
 # Install Variables
 QUILL_VERSION="3.6.0"
 
-# Define Package Name
-PACKAGE_NAME="quill-mrdt"
-
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb"
 
@@ -30,7 +27,7 @@ else
 
     # Create Control File
     cat << EOF > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-Package: ${PACKAGE_NAME}
+Package: quill-mrdt
 Version: ${QUILL_VERSION}
 Maintainer: odygrd
 Depends: 

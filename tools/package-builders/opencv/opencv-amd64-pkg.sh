@@ -6,17 +6,28 @@ cd /tmp
 # Install Variables
 OPENCV_VERSION="4.8.1"
 
-# Delete Old Packages
-rm -rf /tmp/pkg
-rm -rf /tmp/opencv_contrib
-rm -rf /tmp/opencv
+# Define Package URL
+FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb"
 
-# Create Package Directory
-mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local
-mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
+# Check if the file exists
+if curl -sI "$FILE_URL" | grep -q "HTTP/1.1 200 OK"; then
+    echo "Package version ${OPENCV_VERSION} already exists in the repository. Skipping build."
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+else
+    echo "Package version ${OPENCV_VERSION} does not exist in the repository. Building the package."
+    echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
 
-# Create Control File
-cat << EOF > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    # Delete Old Packages
+    rm -rf /tmp/pkg
+    rm -rf /tmp/opencv_contrib
+    rm -rf /tmp/opencv
+
+    # Create Package Directory
+    mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local
+    mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
+
+    # Create Control File
+    cat << EOF > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
 Package: opencv-mrdt
 Version: ${OPENCV_VERSION}
 Maintainer: OpenCV
@@ -26,48 +37,49 @@ Homepage: https://opencv.org/
 Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team.
 EOF
 
-# Install OpenCV
-git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git
-git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git
-mkdir opencv/build
-cd opencv/build
+    # Install OpenCV
+    git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git
+    git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git
+    mkdir opencv/build
+    cd opencv/build
 
-cmake \
--D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local \
--D INSTALL_PYTHON_EXAMPLES=OFF \
--D INSTALL_C_EXAMPLES=OFF \
--D BUILD_SHARED_LIBS=OFF \
--D WITH_CSTRIPES=ON \
--D WITH_OPENCL=ON \
--D WITH_CUDA=ON \
--D WITH_CUDNN=ON \
--D OPENCV_DNN_CUDA=ON \
--D ENABLE_FAST_MATH=1 \
--D CUDA_FAST_MATH=1 \
--D CUDA_ARCH_BIN=7.0 \
--D WITH_TBB=ON \
--D WITH_OPENMP=ON \
--D WITH_IPP=ON \
--D WITH_CUBLAS=1 \
--D WITH_FFMPEG=ON \
--D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
--D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
--D HAVE_opencv_python3=ON ..
+    cmake \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local \
+    -D INSTALL_PYTHON_EXAMPLES=OFF \
+    -D INSTALL_C_EXAMPLES=OFF \
+    -D BUILD_SHARED_LIBS=OFF \
+    -D WITH_CSTRIPES=ON \
+    -D WITH_OPENCL=ON \
+    -D WITH_CUDA=ON \
+    -D WITH_CUDNN=ON \
+    -D OPENCV_DNN_CUDA=ON \
+    -D ENABLE_FAST_MATH=1 \
+    -D CUDA_FAST_MATH=1 \
+    -D CUDA_ARCH_BIN=7.0 \
+    -D WITH_TBB=ON \
+    -D WITH_OPENMP=ON \
+    -D WITH_IPP=ON \
+    -D WITH_CUBLAS=1 \
+    -D WITH_FFMPEG=ON \
+    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
+    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
+    -D HAVE_opencv_python3=ON ..
 
-cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
-make install
-ldconfig
+    cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
+    make install
+    ldconfig
 
-cd ../..
-rm -rf opencv_contrib
-rm -rf opencv
+    cd ../..
+    rm -rf opencv_contrib
+    rm -rf opencv
 
-# Create Package
-dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_amd64
+    # Create Package
+    dpkg --build /tmp/pkg/opencv_${OPENCV_VERSION}_amd64
 
-# Create Package Directory
-mkdir -p /tmp/pkg/deb
+    # Create Package Directory
+    mkdir -p /tmp/pkg/deb
 
-# Copy Package
-cp /tmp/pkg/opencv_${OPENCV_VERSION}_amd64.deb /tmp/pkg/deb/opencv_${OPENCV_VERSION}_amd64.deb
+    # Copy Package
+    cp /tmp/pkg/opencv_${OPENCV_VERSION}_amd64.deb /tmp/pkg/deb/opencv_${OPENCV_VERSION}_amd64.deb
+fi
