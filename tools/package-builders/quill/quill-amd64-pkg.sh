@@ -10,13 +10,13 @@ QUILL_VERSION="3.6.0"
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb"
 
 # Check if the file exists
-if curl -sI "$FILE_URL" | grep -q "HTTP/1.1 200 OK"; then
+if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${QUILL_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
     echo "Package version ${QUILL_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
-
+fi
     # Delete Old Packages
     rm -rf /tmp/pkg
     rm -rf /tmp/quill
