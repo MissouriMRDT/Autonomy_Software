@@ -151,6 +151,7 @@ jobs:
       # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
       # from the previous job. It runs the package build script for the package that is being built.
       - name: Rebuild ${{ matrix.package }} Package
+        id: rebuild_pkg
         if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
         run: |
           cd tools/package-builders/${{ matrix.package }}
