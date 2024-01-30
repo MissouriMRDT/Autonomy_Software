@@ -26,28 +26,29 @@ else
     mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    cat << EOF > /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
-Package: quill-mrdt
-Version: ${QUILL_VERSION}
-Maintainer: odygrd
-Depends: 
-Architecture: amd64
-Homepage: https://quillcpp.readthedocs.io/en/latest/
-Description: A prebuilt version of Quill. Made by the Mars Rover Design Team.
-EOF
+    echo "Package: quill-mrdt" > /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
+    echo "Version: ${QUILL_VERSION}" >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
+    echo "Maintainer: odygrd" >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
+    echo "Depends:" >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
+    echo "Architecture: amd64" >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
+    echo "Homepage: https://quillcpp.readthedocs.io/en/latest/" >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
+    echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team." >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
 
-    # Install Google Test
+    # Download Quill
     git clone --depth 1 --branch v${QUILL_VERSION} http://github.com/odygrd/quill.git
     mkdir quill/build
     cd quill/build
 
+    # Build Quill
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/quill_${QUILL_VERSION}_amd64/usr/local \
     -D CMAKE_BUILD_TYPE=Release ..
 
+    # Install Quill
     make
     make install
 
+    # Cleanup Install
     cd ../..
     rm -rf quill
 

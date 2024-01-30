@@ -27,22 +27,22 @@ else
     mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    cat << EOF > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-Package: opencv-mrdt
-Version: ${OPENCV_VERSION}
-Maintainer: OpenCV
-Depends: 
-Architecture: amd64
-Homepage: https://opencv.org/
-Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team.
-EOF
+    echo "Package: opencv-mrdt" > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    echo "Version: ${OPENCV_VERSION}" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    echo "Maintainer: OpenCV" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    echo "Depends:" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    echo "Architecture: amd64" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    echo "Homepage: https://opencv.org/" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    echo "Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team." >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
 
-    # Install OpenCV
+
+    # Download OpenCV
     git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git
     git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git
     mkdir opencv/build
     cd opencv/build
 
+    # Build OpenCV
     cmake \
     -D CMAKE_BUILD_TYPE=RELEASE \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local \
@@ -66,10 +66,12 @@ EOF
     -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
     -D HAVE_opencv_python3=ON ..
 
+    # Install OpenCV
     cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
     make install
     ldconfig
 
+    # Cleanup Install
     cd ../..
     rm -rf opencv_contrib
     rm -rf opencv
