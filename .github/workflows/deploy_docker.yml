@@ -167,7 +167,7 @@ jobs:
       # that need to be rebuilt from the previous job. It clones the package repository using SSH. It copies the
       # new package into the repository. It commits and pushes the changes.
       - name: Push Packages
-        if: ${{ needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
         run: |
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
@@ -199,7 +199,7 @@ jobs:
       # done so that the next package can be built without having to worry about the previous package causing
       # conflicts.
       - name: Remove ${{ matrix.package }} Package
-        if: ${{ needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
         run: rm -rf /tmp/pkg/*
 
   # This job is used to check if any of the packages for ARM64 need to be rebuilt. If any of the package build
@@ -303,7 +303,7 @@ jobs:
       # that need to be rebuilt from the previous job. It clones the package repository using SSH. It copies the
       # new package into the repository. It commits and pushes the changes.
       - name: Push Packages
-        if: ${{ needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
+        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
         run: |
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
@@ -335,7 +335,7 @@ jobs:
       # done so that the next package can be built without having to worry about the previous package causing
       # conflicts.
       - name: Remove ${{ matrix.package }} Package
-        if: ${{ needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true' }}
+        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true' && steps.rebuilding_pkg.outputs.package_exists == 'true'
         run: rm -rf /tmp/pkg/*
 
   # This job is used to build and push the new jammy docker image. It is run on a self-hosted runner because
