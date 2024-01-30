@@ -129,7 +129,7 @@ jobs:
         package:
           - geolib
           - gtest
-          # - opencv
+          - opencv
           - quill
 
     # This outputs a variable for each package that is set to true if the package was rebuilt. This is used to
@@ -263,7 +263,7 @@ jobs:
         package:
           - geolib
           - gtest
-          # - opencv
+          - opencv
           - quill
 
     # This outputs a variable for each package that is set to true if the package was rebuilt. This is used to
