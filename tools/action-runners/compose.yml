@@ -3,12 +3,12 @@ version: '3.8'
 
 services:
   jammy-runner:
-    image: ghcr.io/missourimrdt/jammy-runner:latest
+    image: ghcr.io/missourimrdt/amd64-runner:latest
     build:
       context: .
-      dockerfile: Dockerfile_Jammy
+      dockerfile: Dockerfile_AMD64
       args:
-        RUNNER_VERSION: '2.310.2'
+        RUNNER_VERSION: '2.312.0'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 5
@@ -27,12 +27,12 @@ services:
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
   jetpack-runner:
-    image: ghcr.io/missourimrdt/jetpack-runner:latest
+    image: ghcr.io/missourimrdt/arm64-runner:latest
     build:
       context: .
-      dockerfile: Dockerfile_JetPack
+      dockerfile: Dockerfile_ARM64
       args:
-        RUNNER_VERSION: '2.310.2'
+        RUNNER_VERSION: '2.312.0'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 1

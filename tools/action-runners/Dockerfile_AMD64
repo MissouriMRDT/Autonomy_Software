@@ -1,12 +1,12 @@
 # Base Image
-FROM ghcr.io/missourimrdt/autonomy-jammy:latest
+FROM ghcr.io/missourimrdt/autonomy-focal:latest
 
 # Install Variables
-ARG UBUNTU_MAJOR="22"
+ARG UBUNTU_MAJOR="20-"
 ARG CUDA_MAJOR="11"
 ARG CUDA_MINOR="7"
 ARG CUDA_PATCH="0"
-ARG RUNNER_VERSION="2.310.2"
+ARG RUNNER_VERSION="2.312.0"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set Labels
