@@ -127,7 +127,7 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          # - geolib
+          - geolib
           # - gtest
           # - opencv
           - quill
@@ -262,7 +262,7 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          # - geolib
+          - geolib
           # - gtest
           # - opencv
           - quill
