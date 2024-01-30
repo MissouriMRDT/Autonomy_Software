@@ -16,7 +16,7 @@ if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
 else
     echo "Package version ${QUILL_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
-fi
+    
     # Delete Old Packages
     rm -rf /tmp/pkg
     rm -rf /tmp/quill
