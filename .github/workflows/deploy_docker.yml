@@ -128,7 +128,7 @@ jobs:
       matrix:
         package:
           - geolib
-          # - gtest
+          - gtest
           # - opencv
           - quill
 
@@ -262,7 +262,7 @@ jobs:
       matrix:
         package:
           - geolib
-          # - gtest
+          - gtest
           # - opencv
           - quill
 
