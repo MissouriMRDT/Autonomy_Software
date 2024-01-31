@@ -12,6 +12,8 @@
 #ifndef GEOSPATIAL_OPERATIONS_HPP
 #define GEOSPATIAL_OPERATIONS_HPP
 
+#include "../AutonomyLogging.h"
+
 /// \cond
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/UTMUPS.hpp>
@@ -183,27 +185,6 @@ namespace geoops
             /////////////////////////////////////////
 
             /******************************************************************************
-             * @brief Default Construct a new UTMCoordinate object.
-             *
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2023-10-12
-             ******************************************************************************/
-            UTMCoordinate()
-            {
-                // Initialize member variables.
-                this->dEasting                  = 0.0;
-                this->dNorthing                 = 0.0;
-                this->nZone                     = 0;
-                this->bWithinNorthernHemisphere = true;
-                this->dAltitude                 = 0.0;
-                this->d2DAccuracy               = -1.0;
-                this->d3DAccuracy               = -1.0;
-                this->dMeridianConvergence      = 0.0;
-                this->dScale                    = 0.0;
-            }
-
-            /******************************************************************************
              * @brief Construct a new UTMCoordinate object.
              *
              * @param dEasting - The eastward displacement from the UTM zone's central meridian in meters.
@@ -219,15 +200,15 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            UTMCoordinate(double dEasting,
-                          double dNorthing,
-                          int nZone,
-                          bool bWithinNorthernHemisphere,
-                          double dAltitude            = 0.0,
-                          double d2DAccuracy          = -1.0,
-                          double d3DAccuracy          = -1.0,
-                          double dMeridianConvergence = -1.0,
-                          double dScale               = 0.0)
+            UTMCoordinate(double dEasting                = 0.0,
+                          double dNorthing               = 0.0,
+                          int nZone                      = 0,
+                          bool bWithinNorthernHemisphere = true,
+                          double dAltitude               = 0.0,
+                          double d2DAccuracy             = -1.0,
+                          double d3DAccuracy             = -1.0,
+                          double dMeridianConvergence    = -1.0,
+                          double dScale                  = 0.0)
             {
                 // Initialize member variables with given values.
                 this->dEasting                  = dEasting;
@@ -260,14 +241,25 @@ namespace geoops
         stConvertCoord.d2DAccuracy = stGPSCoord.d2DAccuracy;
         stConvertCoord.d3DAccuracy = stGPSCoord.d3DAccuracy;
         stConvertCoord.dAltitude   = stGPSCoord.dAltitude;
-        GeographicLib::UTMUPS::Forward(stGPSCoord.dLatitude,
-                                       stGPSCoord.dLongitude,
-                                       stConvertCoord.nZone,
-                                       stConvertCoord.bWithinNorthernHemisphere,
-                                       stConvertCoord.dEasting,
-                                       stConvertCoord.dNorthing,
-                                       stConvertCoord.dMeridianConvergence,
-                                       stConvertCoord.dScale);
+
+        // Catch errors from GeographicLib.
+        try
+        {
+            // Forward solve for the UTM coord.
+            GeographicLib::UTMUPS::Forward(stGPSCoord.dLatitude,
+                                           stGPSCoord.dLongitude,
+                                           stConvertCoord.nZone,
+                                           stConvertCoord.bWithinNorthernHemisphere,
+                                           stConvertCoord.dEasting,
+                                           stConvertCoord.dNorthing,
+                                           stConvertCoord.dMeridianConvergence,
+                                           stConvertCoord.dScale);
+        }
+        catch (const GeographicLib::GeographicErr::exception& geError)
+        {
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger, "Unable to forward solve a GPSCoordinate to UTMCoordinate. GeographicLib error is: {}", geError.what());
+        }
 
         // Return the converted UTM coordinate.
         return stConvertCoord;
@@ -291,14 +283,25 @@ namespace geoops
         stConvertCoord.d2DAccuracy = stUTMCoord.d2DAccuracy;
         stConvertCoord.d3DAccuracy = stUTMCoord.d3DAccuracy;
         stConvertCoord.dAltitude   = stUTMCoord.dAltitude;
-        GeographicLib::UTMUPS::Reverse(stUTMCoord.nZone,
-                                       stUTMCoord.bWithinNorthernHemisphere,
-                                       stUTMCoord.dEasting,
-                                       stUTMCoord.dNorthing,
-                                       stConvertCoord.dLatitude,
-                                       stConvertCoord.dLongitude,
-                                       stConvertCoord.dMeridianConvergence,
-                                       stConvertCoord.dScale);
+
+        // Catch errors from GeographicLib.
+        try
+        {
+            // Reverse solve for the UTM coord.
+            GeographicLib::UTMUPS::Reverse(stUTMCoord.nZone,
+                                           stUTMCoord.bWithinNorthernHemisphere,
+                                           stUTMCoord.dEasting,
+                                           stUTMCoord.dNorthing,
+                                           stConvertCoord.dLatitude,
+                                           stConvertCoord.dLongitude,
+                                           stConvertCoord.dMeridianConvergence,
+                                           stConvertCoord.dScale);
+        }
+        catch (const GeographicLib::GeographicErr::exception& geError)
+        {
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger, "Unable to reverse solve a UTMCoordinate to GPSCoordinate. GeographicLib error is: {}", geError.what());
+        }
 
         // Return the converted UTM coordinate.
         return stConvertCoord;
