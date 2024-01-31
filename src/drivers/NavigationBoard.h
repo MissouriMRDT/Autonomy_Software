@@ -64,7 +64,7 @@ class NavigationBoard
         // Declare private member variables.
         /////////////////////////////////////////
 
-        geoops::UTMCoordinate m_stLocation;        // Store current global position in UTM format.
+        geoops::GPSCoordinate m_stLocation;        // Store current global position in UTM format.
         geoops::IMUData m_stOrientation;           // Store current IMU orientation.
         std::shared_mutex m_muLocationMutex;       // Mutex for acquiring read and write lock on location member variable.
         std::shared_mutex m_muOrientationMutex;    // Mutex for acquiring read and write lock on orientation member variable.

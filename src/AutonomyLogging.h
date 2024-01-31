@@ -7,7 +7,7 @@
  *              areas of the program that would normally be unaccessible
  *              due to it being included in the Main Globals Header.
  *
- * @file AutonomyLogging.hpp
+ * @file AutonomyLogging.h
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-08-22
  *
