@@ -93,6 +93,9 @@ BasicCam::BasicCam(const int nCameraIndex,
     m_szCameraPath              = "";
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
+    // Limit this classes FPS to the given camera FPS.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = true;
 

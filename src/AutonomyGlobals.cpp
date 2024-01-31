@@ -25,7 +25,7 @@ namespace globals
     /////////////////////////////////////////
 
     // Versioning:
-    IdentitySoftware g_pIdentifySoftware;
+    IdentitySoftware* g_pIdentifySoftware;
 
     // Camera handler:
     CameraHandler* g_pCameraHandler;
@@ -33,11 +33,11 @@ namespace globals
     // Tag Detection Handler:
     TagDetectionHandler* g_pTagDetectionHandler;
 
-    // Drivers:
-    DriveBoard g_pDriveBoardInterface;
-    MultimediaBoard g_pMultimediaBoard;
-    NavigationBoard g_pNavigationBoard;
-
     // State Machine Handler:
     StateMachineHandler* g_pStateMachineHandler;
+
+    // Drivers:
+    DriveBoard* g_pDriveBoard;
+    MultimediaBoard* g_pMultimediaBoard;
+    NavigationBoard* g_pNavigationBoard;
 }    // namespace globals
