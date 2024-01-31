@@ -7,7 +7,6 @@ on:
     branches: ["development"]
     paths:
       - ".devcontainer/Dockerfile_Jammy"
-      - ".devcontainer/Dockerfile_Focal"
       - ".devcontainer/Dockerfile_JetPack"
       - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
@@ -24,7 +23,6 @@ on:
     branches: ["development"]
     paths:
       - ".devcontainer/Dockerfile_Jammy"
-      - ".devcontainer/Dockerfile_Focal"
       - ".devcontainer/Dockerfile_JetPack"
       - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
@@ -402,89 +400,6 @@ jobs:
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
-
-  # This job is used to build and push the new focal docker image. It is run on a self-hosted runner because
-  # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then
-  # the image is tagged with the date and time. If this is being run on a push, then the image is tagged with
-  # the date and time and the latest tag. This job is run on both pushes and pull requests. And is allowed to run
-  # even if the previous job was skipped. This is because the previous job is only run on pull requests, but this
-  # job is run on pushes and pull requests.
-  build-and-push-focal:
-    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
-    runs-on: [self-hosted, linux, X64]
-    if: ${{ always() && !failure() && !cancelled() }}
-
-    steps:
-      # This step is used to checkout the repository. It is needed so that the package build scripts can be
-      # checked for changes.
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # This step is used to check if any of the package build scripts have been updated. If any of the package
-      # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
-      # a variable for each package that is set to true if the package needs to be rebuilt.
-      - name: Check for Updated Files
-        id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            dockerfile:
-              - '.devcontainer/Dockerfile_Focal'
-
-      # This step is used to setup the docker buildx. It is needed to build the docker images.
-      - name: Setup Docker Buildx
-        if: steps.changes.outputs.dockerfile == 'true'
-        id: buildx
-        uses: docker/setup-buildx-action@v3
-
-      # This step is used to login to the GitHub Packages. It is needed to push the docker images.
-      - name: Login to GitHub Packages
-        if: steps.changes.outputs.dockerfile == 'true'
-        id: login
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # This step is used to build and push the new focal docker image. It is run on a self-hosted runner because
-      # there is not an NVIDIA GPU available on the GitHub runners. This step is only run on a pull request or a
-      # manual run. In either case the image is tagged with the date and time. It also saves a build cache so
-      # that the next time the image is built, it has the potential to be faster.
-      - name: Build and Push Focal Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
-        uses: docker/build-push-action@v5
-        with:
-          context: ".devcontainer/"
-          file: ".devcontainer/Dockerfile_Focal"
-          tags: |
-            "ghcr.io/missourimrdt/autonomy-focal:buildcache"
-            "ghcr.io/missourimrdt/autonomy-focal:${{ needs.time-and-date.outputs.date }}"
-          platforms: "linux/amd64"
-          push: true
-          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache
-          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache,mode=max
-
-      # This step is used to build and push the new focal docker image. It is run on a self-hosted runner because
-      # there is not an NVIDIA GPU available on the GitHub runners. This step is only run on a push. In this case
-      # the image is tagged with the date and time and the latest tag. It also saves a build cache so that the
-      # next time the image is built, it has the potential to be faster.
-      - name: Build and Push Focal Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
-        uses: docker/build-push-action@v5
-        with:
-          context: ".devcontainer/"
-          file: ".devcontainer/Dockerfile_Focal"
-          tags: |
-            "ghcr.io/missourimrdt/autonomy-focal:buildcache"
-            "ghcr.io/missourimrdt/autonomy-focal:${{ needs.time-and-date.outputs.date }}"
-            "ghcr.io/missourimrdt/autonomy-focal:latest"
-          platforms: "linux/amd64"
-          push: true
-          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache
-          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-focal:buildcache,mode=max
 
   # This job is used to build and push the new jetpack docker image. It is run on a self-hosted runner because
   # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then
