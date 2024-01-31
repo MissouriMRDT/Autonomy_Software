@@ -99,6 +99,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Template > `t` > Example: `T tExampleUseOfTemplateType`
 - Size > `si` > Example: `size_t siExampleUseOfTime`
 - Tuple > `tp` > Example: `tuple tpExampleUseOfTuple`
+- STD Type > `std` > Example: `memory_order stdExampleUseOfMemoryOrder`
 - Thread > `th` > Example: `jthread thExampleUseOfThread`
 - Mutex > `mu` > Example: `mutex muExampleUseOfMutex`
 - Lock > `lk` > Example: `lock lkExampleUseOfLock`

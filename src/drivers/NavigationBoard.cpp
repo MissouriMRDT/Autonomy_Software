@@ -60,7 +60,7 @@ void NavigationBoard::ProcessIMUData(geoops::IMUData stPacket)
  ******************************************************************************/
 void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
 {
-    // Acquire write lock for writing to IMU struct.
+    // Acquire write lock for writing to GPS struct.
     std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger,
@@ -70,8 +70,8 @@ void NavigationBoard::ProcessGPSData(geoops::GPSCoordinate stPacket)
               stPacket.dAltitude,
               stPacket.d2DAccuracy);
 
-    // Convert to UTM coord and store in member variable.
-    m_stLocation = geoops::ConvertGPSToUTM(stPacket);
+    // Store GPS data in member variable.
+    m_stLocation = stPacket;
 }
 
 /******************************************************************************
@@ -103,7 +103,7 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
     // Acquire read lock for getting UTM struct.
     std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muLocationMutex);
     // Convert the currently stored UTM coord to GPS and return.
-    return geoops::ConvertUTMToGPS(m_stLocation);
+    return m_stLocation;
 }
 
 /******************************************************************************
@@ -119,5 +119,5 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
 {
     // Acquire read lock for getting UTM struct.
     std::shared_lock<std::shared_mutex> lkIMUProcessLock(m_muLocationMutex);
-    return m_stLocation;
+    return geoops::ConvertGPSToUTM(m_stLocation);
 }

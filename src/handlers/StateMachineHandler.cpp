@@ -9,6 +9,8 @@
  ******************************************************************************/
 
 #include "StateMachineHandler.h"
+#include "../AutonomyConstants.h"
+#include "../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Create a State object based of of the State enum.

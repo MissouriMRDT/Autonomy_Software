@@ -38,6 +38,7 @@ jobs:
           git fetch --force
           branch=${{ steps.extract_branch.outputs.branch }}
           echo $branch
+          git reset --hard origin/$branch
           git checkout $branch
           git pull
 

@@ -11,9 +11,6 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
-#include "../AutonomyConstants.h"
-#include "../AutonomyLogging.h"
-
 #include "../interfaces/AutonomyThread.hpp"
 
 #include "../states/ApproachingMarkerState.hpp"

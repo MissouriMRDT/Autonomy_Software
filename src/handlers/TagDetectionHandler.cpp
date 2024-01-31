@@ -28,6 +28,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_MAINCAM_MARKER_BORDER_BITS,
                                             constants::TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER,
                                             constants::TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION,
+                                            constants::TAGDETECT_MAINCAM_MAX_FPS,
                                             constants::TAGDETECT_MAINCAM_ENABLE_RECORDING,
                                             constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
@@ -39,6 +40,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_LEFTCAM_MARKER_BORDER_BITS,
                                             constants::TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER,
                                             constants::TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION,
+                                            constants::TAGDETECT_LEFTCAM_MAX_FPS,
                                             constants::TAGDETECT_LEFTCAM_ENABLE_RECORDING,
                                             constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
                                             false);
@@ -50,6 +52,7 @@ TagDetectionHandler::TagDetectionHandler()
                                              constants::TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS,
                                              constants::TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER,
                                              constants::TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION,
+                                             constants::TAGDETECT_RIGHTCAM_MAX_FPS,
                                              constants::TAGDETECT_RIGHTCAM_ENABLE_RECORDING,
                                              constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
                                              false);
