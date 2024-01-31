@@ -11,6 +11,8 @@ autofetch
 AUTONOMYTHREAD
 AVOIDANCESTATE
 BASICCAM
+buildcache
+Buildx
 CALIB
 clayjay
 codeql
@@ -21,10 +23,13 @@ cpptools
 cschlosser
 CUDA
 deadband
+debfile
 deque
 Desaturate
 devcontainer
 diffdrive
+dockerfiles
+dorny
 doxdocgen
 Doxygen
 driveboard
@@ -33,6 +38,8 @@ Extention
 feedforward
 flightsticks
 fourcc
+geekyeggo
+geolib
 geoops
 Geospatial
 gmock
@@ -51,6 +58,7 @@ jbockle
 jetpack
 jspencerpittman
 jthread
+keyscan
 LEFTCAM
 MAINCAM
 MAINCAN
@@ -70,6 +78,7 @@ NAVIGATIONBOARD
 nullptr
 OBJDETECTION
 odometry
+opencv
 parallelizable
 Parens
 PIXELTYPE
@@ -88,6 +97,7 @@ SEARCHPATTERNSTATE
 setpoint
 setpoints
 SIMCAM
+softprops
 statechart
 statemachine
 STATEMACHINEHANDLER
