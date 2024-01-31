@@ -41,7 +41,8 @@ else
 
     # Build Quill
     cmake \
-    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local ..
+    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local \
+    -D CMAKE_BUILD_TYPE=Release ..
 
     # Install Quill
     make
