@@ -1,643 +1,485 @@
 name: Build and Publish Docker Images
 
 on:
+  # Run this workflow every time a pull request is opened or updated with the development branch as the base
+  # and there is a change to the dockerfiles or any of the package build scripts.
   pull_request:
     branches: ["development"]
     paths:
       - ".devcontainer/Dockerfile_Jammy"
-      - ".devcontainer/Dockerfile_Focal"
       - ".devcontainer/Dockerfile_JetPack"
+      - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
+      - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
+      - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
+      - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/quill/quill-arm64-pkg.sh"
+      - "tools/package-builders/quill/quill-amd64-pkg.sh"
+
+  # Or, run this workflow every time a push/merge is made to the development branch and there is a change to
+  # the dockerfiles or any of the package build scripts.
   push:
     branches: ["development"]
     paths:
       - ".devcontainer/Dockerfile_Jammy"
-      - ".devcontainer/Dockerfile_Focal"
       - ".devcontainer/Dockerfile_JetPack"
+      - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
+      - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
+      - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
+      - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
+      - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/quill/quill-arm64-pkg.sh"
+      - "tools/package-builders/quill/quill-amd64-pkg.sh"
+
+  # Or, run this manually from the Actions tab in GitHub. This will run the workflow on the development branch.
   workflow_dispatch:
 
+# This workflow has concurrency protection enabled. This means that if the workflow is already running, it will
+# wait until the previous run is complete before starting a new run. This is to prevent multiple runs from
+# happening at the same time and causing conflicts. If there are more than (2) runs waiting in the queue, the
+# workflow will be cancelled. This is to prevent the queue from getting too long and causing delays in the
+# workflow. It will not cancel a run that is already in progress.
 concurrency:
   group: "docker"
   cancel-in-progress: false
 
+# This workflow is split into multiple jobs. Each job is run on a different runner. This allows multiple jobs to
+# run at the same time. The jobs are run in parallel unless they have a dependency on another job. If a job has
+# a dependency on another job, it will wait until the other job is complete before starting.
 jobs:
-  build-and-push:
+  # This job is used to get the current date and time. This is used to tag the docker images. The date and time
+  # job is run first so that all of the docker images are tagged with the same date and time. And is a dependency
+  # for the other jobs.
+  time-and-date:
+    runs-on: [ubuntu-latest]
+
+    # This outputs the current date and time to the GitHub output. This is used to tag the docker images.
+    outputs:
+      date: ${{ steps.date.outputs.date }}
+
+    steps:
+      # This step is used to get the current date and time. And outputs it to the GitHub output.
+      - name: Get Current Date and Time
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_OUTPUT
+
+  # This job is used to check if any of the packages for AMD64 need to be rebuilt. If any of the package build
+  # scripts have been updated, then the packages need to be rebuilt in the next job. This job is run on a self-
+  # hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It outputs a variable for
+  # each package that is set to true if the package needs to be rebuilt. This job is only run on pull requests.
+  check-amd64-packages:
+    needs: [time-and-date]
+    runs-on: [self-hosted, linux, X64]
+    if: github.event_name == 'pull_request'
+
+    # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
+    # used to determine if the docker images need to be rebuilt.
+    outputs:
+      geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
+      gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
+      opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
+      quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
+
+    steps:
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # This step is used to check if any of the package build scripts have been updated. If any of the package
+      # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
+      # a variable for each package that is set to true if the package needs to be rebuilt.
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            geolib-amd64:
+              - 'tools/package-builders/geolib/geolib-amd64-pkg.sh'
+            gtest-amd64:
+              - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
+            opencv-amd64:
+              - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+            quill-amd64:
+              - 'tools/package-builders/quill/quill-amd64-pkg.sh'
+
+  # This job is to rebuild the updated AMD64 packages and push them to the package repository. It is run on a
+  # self-hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It gets the list of
+  # packages that need to be rebuilt from the previous job. It outputs a variable for each package that is set
+  # to true if the package was rebuilt. This runs in a development matrix so that each package is rebuilt in a
+  # separate job. This allows multiple packages to be rebuilt at the same time. This job is only run on pull
+  # requests.
+  build-updated-amd64-packages:
+    needs: [time-and-date, check-amd64-packages]
+    runs-on: [self-hosted, linux, X64]
+    if: github.event_name == 'pull_request'
+
+    # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
+    # packages to be rebuilt at the same time. The job will fail if any of the packages fail to build. But the
+    # other packages will continue to build. This is so that the packages can be rebuilt in parallel, if
+    # there are enough action runners in service.
     strategy:
       fail-fast: false
       matrix:
-        os: [[self-hosted, linux, X64], [self-hosted, linux, ARM64]]
-        name: [Jammy, Focal, JetPack]
-        file: [Dockerfile_Jammy, Dockerfile_Focal, Dockerfile_JetPack]
-        image: [autonomy-jammy, autonomy-focal, autonomy-jetpack]
-        arch: [amd64, arm64]
-        exclude:
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, X64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Jammy
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: Focal
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Jammy
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_Focal
-            image: autonomy-jetpack
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jammy
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: amd64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-focal
-            arch: arm64
-          - os: [self-hosted, linux, ARM64]
-            name: JetPack
-            file: Dockerfile_JetPack
-            image: autonomy-jetpack
-            arch: amd64
-
-    runs-on: ${{ matrix.os }}
+        package:
+          - geolib
+          - gtest
+          - opencv
+          - quill
 
     steps:
-      # This will check out the repository. This will allow us to access the files in the repository.
-      - name: Checkout repository
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
         uses: actions/checkout@v4
-
-      # This will check to see if any of the files in the dev folder have changed. If they have, then we will build
-      # and push the image to the registry. If they have not, then we will not build and push the image to the registry.
-      # This will save us lots of compute time and will allow us to only build and push the image when it is needed.
-      - name: Check for Edits
-        id: changed-files
-        uses: tj-actions/changed-files@v39
         with:
-          files_yaml: |
-            dev:
-              - ".devcontainer/${{ matrix.file }}"
+          fetch-depth: 0
 
-      # This will get the current date and time. This will be used to tag the image. The time format that
-      # is used is YYYY-MM-DD-HH-MM-SS. This will allow us to have a unique tag for each build.
-      - name: Get Current Date and Time
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d-%H-%M-%S')"
+      # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
+      # from the previous job. It runs the package build script for the package that is being built.
+      - name: Rebuild ${{ matrix.package }} Package
+        id: rebuild_pkg
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
+        run: |
+          cd tools/package-builders/${{ matrix.package }}
 
-      # This will set up the docker builder. This will allow us to build the image and push it to the registry.
-      - name: Set up Docker Buildx
-        if: steps.changed-files.outputs.dev_any_changed  == 'true'
+          chmod +x ${{ matrix.package }}-amd64-pkg.sh
+          ./${{ matrix.package }}-amd64-pkg.sh
+
+      # This step is used to push the updated package to the package repository. It clones the package
+      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
+      # the changes.
+      - name: Push Packages
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+        run: |
+          # Find Debian Package
+          debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
+
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Clone the destination repository using SSH
+          git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
+          cd Autonomy_Packages
+
+          # Copy the new package into the repository
+          mkdir -p ${{ matrix.package }}/amd64/
+          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/amd64/
+
+          # Commit and push changes
+          git add .
+          git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
+          git push origin main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # This step is used to remove the package from the temporary directory. It gets the list of packages that
+      # need to be rebuilt from the previous job. It removes the package from the temporary directory. This is
+      # done so that the next package can be built without having to worry about the previous package causing
+      # conflicts.
+      - name: Remove ${{ matrix.package }} Package
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+        run: rm -rf /tmp/pkg/*
+
+  # This job is used to check if any of the packages for ARM64 need to be rebuilt. If any of the package build
+  # scripts have been updated, then the packages need to be rebuilt in the next job. This job is run on a self-
+  # hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It outputs a variable for
+  # each package that is set to true if the package needs to be rebuilt. This job is only run on pull requests.
+  check-arm64-packages:
+    needs: [time-and-date]
+    runs-on: [self-hosted, linux, ARM64]
+    if: github.event_name == 'pull_request'
+
+    # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
+    # used to determine if the docker images need to be rebuilt.
+    outputs:
+      geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
+      gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
+      opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
+      quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
+
+    steps:
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # This step is used to check if any of the package build scripts have been updated. If any of the package
+      # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
+      # a variable for each package that is set to true if the package needs to be rebuilt.
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            geolib-arm64:
+              - 'tools/package-builders/geolib/geolib-arm64-pkg.sh'
+            gtest-arm64:
+              - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
+            opencv-arm64:
+              - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            quill-arm64:
+              - 'tools/package-builders/quill/quill-arm64-pkg.sh'
+
+  # This job is to rebuild the updated ARM64 packages and push them to the package repository. It is run on a
+  # self-hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It gets the list of
+  # packages that need to be rebuilt from the previous job. It outputs a variable for each package that is set
+  # to true if the package was rebuilt. This runs in a development matrix so that each package is rebuilt in a
+  # separate job. This allows multiple packages to be rebuilt at the same time. This job is only run on pull
+  # requests.
+  build-updated-arm64-packages:
+    needs: [time-and-date, check-arm64-packages]
+    runs-on: [self-hosted, linux, ARM64]
+    if: github.event_name == 'pull_request'
+
+    # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
+    # packages to be rebuilt at the same time. The job will fail if any of the packages fail to build. But the
+    # other packages will continue to build. This is so that the packages can be rebuilt in parallel.
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - geolib
+          - gtest
+          - opencv
+          - quill
+
+    steps:
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
+      # from the previous job. It runs the package build script for the package that is being built.
+      - name: Rebuild ${{ matrix.package }} Package
+        id: rebuild_pkg
+        if: needs.check-arm64-packages.outputs.${{ matrix.package }}-arm64 == 'true'
+        run: |
+          cd tools/package-builders/${{ matrix.package }}
+
+          chmod +x ${{ matrix.package }}-arm64-pkg.sh
+          ./${{ matrix.package }}-arm64-pkg.sh
+
+      # This step is used to push the updated package to the package repository. It clones the package
+      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
+      # the changes.
+      - name: Push Packages
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+        run: |
+          # Find Debian Package
+          debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
+
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Clone the destination repository using SSH
+          git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
+          cd Autonomy_Packages
+
+          # Copy the new package into the repository
+          mkdir -p ${{ matrix.package }}/arm64/
+          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/arm64/
+
+          # Commit and push changes
+          git add .
+          git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
+          git push origin main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # This step is used to remove the package from the temporary directory. It gets the list of packages that
+      # need to be rebuilt from the previous job. It removes the package from the temporary directory. This is
+      # done so that the next package can be built without having to worry about the previous package causing
+      # conflicts.
+      - name: Remove ${{ matrix.package }} Package
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+        run: rm -rf /tmp/pkg/*
+
+  # This job is used to build and push the new jammy docker image. It is run on a self-hosted runner because
+  # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then
+  # the image is tagged with the date and time. If this is being run on a push, then the image is tagged with
+  # the date and time and the latest tag. This job is run on both pushes and pull requests. And is allowed to run
+  # even if the previous job was skipped. This is because the previous job is only run on pull requests, but this
+  # job is run on pushes and pull requests.
+  build-and-push-jammy:
+    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
+    runs-on: [self-hosted, linux, X64]
+    if: ${{ always() && !failure() && !cancelled() }}
+
+    steps:
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # This step is used to check if any of the package build scripts have been updated. If any of the package
+      # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
+      # a variable for each package that is set to true if the package needs to be rebuilt.
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - '.devcontainer/Dockerfile_Jammy'
+
+      # This step is used to setup the docker buildx. It is needed to build the docker images.
+      - name: Setup Docker Buildx
+        if: steps.changes.outputs.dockerfile == 'true'
         id: buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to the registry. This will allow us to push the image to the registry. We are using the GITHUB_TOKEN
-      # as the password. This is a special token that is created by Github and is only valid for the duration of the
-      # workflow. This token is scoped to the repository and has write access to the registry. This token is not
-      # stored in the repository and is not available to anyone other than the workflow.
-      - name: Login to Github Packages
-        if: steps.changed-files.outputs.dev_any_changed  == 'true'
-        uses: docker/login-action@v2
+      # This step is used to login to the GitHub Packages. It is needed to push the docker images.
+      - name: Login to GitHub Packages
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: login
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Whenever one of the docker files changes, we want to build and push the image with the date tag to the registry.
-      # This will happen once a PR is opened and will result in a new image being pushed to the registry. This image
-      # will be tagged with the date and time of the build. This will allow us to test the image before merging the PR.
-      # The builder will load the cache from the registry and save the cache to the registry. This will allow us to
-      # build the image faster the next time we build it.  This is only run when a PR is merged and the docker file has
-      # been updated. This will also run when a workflow is manually triggered and the docker file has been updated.
-      - name: Build and Push ${{ matrix.name }} Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && steps.changed-files.outputs.dev_any_changed  == 'true' }}
+      # This step is used to build and push the new jammy docker image. It is run on a self-hosted runner because
+      # there is not an NVIDIA GPU available on the GitHub runners. This step is only run on a pull request or a
+      # manual run. In either case the image is tagged with the date and time. It also saves a build cache so
+      # that the next time the image is built, it has the potential to be faster.
+      - name: Build and Push Jammy Image with Date Tag
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
-          file: ".devcontainer/${{ matrix.file }}"
+          file: ".devcontainer/Dockerfile_Jammy"
           tags: |
-            "ghcr.io/missourimrdt/${{ matrix.image }}:buildcache"
-            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}"
-          platform: "linux/${{ matrix.arch }}"
+            "ghcr.io/missourimrdt/autonomy-jammy:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jammy:${{ needs.time-and-date.outputs.date }}"
+          platforms: "linux/amd64"
           push: true
-          cache-from: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
 
-      # Whenever one of the docker files changes, we want to build and push the image with the latest tag to the registry.
-      # This will happen once a PR is merged and will result in a new image being pushed to the registry. This image
-      # will be tagged with the latest tag. This will allow for the image to be used in the production dev environment.
-      # The builder will load the cache from the registry and save the cache to the registry. This will allow us to
-      # build the image faster the next time we build it. This is only run when a PR is merged and the docker file has
-      # been updated.
-      - name: Build and Push ${{ matrix.name }} Image with Latest Tag
-        if: ${{ github.event_name == 'push' && steps.changed-files.outputs.dev_any_changed  == 'true' }}
+      # This step is used to build and push the new jammy docker image. It is run on a self-hosted runner because
+      # there is not an NVIDIA GPU available on the GitHub runners. This step is only run on a push. In this case
+      # the image is tagged with the date and time and the latest tag. It also saves a build cache so that the
+      # next time the image is built, it has the potential to be faster.
+      - name: Build and Push Jammy Image with Latest Tag
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
-          file: ".devcontainer/${{ matrix.file }}"
+          file: ".devcontainer/Dockerfile_Jammy"
           tags: |
-            "ghcr.io/missourimrdt/${{ matrix.image }}:buildcache"
-            "ghcr.io/missourimrdt/${{ matrix.image }}:${{ steps.date.outputs.date }}
-            "ghcr.io/missourimrdt/${{ matrix.image }}:latest"
-          platform: "linux/${{ matrix.arch }}"
+            "ghcr.io/missourimrdt/autonomy-jammy:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jammy:${{ needs.time-and-date.outputs.date }}"
+            "ghcr.io/missourimrdt/autonomy-jammy:latest"
+          platforms: "linux/amd64"
           push: true
-          cache-from: type=registry,ref=ghcr.io/missourimrdt/${{ matrix.image }}:buildcache
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
 
-      # This outputs a digest of everything that was pushed to the registry.
-      - name: ${{ matrix.name }} Image digest
-        if: steps.changed-files.outputs.dev_any_changed  == 'true'
-        run: echo ${{ steps.docker_build.outputs.digest }}
+  # This job is used to build and push the new jetpack docker image. It is run on a self-hosted runner because
+  # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then
+  # the image is tagged with the date and time. If this is being run on a push, then the image is tagged with
+  # the date and time and the latest tag. This job is run on both pushes and pull requests. And is allowed to run
+  # even if the previous job was skipped. This is because the previous job is only run on pull requests, but this
+  # job is run on pushes and pull requests.
+  build-and-push-jetpack:
+    needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
+    runs-on: [self-hosted, linux, ARM64]
+    if: ${{ always() && !failure() && !cancelled() }}
+
+    steps:
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # This step is used to check if any of the package build scripts have been updated. If any of the package
+      # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
+      # a variable for each package that is set to true if the package needs to be rebuilt.
+      - name: Check for Updated Files
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - '.devcontainer/Dockerfile_JetPack'
+
+      # This step is used to setup the docker buildx. It is needed to build the docker images.
+      - name: Setup Docker Buildx
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      # This step is used to login to the GitHub Packages. It is needed to push the docker images.
+      - name: Login to GitHub Packages
+        if: steps.changes.outputs.dockerfile == 'true'
+        id: login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # This step is used to build and push the new jetpack docker image. It is run on a self-hosted runner
+      # because there is not an NVIDIA GPU available on the GitHub runners. This step is only run on a pull
+      # request or a manual run. In either case the image is tagged with the date and time. It also saves a
+      # build cache so that the next time the image is built, it has the potential to be faster.
+      - name: Build and Push JetPack Image with Date Tag
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_JetPack"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
+
+      # This step is used to build and push the new jetpack docker image. It is run on a self-hosted runner
+      # because there is not an NVIDIA GPU available on the GitHub runners. This step is only run on a push. In
+      # this case the image is tagged with the date and time and the latest tag. It also saves a build cache so
+      # that the next time the image is built, it has the potential to be faster.
+      - name: Build and Push JetPack Image with Latest Tag
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ".devcontainer/"
+          file: ".devcontainer/Dockerfile_JetPack"
+          tags: |
+            "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
+            "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
+            "ghcr.io/missourimrdt/autonomy-jetpack:latest"
+          platforms: "linux/amd64"
+          push: true
+          cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
+          cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max

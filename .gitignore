@@ -6,6 +6,7 @@ valgrind.rpt
 
 # Docker Compose. This is a special rule that prevents Personal Access Tokens from being committed.
 tools/action-runners/compose.yml
+!tools/package-builders/
 
 # Compiled Program
 Autonomy_Software

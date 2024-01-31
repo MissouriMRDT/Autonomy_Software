@@ -72,72 +72,27 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
 
 # Install OpenCV
 ARG OPENCV_VERSION="4.8.1"
-RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
-    git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git && \
-    mkdir opencv/build && cd opencv/build && \
-    cmake \
-    -D CMAKE_BUILD_TYPE=RELEASE \
-    -D CMAKE_INSTALL_PREFIX=/usr/local \
-    -D INSTALL_PYTHON_EXAMPLES=OFF \
-    -D INSTALL_C_EXAMPLES=OFF \
-    -D BUILD_SHARED_LIBS=OFF \
-    -D BUILD_EXAMPLES=OFF \
-    -D BUILD_PERF_TESTS=OFF \
-    -D BUILD_TESTS=OFF \
-    -D WITH_CUDA=ON \
-    -D WITH_CUDNN=ON \
-    -D OPENCV_DNN_CUDA=ON \
-    -D WITH_VTK=OFF \
-    -D WITH_TBB=ON \
-    -D ENABLE_FAST_MATH=1 \
-    -D CUDA_FAST_MATH=1 \
-    ### Build for Jetson Orin GPU
-    -D CUDA_ARCH_PTX="" \
-    -D CUDA_ARCH_BIN="8.7" \
-    ###
-    -D WITH_CUBLAS=1 \
-    -D WITH_FFMPEG=ON \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/aruco \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/cudev \
-    -D HAVE_opencv_python3=ON .. && \
-    cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j && \
-    make install && ldconfig && \
-    cd ../.. && \
-    rm -rf opencv_contrib && rm -rf opencv
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
+    dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
+    rm opencv_${OPENCV_VERSION}_arm64.deb
 
-# Install GeographicLib from Source
-ARG GEOLIB_VERSION="v2.3"
-RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
-    mkdir geographiclib/build && \
-    cd geographiclib/build && \
-    cmake \
-    -D CMAKE_BUILD_TYPE=RelWithDebInfo .. && \
-    make && \
-    make install && \
-    cd ../.. && \
-    rm -rf geographiclib
+# Install GeographicLib
+ARG GEOLIB_VERSION="2.3"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
+    dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
+    rm geolib_${GEOLIB_VERSION}_arm64.deb
 
-# Install Quill from Source
-ARG QUILL_VERSION="v3.6.0"
-RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git && \
-    mkdir quill/build && \
-    cd quill/build && \
-    cmake .. && \
-    make && \
-    make install && \
-    cd ../.. && \
-    rm -rf quill
+# Install Quill
+ARG QUILL_VERSION="3.6.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
+    dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
+    rm quill_${QUILL_VERSION}_arm64.deb
 
-# Install Google Test from Source
-ARG GTEST_VERSION="v1.14.0"
-RUN git clone --depth 1 --branch ${GTEST_VERSION} https://github.com/google/googletest.git && \
-    mkdir googletest/build && \
-    cd googletest/build && \
-    cmake .. && \
-    make && \
-    make install && \
-    cd ../.. && \
-    rm -rf googletest
+# Install Google Test
+ARG GTEST_VERSION="1.14.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
+    dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
+    rm gtest_${GTEST_VERSION}_arm64.deb
 
 # Enable Make Threads
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
@@ -154,4 +109,4 @@ LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.1.0"
-LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}, and Google Test ${GTEST_VERSION}."
+LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."
