@@ -1,16 +1,16 @@
 /******************************************************************************
- * @brief Defines and implements the ASTAR path finder class within the pathplanners
+ * @brief Defines the ASTAR path finder class within the pathplanners
  *      namespace.
  *
- * @file AStar.hpp
+ * @file AStar.h
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-01
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef ASTAR_HPP
-#define ASTAR_HPP
+#ifndef ASTAR_H
+#define ASTAR_H
 
 #include "../../util/planners/Nodes.hpp"
 
@@ -54,6 +54,8 @@ namespace pathplanners
             /////////////////////////////////////////
             // Declare public member variables.
             /////////////////////////////////////////
+            AStar();
+            ~AStar();
 
             /////////////////////////////////////////
             // Declare public primary methods.
