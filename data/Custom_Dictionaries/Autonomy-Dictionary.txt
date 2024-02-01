@@ -19,6 +19,7 @@ codeql
 codezombiech
 Coeffs
 Colour
+Contoller
 cpptools
 cschlosser
 CUDA
