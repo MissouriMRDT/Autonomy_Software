@@ -35,7 +35,7 @@ class DriveBoard
         /////////////////////////////////////////
 
         diffdrive::DrivePowers m_stDrivePowers;    // Struct used to store the left and right drive powers of the robot.
-        controllers::PIDController* m_pPID;                     // The PID controller used for drive towards a heading.
+        controllers::PIDController* m_pPID;        // The PID controller used for drive towards a heading.
 
     public:
         /////////////////////////////////////////
