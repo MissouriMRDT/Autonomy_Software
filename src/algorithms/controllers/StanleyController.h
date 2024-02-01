@@ -33,7 +33,7 @@ namespace controllers
      *      follow a given path.
      *
      *
-     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @author
      * @date 2024-02-01
      ******************************************************************************/
     class StanleyContoller
