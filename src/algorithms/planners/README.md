@@ -1,3 +1,5 @@
+\dir src/algorithms/planners
+
 # Planners Directory
 
 The **Planners** directory, located at `src/algorithms/planners`, is dedicated to storing C++ header files (.hpp) that define and implement various path planning algorithms. This includes implementations for popular algorithms like A* (ASTAR), Dijkstra's algorithm, RRT (Rapidly-Exploring Random Trees), and more.
