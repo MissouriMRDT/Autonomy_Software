@@ -62,7 +62,7 @@ DriveBoard::~DriveBoard()
  *
  * @param dGoalSpeed - The speed to drive at (-1 to 1)
  * @param dGoalHeading - The angle to drive towards. (0 - 360) 0 is North.
- * @param dActualHeading -
+ * @param dActualHeading - The real angle that the Rover is current facing.
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
  * @return diffdrive::DrivePowers - A struct containing two values. (left power, right power)
  *
@@ -76,9 +76,6 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
 {
     // Calculate the drive powers from the current heading, goal heading, and goal speed.
     m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed, dGoalHeading, dActualHeading, eKinematicsMethod, *m_pPID);
-
-    // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
 
     return m_stDrivePowers;
 }
@@ -112,6 +109,9 @@ void DriveBoard::SendDrive(double dLeftSpeed, double dRightSpeed)
 
     // Send drive command over RoveComm to drive board.
     // TODO: Add RoveComm sendpacket.
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
 }
 
 /******************************************************************************
