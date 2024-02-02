@@ -233,7 +233,7 @@ namespace diffdrive
                                                       double dGoalHeading,
                                                       double dActualHeading,
                                                       DifferentialControlMethod eDriveMethod,
-                                                      PIDController& PID)
+                                                      controllers::PIDController& PID)
     {
         // Create instance variables.
         DrivePowers stOutputPowers;
