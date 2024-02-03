@@ -38,7 +38,6 @@ class WaypointHandler
         enum WaypointType
         {
             eNavigationWaypoint,
-            eIntermediateWaypoint,
             eTagWaypoint,
             eMalletWaypoint,
             eWaterBottleWaypoint,
@@ -66,14 +65,14 @@ class WaypointHandler
         void AddWaypoint(const geoops::GPSCoordinate& stLocation, const WaypointType& eType, const double dRadius = 0.0);
         void AddWaypoint(const geoops::UTMCoordinate& stLocation, const WaypointType& eType, const double dRadius = 0.0);
         void StorePath(const std::string& szPathName, const std::vector<Waypoint>& vWaypointPath);
-        void StorePath(const std::string& szPathName, const std::vector<geoops::GPSCoordinate>& vWaypointPath);
-        void StorePath(const std::string& szPathName, const std::vector<geoops::UTMCoordinate>& vWaypointPath);
-        Waypoint& PopNextWaypoint();
-        Waypoint& PeekNextWaypoint() const;
-        void DeleteWaypoint(const int nIndex);
-        void DeletePath(const std::string& szPathName);
-        std::vector<Waypoint> RetrievePath(const std::string& szPathName) const;
-        Waypoint& RetrieveWaypointAtIndex(const int nIndex) const;
+        void StorePath(const std::string& szPathName, const std::vector<geoops::GPSCoordinate>& vLocationPath);
+        void StorePath(const std::string& szPathName, const std::vector<geoops::UTMCoordinate>& vLocationPath);
+        Waypoint PopNextWaypoint();
+        const Waypoint PeekNextWaypoint();
+        void DeleteWaypoint(const long unsigned int nIndex);
+        bool DeletePath(const std::string& szPathName);
+        const Waypoint RetrieveWaypointAtIndex(const long unsigned int nIndex);
+        const std::vector<Waypoint> RetrievePath(const std::string& szPathName);
         void ClearWaypoints();
         void ClearPaths();
         void ClearObjects();
@@ -86,6 +85,7 @@ class WaypointHandler
         // Getters.
         /////////////////////////////////////////
         int GetWaypointCount();
+        int GetObjectsCount();
 
     private:
         /////////////////////////////////////////
@@ -93,7 +93,7 @@ class WaypointHandler
         /////////////////////////////////////////
 
         std::vector<Waypoint> m_vWaypointList;
-        std::shared_mutex m_muQueueMutex;
+        std::shared_mutex m_muWaypointsMutex;
         std::unordered_map<std::string, std::vector<Waypoint>> m_umStoredPaths;
         std::shared_mutex m_muPathMutex;
         std::vector<Waypoint> m_vPermanentObjects;
