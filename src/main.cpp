@@ -132,49 +132,50 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        while (!bMainStop)
-        {
-            // Request for pose from main ZED camera.
-            std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
-            std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
+        // while (!bMainStop)
+        // {
+        // Request for pose from main ZED camera.
+        std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
+        std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
 
-            // No need to loop as fast as possible. Sleep...
-            // Only run this main thread once every 20ms.
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        // No need to loop as fast as possible. Sleep...
+        // Only run this main thread once every 20ms.
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-            // Create a string to append FPS values to.
-            std::string szMainInfo = "";
-            // Get FPS of all cameras and detectors and construct the info into a string.
-            szMainInfo += "--------[ Threads FPS ]--------\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS:" + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\n--------[ State Machine Info ]--------\n";
-            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
-            szMainInfo += "\n--------[ Camera Info ]--------\n";
+        // Create a string to append FPS values to.
+        std::string szMainInfo = "";
+        // Get FPS of all cameras and detectors and construct the info into a string.
+        szMainInfo += "--------[ Threads FPS ]--------\n";
+        szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "\nStateMachine FPS:" + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
+        szMainInfo += "\n--------[ State Machine Info ]--------\n";
+        szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
+        szMainInfo += "\n--------[ Camera Info ]--------\n";
 
-            // Wait for pose to be copied.
-            fuPoseStatus.get();
-            // Get Translations from pose.
-            sl::Translation slCameraLocation = slCameraPosition.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
-            // Wait for geo pose to be copied.
-            fuGeoPoseStatus.get();
-            // Get Translations from pose.
-            slCameraLocation = slGeoPosition.pose_data.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
+        // Wait for pose to be copied.
+        fuPoseStatus.get();
+        // Get Translations from pose.
+        sl::Translation slCameraLocation = slCameraPosition.getTranslation();
+        // Append camera location to string.
+        szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
+                      " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
+        // Wait for geo pose to be copied.
+        fuGeoPoseStatus.get();
+        // Get Translations from pose.
+        slCameraLocation = slGeoPosition.pose_data.getTranslation();
+        // Append camera location to string.
+        szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
+                      " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
 
-            // Submit logger message.
-            LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
-        }
+        // Submit logger message.
+        LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        // }
 
         /////////////////////////////////////////
         // Cleanup.
