@@ -25,6 +25,7 @@
 void RunExample()
 {
     // Initialize and start handlers.
+    globals::g_pNavigationBoard     = new NavigationBoard();
     globals::g_pCameraHandler       = new CameraHandler();
     globals::g_pTagDetectionHandler = new TagDetectionHandler();
 
@@ -118,8 +119,10 @@ void RunExample()
     // Delete dynamically allocated objects.
     delete globals::g_pCameraHandler;
     delete globals::g_pTagDetectionHandler;
+    delete globals::g_pNavigationBoard;
 
     // Set dangling pointers to null.
     globals::g_pCameraHandler       = nullptr;
     globals::g_pTagDetectionHandler = nullptr;
+    glabals::g_pNavigationBoard     = nullptr;
 }
