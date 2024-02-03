@@ -67,12 +67,18 @@ class WaypointHandler
         void StorePath(const std::string& szPathName, const std::vector<Waypoint>& vWaypointPath);
         void StorePath(const std::string& szPathName, const std::vector<geoops::GPSCoordinate>& vLocationPath);
         void StorePath(const std::string& szPathName, const std::vector<geoops::UTMCoordinate>& vLocationPath);
-        Waypoint PopNextWaypoint();
-        const Waypoint PeekNextWaypoint();
+        void AddObject(const Waypoint& stWaypoint);
+        void AddObject(const geoops::GPSCoordinate& stLocation, const double dRadius = 0.0);
+        void AddObject(const geoops::UTMCoordinate& stLocation, const double dRadius = 0.0);
         void DeleteWaypoint(const long unsigned int nIndex);
+        void DeleteWaypoint(const Waypoint& stWaypoint);
+        void DeleteWaypoint(const geoops::GPSCoordinate& stLocation);
+        void DeleteWaypoint(const geoops::UTMCoordinate& stLocation);
         bool DeletePath(const std::string& szPathName);
-        const Waypoint RetrieveWaypointAtIndex(const long unsigned int nIndex);
-        const std::vector<Waypoint> RetrievePath(const std::string& szPathName);
+        void DeleteObject(const long unsigned int nIndex);
+        void DeleteObject(const Waypoint& stWaypoint);
+        void DeleteObject(const geoops::GPSCoordinate& stLocation);
+        void DeleteObject(const geoops::UTMCoordinate& stLocation);
         void ClearWaypoints();
         void ClearPaths();
         void ClearObjects();
@@ -84,7 +90,12 @@ class WaypointHandler
         /////////////////////////////////////////
         // Getters.
         /////////////////////////////////////////
+        Waypoint PopNextWaypoint();
+        const Waypoint PeekNextWaypoint();
+        const Waypoint RetrieveWaypointAtIndex(const long unsigned int nIndex);
+        const std::vector<Waypoint> RetrievePath(const std::string& szPathName);
         int GetWaypointCount();
+        int GetPathsCount();
         int GetObjectsCount();
 
     private:
