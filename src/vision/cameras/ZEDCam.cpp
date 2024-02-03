@@ -263,8 +263,6 @@ ZEDCam::~ZEDCam()
     // Check if fusion master instance has been started for this camera.
     if (m_bCameraIsFusionMaster)
     {
-        // Signal this camera to stop sending data to Fusion instance.
-        m_slCamera.stopPublishing();
         // Close Fusion instance.
         m_slFusionInstance.close();
     }
