@@ -266,6 +266,23 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
 }
 
 /******************************************************************************
+ * @brief Append a new object to the WaypointHandler object list.
+ *
+ * @param stWaypoint - The WaypointHandler::Waypoint struct containing information about the object to
+ *                  store in the handler.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-02-03
+ ******************************************************************************/
+void WaypointHandler::AddObject(const Waypoint& stWaypoint)
+{
+    // Acquire a write lock on the object vector.
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    // Add object waypoint to end of member variable vector.
+    m_vPermanentObjects.emplace_back(stWaypoint);
+}
+
+/******************************************************************************
  * @brief Removes and returns the next waypoint at the front of the list.
  *
  * @return WaypointHandler::Waypoint - The next waypoint data stored in a Waypoint struct.
@@ -499,6 +516,22 @@ int WaypointHandler::GetWaypointCount()
     std::shared_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
     // Return total number of waypoints stored.
     return m_vWaypointList.size();
+}
+
+/******************************************************************************
+ * @brief Accessor for the number of paths stored in the WaypointHandler.
+ *
+ * @return int - The size of the unordered_map storing the paths.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-02-03
+ ******************************************************************************/
+int WaypointHandler::GetPathsCount()
+{
+    // Acquire a read lock on the path unordered map.
+    std::shared_lock<std::shared_mutex> lkPathsLock(m_muPathMutex);
+    // Return total number of paths.
+    return m_umStoredPaths.size();
 }
 
 /******************************************************************************
