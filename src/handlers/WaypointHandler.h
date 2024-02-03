@@ -11,8 +11,17 @@
 #ifndef WAYPOINT_HANDLER_H
 #define WAYPOINT_HANDLER_H
 
+#include "../util/GeospatialOperations.hpp"
+
+/// \cond
+#include <shared_mutex>
+
+/// \endcond
+
 /******************************************************************************
- * @brief
+ * @brief The WaypointHandler class is used throughout the entire project (mainly
+ *      by the state machine) to globally store a list of waypoints that the rover
+ *      will navigate to.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -20,25 +29,54 @@
  ******************************************************************************/
 class WaypointHandler
 {
-    private:
-        /////////////////////////////////////////
-        // Declare private member variables.
-        /////////////////////////////////////////
-
-        /////////////////////////////////////////
-        // Declare private methods.
-        /////////////////////////////////////////
-
     public:
+        /////////////////////////////////////////
+        // Declare public enums that are specific to and used within this class.
+        /////////////////////////////////////////
+
+        // This enum is used to store values for the waypoint type.
+        enum WaypointType
+        {
+            eNavigationWaypoint,
+            eIntermediateWaypoint,
+            eTagWaypoint,
+            eMalletWaypoint,
+            eWaterBottleWaypoint,
+            eObstacleWaypoint,
+            eUNKNOWN
+        };
+
+        /////////////////////////////////////////
+        // Declare public structs that are specific to and used within this class.
+        /////////////////////////////////////////
+
+        struct Waypoint;
+
         /////////////////////////////////////////
         // Declare public member variables.
         /////////////////////////////////////////
-        WaypointHandler();
-        ~WaypointHandler();
 
         /////////////////////////////////////////
         // Declare public primary methods.
         /////////////////////////////////////////
+
+        WaypointHandler();
+        ~WaypointHandler();
+        void AddWaypoint(const Waypoint& stWaypoint);
+        void AddWaypoint(const geoops::GPSCoordinate& stLocation, const WaypointType& eType, const double dRadius = 0.0);
+        void AddWaypoint(const geoops::UTMCoordinate& stLocation, const WaypointType& eType, const double dRadius = 0.0);
+        void StorePath(const std::string& szPathName, const std::vector<Waypoint>& vWaypointPath);
+        void StorePath(const std::string& szPathName, const std::vector<geoops::GPSCoordinate>& vWaypointPath);
+        void StorePath(const std::string& szPathName, const std::vector<geoops::UTMCoordinate>& vWaypointPath);
+        Waypoint& PopNextWaypoint();
+        Waypoint& PeekNextWaypoint() const;
+        void DeleteWaypoint(const int nIndex);
+        void DeletePath(const std::string& szPathName);
+        std::vector<Waypoint> RetrievePath(const std::string& szPathName) const;
+        Waypoint& RetrieveWaypointAtIndex(const int nIndex) const;
+        void ClearWaypoints();
+        void ClearPaths();
+        void ClearObjects();
 
         /////////////////////////////////////////
         // Setters.
@@ -46,6 +84,23 @@ class WaypointHandler
 
         /////////////////////////////////////////
         // Getters.
+        /////////////////////////////////////////
+        int GetWaypointCount();
+
+    private:
+        /////////////////////////////////////////
+        // Declare private member variables.
+        /////////////////////////////////////////
+
+        std::vector<Waypoint> m_vWaypointList;
+        std::shared_mutex m_muQueueMutex;
+        std::unordered_map<std::string, std::vector<Waypoint>> m_umStoredPaths;
+        std::shared_mutex m_muPathMutex;
+        std::vector<Waypoint> m_vPermanentObjects;
+        std::shared_mutex m_muObjectsMutex;
+
+        /////////////////////////////////////////
+        // Declare private methods.
         /////////////////////////////////////////
 };
 
