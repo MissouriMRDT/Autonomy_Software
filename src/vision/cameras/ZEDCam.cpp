@@ -23,7 +23,6 @@
  * @date 2023-08-29
  ******************************************************************************/
 struct ZEDCam::ZedObjectData
-
 {
     private:
         // Declare and define private struct member variables.
