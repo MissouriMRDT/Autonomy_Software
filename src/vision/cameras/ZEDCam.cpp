@@ -591,7 +591,7 @@ void ZEDCam::PooledLinearCode()
     if (m_slMemoryType == sl::MEM::CPU)
     {
         // Acquire mutex for getting frames out of the queue.
-        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+        std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
         {
@@ -630,7 +630,7 @@ void ZEDCam::PooledLinearCode()
     else
     {
         // Acquire mutex for getting frames out of the queue.
-        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+        std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
@@ -670,7 +670,7 @@ void ZEDCam::PooledLinearCode()
     //  Pose queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkPoseQueue(m_muPoseCopyMutex);
+    std::unique_lock<std::shared_mutex> lkPoseQueue(m_muPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qPoseCopySchedule.empty())
     {
@@ -692,7 +692,7 @@ void ZEDCam::PooledLinearCode()
     //  GeoPose queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
+    std::unique_lock<std::shared_mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qGeoPoseCopySchedule.empty())
     {
@@ -714,7 +714,7 @@ void ZEDCam::PooledLinearCode()
     //  ObjectData queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectDataCopySchedule.empty())
     {
@@ -736,7 +736,7 @@ void ZEDCam::PooledLinearCode()
     //  ObjectData Batched queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectBatchedDataCopySchedule.empty())
     {
