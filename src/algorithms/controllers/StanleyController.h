@@ -11,6 +11,9 @@
 #ifndef STANLEY_CONTROLLER_H
 #define STANLEY_CONTROLLER_H
 
+#include "../../util/GeospatialOperations.hpp"
+#include "../../util/NumberOperations.hpp"
+
 /// \cond
 // Put implicit includes in here.
 
@@ -33,26 +36,24 @@ namespace controllers
      *      follow a given path.
      *
      *
-     * @author
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-01
      ******************************************************************************/
     class StanleyContoller
     {
-        private:
-            /////////////////////////////////////////
-            // Declare private member variables.
-            /////////////////////////////////////////
-
-            /////////////////////////////////////////
-            // Declare private methods.
-            /////////////////////////////////////////
-
         public:
             /////////////////////////////////////////
-            // Declare public member variables.
+            // Declare public enums that are specific to and used withing this class.
             /////////////////////////////////////////
-            StanleyContoller();
+
+            /////////////////////////////////////////
+            // Declare public methods and member variables.
+            /////////////////////////////////////////
+
+            StanleyContoller(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM);
             ~StanleyContoller();
+
+            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dYaw);
 
             /////////////////////////////////////////
             // Declare public primary methods.
@@ -62,9 +63,38 @@ namespace controllers
             // Setters.
             /////////////////////////////////////////
 
+            void SetProportionalGain(const double dKp);
+            void SetDistanceToFrontAxle(const double dDistToFrontAxle);
+            void SetYawTolerance(const double dYawTolerance);
+            void SetPathUTM(std::vector<geoops::UTMCoordinate> vPathUTM);
+
             /////////////////////////////////////////
             // Getters.
             ////////////////////////////////////////
+
+            double GetProportionalGain() const;
+            double GetDistanceToFrontAxle() const;
+            double GetYawTolerance() const;
+            std::vector<geoops::UTMCoordinate> GetPathUTM() const;
+
+        private:
+            /////////////////////////////////////////
+            // Declare private methods.
+            /////////////////////////////////////////
+
+            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmPos) const;
+            double CalculateCrossTrackError() const;
+            double CalculateTargetYaw(const unsigned int unTargetIdx) const;
+
+            /////////////////////////////////////////
+            // Declare private member variables.
+            /////////////////////////////////////////
+
+            double m_dKp;                                     // Proportional gain.
+            double m_dDistToFrontAxle;                        // Distance between the position sensor (GPS) and the front axle
+            double m_dYawTolerance;                           // Minimum yaw change threshold for execution
+            unsigned int m_unLastTargetIdx;                   // Index of last point on path used in Stanley calculation
+            std::vector<geoops::UTMCoordinate> m_vPathUTM;    // Stores the sequence of UTM coordinates defining the navigational path
     };
 }    // namespace controllers
 
