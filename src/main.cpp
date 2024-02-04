@@ -93,6 +93,7 @@ int main()
         globals::g_pMultimediaBoard = new MultimediaBoard();
         globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
+        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
         globals::g_pStateMachineHandler = new StateMachineHandler();
@@ -188,11 +189,13 @@ int main()
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
+        delete globals::g_pWaypointHandler;
 
         // Set dangling pointers to null.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
+        globals::g_pWaypointHandler     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.
