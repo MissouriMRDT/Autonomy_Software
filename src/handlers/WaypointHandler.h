@@ -94,6 +94,9 @@ class WaypointHandler
         const Waypoint PeekNextWaypoint();
         const Waypoint RetrieveWaypointAtIndex(const long unsigned int nIndex);
         const std::vector<Waypoint> RetrievePath(const std::string& szPathName);
+        const Waypoint RetrieveObjectAtIndex(const long unsigned int nIndex);
+        const std::vector<Waypoint> GetAllWaypoints();
+        const std::vector<Waypoint> GetAllObjects();
         int GetWaypointCount();
         int GetPathsCount();
         int GetObjectsCount();
