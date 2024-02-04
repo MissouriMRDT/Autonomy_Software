@@ -157,6 +157,32 @@ namespace geoops
                 this->dMeridianConvergence = dMeridianConvergence;
                 this->dScale               = dScale;
             }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for GPSCoordinate struct.
+             *
+             * @param stOtherCoordinate - The other GPSCoordinate struct we are comparing to.
+             * @return true - The two GPSCoordinates are equal.
+             * @return false - The two GPSCoordinates are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator==(const GPSCoordinate& stOtherCoordinate) const
+            {
+                // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
+                if (dLatitude == stOtherCoordinate.dLatitude && dLongitude == stOtherCoordinate.dLongitude && dAltitude == stOtherCoordinate.dAltitude &&
+                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy)
+                {
+                    // Return that the two GPSCoordinates are equal.
+                    return true;
+                }
+                else
+                {
+                    // Return that the two GPSCoordinates are not equal.
+                    return false;
+                }
+            }
     };
 
     /******************************************************************************
@@ -220,6 +246,33 @@ namespace geoops
                 this->d3DAccuracy               = d3DAccuracy;
                 this->dMeridianConvergence      = dMeridianConvergence;
                 this->dScale                    = dScale;
+            }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for UTMCoordinate struct.
+             *
+             * @param stOtherCoordinate - The other UTMCoordinate struct we are comparing to.
+             * @return true - The two UTMCoordinates are equal.
+             * @return false - The two UTMCoordinates are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator==(const UTMCoordinate& stOtherCoordinate) const
+            {
+                // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
+                if (dEasting == stOtherCoordinate.dEasting && dNorthing == stOtherCoordinate.dNorthing && nZone == stOtherCoordinate.nZone &&
+                    bWithinNorthernHemisphere == stOtherCoordinate.bWithinNorthernHemisphere && dAltitude == stOtherCoordinate.dAltitude &&
+                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy)
+                {
+                    // Return that the two UTMCoordinates are equal.
+                    return true;
+                }
+                else
+                {
+                    // Return that the two UTMCoordinates are not equal.
+                    return false;
+                }
             }
     };
 
