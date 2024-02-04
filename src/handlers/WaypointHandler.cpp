@@ -379,9 +379,9 @@ void WaypointHandler::DeleteWaypoint(const long unsigned int nIndex)
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to delete a waypoint at index {} from the WaypointHandler but it is already empty or the index is out of bounds!",
-                    nIndex);
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "Attempted to delete a waypoint at index {} from the WaypointHandler but it is already empty or the index is out of bounds!",
+                  nIndex);
     }
 }
 
@@ -484,9 +484,9 @@ void WaypointHandler::DeleteObject(const long unsigned int nIndex)
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to delete an object waypoint at index {} from the WaypointHandler but it is already empty or the index is out of bounds!",
-                    nIndex);
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "Attempted to delete an object waypoint at index {} from the WaypointHandler but it is already empty or the index is out of bounds!",
+                  nIndex);
     }
 }
 
@@ -624,7 +624,7 @@ WaypointHandler::Waypoint WaypointHandler::PopNextWaypoint()
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to pop a waypoint from the WaypointHandler but it is empty!");
+        LOG_ERROR(logging::g_qSharedLogger, "Attempted to pop a waypoint from the WaypointHandler but it is empty!");
 
         // Return an empty waypoint.
         return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
@@ -653,7 +653,7 @@ const WaypointHandler::Waypoint WaypointHandler::PeekNextWaypoint()
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to peek a waypoint from the WaypointHandler but it is empty!");
+        LOG_ERROR(logging::g_qSharedLogger, "Attempted to peek a waypoint from the WaypointHandler but it is empty!");
 
         // Return an empty waypoint.
         return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
@@ -682,9 +682,9 @@ const WaypointHandler::Waypoint WaypointHandler::RetrieveWaypointAtIndex(const l
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to retrieve a waypoint at index {} from the WaypointHandler but it is empty or the index is out of bounds!",
-                    nIndex);
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "Attempted to retrieve a waypoint at index {} from the WaypointHandler but it is empty or the index is out of bounds!",
+                  nIndex);
 
         // Return an empty waypoint.
         return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
@@ -739,9 +739,7 @@ const WaypointHandler::Waypoint WaypointHandler::RetrieveObjectAtIndex(const lon
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to retrieve a object at index {} from the WaypointHandler but it is empty or the index is out of bounds!",
-                    nIndex);
+        LOG_ERROR(logging::g_qSharedLogger, "Attempted to retrieve a object at index {} from the WaypointHandler but it is empty or the index is out of bounds!", nIndex);
 
         // Return an empty waypoint.
         return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
