@@ -13,6 +13,7 @@
 #define DIFFERENTIAL_DRIVE_HPP
 
 #include "../AutonomyConstants.h"
+#include "../AutonomyLogging.h"
 #include "../util/NumberOperations.hpp"
 #include "controllers/PIDController.h"
 
@@ -222,9 +223,11 @@ namespace diffdrive
      * @param dGoalSpeed - The goal speed for the robot.
      * @param dGoalHeading - The goal absolute heading for the robot. (0-360 degrees, CW positive.)
      * @param dActualHeading - The actual current heading of the robot.
-     * @param eDriveMethod - The differential drive method to use for navigation.
+     * @param eDriveMethod - The differential drive method to use for navigation. MUST NOT BE TANK.
      * @param PID - A reference to the PID controller to use for hitting the heading setpoint.
      * @return DrivePowers - The resultant drive powers.
+     *
+     * @note This method does not support tank drive as a control method.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-19
@@ -233,7 +236,7 @@ namespace diffdrive
                                                       double dGoalHeading,
                                                       double dActualHeading,
                                                       DifferentialControlMethod eDriveMethod,
-                                                      PIDController& PID)
+                                                      controllers::PIDController& PID)
     {
         // Create instance variables.
         DrivePowers stOutputPowers;
@@ -251,10 +254,11 @@ namespace diffdrive
                                                          constants::DRIVE_SQUARE_CONTROL_INPUTS);
                 break;
             default:
-                stOutputPowers = CalculateCurvatureDrive(dGoalSpeed,
-                                                         dGoalHeading,
-                                                         constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
-                                                         constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                // Default to arcade drive.
+                stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dGoalHeading, constants::DRIVE_SQUARE_CONTROL_INPUTS);
+
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "eTankDrive is not supported for the CalculateMotorPowerFromHeading() method!");
                 break;
         }
 
