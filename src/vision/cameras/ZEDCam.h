@@ -151,11 +151,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
-        std::mutex m_muCustomBoxIngestMutex;
-        std::mutex m_muPoseCopyMutex;
-        std::mutex m_muGeoPoseCopyMutex;
-        std::mutex m_muObjectDataCopyMutex;
-        std::mutex m_muObjectBatchedDataCopyMutex;
+        std::shared_mutex m_muCustomBoxIngestMutex;
+        std::shared_mutex m_muPoseCopyMutex;
+        std::shared_mutex m_muGeoPoseCopyMutex;
+        std::shared_mutex m_muObjectDataCopyMutex;
+        std::shared_mutex m_muObjectBatchedDataCopyMutex;
         std::atomic<bool> m_bNormalFramesQueued;
         std::atomic<bool> m_bDepthFramesQueued;
         std::atomic<bool> m_bPointCloudsQueued;
