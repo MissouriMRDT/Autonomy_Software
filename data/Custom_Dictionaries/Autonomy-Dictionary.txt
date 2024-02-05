@@ -93,6 +93,7 @@ RIGHTCAM
 Rolla
 rovecomm
 searchbar
+searchpattern
 SEARCHPATTERNSTATE
 setpoint
 setpoints
