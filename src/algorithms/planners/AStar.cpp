@@ -9,6 +9,13 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
+/******************************************************************************
+ * @brief
+ *
+ *
+ * @author Kai Shafe (kasq5m@umsystem.edu)
+ * @date 2024-02-02
+ ******************************************************************************/
 #include "AStar.h"
 
 /// \cond
@@ -49,5 +56,28 @@ namespace pathplanners
     AStar::~AStar()
     {
         // Nothing to destroy yet.
+    }
+
+    /******************************************************************************
+     * @brief Called in the obstacle avoidance state to plan a path around obstacles
+     *      blocking our path.
+     *
+     * @param vObstacles - A vector containing ObjectData objects from the ZEDCam class.
+     *
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-02
+     ******************************************************************************/
+    void AStar::PlanAvoidancePath(std::vector<sl::ObjectData> vObstacles)
+    {
+        // Translate Object data from camera and construct obstacle nodes
+        // Stores Data in m_vObstacles
+        UpdateObstacles(vObstacles);
+
+        // Create Start and Goal nodes
+        geoops::UTMCoordinate currentLocation = globals::g_pNavigationBoard->GetUTMData();
+        geoops::UTMCoordinate goalLocation = m_StartNode = nodes::AStarNode()
+
+        // Create Open and Closed Lists
     }
 }    // namespace pathplanners
