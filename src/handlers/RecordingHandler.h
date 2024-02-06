@@ -57,11 +57,13 @@ class RecordingHandler : public AutonomyThread<void>
         /////////////////////////////////////////
         // Mutators.
         /////////////////////////////////////////
+
         void SetRecordingFPS(const int nRecordingFPS);
 
         /////////////////////////////////////////
         // Accessors.
         /////////////////////////////////////////
+
         int GetRecordingFPS() const;
 
     private:

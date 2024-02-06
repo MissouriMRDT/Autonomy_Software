@@ -20,6 +20,7 @@
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
  * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
@@ -34,6 +35,7 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const int nDetectorMaxFPS,
                          const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
                          const bool bUsingGpuMats)
@@ -58,6 +60,9 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
+    // Set max IPS of main thread.
+    this->SetMainThreadIPSLimit(nDetectorMaxFPS);
+
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera at path/index: {}", m_szCameraName);
 }
@@ -71,6 +76,7 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
  * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
  *                                           requests for the detected aruco tags. Default is 5.
@@ -85,6 +91,7 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const int nDetectorMaxFPS,
                          const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
                          const bool bUsingGpuMats)
@@ -108,6 +115,9 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Set max IPS of main thread.
+    this->SetMainThreadIPSLimit(nDetectorMaxFPS);
 
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera: {}", m_szCameraName);
@@ -612,6 +622,20 @@ void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& 
 }
 
 /******************************************************************************
+ * @brief Mutator for the desired max FPS for this detector.
+ *
+ * @param nRecordingFPS - The max frames per second to detect tags at.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-22
+ ******************************************************************************/
+void TagDetector::SetDetectorFPS(const int nRecordingFPS)
+{
+    // Set the max iterations per second of the recording handler.
+    this->SetMainThreadIPSLimit(nRecordingFPS);
+}
+
+/******************************************************************************
  * @brief Mutator for the Enable Recording Flag private member
  *
  * @param bEnableRecordingFlag - Whether or not recording should be enabled for this detector.
@@ -664,6 +688,20 @@ bool TagDetector::GetIsReady()
 
     // Return if this detector is ready or not.
     return bDetectorIsReady;
+}
+
+/******************************************************************************
+ * @brief Accessor for the desired max FPS for this detector.
+ *
+ * @return int - The max frames per second the detector can run at.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-22
+ ******************************************************************************/
+int TagDetector::GetDetectorFPS() const
+{
+    // Return member variable value.
+    return this->GetMainThreadMaxIPS();
 }
 
 /******************************************************************************

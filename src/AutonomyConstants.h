@@ -48,16 +48,16 @@ namespace constants
     const float DRIVE_MIN_EFFORT = -0.5;
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.1;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.01;     // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.0;      // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_MAX_ERROR_PER_ITER = 100;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;      // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_OUTPUT_EFFORT  = 0.5;      // The max effort the entire PID controller is allowed to output. Range is within DRIVE_MAX/MIN_POWER.
-    const double DRIVE_PID_MAX_RAMP_RATE      = 0.4;      // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER      = 0.0;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
-    const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
-    const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const double DRIVE_PID_PROPORTIONAL       = 0.1;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.01;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.0;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_MAX_ERROR_PER_ITER = 100;     // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;     // The max effort the I term is allowed to contribute.
+    const double DRIVE_PID_MAX_OUTPUT_EFFORT = DRIVE_MAX_EFFORT;    // The max effort the entire PID controller is allowed to output. Range is within DRIVE_MAX/MIN_POWER.
+    const double DRIVE_PID_MAX_RAMP_RATE     = 0.4;                 // The max ramp rate of the output of the PID controller.
+    const double DRIVE_PID_OUTPUT_FILTER     = 0.0;                 // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const bool DRIVE_PID_OUTPUT_REVERSED     = false;               // Negates the output of the PID controller.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -66,7 +66,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Recording adjustments.
-    const int RECORDER_FPS = 30;    // The FPS all recordings should run at.
+    const int RECORDER_FPS = 15;    // The FPS all recordings should run at.
     // Camera recording toggles.
     const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
     const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.
@@ -85,7 +85,7 @@ namespace constants
     const sl::RESOLUTION ZED_BASE_RESOLUTION     = sl::RESOLUTION::HD720;                      // The base resolution to open the all cameras with.
     const sl::UNIT ZED_MEASURE_UNITS             = sl::UNIT::METER;                            // The base measurement unit to use for depth.
     const sl::COORDINATE_SYSTEM ZED_COORD_SYSTEM = sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP;    // Coordinate system to use for measurements.
-    const sl::DEPTH_MODE ZED_DEPTH_MODE          = sl::DEPTH_MODE::ULTRA;                      // The measurement accuracy for depth. NEURAL is by far the best.
+    const sl::DEPTH_MODE ZED_DEPTH_MODE          = sl::DEPTH_MODE::NEURAL;                     // The measurement accuracy for depth. NEURAL is by far the best.
     const sl::VIEW ZED_RETRIEVE_VIEW             = sl::VIEW::LEFT;                             // The eye to retrieve regular and depth images from.
     const bool ZED_SENSING_FILL                  = false;    // True provides a depth map with a Z value for every pixel (X, Y) in the left image. Slower and worse.
     const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.2;      // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
@@ -115,6 +115,11 @@ namespace constants
     const float ZED_OBJDETECTION_TRACKING_PREDICTION_TIMEOUT   = 0.5;    // 0-1 second. Timeout to keep guessing object position when not in sight.
     const float ZED_OBJDETECTION_BATCH_RETENTION_TIME          = 240;    // The time in seconds to search for an object UUID before expiring the object.
     const float ZED_OBJDETECTION_BATCH_LATENCY = 2;    // Short latency will limit the search for previously seen object IDs but will be closer to real time output.
+    // Zed Fusion Config.
+    const sl::UNIT FUSION_MEASUREMENT_UNITS         = ZED_MEASURE_UNITS;                          // The base measurement unit to use for depth and other measurements.
+    const sl::COORDINATE_SYSTEM FUSION_COORD_SYSTEM = sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP;    // Coordinate system to use for measurements.
+    const bool FUSION_SDK_VERBOSE                   = true;                                       // Enable verbose output from the internal fusion library in the ZEDSDK.
+    const bool FUSION_ENABLE_GNSS_FUSION            = true;    // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
 
     // BasicCam Basic Config.
     const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD = cv::InterpolationFlags::INTER_LINEAR;    // The algorithm used to fill in pixels when resizing.
@@ -132,7 +137,8 @@ namespace constants
     const int ZED_MAINCAM_VERTICAL_FOV              = 70;      // The vertical FOV of the camera. Useful for future calculations.
     const bool ZED_MAINCAM_USE_GPU_MAT              = true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 20;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const bool ZED_MAINCAM_FUSION_MASTER            = true;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left Side Cam.
@@ -141,7 +147,7 @@ namespace constants
     const int BASICCAM_LEFTCAM_FPS                     = 30;      // The FPS to use for the maincam.
     const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int BASICCAM_LEFTCAM_INDEX                   = 0;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_LEFTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
 
@@ -151,7 +157,7 @@ namespace constants
     const int BASICCAM_RIGHTCAM_FPS                     = 30;      // The FPS to use for the maincam.
     const int BASICCAM_RIGHTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASICCAM_RIGHTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int BASICCAM_RIGHTCAM_INDEX                   = 2;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_RIGHTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
@@ -175,28 +181,31 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 4;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
     const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
 
     // Left Side Cam.
-    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 4;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
     const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
 
     // Right Side Cam.
-    const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 5;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 4;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
     const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = false;                            // Whether or not to use the newer and faster Aruco detection strategy.
+    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
