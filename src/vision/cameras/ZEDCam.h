@@ -19,6 +19,7 @@
 #include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
+#include <sl/Fusion.hpp>
 
 /// \endcond
 
@@ -55,6 +56,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                const float fMaxSenseDistance           = constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                const bool bMemTypeGPU                  = false,
                const bool bUseHalfDepthPrecision       = false,
+               const bool bEnableFusionMaster          = false,
                const int nNumFrameRetrievalThreads     = 10,
                const unsigned int unCameraSerialNumber = 0);
         ~ZEDCam();
@@ -67,6 +69,8 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE ResetPositionalTracking();
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects);
         sl::ERROR_CODE RebootCamera();
+        sl::FUSION_ERROR_CODE SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID);
+        sl::CameraIdentifier PublishCameraToFusion();
 
         /////////////////////////////////////////
         // Setters for class member variables.
@@ -86,9 +90,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         bool GetCameraIsOpen() override;
         bool GetUsingGPUMem() const;
+        bool GetIsFusionMaster() const;
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
+        std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose);
         std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane);
         bool GetPositionalTrackingEnabled();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
@@ -99,6 +105,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
     private:
         /////////////////////////////////////////
+        // Declare class constants.
+        /////////////////////////////////////////
+        const std::memory_order ATOMIC_MEMORY_ORDER_METHOD = std::memory_order_relaxed;
+
+        /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
 
@@ -108,9 +119,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::shared_mutex m_muCameraMutex;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
+        sl::Fusion m_slFusionInstance;
+        sl::InitFusionParameters m_slFusionParams;
         sl::MEASURE m_slDepthMeasureType;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
+        sl::PositionalTrackingFusionParameters m_slFusionPoseTrackingParams;
         sl::Pose m_slCameraPose;
+        sl::GeoPose m_slFusionGeoPose;
         sl::Plane m_slFloorPlane;
         sl::Transform m_slFloorTrackingTransform;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
@@ -119,6 +134,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
         sl::MEM m_slMemoryType;
+        bool m_bCameraIsFusionMaster;
         int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
         float m_fExpectedCameraHeightFromFloorTolerance;
@@ -131,19 +147,25 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Mat m_slPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
+
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
-        std::queue<containers::DataFetchContainer<sl::Plane>> m_qPlaneCopySchedule;
+        std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;
+        std::queue<containers::DataFetchContainer<sl::Plane>> m_qFloorCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
-        std::mutex m_muCustomBoxIngestMutex;
-        std::mutex m_muPoseCopyMutex;
-        std::mutex m_muFloorCopyMutex;
-        std::mutex m_muObjectDataCopyMutex;
-        std::mutex m_muObjectBatchedDataCopyMutex;
-        std::atomic<bool> m_bFramesQueued;
+        std::shared_mutex m_muCustomBoxIngestMutex;
+        std::shared_mutex m_muPoseCopyMutex;
+        std::shared_mutex m_muGeoPoseCopyMutex;
+        std::shared_mutex m_muFloorCopyMutex;
+        std::shared_mutex m_muObjectDataCopyMutex;
+        std::shared_mutex m_muObjectBatchedDataCopyMutex;
+        std::atomic<bool> m_bNormalFramesQueued;
+        std::atomic<bool> m_bDepthFramesQueued;
+        std::atomic<bool> m_bPointCloudsQueued;
         std::atomic<bool> m_bPosesQueued;
+        std::atomic<bool> m_bGeoPosesQueued;
         std::atomic<bool> m_bFloorsQueued;
         std::atomic<bool> m_bObjectsQueued;
         std::atomic<bool> m_bBatchedObjectsQueued;

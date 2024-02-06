@@ -12,26 +12,6 @@ ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="11"
 ARG CUDA_MINOR="7"
 ARG CUDA_PATCH="0"
-ARG ZED_MAJOR="4"
-ARG ZED_MINOR="0"
-ARG CMAKE_VERSION="3.27.9"
-ARG OPENCV_VERSION="4.8.1"
-ARG TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
-ARG TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
-ARG TENSORFLOW_BAZEL_VERSION="5.3.0"
-ARG ABSEIL_VERSION="20230802.1"
-ARG GEOLIB_VERSION="v2.3"
-ARG QUILL_VERSION="v3.5.0"
-ARG GTEST_VERSION="v1.14.0"
-ARG TZ="America/Chicago"
-
-# Set Labels
-LABEL authors="Missouri S&T Mars Rover Design Team"
-LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
-LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
-LABEL org.opencontainers.image.licenses=GPL-3.0-only
-LABEL org.opencontainers.image.version="v24.1.0"
-LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}, and Google Test ${GTEST_VERSION}."
 
 # Set Non-Interactive Mode
 ARG DEBIAN_FRONTEND=noninteractive
@@ -41,7 +21,9 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
     ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility,graphics
 
 # Set Timezone
-RUN echo "America/Chicago" > /etc/localtime
+ARG TZ="America/Chicago"
+RUN echo "${TZ}" > /etc/localtime && \
+    echo "${TZ}" > /etc/timezone
 
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
@@ -84,9 +66,10 @@ RUN apt-get install  --no-install-recommends -y \
     g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 # Install CMake
+ARG CMAKE_VERSION="3.27.9"
 COPY install-cmake.sh /tmp/
 RUN if [ "${CMAKE_VERSION}" != "none" ]; then \
-        chmod +x /tmp/install-cmake.sh && /tmp/install-cmake.sh ${CMAKE_VERSION}; \
+    chmod +x /tmp/install-cmake.sh && /tmp/install-cmake.sh ${CMAKE_VERSION}; \
     fi && \
     rm -f /tmp/install-cmake.sh
 
@@ -94,6 +77,8 @@ RUN if [ "${CMAKE_VERSION}" != "none" ]; then \
 WORKDIR /opt
 
 # Install ZED SDK
+ARG ZED_MAJOR="4"
+ARG ZED_MINOR="0"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}${CUDA_MINOR%.*}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent skip_cuda && \
@@ -101,119 +86,31 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     rm ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /root/Documents/ZED/ && \
-    sed '/#pragma message.*/d' /usr/local/zed/include/sl/Fusion.hpp
+    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
-RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
-    git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv_contrib.git && \
-    mkdir opencv/build && cd opencv/build && \
-    cmake \
-    -D CMAKE_BUILD_TYPE=RELEASE \
-    -D CMAKE_INSTALL_PREFIX=/usr/local \
-    -D INSTALL_PYTHON_EXAMPLES=OFF \
-    -D INSTALL_C_EXAMPLES=OFF \
-    -D BUILD_SHARED_LIBS=OFF \
-    -D WITH_CSTRIPES=ON \
-    -D WITH_OPENCL=ON \
-    -D WITH_CUDA=ON \
-    -D WITH_CUDNN=ON \
-    -D OPENCV_DNN_CUDA=ON \
-    -D ENABLE_FAST_MATH=1 \
-    -D CUDA_FAST_MATH=1 \
-    -D CUDA_ARCH_BIN=7.0 \
-    -D WITH_TBB=ON \
-    -D WITH_OPENMP=ON \
-    -D WITH_IPP=ON \
-    -D WITH_CUBLAS=1 \
-    -D WITH_FFMPEG=ON \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/aruco \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules/cudev \
-    -D HAVE_opencv_python3=ON .. && \
-    cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j && \
-    make install && ldconfig && \
-    cd ../.. && \
-    rm -rf opencv_contrib && rm -rf opencv
+ARG OPENCV_VERSION="4.8.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
+    dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
+    rm opencv_${OPENCV_VERSION}_amd64.deb
 
-# Install Tensorflow Lite from Source
-RUN wget -q https://github.com/tensorflow/tensorflow/archive/${TENSORFLOW_COMMIT}.zip && \
-    unzip -q ${TENSORFLOW_COMMIT}.zip && mv tensorflow-${TENSORFLOW_COMMIT} tensorflow/ && \
-    cd tensorflow && \
-    bazel build \
-    -c opt \
-    --config=monolithic \
-    --config=cuda \
-    --config=tensorrt \
-    --verbose_failures \
-    --local_ram_resources=HOST_RAM*0.5 \
-    --local_cpu_resources=HOST_CPUS*0.5 \
-    //tensorflow/lite:libtensorflowlite.so && \
-    cp bazel-bin/tensorflow/lite/libtensorflowlite.so /usr/local/lib/ && \
-    mkdir -p /usr/local/include/tensorflow/lite && cp -r /opt/tensorflow/tensorflow/lite /usr/local/include/tensorflow/ && \
-    cd ../ && \
-    rm -rf ${TENSORFLOW_COMMIT}.zip
+# Install GeographicLib
+ARG GEOLIB_VERSION="2.3"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/amd64/geolib_${GEOLIB_VERSION}_amd64.deb && \
+    dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
+    rm geolib_${GEOLIB_VERSION}_amd64.deb
 
-# Install Flatbuffers
-RUN cd /opt/tensorflow/bazel-tensorflow/external/flatbuffers && \
-    mkdir build && cd build && \
-    # CXXFLAGS="${CXXFLAGS} -Wno-class-memaccess" cmake -G "Unix Makefiles" .. && \
-    cmake -G "Unix Makefiles" .. && \
-    make -j && \
-    make install && \
-    # CXXFLAGS="${CXXFLAGS} -Wclass-memaccess" && \
-    cp /usr/local/lib/*flatbuffers* /usr/lib/ && \
-    cd /opt
+# Install Quill
+ARG QUILL_VERSION="3.6.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
+    dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
+    rm quill_${QUILL_VERSION}_amd64.deb
 
-# Install Abseil-CPP
-RUN git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git && \
-    mkdir abseil-cpp/build && cd abseil-cpp/build && \
-    cmake \
-    -D ABSL_ENABLE_INSTALL=ON .. && \
-    make -j && \
-    make install && \
-    cp /usr/local/lib/libabsl* /usr/lib/ && \
-    cd /opt
-
-# Install Libedgetpu
-RUN git clone --depth 1 https://github.com/google-coral/libedgetpu.git && \
-    cd libedgetpu && \
-    sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"$TENSORFLOW_COMMIT"'"/' ./workspace.bzl && \
-    sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"$TENSORFLOW_COMMIT_MD5_HASH"'"/' ./workspace.bzl && \
-    make && \
-    cp ./out/direct/k8/libedgetpu.so.1.0 /usr/local/lib/ && \
-    ln -sf /usr/local/lib/libedgetpu.so.1.0 /usr/local/lib/libedgetpu.so.1 && \
-    mkdir -p /usr/local/include/edgetpu && cp ./tflite/public/edgetpu.h /usr/local/include/edgetpu/ && \
-    cd /opt
-
-# Install GeographicLib from Source
-RUN git clone --depth 1 --branch ${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git && \
-    mkdir geographiclib/build && \
-    cd geographiclib/build && \
-    cmake \
-    -D CMAKE_BUILD_TYPE=RelWithDebInfo .. && \
-    make && \
-    make install && \
-    cd ../.. && \
-    rm -rf geographiclib
-
-# Install Quill from Source
-RUN git clone --depth 1 --branch ${QUILL_VERSION} http://github.com/odygrd/quill.git && \
-    mkdir quill/build && \
-    cd quill/build && \
-    cmake .. && \
-    make && \
-    make install && \
-    cd ../.. && \
-    rm -rf quill
-
-# Install Google Test from Source
-RUN git clone --depth 1 --branch ${GTEST_VERSION} https://github.com/google/googletest.git && \
-    mkdir googletest/build && \
-    cd googletest/build && \
-    cmake .. && \
-    make && \
-    make install && \
-    cd ../.. && \
-    rm -rf googletest
+# Install Google Test
+ARG GTEST_VERSION="1.14.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
+    dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
+    rm gtest_${GTEST_VERSION}_amd64.deb
 
 # Enable Make Threads
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> /root/.bashrc
@@ -232,3 +129,11 @@ RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_
 
 # Set Working Directory
 WORKDIR /opt/Autonomy_Software/
+
+# Set Labels
+LABEL authors="Missouri S&T Mars Rover Design Team"
+LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
+LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
+LABEL org.opencontainers.image.licenses=GPL-3.0-only
+LABEL org.opencontainers.image.version="v24.1.0"
+LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."
