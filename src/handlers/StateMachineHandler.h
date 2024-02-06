@@ -47,15 +47,15 @@ class StateMachineHandler : public AutonomyThread<void>
         std::shared_ptr<statemachine::State> CreateState(statemachine::States eState);
         void ChangeState(statemachine::States eNextState);
 
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
+
     public:
         StateMachineHandler();
         ~StateMachineHandler() = default;
 
         void StartStateMachine();
         void StopStateMachine();
-
-        void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;
 
         void HandleEvent(statemachine::Event eEvent);
 
