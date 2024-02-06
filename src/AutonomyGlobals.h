@@ -18,6 +18,7 @@
 #include "handlers/CameraHandler.h"
 #include "handlers/StateMachineHandler.h"
 #include "handlers/TagDetectionHandler.h"
+#include "handlers/WaypointHandler.h"
 
 /// \cond
 #include <chrono>
@@ -40,7 +41,10 @@ namespace globals
     // Declare namespace external variables and objects.
     /////////////////////////////////////////
     // Versioning:
-    extern IdentitySoftware g_pIdentifySoftware;    // Global Version Handler
+    extern IdentitySoftware* g_pIdentifySoftware;    // Global Version Handler
+
+    // Waypoint Handler:
+    extern WaypointHandler* g_pWaypointHandler;    // Global Waypoint Handler
 
     // Camera Handler:
     extern CameraHandler* g_pCameraHandler;    // Global Camera Handler
@@ -48,13 +52,13 @@ namespace globals
     // Tag Detection Handler:
     extern TagDetectionHandler* g_pTagDetectionHandler;    // Global Tag Detection Handler
 
-    // Board Interfaces:
-    extern DriveBoard g_pDriveBoardInterface;              // Global Drive Board Interface
-    extern MultimediaBoard g_pMultimediaBoardInterface;    // Global Multimedia Board Interface
-    extern NavigationBoard g_pNavigationBoardInterface;    // Global Navigation Board Interface
-
     // State Machine Handler:
     extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
+
+    // Board Interfaces:
+    extern DriveBoard* g_pDriveBoard;              // Global Drive Board Driver
+    extern MultimediaBoard* g_pMultimediaBoard;    // Global Multimedia Board Driver
+    extern NavigationBoard* g_pNavigationBoard;    // Global Navigation Board Driver
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H

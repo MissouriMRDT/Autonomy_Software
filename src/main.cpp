@@ -96,10 +96,16 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
+        // Initialize drivers.
+        globals::g_pDriveBoard      = new DriveBoard();
+        globals::g_pMultimediaBoard = new MultimediaBoard();
+        globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
+        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
         globals::g_pStateMachineHandler = new StateMachineHandler();
+
         // Start handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
@@ -113,23 +119,38 @@ int main()
 
         // TODO: Initialize RoveComm.
 
+        /////////////////////////////////////////
+        // Declare local variables used in main loop.
+        /////////////////////////////////////////
+        // Get Camera and Tag detector pointers .
+        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+        BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
+        BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
+        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
+        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
+        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+
+        // Camera and TagDetector config.
+        pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
+
+        // Used to store camera pose/location of the main cam.
+        sl::Pose slCameraPosition;
+        sl::GeoPose slGeoPosition;
+
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
         while (!bMainStop)
         {
+            // Request for pose from main ZED camera.
+            std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
+            std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
+
             // No need to loop as fast as possible. Sleep...
             // Only run this main thread once every 20ms.
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-            // Get Camera and Tag detector pointers .
-            ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-            BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
-            BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
-            TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
-            TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
-            TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
@@ -143,6 +164,23 @@ int main()
             szMainInfo += "\nStateMachine FPS:" + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
+            szMainInfo += "\n--------[ Camera Info ]--------\n";
+
+            // Wait for pose to be copied.
+            fuPoseStatus.get();
+            // Get Translations from pose.
+            sl::Translation slCameraLocation = slCameraPosition.getTranslation();
+            // Append camera location to string.
+            szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
+                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
+            // Wait for geo pose to be copied.
+            fuGeoPoseStatus.get();
+            // Get Translations from pose.
+            slCameraLocation = slGeoPosition.pose_data.getTranslation();
+            // Append camera location to string.
+            szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
+                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
+
             // Submit logger message.
             LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
         }
@@ -159,11 +197,13 @@ int main()
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
+        delete globals::g_pWaypointHandler;
 
         // Set dangling pointers to null.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
+        globals::g_pWaypointHandler     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.

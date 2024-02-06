@@ -93,6 +93,9 @@ BasicCam::BasicCam(const int nCameraIndex,
     m_szCameraPath              = "";
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
+    // Limit this classes FPS to the given camera FPS.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = true;
 
@@ -204,7 +207,7 @@ void BasicCam::ThreadedContinuousCode()
 void BasicCam::PooledLinearCode()
 {
     // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
