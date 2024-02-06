@@ -13,7 +13,6 @@
 #define SEARCH_PATTERN_HPP
 
 #include "../handlers/WaypointHandler.h"
-#include "../util/GeospatialOperations.hpp"
 
 /// \cond
 #include <cmath>
@@ -58,7 +57,6 @@ namespace searchpattern
         double dCurrentRadius = 0;
         double dStartingX     = stStartingPoint.dEasting;
         double dStartingY     = stStartingPoint.dNorthing;
-        int nUTMZone          = stStartingPoint.nZone;
 
         // Calculate each waypoint.
         while (dCurrentRadius <= dMaxRadius)
