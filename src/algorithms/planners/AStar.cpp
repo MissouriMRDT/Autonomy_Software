@@ -64,6 +64,21 @@ namespace pathplanners
     };
 
     /******************************************************************************
+     * @brief Struct to represent the obstacles that need to be avoided by the
+     *      PlanAvoidanceRoute method. fRadius is meant to represent the estimated size
+     *      of the obstacle in meters.
+     *
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-06
+     ******************************************************************************/
+    struct AStar::Obstacle
+    {
+            geoops::UTMCoordinate stCenterPoint;
+            float fRadius;
+    };
+
+    /******************************************************************************
      * @brief Helper function to destroy objects from m_vObstacles.
      *
      * @todo Implement this.
@@ -90,8 +105,7 @@ namespace pathplanners
     /******************************************************************************
      * @brief Helper function for the PlanAvoidancePath method. This method takes in
      *      a UTMCoordinate reference and uses class member variables to mutate the
-     *      UTMCoordinate to represent the nearest point to the goal on the boundary
-     *      of our ASTAR search grid.
+     *      m_stGoalNode object's coordinates to represent the nearest boundary point.
      *
      *      Idea - Get bearing angle from trig, use angle to determine edge node
      *
@@ -102,7 +116,7 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate) {}
+    void AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate) {}
 
     /******************************************************************************
      * @brief Helper function used to translate a UTMCoordinate's dEasting and dNorthing
@@ -116,12 +130,45 @@ namespace pathplanners
      *      do too many operations. Check with Clayton to see if this is viable.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-02
+     * @date 2024-02-05
      ******************************************************************************/
-    void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation)
+    void AStar::UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation)
     {
         szTranslation = std::to_string(stToTranslate.dEasting);
         szTranslation.append(std::to_string(stToTranslate.dNorthing));
+    }
+
+    /******************************************************************************
+     * @brief Helper function used to determine if a node is valid. Returns True if no
+     *      obstacle is blocking the node, returns false if the node is within an object radius.
+     *
+     * @param stCheckNode - A const node reference containing a node to evaluate.
+     *
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-06
+     ******************************************************************************/
+    bool AStar::ValidNode(const nodes::AStarNode& stCheckNode)
+    {
+        // For each obstacle
+        for (int i = 0; i < m_vObstacles.size(); i++)
+        {
+            // Multiplier for avoidance radius
+            double dAvoidanceSize = m_fAvoidanceMultiplier * m_vObstacles[i].fRadius;
+            // Create obstacle borders
+            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceSize;
+            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceSize;
+            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceSize;
+            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceSize;
+
+            // Return false if node is within obstacle border
+            if (stCheckNode.stNodeLocation.dEasting > dWestObstacleBorder && stCheckNode.stNodeLocation.dEasting < dEastObstacleBorder &&
+                stCheckNode.stNodeLocation.dNorthing < dNorthObstacleBorder && stCheckNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 
     /******************************************************************************
@@ -141,15 +188,13 @@ namespace pathplanners
         UpdateObstacleData(vObstacles);
 
         // Create Start and Goal nodes
-        // TODO: Merge Waypoint bugfix when available
-        geoops::UTMCoordinate stStartCoordinate = globals::g_pNavigationBoard->GetUTMData();
-        // WaypointHandler::Waypoint stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-        // geoops::UTMCoordinate stGoalCoordinate   = stGoalWaypoint.GetUTMCoordinate();
+        geoops::UTMCoordinate stStartCoordinate  = globals::g_pNavigationBoard->GetUTMData();
+        WaypointHandler::Waypoint stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+        geoops::UTMCoordinate stGoalCoordinate   = stGoalWaypoint.GetUTMCoordinate();
         // Map the goalLocation to an edge node based on maximum search size
         // FindNearestBoundaryPoint(stGoalCoordinate);    // Not implemented yet...
         m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
-        m_stGoalNode;
-        // = nodes::AStarNode(nullptr, stGoalCoordinate);
+        m_stGoalNode  = nodes::AStarNode(nullptr, stGoalCoordinate);
 
         // -------------------A* algorithm-------------------
         // Create Open and Closed Lists
