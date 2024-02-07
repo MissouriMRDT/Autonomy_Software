@@ -46,14 +46,14 @@ namespace pathplanners
             // Declare private member variables.
             /////////////////////////////////////////
             struct NodeGreaterThan;
+            struct Obstacle;
             // Start and Goal Nodes
             nodes::AStarNode m_stStartNode;
             nodes::AStarNode m_stGoalNode;
             // Nodes used as the final path for routing
             std::vector<nodes::AStarNode> m_vPathNodes;
             // Obstacles for AStar to use during routing
-            // TODO: Determine a better DS for this? Make an obstacle struct
-            std::vector<std::pair<geoops::UTMCoordinate, float>> m_vObstacles;
+            std::vector<Obstacle> m_vObstacles;
             // TODO: Move to constants
             // Multiplier for marking extra nodes around objects as obstacles
             const float m_fAvoidanceMultiplier = 1.2;
@@ -69,8 +69,9 @@ namespace pathplanners
             /////////////////////////////////////////
             void ClearObstacleData();
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
-            void FindNearestBoundaryPoint(geoops::UTMCoordinate& stGoalCoordinate);
+            void FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
+            bool ValidNode(const nodes::AStarNode& stCheckNode);
 
         public:
             /////////////////////////////////////////
