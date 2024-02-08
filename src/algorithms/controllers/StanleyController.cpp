@@ -109,18 +109,16 @@ namespace controllers
      * This function scans through a set of path points to find the one that is nearest to the center of the agent's front axle,
      * providing a crucial reference for any path corrections.
      *
-     * @param utmCurrentPos the agent's current position in the UTM coordinate space.
-     * @param dYaw the agent's current yaw angle (heading).
+     * @param utmCurrentPos - The agent's current position in the UTM coordinate space.
+     * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dYaw) const
+    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const
     {
         // Calculate the position of the center of the front axle in UTM coordinates.
-        geoops::UTMCoordinate utmFrontAxlePos = geoops::UTMCoordinate(utmCurrentPos);
-        utmFrontAxlePos.dEasting              = utmCurrentPos.dEasting + this->m_dDistToFrontAxle * std::cos(dYaw);
-        utmFrontAxlePos.dNorthing             = utmCurrentPos.dNorthing + this->m_dDistToFrontAxle * std::cos(dYaw);
+        geoops::UTMCoordinate utmFrontAxlePos = CalculateFrontAxleCoordinate(utmCurrentPos, dBearing);
 
         // Search for the nearest point in the path
         unsigned int unTargetIdx                                  = -1;
@@ -147,14 +145,56 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief
+     * @brief Calculate the required heading to navigate from the current target point to the subsequent point on the path.
      *
+     * @param unTargetIdx - Index of the target point on the path.
+     * @return double - Bearing required to get from the target point to the subsequent point on the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
     double StanleyContoller::CalculateTargetYaw(unsigned int unTargetIdx) const
     {
-        // TODO: Implement function
+        // Calculate the great circle path parameters between the target point and the next point in the path.
+        geoops::UTMCoordinate utmTargetPoint   = m_vPathUTM[unTargetIdx];
+        geoops::UTMCoordinate utmNextPoint     = m_vPathUTM[unTargetIdx + 1];
+        geoops::GeoMeasurement geoNextPathEdge = geoops::CalculateGeoMeasurement(utmTargetPoint, utmNextPoint);
+
+        // Return the relative bearing needed to get from the target point to the next point in the path.
+        return geoNextPathEdge.dStartRelativeBearing;
     }
+
+    /******************************************************************************
+     * @brief // Calculate the UTM coordinate of the center of the agent's front axle.
+     *
+     * @param utmCurrentPos - The agent's current position in the UTM coordinate space.
+     * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
+     * @return UTMCoordinate - The UTM coordinate of the center of the agent's front axle.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-08
+     ******************************************************************************/
+    geoops::UTMCoordinate StanleyContoller::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const
+    {
+        // Convert the bearing to a change in degrees of yaw relative to the north axis
+        // Here a positive degree represents a change in yaw towards the East.
+        // Here a negative degree represents a change in yaw towards the West.
+        double dChangeInYawRelToNorth = dBearing <= 180 ? dBearing : dBearing - 360;
+
+        // Convert to radians.
+        dChangeInYawRelToNorth = (dChangeInYawRelToNorth / 180) * M_PI;
+
+        // Calculate the unit vector for the agent's orientation in terms of East and North.
+        double dOrientEast  = std::sin(dChangeInYawRelToNorth);
+        double dOrientNorth = std::cos(dChangeInYawRelToNorth);
+
+        // Calculate the UTM coordinate for the center of the agent's front axle.
+        geoops::UTMCoordinate utmFrontAxlePos = geoops::UTMCoordinate(utmCurrentPos);
+        utmFrontAxlePos.dEasting              = utmCurrentPos.dEasting + m_dDistToFrontAxle * dOrientEast;
+        utmFrontAxlePos.dNorthing             = utmCurrentPos.dNorthing + m_dDistToFrontAxle * dOrientNorth;
+
+        // Return the UTM coordinate of the center of the agent's front axle.
+        return utmFrontAxlePos;
+    }
+
 }    // namespace controllers
