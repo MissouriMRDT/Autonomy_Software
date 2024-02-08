@@ -100,28 +100,28 @@ find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find TensorflowLite.
-find_package(Torch REQUIRED PATHS "/opt/libtorch")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+# find_package(Torch REQUIRED PATHS "/opt/libtorch")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 ## Find flatbuffers. This is a dependency of tensorflow.
 find_package(Flatbuffers REQUIRED)
 
 ## Find Abseil. This is a dependency of tensorflow.
-find_package(absl REQUIRED)
-set(ABSL_LIBRARY_DIRS absl::algorithm 
-                    absl::base 
-                    absl::debugging 
-                    absl::flat_hash_map 
-                    absl::flags 
-                    absl::memory 
-                    absl::meta 
-                    absl::numeric 
-                    absl::random_random 
-                    absl::strings 
-                    absl::synchronization 
-                    absl::time 
-                    absl::utility
-    )
+# find_package(absl REQUIRED)
+# set(ABSL_LIBRARY_DIRS absl::algorithm 
+#                     absl::base 
+#                     absl::debugging 
+#                     absl::flat_hash_map 
+#                     absl::flags 
+#                     absl::memory 
+#                     absl::meta 
+#                     absl::numeric 
+#                     absl::random_random 
+#                     absl::strings 
+#                     absl::synchronization 
+#                     absl::time 
+#                     absl::utility
+#     )
 
 ## Find TensorflowLite.
 find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
