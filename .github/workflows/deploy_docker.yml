@@ -88,6 +88,8 @@ jobs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
+      abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
+      tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
 
     steps:
@@ -141,6 +143,8 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - abseil
+          - tensorflow
           - quill
 
     steps:
@@ -219,6 +223,8 @@ jobs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
+      abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
+      tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
 
     steps:
@@ -271,6 +277,8 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - abseil
+          - tensorflow
           - quill
 
     steps:
