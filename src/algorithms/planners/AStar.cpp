@@ -8,7 +8,9 @@
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
+
 #include "AStar.h"
+#include "../../AutonomyGlobals.h"
 
 /// \cond
 // Put implicit includes in here.
