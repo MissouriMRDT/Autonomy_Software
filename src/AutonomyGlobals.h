@@ -18,6 +18,7 @@
 #include "handlers/CameraHandler.h"
 #include "handlers/StateMachineHandler.h"
 #include "handlers/TagDetectionHandler.h"
+#include "handlers/WaypointHandler.h"
 
 /// \cond
 #include <chrono>
@@ -41,6 +42,9 @@ namespace globals
     /////////////////////////////////////////
     // Versioning:
     extern IdentitySoftware* g_pIdentifySoftware;    // Global Version Handler
+
+    // Waypoint Handler:
+    extern WaypointHandler* g_pWaypointHandler;    // Global Waypoint Handler
 
     // Camera Handler:
     extern CameraHandler* g_pCameraHandler;    // Global Camera Handler
