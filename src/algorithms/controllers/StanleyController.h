@@ -17,6 +17,8 @@
 /// \cond
 // Put implicit includes in here.
 
+#include <cmath>
+
 /// \endcond
 
 /******************************************************************************
@@ -85,6 +87,7 @@ namespace controllers
             unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dYaw) const;
             double CalculateCrossTrackError() const;
             double CalculateTargetYaw(const unsigned int unTargetIdx) const;
+            geoops::UTMCoordinate CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const;
 
             /////////////////////////////////////////
             // Declare private member variables.
