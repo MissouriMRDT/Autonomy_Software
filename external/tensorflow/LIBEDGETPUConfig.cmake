@@ -1,6 +1,6 @@
 # Find library path and object files, store them in INCLUDE_DIR and LIBS variables.
 set(LIBEDGETPU_INCLUDE_DIRS "/usr/local/include/edgetpu")
-find_library(LIBEDGETPU_LIBS NAMES libedgetpu.so.1 PATHS /usr/local/lib)
+find_library(LIBEDGETPU_LIBS NAMES libedgetpu.so.1.0 PATHS /usr/local/lib)
 
 # Include package handler and create new package.
 include(FindPackageHandleStandardArgs)
