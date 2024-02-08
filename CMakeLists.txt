@@ -107,21 +107,21 @@ include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 find_package(Flatbuffers REQUIRED)
 
 ## Find Abseil. This is a dependency of tensorflow.
-# find_package(absl REQUIRED)
-# set(ABSL_LIBRARY_DIRS absl::algorithm 
-#                     absl::base 
-#                     absl::debugging 
-#                     absl::flat_hash_map 
-#                     absl::flags 
-#                     absl::memory 
-#                     absl::meta 
-#                     absl::numeric 
-#                     absl::random_random 
-#                     absl::strings 
-#                     absl::synchronization 
-#                     absl::time 
-#                     absl::utility
-#     )
+find_package(absl REQUIRED)
+set(ABSL_LIBRARY_DIRS absl::algorithm 
+                    absl::base 
+                    absl::debugging 
+                    absl::flat_hash_map 
+                    absl::flags 
+                    absl::memory 
+                    absl::meta 
+                    absl::numeric 
+                    absl::random_random 
+                    absl::strings 
+                    absl::synchronization 
+                    absl::time 
+                    absl::utility
+    )
 
 ## Find TensorflowLite.
 find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
