@@ -14,6 +14,10 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
 
@@ -30,6 +34,10 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
 
@@ -104,6 +112,10 @@ jobs:
               - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
             opencv-amd64:
               - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+            abseil-amd64:
+              - 'tools/package-builders/abseil/abseil-amd64-pkg.sh'
+            tensorflow-amd64:
+              - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
 
@@ -231,6 +243,10 @@ jobs:
               - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
             opencv-arm64:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            abseil-arm64:
+              - 'tools/package-builders/abseil/abseil-arm64-pkg.sh'
+            tensorflow-arm64:
+              - 'tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
 
