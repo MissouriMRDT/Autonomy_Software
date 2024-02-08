@@ -24,7 +24,7 @@
 TEST(PIDControllerTest, DoesNotLeak)
 {
     // Create a new PIDController object.
-    PIDController* pPIDController = new PIDController(1.0, 0.1, 0.1, 0.01);
+    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.1, 0.1, 0.01);
     // Delete object.
     delete pPIDController;
     // Point to null.
@@ -41,7 +41,7 @@ TEST(PIDControllerTest, DoesNotLeak)
 TEST(PIDControllerTest, Leaks)
 {
     // Create a new PIDController object.
-    PIDController* pPIDController = new PIDController(1.0, 0.1, 0.1, 0.01);
+    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.1, 0.1, 0.01);
     EXPECT_TRUE(pPIDController != nullptr);
 }
 
@@ -55,7 +55,7 @@ TEST(PIDControllerTest, Leaks)
 TEST(PIDControllerTest, ProportionalControl)
 {
     // Create a new PIDController object.
-    PIDController* pPIDController = new PIDController(1.0, 0.0, 0.0);
+    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -89,7 +89,7 @@ TEST(PIDControllerTest, ProportionalControl)
 TEST(PIDControllerTest, IntegralControl)
 {
     // Create a new PIDController object.
-    PIDController* pPIDController = new PIDController(0.0, 1.0, 0.0);
+    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 1.0, 0.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -124,7 +124,7 @@ TEST(PIDControllerTest, IntegralControl)
 TEST(PIDControllerTest, DerivativeControl)
 {
     // Create a new PIDController object.
-    PIDController* pPIDController = new PIDController(0.0, 0.0, 1.0);
+    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 0.0, 1.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
