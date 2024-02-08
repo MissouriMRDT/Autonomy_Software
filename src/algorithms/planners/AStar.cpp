@@ -60,7 +60,7 @@ namespace pathplanners
      ******************************************************************************/
     struct AStar::NodeGreaterThan
     {
-            bool operator()(const nodes::AStarNode& lhs, const nodes::AStarNode& rhs) const { return lhs.dKf > lhs.dKf; }
+            bool operator()(const nodes::AStarNode& lhs, const nodes::AStarNode& rhs) const { return lhs.dKf > rhs.dKf; }
     };
 
     /******************************************************************************
