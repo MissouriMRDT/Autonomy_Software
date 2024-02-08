@@ -82,36 +82,38 @@ namespace depthobject
         return cvCenter;
     }
 
-    /******************************************************************************
-     * @brief Detect objects in the provided image using the depth measure image and
-     *      simple but fast filtering, masking, and blob detection algorithms.
-     *
-     * @param cvDepthMeasure - The depth measure image to detect objects in.
-     * @param fMinDistance - Filter out blobs closer than this distance.
-     * @param fMaxDistance - Filter out blobs farther than this distance.
-     * @param fFullnessThresh - The threshold for the area or fullness of the blob.
-     * @return std::vector<DepthObject> - A vector containing struct that hold the detected object info.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-10-23
-     ******************************************************************************/
-    inline std::vector<DepthObject> Detect(const cv::Mat& cvDepthMeasure, const float fMinDistance, const float fMaxDistance, const float fFullnessThresh)
-    {
-        // Put detection code here.
-    }
+    // TODO: Implement when ready, commented out to suppress warnings.
+    // /******************************************************************************
+    //  * @brief Detect objects in the provided image using the depth measure image and
+    //  *      simple but fast filtering, masking, and blob detection algorithms.
+    //  *
+    //  * @param cvDepthMeasure - The depth measure image to detect objects in.
+    //  * @param fMinDistance - Filter out blobs closer than this distance.
+    //  * @param fMaxDistance - Filter out blobs farther than this distance.
+    //  * @param fFullnessThresh - The threshold for the area or fullness of the blob.
+    //  * @return std::vector<DepthObject> - A vector containing struct that hold the detected object info.
+    //  *
+    //  * @author clayjay3 (claytonraycowen@gmail.com)
+    //  * @date 2023-10-23
+    //  ******************************************************************************/
+    // inline std::vector<DepthObject> Detect(const cv::Mat& cvDepthMeasure, const float fMinDistance, const float fMaxDistance, const float fFullnessThresh)
+    // {
+    //     // Put detection code here.
+    // }
 
-    /******************************************************************************
-     * @brief Given a vector of DepthObject structs draw each object corner and ID onto the given image.
-     *      Image must be a 1 or 3 channel image and image must match dimensions of image when used for
-     *      detection of the given objects.
-     *
-     * @param cvDetectionsFrame - The frame to draw overlay onto.
-     * @param vDetectedObjects - The vector of DepthObject struct used to draw object corners and IDs onto image.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-10-19
-     ******************************************************************************/
-    inline void DrawDetections(cv::Mat& cvDetectionsFrame, std::vector<DepthObject> vDetectedObjects) {}
+    // TODO: Implement when ready, commented out to suppress warnings.
+    // /******************************************************************************
+    //  * @brief Given a vector of DepthObject structs draw each object corner and ID onto the given image.
+    //  *      Image must be a 1 or 3 channel image and image must match dimensions of image when used for
+    //  *      detection of the given objects.
+    //  *
+    //  * @param cvDetectionsFrame - The frame to draw overlay onto.
+    //  * @param vDetectedObjects - The vector of DepthObject struct used to draw object corners and IDs onto image.
+    //  *
+    //  * @author clayjay3 (claytonraycowen@gmail.com)
+    //  * @date 2023-10-19
+    //  ******************************************************************************/
+    // inline void DrawDetections(cv::Mat& cvDetectionsFrame, std::vector<DepthObject> vDetectedObjects) {}
 }    // namespace depthobject
 
 #endif

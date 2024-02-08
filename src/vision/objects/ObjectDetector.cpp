@@ -336,39 +336,41 @@ std::future<bool> ObjectDetector::RequestDetectedTensorflowObjects(std::vector<t
     return stContainer.pCopiedDataStatus->get_future();
 }
 
-/******************************************************************************
- * @brief Updates the detected depth objects including forgetting objects that haven't been seen for long enough.
- *      If a new object is spotted: add it to the detected objects vector
- *      If a object has been spotted again: update the objects distance and angle
- *      If a object hasn't been seen for a while: remove it from the vector
- *
- * @param vNewlyDetectedObjects - Input vector of DepthObject structs containing the object info.
- *
- * @author jspencerpittman (jspencerpittman@gmail.com)
- * @date 2023-10-06
- ******************************************************************************/
-void ObjectDetector::UpdateDetectedObjects(std::vector<depthobject::DepthObject>& vNewlyDetectedObjects)
-{
-    // Put tag filter info here.
-    // Add new tags to member variable.
-}
+// TODO: Implement when ready, commented out to suppress warnings.
+// /******************************************************************************
+//  * @brief Updates the detected depth objects including forgetting objects that haven't been seen for long enough.
+//  *      If a new object is spotted: add it to the detected objects vector
+//  *      If a object has been spotted again: update the objects distance and angle
+//  *      If a object hasn't been seen for a while: remove it from the vector
+//  *
+//  * @param vNewlyDetectedObjects - Input vector of DepthObject structs containing the object info.
+//  *
+//  * @author jspencerpittman (jspencerpittman@gmail.com)
+//  * @date 2023-10-06
+//  ******************************************************************************/
+// void ObjectDetector::UpdateDetectedObjects(std::vector<depthobject::DepthObject>& vNewlyDetectedObjects)
+// {
+//     // Put tag filter info here.
+//     // Add new tags to member variable.
+// }
 
-/******************************************************************************
- * @brief Updates the detected tensorflow objects including forgetting objects that haven't been seen for long enough.
- *      If a new object is spotted: add it to the detected objects vector
- *      If a object has been spotted again: update the objects distance and angle
- *      If a object hasn't been seen for a while: remove it from the vector
- *
- * @param vNewlyDetectedObjects - Input vector of TensorflowObject structs containing the object info.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
- ******************************************************************************/
-void ObjectDetector::UpdateDetectedObjects(std::vector<tensorflowobject::TensorflowObject>& vNewlyDetectedObjects)
-{
-    // Put tag filter info here.
-    // Add new tags to member variable.
-}
+// TODO: Implement when ready, commented out to suppress warnings.
+// /******************************************************************************
+//  * @brief Updates the detected tensorflow objects including forgetting objects that haven't been seen for long enough.
+//  *      If a new object is spotted: add it to the detected objects vector
+//  *      If a object has been spotted again: update the objects distance and angle
+//  *      If a object hasn't been seen for a while: remove it from the vector
+//  *
+//  * @param vNewlyDetectedObjects - Input vector of TensorflowObject structs containing the object info.
+//  *
+//  * @author clayjay3 (claytonraycowen@gmail.com)
+//  * @date 2023-10-07
+//  ******************************************************************************/
+// void ObjectDetector::UpdateDetectedObjects(std::vector<tensorflowobject::TensorflowObject>& vNewlyDetectedObjects)
+// {
+//     // Put tag filter info here.
+//     // Add new tags to member variable.
+// }
 
 /******************************************************************************
  * @brief Accessor for the Frame I P S private member.
