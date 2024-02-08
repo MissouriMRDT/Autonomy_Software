@@ -82,7 +82,7 @@ namespace controllers
             // Declare private methods.
             /////////////////////////////////////////
 
-            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmPos) const;
+            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dYaw) const;
             double CalculateCrossTrackError() const;
             double CalculateTargetYaw(const unsigned int unTargetIdx) const;
 

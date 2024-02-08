@@ -14,6 +14,7 @@
 // Put implicit includes in here.
 
 #include <cmath>
+#include <limits>
 
 /// \endcond
 
@@ -77,7 +78,7 @@ namespace controllers
     double StanleyContoller::Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dYaw)
     {
         // Find the point on the path closest to the front axle center
-        unsigned int unTargetIdx = IdentifyTargetIdx(utmCurrentPos);
+        unsigned int unTargetIdx = IdentifyTargetIdx(utmCurrentPos, dYaw);
 
         // Make sure the agent proceeds forward through the path
         unTargetIdx       = std::max(unTargetIdx, m_unLastTargetIdx);
@@ -103,15 +104,46 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief
+     * @brief Identifies the closest point to the center of the agent's front axle on the path.
      *
+     * This function scans through a set of path points to find the one that is nearest to the center of the agent's front axle,
+     * providing a crucial reference for any path corrections.
+     *
+     * @param utmCurrentPos the agent's current position in the UTM coordinate space.
+     * @param dYaw the agent's current yaw angle (heading).
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmPos) const
+    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dYaw) const
     {
-        // TODO: Implement function
+        // Calculate the position of the center of the front axle in UTM coordinates.
+        geoops::UTMCoordinate utmFrontAxlePos = geoops::UTMCoordinate(utmCurrentPos);
+        utmFrontAxlePos.dEasting              = utmCurrentPos.dEasting + this->m_dDistToFrontAxle * std::cos(dYaw);
+        utmFrontAxlePos.dNorthing             = utmCurrentPos.dNorthing + this->m_dDistToFrontAxle * std::cos(dYaw);
+
+        // Search for the nearest point in the path
+        unsigned int unTargetIdx                                  = -1;
+        double dMinDistance                                       = std::numeric_limits<double>::max();
+        std::vector<geoops::UTMCoordinate>::const_iterator itPath = this->m_vPathUTM.begin();
+        while (itPath != this->m_vPathUTM.end())
+        {
+            // Find the distance in meters between the center of the front axle and a point on the path.
+            geoops::GeoMeasurement gmFrontAxleToPathPoint = geoops::CalculateGeoMeasurement(utmFrontAxlePos, *itPath);
+
+            // Update the closest point to the front axle's center if the current distance is the shortest recorded.
+            // Save both the point's index and the distance.
+            if (gmFrontAxleToPathPoint.dDistanceMeters < dMinDistance)
+            {
+                unTargetIdx  = std::distance(this->m_vPathUTM.begin(), itPath);
+                dMinDistance = gmFrontAxleToPathPoint.dDistanceMeters;
+            }
+
+            // Move the iterator to the next point in the path
+            ++itPath;
+        }
+
+        return unTargetIdx;
     }
 
     /******************************************************************************
