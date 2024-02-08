@@ -27,12 +27,12 @@
     "mounts": [
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-    // "build": {
-    // "dockerfile": "Dockerfile_Jammy"
-    // "dockerfile": "Dockerfile_JetPack"
-    // },
+    "build": {
+        "dockerfile": "Dockerfile_Jammy"
+        // "dockerfile": "Dockerfile_JetPack"
+    },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.

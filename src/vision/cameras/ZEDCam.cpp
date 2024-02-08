@@ -745,7 +745,7 @@ void ZEDCam::PooledLinearCode()
     //  Plane queue.
     /////////////////////////////
     // Acquire mutex for getting frames out of the plane queue.
-    std::unique_lock<std::mutex> lkPlaneQueue(m_muFloorCopyMutex);
+    std::unique_lock<std::shared_mutex> lkPlaneQueue(m_muFloorCopyMutex);
     // Check if the queue is empty.
     if (!m_qFloorCopySchedule.empty())
     {

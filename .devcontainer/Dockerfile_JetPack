@@ -37,13 +37,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
     v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz nano \
-    vim-common gasket-dkms ca-certificates 
-
-# Download special bazel pre-built binary for amd64/aarch64 machines.
-RUN wget https://github.com/bazelbuild/bazel/releases/download/${TENSORFLOW_BAZEL_VERSION}/bazel-${TENSORFLOW_BAZEL_VERSION}-linux-arm64 && \
-    mv ./bazel-${TENSORFLOW_BAZEL_VERSION}-linux-arm64 /usr/bin/ && \
-    ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION}-linux-arm64 /usr/bin/bazel && \
-    chmod +x /usr/bin/bazel
+    vim-common libedgetpu1-std gasket-dkms ca-certificates
 
 # This symbolic link is needed to use the streaming features on Jetson inside a container
 RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so
