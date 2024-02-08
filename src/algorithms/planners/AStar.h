@@ -12,11 +12,11 @@
 #ifndef ASTAR_H
 #define ASTAR_H
 
-#include "../../AutonomyGlobals.h"
 #include "../../util/planners/Nodes.hpp"
 
 /// \cond
 // Put implicit includes in here.
+#include <sl/Camera.hpp>
 
 /// \endcond
 
