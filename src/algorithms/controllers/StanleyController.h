@@ -18,6 +18,10 @@
 // Put implicit includes in here.
 
 #include <cmath>
+#include <gtest/gtest.h>
+#include <limits>
+#include <stdexcept>
+#include <vector>
 
 /// \endcond
 
@@ -55,7 +59,7 @@ namespace controllers
             StanleyContoller(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM);
             ~StanleyContoller();
 
-            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dYaw);
+            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing);
 
             /////////////////////////////////////////
             // Declare public primary methods.
@@ -84,8 +88,8 @@ namespace controllers
             // Declare private methods.
             /////////////////////////////////////////
 
-            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dYaw) const;
-            double CalculateCrossTrackError() const;
+            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const geoops::UTMCoordinate utmFrontAxlePos, const double dBearing) const;
+            double CalculateCrossTrackError(const geoops::UTMCoordinate utmFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const;
             double CalculateTargetYaw(const unsigned int unTargetIdx) const;
             geoops::UTMCoordinate CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const;
 
