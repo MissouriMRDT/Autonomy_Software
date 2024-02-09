@@ -38,9 +38,6 @@ RUN chown -R docker /opt/Autonomy_Software/
 RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
-# # set the user to "docker" so all subsequent commands are run as the docker user
-# USER docker
-
 # add over the start.sh script
 RUN wget https://raw.githubusercontent.com/MissouriMRDT/Autonomy_Software/development/tools/action-runners/scripts/start.sh start.sh
 

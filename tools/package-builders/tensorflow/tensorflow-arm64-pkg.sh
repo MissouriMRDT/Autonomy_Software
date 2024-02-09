@@ -26,7 +26,7 @@ else
     echo "deb [arch=arm64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
     apt update && apt install -y bazel-${TENSORFLOW_BAZEL_VERSION} python3 python-is-python3
     # Symbolically link bazel-(version) install to /usr/bin/bazel.
-    ln -s /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
+    ln -fs /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
     
     # Delete Old Packages
     rm -rf /tmp/pkg
