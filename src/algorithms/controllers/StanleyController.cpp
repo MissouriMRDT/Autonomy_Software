@@ -13,9 +13,6 @@
 /// \cond
 // Put implicit includes in here.
 
-#include <cmath>
-#include <limits>
-
 /// \endcond
 
 /******************************************************************************
@@ -36,8 +33,8 @@ namespace controllers
      * @param dDistToFrontAxle
      * @param path
      *
-     * @author clayjay3 (claytonraycowen@gmail.com),  JSpencerPittman (jspencerpittman@gmail.com)
-     * @date 2024-02-01
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-03
      ******************************************************************************/
     StanleyContoller::StanleyContoller(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM)
     {
@@ -67,18 +64,21 @@ namespace controllers
      * This function computes the necessary change in yaw (steering angle) to align the agent with the predetermined path.
      * The steering angle is limited by the proportional gain constant to prevent excessively sharp turns.
      *
-     * @param utmCurrentPos the agent's current position in the UTM coordinate space.
-     * @param dVelocity the agent's current magnitude of velocity.
-     * @param dYaw the agent's current yaw angle (heading).
-     * @return The calculated change in yaw needed to align the agent with the path.
+     * @param utmCurrentPos - The agent's current position in the UTM coordinate space.
+     * @param dVelocity - The agent's current magnitude of velocity.
+     * @param dYaw - The agent's current yaw angle (heading).
+     * @return double - The calculated change in yaw needed to align the agent with the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    double StanleyContoller::Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dYaw)
+    double StanleyContoller::Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing)
     {
+        // Calculate the position for the center of the front axle.
+        geoops::UTMCoordinate utmFrontAxlePos = CalculateFrontAxleCoordinate(utmCurrentPos, dBearing);
+
         // Find the point on the path closest to the front axle center
-        unsigned int unTargetIdx = IdentifyTargetIdx(utmCurrentPos, dYaw);
+        unsigned int unTargetIdx = IdentifyTargetIdx(utmCurrentPos, utmFrontAxlePos, dBearing);
 
         // Make sure the agent proceeds forward through the path
         unTargetIdx       = std::max(unTargetIdx, m_unLastTargetIdx);
@@ -89,11 +89,11 @@ namespace controllers
 
         // Calculate the difference between the rover's yaw and the desired path yaw
         // TODO: Verify InputAngleModulus will work in this use case
-        double dYawError     = dTargetYaw - dYaw;
+        double dYawError     = dTargetYaw - dBearing;
         double dYawErrorNorm = numops::InputAngleModulus<double>(dYawError, -180.0, 180.0);
 
         // Calculate the change in yaw needed to correct for the cross track error
-        double dCrossTrackError = CalculateCrossTrackError();
+        double dCrossTrackError = CalculateCrossTrackError(utmFrontAxlePos, unTargetIdx, dBearing);
         double dDeltaYaw        = dYawErrorNorm + std::atan2(m_dKp * dCrossTrackError, dVelocity);
 
         // If a rotation is small enough we will just go ahead and skip it
@@ -111,11 +111,12 @@ namespace controllers
      *
      * @param utmCurrentPos - The agent's current position in the UTM coordinate space.
      * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
+     * @return unsigned int -  Index of the target point on the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const
+    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const geoops::UTMCoordinate utmFrontAxlePos, const double dBearing) const
     {
         // Calculate the position of the center of the front axle in UTM coordinates.
         geoops::UTMCoordinate utmFrontAxlePos = CalculateFrontAxleCoordinate(utmCurrentPos, dBearing);
@@ -142,6 +143,50 @@ namespace controllers
         }
 
         return unTargetIdx;
+    }
+
+    /******************************************************************************
+     * @brief Calculate the cross track error. This error expresses how far off the agent is from the path (lateral distance).
+     *
+     * Here is what causes a high magnitude for cross track error.
+     * 1. The agent is far from the target point (a large displacement from the path).
+     * 2. The agent is driving parallel to the path.
+     * The reason for number 2 is if the agent is far from the path and driving parallel it will
+     * continue to stay off course. However, if the agent is on the path and driving parallel the
+     * displacement vector will be negligible and the error will likewise be negligible.
+     *
+     * Note that the significance of the error is its magnitude. Positive and negative are the same amount of error just in opposing
+     * directions.
+     *
+     * @param utmFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
+     * @param unTargetIdx - Index of the target point on the path.
+     * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
+     * @return double - The cross track error (CTE).
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-09
+     ******************************************************************************/
+    double StanleyContoller::CalculateCrossTrackError(const geoops::UTMCoordinate utmFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const
+    {
+        // Convert the bearing to a change in degrees of yaw relative to the north axis
+        // Here a positive degree represents a change in yaw towards the East.
+        // Here a negative degree represents a change in yaw towards the West.
+        double dChangeInYawRelToNorth = dBearing <= 180 ? dBearing : dBearing - 360;
+        dChangeInYawRelToNorth        = (dChangeInYawRelToNorth / 180) * M_PI;
+        dChangeInYawRelToNorth += M_PI / 2;
+
+        // Calculate the front axle vector.
+        // This vector will point perpendicular to the orientation of the agent (representing the front drive axle).
+        double dFrontDriveAxleX = std::sin(dChangeInYawRelToNorth - M_PI / 2);
+        double dFrontDriveAxleY = std::cos(dChangeInYawRelToNorth - M_PI / 2);
+
+        // Find the displacement between the target and the center of the front drive axle.
+        geoops::UTMCoordinate utmTargetPos = m_vPathUTM[unTargetIdx];
+        double dDisplacementX              = utmTargetPos.dEasting - utmFrontAxlePos.dEasting;
+        double dDisplacementY              = utmTargetPos.dNorthing - utmFrontAxlePos.dNorthing;
+
+        // Calculate the cross track error as a dot product of our front drive axle and the displacement vector.
+        return (dDisplacementX * dFrontDriveAxleX) + (dDisplacementY * dFrontDriveAxleY);
     }
 
     /******************************************************************************
@@ -174,8 +219,15 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-08
      ******************************************************************************/
-    geoops::UTMCoordinate StanleyContoller::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const
+    geoops::UTMCoordinate StanleyContoller::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, double dBearing) const
     {
+        // Verify the given bearing is within 0-360 degrees.
+        if (dBearing < 0 || dBearing > 360)
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateFrontAxleCoordinate dBearing must be in the interval [0-360].");
+            throw std::invalid_argument("StanleyController::CalculateFrontAxleCoordinate dBearing must be in the interval [0-360].");
+        }
+
         // Convert the bearing to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
         // Here a negative degree represents a change in yaw towards the West.
