@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Implements the StanleyContoller class within the
+ * @brief Implements the StanleyController class within the
  *
  * @file StanleyController.cpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -36,7 +36,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    StanleyContoller::StanleyContoller(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM)
+    StanleyController::StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM)
     {
         // Initialize member variables
         m_dKp              = dKp;
@@ -53,7 +53,7 @@ namespace controllers
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2024-02-01
      ******************************************************************************/
-    StanleyContoller::~StanleyContoller()
+    StanleyController::~StanleyController()
     {
         // Nothing to destroy yet.
     }
@@ -72,7 +72,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    double StanleyContoller::Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing)
+    double StanleyController::Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing)
     {
         // Calculate the position for the center of the front axle.
         geoops::UTMCoordinate utmFrontAxlePos = CalculateFrontAxleCoordinate(utmCurrentPos, dBearing);
@@ -116,7 +116,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    unsigned int StanleyContoller::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const geoops::UTMCoordinate utmFrontAxlePos, const double dBearing) const
+    unsigned int StanleyController::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const geoops::UTMCoordinate utmFrontAxlePos, const double dBearing) const
     {
         // Calculate the position of the center of the front axle in UTM coordinates.
         geoops::UTMCoordinate utmFrontAxlePos = CalculateFrontAxleCoordinate(utmCurrentPos, dBearing);
@@ -166,7 +166,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-09
      ******************************************************************************/
-    double StanleyContoller::CalculateCrossTrackError(const geoops::UTMCoordinate utmFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const
+    double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate utmFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const
     {
         // Convert the bearing to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
@@ -198,7 +198,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    double StanleyContoller::CalculateTargetYaw(unsigned int unTargetIdx) const
+    double StanleyController::CalculateTargetYaw(unsigned int unTargetIdx) const
     {
         // Calculate the great circle path parameters between the target point and the next point in the path.
         geoops::UTMCoordinate utmTargetPoint   = m_vPathUTM[unTargetIdx];
@@ -219,7 +219,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-08
      ******************************************************************************/
-    geoops::UTMCoordinate StanleyContoller::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, double dBearing) const
+    geoops::UTMCoordinate StanleyController::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, double dBearing) const
     {
         // Verify the given bearing is within 0-360 degrees.
         if (dBearing < 0 || dBearing > 360)
