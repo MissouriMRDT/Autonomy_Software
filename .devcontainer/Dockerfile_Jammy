@@ -91,27 +91,27 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
-# # Install Abseil.
-# ARG ABSEIL_VERSION="20230802.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
-#     dpkg -i abseil_${ABSEIL_VERSION}_amd64.deb && \
-#     rm abseil_${ABSEIL_VERSION}_amd64.deb
+# Install Abseil.
+ARG ABSEIL_VERSION="20230802.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
+    dpkg -i abseil_${ABSEIL_VERSION}_amd64.deb && \
+    rm abseil_${ABSEIL_VERSION}_amd64.deb
 
-# # Install Tensorflow.
-# ARG TENSORFLOW_VERSION="2.13.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-#     dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-#     rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.13.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
 
-# # Install Flatbuffers.
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/flatbuffers/amd64/flatbuffers_${FLATBUFFERS_VERSION}_amd64.deb && \
-#     dpkg -i flatbuffers_${FLATBUFFERS_VERSION}_amd64.deb && \
-#     rm flatbuffers_${FLATBUFFERS_VERSION}_amd64.deb
+# Install Flatbuffers.
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/flatbuffers/amd64/flatbuffers_${FLATBUFFERS_VERSION}_amd64.deb && \
+    dpkg -i flatbuffers_${FLATBUFFERS_VERSION}_amd64.deb && \
+    rm flatbuffers_${FLATBUFFERS_VERSION}_amd64.deb
 
-# # Install LibEdgeTPU.
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libedgetpu/amd64/libedgetpu_${TENSORFLOW_VERSION}_amd64.deb && \
-#     dpkg -i libedgetpu_${TENSORFLOW_VERSION}_amd64.deb && \
-#     rm libedgetpu_${TENSORFLOW_VERSION}_amd64.deb
+# Install LibEdgeTPU.
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libedgetpu/amd64/libedgetpu_${TENSORFLOW_VERSION}_amd64.deb && \
+    dpkg -i libedgetpu_${TENSORFLOW_VERSION}_amd64.deb && \
+    rm libedgetpu_${TENSORFLOW_VERSION}_amd64.deb
 
 # Install GeographicLib
 ARG GEOLIB_VERSION="2.3"
