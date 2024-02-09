@@ -45,7 +45,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-01
      ******************************************************************************/
-    class StanleyContoller
+    class StanleyController
     {
         public:
             /////////////////////////////////////////
@@ -56,10 +56,10 @@ namespace controllers
             // Declare public methods and member variables.
             /////////////////////////////////////////
 
-            StanleyContoller(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM);
-            ~StanleyContoller();
+            StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM);
+            ~StanleyController();
 
-            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing);
+            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dYaw);
 
             /////////////////////////////////////////
             // Declare public primary methods.
