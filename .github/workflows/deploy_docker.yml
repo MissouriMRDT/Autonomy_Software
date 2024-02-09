@@ -164,7 +164,7 @@ jobs:
           cd tools/package-builders/${{ matrix.package }}
 
           chmod +x ${{ matrix.package }}-amd64-pkg.sh
-          sudo ./${{ matrix.package }}-amd64-pkg.sh
+          ./${{ matrix.package }}-amd64-pkg.sh
 
       # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. And then, commits and pushes
@@ -298,7 +298,7 @@ jobs:
           cd tools/package-builders/${{ matrix.package }}
 
           chmod +x ${{ matrix.package }}-arm64-pkg.sh
-          sudo ./${{ matrix.package }}-arm64-pkg.sh
+          ./${{ matrix.package }}-arm64-pkg.sh
 
       # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. And then, commits and pushes
