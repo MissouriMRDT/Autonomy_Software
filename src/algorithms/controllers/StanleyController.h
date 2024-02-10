@@ -59,7 +59,7 @@ namespace controllers
             StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM);
             ~StanleyController();
 
-            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dYaw);
+            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing);
 
             /////////////////////////////////////////
             // Declare public primary methods.
