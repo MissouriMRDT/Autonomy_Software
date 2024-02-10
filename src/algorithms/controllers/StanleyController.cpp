@@ -12,6 +12,7 @@
 
 /// \cond
 // Put implicit includes in here.
+#include <iostream>
 
 /// \endcond
 
@@ -36,13 +37,13 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    StanleyController::StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM)
+    StanleyController::StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, std::vector<geoops::UTMCoordinate> vPathUTM)
     {
         // Initialize member variables
         m_dKp              = dKp;
         m_dDistToFrontAxle = dDistToFrontAxle;
         m_dYawTolerance    = dYawTolerance;
-        m_unLastTargetIdx  = -1;
+        m_unLastTargetIdx  = 0;
         m_vPathUTM         = vPathUTM;
     }
 
@@ -66,7 +67,7 @@ namespace controllers
      *
      * @param utmCurrentPos - The agent's current position in the UTM coordinate space.
      * @param dVelocity - The agent's current magnitude of velocity.
-     * @param dYaw - The agent's current yaw angle (heading).
+     * @param dBearing - The agent's current yaw angle (heading).
      * @return double - The calculated change in yaw needed to align the agent with the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
@@ -118,24 +119,21 @@ namespace controllers
      ******************************************************************************/
     unsigned int StanleyController::IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const geoops::UTMCoordinate utmFrontAxlePos, const double dBearing) const
     {
-        // Calculate the position of the center of the front axle in UTM coordinates.
-        geoops::UTMCoordinate utmFrontAxlePos = CalculateFrontAxleCoordinate(utmCurrentPos, dBearing);
-
         // Search for the nearest point in the path
-        unsigned int unTargetIdx                                  = -1;
+        unsigned int unTargetIdx;
         double dMinDistance                                       = std::numeric_limits<double>::max();
         std::vector<geoops::UTMCoordinate>::const_iterator itPath = this->m_vPathUTM.begin();
         while (itPath != this->m_vPathUTM.end())
         {
             // Find the distance in meters between the center of the front axle and a point on the path.
-            geoops::GeoMeasurement gmFrontAxleToPathPoint = geoops::CalculateGeoMeasurement(utmFrontAxlePos, *itPath);
+            double dDistanceFromPoint = std::hypot(utmFrontAxlePos.dNorthing - itPath->dNorthing, utmFrontAxlePos.dEasting - itPath->dEasting);
 
             // Update the closest point to the front axle's center if the current distance is the shortest recorded.
             // Save both the point's index and the distance.
-            if (gmFrontAxleToPathPoint.dDistanceMeters < dMinDistance)
+            if (dDistanceFromPoint < dMinDistance)
             {
                 unTargetIdx  = std::distance(this->m_vPathUTM.begin(), itPath);
-                dMinDistance = gmFrontAxleToPathPoint.dDistanceMeters;
+                dMinDistance = dDistanceFromPoint;
             }
 
             // Move the iterator to the next point in the path
@@ -173,17 +171,17 @@ namespace controllers
         // Here a negative degree represents a change in yaw towards the West.
         double dChangeInYawRelToNorth = dBearing <= 180 ? dBearing : dBearing - 360;
         dChangeInYawRelToNorth        = (dChangeInYawRelToNorth / 180) * M_PI;
-        dChangeInYawRelToNorth += M_PI / 2;
+        dChangeInYawRelToNorth -= M_PI / 2;
 
         // Calculate the front axle vector.
         // This vector will point perpendicular to the orientation of the agent (representing the front drive axle).
-        double dFrontDriveAxleX = std::sin(dChangeInYawRelToNorth - M_PI / 2);
-        double dFrontDriveAxleY = std::cos(dChangeInYawRelToNorth - M_PI / 2);
+        double dFrontDriveAxleX = std::sin(dChangeInYawRelToNorth);
+        double dFrontDriveAxleY = std::cos(dChangeInYawRelToNorth);
 
         // Find the displacement between the target and the center of the front drive axle.
         geoops::UTMCoordinate utmTargetPos = m_vPathUTM[unTargetIdx];
-        double dDisplacementX              = utmTargetPos.dEasting - utmFrontAxlePos.dEasting;
-        double dDisplacementY              = utmTargetPos.dNorthing - utmFrontAxlePos.dNorthing;
+        double dDisplacementX              = utmFrontAxlePos.dEasting - utmTargetPos.dEasting;
+        double dDisplacementY              = utmFrontAxlePos.dNorthing - utmTargetPos.dNorthing;
 
         // Calculate the cross track error as a dot product of our front drive axle and the displacement vector.
         return (dDisplacementX * dFrontDriveAxleX) + (dDisplacementY * dFrontDriveAxleY);
@@ -200,13 +198,26 @@ namespace controllers
      ******************************************************************************/
     double StanleyController::CalculateTargetYaw(unsigned int unTargetIdx) const
     {
-        // Calculate the great circle path parameters between the target point and the next point in the path.
-        geoops::UTMCoordinate utmTargetPoint   = m_vPathUTM[unTargetIdx];
-        geoops::UTMCoordinate utmNextPoint     = m_vPathUTM[unTargetIdx + 1];
-        geoops::GeoMeasurement geoNextPathEdge = geoops::CalculateGeoMeasurement(utmTargetPoint, utmNextPoint);
+        // The yaw is calculated by finding the bearing needed to navigate from the
+        // target point to the next point in the path.
+        geoops::UTMCoordinate utmTargetPoint = m_vPathUTM[unTargetIdx];
+        geoops::UTMCoordinate utmNextPoint   = m_vPathUTM[unTargetIdx + 1];
+
+        // Calculate the displacement from the target point to the next point in the path.
+        double dDisplacementEast  = utmNextPoint.dEasting - utmTargetPoint.dEasting;
+        double dDisplacementNorth = utmNextPoint.dNorthing - utmTargetPoint.dNorthing;
+
+        // Calculate the magnitude of the displacement.
+        double dDisplacementMagnitude = std::hypot(dDisplacementEast, dDisplacementNorth);
+
+        // Calculate the bearing in degrees required to navigate to the next point on the path.
+        dDisplacementNorth /= dDisplacementMagnitude;
+        double dBearing = (std::acos(dDisplacementNorth) / M_PI) * 180;
+        if (dDisplacementEast < 0)
+            dBearing = 360 - dBearing;
 
         // Return the relative bearing needed to get from the target point to the next point in the path.
-        return geoNextPathEdge.dStartRelativeBearing;
+        return dBearing;
     }
 
     /******************************************************************************
