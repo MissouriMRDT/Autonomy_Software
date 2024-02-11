@@ -36,12 +36,6 @@ else
     # Create Package Directory for Tensorflow.
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN
-    # Create Package Directory for Flatbuffers.
-    mkdir -p /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/usr/local
-    mkdir -p /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN
-    # Create Package Directory for LibEdgeTPU.
-    mkdir -p /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/usr/local
-    mkdir -p /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN
 
     # Create Control File for Tensorflow.
     echo "Package: tensorflow-mrdt" > /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
@@ -51,22 +45,6 @@ else
     echo "Architecture: arm64" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
     echo "Homepage: https://www.tensorflow.org/api_docs/cc" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
     echo "Description: A prebuilt version of Tensorflow. Made by the Mars Rover Design Team." >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    # Create Control File for Flatbuffers.
-    echo "Package: flatbuffers-mrdt" > /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${TENSORFLOW_VERSION}" >> /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: google" >> /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://flatbuffers.dev/flatbuffers_guide_use_cpp.html" >> /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of Flatbuffers. Made by the Mars Rover Design Team." >> /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    # Create Control File for LibEdgeTPU.
-    echo "Package: libedgetpu-mrdt" > /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${TENSORFLOW_VERSION}" >> /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: google" >> /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://github.com/google-coral/libedgetpu" >> /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of LibEdgeTPU. Made by the Mars Rover Design Team." >> /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
 
     # Download Tensorflow
     git clone --depth 1 --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow
@@ -75,13 +53,10 @@ else
     # Build Tensorflow
     bazel build \
         -c opt \
-        --config=elinux_aarch64 \
         --config=monolithic \
         --config=cuda \
         --config=tensorrt \
         --verbose_failures \
-        --action_env TF_CUDA_COMPUTE_CAPABILITIES="8.7" \
-        --jobs 1 \
         --local_ram_resources=HOST_RAM*0.5 \
         --local_cpu_resources=HOST_CPUS*0.5 \
         //tensorflow/lite:libtensorflowlite.so
@@ -93,15 +68,15 @@ else
     # Build Flatbuffers
     mkdir -p /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build && cd /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build
     cmake \
-        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/usr/local \
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local \
         -G "Unix Makefiles" \
         -D CMAKE_BUILD_TYPE=Release ..
 
     # Install Flatbuffers
     make
     make install
-    mkdir -p /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/usr/lib
-    cp -r /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/usr/local/lib/*flatbuffers* /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64/usr/lib/
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/lib
+    cp -r /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/*flatbuffers* /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/lib/
 
     # Cleanup Install
     cd /tmp
@@ -114,11 +89,11 @@ else
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
-    CPU=aarch64 make
+    make
 
     # Install LibEdgeTPU
-    mkdir -p /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/usr/local/lib/
-    mkdir -p /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64/usr/local/include/edgetpu/
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/include/edgetpu/
 
     # # Cleanup Install
     # cd ../
@@ -126,14 +101,10 @@ else
 
     # Create Package
     dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64
-    dpkg --build /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64
-    dpkg --build /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64
 
     # Create Package Directory
     mkdir -p /tmp/pkg/deb
 
     # Copy Package
     cp /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64.deb /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_arm64.deb
-    cp /tmp/pkg/flatbuffers_${TENSORFLOW_VERSION}_arm64.deb /tmp/pkg/deb/flatbuffers_${TENSORFLOW_VERSION}_arm64.deb
-    cp /tmp/pkg/libedgetpu_${TENSORFLOW_VERSION}_arm64.deb /tmp/pkg/deb/libedgetpu_${TENSORFLOW_VERSION}_arm64.deb
 fi

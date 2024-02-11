@@ -14,6 +14,8 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-arm64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-amd64-pkg.sh"
       - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
       - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
       - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
@@ -34,6 +36,8 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-arm64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-amd64-pkg.sh"
       - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
       - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
       - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
@@ -88,6 +92,7 @@ jobs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
+      pytorch-amd64: ${{ steps.changes.outputs.pytorch-amd64 }}
       abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
       tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
@@ -114,6 +119,8 @@ jobs:
               - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
             opencv-amd64:
               - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+            pytorch-amd64:
+              - 'tools/package-builders/pytorch/pytorch-amd64-pkg.sh'
             abseil-amd64:
               - 'tools/package-builders/abseil/abseil-amd64-pkg.sh'
             tensorflow-amd64:
@@ -143,6 +150,7 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - torch
           - abseil
           - tensorflow
           - quill
@@ -223,6 +231,7 @@ jobs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
+      pytorch-arm64: ${{ steps.changes.outputs.pytorch-arm64 }}
       abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
       tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
@@ -249,6 +258,8 @@ jobs:
               - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
             opencv-arm64:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            pytorch-arm64:
+              - 'tools/package-builders/pytorch/pytorch-arm64-pkg.sh'
             abseil-arm64:
               - 'tools/package-builders/abseil/abseil-arm64-pkg.sh'
             tensorflow-arm64:
@@ -277,6 +288,7 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - torch
           - abseil
           - tensorflow
           - quill
