@@ -23,8 +23,8 @@ cpptools
 cschlosser
 CUDA
 deadband
-depthobject
 debfile
+depthobject
 deque
 Desaturate
 devcontainer
@@ -39,6 +39,7 @@ endcond
 Extention
 feedforward
 flatbuffer
+flatbuffers
 flightsticks
 fourcc
 geekyeggo

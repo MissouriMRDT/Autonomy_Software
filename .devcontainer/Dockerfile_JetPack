@@ -1,6 +1,6 @@
 # Image Variables
 ARG L4T_MAJOR="35"
-ARG L4T_MINOR="3"
+ARG L4T_MINOR="4"
 ARG L4T_PATCH="1"
 ARG L4T_BASE="l4t-jetpack"
 
@@ -9,7 +9,7 @@ FROM nvcr.io/nvidia/${L4T_BASE}:r${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH}
 
 # Install Variables
 ARG L4T_MAJOR="35"
-ARG L4T_MINOR="3"
+ARG L4T_MINOR="4"
 ARG L4T_PATCH="1"
 ARG L4T_BASE="l4t-jetpack"
 
@@ -69,7 +69,7 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
-    chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent skip_drivers && \
+    chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
     rm -rf /usr/local/zed/resources/* \
     rm -rf ZED_SDK_Linux.run && \
     rm -rf /var/lib/apt/lists/* && \
@@ -81,6 +81,12 @@ ARG OPENCV_VERSION="4.8.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
     rm opencv_${OPENCV_VERSION}_arm64.deb
+
+# Install PyTorch.
+ARG TORCH_VERSION="2.0.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/torch/arm64/torch_${TORCH_VERSION}_arm64.deb && \
+    dpkg -i torch_${TORCH_VERSION}_arm64.deb && \
+    rm torch_${TORCH_VERSION}_arm64.deb
 
 # Install Abseil.
 ARG ABSEIL_VERSION="20230802.1"

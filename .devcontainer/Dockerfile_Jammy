@@ -1,17 +1,19 @@
 # Image Variables
 ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
+ARG CUDA_MAJOR="12"
+ARG CUDA_MINOR="1"
 ARG CUDA_PATCH="0"
+ARG CUDNN_VERSION="8"
 
 # Base Image
-FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.04
+FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn${CUDNN_VERSION}-devel-ubuntu${UBUNTU_MAJOR}.04
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
+ARG CUDA_MAJOR="12"
+ARG CUDA_MINOR="1"
 ARG CUDA_PATCH="0"
+ARG CUDNN_VERSION="8"
 
 # Set Non-Interactive Mode
 ARG DEBIAN_FRONTEND=noninteractive
@@ -78,7 +80,7 @@ ARG ZED_MAJOR="4"
 ARG ZED_MINOR="0"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}${CUDA_MINOR%.*}/ubuntu${UBUNTU_MAJOR} && \
-    chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent skip_cuda && \
+    chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
     ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
     rm ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run && \
     rm -rf /var/lib/apt/lists/* && \
@@ -90,6 +92,12 @@ ARG OPENCV_VERSION="4.8.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
+
+# Install PyTorch.
+ARG TORCH_VERSION="2.0.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/torch/amd64/torch_${TORCH_VERSION}_amd64.deb && \
+    dpkg -i torch_${TORCH_VERSION}_amd64.deb && \
+    rm torch_${TORCH_VERSION}_amd64.deb
 
 # Install Abseil.
 ARG ABSEIL_VERSION="20230802.1"

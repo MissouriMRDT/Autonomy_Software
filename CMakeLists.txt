@@ -12,10 +12,12 @@ cmake_minimum_required(VERSION 3.24.3)
 ## C++ Version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.01.00)
+project(Autonomy_Software VERSION 24.01.00 LANGUAGES CXX CUDA)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
@@ -92,16 +94,17 @@ find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
-find_package(ZED 3 REQUIRED)
+find_package(ZED 4 REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
 
 ## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
 find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
-## Find TensorflowLite.
-# find_package(Torch REQUIRED PATHS "/opt/libtorch")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+## Find PyTorch.
+set (CAFFE2_USE_CUDNN "1")
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 ## Find flatbuffers. This is a dependency of tensorflow.
 find_package(Flatbuffers REQUIRED)
@@ -183,6 +186,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
                                                 ${GeographicLib_LIBRARIES}
                                                 ${ZED_LIBS} 
                                                 RoveComm_CPP
+                                                ${TORCH_LIBRARIES}
                                                 flatbuffers::flatbuffers
                                                 ${ABSL_LIBRARY_DIRS}
                                                 ${TENSORFLOWLITE_LIBS}
