@@ -205,8 +205,8 @@ jobs:
           git lfs install
 
           # Commit and push changes
-          git add .
           git lfs track '*.deb'
+          git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
         env:
@@ -347,8 +347,8 @@ jobs:
           git lfs install
 
           # Commit and push changes
-          git add .
           git lfs track '*.deb'
+          git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
         env:
