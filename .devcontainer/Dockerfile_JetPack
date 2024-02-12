@@ -12,7 +12,7 @@ ARG L4T_MAJOR="35"
 ARG L4T_MINOR="4"
 ARG L4T_PATCH="1"
 ARG L4T_BASE="l4t-jetpack"
-
+ 
 # Set Non-Interactive Mode
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -99,16 +99,6 @@ ARG TENSORFLOW_VERSION="2.13.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
     dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
     rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
-
-# Install Flatbuffers.
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/flatbuffers/arm64/flatbuffers_${FLATBUFFERS_VERSION}_arm64.deb && \
-    dpkg -i flatbuffers_${FLATBUFFERS_VERSION}_arm64.deb && \
-    rm flatbuffers_${FLATBUFFERS_VERSION}_arm64.deb
-
-# Install LibEdgeTPU.
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libedgetpu/arm64/libedgetpu_${TENSORFLOW_VERSION}_arm64.deb && \
-    dpkg -i libedgetpu_${TENSORFLOW_VERSION}_arm64.deb && \
-    rm libedgetpu_${TENSORFLOW_VERSION}_arm64.deb
 
 # Install GeographicLib
 ARG GEOLIB_VERSION="2.3"
