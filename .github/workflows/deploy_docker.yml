@@ -150,7 +150,7 @@ jobs:
           - geolib
           - gtest
           - opencv
-          - torch
+          - pytorch
           - abseil
           - tensorflow
           - quill
@@ -288,7 +288,7 @@ jobs:
           - geolib
           - gtest
           - opencv
-          - torch
+          - pytorch
           - abseil
           - tensorflow
           - quill

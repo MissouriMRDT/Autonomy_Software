@@ -590,7 +590,7 @@ const std::vector<WaypointHandler::Waypoint> WaypointHandler::RetrievePath(const
     // Acquire a read lock on the path unordered map.
     std::shared_lock<std::shared_mutex> lkPathsLock(m_muPathMutex);
     // Check if the map contains the given key.
-    if (m_umStoredPaths.contains(szPathName))
+    if (m_umStoredPaths.count(szPathName) > 0)
     {
         // Return the path vector at the given key.
         return m_umStoredPaths[szPathName];
