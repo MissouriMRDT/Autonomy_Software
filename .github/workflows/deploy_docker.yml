@@ -201,8 +201,12 @@ jobs:
           mkdir -p ${{ matrix.package }}/amd64/
           cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/amd64/
 
+          # Set up Git LFS
+          git lfs install
+
           # Commit and push changes
           git add .
+          git lfs track '*.deb'
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
         env:
@@ -339,8 +343,12 @@ jobs:
           mkdir -p ${{ matrix.package }}/arm64/
           cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/arm64/
 
+          # Set up Git LFS
+          git lfs install
+
           # Commit and push changes
           git add .
+          git lfs track '*.deb'
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
         env:
