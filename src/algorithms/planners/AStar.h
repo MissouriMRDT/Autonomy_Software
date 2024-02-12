@@ -71,7 +71,8 @@ namespace pathplanners
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
             void FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
-            bool ValidNode(const nodes::AStarNode& stCheckNode);
+            bool ValidCoordinate(const double& dEasting, const double& dNorthing);
+            void RoundUTMCoordinate(geoops::UTMCoordinate& stCoordinateToRound);
 
         public:
             /////////////////////////////////////////
