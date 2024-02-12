@@ -89,19 +89,19 @@ namespace controllers
         double dTargetYaw = CalculateTargetYaw(unTargetIdx);
 
         // Calculate the difference between the rover's yaw and the desired path yaw
-        // TODO: Verify InputAngleModulus will work in this use case
-        double dYawError     = dTargetYaw - dBearing;
-        double dYawErrorNorm = numops::InputAngleModulus<double>(dYawError, -180.0, 180.0);
+        double dYawError = numops::InputAngleModulus<double>(dTargetYaw - dBearing, -180.0, 180.0);
 
         // Calculate the change in yaw needed to correct for the cross track error
         double dCrossTrackError = CalculateCrossTrackError(utmFrontAxlePos, unTargetIdx, dBearing);
-        double dDeltaYaw        = dYawErrorNorm + std::atan2(m_dKp * dCrossTrackError, dVelocity);
+        double dDeltaYaw        = dYawError + std::atan2(m_dKp * dCrossTrackError, dVelocity);
 
         // If a rotation is small enough we will just go ahead and skip it
-        if (dYawError < m_dYawTolerance)
+        if (std::abs(dDeltaYaw) < m_dYawTolerance)
             dDeltaYaw = 0;
 
-        return dDeltaYaw;
+        // Here we translate the relative change in yaw to an absolute heading
+        double dNewBearing = numops::InputAngleModulus<double>(dBearing + dDeltaYaw, 0, 360);
+        return dNewBearing;
     }
 
     /******************************************************************************
