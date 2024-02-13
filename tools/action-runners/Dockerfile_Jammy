@@ -34,6 +34,9 @@ RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
 # install some additional dependencies
 RUN chown -R docker ~docker && /home/docker/actions-runner/bin/installdependencies.sh
 
+# Prevent SSH repo timout for an hour.
+RUN mkdir -p /root/.ssh && echo -e "Host *\n  ServerAliveInterval 60\n  ServerAliveCountMax 60" >> ~/.ssh/config
+
 # Set Ownership of Autonomy Software
 RUN chown -R docker /opt/Autonomy_Software/
 RUN chown docker -R /usr/local/zed
