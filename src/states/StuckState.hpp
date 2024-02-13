@@ -11,7 +11,10 @@
 #ifndef STUCKSTATE_HPP
 #define STUCKSTATE_HPP
 
+#include "../AutonomyGlobals.h"
+#include "../algorithms/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
+#include "../util/NumberOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -34,6 +37,8 @@ namespace statemachine
             time_t m_tStuckCheckTime;
             bool m_bInitialized;
 
+            unsigned int m_unAttempts;
+
         protected:
             /******************************************************************************
              * @brief This method is called when the state is first started. It is used to
@@ -49,6 +54,8 @@ namespace statemachine
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
 
                 m_tStuckCheckTime = time(nullptr);
+
+                m_unAttempts      = 0;
 
                 // TODO: Add Stop All Motors Command
             }
@@ -99,7 +106,29 @@ namespace statemachine
                 // TODO: Implement the behavior specific to the Stuck state
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
-                return States::eStuck;
+                switch (m_unAttempts)
+                {
+                    case 0:
+                        // Reverse
+                        ++m_unAttempts;
+                        return States::eReversing;
+                    case 1:
+                        // rotate 30 degrees right and reverse
+                        double dActualHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
+                        dGoalHeading          = numops::InputAngleModulus(dHeading + 30, 0, 360);
+                        AlignRover(dGoalHeading, 1, 0.5);
+                        ++m_unAttempts;
+                        return States::eReversing;
+                    case 2:
+                        // rotate 60 degrees left and reverse
+                        double dActualHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
+                        dGoalHeading          = numops::InputAngleModulus(dHeading - 60, 0, 360);
+                        AlignRover(dGoalHeading, 1, 0.5);
+                        ++m_unAttempts;
+                        return States::eReversing;
+                    case 3: m_unAttempts = 0; return States::eIdle;
+                    default: return States::eIdle;
+                }
             }
 
             /******************************************************************************
@@ -121,7 +150,7 @@ namespace statemachine
                     case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
-                        eNextState = States::eReversing;
+                        eNextState = States::eStuck;
                         break;
                     }
                     case Event::eAbort:
@@ -150,6 +179,36 @@ namespace statemachine
                 }
 
                 return eNextState;
+            }
+
+            /******************************************************************************
+             * @brief Rotate the rover until its aligned with the goal heading.
+             *
+             * @param dGoalHeading - Heading for the rover to align with.
+             * @param dTolerance - How far can the rover be from the goal heading before completion.
+             * @param dMotorPower - How much power to use in the motors [0,1];
+             *
+             * @author JSpencerPittman (jspencerpittman@gmail.com)
+             * @date 2024-02-13
+             ******************************************************************************/
+            void AlignRover(const double dGoalHeading, const double dTolerance, const double dMotorPower)
+            {
+                double dCurrentHeading;
+                double dYawAdjustment;
+
+                do
+                {
+                    dCurrentHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
+                    dYawAdjustment  = numops::InputAngleModulus(dGoalHeading - dCurrentHeading, -180, 180);
+
+                    if (dYawAdjustment >= 0)
+                        globals::g_pDriveBoard->SendDrive(dMotorPower, -dMotorPower);
+                    else
+                        globals::g_pDriveBoard->SendDrive(-dMotorPower, dMotorPower);
+
+                } while (std::abs(dYawAdjustment) > dTolerance);
+
+                globals::g_pDriveBoard->SendStop();
             }
     };
 }    // namespace statemachine
