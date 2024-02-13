@@ -209,7 +209,7 @@ jobs:
           git add .gitattributes
           git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
-          git push origin main
+          git lfs push --all origin
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -352,7 +352,7 @@ jobs:
           git add .gitattributes
           git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
-          git push origin main
+          git lfs push --all origin
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
