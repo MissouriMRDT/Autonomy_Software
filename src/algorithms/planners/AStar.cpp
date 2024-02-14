@@ -83,12 +83,15 @@ namespace pathplanners
     /******************************************************************************
      * @brief Helper function to destroy objects from m_vObstacles.
      *
-     * @todo Implement this.
+     * @todo Determine if this needs to be public for error handling.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    void AStar::ClearObstacleData() {}
+    void AStar::ClearObstacleData()
+    {
+        m_vObstacles.clear();
+    }
 
     /******************************************************************************
      * @brief Intended to be called as a helper function by the PlanAvoidancePath method.
@@ -102,7 +105,15 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles) {}
+    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles)
+    {
+        // For each object in vObstacles
+        for (int i = 0; i < vObstacles.size(); i++)
+        {
+            // TODO: Figure out how to get position in UTM
+            vObstacles[i].position;
+        }
+    }
 
     /******************************************************************************
      * @brief Helper function for the PlanAvoidancePath method. This method takes in
@@ -177,8 +188,8 @@ namespace pathplanners
             {
                 return false;
             }
-            return true;
         }
+        return true;
     }
 
     /******************************************************************************
@@ -199,22 +210,67 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief Helper function used to calculate ASTAR node heuristic distance value.
+     *          This implementation uses the diagonal distance heuristic for efficiency.
+     *          (Mostly implemented to clean up the PlanAvoidanceRoute method).
+     *
+     * @pre - Assumes stNodeToCalculate's and m_stGoalNode's UTMCoordinates have been initialized with the
+     *          node's location and the nearest boundary point's coordinate respectively.
+     *          .
+     * @param stNodeToCalculate - A const AStarNode reference.
+     *
+     * @return - Returns a double representing the Kh value for stNodeToCalculate.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-12
+     ******************************************************************************/
+    double AStar::CalculateNodeHValue(const nodes::AStarNode& stNodeToCalculate)
+    {
+        double dGoalEastingDistance  = std::abs(stNodeToCalculate.stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
+        double dGoalNorthingDistance = std::abs(stNodeToCalculate.stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
+        return m_dNodeSize * (dGoalEastingDistance + dGoalNorthingDistance) + (m_dSqrtNodeSize - 2 * m_dNodeSize) * std::min(dGoalEastingDistance, dGoalNorthingDistance);
+    }
+
+    /******************************************************************************
+     * @brief Called when a goal node has been reached. Recursively builds a vector of
+     *          UTMCoordinates by tracing the parent pointers of AStarNodes.
+     *          This function then saves that vector to m_vPathNodes.
+     *
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-13
+     ******************************************************************************/
+    void AStar::ConstructPath(const nodes::AStarNode& stEndNode)
+    {
+        // Copy node UTMCoordinate data to m_vPathNodes.
+        m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
+        // Base case: Check for origin node.
+        if (stEndNode.stParentNode == nullptr)
+        {
+            return;
+        }
+        // Recursive case: call ConstructPath on parent pointer.
+        ConstructPath(*stEndNode.stParentNode);
+    }
+
+    /******************************************************************************
      * @brief Called in the obstacle avoidance state to plan a path around obstacles
      *      blocking our path.
      *
      * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
      *
+     * @return
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    void AStar::PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles)
+    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles)
     {
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.
         UpdateObstacleData(vObstacles);
 
-        // Create Start and Goal nodes
+        // Create Start and Goal nodes.
         geoops::UTMCoordinate stStartCoordinate  = globals::g_pNavigationBoard->GetUTMData();
         WaypointHandler::Waypoint stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
         geoops::UTMCoordinate stGoalCoordinate   = stGoalWaypoint.GetUTMCoordinate();
@@ -266,13 +322,16 @@ namespace pathplanners
             double dEastOffset  = nextParent.stNodeLocation.dEasting + m_dNodeSize;
             double dSouthOffset = nextParent.stNodeLocation.dNorthing - m_dNodeSize;
             double dNorthOffset = nextParent.stNodeLocation.dNorthing + m_dNodeSize;
+            // Counter for avoiding parent duplication
+            ushort usParentTracker = 0;
             for (double dEastingOffset = dWestOffset; dEastingOffset < dEastOffset; dEastingOffset += m_dNodeSize)
             {
                 for (double dNorthingOffset = dSouthOffset; dNorthingOffset < dNorthOffset; dNorthingOffset += m_dNodeSize)
                 {
                     // Skip duplicating the parent node.
-                    // TODO: Optimize this with a counter instead of multiple evals.
-                    if (dEastingOffset == nextParent.stNodeLocation.dEasting && dNorthingOffset == nextParent.stNodeLocation.dNorthing)
+                    // Implemented with a counter to avoid evaluating coordinates.
+                    usParentTracker++;
+                    if (usParentTracker == 5)
                     {
                         continue;
                     }
@@ -281,9 +340,9 @@ namespace pathplanners
                     {
                         continue;
                     }
-                    // Copy most data from parent coordinate.
+                    // Copy data from parent coordinate.
                     geoops::UTMCoordinate successorCoordinate = nextParent.stNodeLocation;
-                    // Adjust Easting and Northing offsets.
+                    // Adjust Easting and Northing offsets to create new coordinate.
                     successorCoordinate.dEasting  = dEastingOffset;
                     successorCoordinate.dNorthing = dNorthingOffset;
                     RoundUTMCoordinate(successorCoordinate);
@@ -299,8 +358,8 @@ namespace pathplanners
                 // If successor = goal, stop search.
                 if (vSuccessors[i].stNodeLocation == m_stGoalNode.stNodeLocation)
                 {
-                    // TODO: Build path (vector of AStarNodes) by back-tracing parents.
-                    return;
+                    ConstructPath(vSuccessors[i]);
+                    return m_vPathCoordinates;
                 }
 
                 // Create and format lookup string.
@@ -309,15 +368,11 @@ namespace pathplanners
 
                 // Compute dKg, dKh, and dKf for successor.
                 // Calculate successor previous path cost.
-                double dSuccessorKg = nextParent.dKg + m_dNodeSize;
-                // Calculate successor future path cost through Diagonal distance heuristic.
-                // TODO: Move to helper function for readability?
-                double dGoalEastingDistance  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
-                double dGoalNorthingDistance = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-                double dSuccessorKh          = m_dNodeSize * (dGoalEastingDistance + dGoalNorthingDistance) +
-                                      (m_dSqrtNodeSize - 2 * m_dNodeSize) * std::min(dGoalEastingDistance, dGoalNorthingDistance);
+                vSuccessors[i].dKg = nextParent.dKg + m_dNodeSize;
+                // Calculate successor future path cost through diagonal distance heuristic.
+                vSuccessors[i].dKh = CalculateNodeHValue(vSuccessors[i]);
                 // f = g + h
-                double dSuccessorKf = dSuccessorKg + dSuccessorKh;
+                vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
 
                 // If a node with the same position as successor is in the open list and has a lower dKf, skip this successor.
                 if (stdOpenListLookup.contains(szSuccessorLookup))
