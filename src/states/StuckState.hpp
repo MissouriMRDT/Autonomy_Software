@@ -12,8 +12,8 @@
 #define STUCKSTATE_HPP
 
 #include "../AutonomyGlobals.h"
-#include "../algorithms/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
 #include "../util/NumberOperations.hpp"
 
 /******************************************************************************
@@ -38,6 +38,12 @@ namespace statemachine
             bool m_bInitialized;
 
             unsigned int m_unAttempts;
+            geoops::GPSCoordinate m_stOriginalPosition;
+            double m_dOriginalHeading;
+
+            double m_dHeadingTolerance;
+            double m_dInplaceRotationMotorPower;
+            double m_dStillStuckThreshold;
 
         protected:
             /******************************************************************************
@@ -53,9 +59,15 @@ namespace statemachine
                 // Schedule the next run of the state's logic
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
 
-                m_tStuckCheckTime = time(nullptr);
+                m_tStuckCheckTime            = time(nullptr);
 
-                m_unAttempts      = 0;
+                m_unAttempts                 = 1;
+                m_stOriginalPosition         = geoops::GPSCoordinate(0, 0);
+                m_dOriginalHeading           = 0;
+
+                m_dHeadingTolerance          = 1.0;
+                m_dInplaceRotationMotorPower = 0.5;
+                m_dStillStuckThreshold       = 1.0;
 
                 // TODO: Add Stop All Motors Command
             }
@@ -98,37 +110,46 @@ namespace statemachine
             /******************************************************************************
              * @brief Run the state machine. Returns the next state.
              *
-             * @author Eli Byrd (edbgkk@mst.edu)
+             * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-01-17
              ******************************************************************************/
             States Run() override
             {
-                // TODO: Implement the behavior specific to the Stuck state
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
-                switch (m_unAttempts)
+                // Current position of the rover
+                geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
+
+                // Are we still in the same position?
+                // If this is our first attempt at becoming 'unstuck' from this position save
+                //  the location and heading.
+                if (StillStuck(m_stOriginalPosition, stCurrentPosition))
                 {
-                    case 0:
-                        // Reverse
-                        ++m_unAttempts;
-                        return States::eReversing;
-                    case 1:
-                        // rotate 30 degrees right and reverse
-                        double dActualHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
-                        dGoalHeading          = numops::InputAngleModulus(dHeading + 30, 0, 360);
-                        AlignRover(dGoalHeading, 1, 0.5);
-                        ++m_unAttempts;
-                        return States::eReversing;
-                    case 2:
-                        // rotate 60 degrees left and reverse
-                        double dActualHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
-                        dGoalHeading          = numops::InputAngleModulus(dHeading - 60, 0, 360);
-                        AlignRover(dGoalHeading, 1, 0.5);
-                        ++m_unAttempts;
-                        return States::eReversing;
-                    case 3: m_unAttempts = 0; return States::eIdle;
-                    default: return States::eIdle;
+                    ++m_unAttempts;
                 }
+                else
+                {
+                    m_unAttempts         = 1;
+                    m_stOriginalPosition = stCurrentPosition;
+                    m_dOriginalHeading   = globals::g_pNavigationBoard->GetIMUData().dHeading;
+                }
+
+                // On the second attempt align the rover 30 degrees to the right of the
+                //  original heading. For the third do it 30 degrees to the left of the
+                //  original heading instead.
+                if (1 < m_unAttempts && m_unAttempts < 4)
+                {
+                    double dChangeInHeading = (m_unAttempts == 2) ? 30 : -30;
+                    double dGoalHeading     = m_dOriginalHeading + dChangeInHeading;
+                    dGoalHeading            = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
+                    AlignRover(dGoalHeading);
+                }
+
+                // After 3 failed attempts abort the stuck state.
+                if (m_unAttempts < 4)
+                    return States::eReversing;
+                else
+                    return States::eIdle;
             }
 
             /******************************************************************************
@@ -182,16 +203,36 @@ namespace statemachine
             }
 
             /******************************************************************************
+             * @brief Checks if the rover is approximately in the same position as last time.
+             *
+             * The threshold that defines how far away we need to be from the original point to be considered
+             * no stuck is the Still Stuck Threshold.
+             *
+             * @param stLastPosition - Original position the rover was located.
+             * @param stCurrPosition - Current position the rover is located.
+             * @return true - The rover is still stuck.
+             * @return false - The rover is no longer stuck.
+             *
+             * @author Jason Pittman (jspencerpittman@gmail.com)
+             * @date 2024-02-14
+             ******************************************************************************/
+            bool StillStuck(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition)
+            {
+                double dDistance = geoops::CalculateGeoMeasurement(stOriginalPosition, stCurrPosition).dDistanceMeters;
+                return dDistance <= m_dStillStuckThreshold;
+            }
+
+            /******************************************************************************
              * @brief Rotate the rover until its aligned with the goal heading.
              *
              * @param dGoalHeading - Heading for the rover to align with.
              * @param dTolerance - How far can the rover be from the goal heading before completion.
              * @param dMotorPower - How much power to use in the motors [0,1];
              *
-             * @author JSpencerPittman (jspencerpittman@gmail.com)
+             * @author Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-02-13
              ******************************************************************************/
-            void AlignRover(const double dGoalHeading, const double dTolerance, const double dMotorPower)
+            void AlignRover(const double dGoalHeading)
             {
                 double dCurrentHeading;
                 double dYawAdjustment;
@@ -199,14 +240,14 @@ namespace statemachine
                 do
                 {
                     dCurrentHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
-                    dYawAdjustment  = numops::InputAngleModulus(dGoalHeading - dCurrentHeading, -180, 180);
+                    dYawAdjustment  = numops::InputAngleModulus<double>(dGoalHeading - dCurrentHeading, -180, 180);
 
                     if (dYawAdjustment >= 0)
-                        globals::g_pDriveBoard->SendDrive(dMotorPower, -dMotorPower);
+                        globals::g_pDriveBoard->SendDrive(m_dInplaceRotationMotorPower, -m_dInplaceRotationMotorPower);
                     else
-                        globals::g_pDriveBoard->SendDrive(-dMotorPower, dMotorPower);
+                        globals::g_pDriveBoard->SendDrive(-m_dInplaceRotationMotorPower, m_dInplaceRotationMotorPower);
 
-                } while (std::abs(dYawAdjustment) > dTolerance);
+                } while (std::abs(dYawAdjustment) > m_dHeadingTolerance);
 
                 globals::g_pDriveBoard->SendStop();
             }
