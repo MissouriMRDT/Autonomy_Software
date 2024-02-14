@@ -51,7 +51,7 @@ namespace pathplanners
             nodes::AStarNode m_stStartNode;
             nodes::AStarNode m_stGoalNode;
             // Nodes used as the final path for routing
-            std::vector<nodes::AStarNode> m_vPathNodes;
+            std::vector<geoops::UTMCoordinate> m_vPathCoordinates;
             // Obstacles for AStar to use during routing
             std::vector<Obstacle> m_vObstacles;
             // TODO: Move to constants
@@ -73,6 +73,8 @@ namespace pathplanners
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
             void RoundUTMCoordinate(geoops::UTMCoordinate& stCoordinateToRound);
+            double CalculateNodeHValue(const nodes::AStarNode& stNodeToCalculate);
+            void ConstructPath(const nodes::AStarNode& stFinalNode);
 
         public:
             /////////////////////////////////////////
@@ -84,7 +86,7 @@ namespace pathplanners
             /////////////////////////////////////////
             AStar();
             ~AStar();
-            void PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles);
+            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles);
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
