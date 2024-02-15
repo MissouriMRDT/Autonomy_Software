@@ -100,18 +100,27 @@ namespace pathplanners
      *
      * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
      *
-     * @todo Implement this.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-02
+     * @date 2024-02-15
      ******************************************************************************/
     void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles)
     {
-        // For each object in vObstacles
+        // Remove stale obstacle data.
+        ClearObstacleData();
+        // For each object in vObstacles:
         for (int i = 0; i < vObstacles.size(); i++)
         {
-            // TODO: Figure out how to get position in UTM
-            vObstacles[i].position;
+            // Create Obstacle struct.
+            Obstacle stObstacleToAdd;
+            // Extract coordinate data from ObjectData struct.
+            stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
+            stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
+            // Extract size data from ObjectData and calculate size of obstacle.
+            // Assuming worst case scenario and calculating the maximum diagonal as object radius.
+            stObstacleToAdd.fRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
+            // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
+            m_vObstacles.emplace_back(stObstacleToAdd);
         }
     }
 
@@ -120,16 +129,70 @@ namespace pathplanners
      *      a UTMCoordinate reference and uses class member variables to mutate the
      *      m_stGoalNode object's coordinates to represent the nearest boundary point.
      *
-     *      Idea - Get bearing angle from trig, use angle to determine edge node
+     * @pre - m_stStartNode has been initialized with a UTMCoordinate representing the
+     *          rover's current location.
      *
      * @param stGoalCoordinate - UTMCoordinate reference representing the current rover destination.
      *
-     * @todo Implement this.
+     * @todo Build in edge case handling of obstacle on boundary goal.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-02
+     * @date 2024-02-015
      ******************************************************************************/
-    void AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate) {}
+    void AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate)
+    {
+        // Determine components of the distance vector formed by the current location and goal.
+        const double dDeltaX         = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
+        const double dDeltaY         = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
+        const double dAbsoluteDeltaX = std::abs(dDeltaX);
+        const double dAbsoluteDeltaY = std::abs(dDeltaY);
+        double sDirection;
+        // Determine which component is major.
+        // If |X| is longer than |Y|.
+        if (dAbsoluteDeltaX > dAbsoluteDeltaY)
+        {
+            // Calculate scale ratio of distance vectors (big / small).
+            const double dVectorRatio = dAbsoluteDeltaX / m_dMaximumSearchGridSize;
+            // Determine +/- value of major component for boundary distance vector.
+            sDirection = dDeltaX / dAbsoluteDeltaX;
+            // Calculate goal node X component to be the boundary value.
+            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * m_dMaximumSearchGridSize;
+            // Determine +/- value of minor component for boundary distance vector.
+            // Edge case of DeltaY = 0, set sDirection to 0.
+            (dDeltaY) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
+            // Calculate goal node Y axis with scale ratio.
+            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * dVectorRatio * dDeltaY;
+        }
+        // Else if |Y| is longer than |X|.
+        else if (dAbsoluteDeltaX < dAbsoluteDeltaY)
+        {
+            // Calculate scale ratio of distance vectors (big / small).
+            const double dVectorRatio = dAbsoluteDeltaY / m_dMaximumSearchGridSize;
+            // Determine +/- value of major component for boundary distance vector.
+            sDirection = dDeltaY / dAbsoluteDeltaY;
+            // Calculate goal node Y component to be the boundary value.
+            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * m_dMaximumSearchGridSize;
+            // Determine +/- value of minor component for boundary distance vector.
+            // Edge case of DeltaX = 0, set sDirection to 0.
+            (dDeltaX) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
+            // Calculate goal node X axis with scale ratio.
+            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * dVectorRatio * dDeltaX;
+        }
+        // Else |X| = |Y|, so pick a corner.
+        else
+        {
+            // Determine +/- value of X component.
+            sDirection = dDeltaX / dAbsoluteDeltaX;
+            // Calculate goal node X component to be the boundary value.
+            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * m_dMaximumSearchGridSize;
+            // Determine +/- value of Y component.
+            sDirection = dDeltaY / dAbsoluteDeltaY;
+            // Calculate goal node Y component to be the boundary value.
+            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * m_dMaximumSearchGridSize;
+        }
+        // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
+        RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+    }
 
     /******************************************************************************
      * @brief Helper function used to translate a UTMCoordinate's dEasting and dNorthing
@@ -301,8 +364,6 @@ namespace pathplanners
         std::unordered_map<std::string, double> stdClosedList;
         // Place Starting node on open list.
         vOpenList.push_back(m_stStartNode);
-        // TODO: Is this necessary since this will be the only node?
-        // std::push_heap(vOpenList.begin(), vOpenList.end(), NodeGreaterThan());
         // Translate start node to string and add location on open list lookup map.
         std::string szLocationString;
         UTMCoordinateToString(m_stStartNode.stNodeLocation, szLocationString);
