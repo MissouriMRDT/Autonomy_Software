@@ -126,6 +126,30 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief This method is intended to be called when a new obstacle is detected
+     *          from the ZedCam to add a new obstacle to be considered in path finding.
+     *
+     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
+     *                      to add.
+     *     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::AddObstacle(const sl::ObjectData& stObstacle)
+    {
+        // Create Obstacle struct.
+        Obstacle stObstacleToAdd;
+        // Extract coordinate data from ObjectData struct.
+        stObstacleToAdd.stCenterPoint.dEasting  = stObstacle.position.x;
+        stObstacleToAdd.stCenterPoint.dNorthing = stObstacle.position.y;
+        // Extract size data from ObjectData and calculate size of obstacle.
+        // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
+        stObstacleToAdd.fRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
+        // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
+        m_vObstacles.emplace_back(stObstacleToAdd);
+    }
+
+    /******************************************************************************
      * @brief Helper function for the PlanAvoidancePath method. This method takes in
      *      a UTMCoordinate reference and uses class member variables to mutate the
      *      m_stGoalNode object's coordinates to represent the nearest boundary point.
