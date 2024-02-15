@@ -95,9 +95,9 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
 
 # Install PyTorch.
 ARG TORCH_VERSION="2.0.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/torch/amd64/torch_${TORCH_VERSION}_amd64.deb && \
-    dpkg -i torch_${TORCH_VERSION}_amd64.deb && \
-    rm torch_${TORCH_VERSION}_amd64.deb
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
+    dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
+    rm pytorch_${TORCH_VERSION}_amd64.deb
 
 # Install Abseil.
 ARG ABSEIL_VERSION="20230802.1"
