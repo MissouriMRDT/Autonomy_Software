@@ -17,7 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(Autonomy_Software VERSION 24.01.00)
 
 ## Allows use of "FindCUDA" function
-##cmake_policy(SET CMP0146 OLD)
+cmake_policy(SET CMP0146 OLD)
 
 ## Include Required CMake Packages
 if(NOT CPack_CMake_INCLUDED)
