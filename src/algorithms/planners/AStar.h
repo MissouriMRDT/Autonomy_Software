@@ -68,7 +68,6 @@ namespace pathplanners
             // Declare private methods.
             /////////////////////////////////////////
             void ClearObstacleData();
-            void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
             void FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
@@ -87,6 +86,9 @@ namespace pathplanners
             AStar();
             ~AStar();
             std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles);
+            void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
+            void AddObstacle(const sl::ObjectData& stObstacle);
+
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
