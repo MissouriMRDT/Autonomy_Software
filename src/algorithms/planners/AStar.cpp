@@ -100,6 +100,7 @@ namespace pathplanners
      *
      * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
      *
+     * @todo Validate data being pulled from ObjectData structs.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-15
@@ -117,7 +118,7 @@ namespace pathplanners
             stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
             stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
             // Extract size data from ObjectData and calculate size of obstacle.
-            // Assuming worst case scenario and calculating the maximum diagonal as object radius.
+            // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
             stObstacleToAdd.fRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
             // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
             m_vObstacles.emplace_back(stObstacleToAdd);
@@ -134,7 +135,7 @@ namespace pathplanners
      *
      * @param stGoalCoordinate - UTMCoordinate reference representing the current rover destination.
      *
-     * @todo Build in edge case handling of obstacle on boundary goal.
+     * @todo Test me!
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-015
@@ -146,7 +147,7 @@ namespace pathplanners
         const double dDeltaY         = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
         const double dAbsoluteDeltaX = std::abs(dDeltaX);
         const double dAbsoluteDeltaY = std::abs(dDeltaY);
-        double sDirection;
+        short sDirection;
         // Determine which component is major.
         // If |X| is longer than |Y|.
         if (dAbsoluteDeltaX > dAbsoluteDeltaY)
@@ -158,7 +159,7 @@ namespace pathplanners
             // Calculate goal node X component to be the boundary value.
             m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * m_dMaximumSearchGridSize;
             // Determine +/- value of minor component for boundary distance vector.
-            // Edge case of DeltaY = 0, set sDirection to 0.
+            // Edge case of dDeltaY = 0, set sDirection to 0.
             (dDeltaY) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
             // Calculate goal node Y axis with scale ratio.
             m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * dVectorRatio * dDeltaY;
@@ -173,7 +174,7 @@ namespace pathplanners
             // Calculate goal node Y component to be the boundary value.
             m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * m_dMaximumSearchGridSize;
             // Determine +/- value of minor component for boundary distance vector.
-            // Edge case of DeltaX = 0, set sDirection to 0.
+            // Edge case of dDeltaX = 0, set sDirection to 0.
             (dDeltaX) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
             // Calculate goal node X axis with scale ratio.
             m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * dVectorRatio * dDeltaX;
@@ -192,6 +193,50 @@ namespace pathplanners
         }
         // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
         RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+
+        // Handle edge case of an obstacle blocking the goal coordinate.
+        // For each obstacle:
+        for (int i = 0; i < m_vObstacles.size(); i++)
+        {
+            // Multiplier for avoidance radius.
+            double dAvoidanceRadius = m_fAvoidanceMultiplier * m_vObstacles[i].fRadius;
+            // Create obstacle borders.
+            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
+            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
+            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
+            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
+
+            // If goal node coordinate is within X axis obstacle borders.
+            if (dWestObstacleBorder < m_stGoalNode.stNodeLocation.dEasting && m_stGoalNode.stNodeLocation.dEasting < dEastObstacleBorder)
+            {
+                {
+                    // Shift goal coordinate along X axis to avoid obstacle.
+                    if (m_stGoalNode.stNodeLocation.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
+                    {
+                        m_stGoalNode.stNodeLocation.dEasting = dEastObstacleBorder + m_dNodeSize;
+                    }
+                    else
+                    {
+                        m_stGoalNode.stNodeLocation.dEasting = dWestObstacleBorder - m_dNodeSize;
+                    }
+                    RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+                }
+                // If goal node coordinate is within Y axis obstacle borders.
+                if (dNorthObstacleBorder < m_stGoalNode.stNodeLocation.dNorthing && m_stGoalNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
+                {
+                    // Shift goal coordinate along Y axis to avoid obstacle.
+                    if (m_stGoalNode.stNodeLocation.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                    {
+                        m_stGoalNode.stNodeLocation.dNorthing = dNorthObstacleBorder + m_dNodeSize;
+                    }
+                    else
+                    {
+                        m_stGoalNode.stNodeLocation.dNorthing = dSouthObstacleBorder - m_dNodeSize;
+                    }
+                    RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+                }
+            }
+        }
     }
 
     /******************************************************************************
@@ -224,6 +269,8 @@ namespace pathplanners
      * @param dEasting - A const double reference representing a dEasting to evaluate.
      * @param dNorthing - A const double reference representing a dNorthing to evaluate.
      *
+     * @todo Test me!
+     *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-06
      ******************************************************************************/
@@ -246,8 +293,8 @@ namespace pathplanners
             double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
             double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
 
-            // Return false if node is within obstacle border.
-            if (dEasting > dWestObstacleBorder && dEasting < dEastObstacleBorder && dNorthing < dNorthObstacleBorder && dNorthing > dSouthObstacleBorder)
+            // Return false if node is within obstacle borders.
+            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder < dNorthing && dNorthing > dSouthObstacleBorder)
             {
                 return false;
             }
@@ -314,6 +361,7 @@ namespace pathplanners
         }
         // Recursive case: call ConstructPath on parent pointer.
         ConstructPath(*stEndNode.stParentNode);
+        return;
     }
 
     /******************************************************************************
@@ -322,7 +370,9 @@ namespace pathplanners
      *
      * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
      *
-     * @return
+     * @return - A vector of UTMCoordinates representing the path calculated by ASTAR.
+     *
+     * @todo Build a visualizer for testing.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
