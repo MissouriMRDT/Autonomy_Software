@@ -54,19 +54,6 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Helper functor implemented for std::make_heap vOpenList in the
-     *      PlanAvoidanceRoute() method to make it a min-heap.
-     *
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-02
-     ******************************************************************************/
-    struct AStar::NodeGreaterThan
-    {
-            bool operator()(const nodes::AStarNode& lhs, const nodes::AStarNode& rhs) const { return lhs.dKf > rhs.dKf; }
-    };
-
-    /******************************************************************************
      * @brief Struct to represent the obstacles that need to be avoided by the
      *      PlanAvoidanceRoute method. fRadius is meant to represent the estimated size
      *      of the obstacle in meters.
@@ -431,7 +418,7 @@ namespace pathplanners
         // Open list implemented as a min-heap queue for O(1) retrieval of the node with min dKf value.
         // C++ utilizes the '*_heap' family of functions which operate on vectors.
         std::vector<nodes::AStarNode> vOpenList;
-        std::make_heap(vOpenList.begin(), vOpenList.end(), NodeGreaterThan());
+        std::make_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
         // Unordered map of coordinates for open list for O(1) lookup.
         std::unordered_map<std::string, double> stdOpenListLookup;
         // Vector containing nodes on the closed list.
@@ -449,7 +436,7 @@ namespace pathplanners
         while (!vOpenList.empty())
         {
             // Retrieve node with the minimum dKf on open list (Q).
-            std::pop_heap(vOpenList.begin(), vOpenList.end(), NodeGreaterThan());
+            std::pop_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
             nodes::AStarNode nextParent = vOpenList.back();
             // Pop Q off open list.
             vOpenList.pop_back();
@@ -532,7 +519,7 @@ namespace pathplanners
                 stdOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
                 // Push to heap.
                 vOpenList.push_back(vSuccessors[i]);
-                std::push_heap(vOpenList.begin(), vOpenList.end(), NodeGreaterThan());
+                std::push_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
             }    // End For(each successor).
             // Create and format lookup string.
             std::string szParentLookup;
