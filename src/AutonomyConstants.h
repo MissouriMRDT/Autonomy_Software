@@ -227,6 +227,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
     //// Algorithm Constants.
     ///////////////////////////////////////////////////////////////////////////
+
+    // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles
     const double ASTAR_MAXIMUM_SEARCH_GRID  = 10.0;         // Maximum search grid size (UTM)
     const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
