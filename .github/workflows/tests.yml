@@ -53,7 +53,7 @@ jobs:
 
       - name: Check File Existence (${{ matrix.type }} Tests)
         id: check
-        uses: andstor/file-existence-action@v2
+        uses: andstor/file-existence-action@v3
         with:
           files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
 
