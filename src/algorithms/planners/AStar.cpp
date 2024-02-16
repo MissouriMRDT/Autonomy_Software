@@ -110,7 +110,7 @@ namespace pathplanners
         // Remove stale obstacle data.
         ClearObstacleData();
         // For each object in vObstacles:
-        for (int i = 0; i < vObstacles.size(); i++)
+        for (size_t i = 0; i < vObstacles.size(); i++)
         {
             // Create Obstacle struct.
             Obstacle stObstacleToAdd;
@@ -177,11 +177,11 @@ namespace pathplanners
         if (dAbsoluteDeltaX > dAbsoluteDeltaY)
         {
             // Calculate scale ratio of distance vectors (big / small).
-            const double dVectorRatio = dAbsoluteDeltaX / m_dMaximumSearchGridSize;
+            const double dVectorRatio = dAbsoluteDeltaX / constants::ASTAR_MAXIMUM_SEARCH_GRID;
             // Determine +/- value of major component for boundary distance vector.
             sDirection = dDeltaX / dAbsoluteDeltaX;
             // Calculate goal node X component to be the boundary value.
-            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * m_dMaximumSearchGridSize;
+            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
             // Determine +/- value of minor component for boundary distance vector.
             // Edge case of dDeltaY = 0, set sDirection to 0.
             (dDeltaY) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
@@ -192,11 +192,11 @@ namespace pathplanners
         else if (dAbsoluteDeltaX < dAbsoluteDeltaY)
         {
             // Calculate scale ratio of distance vectors (big / small).
-            const double dVectorRatio = dAbsoluteDeltaY / m_dMaximumSearchGridSize;
+            const double dVectorRatio = dAbsoluteDeltaY / constants::ASTAR_MAXIMUM_SEARCH_GRID;
             // Determine +/- value of major component for boundary distance vector.
             sDirection = dDeltaY / dAbsoluteDeltaY;
             // Calculate goal node Y component to be the boundary value.
-            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * m_dMaximumSearchGridSize;
+            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
             // Determine +/- value of minor component for boundary distance vector.
             // Edge case of dDeltaX = 0, set sDirection to 0.
             (dDeltaX) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
@@ -209,21 +209,21 @@ namespace pathplanners
             // Determine +/- value of X component.
             sDirection = dDeltaX / dAbsoluteDeltaX;
             // Calculate goal node X component to be the boundary value.
-            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * m_dMaximumSearchGridSize;
+            m_stGoalNode.stNodeLocation.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
             // Determine +/- value of Y component.
             sDirection = dDeltaY / dAbsoluteDeltaY;
             // Calculate goal node Y component to be the boundary value.
-            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * m_dMaximumSearchGridSize;
+            m_stGoalNode.stNodeLocation.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
         }
         // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
         RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
 
         // Handle edge case of an obstacle blocking the goal coordinate.
         // For each obstacle:
-        for (int i = 0; i < m_vObstacles.size(); i++)
+        for (size_t i = 0; i < m_vObstacles.size(); i++)
         {
             // Multiplier for avoidance radius.
-            double dAvoidanceRadius = m_fAvoidanceMultiplier * m_vObstacles[i].fRadius;
+            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].fRadius;
             // Create obstacle borders.
             double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
             double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
@@ -237,11 +237,11 @@ namespace pathplanners
                     // Shift goal coordinate along X axis to avoid obstacle.
                     if (m_stGoalNode.stNodeLocation.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
                     {
-                        m_stGoalNode.stNodeLocation.dEasting = dEastObstacleBorder + m_dNodeSize;
+                        m_stGoalNode.stNodeLocation.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
                     }
                     else
                     {
-                        m_stGoalNode.stNodeLocation.dEasting = dWestObstacleBorder - m_dNodeSize;
+                        m_stGoalNode.stNodeLocation.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
                     }
                     RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
                 }
@@ -251,11 +251,11 @@ namespace pathplanners
                     // Shift goal coordinate along Y axis to avoid obstacle.
                     if (m_stGoalNode.stNodeLocation.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
                     {
-                        m_stGoalNode.stNodeLocation.dNorthing = dNorthObstacleBorder + m_dNodeSize;
+                        m_stGoalNode.stNodeLocation.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
                     }
                     else
                     {
-                        m_stGoalNode.stNodeLocation.dNorthing = dSouthObstacleBorder - m_dNodeSize;
+                        m_stGoalNode.stNodeLocation.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
                     }
                     RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
                 }
@@ -301,16 +301,16 @@ namespace pathplanners
     bool AStar::ValidCoordinate(const double& dEasting, const double& dNorthing)
     {
         // Boundary check (Figure out how to override auto-format).
-        if (dEasting < (dEasting - m_dMaximumSearchGridSize) || dEasting > (dEasting + m_dMaximumSearchGridSize) || dNorthing < (dNorthing - m_dMaximumSearchGridSize) ||
-            dNorthing < (dNorthing + m_dMaximumSearchGridSize))
+        if (dEasting < (dEasting - constants::ASTAR_MAXIMUM_SEARCH_GRID) || dEasting > (dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID) ||
+            dNorthing < (dNorthing - constants::ASTAR_MAXIMUM_SEARCH_GRID) || dNorthing < (dNorthing + constants::ASTAR_MAXIMUM_SEARCH_GRID))
         {
             return false;
         }
         // For each obstacle.
-        for (int i = 0; i < m_vObstacles.size(); i++)
+        for (size_t i = 0; i < m_vObstacles.size(); i++)
         {
             // Multiplier for avoidance radius.
-            double dAvoidanceRadius = m_fAvoidanceMultiplier * m_vObstacles[i].fRadius;
+            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].fRadius;
             // Create obstacle borders.
             double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
             double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
@@ -327,11 +327,11 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Helper function used to round UTMCoordinates to the nearest m_dNodeSize to avoid
+     * @brief Helper function used to round UTMCoordinates to the nearest constants::ASTAR_NODE_SIZE to avoid
      *      rounding errors when trying to determine if two nodes have the same location.
      *
      * @param stCoordinateToRound - A UTMCoordinate reference that will have its dNorthing and dEasting values
-     *                              mutated to round them to the nearest m_dNodeSize.
+     *                              mutated to round them to the nearest constants::ASTAR_NODE_SIZE.
      *
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
@@ -339,8 +339,8 @@ namespace pathplanners
      ******************************************************************************/
     void AStar::RoundUTMCoordinate(geoops::UTMCoordinate& stRoundCoordinate)
     {
-        stRoundCoordinate.dEasting  = std::round(stRoundCoordinate.dEasting / m_dNodeSize) * m_dNodeSize;
-        stRoundCoordinate.dNorthing = std::round(stRoundCoordinate.dNorthing / m_dNodeSize) * m_dNodeSize;
+        stRoundCoordinate.dEasting  = std::round(stRoundCoordinate.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+        stRoundCoordinate.dNorthing = std::round(stRoundCoordinate.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
     }
 
     /******************************************************************************
@@ -362,7 +362,8 @@ namespace pathplanners
     {
         double dGoalEastingDistance  = std::abs(stNodeToCalculate.stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
         double dGoalNorthingDistance = std::abs(stNodeToCalculate.stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-        return m_dNodeSize * (dGoalEastingDistance + dGoalNorthingDistance) + (m_dSqrtNodeSize - 2 * m_dNodeSize) * std::min(dGoalEastingDistance, dGoalNorthingDistance);
+        return constants::ASTAR_NODE_SIZE * (dGoalEastingDistance + dGoalNorthingDistance) +
+               (constants::ASTAR_SQRT_NODE_SIZE - 2 * constants::ASTAR_NODE_SIZE) * std::min(dGoalEastingDistance, dGoalNorthingDistance);
     }
 
     /******************************************************************************
@@ -453,15 +454,15 @@ namespace pathplanners
             vOpenList.pop_back();
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
-            double dWestOffset  = nextParent.stNodeLocation.dEasting - m_dNodeSize;
-            double dEastOffset  = nextParent.stNodeLocation.dEasting + m_dNodeSize;
-            double dSouthOffset = nextParent.stNodeLocation.dNorthing - m_dNodeSize;
-            double dNorthOffset = nextParent.stNodeLocation.dNorthing + m_dNodeSize;
+            double dWestOffset  = nextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
+            double dEastOffset  = nextParent.stNodeLocation.dEasting + constants::ASTAR_NODE_SIZE;
+            double dSouthOffset = nextParent.stNodeLocation.dNorthing - constants::ASTAR_NODE_SIZE;
+            double dNorthOffset = nextParent.stNodeLocation.dNorthing + constants::ASTAR_NODE_SIZE;
             // Counter for avoiding parent duplication
             ushort usParentTracker = 0;
-            for (double dEastingOffset = dWestOffset; dEastingOffset < dEastOffset; dEastingOffset += m_dNodeSize)
+            for (double dEastingOffset = dWestOffset; dEastingOffset < dEastOffset; dEastingOffset += constants::ASTAR_NODE_SIZE)
             {
-                for (double dNorthingOffset = dSouthOffset; dNorthingOffset < dNorthOffset; dNorthingOffset += m_dNodeSize)
+                for (double dNorthingOffset = dSouthOffset; dNorthingOffset < dNorthOffset; dNorthingOffset += constants::ASTAR_NODE_SIZE)
                 {
                     // Skip duplicating the parent node.
                     // Implemented with a counter to avoid evaluating coordinates.
@@ -488,7 +489,7 @@ namespace pathplanners
                 }
             }
             // For each successor:
-            for (char i = 0; i < vSuccessors.size(); i++)
+            for (size_t i = 0; i < vSuccessors.size(); i++)
             {
                 // If successor = goal, stop search.
                 if (vSuccessors[i].stNodeLocation == m_stGoalNode.stNodeLocation)
@@ -503,7 +504,7 @@ namespace pathplanners
 
                 // Compute dKg, dKh, and dKf for successor.
                 // Calculate successor previous path cost.
-                vSuccessors[i].dKg = nextParent.dKg + m_dNodeSize;
+                vSuccessors[i].dKg = nextParent.dKg + constants::ASTAR_NODE_SIZE;
                 // Calculate successor future path cost through diagonal distance heuristic.
                 vSuccessors[i].dKh = CalculateNodeHValue(vSuccessors[i]);
                 // f = g + h

@@ -54,20 +54,10 @@ namespace pathplanners
             std::vector<geoops::UTMCoordinate> m_vPathCoordinates;
             // Obstacles for AStar to use during routing
             std::vector<Obstacle> m_vObstacles;
-            // TODO: Move to constants
-            // Multiplier for marking extra nodes around objects as obstacles
-            const float m_fAvoidanceMultiplier = 1.2;
-            // Maximum search grid size (UTM)
-            const double m_dMaximumSearchGridSize = 10.0;
-            // Represents the node size / accuracy in meters
-            const double m_dNodeSize = 0.5;
-            // Square root of m_dNodeSize
-            const double m_dSqrtNodeSize = M_SQRT1_2;
 
             /////////////////////////////////////////
             // Declare private methods.
             /////////////////////////////////////////
-            void ClearObstacleData();
             void FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
@@ -87,11 +77,12 @@ namespace pathplanners
             ~AStar();
             std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles);
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
-            void AddObstacle(const sl::ObjectData& stObstacle);
 
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
+            void AddObstacle(const sl::ObjectData& stObstacle);
+            void ClearObstacleData();
 
             /////////////////////////////////////////
             // Getters.
