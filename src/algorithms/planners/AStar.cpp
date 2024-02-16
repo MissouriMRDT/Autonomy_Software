@@ -528,6 +528,15 @@ namespace pathplanners
             stdClosedList.emplace(std::make_pair(szParentLookup, nextParent.dKf));
             // Push Q to the closed list.
             vClosedList.emplace_back(nextParent);
-        }    // End While(!vOpenList.empty)
+        }    // End While(!vOpenList.empty).
+        // Function has failed to find a valid path.
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "ASTAR Failed to find a path from UTM point ({}, {}) to UTM point ({}, {})",
+                  m_stStartNode.stNodeLocation.dEasting,
+                  m_stStartNode.stNodeLocation.dNorthing,
+                  m_stGoalNode.stNodeLocation.dEasting,
+                  m_stGoalNode.stNodeLocation.dNorthing);
+        // Return empty vector and handle outside of class.
+        return m_vPathCoordinates;
     }
 }    // namespace pathplanners
