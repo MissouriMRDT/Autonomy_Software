@@ -40,6 +40,8 @@ namespace controllers
      *      This algorithm is used to precisely control a different drive robot to
      *      follow a given path.
      *
+     * @note In this class heading/bearing refers to the absolute orientation of a rover (N,E,S,W).
+     * While yaw refers to an angle relative to the agent's current orientation.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-01
@@ -51,7 +53,7 @@ namespace controllers
             // Declare public methods and member variables.
             /////////////////////////////////////////
 
-            StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
+            StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dK, const double dDistToFrontAxle, const double dYawTolerance);
             ~StanleyController();
 
             double Calculate(const geoops::UTMCoordinate& stCurrPosUTM, const double dVelocity, const double dBearing);
@@ -60,7 +62,7 @@ namespace controllers
             // Setters.
             /////////////////////////////////////////
 
-            void SetProportionalGain(const double dKp);
+            void SetSteeringControlGain(const double dKp);
             void SetDistanceToFrontAxle(const double dDistToFrontAxle);
             void SetYawTolerance(const double dYawTolerance);
             void SetPathUTM(std::vector<geoops::UTMCoordinate>& vPathUTM);
@@ -69,7 +71,7 @@ namespace controllers
             // Getters.
             ////////////////////////////////////////
 
-            double GetProportionalGain() const;
+            double GetSteeringControlGain() const;
             double GetDistanceToFrontAxle() const;
             double GetYawTolerance() const;
             unsigned int GetLastTargetIdx() const;
@@ -89,7 +91,7 @@ namespace controllers
             // Declare private member variables.
             /////////////////////////////////////////
 
-            double m_dKp;                                     // Proportional gain.
+            double m_dK;                                      // Steering control gain.
             double m_dDistToFrontAxle;                        // Distance between the position sensor (GPS) and the front axle.
             double m_dYawTolerance;                           // Minimum yaw change threshold for execution.
             unsigned int m_unLastTargetIdx;                   // Index of last point on path used in Stanley calculation.
