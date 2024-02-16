@@ -20,7 +20,6 @@
 #include <cmath>
 #include <gtest/gtest.h>
 #include <limits>
-#include <stdexcept>
 #include <vector>
 
 /// \endcond
@@ -49,21 +48,13 @@ namespace controllers
     {
         public:
             /////////////////////////////////////////
-            // Declare public enums that are specific to and used withing this class.
-            /////////////////////////////////////////
-
-            /////////////////////////////////////////
             // Declare public methods and member variables.
             /////////////////////////////////////////
 
-            StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance, const std::vector<geoops::UTMCoordinate> vPathUTM);
+            StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
             ~StanleyController();
 
-            double Calculate(const geoops::UTMCoordinate utmCurrentPos, const double dVelocity, const double dBearing);
-
-            /////////////////////////////////////////
-            // Declare public primary methods.
-            /////////////////////////////////////////
+            double Calculate(const geoops::UTMCoordinate& stCurrPosUTM, const double dVelocity, const double dBearing);
 
             /////////////////////////////////////////
             // Setters.
@@ -72,7 +63,7 @@ namespace controllers
             void SetProportionalGain(const double dKp);
             void SetDistanceToFrontAxle(const double dDistToFrontAxle);
             void SetYawTolerance(const double dYawTolerance);
-            void SetPathUTM(std::vector<geoops::UTMCoordinate> vPathUTM);
+            void SetPathUTM(std::vector<geoops::UTMCoordinate>& vPathUTM);
 
             /////////////////////////////////////////
             // Getters.
@@ -81,6 +72,7 @@ namespace controllers
             double GetProportionalGain() const;
             double GetDistanceToFrontAxle() const;
             double GetYawTolerance() const;
+            unsigned int GetLastTargetIdx() const;
             std::vector<geoops::UTMCoordinate> GetPathUTM() const;
 
         private:
@@ -88,20 +80,20 @@ namespace controllers
             // Declare private methods.
             /////////////////////////////////////////
 
-            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate utmCurrentPos, const geoops::UTMCoordinate utmFrontAxlePos, const double dBearing) const;
-            double CalculateCrossTrackError(const geoops::UTMCoordinate utmFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const;
-            double CalculateTargetYaw(const unsigned int unTargetIdx) const;
-            geoops::UTMCoordinate CalculateFrontAxleCoordinate(const geoops::UTMCoordinate utmCurrentPos, const double dBearing) const;
+            geoops::UTMCoordinate CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stCurrPosUTM, const double dBearing) const;
+            unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate& stmFrontAxlePosUTM, const double dBearing) const;
+            double CalculateTargetBearing(const unsigned int unTargetIdx) const;
+            double CalculateCrossTrackError(const geoops::UTMCoordinate& stFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const;
 
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
 
             double m_dKp;                                     // Proportional gain.
-            double m_dDistToFrontAxle;                        // Distance between the position sensor (GPS) and the front axle
-            double m_dYawTolerance;                           // Minimum yaw change threshold for execution
-            unsigned int m_unLastTargetIdx;                   // Index of last point on path used in Stanley calculation
-            std::vector<geoops::UTMCoordinate> m_vPathUTM;    // Stores the sequence of UTM coordinates defining the navigational path
+            double m_dDistToFrontAxle;                        // Distance between the position sensor (GPS) and the front axle.
+            double m_dYawTolerance;                           // Minimum yaw change threshold for execution.
+            unsigned int m_unLastTargetIdx;                   // Index of last point on path used in Stanley calculation.
+            std::vector<geoops::UTMCoordinate> m_vPathUTM;    // Stores the sequence of UTM coordinates defining the navigational path.
     };
 }    // namespace controllers
 
