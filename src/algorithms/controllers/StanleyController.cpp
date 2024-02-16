@@ -30,19 +30,19 @@ namespace controllers
      * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
      *
      * @param vPathUTM - Vector of UTM coordinates describing path to follow.
-     * @param dKp - Proportional gain.
+     * @param dKp - Steering control gain.
      * @param dDistToFrontAxle - Distance between the position sensor (GPS) and the front axle.
      * @param dYawTolerance - Minimum yaw change threshold for execution.
      *
-     * @note The higher the proportional gain the more reactive the rover will be to changes in yaw.
+     * @note The higher the steering control gain the more reactive the rover will be to changes in yaw.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dKp, const double dDistToFrontAxle, const double dYawTolerance)
+    StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
-        m_dKp              = dKp;
+        m_dK               = dK;
         m_dDistToFrontAxle = dDistToFrontAxle;
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
@@ -99,7 +99,7 @@ namespace controllers
 
         // Calculate the change in yaw needed to correct for the cross track error
         double dCrossTrackError = CalculateCrossTrackError(stFrontAxlePos, unTargetIdx, dBearing);
-        double dDeltaYaw        = dYawError + std::atan2(m_dKp * dCrossTrackError, dVelocity);
+        double dDeltaYaw        = dYawError + std::atan2(m_dK * dCrossTrackError, dVelocity);
 
         // If a rotation is small enough we will just go ahead and skip it
         if (std::abs(dDeltaYaw) < m_dYawTolerance)
@@ -111,16 +111,16 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Setter for proportional gain.
+     * @brief Setter for steering control gain.
      *
-     * @param dKp -  Proportional gain.
+     * @param dK -  Steering control gain.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    void StanleyController::SetProportionalGain(const double dKp)
+    void StanleyController::SetSteeringControlGain(const double dK)
     {
-        m_dKp = dKp;
+        m_dK = dK;
     }
 
     /******************************************************************************
@@ -164,16 +164,16 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Getter for proportional gain.
+     * @brief Getter for steering control gain.
      *
-     * @return double - Proportional gain.
+     * @return double - Steering control gain.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    double StanleyController::GetProportionalGain() const
+    double StanleyController::GetSteeringControlGain() const
     {
-        return m_dKp;
+        return m_dK;
     }
 
     /******************************************************************************
