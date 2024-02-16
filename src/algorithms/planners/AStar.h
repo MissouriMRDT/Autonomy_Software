@@ -45,7 +45,6 @@ namespace pathplanners
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
-            struct NodeGreaterThan;
             struct Obstacle;
             // Start and Goal Nodes
             nodes::AStarNode m_stStartNode;
