@@ -64,7 +64,7 @@ namespace pathplanners
                 double dKf;                              // The sum of dKg and dKh. An estimate for the total cost of the node.
 
                 /******************************************************************************
-                 * @brief Construct a new AStarNode object.
+                 * @brief Construct a new AStarNode struct.
                  *
                  * @param stParentNode - A pointer to the parent node the this nodes comes after in the path.
                  * @param stNodeLocation - The global position of this point/node stored in UTM format.
@@ -87,6 +87,37 @@ namespace pathplanners
                     this->dKg            = dKg;
                     this->dKh            = dKh;
                     this->dKf            = dKf;
+                }
+
+                /******************************************************************************
+                 * @brief Overloaded comparison operators for AStarNode struct.
+                 *
+                 * @param other - The other AStarNode in the comparison.
+                 *
+                 * @author Kai Shafe (kasq5m@umsystem.edu)
+                 * @date 2024-02-15
+                 ******************************************************************************/
+                bool operator<(const AStarNode& other) const { return this->dKf < other.dKf; }
+
+                bool operator<=(const AStarNode& other) const { return this->dKf <= other.dKf; }
+
+                bool operator>(const AStarNode& other) const { return this->dKf > other.dKf; }
+
+                bool operator>=(const AStarNode& other) const { return this->dKf >= other.dKf; }
+
+                /******************************************************************************
+                 * @brief Overloaded equality operator for AStarNode struct. This overload is used
+                 *          to see if two nodes have matching coordinates.
+                 *
+                 * @param other - The other AStarNode in the comparison.
+                 *
+                 * @author Kai Shafe (kasq5m@umsystem.edu)
+                 * @date 2024-02-15
+                 ******************************************************************************/
+
+                bool operator==(const AStarNode& other) const
+                {
+                    return this->stNodeLocation.dEasting == other.stNodeLocation.dEasting && this->stNodeLocation.dNorthing == other.stNodeLocation.dNorthing;
                 }
         };
     }    // namespace nodes

@@ -3,6 +3,7 @@
  *      namespace.
  *
  * @file AStar.cpp
+ * @author Kai Shafe (kasq5m@umsystem.edu)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-01
  *
@@ -131,7 +132,7 @@ namespace pathplanners
      *
      * @param stObstacle - A reference to an ObjectData struct representing the obstacle
      *                      to add.
-     *     *
+     *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-15
      ******************************************************************************/
@@ -492,7 +493,7 @@ namespace pathplanners
             for (size_t i = 0; i < vSuccessors.size(); i++)
             {
                 // If successor = goal, stop search.
-                if (vSuccessors[i].stNodeLocation == m_stGoalNode.stNodeLocation)
+                if (vSuccessors[i] == m_stGoalNode)
                 {
                     ConstructPath(vSuccessors[i]);
                     return m_vPathCoordinates;
