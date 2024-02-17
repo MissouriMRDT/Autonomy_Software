@@ -90,19 +90,47 @@ namespace pathplanners
                 }
 
                 /******************************************************************************
-                 * @brief Overloaded comparison operators for AStarNode struct.
+                 * @brief Overloaded < comparison operator for AStarNode struct. Evaluates based
+                 *          on dKf value of nodes.
                  *
                  * @param other - The other AStarNode in the comparison.
                  *
                  * @author Kai Shafe (kasq5m@umsystem.edu)
-                 * @date 2024-02-15
+                 * @date 2024-02-17
                  ******************************************************************************/
                 bool operator<(const AStarNode& other) const { return this->dKf < other.dKf; }
 
+                /******************************************************************************
+                 * @brief Overloaded <= comparison operator for AStarNode struct. Evaluates based
+                 *          on dKf value of nodes.
+                 *
+                 * @param other - The other AStarNode in the comparison.
+                 *
+                 * @author Kai Shafe (kasq5m@umsystem.edu)
+                 * @date 2024-02-17
+                 ******************************************************************************/
                 bool operator<=(const AStarNode& other) const { return this->dKf <= other.dKf; }
 
+                /******************************************************************************
+                 * @brief Overloaded > comparison operator for AStarNode struct. Evaluates based
+                 *          on dKf value of nodes.
+                 *
+                 * @param other - The other AStarNode in the comparison.
+                 *
+                 * @author Kai Shafe (kasq5m@umsystem.edu)
+                 * @date 2024-02-17
+                 ******************************************************************************/
                 bool operator>(const AStarNode& other) const { return this->dKf > other.dKf; }
 
+                /******************************************************************************
+                 * @brief Overloaded >= comparison operator for AStarNode struct. Evaluates based
+                 *          on dKf value of nodes.
+                 *
+                 * @param other - The other AStarNode in the comparison.
+                 *
+                 * @author Kai Shafe (kasq5m@umsystem.edu)
+                 * @date 2024-02-17
+                 ******************************************************************************/
                 bool operator>=(const AStarNode& other) const { return this->dKf >= other.dKf; }
 
                 /******************************************************************************
@@ -114,7 +142,6 @@ namespace pathplanners
                  * @author Kai Shafe (kasq5m@umsystem.edu)
                  * @date 2024-02-15
                  ******************************************************************************/
-
                 bool operator==(const AStarNode& other) const
                 {
                     return this->stNodeLocation.dEasting == other.stNodeLocation.dEasting && this->stNodeLocation.dNorthing == other.stNodeLocation.dNorthing;
