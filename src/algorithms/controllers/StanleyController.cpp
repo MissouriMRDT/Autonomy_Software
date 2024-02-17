@@ -111,6 +111,22 @@ namespace controllers
     }
 
     /******************************************************************************
+     * @brief Resets the progress on the current path.
+     *
+     * The stanley control algorithm prevents points that have been pass to be revisited to
+     * motivate the agent to go further along the path. Although sometimes it may be necessary to
+     * restart an agents progress if it deviates far enough from the path.
+     *
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-16
+     ******************************************************************************/
+    void StanleyController::ResetProgress()
+    {
+        m_unLastTargetIdx = 0;
+    }
+
+    /******************************************************************************
      * @brief Setter for steering control gain.
      *
      * @param dK -  Steering control gain.
