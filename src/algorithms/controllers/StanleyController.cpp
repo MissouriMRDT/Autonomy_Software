@@ -427,7 +427,7 @@ namespace controllers
     unsigned int StanleyController::IdentifyTargetIdx(const geoops::UTMCoordinate& stUTMFrontAxlePos) const
     {
         // Search for the nearest point in the path
-        unsigned int unTargetIdx;
+        unsigned int unTargetIdx                                  = 0;
         double dMinDistance                                       = std::numeric_limits<double>::max();
         std::vector<geoops::UTMCoordinate>::const_iterator itPath = this->m_vUTMPath.begin();
         while (itPath != this->m_vUTMPath.end())
