@@ -3,8 +3,7 @@
  *      namespace.
  *
  * @file AStar.cpp
- * @author Kai Shafe (kasq5m@umsystem.edu)
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author Kai Shafe (kasq5m@umsystem.edu), clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-01
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
@@ -147,10 +146,11 @@ namespace pathplanners
      *
      * @param stGoalCoordinate - UTMCoordinate reference representing the current rover destination.
      *
-     * @todo Test me!
+     * @todo Test that this correctly maps UTMCoordinates to the correct boundary point,
+     *          avoiding obstacles at the boundary.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-015
+     * @date 2024-02-15
      ******************************************************************************/
     void AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate)
     {
@@ -221,32 +221,31 @@ namespace pathplanners
             // If goal node coordinate is within X axis obstacle borders.
             if (dWestObstacleBorder < m_stGoalNode.stNodeLocation.dEasting && m_stGoalNode.stNodeLocation.dEasting < dEastObstacleBorder)
             {
+                // Shift goal coordinate along X axis to avoid obstacle.
+                if (m_stGoalNode.stNodeLocation.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
                 {
-                    // Shift goal coordinate along X axis to avoid obstacle.
-                    if (m_stGoalNode.stNodeLocation.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
-                    {
-                        m_stGoalNode.stNodeLocation.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
-                    }
-                    else
-                    {
-                        m_stGoalNode.stNodeLocation.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
-                    }
-                    RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+                    m_stGoalNode.stNodeLocation.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
                 }
-                // If goal node coordinate is within Y axis obstacle borders.
-                if (dNorthObstacleBorder < m_stGoalNode.stNodeLocation.dNorthing && m_stGoalNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
+                else
                 {
-                    // Shift goal coordinate along Y axis to avoid obstacle.
-                    if (m_stGoalNode.stNodeLocation.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
-                    {
-                        m_stGoalNode.stNodeLocation.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
-                    }
-                    else
-                    {
-                        m_stGoalNode.stNodeLocation.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
-                    }
-                    RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+                    m_stGoalNode.stNodeLocation.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
                 }
+                RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
+            }
+
+            // If goal node coordinate is within Y axis obstacle borders.
+            if (dNorthObstacleBorder < m_stGoalNode.stNodeLocation.dNorthing && m_stGoalNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
+            {
+                // Shift goal coordinate along Y axis to avoid obstacle.
+                if (m_stGoalNode.stNodeLocation.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                {
+                    m_stGoalNode.stNodeLocation.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
+                }
+                else
+                {
+                    m_stGoalNode.stNodeLocation.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
+                }
+                RoundUTMCoordinate(m_stGoalNode.stNodeLocation);
             }
         }
     }
@@ -259,8 +258,6 @@ namespace pathplanners
      * @param stToTranslate - A UTMCoordinate struct reference containing the data to translate.
      * @param szTranslated - A string to be mutated to contain the translated coordinate.
      *
-     * @todo This should provide unique strings within our operation scope without having to
-     *      do too many operations. Check with Clayton to see if this is viable.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-05
@@ -281,7 +278,7 @@ namespace pathplanners
      * @param dEasting - A const double reference representing a dEasting to evaluate.
      * @param dNorthing - A const double reference representing a dNorthing to evaluate.
      *
-     * @todo Test me!
+     * @todo Evaluate that this works with the structure of UTMCoordinates.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-06
@@ -320,7 +317,6 @@ namespace pathplanners
      *
      * @param stCoordinateToRound - A UTMCoordinate reference that will have its dNorthing and dEasting values
      *                              mutated to round them to the nearest constants::ASTAR_NODE_SIZE.
-     *
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-12
@@ -390,22 +386,20 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles)
+    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles,
+                                                                geoops::UTMCoordinate& stStartCoordinate,
+                                                                geoops::UTMCoordinate& stGoalCoordinate)
     {
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.
         UpdateObstacleData(vObstacles);
 
-        // Create Start and Goal nodes.
-        geoops::UTMCoordinate stStartCoordinate  = globals::g_pNavigationBoard->GetUTMData();
-        WaypointHandler::Waypoint stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-        geoops::UTMCoordinate stGoalCoordinate   = stGoalWaypoint.GetUTMCoordinate();
         // Map the goalLocation to an edge node based on maximum search size.
-        // FindNearestBoundaryPoint(stGoalCoordinate);    // Not implemented yet...
+        FindNearestBoundaryPoint(stGoalCoordinate);
         // Round Coordinates.
         RoundUTMCoordinate(stStartCoordinate);
         RoundUTMCoordinate(stGoalCoordinate);
-        // Create AStarNodes.
+        // Create start and goal AStarNodes.
         m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
         m_stGoalNode  = nodes::AStarNode(nullptr, stGoalCoordinate);
 
@@ -421,10 +415,12 @@ namespace pathplanners
         std::make_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
         // Unordered map of coordinates for open list for O(1) lookup.
         std::unordered_map<std::string, double> stdOpenListLookup;
+
         // Vector containing nodes on the closed list.
         std::vector<nodes::AStarNode> vClosedList;
         // Unordered map of coordinates for closed list for O(1) lookup.
         std::unordered_map<std::string, double> stdClosedList;
+
         // Place Starting node on open list.
         vOpenList.push_back(m_stStartNode);
         // Translate start node to string and add location on open list lookup map.
@@ -440,13 +436,15 @@ namespace pathplanners
             nodes::AStarNode nextParent = vOpenList.back();
             // Pop Q off open list.
             vOpenList.pop_back();
+
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
             double dWestOffset  = nextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
             double dEastOffset  = nextParent.stNodeLocation.dEasting + constants::ASTAR_NODE_SIZE;
             double dSouthOffset = nextParent.stNodeLocation.dNorthing - constants::ASTAR_NODE_SIZE;
             double dNorthOffset = nextParent.stNodeLocation.dNorthing + constants::ASTAR_NODE_SIZE;
-            // Counter for avoiding parent duplication
+
+            // Counter for avoiding parent duplication.
             ushort usParentTracker = 0;
             for (double dEastingOffset = dWestOffset; dEastingOffset < dEastOffset; dEastingOffset += constants::ASTAR_NODE_SIZE)
             {
@@ -459,11 +457,13 @@ namespace pathplanners
                     {
                         continue;
                     }
+
                     // Check for valid coordinate (check for boundary and obstacles).
                     if (!ValidCoordinate(dEastingOffset, dNorthingOffset))
                     {
                         continue;
                     }
+                    // Otherwise create the successor.
                     // Copy data from parent coordinate.
                     geoops::UTMCoordinate successorCoordinate = nextParent.stNodeLocation;
                     // Adjust Easting and Northing offsets to create new coordinate.
@@ -476,6 +476,7 @@ namespace pathplanners
                     vSuccessors.emplace_back(nextSuccessor);
                 }
             }
+
             // For each successor:
             for (size_t i = 0; i < vSuccessors.size(); i++)
             {
@@ -506,6 +507,7 @@ namespace pathplanners
                         continue;
                     }
                 }
+
                 // If a node with the same position as successor is in the closed list and has a lower dKf, skip this successor.
                 if (stdClosedList.contains(szSuccessorLookup))
                 {
@@ -514,6 +516,7 @@ namespace pathplanners
                         continue;
                     }
                 }
+
                 // Otherwise add successor node to open list.
                 // Add lookup string and dKf value to lookup map.
                 stdOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
@@ -521,6 +524,7 @@ namespace pathplanners
                 vOpenList.push_back(vSuccessors[i]);
                 std::push_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
             }    // End For(each successor).
+
             // Create and format lookup string.
             std::string szParentLookup;
             UTMCoordinateToString(nextParent.stNodeLocation, szParentLookup);
@@ -529,6 +533,7 @@ namespace pathplanners
             // Push Q to the closed list.
             vClosedList.emplace_back(nextParent);
         }    // End While(!vOpenList.empty).
+
         // Function has failed to find a valid path.
         LOG_ERROR(logging::g_qSharedLogger,
                   "ASTAR Failed to find a path from UTM point ({}, {}) to UTM point ({}, {})",

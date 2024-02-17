@@ -35,7 +35,6 @@ namespace pathplanners
      * @brief Implements the A* (ASTAR) algorithm with the ability to plan paths around
      *      obstacles and provide path bias points that the algorithm will try to adhere to.
      *
-     * @todo Make Obstacle into struct for readability.
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-01
      ******************************************************************************/
@@ -74,7 +73,10 @@ namespace pathplanners
             /////////////////////////////////////////
             AStar();
             ~AStar();
-            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles);
+
+            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles,
+                                                                 geoops::UTMCoordinate& stStartCoordinate,
+                                                                 geoops::UTMCoordinate& stGoalCoordinate);
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
 
             /////////////////////////////////////////
