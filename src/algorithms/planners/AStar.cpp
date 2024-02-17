@@ -377,7 +377,10 @@ namespace pathplanners
      * @brief Called in the obstacle avoidance state to plan a path around obstacles
      *      blocking our path.
      *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param stStartCoordinate - A UTMCoordinate reference that represents the start location.
+     * @param stGoalCoordinate - A UTMCoordinate reference that represents the goal location.
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class,
+     *                      defaults to an empty vector.
      *
      * @return - A vector of UTMCoordinates representing the path calculated by ASTAR.
      *
@@ -386,9 +389,9 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles,
-                                                                geoops::UTMCoordinate& stStartCoordinate,
-                                                                geoops::UTMCoordinate& stGoalCoordinate)
+    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(geoops::UTMCoordinate& stStartCoordinate,
+                                                                geoops::UTMCoordinate& stGoalCoordinate,
+                                                                const std::vector<sl::ObjectData>& vObstacles)
     {
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.

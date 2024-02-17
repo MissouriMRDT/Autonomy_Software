@@ -74,9 +74,10 @@ namespace pathplanners
             AStar();
             ~AStar();
 
-            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const std::vector<sl::ObjectData>& vObstacles,
-                                                                 geoops::UTMCoordinate& stStartCoordinate,
-                                                                 geoops::UTMCoordinate& stGoalCoordinate);
+            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(geoops::UTMCoordinate& stStartCoordinate,
+                                                                 geoops::UTMCoordinate& stGoalCoordinate,
+                                                                 const std::vector<sl::ObjectData>& vObstacles = std::vector<sl::ObjectData>());
+
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
 
             /////////////////////////////////////////
