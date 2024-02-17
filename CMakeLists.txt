@@ -151,13 +151,14 @@ install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
 file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
+file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
 file(GLOB Logging_SRC			  	    CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
 
 list(LENGTH UnitTests_SRC           UnitTests_LEN)
 list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC} ${Logging_SRC})
+    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
     target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
 else()
@@ -165,7 +166,7 @@ else()
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Logging_SRC})
+    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
     target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
 else()
