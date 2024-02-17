@@ -29,7 +29,6 @@ namespace controllers
     /******************************************************************************
      * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
      *
-     * @param vPathUTM - Vector of UTM coordinates describing path to follow.
      * @param dKp - Steering control gain.
      * @param dDistToFrontAxle - Distance between the position sensor (GPS) and the front axle.
      * @param dYawTolerance - Minimum yaw change threshold for execution.
@@ -51,7 +50,7 @@ namespace controllers
     /******************************************************************************
      * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
      *
-     * @param vPathUTM - Vector of UTM coordinates describing path to follow.
+     * @param vUTMPath - Vector of UTM coordinates describing path to follow.
      * @param dKp - Steering control gain.
      * @param dDistToFrontAxle - Distance between the position sensor (GPS) and the front axle.
      * @param dYawTolerance - Minimum yaw change threshold for execution.
@@ -61,20 +60,29 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
         m_dK               = dK;
         m_dDistToFrontAxle = dDistToFrontAxle;
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
-        m_vPathUTM         = vPathUTM;
+        m_vUTMPath         = vUTMPath;
+
+        // Convert the UTM path to a GPS path and save it.
+        m_vGPSPath.clear();
+        std::vector<geoops::UTMCoordinate>::const_iterator itrUTM = vUTMPath.begin();
+        while (itrUTM != vUTMPath.end())
+        {
+            m_vGPSPath.push_back(geoops::ConvertUTMToGPS(*itrUTM));
+            ++itrUTM;
+        }
     }
 
-     /******************************************************************************
+    /******************************************************************************
      * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
      *
-     * @param vPathGPS - Vector of GPS coordinates describing path to follow.
+     * @param vGPSPath - Vector of GPS coordinates describing path to follow.
      * @param dKp - Steering control gain.
      * @param dDistToFrontAxle - Distance between the position sensor (GPS) and the front axle.
      * @param dYawTolerance - Minimum yaw change threshold for execution.
@@ -84,7 +92,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-17-03
      ******************************************************************************/
-    StanleyController::StanleyController(const std::vector<geoops::GPSCoordinate>& vPathGPS, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    StanleyController::StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
         m_dK               = dK;
@@ -92,13 +100,14 @@ namespace controllers
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
 
-         // For each GPS coordinate convert it to UTM and save it to the path.
-        std::vector<geoops::GPSCoordinate>::const_iterator itrGPS = vPathGPS.begin();
-        while(itrGPS != vPathGPS.end()) {
-            m_vPathUTM.push_back(geoops::ConvertGPSToUTM(*itrGPS));
+        // For each GPS coordinate convert it to UTM and save it to the path.
+        std::vector<geoops::GPSCoordinate>::const_iterator itrGPS = vGPSPath.begin();
+        while (itrGPS != vGPSPath.end())
+        {
+            m_vUTMPath.push_back(geoops::ConvertGPSToUTM(*itrGPS));
             ++itrGPS;
         }
-        m_vPathGPS = vPathGPS;
+        m_vGPSPath = vGPSPath;
     }
 
     /******************************************************************************
@@ -119,7 +128,7 @@ namespace controllers
      * This function computes the necessary change in yaw (steering angle) to align the agent with the predetermined path.
      * The steering angle is limited by the proportional gain constant to prevent excessively sharp turns.
      *
-     * @param stCurrPosUTM - The agent's current position in the UTM coordinate space.
+     * @param stUTMCurrPos - The agent's current position in the UTM coordinate space.
      * @param dVelocity - The agent's current magnitude of velocity.
      * @param dBearing - The agent's current yaw angle (heading).
      * @return double - The calculated change in yaw needed to align the agent with the path.
@@ -127,20 +136,20 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    double StanleyController::Calculate(const geoops::UTMCoordinate& stCurrPosUTM, const double dVelocity, const double dBearing)
+    double StanleyController::Calculate(const geoops::UTMCoordinate& stUTMCurrPos, const double dVelocity, const double dBearing)
     {
         // Verify the given bearing is within 0-360 degrees.
         if (dBearing < 0 || dBearing > 360)
             LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate bearing must be in the interval [0-360].");
         // Verify a path has been loaded into the Stanley Controller
-        if (m_vPathUTM.empty())
+        if (m_vUTMPath.empty())
             LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate No path has been loaded.");
 
         // Calculate the position for the center of the front axle.
-        geoops::UTMCoordinate stFrontAxlePos = CalculateFrontAxleCoordinate(stCurrPosUTM, dBearing);
+        geoops::UTMCoordinate stUTMFrontAxlePos = CalculateFrontAxleCoordinate(stUTMCurrPos, dBearing);
 
         // Find the point on the path closest to the front axle center
-        unsigned int unTargetIdx = IdentifyTargetIdx(stFrontAxlePos, dBearing);
+        unsigned int unTargetIdx = IdentifyTargetIdx(stUTMFrontAxlePos);
 
         // Make sure the agent proceeds forward through the path
         unTargetIdx       = std::max(unTargetIdx, m_unLastTargetIdx);
@@ -153,7 +162,7 @@ namespace controllers
         double dYawError = numops::InputAngleModulus<double>(dTargetYaw - dBearing, -180.0, 180.0);
 
         // Calculate the change in yaw needed to correct for the cross track error
-        double dCrossTrackError = CalculateCrossTrackError(stFrontAxlePos, unTargetIdx, dBearing);
+        double dCrossTrackError = CalculateCrossTrackError(stUTMFrontAxlePos, unTargetIdx, dBearing);
         double dDeltaYaw        = dYawError + std::atan2(m_dK * dCrossTrackError, dVelocity);
 
         // If a rotation is small enough we will just go ahead and skip it
@@ -163,6 +172,26 @@ namespace controllers
         // Here we translate the relative change in yaw to an absolute heading
         double dNewBearing = numops::InputAngleModulus<double>(dBearing + dDeltaYaw, 0, 360);
         return dNewBearing;
+    }
+
+    /******************************************************************************
+     * @brief Calculate the steering control adjustment for an agent using the Stanley method.
+     *
+     * This function computes the necessary change in yaw (steering angle) to align the agent with the predetermined path.
+     * The steering angle is limited by the proportional gain constant to prevent excessively sharp turns.
+     *
+     * @param stGPSCurrPos - The agent's current position in the GPS coordinate space.
+     * @param dVelocity - The agent's current magnitude of velocity.
+     * @param dBearing - The agent's current yaw angle (heading).
+     * @return double - The calculated change in yaw needed to align the agent with the path.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-17
+     ******************************************************************************/
+    double StanleyController::Calculate(const geoops::GPSCoordinate& stGPSCurrPos, const double dVelocity, const double dBearing)
+    {
+        geoops::UTMCoordinate stUTMCurrPos = geoops::ConvertGPSToUTM(stGPSCurrPos);
+        return Calculate(stUTMCurrPos, dVelocity, dBearing);
     }
 
     /******************************************************************************
@@ -223,38 +252,46 @@ namespace controllers
     /******************************************************************************
      * @brief Setter for path.
      *
-     * @param vPathUTM -  Vector of UTM coordinates describing path to follow.
+     * @param vUTMPath -  Vector of UTM coordinates describing path to follow.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::UTMCoordinate>& vPathUTM)
+    void StanleyController::SetPath(std::vector<geoops::UTMCoordinate>& vUTMPath)
     {
-        m_vPathUTM        = vPathUTM;
+        m_vUTMPath        = vUTMPath;
         m_unLastTargetIdx = 0;
 
-        m_vPathGPS.clear(); // Remove out of date path.
+        // Convert the UTM path to a GPS path and save it.
+        m_vGPSPath.clear();
+        std::vector<geoops::UTMCoordinate>::const_iterator itrUTM = vUTMPath.begin();
+        while (itrUTM != vUTMPath.end())
+        {
+            m_vGPSPath.push_back(geoops::ConvertUTMToGPS(*itrUTM));
+            ++itrUTM;
+        }
     }
 
     /******************************************************************************
      * @brief Setter for path.
      *
-     * @param vPathUTM -  Vector of GPS coordinates describing path to follow.
+     * @param vGPSPath -  Vector of GPS coordinates describing path to follow.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-17
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::GPSCoordinate>& vPathGPS)
+    void StanleyController::SetPath(std::vector<geoops::GPSCoordinate>& vGPSPath)
     {
-        m_vPathUTM.clear();
+        m_vUTMPath.clear();
 
         // For each GPS coordinate convert it to UTM and save it to the path.
-        std::vector<geoops::GPSCoordinate>::const_iterator itrGPS = vPathGPS.begin();
-        while(itrGPS != vPathGPS.end()) {
-            m_vPathUTM.push_back(geoops::ConvertGPSToUTM(*itrGPS));
+        std::vector<geoops::GPSCoordinate>::const_iterator itrGPS = vGPSPath.begin();
+        while (itrGPS != vGPSPath.end())
+        {
+            m_vUTMPath.push_back(geoops::ConvertGPSToUTM(*itrGPS));
             ++itrGPS;
         }
-        m_vPathGPS = vPathGPS;
+        m_vGPSPath        = vGPSPath;
 
         m_unLastTargetIdx = 0;
     }
@@ -321,10 +358,10 @@ namespace controllers
      ******************************************************************************/
     std::vector<geoops::UTMCoordinate> StanleyController::GetPathUTM() const
     {
-        return m_vPathUTM;
+        return m_vUTMPath;
     }
 
-     /******************************************************************************
+    /******************************************************************************
      * @brief Getter for path.
      *
      * @return std::vector<geoops::GPSCoordinate> - Sequence of GPS coordinates defining the navigational path.
@@ -334,29 +371,20 @@ namespace controllers
      ******************************************************************************/
     std::vector<geoops::GPSCoordinate> StanleyController::GetPathGPS() const
     {
-        if(!m_vPathGPS.empty()) return m_vPathGPS;
-
-        // Convert the UTM path to a GPS path and save it.
-        std::vector<geoops::UTMCoordinate>::const_iterator itrUTM = vPathUTM.begin();
-        while(itrUTM != m_vPathUTM.end()) {
-            m_vPathGPS.push_back(geoops::ConvertGPSToUTM(*itrUTM));
-            ++itrUTM;
-        }
-
-        return m_vPathGPS;
+        return m_vGPSPath;
     }
 
     /******************************************************************************
      * @brief Calculate the UTM coordinate of the center of the agent's front axle.
      *
-     * @param stCurrPosUTM - The agent's current position in the UTM coordinate space.
+     * @param stUTMCurrPos - The agent's current position in the UTM coordinate space.
      * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
      * @return UTMCoordinate - The UTM coordinate of the center of the agent's front axle.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-08
      ******************************************************************************/
-    geoops::UTMCoordinate StanleyController::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stCurrPosUTM, const double dBearing) const
+    geoops::UTMCoordinate StanleyController::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stUTMCurrPos, const double dBearing) const
     {
         // Convert the bearing to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
@@ -371,12 +399,12 @@ namespace controllers
         double dOrientNorth = std::cos(dChangeInYawRelToNorth);
 
         // Calculate the UTM coordinate for the center of the agent's front axle.
-        geoops::UTMCoordinate stFrontAxlePosUTM = geoops::UTMCoordinate(stCurrPosUTM);
-        stFrontAxlePosUTM.dEasting              = stCurrPosUTM.dEasting + m_dDistToFrontAxle * dOrientEast;
-        stFrontAxlePosUTM.dNorthing             = stCurrPosUTM.dNorthing + m_dDistToFrontAxle * dOrientNorth;
+        geoops::UTMCoordinate stUTMFrontAxlePos = geoops::UTMCoordinate(stUTMCurrPos);
+        stUTMFrontAxlePos.dEasting              = stUTMCurrPos.dEasting + m_dDistToFrontAxle * dOrientEast;
+        stUTMFrontAxlePos.dNorthing             = stUTMCurrPos.dNorthing + m_dDistToFrontAxle * dOrientNorth;
 
         // Return the UTM coordinate of the center of the agent's front axle.
-        return stFrontAxlePosUTM;
+        return stUTMFrontAxlePos;
     }
 
     /******************************************************************************
@@ -385,29 +413,28 @@ namespace controllers
      * This function scans through a set of path points to find the one that is nearest to the center of the agent's front axle,
      * providing a crucial reference for any path corrections.
      *
-     * @param utmFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
-     * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
+     * @param stUTMFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
      * @return unsigned int -  Index of the target point on the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    unsigned int StanleyController::IdentifyTargetIdx(const geoops::UTMCoordinate& stmFrontAxlePosUTM, const double dBearing) const
+    unsigned int StanleyController::IdentifyTargetIdx(const geoops::UTMCoordinate& stUTMFrontAxlePos) const
     {
         // Search for the nearest point in the path
         unsigned int unTargetIdx;
         double dMinDistance                                       = std::numeric_limits<double>::max();
-        std::vector<geoops::UTMCoordinate>::const_iterator itPath = this->m_vPathUTM.begin();
-        while (itPath != this->m_vPathUTM.end())
+        std::vector<geoops::UTMCoordinate>::const_iterator itPath = this->m_vUTMPath.begin();
+        while (itPath != this->m_vUTMPath.end())
         {
             // Find the distance in meters between the center of the front axle and a point on the path.
-            double dDistanceFromPoint = std::hypot(stmFrontAxlePosUTM.dNorthing - itPath->dNorthing, stmFrontAxlePosUTM.dEasting - itPath->dEasting);
+            double dDistanceFromPoint = std::hypot(stUTMFrontAxlePos.dNorthing - itPath->dNorthing, stUTMFrontAxlePos.dEasting - itPath->dEasting);
 
             // Update the closest point to the front axle's center if the current distance is the shortest recorded.
             // Save both the point's index and the distance.
             if (dDistanceFromPoint < dMinDistance)
             {
-                unTargetIdx  = std::distance(this->m_vPathUTM.begin(), itPath);
+                unTargetIdx  = std::distance(this->m_vUTMPath.begin(), itPath);
                 dMinDistance = dDistanceFromPoint;
             }
 
@@ -430,17 +457,17 @@ namespace controllers
     double StanleyController::CalculateTargetBearing(const unsigned int unTargetIdx) const
     {
         // Verify the target index is a valid point on the path.
-        if (unTargetIdx >= m_vPathUTM.size())
+        if (unTargetIdx >= m_vUTMPath.size())
             LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateTargetBearing target does not exist.");
 
         // The yaw is calculated by finding the bearing needed to navigate from the
         // target point to the next point in the path.
-        geoops::UTMCoordinate stTargetPointUTM = m_vPathUTM[unTargetIdx];
-        geoops::UTMCoordinate stNextPointUTM   = m_vPathUTM[unTargetIdx + 1];
+        geoops::UTMCoordinate stUTMTargetPoint = m_vUTMPath[unTargetIdx];
+        geoops::UTMCoordinate stUTMNextPoint   = m_vUTMPath[unTargetIdx + 1];
 
         // Calculate the displacement from the target point to the next point in the path.
-        double dDisplacementEast  = stNextPointUTM.dEasting - stTargetPointUTM.dEasting;
-        double dDisplacementNorth = stNextPointUTM.dNorthing - stTargetPointUTM.dNorthing;
+        double dDisplacementEast  = stUTMNextPoint.dEasting - stUTMTargetPoint.dEasting;
+        double dDisplacementNorth = stUTMNextPoint.dNorthing - stUTMTargetPoint.dNorthing;
 
         // Calculate the magnitude of the displacement.
         double dDisplacementMagnitude = std::hypot(dDisplacementEast, dDisplacementNorth);
@@ -468,7 +495,7 @@ namespace controllers
      * Note that the significance of the error is its magnitude. Positive and negative are the same amount of error just in opposing
      * directions.
      *
-     * @param utmFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
+     * @param stUTMFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
      * @param unTargetIdx - Index of the target point on the path.
      * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
      * @return double - The cross track error (CTE).
@@ -476,7 +503,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-09
      ******************************************************************************/
-    double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate& stFrontAxlePosUTM, const unsigned int unTargetIdx, const double dBearing) const
+    double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate& stUTMFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const
     {
         // Convert the bearing to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
@@ -491,9 +518,9 @@ namespace controllers
         double dFrontDriveAxleY = std::cos(dChangeInYawRelToNorth);
 
         // Find the displacement between the target and the center of the front drive axle.
-        geoops::UTMCoordinate stTargetPosUTM = m_vPathUTM[unTargetIdx];
-        double dDisplacementX                = stFrontAxlePosUTM.dEasting - stTargetPosUTM.dEasting;
-        double dDisplacementY                = stFrontAxlePosUTM.dNorthing - stTargetPosUTM.dNorthing;
+        geoops::UTMCoordinate stUTMTargetPos = m_vUTMPath[unTargetIdx];
+        double dDisplacementX                = stUTMFrontAxlePos.dEasting - stUTMTargetPos.dEasting;
+        double dDisplacementY                = stUTMFrontAxlePos.dNorthing - stUTMTargetPos.dNorthing;
 
         // Calculate the cross track error as a dot product of our front drive axle and the displacement vector.
         return (dDisplacementX * dFrontDriveAxleX) + (dDisplacementY * dFrontDriveAxleY);
