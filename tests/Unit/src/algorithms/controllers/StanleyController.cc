@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/controllers/StanleyController.h"
-#include "../../../../../src/util/GeospatialOperations.hpp"
 
 /// \cond
 #include <gtest/gtest.h>
