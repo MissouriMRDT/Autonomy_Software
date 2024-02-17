@@ -140,10 +140,14 @@ namespace controllers
     {
         // Verify the given bearing is within 0-360 degrees.
         if (dBearing < 0 || dBearing > 360)
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate bearing must be in the interval [0-360].");
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate bearing must be in the interval [0-360]. Received: {}", dBearing);
+        }
         // Verify a path has been loaded into the Stanley Controller
         if (m_vUTMPath.empty())
+        {
             LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate No path has been loaded.");
+        }
 
         // Calculate the position for the center of the front axle.
         geoops::UTMCoordinate stUTMFrontAxlePos = CalculateFrontAxleCoordinate(stUTMCurrPos, dBearing);
@@ -167,11 +171,12 @@ namespace controllers
 
         // If a rotation is small enough we will just go ahead and skip it
         if (std::abs(dDeltaYaw) < m_dYawTolerance)
+        {
             dDeltaYaw = 0;
+        }
 
         // Here we translate the relative change in yaw to an absolute heading
-        double dNewBearing = numops::InputAngleModulus<double>(dBearing + dDeltaYaw, 0, 360);
-        return dNewBearing;
+        return numops::InputAngleModulus<double>(dBearing + dDeltaYaw, 0, 360);
     }
 
     /******************************************************************************
@@ -458,7 +463,9 @@ namespace controllers
     {
         // Verify the target index is a valid point on the path.
         if (unTargetIdx >= m_vUTMPath.size())
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateTargetBearing target does not exist.");
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateTargetBearing target {} does not exist.", unTargetIdx);
+        }
 
         // The yaw is calculated by finding the bearing needed to navigate from the
         // target point to the next point in the path.
@@ -476,7 +483,9 @@ namespace controllers
         dDisplacementNorth /= dDisplacementMagnitude;
         double dBearing = (std::acos(dDisplacementNorth) / M_PI) * 180;
         if (dDisplacementEast < 0)
+        {
             dBearing = 360 - dBearing;
+        }
 
         // Return the relative bearing needed to get from the target point to the next point in the path.
         return dBearing;
@@ -485,15 +494,15 @@ namespace controllers
     /******************************************************************************
      * @brief Calculate the cross track error. This error expresses how far off the agent is from the path (lateral distance).
      *
-     * Here is what causes a high magnitude for cross track error.
-     * 1. The agent is far from the target point (a large displacement from the path).
-     * 2. The agent is driving parallel to the path.
-     * The reason for number 2 is if the agent is far from the path and driving parallel it will
-     * continue to stay off course. However, if the agent is on the path and driving parallel the
-     * displacement vector will be negligible and the error will likewise be negligible.
+     * @note Here is what causes a high magnitude for cross track error.
+     *      1. The agent is far from the target point (a large displacement from the path).
+     *      2. The agent is driving parallel to the path.
+     *      The reason for number 2 is if the agent is far from the path and driving parallel it will
+     *      continue to stay off course. However, if the agent is on the path and driving parallel the
+     *      displacement vector will be negligible and the error will likewise be negligible.
      *
-     * Note that the significance of the error is its magnitude. Positive and negative are the same amount of error just in opposing
-     * directions.
+     * @note Note that the significance of the error is its magnitude. Positive and negative are the same amount of error just in opposing
+     *      directions.
      *
      * @param stUTMFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
      * @param unTargetIdx - Index of the target point on the path.
