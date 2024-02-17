@@ -40,7 +40,7 @@ jobs:
           echo $branch
           git reset --hard origin/$branch
           git checkout $branch
-          git pull
+          git pull --ff-only
 
       - name: Build Tests
         run: |
