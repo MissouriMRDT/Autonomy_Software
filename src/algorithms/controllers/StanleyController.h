@@ -53,7 +53,9 @@ namespace controllers
             // Declare public methods and member variables.
             /////////////////////////////////////////
 
+            StanleyController(const double dK, const double dDistToFrontAxle, const double dYawTolerance);
             StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dK, const double dDistToFrontAxle, const double dYawTolerance);
+            StanleyController(const std::vector<geoops::GPSCoordinate>& vPathGPS, const double dK, const double dDistToFrontAxle, const double dYawTolerance);
             ~StanleyController();
 
             double Calculate(const geoops::UTMCoordinate& stCurrPosUTM, const double dVelocity, const double dBearing);
@@ -66,7 +68,9 @@ namespace controllers
             void SetSteeringControlGain(const double dKp);
             void SetDistanceToFrontAxle(const double dDistToFrontAxle);
             void SetYawTolerance(const double dYawTolerance);
-            void SetPathUTM(std::vector<geoops::UTMCoordinate>& vPathUTM);
+
+            void SetPath(std::vector<geoops::UTMCoordinate>& vPathUTM);
+            void SetPath(std::vector<geoops::GPSCoordinate>& vPathGPS);
 
             /////////////////////////////////////////
             // Getters.
@@ -76,7 +80,9 @@ namespace controllers
             double GetDistanceToFrontAxle() const;
             double GetYawTolerance() const;
             unsigned int GetLastTargetIdx() const;
+            
             std::vector<geoops::UTMCoordinate> GetPathUTM() const;
+            std::vector<geoops::GPSCoordinate> GetPathGPS() const;
 
         private:
             /////////////////////////////////////////
@@ -97,6 +103,7 @@ namespace controllers
             double m_dYawTolerance;                           // Minimum yaw change threshold for execution.
             unsigned int m_unLastTargetIdx;                   // Index of last point on path used in Stanley calculation.
             std::vector<geoops::UTMCoordinate> m_vPathUTM;    // Stores the sequence of UTM coordinates defining the navigational path.
+            std::vector<geoops::GPSCoordinate> m_vPathGPS;    // Stores the sequence of GPS coordinates defining the navigational path.
     };
 }    // namespace controllers
 

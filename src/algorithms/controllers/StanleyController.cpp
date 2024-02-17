@@ -39,6 +39,28 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
+    StanleyController::StanleyController(const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    {
+        // Initialize member variables
+        m_dK               = dK;
+        m_dDistToFrontAxle = dDistToFrontAxle;
+        m_dYawTolerance    = dYawTolerance;
+        m_unLastTargetIdx  = 0;
+    }
+
+    /******************************************************************************
+     * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
+     *
+     * @param vPathUTM - Vector of UTM coordinates describing path to follow.
+     * @param dKp - Steering control gain.
+     * @param dDistToFrontAxle - Distance between the position sensor (GPS) and the front axle.
+     * @param dYawTolerance - Minimum yaw change threshold for execution.
+     *
+     * @note The higher the steering control gain the more reactive the rover will be to changes in yaw.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-03
+     ******************************************************************************/
     StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vPathUTM, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
@@ -47,6 +69,36 @@ namespace controllers
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
         m_vPathUTM         = vPathUTM;
+    }
+
+     /******************************************************************************
+     * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
+     *
+     * @param vPathGPS - Vector of GPS coordinates describing path to follow.
+     * @param dKp - Steering control gain.
+     * @param dDistToFrontAxle - Distance between the position sensor (GPS) and the front axle.
+     * @param dYawTolerance - Minimum yaw change threshold for execution.
+     *
+     * @note The higher the steering control gain the more reactive the rover will be to changes in yaw.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-17-03
+     ******************************************************************************/
+    StanleyController::StanleyController(const std::vector<geoops::GPSCoordinate>& vPathGPS, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    {
+        // Initialize member variables
+        m_dK               = dK;
+        m_dDistToFrontAxle = dDistToFrontAxle;
+        m_dYawTolerance    = dYawTolerance;
+        m_unLastTargetIdx  = 0;
+
+         // For each GPS coordinate convert it to UTM and save it to the path.
+        std::vector<geoops::GPSCoordinate>::const_iterator itrGPS = vPathGPS.begin();
+        while(itrGPS != vPathGPS.end()) {
+            m_vPathUTM.push_back(geoops::ConvertGPSToUTM(*itrGPS));
+            ++itrGPS;
+        }
+        m_vPathGPS = vPathGPS;
     }
 
     /******************************************************************************
@@ -80,6 +132,9 @@ namespace controllers
         // Verify the given bearing is within 0-360 degrees.
         if (dBearing < 0 || dBearing > 360)
             LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate bearing must be in the interval [0-360].");
+        // Verify a path has been loaded into the Stanley Controller
+        if (m_vPathUTM.empty())
+            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate No path has been loaded.");
 
         // Calculate the position for the center of the front axle.
         geoops::UTMCoordinate stFrontAxlePos = CalculateFrontAxleCoordinate(stCurrPosUTM, dBearing);
@@ -173,9 +228,34 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    void StanleyController::SetPathUTM(std::vector<geoops::UTMCoordinate>& vPathUTM)
+    void StanleyController::SetPath(std::vector<geoops::UTMCoordinate>& vPathUTM)
     {
         m_vPathUTM        = vPathUTM;
+        m_unLastTargetIdx = 0;
+
+        m_vPathGPS.clear(); // Remove out of date path.
+    }
+
+    /******************************************************************************
+     * @brief Setter for path.
+     *
+     * @param vPathUTM -  Vector of GPS coordinates describing path to follow.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-17
+     ******************************************************************************/
+    void StanleyController::SetPath(std::vector<geoops::GPSCoordinate>& vPathGPS)
+    {
+        m_vPathUTM.clear();
+
+        // For each GPS coordinate convert it to UTM and save it to the path.
+        std::vector<geoops::GPSCoordinate>::const_iterator itrGPS = vPathGPS.begin();
+        while(itrGPS != vPathGPS.end()) {
+            m_vPathUTM.push_back(geoops::ConvertGPSToUTM(*itrGPS));
+            ++itrGPS;
+        }
+        m_vPathGPS = vPathGPS;
+
         m_unLastTargetIdx = 0;
     }
 
@@ -244,6 +324,28 @@ namespace controllers
         return m_vPathUTM;
     }
 
+     /******************************************************************************
+     * @brief Getter for path.
+     *
+     * @return std::vector<geoops::GPSCoordinate> - Sequence of GPS coordinates defining the navigational path.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-17
+     ******************************************************************************/
+    std::vector<geoops::GPSCoordinate> StanleyController::GetPathGPS() const
+    {
+        if(!m_vPathGPS.empty()) return m_vPathGPS;
+
+        // Convert the UTM path to a GPS path and save it.
+        std::vector<geoops::UTMCoordinate>::const_iterator itrUTM = vPathUTM.begin();
+        while(itrUTM != m_vPathUTM.end()) {
+            m_vPathGPS.push_back(geoops::ConvertGPSToUTM(*itrUTM));
+            ++itrUTM;
+        }
+
+        return m_vPathGPS;
+    }
+
     /******************************************************************************
      * @brief Calculate the UTM coordinate of the center of the agent's front axle.
      *
@@ -256,10 +358,6 @@ namespace controllers
      ******************************************************************************/
     geoops::UTMCoordinate StanleyController::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stCurrPosUTM, const double dBearing) const
     {
-        // Verify the given bearing is within 0-360 degrees.
-        if (dBearing < 0 || dBearing > 360)
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateFrontAxleCoordinate bearing must be in the interval [0-360].");
-
         // Convert the bearing to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
         // Here a negative degree represents a change in yaw towards the West.
@@ -296,10 +394,6 @@ namespace controllers
      ******************************************************************************/
     unsigned int StanleyController::IdentifyTargetIdx(const geoops::UTMCoordinate& stmFrontAxlePosUTM, const double dBearing) const
     {
-        // Verify the given bearing is within 0-360 degrees.
-        if (dBearing < 0 || dBearing > 360)
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::IdentifyTargetIdx bearing must be in the interval [0-360].");
-
         // Search for the nearest point in the path
         unsigned int unTargetIdx;
         double dMinDistance                                       = std::numeric_limits<double>::max();
@@ -384,10 +478,6 @@ namespace controllers
      ******************************************************************************/
     double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate& stFrontAxlePosUTM, const unsigned int unTargetIdx, const double dBearing) const
     {
-        // Verify the given bearing is within 0-360 degrees.
-        if (dBearing < 0 || dBearing > 360)
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateCrossTrackError bearing must be in the interval [0-360].");
-
         // Convert the bearing to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
         // Here a negative degree represents a change in yaw towards the West.
