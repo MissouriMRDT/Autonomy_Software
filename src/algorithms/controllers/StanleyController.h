@@ -57,6 +57,7 @@ namespace controllers
             ~StanleyController();
 
             double Calculate(const geoops::UTMCoordinate& stCurrPosUTM, const double dVelocity, const double dBearing);
+            void ResetProgress();
 
             /////////////////////////////////////////
             // Setters.
