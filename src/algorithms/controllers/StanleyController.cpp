@@ -2,7 +2,7 @@
  * @brief Implements the StanleyController class within the
  *
  * @file StanleyController.cpp
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Jason Pittman (jspencerpittman@gmail.com)
  * @date 2024-02-01
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
@@ -38,10 +38,10 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    StanleyController::StanleyController(const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    StanleyController::StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
-        m_dK               = dK;
+        m_dKp              = dKp;
         m_dDistToFrontAxle = dDistToFrontAxle;
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
@@ -60,10 +60,10 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    StanleyController::StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
-        m_dK               = dK;
+        m_dKp              = dKp;
         m_dDistToFrontAxle = dDistToFrontAxle;
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
@@ -92,10 +92,10 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-17-03
      ******************************************************************************/
-    StanleyController::StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dK, const double dDistToFrontAxle, const double dYawTolerance)
+    StanleyController::StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance)
     {
         // Initialize member variables
-        m_dK               = dK;
+        m_dKp              = dKp;
         m_dDistToFrontAxle = dDistToFrontAxle;
         m_dYawTolerance    = dYawTolerance;
         m_unLastTargetIdx  = 0;
@@ -163,7 +163,7 @@ namespace controllers
 
         // Calculate the change in yaw needed to correct for the cross track error
         double dCrossTrackError = CalculateCrossTrackError(stUTMFrontAxlePos, unTargetIdx, dBearing);
-        double dDeltaYaw        = dYawError + std::atan2(m_dK * dCrossTrackError, dVelocity);
+        double dDeltaYaw        = dYawError + std::atan2(m_dKp * dCrossTrackError, dVelocity);
 
         // If a rotation is small enough we will just go ahead and skip it
         if (std::abs(dDeltaYaw) < m_dYawTolerance)
@@ -213,14 +213,14 @@ namespace controllers
     /******************************************************************************
      * @brief Setter for steering control gain.
      *
-     * @param dK -  Steering control gain.
+     * @param dKp -  Steering control gain.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    void StanleyController::SetSteeringControlGain(const double dK)
+    void StanleyController::SetSteeringControlGain(const double dKp)
     {
-        m_dK = dK;
+        m_dKp = dKp;
     }
 
     /******************************************************************************
@@ -306,7 +306,7 @@ namespace controllers
      ******************************************************************************/
     double StanleyController::GetSteeringControlGain() const
     {
-        return m_dK;
+        return m_dKp;
     }
 
     /******************************************************************************

@@ -2,7 +2,7 @@
  * @brief Defines the StanleyController class within the controllers namespace.
  *
  * @file StanleyController.h
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Jason Pittman (jspencerpittman@gmail.com)
  * @date 2024-02-01
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
@@ -53,9 +53,9 @@ namespace controllers
             // Declare public methods and member variables.
             /////////////////////////////////////////
 
-            StanleyController(const double dK, const double dDistToFrontAxle, const double dYawTolerance);
-            StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dK, const double dDistToFrontAxle, const double dYawTolerance);
-            StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dK, const double dDistToFrontAxle, const double dYawTolerance);
+            StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
+            StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
+            StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
             ~StanleyController();
 
             double Calculate(const geoops::UTMCoordinate& stUTMCurrPos, const double dVelocity, const double dBearing);
@@ -66,7 +66,7 @@ namespace controllers
             // Setters.
             /////////////////////////////////////////
 
-            void SetSteeringControlGain(const double dKp);
+            void SetSteeringControlGain(const double dKpp);
             void SetDistanceToFrontAxle(const double dDistToFrontAxle);
             void SetYawTolerance(const double dYawTolerance);
 
@@ -98,7 +98,7 @@ namespace controllers
             // Declare private member variables.
             /////////////////////////////////////////
 
-            double m_dK;                                      // Steering control gain.
+            double m_dKp;                                     // Steering control gain.
             double m_dDistToFrontAxle;                        // Distance between the position sensor (GPS) and the front axle.
             double m_dYawTolerance;                           // Minimum yaw change threshold for execution.
             unsigned int m_unLastTargetIdx;                   // Index of last point on path used in Stanley calculation.

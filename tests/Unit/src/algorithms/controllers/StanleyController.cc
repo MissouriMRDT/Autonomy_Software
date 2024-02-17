@@ -29,23 +29,26 @@
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2024-02-16
  ******************************************************************************/
-bool AnglesCloseAtWraparound(double expected, double actual)
+bool AnglesCloseAtWraparound(double dExpected, double dActual)
 {
     // How many degrees from the turnaround point?
-    if (expected > 180)
-        expected = expected - 360;
-    if (actual > 180)
-        actual = actual - 360;
+    if (dExpected > 180)
+    {
+        dExpected = dExpected - 360;
+    }
+    if (dActual > 180)
+    {
+        dActual = dActual - 360;
+    }
 
     // Are they within 1 degree of each other.
-    double dist = std::abs(expected - actual);
-    return dist <= 1.0;
+    return std::abs(dExpected - dActual) <= 1.0;
 }
 
 /******************************************************************************
  * @brief Provide GPS coordinates relative to another GPS coordinate.
  *
- * Makes it easier to specify "1 meter to the left" of another point.
+ * @note Makes it easier to specify "1 meter to the left" of another point.
  *
  * @param stGPSPoint - Coordinate were measuring relative to.
  * @param dEast - How many meters East of provided GPS point.
@@ -63,6 +66,13 @@ geoops::GPSCoordinate PointRelativeToGPSCoord(const geoops::GPSCoordinate& stGPS
     return geoops::ConvertUTMToGPS(stUTMPoint);
 }
 
+/******************************************************************************
+ * @brief Test the functionality of the Calculate function using UTM coordinates.
+ *      Also tests functionality of the ResetProgress function.
+ *
+ * @author JSpencerPittman (jspencerpittman@gmail.com)
+ * @date 2024-02-17
+ ******************************************************************************/
 TEST(StanleyControllerUnitTests, TestCalculateUTM)
 {
     // Define Stanley controller parameters
@@ -149,6 +159,14 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     ASSERT_EQ(unTargetIdx, 0);
 }
 
+/******************************************************************************
+ * @brief Test the functionality of the Calculate function using GPS coordinates.
+ *      Also tests functionality of the ResetProgress function and the conversion of GPS to UTM coordinates.
+ *
+ *
+ * @author JSpencerPittman (jspencerpittman@gmail.com)
+ * @date 2024-02-17
+ ******************************************************************************/
 TEST(StanleyControllerUnitTests, TestCalculateGPS)
 {
     // Define Stanley controller parameters
