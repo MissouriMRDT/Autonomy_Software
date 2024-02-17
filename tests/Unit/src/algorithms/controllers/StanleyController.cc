@@ -42,7 +42,28 @@ bool AnglesCloseAtWraparound(double expected, double actual)
     return dist <= 1.0;
 }
 
-TEST(StanleyControllerUnitTests, TestCalculate)
+/******************************************************************************
+ * @brief Provide GPS coordinates relative to another GPS coordinate.
+ *
+ * Makes it easier to specify "1 meter to the left" of another point.
+ *
+ * @param stGPSPoint - Coordinate were measuring relative to.
+ * @param dEast - How many meters East of provided GPS point.
+ * @param dNorth - How many meters North of provided GPS point.
+ * @return geoops::GPSCoordinate - GPS coordinate relative to given GPS coordinate.
+ *
+ * @author JSpencerPittman (jspencerpittman@gmail.com)
+ * @date 2024-02-17
+ ******************************************************************************/
+geoops::GPSCoordinate PointRelativeToGPSCoord(const geoops::GPSCoordinate& stGPSPoint, const double dEast, const double dNorth)
+{
+    geoops::UTMCoordinate stUTMPoint = geoops::ConvertGPSToUTM(stGPSPoint);
+    stUTMPoint.dEasting += dEast;
+    stUTMPoint.dNorthing += dNorth;
+    return geoops::ConvertUTMToGPS(stUTMPoint);
+}
+
+TEST(StanleyControllerUnitTests, TestCalculateUTM)
 {
     // Define Stanley controller parameters
     double dKp              = 0.5;
@@ -122,6 +143,86 @@ TEST(StanleyControllerUnitTests, TestCalculate)
     stController.ResetProgress();
 
     dTargetBearing = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
+    unTargetIdx    = stController.GetLastTargetIdx();
+
+    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.913);
+    ASSERT_EQ(unTargetIdx, 0);
+}
+
+TEST(StanleyControllerUnitTests, TestCalculateGPS)
+{
+    // Define Stanley controller parameters
+    double dKp              = 0.5;
+    double dDistToFrontAxle = 2.9;
+    double dYawTolerance    = 1.0;
+
+    // Location of Rolla
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+    geoops::UTMCoordinate stUTMRollaCoordinate = geoops::ConvertGPSToUTM(stGPSRollaCoordinate);
+
+    // Define test path in UTM
+    std::vector<geoops::UTMCoordinate> vPathUTM = {{0, 0}, {0, 10}, {5, 20}, {10, 30}, {20, 35}};
+    std::vector<geoops::GPSCoordinate> vGPSPath;
+
+    std::vector<geoops::UTMCoordinate>::iterator itrUTM = vPathUTM.begin();
+    while (itrUTM != vPathUTM.end())
+    {
+        vGPSPath.push_back(PointRelativeToGPSCoord(stGPSRollaCoordinate, itrUTM->dEasting, itrUTM->dNorthing));
+        ++itrUTM;
+    }
+
+    // Initialize controller
+    controllers::StanleyController stController(vGPSPath, dKp, dDistToFrontAxle, dYawTolerance);
+
+    // Define agent's state.
+    geoops::GPSCoordinate stCurrentPosGPS = PointRelativeToGPSCoord(stGPSRollaCoordinate, 1, 0);
+    double dVelocity                      = 1.0;
+    double dBearing                       = 30;
+
+    // Variables to verify accuracy.
+    double dTargetBearing;
+    unsigned int unTargetIdx;
+
+    // Test Calculate (Bearing=30, Position=(1,0))
+    dTargetBearing = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
+    unTargetIdx    = stController.GetLastTargetIdx();
+
+    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.591);
+    EXPECT_EQ(unTargetIdx, 0);
+
+    // Test opposite side of path (Bearing=350, Position=(-1,1))
+    dBearing        = 350;
+    stCurrentPosGPS = PointRelativeToGPSCoord(stGPSRollaCoordinate, -1, 1);
+
+    dTargetBearing  = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
+    unTargetIdx     = stController.GetLastTargetIdx();
+
+    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 0.385);
+    EXPECT_EQ(unTargetIdx, 0);
+
+    // Test move further along path (Bearing=80, Position=(7,20))
+    dBearing        = 80;
+    stCurrentPosGPS = PointRelativeToGPSCoord(stGPSRollaCoordinate, 7, 20);
+
+    dTargetBearing  = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
+    unTargetIdx     = stController.GetLastTargetIdx();
+
+    EXPECT_NEAR(dTargetBearing, 26.393, 1);
+    ASSERT_EQ(unTargetIdx, 2);
+
+    // Test can't revert to earlier point in path (Bearing=80, Position=(1,0))
+    stCurrentPosGPS = PointRelativeToGPSCoord(stGPSRollaCoordinate, 1, 0);
+
+    dTargetBearing  = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
+    unTargetIdx     = stController.GetLastTargetIdx();
+
+    EXPECT_NEAR(dTargetBearing, 25.099, 1);
+    ASSERT_EQ(unTargetIdx, 2);
+
+    // Test revert to earlier point in path after reset (Bearing=80, Position=(1,0))
+    stController.ResetProgress();
+
+    dTargetBearing = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
     EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.913);
