@@ -11,6 +11,7 @@
 #ifndef AVOIDANCESTATE_HPP
 #define AVOIDANCESTATE_HPP
 
+#include "../algorithms/controllers/StanleyController.h"
 #include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
 
