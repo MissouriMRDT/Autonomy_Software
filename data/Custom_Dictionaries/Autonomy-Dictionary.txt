@@ -7,6 +7,7 @@ APPROACHINGOBJECTSTATE
 APRILTAG
 Aruco
 arucotag
+ASTAR
 autofetch
 AUTONOMYTHREAD
 AVOIDANCESTATE
@@ -82,6 +83,7 @@ odometry
 opencv
 parallelizable
 Parens
+pathplanners
 PIXELTYPE
 POSETRACK
 rdparty
