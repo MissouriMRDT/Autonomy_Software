@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #include "AStar.h"
-#include "../../AutonomyGlobals.h"
+#include "../../AutonomyConstants.h"
 
 /// \cond
 // Put implicit includes in here.
