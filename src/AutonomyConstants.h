@@ -223,6 +223,24 @@ namespace constants
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Algorithm Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Stanley Controller config.
+    const double STANLEY_STEER_CONTROL_GAIN = 0.5;    // Determines how reactive the rover is to yaw adjustments.
+    const double STANLEY_DIST_TO_FRONT_AXLE = 2.9;    // Distance from position sensor to the center of the front axle.
+    const double STANLEY_YAW_TOLERANCE      = 1.0;    // Threshold for limiting unnecessary small movements.
+
+    // ASTAR config.
+    const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles
+    const double ASTAR_MAXIMUM_SEARCH_GRID  = 10.0;         // Maximum search grid size (UTM)
+    const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
+    const double ASTAR_SQRT_NODE_SIZE       = M_SQRT1_2;    // Square root of m_dNodeSize
+
+    ///////////////////////////////////////////////////////////////////////////
+
 }    // namespace constants
 
 #endif    // CONSTS_H
