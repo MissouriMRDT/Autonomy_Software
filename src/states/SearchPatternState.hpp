@@ -11,6 +11,7 @@
 #ifndef SEARCHPATTERNSTATE_HPP
 #define SEARCHPATTERNSTATE_HPP
 
+#include "../algorithms/SearchPattern.hpp"
 #include "../interfaces/State.hpp"
 
 /******************************************************************************
