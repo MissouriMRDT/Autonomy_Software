@@ -33,12 +33,13 @@ namespace searchpattern
      * @brief Perform a spiral search pattern starting from a given point.
      *
      * @param stStartingPoint - The coordinate of the starting point of the search.
-     * @param dAngularStep - The amount the angle is incremented in each iteration
-     *      of the loop.
-     * @param dMaxRadius - The maximum radius to cover in the search.
-     * @param dStartingAngleDegrees - The angle the rover is facing at the start of
-     *      the search pattern (0 degrees is along the positive x-axis).
-     * @param dSpacing - The spacing between successive points in the spiral.
+     * @param dAngularStepDegrees - The amount the angle is incremented in each 
+     *      iteration of the loop (degrees).
+     * @param dMaxRadius - The maximum radius to cover in the search (meters).
+     * @param dStartingHeadingDegrees - The angle the rover is facing at the start
+     *      of the search (degrees).
+     * @param dSpacing - The spacing between successive points in the spiral 
+     *      (meters).
      * @return stWaypoints - A vector representing the waypoints forming the spiral
      *      search pattern.
      *
@@ -46,17 +47,18 @@ namespace searchpattern
      * @date 2024-02-04
      ******************************************************************************/
     inline std::vector<WaypointHandler::Waypoint> CalculateSearchPatternWaypoints(geoops::UTMCoordinate stStartingPoint,
-                                                                                  double dAngularStep          = 1,
-                                                                                  double dMaxRadius            = 25,
-                                                                                  double dStartingAngleDegrees = 0,
-                                                                                  double dSpacing              = 1)
+                                                                                  double dAngularStepDegrees     = 57,
+                                                                                  double dMaxRadius              = 25,
+                                                                                  double dStartingHeadingDegrees = 0,
+                                                                                  double dSpacing                = 1)
     {
         // Define variables.
         std::vector<WaypointHandler::Waypoint> stWaypoints;
-        double dAngleRadians  = dStartingAngleDegrees * M_PI / 180;
-        double dCurrentRadius = 0;
-        double dStartingX     = stStartingPoint.dEasting;
-        double dStartingY     = stStartingPoint.dNorthing;
+        double dAngularStepRadians = dAngularStepDegrees * M_PI / 180;
+        double dAngleRadians       = (dStartingHeadingDegrees + 90) * M_PI / 180;
+        double dCurrentRadius      = 0;
+        double dStartingX          = stStartingPoint.dEasting;
+        double dStartingY          = stStartingPoint.dNorthing;
 
         // Calculate each waypoint.
         while (dCurrentRadius <= dMaxRadius)
@@ -71,7 +73,7 @@ namespace searchpattern
             stWaypoints.push_back(stCurrentWaypoint);
 
             // Increment angle and radius for the next waypoint.
-            dAngleRadians += dAngularStep;
+            dAngleRadians  += dAngularStepRadians;
             dCurrentRadius += dSpacing;
         }
 
