@@ -33,12 +33,12 @@ namespace searchpattern
      * @brief Perform a spiral search pattern starting from a given point.
      *
      * @param stStartingPoint - The coordinate of the starting point of the search.
-     * @param dAngularStepDegrees - The amount the angle is incremented in each 
+     * @param dAngularStepDegrees - The amount the angle is incremented in each
      *      iteration of the loop (degrees).
      * @param dMaxRadius - The maximum radius to cover in the search (meters).
      * @param dStartingHeadingDegrees - The angle the rover is facing at the start
      *      of the search (degrees).
-     * @param dSpacing - The spacing between successive points in the spiral 
+     * @param dSpacing - The spacing between successive points in the spiral
      *      (meters).
      * @return stWaypoints - A vector representing the waypoints forming the spiral
      *      search pattern.
@@ -73,7 +73,7 @@ namespace searchpattern
             stWaypoints.push_back(stCurrentWaypoint);
 
             // Increment angle and radius for the next waypoint.
-            dAngleRadians  += dAngularStepRadians;
+            dAngleRadians += dAngularStepRadians;
             dCurrentRadius += dSpacing;
         }
 
