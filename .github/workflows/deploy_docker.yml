@@ -200,9 +200,6 @@ jobs:
           # Copy the new AMD64 packages into the repository
           mkdir -p ${{ matrix.package }}/amd64/
           cp -r /tmp/pkg/deb/*amd64*.deb ${{ matrix.package }}/amd64/
-          # Copy the new ARM64 packages into the repository
-          mkdir -p ${{ matrix.package }}/arm64/
-          cp -r /tmp/pkg/deb/*arm64*.deb ${{ matrix.package }}/arm64/
 
           # Set up Git LFS
           git lfs install
@@ -346,9 +343,6 @@ jobs:
           # Copy the new ARM64 packages into the repository
           mkdir -p ${{ matrix.package }}/arm64/
           cp -r /tmp/pkg/deb/*arm64*.deb ${{ matrix.package }}/arm64/
-          # Copy the new AMD64 packages into the repository
-          mkdir -p ${{ matrix.package }}/amd64/
-          cp -r /tmp/pkg/deb/*amd64*.deb ${{ matrix.package }}/amd64/
 
           # Set up Git LFS
           git lfs install
