@@ -197,6 +197,8 @@ namespace yolomodel
          * @brief This class is designed to enable quick, easy, and robust inferencing of .tflite
          *      yolo model.
          *
+         * @bug This class correctly interfaces with the TPU, loads models, and runs inference, but
+         *      any attempt to parse the output received from the result of the inference is garbage.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-10-24
