@@ -33,11 +33,11 @@ else
     rm -rf /tmp/tensorflow
     rm -rf /tmp/libedgetpu
 
-    # Create Package Directory for Tensorflow.
+    # Create Package Directory for Tensorflow AMD64.
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/DEBIAN
 
-    # Create Control File for Tensorflow.
+    # Create Control File for Tensorflow AMD64.
     echo "Package: tensorflow-mrdt" > /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/DEBIAN/control
     echo "Version: ${TENSORFLOW_VERSION}" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/DEBIAN/control
     echo "Maintainer: google" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/DEBIAN/control
@@ -83,7 +83,7 @@ else
     rm -rf tensorflow
 
     # Download LibEdgeTPU
-    git clone --depth 1 https://github.com/google-coral/libedgetpu.git
+    cd /tmp/ && git clone --depth 1 https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
 
     # Build LibEdgeTPU
@@ -95,9 +95,9 @@ else
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/
 
-    # # Cleanup Install
-    # cd ../
-    # rm -rf libedgetpu
+    # Cleanup Install
+    cd ../
+    rm -rf libedgetpu
 
     # Create Package
     dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64

@@ -21,12 +21,11 @@ else
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
 
     # Install BAZEL build system.
-    curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg
-    mv bazel-archive-keyring.gpg /usr/share/keyrings
-    echo "deb [arch=arm64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
-    apt update && apt install -y bazel-${TENSORFLOW_BAZEL_VERSION} python3 python-is-python3
-    # Symbolically link bazel-(version) install to /usr/bin/bazel.
-    ln -fs /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
+    wget https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-arm64
+    chmod +x bazelisk-linux-arm64 && mv bazelisk-linux-arm64 /usr/local/bin/bazel
+
+    # Install python packages.
+    apt update && apt install -y python3 python-is-python3
     
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -50,15 +49,21 @@ else
     git clone --depth 1 --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow
     cd tensorflow
 
+    # Fix CUDA Library Path
+    ln -fs /usr/local/cuda-11.4/targets/aarch64-linux/lib/stubs_/ /usr/local/cuda-11.4/targets/aarch64-linux/lib/stubs
+
     # Build Tensorflow
-    bazel build \
+    ldconfig && USE_BAZEL_VERSION="${TENSORFLOW_BAZEL_VERSION}" bazel build \
         -c opt \
+        --config=elinux_aarch64 \
         --config=monolithic \
         --config=cuda \
         --config=tensorrt \
         --verbose_failures \
-        --local_ram_resources=HOST_RAM*0.5 \
-        --local_cpu_resources=HOST_CPUS*0.5 \
+        --action_env TF_CUDA_COMPUTE_CAPABILITIES="8.7" \
+        --jobs 1 \
+        --local_ram_resources=HOST_RAM*0.2 \
+        --local_cpu_resources=HOST_CPUS*0.2 \
         //tensorflow/lite:libtensorflowlite.so
 
     # Install Tensorflow
@@ -82,22 +87,22 @@ else
     cd /tmp
     rm -rf tensorflow
 
-    # Download LibEdgeTPU
+    Download LibEdgeTPU
     git clone --depth 1 https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
 
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
-    make
+    make CPU="aarch64"
 
     # Install LibEdgeTPU
-    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/ && cp ./out/direct/aarch64/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/include/edgetpu/
 
-    # # Cleanup Install
-    # cd ../
-    # rm -rf libedgetpu
+    # Cleanup Install
+    cd ../
+    rm -rf libedgetpu
 
     # Create Package
     dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64
