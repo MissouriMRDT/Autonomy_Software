@@ -20,7 +20,7 @@ else
     
     # Delete Old Packages
     rm -rf /tmp/pkg
-    rm -rf /tmp/libtorch
+    # rm -rf /tmp/libtorch
 
     # Create Package Directory
     mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/local
@@ -36,29 +36,31 @@ else
     echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team." >> /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/DEBIAN/control
 
     # Download Torch
-    wget -O torch.zip https://download.pytorch.org/libtorch/${TORCH_CUDA_VERSION}/libtorch-cxx11-abi-shared-with-deps-${TORCH_VERSION}%2B${TORCH_CUDA_VERSION}.zip
-    unzip torch.zip
-    # rm torch.zip
-    cd libtorch
+    git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
+    mkdir -p pytorch/build && cd pytorch/build
+
+    # Install python dependencies for building libtorch.
+    pip install -r ../requirements.txt
+    
+    # Build Torch
+    cmake \
+        -D CMAKE_INSTALL_PREFIX:PATH=/tmp/pkg/opencv_${TORCH_VERSION}_arm64/usr/local \
+        -D BUILD_SHARED_LIBS:BOOL=OFF \
+        -D CMAKE_BUILD_TYPE:STRING=Release \
+        -D PYTHON_EXECUTABLE:PATH=`which python3` ..
 
     # Install Torch
-    mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include
-    mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib
-    mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share
-    cp -r /tmp/libtorch/include/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include/
-    cp -r /tmp/libtorch/lib/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib/
-    cp -r /tmp/libtorch/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share/
+    cmake --build . --target install
 
+    # # Cleanup Install
+    # rm -rf /tmp/pytorch
 
-    # Cleanup Install
-    rm -rf libtorch
+    # # Create Package
+    # dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
 
-    # Create Package
-    dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
+    # # Create Package Directory
+    # mkdir -p /tmp/pkg/deb
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
-
-    # Copy Package
-    cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
+    # # Copy Package
+    # cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
 fi
