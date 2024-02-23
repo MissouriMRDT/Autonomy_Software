@@ -8,6 +8,7 @@ on:
     paths:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_JetPack"
+      - ".github/workflows/deploy_docker.yml"
       - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
       - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
@@ -24,6 +25,7 @@ on:
     paths:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_JetPack"
+      - ".github/workflows/deploy_docker.yml"
       - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
       - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
@@ -347,6 +349,7 @@ jobs:
           filters: |
             dockerfile:
               - '.devcontainer/Dockerfile_Jammy'
+              - '.github/workflows/deploy_docker.yml'
 
       # This step is used to setup the docker buildx. It is needed to build the docker images.
       - name: Setup Docker Buildx
@@ -430,6 +433,7 @@ jobs:
           filters: |
             dockerfile:
               - '.devcontainer/Dockerfile_JetPack'
+              - '.github/workflows/deploy_docker.yml'
 
       # This step is used to setup the docker buildx. It is needed to build the docker images.
       - name: Setup Docker Buildx
