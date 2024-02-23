@@ -460,7 +460,7 @@ jobs:
           tags: |
             "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
             "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
-          platforms: "linux/amd64"
+          platforms: "linux/arm64"
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
@@ -479,7 +479,7 @@ jobs:
             "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
             "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
             "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-          platforms: "linux/amd64"
+          platforms: "linux/arm64"
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
