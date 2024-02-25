@@ -59,17 +59,11 @@ namespace statemachine
                 // Schedule the next run of the state's logic
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
 
-                m_tStuckCheckTime            = time(nullptr);
+                m_tStuckCheckTime      = time(nullptr);
 
-                m_unAttempts                 = 1;
-                m_stOriginalPosition         = geoops::GPSCoordinate(0, 0);
-                m_dOriginalHeading           = 0;
+                m_bIsCurrentlyAligning = false;
 
-                m_dHeadingTolerance          = 1.0;
-                m_dInplaceRotationMotorPower = 0.5;
-                m_dStillStuckThreshold       = 1.0;
-
-                // TODO: Add Stop All Motors Command
+                globals::g_pDriveBoard->SendStop();
             }
 
             /******************************************************************************
@@ -84,6 +78,8 @@ namespace statemachine
             {
                 // Clean up the state before exiting
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Exiting state.");
+
+                m_bIsCurrentlyAligning = false;
             }
 
         public:
@@ -105,6 +101,14 @@ namespace statemachine
                     Start();
                     m_bInitialized = true;
                 }
+
+                m_unAttempts                 = 1;
+                m_stOriginalPosition         = geoops::GPSCoordinate(0, 0);
+                m_dOriginalHeading           = 0;
+
+                m_dHeadingTolerance          = 1.0;
+                m_dInplaceRotationMotorPower = 0.5;
+                m_dSamePositionThreshold     = 1.0;
             }
 
             /******************************************************************************
@@ -117,39 +121,84 @@ namespace statemachine
             {
                 LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
-                // Current position of the rover
-                geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
+                // If we aren't currently attempting to become 'unstuck',
+                // determine which of the two situations we are in:
+                //  1. Are we starting unstuck from an entirely new position?
+                //  2. Are we doing a starting a new attempt from the same position but at a different heading?
+                if (!m_bIsCurrentlyAligning)
+                {
+                    // Current position of the rover
+                    geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
 
-                // Are we still in the same position?
-                // If this is our first attempt at becoming 'unstuck' from this position save
-                //  the location and heading.
-                if (StillStuck(m_stOriginalPosition, stCurrentPosition))
-                {
-                    ++m_unAttempts;
+                    // Are we still in the same position?
+                    if (SamePosition(m_stOriginalPosition, stCurrentPosition))
+                    {
+                        // Start a new attempt
+                        ++m_unAttempts;
+                    }
+                    else
+                    {
+                        // If this is our first attempt at becoming 'unstuck' from this position save
+                        //  the current location and heading for future attempts.
+                        m_unAttempts         = 1;
+                        m_stOriginalPosition = stCurrentPosition;
+                        m_dOriginalHeading   = globals::g_pNavigationBoard->GetIMUData().dHeading;
+                    }
                 }
-                else
-                {
-                    m_unAttempts         = 1;
-                    m_stOriginalPosition = stCurrentPosition;
-                    m_dOriginalHeading   = globals::g_pNavigationBoard->GetIMUData().dHeading;
-                }
+
+                // On the first attempt we use the rover's original heading so alignment would already be completed.
+                m_bIsCurrentlyAligning = m_unAttempts != 1;
 
                 // On the second attempt align the rover 30 degrees to the right of the
-                //  original heading. For the third do it 30 degrees to the left of the
-                //  original heading instead.
+                // original heading. For the third do it 30 degrees to the left of the
+                // original heading instead.
                 if (1 < m_unAttempts && m_unAttempts < 4)
                 {
+                    // New target heading relative to the original heading.
                     double dChangeInHeading = (m_unAttempts == 2) ? 30 : -30;
-                    double dGoalHeading     = m_dOriginalHeading + dChangeInHeading;
-                    dGoalHeading            = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
-                    AlignRover(dGoalHeading);
+                    // New absolute target heading (not relative).
+                    double dGoalHeading = m_dOriginalHeading + dChangeInHeading;
+                    dGoalHeading        = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
+
+                    // Heading the rover's currently facing.
+                    double dCurrentHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
+                    // Desired change in yaw relative to rover's current heading.
+                    double dYawAdjustment = numops::InputAngleModulus<double>(dGoalHeading - dCurrentHeading, -180, 180);
+
+                    // If desired yaw adjustment is significantly large, keep aligning the rover with the desired heading.
+                    if (std::abs(dYawAdjustment) > m_dHeadingTolerance)
+                    {
+                        if (dYawAdjustment >= 0)
+                        {
+                            // Rotate right.
+                            globals::g_pDriveBoard->SendDrive(m_dInplaceRotationMotorPower, -m_dInplaceRotationMotorPower);
+                        }
+                        else
+                        {
+                            // Rotate left.
+                            globals::g_pDriveBoard->SendDrive(-m_dInplaceRotationMotorPower, m_dInplaceRotationMotorPower);
+                        }
+                    }
+                    else
+                    {
+                        // Stop the rover as we have approximately reached the desired heading.
+                        globals::g_pDriveBoard->SendStop();
+                        // Rover is aligned with target heading.
+                        m_bIsCurrentlyAligning = false;
+                    }
                 }
 
-                // After 3 failed attempts abort the stuck state.
-                if (m_unAttempts < 4)
-                    return States::eReversing;
-                else
-                    return States::eIdle;
+                // If we aren't currently aligning the rover with a new heading
+                // and are in the first three attempts, start reverse.
+                if (!m_bIsCurrentlyAligning && m_unAttempts < 4)
+                {
+                    globals::g_pStateMachineHandler->HandleEvent(State::eStart);
+                }
+                // If we have already done three attempts abort the unstuck state.
+                else if (m_unAttempts >= 4)
+                {
+                    globals::g_pStateMachineHandler->HandleEvent(State::eAbort);
+                }
             }
 
             /******************************************************************************
@@ -171,7 +220,7 @@ namespace statemachine
                     case Event::eStart:
                     {
                         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
-                        eNextState = States::eStuck;
+                        eNextState = States::eReversing;
                         break;
                     }
                     case Event::eAbort:
@@ -203,53 +252,23 @@ namespace statemachine
             }
 
             /******************************************************************************
-             * @brief Checks if the rover is approximately in the same position as last time.
+             * @brief Checks if the rover is approximately in the same position.
              *
-             * The threshold that defines how far away we need to be from the original point to be considered
-             * no stuck is the Still Stuck Threshold.
+             * @note The threshold that defines how far away we need to be from the original point to be considered
+             *  a different position is m_dSamePositionThreshold.
              *
              * @param stLastPosition - Original position the rover was located.
              * @param stCurrPosition - Current position the rover is located.
-             * @return true - The rover is still stuck.
-             * @return false - The rover is no longer stuck.
+             * @return true - The rover is in the same position.
+             * @return false - The rover is in a different position.
              *
              * @author Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-02-14
              ******************************************************************************/
-            bool StillStuck(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition)
+            bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition)
             {
                 double dDistance = geoops::CalculateGeoMeasurement(stOriginalPosition, stCurrPosition).dDistanceMeters;
-                return dDistance <= m_dStillStuckThreshold;
-            }
-
-            /******************************************************************************
-             * @brief Rotate the rover until its aligned with the goal heading.
-             *
-             * @param dGoalHeading - Heading for the rover to align with.
-             * @param dTolerance - How far can the rover be from the goal heading before completion.
-             * @param dMotorPower - How much power to use in the motors [0,1];
-             *
-             * @author Jason Pittman (jspencerpittman@gmail.com)
-             * @date 2024-02-13
-             ******************************************************************************/
-            void AlignRover(const double dGoalHeading)
-            {
-                double dCurrentHeading;
-                double dYawAdjustment;
-
-                do
-                {
-                    dCurrentHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
-                    dYawAdjustment  = numops::InputAngleModulus<double>(dGoalHeading - dCurrentHeading, -180, 180);
-
-                    if (dYawAdjustment >= 0)
-                        globals::g_pDriveBoard->SendDrive(m_dInplaceRotationMotorPower, -m_dInplaceRotationMotorPower);
-                    else
-                        globals::g_pDriveBoard->SendDrive(-m_dInplaceRotationMotorPower, m_dInplaceRotationMotorPower);
-
-                } while (std::abs(dYawAdjustment) > m_dHeadingTolerance);
-
-                globals::g_pDriveBoard->SendStop();
+                return dDistance <= m_dSamePositionThreshold;
             }
     };
 }    // namespace statemachine
