@@ -51,7 +51,7 @@ namespace statemachine
              *        initialize the state.
              *
              *
-             * @author Eli Byrd (edbgkk@mst.edu)
+             * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-01-17
              ******************************************************************************/
             void Start() override
@@ -71,7 +71,7 @@ namespace statemachine
              *        the state.
              *
              *
-             * @author Eli Byrd (edbgkk@mst.edu)
+             * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-01-17
              ******************************************************************************/
             void Exit() override
@@ -87,7 +87,7 @@ namespace statemachine
              * @brief Construct a new State object.
              *
              *
-             * @author Eli Byrd (edbgkk@mst.edu)
+             * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-01-17
              ******************************************************************************/
             StuckState() : State(States::eStuck)
@@ -102,13 +102,13 @@ namespace statemachine
                     m_bInitialized = true;
                 }
 
-                m_unAttempts                 = 1;
-                m_stOriginalPosition         = geoops::GPSCoordinate(0, 0);
-                m_dOriginalHeading           = 0;
+                m_unAttempts                 = 1;                              // Current attempt we are on for a given position.
+                m_stOriginalPosition         = geoops::GPSCoordinate(0, 0);    // Original position where rover was reported stuck.
+                m_dOriginalHeading           = 0;                              // Original heading the rover was at when reported stuck.
 
-                m_dHeadingTolerance          = 1.0;
-                m_dInplaceRotationMotorPower = 0.5;
-                m_dSamePositionThreshold     = 1.0;
+                m_dHeadingTolerance          = 1.0;                            // How close the current heading must be to the target heading to be considered aligned.
+                m_dInplaceRotationMotorPower = 0.5;                            // Power on left and right motors when rotating the rotor.
+                m_dSamePositionThreshold     = 1.0;                            // Distance threshold determining if we are still in the same position.
             }
 
             /******************************************************************************
@@ -178,6 +178,8 @@ namespace statemachine
                             // Rotate left.
                             globals::g_pDriveBoard->SendDrive(-m_dInplaceRotationMotorPower, m_dInplaceRotationMotorPower);
                         }
+
+                        m_bIsCurrentlyAligning = true;
                     }
                     else
                     {
