@@ -105,7 +105,7 @@ namespace yolomodel
         for (Detection stObject : vObjects)
         {
             // Calculate the hue value based on the class ID.
-            int nHue = static_cast<int>(stObject.nClassID / 9999999);
+            int nHue = static_cast<int>(stObject.nClassID % 256);
             // Set saturation and value to 1.0 for full intensity colors.
             int nSaturation = 255;
             int nValue      = 255;
@@ -472,10 +472,7 @@ namespace yolomodel
                                 vGridPrediction[nJter] =
                                     (tfOutputTensor->data.uint8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
                                     stOutputDimensions.fQuantScale;
-
-                                std::cout << vGridPrediction[nJter] << ", ";
                             }
-                            std::cout << std::endl << std::endl;
 
                             // Find class ID based on which class confidence has the highest score.
                             std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 5;
@@ -554,10 +551,7 @@ namespace yolomodel
                             vGridPrediction[nJter] =
                                 (tfOutputTensor->data.int8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
                                 stOutputDimensions.fQuantScale;
-
-                            std::cout << vGridPrediction[nJter] << ", ";
                         }
-                        std::cout << std::endl << std::endl;
 
                         // Find class ID based on which class confidence has the highest score.
                         std::vector<float>::iterator pStartIterator = vGridPrediction.begin() + 4;
