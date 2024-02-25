@@ -44,7 +44,8 @@ else
     
     # Build Torch
     cmake \
-        -D CMAKE_INSTALL_PREFIX:PATH=/tmp/pkg/opencv_${TORCH_VERSION}_arm64/usr/local \
+        -D CMAKE_INSTALL_PREFIX:PATH=/tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/local \
+        -D CMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
         -D BUILD_SHARED_LIBS:BOOL=OFF \
         -D CMAKE_BUILD_TYPE:STRING=Release \
         -D PYTHON_EXECUTABLE:PATH=`which python3` ..
@@ -52,15 +53,15 @@ else
     # Install Torch
     cmake --build . --target install
 
-    # # Cleanup Install
-    # rm -rf /tmp/pytorch
+    # Cleanup Install
+    rm -rf /tmp/pytorch
 
-    # # Create Package
-    # dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
+    # Create Package
+    dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
 
-    # # Create Package Directory
-    # mkdir -p /tmp/pkg/deb
+    # Create Package Directory
+    mkdir -p /tmp/pkg/deb
 
-    # # Copy Package
-    # cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
+    # Copy Package
+    cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
 fi
