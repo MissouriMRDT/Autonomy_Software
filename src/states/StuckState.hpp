@@ -37,13 +37,15 @@ namespace statemachine
             time_t m_tStuckCheckTime;
             bool m_bInitialized;
 
-            unsigned int m_unAttempts;
-            geoops::GPSCoordinate m_stOriginalPosition;
-            double m_dOriginalHeading;
+            unsigned int m_unAttempts;                     // Current attempt we are on for a given position.
+            geoops::GPSCoordinate m_stOriginalPosition;    // Original position where rover was reported stuck.
+            double m_dOriginalHeading;                     // Original heading the rover was at when reported stuck.
 
-            double m_dHeadingTolerance;
-            double m_dInplaceRotationMotorPower;
-            double m_dStillStuckThreshold;
+            double m_dHeadingTolerance;                    // How close the current heading must be to the target heading to be considered aligned.
+            double m_dInplaceRotationMotorPower;           // Power on left and right motors when rotating the rotor.
+            double m_dSamePositionThreshold;               // Distance threshold determining if we are still in the same position.
+
+            bool m_bIsCurrentlyAligning;
 
         protected:
             /******************************************************************************
@@ -194,13 +196,15 @@ namespace statemachine
                 // and are in the first three attempts, start reverse.
                 if (!m_bIsCurrentlyAligning && m_unAttempts < 4)
                 {
-                    globals::g_pStateMachineHandler->HandleEvent(State::eStart);
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eStart);
                 }
                 // If we have already done three attempts abort the unstuck state.
                 else if (m_unAttempts >= 4)
                 {
-                    globals::g_pStateMachineHandler->HandleEvent(State::eAbort);
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
                 }
+
+                return States::eStuck;
             }
 
             /******************************************************************************
