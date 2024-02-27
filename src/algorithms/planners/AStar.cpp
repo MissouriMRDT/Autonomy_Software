@@ -417,19 +417,19 @@ namespace pathplanners
         std::vector<nodes::AStarNode> vOpenList;
         std::make_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
         // Unordered map of coordinates for open list for O(1) lookup.
-        std::unordered_map<std::string, double> stdOpenListLookup;
+        std::unordered_map<std::string, double> umOpenListLookup;
 
         // Vector containing nodes on the closed list.
         std::vector<nodes::AStarNode> vClosedList;
         // Unordered map of coordinates for closed list for O(1) lookup.
-        std::unordered_map<std::string, double> stdClosedList;
+        std::unordered_map<std::string, double> umClosedList;
 
         // Place Starting node on open list.
         vOpenList.push_back(m_stStartNode);
         // Translate start node to string and add location on open list lookup map.
         std::string szLocationString;
         UTMCoordinateToString(m_stStartNode.stNodeLocation, szLocationString);
-        stdOpenListLookup.emplace(std::make_pair(szLocationString, 0.0));
+        umOpenListLookup.emplace(std::make_pair(szLocationString, 0.0));
 
         // While open list is not empty:
         while (!vOpenList.empty())
@@ -503,18 +503,18 @@ namespace pathplanners
                 vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
 
                 // If a node with the same position as successor is in the open list and has a lower dKf, skip this successor.
-                if (stdOpenListLookup.contains(szSuccessorLookup))
+                if (umOpenListLookup.count(szSuccessorLookup) > 0)
                 {
-                    if (stdOpenListLookup[szSuccessorLookup] < vSuccessors[i].dKf)
+                    if (umOpenListLookup[szSuccessorLookup] < vSuccessors[i].dKf)
                     {
                         continue;
                     }
                 }
 
                 // If a node with the same position as successor is in the closed list and has a lower dKf, skip this successor.
-                if (stdClosedList.contains(szSuccessorLookup))
+                if (umClosedList.count(szSuccessorLookup) > 0)
                 {
-                    if (stdClosedList[szSuccessorLookup] < vSuccessors[i].dKf)
+                    if (umClosedList[szSuccessorLookup] < vSuccessors[i].dKf)
                     {
                         continue;
                     }
@@ -522,7 +522,7 @@ namespace pathplanners
 
                 // Otherwise add successor node to open list.
                 // Add lookup string and dKf value to lookup map.
-                stdOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
+                umOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
                 // Push to heap.
                 vOpenList.push_back(vSuccessors[i]);
                 std::push_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
@@ -532,7 +532,7 @@ namespace pathplanners
             std::string szParentLookup;
             UTMCoordinateToString(nextParent.stNodeLocation, szParentLookup);
             // Push lookup string and dKf value to lookup map.
-            stdClosedList.emplace(std::make_pair(szParentLookup, nextParent.dKf));
+            umClosedList.emplace(std::make_pair(szParentLookup, nextParent.dKf));
             // Push Q to the closed list.
             vClosedList.emplace_back(nextParent);
         }    // End While(!vOpenList.empty).
