@@ -7,6 +7,7 @@ APPROACHINGOBJECTSTATE
 APRILTAG
 Aruco
 arucotag
+ASTAR
 autofetch
 AUTONOMYTHREAD
 AVOIDANCESTATE
@@ -19,6 +20,7 @@ codeql
 codezombiech
 Coeffs
 Colour
+Contoller
 cpptools
 cschlosser
 CUDA
@@ -93,6 +95,7 @@ odometry
 opencv
 parallelizable
 Parens
+pathplanners
 PIXELTYPE
 POSETRACK
 rdparty
@@ -105,6 +108,7 @@ RIGHTCAM
 Rolla
 rovecomm
 searchbar
+searchpattern
 SEARCHPATTERNSTATE
 setpoint
 setpoints

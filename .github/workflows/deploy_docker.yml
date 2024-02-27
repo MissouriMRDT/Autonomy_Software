@@ -8,6 +8,7 @@ on:
     paths:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_JetPack"
+      - ".github/workflows/deploy_docker.yml"
       - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
       - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
@@ -30,6 +31,7 @@ on:
     paths:
       - ".devcontainer/Dockerfile_Jammy"
       - ".devcontainer/Dockerfile_JetPack"
+      - ".github/workflows/deploy_docker.yml"
       - "tools/package-builders/geolib/geolib-arm64-pkg.sh"
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
       - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
@@ -393,6 +395,7 @@ jobs:
           filters: |
             dockerfile:
               - '.devcontainer/Dockerfile_Jammy'
+              - '.github/workflows/deploy_docker.yml'
 
       # This step is used to setup the docker buildx. It is needed to build the docker images.
       - name: Setup Docker Buildx
@@ -476,6 +479,7 @@ jobs:
           filters: |
             dockerfile:
               - '.devcontainer/Dockerfile_JetPack'
+              - '.github/workflows/deploy_docker.yml'
 
       # This step is used to setup the docker buildx. It is needed to build the docker images.
       - name: Setup Docker Buildx
@@ -506,7 +510,7 @@ jobs:
           tags: |
             "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
             "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
-          platforms: "linux/amd64"
+          platforms: "linux/arm64"
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
@@ -525,7 +529,7 @@ jobs:
             "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
             "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
             "ghcr.io/missourimrdt/autonomy-jetpack:latest"
-          platforms: "linux/amd64"
+          platforms: "linux/arm64"
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
