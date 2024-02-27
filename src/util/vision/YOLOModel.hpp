@@ -221,7 +221,7 @@ namespace yolomodel
                  * @param ePowerMode - The desired power mode of the device.
                  * @param unMaxBulkInQueueLength - Input queue length for device. Larger queue may improve USB
                  *                   performance going from device to host.
-                 * @param bUSBAlwaysDFU - Whether or not to always reload firmware into the device after when this object is created.
+                 * @param bUSBAlwaysDFU - Whether or not to always reload firmware into the device after this object is created.
                  *
                  * @note The given model must be a tflite model custom compiled to map operations to the EdgeTPU refer to
                  *          https://coral.ai/docs/edgetpu/models-intro/#compiling and
