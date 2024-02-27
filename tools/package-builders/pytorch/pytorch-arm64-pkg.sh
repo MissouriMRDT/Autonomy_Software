@@ -46,6 +46,7 @@ else
     cmake \
         -D CMAKE_INSTALL_PREFIX:PATH=/tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/local \
         -D CMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+        -D CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
         -D BUILD_SHARED_LIBS:BOOL=OFF \
         -D CMAKE_BUILD_TYPE:STRING=Release \
         -D PYTHON_EXECUTABLE:PATH=`which python3` ..
