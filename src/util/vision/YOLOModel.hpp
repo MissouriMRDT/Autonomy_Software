@@ -303,7 +303,8 @@ namespace yolomodel
                         }
 
                         // Create a vector to store reshaped input image in 1 dimension.
-                        std::vector<uint8_t> vInputData(m_cvFrame.data, m_cvFrame.data + (m_cvFrame.cols * m_cvFrame.rows * m_cvFrame.elemSize()));
+                        std::vector<uint8_t> vInputData(m_cvFrame.data,
+                                                        m_cvFrame.data + (static_cast<unsigned long>(m_cvFrame.cols) * m_cvFrame.rows * m_cvFrame.elemSize()));
                         // // Quantize input data.
                         // for (long unsigned int nIter = 0; nIter < vInputData.size(); ++nIter)
                         // {
