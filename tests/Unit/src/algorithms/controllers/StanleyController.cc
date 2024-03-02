@@ -15,6 +15,11 @@
 
 /// \endcond
 
+// UTM Coordinates when converted to GPS need both their northing and easting to be in the range [1200km, 2800km].
+// This constant allows us shift UTM coordinates into this range by adding it to the UTM coordinate's northing and easting.
+// It is representative of 2000km.
+#define UTM_SHIFT 2 * std::pow(10, 6)
+
 /******************************************************************************
  * @brief A predicate to check two angles are with 1 degree of each other at the
  *  angle wraparound point.
@@ -81,13 +86,22 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     double dYawTolerance    = 1.0;
 
     // Define test path
-    std::vector<geoops::UTMCoordinate> vPathUtm = {{0, 0}, {0, 10}, {5, 20}, {10, 30}, {20, 35}};
+    std::vector<geoops::UTMCoordinate> vPathUTM = {{0, 0}, {0, 10}, {5, 20}, {10, 30}, {20, 35}};
+
+    // Make sure Easting is in the valid range [1200km, 2800km].
+    // Add 2000km to each easting coordinate.
+    std::vector<geoops::UTMCoordinate>::iterator itPathUTM;
+    for (itPathUTM = vPathUTM.begin(); itPathUTM != vPathUTM.end(); ++itPathUTM)
+    {
+        itPathUTM->dEasting += UTM_SHIFT;
+        itPathUTM->dNorthing += UTM_SHIFT;
+    }
 
     // Initialize controller
-    controllers::StanleyController stController(vPathUtm, dKp, dDistToFrontAxle, dYawTolerance);
+    controllers::StanleyController stController(vPathUTM, dKp, dDistToFrontAxle, dYawTolerance);
 
     // Define agent's state.
-    geoops::UTMCoordinate stCurrentPosUTM(1, 0);
+    geoops::UTMCoordinate stCurrentPosUTM(1 + UTM_SHIFT, 0 + UTM_SHIFT);
     double dVelocity = 1.0;
     double dBearing  = 30;
 
@@ -122,7 +136,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
 
     // Test opposite side of path (Bearing=350, Position=(-1,1))
     dBearing        = 350;
-    stCurrentPosUTM = geoops::UTMCoordinate(-1, 1);
+    stCurrentPosUTM = geoops::UTMCoordinate(-1 + UTM_SHIFT, 1 + UTM_SHIFT);
 
     dTargetBearing  = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx     = stController.GetLastTargetIdx();
@@ -132,7 +146,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
 
     // Test move further along path (Bearing=80, Position=(7,20))
     dBearing        = 80;
-    stCurrentPosUTM = geoops::UTMCoordinate(7, 20);
+    stCurrentPosUTM = geoops::UTMCoordinate(7 + UTM_SHIFT, 20 + UTM_SHIFT);
 
     dTargetBearing  = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx     = stController.GetLastTargetIdx();
@@ -141,7 +155,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     ASSERT_EQ(unTargetIdx, 2);
 
     // Test can't revert to earlier point in path (Bearing=80, Position=(1,0))
-    stCurrentPosUTM = geoops::UTMCoordinate(1, 0);
+    stCurrentPosUTM = geoops::UTMCoordinate(1 + UTM_SHIFT, 0 + UTM_SHIFT);
 
     dTargetBearing  = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx     = stController.GetLastTargetIdx();
