@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.01.00)
+project(Autonomy_Software VERSION 24.02.00)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
@@ -40,7 +40,7 @@ set(CPACK_GENERATOR "STGZ")
 ## Find RoveComm
 FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
         GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        608453f6b3e1a4445d281020d7dea568f7bf5e8d                     # Version 24.0.0
+        GIT_TAG        111111d0a59eafcce9f6e3bfb3e6b3f24a60032c                     # Version 24.0.0
         GIT_SHALLOW    FALSE                                                        # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
     )
