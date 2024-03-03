@@ -69,9 +69,7 @@ class NavigationBoard
         std::shared_mutex m_muLocationMutex;       // Mutex for acquiring read and write lock on location member variable.
         std::shared_mutex m_muOrientationMutex;    // Mutex for acquiring read and write lock on orientation member variable.
 
-                                                   // TODO: RoveComm Node
-
-        // TODO: RoveComm Callback -> IMU Data
+                                                   // TODO: RoveComm Callback -> IMU Data
         // TODO: RoveComm Callback -> GPS Data
 };
 

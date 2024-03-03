@@ -42,9 +42,9 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Socket Ports.
-    // const int ROVECOMM_UDP_PORT        = 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
-    // const int ROVECOMM_TCP_PORT        = 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
-    // const char* ROVECOMM_TCP_INTERFACE = "";       // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
+    const int ROVECOMM_UDP_PORT                 = 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const int ROVECOMM_TCP_PORT                 = 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const std::string ROVECOMM_TCP_INTERFACE_IP = "";       // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

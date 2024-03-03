@@ -35,6 +35,7 @@ dorny
 doxdocgen
 Doxygen
 driveboard
+DRIVELEFTRIGHT
 endcond
 Extention
 feedforward

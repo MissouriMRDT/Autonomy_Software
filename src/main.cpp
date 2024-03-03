@@ -88,24 +88,32 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
-        // // Initialize RoveComm.
-        // globals::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
-        // globals::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
-        // // Start RoveComm instances bound on ports.
-        // bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(constants::ROVECOMM_UDP_PORT);
-        // bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE, constants::ROVECOMM_TCP_PORT);
-        // // Check if RoveComm was successfully initialized.
-        // if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
-        // {
-        //     // Submit logger message.
-        //     LOG_CRITICAL(logging::g_qSharedLogger,
-        //                  "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode State: {}",
-        //                  bRoveCommUDPInitSuccess,
-        //                  bRoveCommTCPInitSuccess);
+        /////////////////////////////////////////
+        // Setup global objects.
+        /////////////////////////////////////////
+        // Initialize RoveComm.
+        globals::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+        globals::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+        // Start RoveComm instances bound on ports.
+        bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(constants::ROVECOMM_UDP_PORT);
+        bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), constants::ROVECOMM_TCP_PORT);
+        // Check if RoveComm was successfully initialized.
+        if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
+        {
+            // Submit logger message.
+            LOG_CRITICAL(logging::g_qSharedLogger,
+                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode State: {}",
+                         bRoveCommUDPInitSuccess,
+                         bRoveCommTCPInitSuccess);
 
-        //     // Since RoveComm is crucial, stop code.
-        //     bMainStop = true;
-        // }
+            // Since RoveComm is crucial, stop code.
+            bMainStop = true;
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
+        }
 
         // Initialize drivers.
         globals::g_pDriveBoard      = new DriveBoard();
@@ -201,18 +209,24 @@ int main()
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
+        globals::g_pRoveCommUDPNode->CloseUDPSocket();
+        globals::g_pRoveCommTCPNode->CloseTCPSocket();
 
         // Delete dynamically allocated objects.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
+        delete globals::g_pRoveCommUDPNode;
+        delete globals::g_pRoveCommTCPNode;
 
         // Set dangling pointers to null.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
         globals::g_pWaypointHandler     = nullptr;
+        globals::g_pRoveCommUDPNode     = nullptr;
+        globals::g_pRoveCommTCPNode     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.
