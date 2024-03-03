@@ -84,7 +84,7 @@ jobs:
         run: mkdir -p /opt/Autonomy_Software/artifacts/
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: download
         with:
           path: /opt/Autonomy_Software/artifacts/
@@ -102,10 +102,3 @@ jobs:
           files: "/opt/Autonomy_Software/artifacts/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Delete Artifacts
-        uses: geekyeggo/delete-artifact@v4
-        with:
-          name: |
-            Autonomy-AMD64
-            Autonomy-ARM64
