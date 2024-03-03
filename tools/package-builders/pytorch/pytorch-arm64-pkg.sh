@@ -54,15 +54,24 @@ else
     # Install Torch
     cmake --build . --target install
 
-    # Cleanup Install
-    rm -rf /tmp/pytorch
+    # Check if CMake was successful with exit code 0.
+    if [ $? -eq 0 ]; then
+        # Cleanup Install
+        rm -rf /tmp/pytorch
 
-    # Create Package
-    dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
+        # Create Package
+        dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
+        # Create Package Directory
+        mkdir -p /tmp/pkg/deb
 
-    # Copy Package
-    cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
+        # Copy Package
+        cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
+    else
+        # Cleanup Install
+        rm -rf /tmp/pytorch
+
+        # Return non success exit code.
+        exit 1
+    fi
 fi
