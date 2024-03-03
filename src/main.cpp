@@ -88,6 +88,25 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
+        // // Initialize RoveComm.
+        // globals::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+        // globals::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+        // // Start RoveComm instances bound on ports.
+        // bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(constants::ROVECOMM_UDP_PORT);
+        // bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE, constants::ROVECOMM_TCP_PORT);
+        // // Check if RoveComm was successfully initialized.
+        // if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
+        // {
+        //     // Submit logger message.
+        //     LOG_CRITICAL(logging::g_qSharedLogger,
+        //                  "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode State: {}",
+        //                  bRoveCommUDPInitSuccess,
+        //                  bRoveCommTCPInitSuccess);
+
+        //     // Since RoveComm is crucial, stop code.
+        //     bMainStop = true;
+        // }
+
         // Initialize drivers.
         globals::g_pDriveBoard      = new DriveBoard();
         globals::g_pMultimediaBoard = new MultimediaBoard();
@@ -108,8 +127,6 @@ int main()
 
         // TEST: Send Start Command to enter navigating state.
         globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::eStart);
-
-        // TODO: Initialize RoveComm.
 
         /////////////////////////////////////////
         // Declare local variables used in main loop.

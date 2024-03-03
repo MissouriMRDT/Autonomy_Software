@@ -43,4 +43,8 @@ namespace globals
     DriveBoard* g_pDriveBoard;
     MultimediaBoard* g_pMultimediaBoard;
     NavigationBoard* g_pNavigationBoard;
+
+    // RoveComm Instances:
+    rovecomm::RoveCommUDP* g_pRoveCommUDPNode;
+    rovecomm::RoveCommTCP* g_pRoveCommTCPNode;
 }    // namespace globals
