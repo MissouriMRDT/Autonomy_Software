@@ -102,10 +102,3 @@ jobs:
           files: "/opt/Autonomy_Software/artifacts/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Delete Artifacts
-        uses: geekyeggo/delete-artifact@v4
-        with:
-          name: |
-            Autonomy-AMD64
-            Autonomy-ARM64
