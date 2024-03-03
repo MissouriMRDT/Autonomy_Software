@@ -20,7 +20,7 @@ else
     
     # Delete Old Packages
     rm -rf /tmp/pkg
-    # rm -rf /tmp/libtorch
+    rm -rf /tmp/libtorch
 
     # Create Package Directory
     mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/local
