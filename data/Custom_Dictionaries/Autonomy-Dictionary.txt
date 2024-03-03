@@ -102,6 +102,7 @@ setpoint
 setpoints
 SIMCAM
 softprops
+STARTAUTONOMY
 statechart
 statemachine
 STATEMACHINEHANDLER
