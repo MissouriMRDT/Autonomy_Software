@@ -13,16 +13,16 @@
 
 #include "../interfaces/AutonomyThread.hpp"
 
-#include "../states/ApproachingMarkerState.hpp"
-#include "../states/ApproachingObjectState.hpp"
-#include "../states/AvoidanceState.hpp"
-#include "../states/IdleState.hpp"
-#include "../states/NavigatingState.hpp"
-#include "../states/ReversingState.hpp"
-#include "../states/SearchPatternState.hpp"
-#include "../states/StuckState.hpp"
-#include "../states/VerifyingMarkerState.hpp"
-#include "../states/VerifyingObjectState.hpp"
+#include "../states/ApproachingMarkerState.h"
+#include "../states/ApproachingObjectState.h"
+#include "../states/AvoidanceState.h"
+#include "../states/IdleState.h"
+#include "../states/NavigatingState.h"
+#include "../states/ReversingState.h"
+#include "../states/SearchPatternState.h"
+#include "../states/StuckState.h"
+#include "../states/VerifyingMarkerState.h"
+#include "../states/VerifyingObjectState.h"
 
 /******************************************************************************
  * @brief The StateMachineHandler class serves as the main state machine for
