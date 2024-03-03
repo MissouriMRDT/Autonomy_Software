@@ -84,7 +84,7 @@ jobs:
         run: mkdir -p /opt/Autonomy_Software/artifacts/
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: download
         with:
           path: /opt/Autonomy_Software/artifacts/
