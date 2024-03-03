@@ -30,6 +30,7 @@ deque
 Desaturate
 devcontainer
 diffdrive
+DISPLAYSTATE
 dockerfiles
 dorny
 doxdocgen
@@ -62,6 +63,7 @@ jetpack
 jspencerpittman
 jthread
 keyscan
+LEDRGB
 LEFTCAM
 MAINCAM
 MAINCAN
@@ -105,6 +107,7 @@ SIMCAM
 softprops
 STARTAUTONOMY
 statechart
+STATEDISPLAY
 statemachine
 STATEMACHINEHANDLER
 Struct
@@ -113,6 +116,7 @@ Styleguides
 TAGDETECT
 TAGDETECTOR
 Tele
+TELEOP
 tensorflowtag
 threadpool
 tparam
