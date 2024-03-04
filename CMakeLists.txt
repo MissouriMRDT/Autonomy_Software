@@ -1,6 +1,6 @@
 ####################################################################################################################
 ##											Autonomy Software												   	  ##
-##											v24.01.00 Build 001												 	  ##
+##											v24.02.00 Build 001												 	  ##
 ##										  Mars Rover Design Team												  ##
 ##								   Copyright 2023 - All Rights Reserved										 	  ##
 ####################################################################################################################
@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.01.00)
+project(Autonomy_Software VERSION 24.02.00)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
@@ -40,7 +40,7 @@ set(CPACK_GENERATOR "STGZ")
 ## Find RoveComm
 FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
         GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        608453f6b3e1a4445d281020d7dea568f7bf5e8d                     # Version 24.0.0
+        GIT_TAG        111111d0a59eafcce9f6e3bfb3e6b3f24a60032c                     # Version 24.0.0
         GIT_SHALLOW    FALSE                                                        # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
     )
@@ -151,13 +151,14 @@ install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
 file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
+file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
 file(GLOB Logging_SRC			  	    CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
 
 list(LENGTH UnitTests_SRC           UnitTests_LEN)
 list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC} ${Logging_SRC})
+    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
     target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
 else()
@@ -165,7 +166,7 @@ else()
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Logging_SRC})
+    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
     target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
 else()
