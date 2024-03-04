@@ -59,11 +59,6 @@ concurrency:
   group: "docker"
   cancel-in-progress: false
 
-# This workflow, since it runs on self hosted runners is allowed to take up to 24 hours, unless otherwise
-# specified on a job. ALl the jobs that run on github-hosted runners have been set to the 6 hour timeout they
-# have specified.
-timeout-minutes: 1440
-
 # This workflow is split into multiple jobs. Each job is run on a different runner. This allows multiple jobs to
 # run at the same time. The jobs are run in parallel unless they have a dependency on another job. If a job has
 # a dependency on another job, it will wait until the other job is complete before starting.
@@ -92,6 +87,7 @@ jobs:
   check-amd64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
@@ -145,6 +141,7 @@ jobs:
   build-updated-amd64-packages:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -236,6 +233,7 @@ jobs:
   check-arm64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
@@ -289,6 +287,7 @@ jobs:
   build-updated-arm64-packages:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -381,6 +380,7 @@ jobs:
   build-and-push-jammy:
     needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
@@ -465,6 +465,7 @@ jobs:
   build-and-push-jetpack:
     needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
