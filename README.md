@@ -32,7 +32,7 @@
     <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
       <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
     </a>
-    <a href="https://en.cppreference.com/w/cpp/20">
+    <a href="https://en.cppreference.com/w/cpp/17">
       <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
     </a>
   </div>
