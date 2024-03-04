@@ -21,6 +21,7 @@
 #include "handlers/WaypointHandler.h"
 
 /// \cond
+#include <RoveComm/RoveComm.h>
 #include <chrono>
 #include <ctime>
 #include <iostream>
@@ -59,6 +60,10 @@ namespace globals
     extern DriveBoard* g_pDriveBoard;              // Global Drive Board Driver
     extern MultimediaBoard* g_pMultimediaBoard;    // Global Multimedia Board Driver
     extern NavigationBoard* g_pNavigationBoard;    // Global Navigation Board Driver
+
+    // RoveComm Instances:
+    extern rovecomm::RoveCommUDP* g_pRoveCommUDPNode;    // Global RoveComm UDP Instance.
+    extern rovecomm::RoveCommTCP* g_pRoveCommTCPNode;    // Global RoveComm TCP Instance.
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H
