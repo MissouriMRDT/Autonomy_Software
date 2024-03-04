@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "ApproachingMarkerState.h"
+#include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
 
 /******************************************************************************
@@ -88,7 +89,7 @@ namespace statemachine
         bool bDetectedTagTF;    // Was the tag detected through Tensorflow.
 
         // If a target hasn't been identified yet attempt to find a target tag in the rover's vision.
-        if (!m_bDetected && m_nNumDetectionAttempts < DETECT_ATTEMPTS_LIMIT)
+        if (!m_bDetected && m_nNumDetectionAttempts < constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
         {
             // Attempt to identify the target with OpenCV.
             // While OpenCV struggles to find tags, the tags it does find are much more reliable compared to TensorFlow.
@@ -150,14 +151,14 @@ namespace statemachine
 
         // If we have made too many consecutive failed detection attempts
         // inform the statemachine the marker has been lost.
-        if (m_nNumDetectionAttempts >= DETECT_ATTEMPTS_LIMIT)
+        if (m_nNumDetectionAttempts >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return States::eApproachingMarker;
         }
 
         // Get the current absolute heading of the rover.
-        double dCurrHeading = globals::g_pNavigationBoard->GetIMUData().dHeading;
+        double dCurrHeading = globals::g_pNavigationBoard->GetHeading();
 
         // Find the target's heading and distance with respect to the rover's current position.
         double dTargetHeading;
@@ -184,15 +185,16 @@ namespace statemachine
         m_dLastTargetDistance = dTargetDistance;
 
         // If we are close enough to the target inform the state machine we have reached the marker.
-        if (dTargetDistance < CLOSE_ENOUGH)
+        if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
             return States::eApproachingMarker;
         }
 
         // Move the rover to the target's estimated position.
-        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(MOTOR_SPEED_ON_APPROACH, dTargetHeading, dCurrHeading, diffdrive::eTankDrive);
-        globals::g_pDriveBoard->SendDrive(stDrivePowers.dLeftDrivePower, stDrivePowers.dRightDrivePower);
+        diffdrive::DrivePowers stDrivePowers =
+            globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER, dTargetHeading, dCurrHeading, diffdrive::eTankDrive);
+        globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return States::eApproachingMarker;
     }

@@ -11,6 +11,7 @@
 #ifndef STUCKSTATE_H
 #define STUCKSTATE_H
 
+#include "../algorithms/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 
@@ -38,12 +39,7 @@ namespace statemachine
             unsigned int m_unAttempts;                     // Current attempt we are on for a given position.
             geoops::GPSCoordinate m_stOriginalPosition;    // Original position where rover was reported stuck.
             double m_dOriginalHeading;                     // Original heading the rover was at when reported stuck.
-
-            double m_dHeadingTolerance;                    // How close the current heading must be to the target heading to be considered aligned.
-            double m_dInplaceRotationMotorPower;           // Power on left and right motors when rotating the rotor.
-            double m_dSamePositionThreshold;               // Distance threshold determining if we are still in the same position.
-
-            bool m_bIsCurrentlyAligning;
+            bool m_bIsCurrentlyAligning;                   // Is the rover currently trying to align with a target heading.
 
             bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition);
 

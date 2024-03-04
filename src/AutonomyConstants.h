@@ -222,7 +222,16 @@ namespace constants
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Nothing here yet.
+    // Approaching Marker State
+    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT  = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
+    const double APPROACH_MARKER_MOTOR_POWER         = 0.5;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 5;      // How close the rover must be to the target marker before completing its approach.
+
+    // Stuck State
+    const double STUCK_HEADING_TOLERANCE    = 3;      // How close to the target heading must the rover be aligned.
+    const double STUCK_MOTOR_POWER          = 0.5;    // The amount of power the motors use when becoming unstuck.
+    const double STUCK_SAME_POINT_PROXIMITY = 1;      // Points within this proximity of another point are considered the same.
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
