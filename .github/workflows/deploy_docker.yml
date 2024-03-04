@@ -59,6 +59,11 @@ concurrency:
   group: "docker"
   cancel-in-progress: false
 
+# This workflow, since it runs on self hosted runners is allowed to take up to 24 hours, unless otherwise
+# specified on a job. ALl the jobs that run on github-hosted runners have been set to the 6 hour timeout they
+# have specified.
+timeout-minutes: 1440
+
 # This workflow is split into multiple jobs. Each job is run on a different runner. This allows multiple jobs to
 # run at the same time. The jobs are run in parallel unless they have a dependency on another job. If a job has
 # a dependency on another job, it will wait until the other job is complete before starting.
@@ -68,6 +73,7 @@ jobs:
   # for the other jobs.
   time-and-date:
     runs-on: [ubuntu-latest]
+    timeout-minutes: 360
 
     # This outputs the current date and time to the GitHub output. This is used to tag the docker images.
     outputs:
