@@ -16,10 +16,6 @@
 #include "../vision/aruco/ArucoDetection.hpp"
 #include "../vision/aruco/TensorflowDetection.hpp"
 
-#define DETECT_ATTEMPTS_LIMIT   5
-#define MOTOR_SPEED_ON_APPROACH 0.5
-#define CLOSE_ENOUGH            5
-
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
