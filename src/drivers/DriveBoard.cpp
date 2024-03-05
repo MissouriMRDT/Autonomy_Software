@@ -12,7 +12,13 @@
 #include "./DriveBoard.h"
 
 #include "../AutonomyConstants.h"
+#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
+
+/// \cond
+#include <RoveComm/RoveCommManifest.h>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Construct a new Drive Board::DriveBoard object.
@@ -83,32 +89,37 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
 /******************************************************************************
  * @brief Sets the left and right drive powers of the drive board.
  *
- * @param dLeftSpeed - Left drive speed (-1 to 1)
- * @param dRightSpeed - Right drive speed (-1 to 1)
+ * @param stDrivePowers - A struct containing info about the desired drive powers.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-void DriveBoard::SendDrive(double dLeftSpeed, double dRightSpeed)
+void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
 {
     // Limit input values.
-    dLeftSpeed  = std::clamp(dLeftSpeed, -1.0, 1.0);
-    dRightSpeed = std::clamp(dRightSpeed, -1.0, 1.0);
+    double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
+    double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
 
     // Update member variables with new target speeds.
     m_stDrivePowers.dLeftDrivePower  = dLeftSpeed;
     m_stDrivePowers.dRightDrivePower = dRightSpeed;
 
-    // TODO: Uncomment once RoveComm is implemented. This is commented to gid rid of unused variable warnings.
-    // // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-    // float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    // float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    // // Limit the power to max and min effort defined in constants.
-    // fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
-    // fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+    // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
+    float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    // Limit the power to max and min effort defined in constants.
+    fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+    fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
 
+    // Construct a RoveComm packet with the drive data.
+    rovecomm::RoveCommPacket<float> stPacket;
+    stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(fDriveBoardLeftPower);
+    stPacket.vData.emplace_back(fDriveBoardRightPower);
     // Send drive command over RoveComm to drive board.
-    // TODO: Add RoveComm sendpacket.
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
 
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
@@ -127,8 +138,15 @@ void DriveBoard::SendStop()
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
 
+    // Construct a RoveComm packet with the drive data.
+    rovecomm::RoveCommPacket<float> stPacket;
+    stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
+    stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
     // Send drive command over RoveComm to drive board.
-    // TODO: Add RoveComm sendpacket.
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
 }
 
 /******************************************************************************

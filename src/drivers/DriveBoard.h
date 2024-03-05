@@ -37,6 +37,10 @@ class DriveBoard
         diffdrive::DrivePowers m_stDrivePowers;    // Struct used to store the left and right drive powers of the robot.
         controllers::PIDController* m_pPID;        // The PID controller used for drive towards a heading.
 
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
     public:
         /////////////////////////////////////////
         // Declare public enums that are specific to and used within this class.
@@ -52,7 +56,7 @@ class DriveBoard
                                              const double dGoalHeading,
                                              const double dActualHeading,
                                              const diffdrive::DifferentialControlMethod eKinematicsMethod);
-        void SendDrive(double dLeftSpeed, double dRightSpeed);
+        void SendDrive(diffdrive::DrivePowers& stDrivePowers);
         void SendStop();
 
         /////////////////////////////////////////
