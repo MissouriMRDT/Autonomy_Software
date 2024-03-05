@@ -48,12 +48,12 @@ else
     # Check if CMake was successful with exit code 0.
     if [ $? -eq 0 ]; then
         # Install Torch
-        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/include
-        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/lib
-        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/share
-        cp -r ./torch/include/* /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/include/
-        cp -r ./torch/lib/* /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/lib/
-        cp -r ./torch/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/share/
+        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include
+        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib
+        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share
+        cp -r ./torch/include/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include/
+        cp -r ./torch/lib/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib/
+        cp -r ./torch/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share/
 
         # Cleanup Install
         rm -rf /tmp/pytorch
