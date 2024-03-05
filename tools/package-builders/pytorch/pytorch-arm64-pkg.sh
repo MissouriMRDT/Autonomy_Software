@@ -37,22 +37,21 @@ else
 
     # Download Torch
     git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
-    mkdir -p pytorch/build && cd pytorch/build
+    cd pytorch
 
     # Install python dependencies for building libtorch.
-    pip install -r ../requirements.txt
+    pip3 install -r requirements.txt
     
     # Build Torch
-    cmake \
-        -D CMAKE_INSTALL_PREFIX:PATH=/tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/local \
-        -D CMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
-        -D CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
-        -D BUILD_SHARED_LIBS:BOOL=OFF \
-        -D CMAKE_BUILD_TYPE:STRING=Release \
-        -D PYTHON_EXECUTABLE:PATH=`which python3` ..
+    python3 setup.py install --cmake
 
     # Install Torch
-    cmake --build . --target install
+    mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/include
+    mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/lib
+    mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/share
+    cp -r ./torch/include/* /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/include/
+    cp -r ./torch/lib/* /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/lib/
+    cp -r ./torch/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/usr/share/
 
     # Check if CMake was successful with exit code 0.
     if [ $? -eq 0 ]; then
