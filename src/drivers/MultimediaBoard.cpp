@@ -9,72 +9,12 @@
  ******************************************************************************/
 
 #include "MultimediaBoard.h"
+#include "../AutonomyGlobals.h"
 
-/******************************************************************************
- * @brief This struct serves as a container for RGB values, and provides a
- *      few overridden constructors for converting from hex to 8-bit RGB values.
- *
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-06-20
- ******************************************************************************/
-struct MultimediaBoard::RGB
-{
-    public:
-        // Declare public struct attributes.
-        double dRed;
-        double dGreen;
-        double dBlue;
+/// \cond
+#include <RoveComm/RoveCommManifest.h>
 
-        /******************************************************************************
-         * @brief Construct a new RGB object.
-         *
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2023-06-20
-         ******************************************************************************/
-        RGB()
-        {
-            // Initialize all member variables.
-            this->dRed   = 0;
-            this->dGreen = 0;
-            this->dBlue  = 0;
-        }
-
-        /******************************************************************************
-         * @brief Construct a new RGB object.
-         *
-         * @param iHex - The three hexadecimal digit value containing the RGB values. 0xFFF == 255, 255, 255.
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2023-06-20
-         ******************************************************************************/
-        RGB(int iHex)
-        {
-            this->dRed   = ((iHex >> 16) & 0xFF);
-            this->dGreen = ((iHex >> 8) & 0xFF);
-            this->dBlue  = (iHex & 0xFF);
-        }
-
-        /******************************************************************************
-         * @brief Construct a new RGB object.
-         *
-         * @param dRed - The red value of the LED panel. (0-255)
-         * @param dGreen - The green value of the LED panel. (0-255)
-         * @param dBlue - The blue value of the LED panel. (0-255)
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2023-06-20
-         ******************************************************************************/
-        RGB(double dRed, double dGreen, double dBlue)
-        {
-            this->dRed   = dRed;
-            this->dGreen = dGreen;
-            this->dBlue  = dBlue;
-        }
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \endcond
 
 /******************************************************************************
  * @brief Construct a new Multimedia Board:: Multimedia Board object.
@@ -87,9 +27,6 @@ MultimediaBoard::MultimediaBoard()
 {
     // Initialize member variables.
     m_eCurrentLightingState = eOff;
-    m_dCustomRed            = 0.0;
-    m_dCustomGreen          = 0.0;
-    m_dCustomBlue           = 0.0;
 }
 
 /******************************************************************************
@@ -117,27 +54,71 @@ MultimediaBoard::~MultimediaBoard()
 void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
 {
     // Update member variables.
-    this->m_eCurrentLightingState = eState;
+    m_eCurrentLightingState = eState;
+
+    // Create new RoveCommPacket. Will be constructed in enum.
+    rovecomm::RoveCommPacket<uint8_t> stPacket;
 
     // Decide what lighting operation to execute.
     switch (eState)
     {
         case eOff:
+            // Construct a RoveComm packet with the lighting data.
+            stPacket.unDataId    = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_TYPE;
             // Use RoveComm to send 0, 0, 0 RGB values.
-            // TODO: Add RoveComm sendpacket.
+            stPacket.vData.emplace_back(0);
+            stPacket.vData.emplace_back(0);
+            stPacket.vData.emplace_back(0);
             break;
 
         case eCustom:
             // Use RoveComm to send old custom values previously set.
-            // TODO: Add RoveComm sendpacket.
+            this->SendRGB(m_stCustomRGBValues);
+            break;
+
+        case eTeleOp:
+            // Construct a RoveComm packet with the lighting data.
+            stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_TYPE;
+            // Use RoveComm to send BLUE color state value.
+            stPacket.vData.emplace_back(manifest::Core::DISPLAYSTATE::TELEOP);
+            break;
+
+        case eAutonomy:
+            // Construct a RoveComm packet with the lighting data.
+            stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_TYPE;
+            // Use RoveComm to send RED color state value.
+            stPacket.vData.emplace_back(manifest::Core::DISPLAYSTATE::AUTONOMY);
+            break;
+
+        case eReachedGoal:
+            // Construct a RoveComm packet with the lighting data.
+            stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_TYPE;
+            // Use RoveComm to send flashing GREEN color state value.
+            stPacket.vData.emplace_back(manifest::Core::DISPLAYSTATE::REACHED_GOAL);
             break;
 
         default:
+            // Construct a RoveComm packet with the lighting data.
+            stPacket.unDataId    = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_TYPE;
             // Send lighting state over RoveComm.
-            // TODO: Add RoveComm sendpacket.
+            stPacket.vData.emplace_back(0);
+            stPacket.vData.emplace_back(0);
+            stPacket.vData.emplace_back(0);
             break;
     }
+
     // Send multimedia board lighting state to board over RoveComm.
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
 }
 
 /******************************************************************************
@@ -151,16 +132,47 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
 void MultimediaBoard::SendRGB(RGB stRGBVal)
 {
     // Update custom RGB values.
-    m_dCustomRed   = stRGBVal.dRed;
-    m_dCustomGreen = stRGBVal.dGreen;
-    m_dCustomBlue  = stRGBVal.dBlue;
+    m_stCustomRGBValues = stRGBVal;
+    // Update internal lighting state.
+    m_eCurrentLightingState = eCustom;
 
+    // Construct a RoveComm packet with the lighting data.
+    rovecomm::RoveCommPacket<uint8_t> stPacket;
+    stPacket.unDataId    = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(stRGBVal.dRed);
+    stPacket.vData.emplace_back(stRGBVal.dGreen);
+    stPacket.vData.emplace_back(stRGBVal.dBlue);
     // Send RGB values to multimedia board over RoveComm.
-    // TODO: Add RoveComm sendpacket.
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
 }
 
+/******************************************************************************
+ * @brief Accessor for the current lighting state of the multimedia board.
+ *
+ * @return MultimediaBoard::MultimediaBoardLightingState - An enumerator value representing
+ *      the current lighting state of the board.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
 MultimediaBoard::MultimediaBoardLightingState MultimediaBoard::GetCurrentLightingState() const
 {
     // Return the current lighting state.
     return m_eCurrentLightingState;
+}
+
+/******************************************************************************
+ * @brief Accessor for the current custom lighting RGB values.
+ *
+ * @return MultimediaBoard::RGB - The custom lighting values stored in an RGB struct.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+MultimediaBoard::RGB MultimediaBoard::GetCustomLightingValues() const
+{
+    // Return the currently stored custom lighting values.
+    return m_stCustomRGBValues;
 }

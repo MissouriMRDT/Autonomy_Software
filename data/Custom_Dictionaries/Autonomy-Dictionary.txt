@@ -31,12 +31,14 @@ deque
 Desaturate
 devcontainer
 diffdrive
+DISPLAYSTATE
 dockerfiles
 dorny
 doxdocgen
 Doxygen
 driveboard
 edgetpu
+DRIVELEFTRIGHT
 endcond
 Extention
 feedforward
@@ -67,6 +69,7 @@ jspencerpittman
 Jter
 jthread
 keyscan
+LEDRGB
 LEFTCAM
 libedgetpu
 MAINCAM
@@ -114,7 +117,9 @@ setpoint
 setpoints
 SIMCAM
 softprops
+STARTAUTONOMY
 statechart
+STATEDISPLAY
 statemachine
 STATEMACHINEHANDLER
 Struct
@@ -124,6 +129,7 @@ TAGDETECT
 TAGDETECTOR
 Tele
 tensorflowobject
+TELEOP
 tensorflowtag
 tensorflowyolo
 tflite

@@ -25,7 +25,7 @@
       <img src="https://img.shields.io/badge/Ubuntu_Jammy-latest-orange" alt="jammy-pkg" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
-      <img src="https://img.shields.io/badge/JetPack-latest-orange" alt="jetpack-pkg" />
+      <img src="https://img.shields.io/badge/NVIDIA_JetPack_5-latest-orange" alt="jetpack-pkg" />
     </a>
   </div>
   <div>
@@ -41,7 +41,7 @@
 
 ## Introduction
 
-Welcome to the Autonomy Software repository of the Mars Rover Design Team (MRDT) at Missouri University of Science and Technology (Missouri S&T)! This repository contains the source code, documentation, and other resources for the development of the Autonomy Software for our Mars Rover. The Autonomy Software project aims to compete in the University Rover Challenge (URC) by demonstrating advanced autonomous capabilities and robust navigation algorithms.
+Welcome to the Autonomy Software repository of the [Mars Rover Design Team (MRDT)](https://marsrover.mst.edu) at [Missouri University of Science and Technology (Missouri S&T)](https://mst.edu)! This repository contains the source code, documentation, and other resources for the development of the Autonomy Software for our Mars Rover. The Autonomy Software project aims to compete in the University Rover Challenge (URC) by demonstrating advanced autonomous capabilities and robust navigation algorithms.
 
 ### API Documentation
 
