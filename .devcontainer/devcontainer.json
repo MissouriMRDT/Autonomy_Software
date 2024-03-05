@@ -83,6 +83,8 @@
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
                 "C_Cpp.default.cppStandard": "c++17",
                 "C_Cpp.default.includePath": [
+                    "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/",
+                    "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/**",
                     "/usr/local/include/opencv4",
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
