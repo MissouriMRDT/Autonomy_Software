@@ -37,26 +37,34 @@ else
 
     # Download Torch
     git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
-    cd pytorch
+    mkdir pytorch-build
+    cd pytorch-build
 
     # Install python dependencies for building libtorch.
     pip3 install -r requirements.txt
     
     # Build Torch
-    python3 setup.py install --cmake
+    cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release -DPYTHON_EXECUTABLE:PATH=`which python3` -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install ../pytorch
+
+    # Install Torch
+    cmake --build . --target install
 
     # Check if CMake was successful with exit code 0.
     if [ $? -eq 0 ]; then
-        # Install Torch
+        # Copy Torch
+        mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/bin
         mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include
         mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib
         mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share
-        cp -r ./torch/include/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include/
-        cp -r ./torch/lib/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib/
-        cp -r ./torch/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share/
+        cp -r /tmp/pytorch-install/bin/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/bin/
+        cp -r /tmp/pytorch-install/include/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/include/
+        cp -r /tmp/pytorch-install/lib/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/lib/
+        cp -r /tmp/pytorch-install/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share/
 
         # Cleanup Install
         rm -rf /tmp/pytorch
+        rm -rf /tmp/pytorch-build
+        rm -rf /tmp/pytorch-install
 
         # Create Package
         dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
