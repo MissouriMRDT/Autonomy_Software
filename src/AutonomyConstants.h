@@ -223,14 +223,23 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Approaching Marker State
-    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT  = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
-    const double APPROACH_MARKER_MOTOR_POWER         = 0.5;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 5;      // How close the rover must be to the target marker before completing its approach.
+    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
+    const double APPROACH_MARKER_MOTOR_POWER             = 0.5;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 5;      // How close the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
     // Stuck State
     const double STUCK_HEADING_TOLERANCE    = 3;      // How close to the target heading must the rover be aligned.
     const double STUCK_MOTOR_POWER          = 0.5;    // The amount of power the motors use when becoming unstuck.
     const double STUCK_SAME_POINT_PROXIMITY = 1;      // Points within this proximity of another point are considered the same.
+
+    // Search Pattern State
+    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;     // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_MAX_RADIUS               = 25;     //  The maximum radius to cover in the search (meters).
+    const double SEARCH_STARTING_HEADING_DEGREES = 0;      // The angle the rover is facing at the start of the search(degrees).
+    const double SEARCH_SPACING                  = 1;      // The spacing between successive points in the spiral (meters).
+    const double SEARCH_WAYPOINT_PROXIMITY       = 1;      // How close a rover must be to a point to have it count as visited.
+    const double SEARCH_MOTOR_POWER              = 0.5;    // The amount of power the motors use when approaching the marker.
 
     ///////////////////////////////////////////////////////////////////////////
 
