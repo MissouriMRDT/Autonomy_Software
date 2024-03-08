@@ -26,6 +26,14 @@
  ******************************************************************************/
 NavigationBoard::NavigationBoard()
 {
+    // Subscribe to NavBoard packets.
+    rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
+    stSubscribePacket.unDataId    = manifest::System::SUBSCRIBE_DATA_ID;
+    stSubscribePacket.unDataCount = 0;
+    stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
+    stSubscribePacket.vData       = std::vector<uint8_t>{};
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::Nav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
+
     // Set RoveComm callbacks.
     globals::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, constants::ROVECOMM_UDP_PORT);
     globals::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, constants::ROVECOMM_UDP_PORT);
