@@ -11,7 +11,10 @@
 #ifndef SEARCHPATTERNSTATE_H
 #define SEARCHPATTERNSTATE_H
 
+#include "../algorithms/DifferentialDrive.hpp"
+#include "../algorithms/SearchPattern.hpp"
 #include "../interfaces/State.hpp"
+#include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -37,6 +40,11 @@ namespace statemachine
             time_t m_tStuckCheckTime;
             double m_dStuckCheckLastPosition[2];
             bool m_bInitialized;
+
+            std::vector<TagDetector*> m_vTagDetectors;    // Vector of tag detectors to use for detection in order of highest to lowest priority.
+
+            std::vector<WaypointHandler::Waypoint> m_vSearchPath;
+            int m_nSearchPathIdx;
 
         protected:
             void Start() override;
