@@ -13,7 +13,9 @@
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/vision/TagDetectionUtilty.hpp"
 #include "../vision/aruco/ArucoDetection.hpp"
+#include "../vision/aruco/TagDetector.h"
 #include "../vision/aruco/TensorflowDetection.hpp"
 
 /******************************************************************************
@@ -43,15 +45,10 @@ namespace statemachine
             tensorflowtag::TensorflowTag m_stTargetTagTF;    // Detected target tag from Tensorflow.
             double m_dLastTargetHeading;                     // Last recorded heading of the target with respect to the rover's position.
             double m_dLastTargetDistance;                    // Last recorded distance of the target with respect to the rover's position.
+            std::vector<TagDetector*> m_vTagDetectors;       // Vector of tag detectors to use for detection in order of highest to lowest priority.
 
-            template<typename T>
-            bool FindTargetMarker(int nID, T& tIdentifiedTag);
-
-            template<typename T>
-            bool IdentifyTargetMarker(T& tTarget);
-
-            template<typename T>
-            void LoadDetectedTags(std::vector<T> vDetectedTags);
+            bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
+            bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);
 
         protected:
             void Start() override;
