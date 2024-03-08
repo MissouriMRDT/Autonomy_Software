@@ -9,8 +9,7 @@
  ******************************************************************************/
 
 #include "SearchPatternState.h"
-#include "../algorithms/SearchPattern.hpp"
-#include "../interfaces/State.hpp"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -41,6 +40,19 @@ namespace statemachine
 
         m_vRoverXPosition.reserve(m_nMaxDataPoints);
         m_vRoverYPosition.reserve(m_nMaxDataPoints);
+
+        // Calculate the search path.
+        geoops::GPSCoordinate stCurrentPosGPS = globals::g_pNavigationBoard->GetGPSData();
+        m_vSearchPath                         = searchpattern::CalculateSearchPatternWaypoints(stCurrentPosGPS,
+                                                                       constants::SEARCH_ANGULAR_STEP_DEGREES,
+                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                       constants::SEARCH_STARTING_HEADING_DEGREES,
+                                                                       constants::SEARCH_SPACING);
+        m_nSearchPathIdx                      = 0;
+
+        m_vTagDetectors                       = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadLeftArucoEye),
+                                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadRightArucoEye)};
     }
 
     /******************************************************************************
@@ -88,8 +100,67 @@ namespace statemachine
      ******************************************************************************/
     States SearchPatternState::Run()
     {
-        // TODO: Implement the behavior specific to the SearchPattern state
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
+
+        /*
+            The overall flow of this state is as follows.
+            1. Is there a tag -> MarkerSeen
+            2. Is there an object -> ObjectSeen
+            3. Is there an obstacle -> TBD
+            4. Is the rover stuck -> Stuck
+            5. Is the search pattern complete -> Abort
+            6. Follow the search pattern.
+        */
+
+        /* --- Detect Tags --- */
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+
+        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors, false);
+
+        if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+            return States::eSearchPattern;
+        }
+
+        /* --- Detect Objects --- */
+
+        // TODO: Add object detection to SearchPattern state
+
+        /* --- Detect Obstacles --- */
+
+        // TODO: Add obstacle detection to SearchPattern state
+
+        /* --- Check if Stuck --- */
+
+        // TODO: Add the ability to check if stuck
+
+        /* --- Follow Search Pattern --- */
+        // Determine the next waypoint
+        geoops::GPSCoordinate stCurrentPosGPS    = globals::g_pNavigationBoard->GetGPSData();
+        geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
+        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
+
+        if (bReachedTarget && m_nSearchPathIdx == (int) m_vSearchPath.size())
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
+            return States::eSearchPattern;
+        }
+        else if (bReachedTarget)
+        {
+            ++m_nSearchPathIdx;
+            stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
+            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        }
+
+        // Drive to target waypoint.
+        double dCurrHeading = globals::g_pNavigationBoard->GetHeading();
+        diffdrive::DrivePowers stDrivePowers =
+            globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER, stCurrRelToTarget.dStartRelativeBearing, dCurrHeading, diffdrive::eTankDrive);
+        globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return States::eSearchPattern;
     }
