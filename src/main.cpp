@@ -178,7 +178,9 @@ int main()
             szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS:" + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(globals::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(globals::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";
