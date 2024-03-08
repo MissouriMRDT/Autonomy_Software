@@ -33,7 +33,7 @@
       <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
     </a>
     <a href="https://en.cppreference.com/w/cpp/17">
-      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
+      <img src="https://img.shields.io/badge/language-C%2B%2B17-blue.svg?style=flat-round" alt="language" />
     </a>
   </div>
 </div>
