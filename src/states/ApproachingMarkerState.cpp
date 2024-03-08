@@ -38,7 +38,11 @@ namespace statemachine
         m_bDetected             = false;
         m_dLastTargetHeading    = 0;
         m_dLastTargetDistance   = 0;
-    }
+
+        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadLeftArucoEye),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadRightArucoEye)};
+    }    // namespace statemachine
 
     /******************************************************************************
      * @brief This method is called when the state is exited. It is used to clean up
@@ -93,7 +97,7 @@ namespace statemachine
         {
             // Attempt to identify the target with OpenCV.
             // While OpenCV struggles to find tags, the tags it does find are much more reliable compared to TensorFlow.
-            bDetectedTagAR = IdentifyTargetMarker(m_stTargetTagAR);
+            bDetectedTagAR = IdentifyTargetArucoMarker(m_stTargetTagAR);
             if (bDetectedTagAR)
             {
                 // Save the identified tag's ID.
@@ -104,7 +108,7 @@ namespace statemachine
             else
             {
                 // If OpenCV fails to find the tag rely on the TensorFlow vision algorithms to identify it.
-                bDetectedTagTF = IdentifyTargetMarker(m_stTargetTagTF);
+                bDetectedTagTF = IdentifyTargetTensorflowMarker(m_stTargetTagTF);
                 if (bDetectedTagTF)
                 {
                     // Save the identified tag's ID.
@@ -131,11 +135,11 @@ namespace statemachine
         }
 
         // Attempt to find the target marker in OpenCV.
-        bDetectedTagAR = FindTargetMarker(m_nTargetTagID, m_stTargetTagAR);
+        bDetectedTagAR = tagdetectutils::FindArucoTagByID(m_nTargetTagID, m_stTargetTagAR, m_vTagDetectors);
         if (!bDetectedTagAR)
         {
             // Attempt to find the target marker in TensorFlow.
-            bDetectedTagTF = FindTargetMarker(m_nTargetTagID, m_stTargetTagAR);
+            bDetectedTagTF = tagdetectutils::FindTensorflowTagByID(m_nTargetTagID, m_stTargetTagTF, m_vTagDetectors);
         }
 
         // The target marker wasn't found.
@@ -262,47 +266,10 @@ namespace statemachine
     }
 
     /******************************************************************************
-     * @brief Find the target marker in the rover's vision.
-     *
-     * @tparam T -T ype of tag/detection to use. (ArucoTag - OpenCV) and (TensorflowTag - Tensorflow).
-     * @param nID - ID of the target marker to be detected.
-     * @param tIdentifiedTag - Reference to store the tag identified as the target.
-     * @return true - The target marker was found in the rover's vision.
-     * @return false - The target marker was not found in the rover's vision.
-     *
-     * @author JSpencerPittman (jspencerpittman@gmail.com)
-     * @date 2024-02-29
-     ******************************************************************************/
-    template<typename T>
-    bool ApproachingMarkerState::FindTargetMarker(int nID, T& tIdentifiedTag)
-    {
-        // Load all detected tags in the rover's vision.
-        std::vector<T> vDetectedTags;
-        LoadDetectedTags(vDetectedTags);
-
-        // Find the tag with the corresponding ID.
-        typename std::vector<T>::const_iterator itDetectedTag = vDetectedTags.begin();
-        while (itDetectedTag != vDetectedTags.end())
-        {
-            // Tag is the target.
-            if (itDetectedTag->nID == nID)
-            {
-                // Save the tag to the passed in reference.
-                tIdentifiedTag = *itDetectedTag;
-                return true;
-            }
-        }
-
-        // Target tag was not found.
-        return false;
-    }
-
-    /******************************************************************************
-     * @brief Identify a target marker in the rover's vision.
+     * @brief Identify a target marker in the rover's vision, using OpenCV detection.
      *
      * @note If multiple markers are detected the closest one will be chosen as the target.
      *
-     * @tparam T - Type of tag/detection to use. (ArucoTag - OpenCV) and (TensorflowTag - Tensorflow).
      * @param tTarget - Reference to store the tag identified as the target.
      * @return true - A target marker was identified.
      * @return false - A target marker was not identified.
@@ -310,33 +277,30 @@ namespace statemachine
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-29
      ******************************************************************************/
-    template<typename T>
-    bool ApproachingMarkerState::IdentifyTargetMarker(T& tTarget)
+    bool ApproachingMarkerState::IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget)
     {
         // Load all detected tags in the rover's vision.
-        std::vector<T> vDetectedTags;
-        LoadDetectedTags(vDetectedTags);
+        std::vector<arucotag::ArucoTag> vDetectedTags;
+        tagdetectutils::LoadDetectedArucoTags(vDetectedTags, m_vTagDetectors, true);
 
-        T tBestTag;
-        tBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
-        tBestTag.nID                   = -1;
+        arucotag::ArucoTag stBestTag;
+        stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
+        stBestTag.nID                   = -1;
 
         // Select the tag that is the closest to the rover's current position.
-        typename std::vector<T>::const_iterator itCandidate;
-        while (itCandidate != vDetectedTags.end())
+        for (const arucotag::ArucoTag& stCandidate : vDetectedTags)
         {
-            if (itCandidate->dStraightLineDistance < tBestTag.dStraightLineDistance)
+            if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance)
             {
-                tBestTag = *itCandidate;
+                stBestTag = stCandidate;
             }
-            ++itCandidate;
         }
 
         // A tag was found.
-        if (tBestTag.nID >= 0)
+        if (stBestTag.nID >= 0)
         {
             // Save it to the passed in reference.
-            tTarget = tBestTag;
+            stTarget = stBestTag;
             return true;
         }
         // No target tag was found.
@@ -347,64 +311,48 @@ namespace statemachine
     }
 
     /******************************************************************************
-     * @brief Load all detected tags for a given tag type into the passed in vector.
+     * @brief Identify a target marker in the rover's vision, using Tensorflow detection.
      *
+     * @note If multiple markers are detected the closest one will be chosen as the target. Also all tags must
+     *      have a confidence of at least APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD.
      *
-     * @tparam T - Type of tag/detection to use. (ArucoTag - OpenCV) and (TensorflowTag - Tensorflow).
-     * @param vDetectedTags - Vector to store the detected tags.
+     * @param tTarget - Reference to store the tag identified as the target.
+     * @return true - A target marker was identified.
+     * @return false - A target marker was not identified.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-29
      ******************************************************************************/
-    template<typename T>
-    void ApproachingMarkerState::LoadDetectedTags(std::vector<T> vDetectedTags)
+    bool ApproachingMarkerState::IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget)
     {
-        // Pointers to each tag detector.
-        TagDetector* pTagDetectorMainCam  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        TagDetector* pTagDetectorLeftEye  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadLeftArucoEye);
-        TagDetector* pTagDetectorRightEye = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadRightArucoEye);
+        // Load all detected tags in the rover's vision.
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTags;
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTags, m_vTagDetectors, true);
 
-        // Vectors to store detected tags for each detector.
-        std::vector<T> vDetectedTagsMain;
-        std::vector<T> vDetectedTagsLeft;
-        std::vector<T> vDetectedTagsRight;
+        tensorflowtag::TensorflowTag stBestTag;
+        stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
+        stBestTag.nID                   = -1;
 
-        // Futures informing us when detected tags have been loaded.
-        std::future<bool> fuDetectedTagsMain;
-        std::future<bool> fuDetectedTagsLeft;
-        std::future<bool> fuDetectedTagsRight;
-
-        // Dealing with OpenCV detection using arucotag::ArucoTag.
-        if constexpr (std::is_same_v<T, arucotag::ArucoTag>)
+        // Select the tag that is the closest to the rover's current position and above the confidence threshold.
+        for (const tensorflowtag::TensorflowTag& stCandidate : vDetectedTags)
         {
-            fuDetectedTagsMain  = pTagDetectorMainCam->RequestDetectedArucoTags(vDetectedTagsMain);
-            fuDetectedTagsLeft  = pTagDetectorLeftEye->RequestDetectedArucoTags(vDetectedTagsLeft);
-            fuDetectedTagsRight = pTagDetectorRightEye->RequestDetectedArucoTags(vDetectedTagsRight);
+            if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance && stCandidate.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD)
+            {
+                stBestTag = stCandidate;
+            }
         }
-        // Dealing with Tensorflow detection using tensorflowtag::TensorFlowTag.
-        else if constexpr (std::is_same_v<T, tensorflowtag::TensorflowTag>)
+
+        // A tag was found.
+        if (stBestTag.nID >= 0)
         {
-            fuDetectedTagsMain  = pTagDetectorMainCam->RequestDetectedTensorflowTags(vDetectedTagsMain);
-            fuDetectedTagsLeft  = pTagDetectorLeftEye->RequestDetectedTensorflowTags(vDetectedTagsLeft);
-            fuDetectedTagsRight = pTagDetectorRightEye->RequestDetectedTensorflowTags(vDetectedTagsRight);
+            // Save it to the passed in reference.
+            stTarget = stBestTag;
+            return true;
         }
-        // Unknown tag type.
+        // No target tag was found.
         else
         {
-            LOG_ERROR(logging::g_qSharedLogger, "Unknown tag type passed to LoadDetectedTags(), must be ArucoTag or TensorflowTag.");
-            return;
+            return false;
         }
-
-        // Save the main detector's detected tags.
-        fuDetectedTagsMain.wait();
-        vDetectedTags.insert(vDetectedTags.end(), vDetectedTagsMain.begin(), vDetectedTagsMain.end());
-
-        // Save the left detector's detected tags.
-        fuDetectedTagsLeft.wait();
-        vDetectedTags.insert(vDetectedTags.end(), vDetectedTagsLeft.begin(), vDetectedTagsLeft.end());
-
-        // Save the right detector's detected tags.
-        fuDetectedTagsRight.wait();
-        vDetectedTags.insert(vDetectedTags.end(), vDetectedTagsRight.begin(), vDetectedTagsRight.end());
     }
 }    // namespace statemachine
