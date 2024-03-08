@@ -35,6 +35,76 @@
 namespace tagdetectutils
 {
     /******************************************************************************
+     * @brief Find a tag in the rover's vision with the specified ID, using Tensorflow detection.
+     *
+     * @param nID - The ID of the tag being looked for.
+     * @param tIdentifiedTag - Reference to save the identified tag.
+     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
+     * @return true - The tag was found.
+     * @return false - The tag was not found.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-03-08
+     ******************************************************************************/
+    bool FindTensorflowTagByID(int nID, tensorflowtag::TensorflowTag& stIdentifiedTag, const std::vector<TagDetector*>& vTagDetectors)
+    {
+        return FindTagByID(nID, stIdentifiedTag, vTagDetectors);
+    }
+
+    /******************************************************************************
+     * @brief Find a tag in the rover's vision with the specified ID, using OpenCV detection.
+     *
+     * @param nID - The ID of the tag being looked for.
+     * @param tIdentifiedTag - Reference to save the identified tag.
+     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
+     * @return true - The tag was found.
+     * @return false - The tag was not found.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-03-08
+     ******************************************************************************/
+    bool FindArucoTagByID(int nID, arucotag::ArucoTag& stIdentifiedTag, const std::vector<TagDetector*>& vTagDetectors)
+    {
+        return FindTagByID(nID, stIdentifiedTag, vTagDetectors);
+    }
+
+    /******************************************************************************
+     * @brief Find a tag in the rover's vision with the specified ID.
+     *
+     * @tparam TagType -  The type of tag detection used (OpenCV or Tensorflow) is based on the type of tag passed in. A tensorflowtag::TensorflowTag
+     *      finds tags detected using Tensorflow. Likewise, a arucotag::ArucoTag finds tags detected using OpenCV.
+     * @param nID - The ID of the tag being looked for.
+     * @param tIdentifiedTag - Reference to save the identified tag.
+     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
+     * @return true - The tag was found.
+     * @return false - The tag was not found.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-03-08
+     ******************************************************************************/
+    template<typename TagType>
+    bool FindTagByID(int nID, TagType& tIdentifiedTag, const std::vector<TagDetector*>& vTagDetectors)
+    {
+        // Load all detected tags in the rover's vision.
+        std::vector<TagType> vDetectedTags;
+        LoadDetectedTags(vDetectedTags, vTagDetectors, true);
+
+        // Find the tag with the corresponding id.
+        for (const TagType& tTag : vDetectedTags)
+        {
+            // Is this the tag being searched for.
+            if (tTag.nID == nID)
+            {
+                tIdentifiedTag = tTag;
+                return true;
+            }
+        }
+
+        // The tag was not found by the tag detectors.
+        return false;
+    }
+
+    /******************************************************************************
      * @brief Aggregates all detected tags from each provided tag detector for OpenCV detection.
      *
      * @note When using bUnique, if you wish to prioritize one tag detector's detections over another put that tag detector earlier in the vTagDetectors.
