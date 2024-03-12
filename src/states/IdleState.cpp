@@ -88,6 +88,10 @@ namespace statemachine
         // TODO: Implement the behavior specific to the Idle state
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
+        // Store the Rover's position.
+        m_vRoverXPosition.push_back(m_stTest.dLatitude);
+        m_vRoverYPosition.push_back(m_stTest.dLongitude);
+
         return States::eIdle;
     }
 
