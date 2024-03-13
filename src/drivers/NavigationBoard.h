@@ -64,7 +64,7 @@ class NavigationBoard
 
         geoops::GPSCoordinate m_stLocation;                             // Store current global position in UTM format.
         double m_dHeading;                                              // Store current GPS heading.
-        double m_dVelocity;                                             // Store current GPS velocity.
+        double m_dVelocity;                                             // Store current GPS-based velocity.
         std::shared_mutex m_muLocationMutex;                            // Mutex for acquiring read and write lock on location member variable.
         std::shared_mutex m_muHeadingMutex;                             // Mutex for acquiring read and write lock on heading member variable.
         std::shared_mutex m_muVelocityMutex;                            // Mutex for acquiring read and write lock on velocity member variable.
