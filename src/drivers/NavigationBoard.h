@@ -16,6 +16,7 @@
 /// \cond
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
+#include <chrono>
 #include <shared_mutex>
 
 /// \endcond
@@ -53,16 +54,21 @@ class NavigationBoard
         geoops::GPSCoordinate GetGPSData();
         geoops::UTMCoordinate GetUTMData();
         double GetHeading();
+        double GetVelocity();
+        std::chrono::system_clock::time_point GetGPSTimestamp();
 
     private:
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
 
-        geoops::GPSCoordinate m_stLocation;     // Store current global position in UTM format.
-        double m_dHeading;                      // Store current GPS heading.
-        std::shared_mutex m_muLocationMutex;    // Mutex for acquiring read and write lock on location member variable.
-        std::shared_mutex m_muHeadingMutex;     // Mutex for acquiring read and write lock on heading member variable.
+        geoops::GPSCoordinate m_stLocation;                             // Store current global position in UTM format.
+        double m_dHeading;                                              // Store current GPS heading.
+        double m_dVelocity;                                             // Store current GPS velocity.
+        std::shared_mutex m_muLocationMutex;                            // Mutex for acquiring read and write lock on location member variable.
+        std::shared_mutex m_muHeadingMutex;                             // Mutex for acquiring read and write lock on heading member variable.
+        std::shared_mutex m_muVelocityMutex;                            // Mutex for acquiring read and write lock on velocity member variable.
+        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;    // A time point for storing the timestamp of the last GPS update. Also used for velocity.
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -81,12 +87,27 @@ class NavigationBoard
             // Not using this.
             (void) stdAddr;
 
+            // Get current time.
+            std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+            // Calculate distance of new GPS coordinate to old GPS coordinate.
+            geoops::GeoMeasurement geMeasurement =
+                geoops::CalculateGeoMeasurement(m_stLocation, geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]));
+
+            // Acquire write lock for writing to velocity member variable.
+            std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
+            // Calculate rover velocity based on GPS distance traveled over time.
+            m_dVelocity = geMeasurement.dDistanceMeters / std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count();
+            // Unlock mutex.
+            lkVelocityProcessLock.unlock();
+
             // Acquire write lock for writing to GPS struct.
             std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
             // Repack data from RoveCommPacket into member variable.
             m_stLocation.dLatitude  = stPacket.vData[0];
             m_stLocation.dLongitude = stPacket.vData[1];
             m_stLocation.dAltitude  = stPacket.vData[2];
+            // Update GPS time.
+            m_tmLastGPSUpdateTime = tmCurrentTime;
             // Unlock mutex.
             lkGPSProcessLock.unlock();
 
