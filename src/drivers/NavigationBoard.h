@@ -89,9 +89,13 @@ class NavigationBoard
 
             // Get current time.
             std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+            // Acquire read lock for getting GPS struct.
+            std::shared_lock<std::shared_mutex> lkGPSReadProcessLock(m_muLocationMutex);
             // Calculate distance of new GPS coordinate to old GPS coordinate.
             geoops::GeoMeasurement geMeasurement =
                 geoops::CalculateGeoMeasurement(m_stLocation, geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]));
+            // Unlock mutex.
+            lkGPSReadProcessLock.unlock();
 
             // Acquire write lock for writing to velocity member variable.
             std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
@@ -101,7 +105,7 @@ class NavigationBoard
             lkVelocityProcessLock.unlock();
 
             // Acquire write lock for writing to GPS struct.
-            std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+            std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
             // Repack data from RoveCommPacket into member variable.
             m_stLocation.dLatitude  = stPacket.vData[0];
             m_stLocation.dLongitude = stPacket.vData[1];
@@ -109,7 +113,7 @@ class NavigationBoard
             // Update GPS time.
             m_tmLastGPSUpdateTime = tmCurrentTime;
             // Unlock mutex.
-            lkGPSProcessLock.unlock();
+            lkGPSWriteProcessLock.unlock();
 
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "Incoming GPS Data: ({} lat, {} lon, {} alt)", m_stLocation.dLatitude, m_stLocation.dLongitude, m_stLocation.dAltitude);
