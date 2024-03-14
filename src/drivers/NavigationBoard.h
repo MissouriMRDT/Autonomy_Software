@@ -166,10 +166,17 @@ class NavigationBoard
             // Get current time.
             std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
-            // Acquire read and write lock for heading & compass update timestamp.
+            // Acquire read and write lock for heading & compass timestamp.
             std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
             // Calculate the total change in angle with respect to the last recorded heading.
-            double dDeltaAngle = stPacket.vData[0] - m_dHeading;
+            double dNewHeading = stPacket.vData[0];
+            double dDeltaAngle = dNewHeading - m_dHeading;
+            // Assume that the change in angle can't be greater than 180 degrees in a single timestep.
+            // This accounts for changes in angle across the 0/360 degree line.
+            if (std::abs(dDeltaAngle) > 180)
+            {
+                dDeltaAngle = dNewHeading > m_dHeading ? -(360 - dDeltaAngle) : 360 + dDeltaAngle;
+            }
 
             // Acquire write lock for writing to angular velocity member variable.
             std::unique_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
@@ -179,7 +186,7 @@ class NavigationBoard
             lkAngularVelocityProcessLock.unlock();
 
             // Repack data from RoveCommPacket into member variable.
-            m_dHeading = stPacket.vData[0];
+            m_dHeading = dNewHeading;
             // Update compass time.
             m_tmLastCompassUpdateTime = tmCurrentTime;
             // Unlock mutex.
