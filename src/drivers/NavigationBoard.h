@@ -55,20 +55,25 @@ class NavigationBoard
         geoops::UTMCoordinate GetUTMData();
         double GetHeading();
         double GetVelocity();
+        double GetAngularVelocity();
         std::chrono::system_clock::time_point GetGPSTimestamp();
+        std::chrono::system_clock::time_point GetCompassTimestamp();
 
     private:
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
 
-        geoops::GPSCoordinate m_stLocation;                             // Store current global position in UTM format.
-        double m_dHeading;                                              // Store current GPS heading.
-        double m_dVelocity;                                             // Store current GPS-based velocity.
-        std::shared_mutex m_muLocationMutex;                            // Mutex for acquiring read and write lock on location member variable.
-        std::shared_mutex m_muHeadingMutex;                             // Mutex for acquiring read and write lock on heading member variable.
-        std::shared_mutex m_muVelocityMutex;                            // Mutex for acquiring read and write lock on velocity member variable.
-        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;    // A time point for storing the timestamp of the last GPS update. Also used for velocity.
+        geoops::GPSCoordinate m_stLocation;                                 // Store current global position in UTM format.
+        double m_dHeading;                                                  // Store current GPS heading.
+        double m_dVelocity;                                                 // Store current GPS-based velocity.
+        double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
+        std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
+        std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
+        std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
+        std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
+        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
+        std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -100,7 +105,7 @@ class NavigationBoard
             // Acquire write lock for writing to velocity member variable.
             std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
             // Calculate rover velocity based on GPS distance traveled over time.
-            m_dVelocity = geMeasurement.dDistanceMeters / std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count();
+            m_dVelocity = geMeasurement.dDistanceMeters / (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6);
             // Unlock mutex.
             lkVelocityProcessLock.unlock();
 
@@ -152,7 +157,7 @@ class NavigationBoard
          * @brief Callback function that is called whenever RoveComm receives new Compass data.
          *
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycowen@gmail.com), Jason Pittman (jspencerpittman@gmail.com)
          * @date 2024-03-03
          ******************************************************************************/
         const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> ProcessCompassData =
@@ -161,10 +166,36 @@ class NavigationBoard
             // Not using this.
             (void) stdAddr;
 
-            // Acquire write lock for writing to GPS struct.
+            // Get current time.
+            std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
+            // Acquire read lock for heading.
+            std::shared_lock<std::shared_mutex> lkCompassReadLock(m_muHeadingMutex);
+            // Calculate the total change in angle with respect to the last recorded heading.
+            double dNewHeading = stPacket.vData[0];
+            double dDeltaAngle = dNewHeading - m_dHeading;
+            // Assume that the change in angle can't be greater than 180 degrees in a single timestep.
+            // This accounts for changes in angle across the 0/360 degree line.
+            if (std::abs(dDeltaAngle) > 180)
+            {
+                dDeltaAngle = dNewHeading > m_dHeading ? -(360 - dDeltaAngle) : 360 + dDeltaAngle;
+            }
+            // Unlock mutex.
+            lkCompassReadLock.unlock();
+
+            // Acquire write lock for writing to angular velocity member variable.
+            std::unique_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
+            // Calculate rover angular velocity based on change in heading over time.
+            m_dAngularVelocity = dDeltaAngle / (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastCompassUpdateTime).count() / 1e6);
+            // Unlock mutex.
+            lkAngularVelocityProcessLock.unlock();
+
+            // Acquire write lock for heading and compass timestamp.
             std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
             // Repack data from RoveCommPacket into member variable.
-            m_dHeading = stPacket.vData[0];
+            m_dHeading = dNewHeading;
+            // Update compass time.
+            m_tmLastCompassUpdateTime = tmCurrentTime;
             // Unlock mutex.
             lkCompassProcessLock.unlock();
 
