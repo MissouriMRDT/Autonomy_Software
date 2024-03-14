@@ -201,7 +201,7 @@ int main()
                           " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
 
             // Submit logger message.
-            LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
+            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
         }
 
         /////////////////////////////////////////
