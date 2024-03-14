@@ -124,7 +124,7 @@ double NavigationBoard::GetVelocity()
 double NavigationBoard::GetAngularVelocity()
 {
     // Acquire read lock for getting angular velocity double.
-    std::shared_lock<std::shared_mutex> lkVelocityProcessLock(m_muAngularVelocityMutex);
+    std::shared_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
     return m_dAngularVelocity;
 }
 
