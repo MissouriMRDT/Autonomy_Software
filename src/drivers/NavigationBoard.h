@@ -64,17 +64,16 @@ class NavigationBoard
         // Declare private member variables.
         /////////////////////////////////////////
 
-        geoops::GPSCoordinate m_stLocation;                             // Store current global position in UTM format.
-        double m_dHeading;                                              // Store current GPS heading.
-        double m_dVelocity;                                             // Store current GPS-based velocity.
-        double m_dAngularVelocity;                                      // Store current compass-based angular velocity.
-        std::shared_mutex m_muLocationMutex;                            // Mutex for acquiring read and write lock on location member variable.
-        std::shared_mutex m_muHeadingMutex;                             // Mutex for acquiring read and write lock on heading member variable.
-        std::shared_mutex m_muVelocityMutex;                            // Mutex for acquiring read and write lock on velocity member variable.
-        std::shared_mutex m_muAngularVelocityMutex;                     // Mutex for acquiring read and write lock on angular velocity member variable.
-        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;    // A time point for storing the timestamp of the last GPS update. Also used for velocity.
-        std::chrono::system_clock::time_point
-            m_tmLastCompassUpdateTime;    // A time point for storing the timestamp of the last compass update. Also used for angular velocity.
+        geoops::GPSCoordinate m_stLocation;                                 // Store current global position in UTM format.
+        double m_dHeading;                                                  // Store current GPS heading.
+        double m_dVelocity;                                                 // Store current GPS-based velocity.
+        double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
+        std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
+        std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
+        std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
+        std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
+        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
+        std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -170,8 +169,8 @@ class NavigationBoard
             // Get current time.
             std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
-            // Acquire read and write lock for heading & compass timestamp.
-            std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+            // Acquire read lock for heading.
+            std::shared_lock<std::shared_mutex> lkCompassReadLock(m_muHeadingMutex);
             // Calculate the total change in angle with respect to the last recorded heading.
             double dNewHeading = stPacket.vData[0];
             double dDeltaAngle = dNewHeading - m_dHeading;
@@ -181,6 +180,8 @@ class NavigationBoard
             {
                 dDeltaAngle = dNewHeading > m_dHeading ? -(360 - dDeltaAngle) : 360 + dDeltaAngle;
             }
+            // Unlock mutex.
+            lkCompassReadLock.unlock();
 
             // Acquire write lock for writing to angular velocity member variable.
             std::unique_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
@@ -189,6 +190,8 @@ class NavigationBoard
             // Unlock mutex.
             lkAngularVelocityProcessLock.unlock();
 
+            // Acquire write lock for heading and compass timestamp.
+            std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
             // Repack data from RoveCommPacket into member variable.
             m_dHeading = dNewHeading;
             // Update compass time.
