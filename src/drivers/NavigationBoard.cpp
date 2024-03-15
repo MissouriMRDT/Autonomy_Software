@@ -32,12 +32,12 @@ NavigationBoard::NavigationBoard()
     stSubscribePacket.unDataCount = 0;
     stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
     stSubscribePacket.vData       = std::vector<uint8_t>{};
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::Nav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::Nav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 
     // Set RoveComm callbacks.
-    globals::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, constants::ROVECOMM_UDP_PORT);
-    globals::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, constants::ROVECOMM_UDP_PORT);
-    globals::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessCompassData, constants::ROVECOMM_UDP_PORT);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, manifest::Nav::TELEMETRY.find("GPSLATLONALT")->second.DATA_ID);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, manifest::Nav::TELEMETRY.find("ACCURACYDATA")->second.DATA_ID);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessCompassData, manifest::Nav::TELEMETRY.find("COMPASSDATA")->second.DATA_ID);
 }
 
 /******************************************************************************

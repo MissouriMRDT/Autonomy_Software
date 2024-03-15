@@ -119,7 +119,7 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     stPacket.vData.emplace_back(fDriveBoardLeftPower);
     stPacket.vData.emplace_back(fDriveBoardRightPower);
     // Send drive command over RoveComm to drive board.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
@@ -146,7 +146,7 @@ void DriveBoard::SendStop()
     stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
     stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
     // Send drive command over RoveComm to drive board.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************

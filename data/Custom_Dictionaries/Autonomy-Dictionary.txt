@@ -1,5 +1,6 @@
 # Custom Dictionary Words
 ABGR
+ACCURACYDATA
 alloc
 allocs
 APPROACHINGMARKERSTATE
@@ -20,6 +21,7 @@ codeql
 codezombiech
 Coeffs
 Colour
+COMPASSDATA
 Contoller
 cpptools
 cschlosser
@@ -48,6 +50,7 @@ geoops
 Geospatial
 gmock
 GNSS
+GPSLATLONALT
 GPSMDRS
 GPSSDELC
 gruntfuggly

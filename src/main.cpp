@@ -95,8 +95,8 @@ int main()
         globals::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
         globals::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
         // Start RoveComm instances bound on ports.
-        bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(constants::ROVECOMM_UDP_PORT);
-        bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), constants::ROVECOMM_TCP_PORT);
+        bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+        bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_UDP_PORT);
         // Check if RoveComm was successfully initialized.
         if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
         {
