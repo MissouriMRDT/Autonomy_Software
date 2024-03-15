@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include "IdleState.h"
-#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -36,8 +35,8 @@ namespace statemachine
         m_bRealigned     = false;
         m_nMaxDataPoints = 100;
 
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
+        m_vRoverPosition.reserve(m_nMaxDataPoints);
+        m_stTest = WaypointHandler::PopNextWaypoint();
     }
 
     /******************************************************************************
@@ -53,8 +52,7 @@ namespace statemachine
         // Clean up the state before exiting
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Exiting state.");
 
-        m_vRoverXPosition.clear();
-        m_vRoverYPosition.clear();
+        m_vRoverPosition.clear();
     }
 
     /******************************************************************************
@@ -89,8 +87,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
         // Store the Rover's position.
-        m_vRoverXPosition.push_back(m_stTest.dLatitude);
-        m_vRoverYPosition.push_back(m_stTest.dLongitude);
+        m_vRoverPosition.push_back(m_stTest.dLatitude, m_stTest.dLongitude);
 
         return States::eIdle;
     }
