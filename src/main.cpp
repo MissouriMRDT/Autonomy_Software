@@ -171,7 +171,7 @@ int main()
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
-            szMainInfo += "--------[ Threads FPS ]--------\n";
+            szMainInfo += "\n--------[ Threads FPS ]--------\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
@@ -201,7 +201,7 @@ int main()
                           " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
 
             // Submit logger message.
-            LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
+            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
         }
 
         /////////////////////////////////////////

@@ -59,9 +59,8 @@ NavigationBoard::~NavigationBoard() {}
  ******************************************************************************/
 geoops::GPSCoordinate NavigationBoard::GetGPSData()
 {
-    // Acquire read lock for getting UTM struct.
+    // Acquire read lock for getting GPS struct.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
-    // Convert the currently stored UTM coord to GPS and return.
     return m_stLocation;
 }
 
@@ -78,6 +77,7 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
 {
     // Acquire read lock for getting UTM struct.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+    // Convert the currently stored GPS coord to UTM and return.
     return geoops::ConvertGPSToUTM(m_stLocation);
 }
 
@@ -94,4 +94,68 @@ double NavigationBoard::GetHeading()
     // Acquire read lock for getting compass double.
     std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
     return m_dHeading;
+}
+
+/******************************************************************************
+ * @brief The rover's current velocity based off of the distance covered over the
+ *      last two GPSCoordinates.
+ *
+ * @return double - The rover's velocity in meters per second.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-13
+ ******************************************************************************/
+double NavigationBoard::GetVelocity()
+{
+    // Acquire read lock for getting velocity double.
+    std::shared_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
+    return m_dVelocity;
+}
+
+/******************************************************************************
+ * @brief The rover's current angular velocity based off of the change in angle over the
+ *      last two headings.
+ *
+ * @return double - The rover's angular velocity in degrees per second.
+ *
+ * @author Jason Pittman (jspencerpittman@gmail.com)
+ * @date 2024-03-14
+ ******************************************************************************/
+double NavigationBoard::GetAngularVelocity()
+{
+    // Acquire read lock for getting angular velocity double.
+    std::shared_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
+    return m_dAngularVelocity;
+}
+
+/******************************************************************************
+ * @brief A chrono timestamp storing the last time autonomy's GPS location was updated
+ *      over RoveComm via the NavBoard.
+ *
+ * @return std::chrono::system_clock::time_point - The timestamp that the current GPSCoordinate location was updated.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-13
+ ******************************************************************************/
+std::chrono::system_clock::time_point NavigationBoard::GetGPSTimestamp()
+{
+    // Acquire read lock for getting GPS timestamp.
+    std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+    return m_tmLastGPSUpdateTime;
+}
+
+/******************************************************************************
+ * @brief A chrono timestamp storing the last time autonomy's compass location was updated
+ *      over RoveComm via the NavBoard.
+ *
+ * @return std::chrono::system_clock::time_point - The timestamp that the current heading was updated.
+ *
+ * @author Jason Pittman (jspencerpittman@gmail.com)
+ * @date 2024-03-14
+ ******************************************************************************/
+std::chrono::system_clock::time_point NavigationBoard::GetCompassTimestamp()
+{
+    // Acquire read lock for getting Heading timestamp.
+    std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+    return m_tmLastCompassUpdateTime;
 }
