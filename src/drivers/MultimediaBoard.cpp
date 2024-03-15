@@ -118,7 +118,7 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
     }
 
     // Send multimedia board lighting state to board over RoveComm.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
@@ -145,7 +145,7 @@ void MultimediaBoard::SendRGB(RGB stRGBVal)
     stPacket.vData.emplace_back(stRGBVal.dGreen);
     stPacket.vData.emplace_back(stRGBVal.dBlue);
     // Send RGB values to multimedia board over RoveComm.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
