@@ -4,6 +4,9 @@
         // Name container.
         "--name",
         "Autonomy_Software_devcontainer",
+        // Configure container to use the same network stack as the host machine.
+        "--network",
+        "host",
         // Add all available GPUs
         "--gpus",
         "all",
