@@ -33,7 +33,7 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-01-17
  ******************************************************************************/
-class StateMachineHandler : public AutonomyThread<void>
+class StateMachineHandler : private AutonomyThread<void>
 {
     private:
         std::shared_ptr<statemachine::State> pCurrentState;
@@ -63,6 +63,8 @@ class StateMachineHandler : public AutonomyThread<void>
         statemachine::States GetPreviousState() const;
 
         void SaveCurrentState();
+
+        using AutonomyThread::GetIPS;
 };
 
 #endif    // STATEMACHINEHANDLER_H
