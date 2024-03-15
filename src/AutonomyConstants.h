@@ -30,18 +30,16 @@
 namespace constants
 {
     ///////////////////////////////////////////////////////////////////////////
-    //// Logging Constants.
+    //// General Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Output Paths.
+    // Program mode constants.
+    const bool MODE_SIM = true;    // Whether or not to toggle rovecomm and cameras to use local data from the Webots SIM.
+
+    // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
-    ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
-    //// RoveComm Constants.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Socket Ports.
+    // RoveComm constants.
     const int ROVECOMM_OUTGOING_UDP_PORT        = 11001;    // The UDP socket port to use for the main UDP RoveComm instance.
     const int ROVECOMM_OUTGOING_TCP_PORT        = 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
     const std::string ROVECOMM_TCP_INTERFACE_IP = "";       // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
