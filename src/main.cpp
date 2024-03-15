@@ -88,6 +88,21 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
+        // Print warnings if running in SIM mode.
+        if (constants::MODE_SIM)
+        {
+            // Print 5 times to make it noticeable.
+            for (int nIter = 0; nIter < 5; ++nIter)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Autonomy_Software is running in SIM mode! If you aren't currently using the WeBots sim, disable SIM mode in constants");
+            }
+
+            // Sleep for 3 seconds to make sure it's seen.
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+        }
+
         /////////////////////////////////////////
         // Setup global objects.
         /////////////////////////////////////////
@@ -102,7 +117,7 @@ int main()
         {
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
-                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode State: {}",
+                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
                          bRoveCommUDPInitSuccess,
                          bRoveCommTCPInitSuccess);
 
