@@ -104,6 +104,15 @@ namespace statemachine
             {
                 // Start a new attempt
                 ++m_unAttempts;
+
+                // If this attempt requires the rover to rotate we initialize
+                //  the members are used to determine if the rover's stuck in a way
+                //  it can't rotate.
+                if (1 < m_unAttempts && m_unAttempts < 4)
+                {
+                    m_unStuckChecksOnAttempt = 0;
+                    m_tmLastStuckCheck       = std::chrono::system_clock::now();
+                }
             }
             else
             {
@@ -123,6 +132,32 @@ namespace statemachine
         // original heading instead.
         if (1 < m_unAttempts && m_unAttempts < 4)
         {
+            // Is is time to check if the rover's stuck
+            std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+            double dTimeSinceLastCheck = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() / 1e6);
+            if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
+            {
+                // Is the angular velocity showing no rotation?
+                double dCurrAngVel = globals::g_pNavigationBoard->GetAngularVelocity();
+                if (dCurrAngVel < constants::STUCK_CHECK_ROT_THRESH)
+                {
+                    ++m_unStuckChecksOnAttempt;
+                }
+                else
+                {
+                    m_unStuckChecksOnAttempt = 0;
+                }
+                m_tmLastStuckCheck = tmCurrentTime;
+
+                // After a certain amount of consecutive checks confirming the rover isn't rotating
+                //  in alignment mode shift to the next attempt.
+                if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
+                {
+                    m_bIsCurrentlyAligning = false;
+                    return States::eStuck;
+                }
+            }
+
             // New target heading relative to the original heading.
             double dChangeInHeading = (m_unAttempts == 2) ? 30 : -30;
             // New absolute target heading (not relative).
