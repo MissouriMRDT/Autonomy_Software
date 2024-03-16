@@ -31,7 +31,7 @@ namespace statemachine
     void SearchPatternState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         m_nMaxDataPoints             = 100;
         m_tStuckCheckTime            = time(nullptr);
@@ -54,7 +54,7 @@ namespace statemachine
     void SearchPatternState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Exiting state.");
 
         m_vRoverXPosition.clear();
         m_vRoverYPosition.clear();
@@ -110,37 +110,37 @@ namespace statemachine
         {
             case Event::eMarkerSeen:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
+                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
                 eNextState = States::eApproachingMarker;
                 break;
             }
             case Event::eObjectSeen:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
+                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
                 eNextState = States::eApproachingObject;
                 break;
             }
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
                 eNextState = States::eSearchPattern;
                 break;
             }
             case Event::eSearchFailed:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
+                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eStuck:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling Stuck event.");
+                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Stuck event.");
                 eNextState = States::eStuck;
                 break;
             }
@@ -154,7 +154,7 @@ namespace statemachine
 
         if (eNextState != States::eSearchPattern)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

@@ -30,7 +30,7 @@ namespace statemachine
     void VerifyingObjectState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Scheduling next run of state logic.");
 
         m_nMaxObjectIDs = 50;
 
@@ -48,7 +48,7 @@ namespace statemachine
     void VerifyingObjectState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Exiting state.");
 
         m_vObjectIDs.clear();
     }
@@ -104,19 +104,19 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Start event.");
                 eNextState = States::eVerifyingObject;
                 break;
             }
             case Event::eVerifyingComplete:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -130,7 +130,7 @@ namespace statemachine
 
         if (eNextState != States::eVerifyingObject)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
