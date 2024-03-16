@@ -86,13 +86,13 @@ namespace logging
         std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
 
         // Configure Patterns
-        qFileHandler->set_pattern("%(ascii_time) %(level_name) [%(process)] [%(thread)] %(message)",       // format
-                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                // timestamp format
-                                  quill::Timezone::GmtTime);                                               // timestamp's timezone
+        qFileHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",       // format
+                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                           // timestamp format
+                                  quill::Timezone::GmtTime);                                                          // timestamp's timezone
 
-        qConsoleHandler->set_pattern("%(ascii_time) %(level_name) [%(process)] [%(thread)] %(message)",    // format
-                                     "%Y-%m-%d %H:%M:%S.%Qms",                                             // timestamp format
-                                     quill::Timezone::GmtTime);                                            // timestamp's timezone
+        qConsoleHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",    // format
+                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                        // timestamp format
+                                     quill::Timezone::GmtTime);                                                       // timestamp's timezone
 
         // Enable Color Console
         static_cast<quill::ConsoleHandler*>(qConsoleHandler.get())->enable_console_colours();
@@ -106,17 +106,21 @@ namespace logging
         // Start Quill
         quill::start();
 
+        // Set Handler Filters
+        qFileHandler->add_filter(std::make_unique<LoggingFilter>("FileFilter", quill::LogLevel::TraceL3));
+        qConsoleHandler->add_filter(std::make_unique<LoggingFilter>("StdoutFilter", quill::LogLevel::Info));
+
         // Create Loggers
         g_qFileLogger    = quill::create_logger("FILE_LOGGER", {qFileHandler});
         g_qConsoleLogger = quill::create_logger("CONSOLE_LOGGER", {qConsoleHandler});
         g_qSharedLogger  = quill::create_logger("SHARED_LOGGER", {qFileHandler, qConsoleHandler});
 
-        // Set Logging Levels
+        // Set Base Logging Levels
+        g_qSharedLogger->set_log_level(quill::LogLevel::TraceL3);
         g_qFileLogger->set_log_level(quill::LogLevel::TraceL3);
         g_qConsoleLogger->set_log_level(quill::LogLevel::TraceL3);
-        g_qSharedLogger->set_log_level(quill::LogLevel::TraceL3);
 
-        // // Enable Backtrace
+        // Enable Backtrace
         g_qFileLogger->init_backtrace(2, quill::LogLevel::Critical);
         g_qConsoleLogger->init_backtrace(2, quill::LogLevel::Critical);
         g_qSharedLogger->init_backtrace(2, quill::LogLevel::Critical);
