@@ -78,12 +78,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States StuckState::Run()
+    void StuckState::Run()
     {
         // TODO: Implement the behavior specific to the Stuck state
         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
-
-        return States::eStuck;
     }
 
     /******************************************************************************
@@ -116,7 +114,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

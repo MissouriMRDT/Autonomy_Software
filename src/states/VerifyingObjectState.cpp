@@ -80,12 +80,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States VerifyingObjectState::Run()
+    void VerifyingObjectState::Run()
     {
         // TODO: Implement the behavior specific to the VerifyingObject state
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
-
-        return States::eVerifyingObject;
     }
 
     /******************************************************************************
@@ -124,7 +122,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

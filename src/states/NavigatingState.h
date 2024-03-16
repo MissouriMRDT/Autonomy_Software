@@ -44,7 +44,7 @@ namespace statemachine
 
         public:
             NavigatingState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine

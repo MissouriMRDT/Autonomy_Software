@@ -86,12 +86,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States SearchPatternState::Run()
+    void SearchPatternState::Run()
     {
         // TODO: Implement the behavior specific to the SearchPattern state
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
-
-        return States::eSearchPattern;
     }
 
     /******************************************************************************
@@ -148,7 +146,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

@@ -26,12 +26,14 @@ Contoller
 cpptools
 cschlosser
 CUDA
+CURRENTSTATE
 deadband
 debfile
 deque
 Desaturate
 devcontainer
 diffdrive
+DISABLEAUTONOMY
 DISPLAYSTATE
 dockerfiles
 dorny
@@ -113,6 +115,7 @@ statechart
 STATEDISPLAY
 statemachine
 STATEMACHINEHANDLER
+STOPAUTONOMY
 Struct
 STUCKSTATE
 Styleguides
