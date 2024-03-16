@@ -127,8 +127,20 @@ namespace statemachine
                 // Otherwise, transition to navigating.
                 else
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
-                    eNextState = States::eNavigating;
+                    // Check if waypoint handler has any waypoints.
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                    {
+                        // Submit logger message.
+                        LOG_DEBUG(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
+                        // Change states.
+                        eNextState = States::eNavigating;
+                    }
+                    else
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "IdleState: Not transitioning to NavigatingState because no waypoints have been added to the waypoint handler!");
+                    }
                 }
 
                 break;
