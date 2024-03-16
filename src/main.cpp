@@ -148,9 +148,6 @@ int main()
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
 
-        // TEST: Send Start Command to enter navigating state.
-        globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::eStart);
-
         /////////////////////////////////////////
         // Declare local variables used in main loop.
         /////////////////////////////////////////
@@ -161,6 +158,7 @@ int main()
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+        IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
@@ -179,14 +177,21 @@ int main()
             std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
             std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
 
-            // No need to loop as fast as possible. Sleep...
-            // Only run this main thread once every 20ms.
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            // Send current robot state over RoveComm.
+            // Construct a RoveComm packet with the drive data.
+            rovecomm::RoveCommPacket<uint8_t> stPacket;
+            stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
+            stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
+            // Send drive command over RoveComm to drive board to all subscribers.
+            globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetAverageIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
@@ -216,7 +221,14 @@ int main()
                           " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+            // LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+
+            // Update IPS tick.
+            IterPerSecond.Tick();
+
+            // No need to loop as fast as possible. Sleep...
+            // Only run this main thread once every 20ms.
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
         /////////////////////////////////////////

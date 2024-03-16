@@ -76,12 +76,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ApproachingMarkerState::Run()
+    void ApproachingMarkerState::Run()
     {
         // TODO: Implement the behavior specific to the Approaching Marker state
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Running state-specific behavior.");
-
-        return States::eApproachingMarker;
     }
 
     /******************************************************************************
@@ -126,7 +124,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

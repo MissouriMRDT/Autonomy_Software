@@ -75,12 +75,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ReversingState::Run()
+    void ReversingState::Run()
     {
         // TODO: Implement the behavior specific to the Reversing state
         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
-
-        return States::eReversing;
     }
 
     /******************************************************************************
@@ -119,7 +117,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
