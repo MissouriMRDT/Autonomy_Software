@@ -106,6 +106,7 @@ rovecomm
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
+SETMAXSPEED
 setpoint
 setpoints
 SIMCAM
