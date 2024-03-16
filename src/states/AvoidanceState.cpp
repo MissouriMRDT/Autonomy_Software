@@ -32,7 +32,7 @@ namespace statemachine
     void AvoidanceState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
         m_nMaxDataPoints = 100;
 
@@ -68,7 +68,7 @@ namespace statemachine
     void AvoidanceState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Exiting state.");
 
         m_nMaxDataPoints = 100;
 
@@ -139,25 +139,25 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling Start event.");
                 eNextState = States::eAvoidance;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eEndObstacleAvoidance:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling EndObstacleAvoidance event.");
+                LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling EndObstacleAvoidance event.");
                 eNextState = States::NUM_STATES;    // Replace with `get_prev_state()`
                 break;
             }
             case Event::eStuck:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Handling Stuck event.");
+                LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling Stuck event.");
                 eNextState = States::eStuck;
                 break;
             }
@@ -171,7 +171,7 @@ namespace statemachine
 
         if (eNextState != States::eAvoidance)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

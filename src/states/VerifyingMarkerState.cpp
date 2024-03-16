@@ -30,7 +30,7 @@ namespace statemachine
     void VerifyingMarkerState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Scheduling next run of state logic.");
 
         m_nMaxMarkerIDs = 50;
 
@@ -48,7 +48,7 @@ namespace statemachine
     void VerifyingMarkerState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Exiting state.");
 
         m_vMarkerIDs.clear();
     }
@@ -103,19 +103,19 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
                 eNextState = States::eVerifyingMarker;
                 break;
             }
             case Event::eVerifyingComplete:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -129,7 +129,7 @@ namespace statemachine
 
         if (eNextState != States::eVerifyingMarker)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
