@@ -83,12 +83,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States IdleState::Run()
+    void IdleState::Run()
     {
         // TODO: Implement the behavior specific to the Idle state
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
-
-        return States::eIdle;
     }
 
     /******************************************************************************
@@ -143,7 +141,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

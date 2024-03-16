@@ -117,8 +117,10 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
             break;
     }
 
+    // Check if we should send packets to the SIM or board.
+    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send multimedia board lighting state to board over RoveComm.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
@@ -144,8 +146,10 @@ void MultimediaBoard::SendRGB(RGB stRGBVal)
     stPacket.vData.emplace_back(stRGBVal.dRed);
     stPacket.vData.emplace_back(stRGBVal.dGreen);
     stPacket.vData.emplace_back(stRGBVal.dBlue);
+    // Check if we should send packets to the SIM or board.
+    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send RGB values to multimedia board over RoveComm.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************

@@ -79,12 +79,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States VerifyingMarkerState::Run()
+    void VerifyingMarkerState::Run()
     {
         // TODO: Implement the behavior specific to the VerifyingMarker state
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
-
-        return States::eVerifyingMarker;
     }
 
     /******************************************************************************
@@ -123,7 +121,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

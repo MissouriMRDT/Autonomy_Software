@@ -118,8 +118,10 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
     stPacket.vData.emplace_back(fDriveBoardLeftPower);
     stPacket.vData.emplace_back(fDriveBoardRightPower);
+    // Check if we should send packets to the SIM or board.
+    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
@@ -145,8 +147,10 @@ void DriveBoard::SendStop()
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
     stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
     stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
+    // Check if we should send packets to the SIM or board.
+    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::Core::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************

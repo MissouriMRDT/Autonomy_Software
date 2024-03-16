@@ -87,12 +87,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States NavigatingState::Run()
+    void NavigatingState::Run()
     {
         // TODO: Implement the behavior specific to the Navigating state
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
-
-        return States::eNavigating;
     }
 
     /******************************************************************************
@@ -178,7 +176,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }

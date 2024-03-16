@@ -10,7 +10,39 @@
 
 #include "StateMachineHandler.h"
 #include "../AutonomyConstants.h"
+#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
+
+/******************************************************************************
+ * @brief Construct a new State Machine Handler object.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
+StateMachineHandler::StateMachineHandler()
+{
+    // Submit logger message.
+    LOG_INFO(logging::g_qConsoleLogger, "Initializing State Machine.");
+
+    // Set RoveComm Node callbacks.
+    globals::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
+
+    // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
+    this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
+}
+
+/******************************************************************************
+ * @brief Destroy the State Machine Handler:: State Machine Handler object.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-15
+ ******************************************************************************/
+StateMachineHandler::~StateMachineHandler()
+{
+    // Nothing to destroy.
+}
 
 /******************************************************************************
  * @brief Create a State object based of of the State enum.
@@ -56,44 +88,38 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
  ******************************************************************************/
 void StateMachineHandler::ChangeState(statemachine::States eNextState)
 {
-    m_bSwitchingStates = true;
+    // Acquire write lock for changing states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
 
-    // Save the current state as the previous state
-    pPreviousState = pCurrentState;
-
-    // Save the current state before transitioning
-    SaveCurrentState();
-
-    // Check if the state exists in exitedStates
-    std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = umExitedStates.find(eNextState);
-    if (itState != umExitedStates.end())
+    // Check if we are already in this state.
+    if (m_pCurrentState->GetState() != eNextState)
     {
-        // Load the existing state
-        pCurrentState = itState->second;
-        LOG_INFO(logging::g_qConsoleLogger, "Recalling State: {}", pCurrentState->ToString());
+        // Set atomic toggle saying we are in the process if switching states.
+        m_bSwitchingStates = true;
+
+        // Save the current state as the previous state
+        m_pPreviousState = m_pCurrentState;
+
+        // Save the current state before transitioning
+        SaveCurrentState();
+
+        // Check if the state exists in exitedStates
+        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umExitedStates.find(eNextState);
+        if (itState != m_umExitedStates.end())
+        {
+            // Load the existing state
+            m_pCurrentState = itState->second;
+            LOG_INFO(logging::g_qConsoleLogger, "Recalling State: {}", m_pCurrentState->ToString());
+        }
+        else
+        {
+            // Create and enter a new state
+            m_pCurrentState = CreateState(eNextState);
+        }
+
+        // Set atomic toggle saying we are done switching states.
+        m_bSwitchingStates = false;
     }
-    else
-    {
-        // Create and enter a new state
-        pCurrentState = CreateState(eNextState);
-    }
-
-    m_bSwitchingStates = false;
-}
-
-/******************************************************************************
- * @brief Construct a new State Machine Handler object.
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2024-01-17
- ******************************************************************************/
-StateMachineHandler::StateMachineHandler()
-{
-    // Submit logger message.
-    LOG_INFO(logging::g_qConsoleLogger, "Initializing State Machine.");
-
-    // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
-    this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
 }
 
 /******************************************************************************
@@ -106,7 +132,7 @@ StateMachineHandler::StateMachineHandler()
 void StateMachineHandler::StartStateMachine()
 {
     // Initialize the state machine with the initial state
-    pCurrentState      = CreateState(statemachine::States::eIdle);
+    m_pCurrentState    = CreateState(statemachine::States::eIdle);
 
     m_bInitialized     = true;
     m_bSwitchingStates = false;
@@ -156,7 +182,7 @@ void StateMachineHandler::ThreadedContinuousCode()
     if (m_bInitialized && !m_bSwitchingStates && !m_bExiting)
     {
         // Run the current state
-        pCurrentState->Run();
+        m_pCurrentState->Run();
     }
 }
 
@@ -184,8 +210,11 @@ void StateMachineHandler::PooledLinearCode() {}
  ******************************************************************************/
 void StateMachineHandler::HandleEvent(statemachine::Event eEvent)
 {
+    // Acquire write lock for handling events.
+    std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
+
     // Trigger the event on the current state
-    statemachine::States eNextState = pCurrentState->TriggerEvent(eEvent);
+    statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
 
     // Transition to the next state
     ChangeState(eNextState);
@@ -201,7 +230,7 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent)
  ******************************************************************************/
 statemachine::States StateMachineHandler::GetCurrentState() const
 {
-    return pCurrentState->GetState();
+    return m_pCurrentState->GetState();
 }
 
 /******************************************************************************
@@ -215,7 +244,7 @@ statemachine::States StateMachineHandler::GetCurrentState() const
 statemachine::States StateMachineHandler::GetPreviousState() const
 {
     // Check if the previous state exists and return it if it does otherwise return Idle
-    return pPreviousState ? pPreviousState->GetState() : statemachine::States::eIdle;
+    return m_pPreviousState ? m_pPreviousState->GetState() : statemachine::States::eIdle;
 }
 
 /******************************************************************************
@@ -229,5 +258,5 @@ statemachine::States StateMachineHandler::GetPreviousState() const
  ******************************************************************************/
 void StateMachineHandler::SaveCurrentState()
 {
-    umExitedStates[pCurrentState->GetState()] = pCurrentState;
+    m_umExitedStates[m_pCurrentState->GetState()] = m_pCurrentState;
 }

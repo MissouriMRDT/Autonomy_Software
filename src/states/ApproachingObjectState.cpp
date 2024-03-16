@@ -75,12 +75,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ApproachingObjectState::Run()
+    void ApproachingObjectState::Run()
     {
         // TODO: Implement the behavior specific to the Approaching Object state
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
-
-        return States::eApproachingObject;
     }
 
     /******************************************************************************
@@ -125,7 +123,7 @@ namespace statemachine
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "ApproachingObjectState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
