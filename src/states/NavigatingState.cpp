@@ -30,7 +30,7 @@ namespace statemachine
     void NavigatingState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         m_nMaxDataPoints             = 100;
         m_tStuckCheckTime            = time(nullptr);
@@ -55,7 +55,7 @@ namespace statemachine
     void NavigatingState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Exiting state.");
 
         m_vRoverXPosition.clear();
         m_vRoverYPosition.clear();
@@ -91,6 +91,11 @@ namespace statemachine
     {
         // TODO: Implement the behavior specific to the Navigating state
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
+
+        // TEST: Send drive commands.
+        double dHeading                      = globals::g_pNavigationBoard->GetHeading();
+        diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(1.0, 90, dHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
+        globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
     }
 
     /******************************************************************************
@@ -111,19 +116,19 @@ namespace statemachine
         {
             case Event::eNoWaypoint:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eReachedMarker:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eReachedGpsCoordinate:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
 
                 bool gpsOrTagMarker = false;    // TODO: Replace with determining if the rover is supposed to be navigating to a GPS coordinate or a tag / object.
 
@@ -140,37 +145,43 @@ namespace statemachine
             }
             case Event::eNewWaypoint:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
                 eNextState = States::eNavigating;
                 break;
             }
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Start event.");
                 eNextState = States::eNavigating;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Abort event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Abort event.");
+
+                // Stop drive.
+                globals::g_pDriveBoard->SendStop();
+
+                // Change states.
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eObstacleAvoidance:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
                 eNextState = States::eAvoidance;
                 break;
             }
             case Event::eReverse:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Reverse event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reverse event.");
                 eNextState = States::eReversing;
                 break;
             }
             case Event::eStuck:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
                 eNextState = States::eStuck;
                 break;
             }
@@ -184,7 +195,7 @@ namespace statemachine
 
         if (eNextState != States::eNavigating)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

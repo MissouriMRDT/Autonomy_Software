@@ -30,7 +30,7 @@ namespace statemachine
     void ReversingState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
         // TODO: Get Starting Position from GPS
     }
@@ -46,7 +46,7 @@ namespace statemachine
     void ReversingState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Exiting state.");
     }
 
     /******************************************************************************
@@ -99,19 +99,19 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
                 eNextState = States::eReversing;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eReverseComplete:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -125,7 +125,7 @@ namespace statemachine
 
         if (eNextState != States::eReversing)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
