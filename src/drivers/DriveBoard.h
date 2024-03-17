@@ -64,7 +64,7 @@ class DriveBoard
             this->SetMaxDriveEffort(stPacket.vData[0]);
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", stPacket.vData[0]);
+            LOG_INFO(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", stPacket.vData[0]);
         };
 
     public:
