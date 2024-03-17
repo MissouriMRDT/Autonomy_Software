@@ -43,6 +43,7 @@ DriveBoard::DriveBoard()
     m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
     m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
     m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
+    m_pPID->EnableContinuousInput(0, 360);
 
     // Set RoveComm callbacks.
     globals::g_pRoveCommUDPNode->AddUDPCallback<float>(SetMaxSpeedCallback, manifest::Autonomy::COMMANDS.find("SETMAXSPEED")->second.DATA_ID);
@@ -132,7 +133,7 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", fDriveBoardLeftPower, fDriveBoardRightPower);
 }
 
 /******************************************************************************

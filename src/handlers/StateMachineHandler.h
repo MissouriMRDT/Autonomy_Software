@@ -84,7 +84,7 @@ class StateMachineHandler : private AutonomyThread<void>
             this->HandleEvent(statemachine::Event::eStart);
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: Start Autonomy!");
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Start Autonomy!");
         };
 
         /******************************************************************************
@@ -106,7 +106,7 @@ class StateMachineHandler : private AutonomyThread<void>
             this->HandleEvent(statemachine::Event::eAbort);
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
         };
 
     public:
