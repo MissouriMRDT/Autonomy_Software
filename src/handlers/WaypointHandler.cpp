@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "WaypointHandler.h"
+#include "../AutonomyGlobals.h"
 
 /// \cond
 #include <algorithm>
@@ -24,7 +25,11 @@
  ******************************************************************************/
 WaypointHandler::WaypointHandler()
 {
-    // Nothing to initialize.
+    // Set RoveComm callbacks.
+    globals::g_pRoveCommUDPNode->AddUDPCallback<double>(AddPositionLegCallback, manifest::Autonomy::COMMANDS.find("ADDPOSITIONLEG")->second.DATA_ID);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<double>(AddMarkerLegCallback, manifest::Autonomy::COMMANDS.find("ADDMARKERLEG")->second.DATA_ID);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<double>(AddObjectLegCallback, manifest::Autonomy::COMMANDS.find("ADDOBJECTLEG")->second.DATA_ID);
+    globals::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(ClearWaypointsCallback, manifest::Autonomy::COMMANDS.find("CLEARWAYPOINTS")->second.DATA_ID);
 }
 
 /******************************************************************************

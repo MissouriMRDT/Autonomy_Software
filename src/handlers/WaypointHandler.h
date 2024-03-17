@@ -14,6 +14,8 @@
 #include "../util/GeospatialOperations.hpp"
 
 /// \cond
+#include <RoveComm/RoveComm.h>
+#include <RoveComm/RoveCommManifest.h>
 #include <shared_mutex>
 
 /// \endcond
@@ -41,6 +43,7 @@ class WaypointHandler
             eTagWaypoint,
             eMalletWaypoint,
             eWaterBottleWaypoint,
+            eObjectWaypoint,    // Used to represent either Mallet or WaterBottle waypoint.
             eObstacleWaypoint,
             eUNKNOWN
         };
@@ -229,6 +232,115 @@ class WaypointHandler
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new ADDPOSITIONLEG packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> AddPositionLegCallback =
+            [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Create new waypoint struct with data from the RoveComm packet.
+            Waypoint stNavWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), WaypointType::eNavigationWaypoint);
+
+            // Acquire write lock for writing to waypoints vector.
+            std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+            // Queue waypoint.
+            m_vWaypointList.emplace_back(stNavWaypoint);
+            // Unlock mutex.
+            lkWaypointsLock.unlock();
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1]);
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new ADDMARKERLEG packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> AddMarkerLegCallback =
+            [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Create new waypoint struct with data from the RoveComm packet.
+            Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), WaypointType::eTagWaypoint);
+
+            // Acquire write lock for writing to waypoints vector.
+            std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+            // Queue waypoint.
+            m_vWaypointList.emplace_back(stMarkerWaypoint);
+            // Unlock mutex.
+            lkWaypointsLock.unlock();
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new ADDOBJECTLEG packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> AddObjectLegCallback =
+            [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Create new waypoint struct with data from the RoveComm packet.
+            Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), WaypointType::eObjectWaypoint);
+
+            // Acquire write lock for writing to waypoints vector.
+            std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+            // Queue waypoint.
+            m_vWaypointList.emplace_back(stObjectWaypoint);
+            // Unlock mutex.
+            lkWaypointsLock.unlock();
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new CLEARWAYPOINTS packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> ClearWaypointsCallback =
+            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stPacket;
+            (void) stdAddr;
+
+            // Acquire write lock for writing to waypoints vector.
+            std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+            // Clear waypoints queue.
+            m_vWaypointList.clear();
+            // Unlock mutex.
+            lkWaypointsLock.unlock();
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
+        };
 };
 
 #endif
