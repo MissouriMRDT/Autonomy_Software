@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/algorithms/SearchPattern.hpp"
-#include "../../../../src/handlers/WaypointHandler.h"
+#include "../../../../src/util/GeospatialOperations.hpp"
 
 /// \cond
 #include <gtest/gtest.h>
@@ -27,7 +27,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-03-01
  ******************************************************************************/
-bool IsOutwardSpiral(const std::vector<WaypointHandler::Waypoint>& vPoints)
+bool IsOutwardSpiral(const std::vector<geoops::Waypoint>& vPoints)
 {
     // At least 4 vPoints are needed to form a spiral.
     if (vPoints.size() < 4)
@@ -84,7 +84,7 @@ TEST(SearchPatternTest, SpiralPatternShapeGPS)
     geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
 
     // Use this for generating a search pattern with default params.
-    std::vector<WaypointHandler::Waypoint> vSearchPatternPath = searchpattern::CalculateSearchPatternWaypoints(stGPSRollaCoordinate);
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSearchPatternWaypoints(stGPSRollaCoordinate);
 
     // Check if the returned path resembles an outward spiral pattern.
     EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));
@@ -103,7 +103,7 @@ TEST(SearchPatternTest, SpiralPatternShapeUTM)
     geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
 
     // Use this for generating a search pattern with default params.
-    std::vector<WaypointHandler::Waypoint> vSearchPatternPath = searchpattern::CalculateSearchPatternWaypoints(stUTMRollaCoordinate);
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSearchPatternWaypoints(stUTMRollaCoordinate);
 
     // Check if the returned path resembles an outward spiral pattern.
     EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));

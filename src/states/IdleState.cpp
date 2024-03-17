@@ -100,6 +100,7 @@ namespace statemachine
      ******************************************************************************/
     States IdleState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eIdle;
         bool bCompleteStateExit = true;
 
@@ -154,14 +155,12 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eIdle;
                 break;
             }
             default:
             {
+                // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
-                eNextState = States::eIdle;
                 break;
             }
         }

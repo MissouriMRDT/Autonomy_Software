@@ -132,6 +132,7 @@ namespace statemachine
      ******************************************************************************/
     States AvoidanceState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eAvoidance;
         bool bCompleteStateExit = true;
 
@@ -143,8 +144,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eAvoidance;
                 break;
             }
             case Event::eAbort:

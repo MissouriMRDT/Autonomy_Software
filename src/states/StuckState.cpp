@@ -95,6 +95,7 @@ namespace statemachine
      ******************************************************************************/
     States StuckState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eStuck;
         bool bCompleteStateExit = true;
 

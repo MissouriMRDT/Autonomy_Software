@@ -22,7 +22,7 @@
 StateMachineHandler::StateMachineHandler()
 {
     // Submit logger message.
-    LOG_INFO(logging::g_qConsoleLogger, "Initializing State Machine.");
+    LOG_INFO(logging::g_qSharedLogger, "Initializing State Machine.");
 
     // Set RoveComm Node callbacks.
     globals::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
@@ -69,7 +69,7 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
         case statemachine::States::eStuck: return std::make_shared<statemachine::StuckState>();
         default:
             // Handle the default case or throw an exception if needed
-            LOG_ERROR(logging::g_qConsoleLogger, "State {} not found.", static_cast<int>(eState));
+            LOG_ERROR(logging::g_qSharedLogger, "State {} not found.", static_cast<int>(eState));
     }
 
     return nullptr;
@@ -82,11 +82,13 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
  *        a new state and stores it in the map.
  *
  * @param eNextState - The State enum to transition to.
+ * @param bSaveCurrentState - Whether or not to save the current state so it can be recalled next time it is triggered.
+ *          Default value is false.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author Eli Byrd (edbgkk@mst.edu), clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-01-17
  ******************************************************************************/
-void StateMachineHandler::ChangeState(statemachine::States eNextState)
+void StateMachineHandler::ChangeState(statemachine::States eNextState, const bool bSaveCurrentState)
 {
     // Acquire write lock for changing states.
     std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
@@ -100,8 +102,12 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState)
         // Save the current state as the previous state
         m_pPreviousState = m_pCurrentState;
 
-        // Save the current state before transitioning
-        SaveCurrentState();
+        // Check if we should save this current state so it can be recalled in the future.
+        if (bSaveCurrentState)
+        {
+            // Save the current state before transitioning
+            SaveCurrentState();
+        }
 
         // Check if the state exists in exitedStates
         std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umExitedStates.find(eNextState);
@@ -109,7 +115,7 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState)
         {
             // Load the existing state
             m_pCurrentState = itState->second;
-            LOG_INFO(logging::g_qConsoleLogger, "Recalling State: {}", m_pCurrentState->ToString());
+            LOG_INFO(logging::g_qSharedLogger, "Recalling State: {}", m_pCurrentState->ToString());
         }
         else
         {
@@ -120,6 +126,23 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState)
         // Set atomic toggle saying we are done switching states.
         m_bSwitchingStates = false;
     }
+}
+
+/******************************************************************************
+ * @brief Save the current state to the map of exited states. This is used to
+ *        store the state when the state machine is transitioning to a new
+ *        state. And prevents the state from being deleted when the state
+ *        machine transitions to a new state.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-01-17
+ ******************************************************************************/
+void StateMachineHandler::SaveCurrentState()
+{
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "Saving State: {}", m_pCurrentState->ToString());
+    // Add state to map.
+    m_umExitedStates[m_pCurrentState->GetState()] = m_pCurrentState;
 }
 
 /******************************************************************************
@@ -207,11 +230,13 @@ void StateMachineHandler::PooledLinearCode() {}
  *        met.
  *
  * @param eEvent - The Event enum to handle.
+ * @param bSaveCurrentState - Whether or not to save the current state so it can be recalled next time it is triggered.
+ *          Default value is false.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-01-17
  ******************************************************************************/
-void StateMachineHandler::HandleEvent(statemachine::Event eEvent)
+void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState)
 {
     // Acquire write lock for handling events.
     std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
@@ -220,7 +245,7 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent)
     statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
 
     // Transition to the next state
-    ChangeState(eNextState);
+    ChangeState(eNextState, bSaveCurrentState);
 }
 
 /******************************************************************************
@@ -248,18 +273,4 @@ statemachine::States StateMachineHandler::GetPreviousState() const
 {
     // Check if the previous state exists and return it if it does otherwise return Idle
     return m_pPreviousState ? m_pPreviousState->GetState() : statemachine::States::eIdle;
-}
-
-/******************************************************************************
- * @brief Save the current state to the map of exited states. This is used to
- *        store the state when the state machine is transitioning to a new
- *        state. And prevents the state from being deleted when the state
- *        machine transitions to a new state.
- *
- * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2024-01-17
- ******************************************************************************/
-void StateMachineHandler::SaveCurrentState()
-{
-    m_umExitedStates[m_pCurrentState->GetState()] = m_pCurrentState;
 }
