@@ -32,6 +32,8 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
+        // Initialize member variables.
+        m_bFetchNewWaypoint          = true;
         m_nMaxDataPoints             = 100;
         m_tStuckCheckTime            = time(nullptr);
 
@@ -56,9 +58,6 @@ namespace statemachine
     {
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Exiting state.");
-
-        m_vRoverXPosition.clear();
-        m_vRoverYPosition.clear();
     }
 
     /******************************************************************************
@@ -92,10 +91,83 @@ namespace statemachine
         // TODO: Implement the behavior specific to the Navigating state
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
-        // TEST: Send drive commands.
-        double dHeading                      = globals::g_pNavigationBoard->GetHeading();
-        diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(1.0, 180, dHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
-        globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+        ///////////////////////////////////
+        // TEST: Waypoint Navigation.
+        ///////////////////////////////////
+
+        // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
+        if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
+        {
+            // Trigger new waypoint event.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+        }
+
+        // Check if we are at the goal waypoint. (only if we aren't waiting for a goal waypoint)
+        if (!m_bFetchNewWaypoint)
+        {
+            // Get Current rover heading.
+            geoops::UTMCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetUTMData();
+            double dCurrentHeading                     = globals::g_pNavigationBoard->GetHeading();
+            // Calculate distance and bearing from goal waypoint.
+            geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentGPSLocation, m_stGoalWaypoint.GetUTMCoordinate());
+            // Check if we are at the goal waypoint.
+            if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+            {
+                // Calculate drive move/powers.
+                diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
+                                                                                             stGoalWaypointMeasurement.dStartRelativeBearing,
+                                                                                             dCurrentHeading,
+                                                                                             diffdrive::DifferentialControlMethod::eArcadeDrive);
+                // Send drive powers over RoveComm.
+                globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+            }
+            else
+            {
+                // Stop drive.
+                globals::g_pDriveBoard->SendStop();
+
+                // Check waypoint type.
+                switch (m_stGoalWaypoint.eType)
+                {
+                    // Goal waypoint is navigation.
+                    case geoops::WaypointType::eNavigationWaypoint:
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, true);
+                        break;
+                    }
+                    // Goal waypoint is marker.
+                    case geoops::WaypointType::eTagWaypoint:
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, false);
+                        break;
+                    }
+                    // Goal waypoint is object.
+                    case geoops::WaypointType::eObjectWaypoint:
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                        break;
+                    }
+                    // Goal waypoint is object.
+                    case geoops::WaypointType::eMalletWaypoint:
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                        break;
+                    }
+                    // Goal waypoint is object.
+                    case geoops::WaypointType::eWaterBottleWaypoint:
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                        break;
+                    }
+                    default: break;
+                }
+            }
+        }
     }
 
     /******************************************************************************
@@ -109,6 +181,7 @@ namespace statemachine
      ******************************************************************************/
     States NavigatingState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eNavigating;
         bool bCompleteStateExit = true;
 
@@ -120,33 +193,52 @@ namespace statemachine
                 eNextState = States::eIdle;
                 break;
             }
-            case Event::eReachedMarker:
+            case Event::eReachedGpsCoordinate:
             {
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Set toggle to get new waypoint.
+                m_bFetchNewWaypoint = true;
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
-            case Event::eReachedGpsCoordinate:
+            case Event::eReachedMarker:
             {
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-
-                bool gpsOrTagMarker = false;    // TODO: Replace with determining if the rover is supposed to be navigating to a GPS coordinate or a tag / object.
-
-                if (gpsOrTagMarker)
-                {
-                    eNextState = States::eIdle;
-                }
-                else
-                {
-                    eNextState = States::eSearchPattern;
-                }
-
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker Waypoint event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change state.
+                eNextState = States::eSearchPattern;
+                break;
+            }
+            case Event::eReachedObject:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Object Waypoint event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change state.
+                eNextState = States::eSearchPattern;
                 break;
             }
             case Event::eNewWaypoint:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
-                eNextState = States::eNavigating;
+                // Get and store new goal waypoint.
+                m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                // Set toggle.
+                m_bFetchNewWaypoint = false;
                 break;
             }
             case Event::eStart:
@@ -155,8 +247,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eNavigating;
                 break;
             }
             case Event::eAbort:

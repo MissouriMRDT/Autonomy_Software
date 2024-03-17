@@ -92,6 +92,7 @@ namespace statemachine
      ******************************************************************************/
     States ApproachingObjectState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eIdle;
         bool bCompleteStateExit = true;
 
@@ -109,8 +110,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eApproachingObject;
                 break;
             }
             case Event::eAbort:
