@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "SearchPatternState.h"
+#include "../AutonomyGlobals.h"
 #include "../algorithms/SearchPattern.hpp"
 #include "../interfaces/State.hpp"
 
@@ -122,7 +123,11 @@ namespace statemachine
             }
             case Event::eStart:
             {
+                // Submit logger message
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eSearchPattern;
                 break;
             }
@@ -134,7 +139,11 @@ namespace statemachine
             }
             case Event::eAbort:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }

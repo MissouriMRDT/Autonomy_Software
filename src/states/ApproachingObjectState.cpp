@@ -105,8 +105,22 @@ namespace statemachine
             }
             case Event::eStart:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eApproachingObject;
+                break;
+            }
+            case Event::eAbort:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
+                eNextState = States::eIdle;
                 break;
             }
             case Event::eObjectUnseen:

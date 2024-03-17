@@ -107,7 +107,10 @@ namespace statemachine
         {
             case Event::eStart:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
 
                 bool tagInSight    = false;    // TODO: Replace with actual tag detection
                 bool reverseAlways = false;    // TODO: Replace with actual reverse always flag
@@ -147,7 +150,11 @@ namespace statemachine
             }
             case Event::eAbort:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
