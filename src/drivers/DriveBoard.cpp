@@ -39,7 +39,7 @@ DriveBoard::DriveBoard()
     m_pPID = new controllers::PIDController(constants::DRIVE_PID_PROPORTIONAL, constants::DRIVE_PID_INTEGRAL, constants::DRIVE_PID_DERIVATIVE);
     m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR_PER_ITER);
     m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
-    m_pPID->SetOutputLimits(constants::DRIVE_PID_MAX_OUTPUT_EFFORT);
+    m_pPID->SetOutputLimits(constants::DRIVE_MAX_POWER);
     m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
     m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
     m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
@@ -109,16 +109,16 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
     double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
 
-    // Update member variables with new target speeds.
-    m_stDrivePowers.dLeftDrivePower  = dLeftSpeed;
-    m_stDrivePowers.dRightDrivePower = dRightSpeed;
-
     // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-    float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
+    float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
     // Limit the power to max and min effort defined in constants.
-    fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-    fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+    fDriveBoardLeftPower  = std::clamp(float(fDriveBoardLeftPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    fDriveBoardRightPower = std::clamp(float(fDriveBoardRightPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+
+    // Update member variables with new target speeds.
+    m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
+    m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
 
     // Construct a RoveComm packet with the drive data.
     rovecomm::RoveCommPacket<float> stPacket;
