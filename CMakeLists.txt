@@ -40,7 +40,7 @@ set(CPACK_GENERATOR "STGZ")
 ## Find RoveComm
 FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
         GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        d38570821fe4e3fa0fd53c0aac15061482a9e18e                     # Version 24.2.2
+        GIT_TAG        bdcb60bcea4658f6272289db069efd133f133dec                     # Version 24.2.2
         GIT_SHALLOW    FALSE                                                        # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
     )
