@@ -1,6 +1,9 @@
 # Custom Dictionary Words
 ABGR
 ACCURACYDATA
+ADDMARKERLEG
+ADDOBJECTLEG
+ADDPOSITIONLEG
 alloc
 allocs
 APPROACHINGMARKERSTATE
@@ -17,6 +20,7 @@ buildcache
 Buildx
 CALIB
 clayjay
+CLEARWAYPOINTS
 codeql
 codezombiech
 Coeffs
