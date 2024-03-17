@@ -104,6 +104,7 @@ namespace statemachine
      ******************************************************************************/
     States SearchPatternState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eSearchPattern;
         bool bCompleteStateExit = true;
 
@@ -127,8 +128,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eSearchPattern;
                 break;
             }
             case Event::eSearchFailed:

@@ -93,6 +93,7 @@ namespace statemachine
      ******************************************************************************/
     States ApproachingMarkerState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eIdle;
         bool bCompleteStateExit = true;
 
@@ -110,8 +111,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eApproachingMarker;
                 break;
             }
             case Event::eMarkerUnseen:

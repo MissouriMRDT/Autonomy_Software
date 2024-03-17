@@ -60,8 +60,8 @@ class StateMachineHandler : private AutonomyThread<void>
         // Declare private class methods.
         /////////////////////////////////////////
         std::shared_ptr<statemachine::State> CreateState(statemachine::States eState);
-        void ChangeState(statemachine::States eNextState);
-
+        void ChangeState(statemachine::States eNextState, const bool bSaveCurrentState = false);
+        void SaveCurrentState();
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 
@@ -106,7 +106,7 @@ class StateMachineHandler : private AutonomyThread<void>
             LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
 
             // Signal statemachine handler with stop event.
-            this->HandleEvent(statemachine::Event::eAbort);
+            this->HandleEvent(statemachine::Event::eAbort, true);
         };
 
     public:
@@ -119,12 +119,10 @@ class StateMachineHandler : private AutonomyThread<void>
         void StartStateMachine();
         void StopStateMachine();
 
-        void HandleEvent(statemachine::Event eEvent);
+        void HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState = false);
 
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
-
-        void SaveCurrentState();
 
         using AutonomyThread::GetIPS;
 };

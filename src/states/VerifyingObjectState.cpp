@@ -97,6 +97,7 @@ namespace statemachine
      ******************************************************************************/
     States VerifyingObjectState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eVerifyingObject;
         bool bCompleteStateExit = true;
 
@@ -108,8 +109,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eVerifyingObject;
                 break;
             }
             case Event::eVerifyingComplete:
