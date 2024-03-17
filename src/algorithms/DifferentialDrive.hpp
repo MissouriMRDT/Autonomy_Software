@@ -250,7 +250,7 @@ namespace diffdrive
             case eArcadeDrive:
             {
                 // Based on our turn output, inverse-proportionally scale down our goal speed. This helps with pivot turns.
-                dGoalSpeed *= 1.0 - dTurnOutput;
+                dGoalSpeed *= 1.0 - std::fabs(dTurnOutput);
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, constants::DRIVE_SQUARE_CONTROL_INPUTS);
                 break;
