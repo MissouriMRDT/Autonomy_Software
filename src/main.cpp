@@ -163,20 +163,12 @@ int main()
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
 
-        // Used to store camera pose/location of the main cam.
-        sl::Pose slCameraPosition;
-        sl::GeoPose slGeoPosition;
-
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
         while (!bMainStop)
         {
-            // Request for pose from main ZED camera.
-            std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
-            std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
-
             // Send current robot state over RoveComm.
             // Construct a RoveComm packet with the drive data.
             rovecomm::RoveCommPacket<uint8_t> stPacket;
@@ -204,21 +196,6 @@ int main()
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";
-
-            // Wait for pose to be copied.
-            fuPoseStatus.get();
-            // Get Translations from pose.
-            sl::Translation slCameraLocation = slCameraPosition.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
-            // Wait for geo pose to be copied.
-            fuGeoPoseStatus.get();
-            // Get Translations from pose.
-            slCameraLocation = slGeoPosition.pose_data.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
 
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
