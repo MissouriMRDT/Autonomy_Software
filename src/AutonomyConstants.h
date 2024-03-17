@@ -56,16 +56,15 @@ namespace constants
     const float DRIVE_MIN_EFFORT = -1.0;
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.01;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.0;     // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.0;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;     // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;     // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_OUTPUT_EFFORT = DRIVE_MAX_EFFORT;    // The max effort the entire PID controller is allowed to output. Range is within DRIVE_MAX/MIN_POWER.
-    const double DRIVE_PID_MAX_RAMP_RATE     = 0.4;                 // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER     = 0.0;                 // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
-    const bool DRIVE_PID_OUTPUT_REVERSED     = false;               // Negates the output of the PID controller.
-    const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.0;      // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.0;      // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;      // The max effort the I term is allowed to contribute.
+    const double DRIVE_PID_MAX_RAMP_RATE      = 0.4;      // The max ramp rate of the output of the PID controller.
+    const double DRIVE_PID_OUTPUT_FILTER      = 0.0;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 

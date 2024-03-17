@@ -80,11 +80,11 @@ class StateMachineHandler : private AutonomyThread<void>
             (void) stPacket;
             (void) stdAddr;
 
-            // Signal statemachine handler with Start event.
-            this->HandleEvent(statemachine::Event::eStart);
-
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Start Autonomy!");
+
+            // Signal statemachine handler with Start event.
+            this->HandleEvent(statemachine::Event::eStart);
         };
 
         /******************************************************************************
@@ -102,11 +102,11 @@ class StateMachineHandler : private AutonomyThread<void>
             (void) stPacket;
             (void) stdAddr;
 
-            // Signal statemachine handler with stop event.
-            this->HandleEvent(statemachine::Event::eAbort);
-
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
+
+            // Signal statemachine handler with stop event.
+            this->HandleEvent(statemachine::Event::eAbort);
         };
 
     public:

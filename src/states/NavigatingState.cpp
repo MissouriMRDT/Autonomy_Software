@@ -94,7 +94,7 @@ namespace statemachine
 
         // TEST: Send drive commands.
         double dHeading                      = globals::g_pNavigationBoard->GetHeading();
-        diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(1.0, 90, dHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
+        diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(1.0, 180, dHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
     }
 
