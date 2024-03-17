@@ -103,7 +103,11 @@ namespace statemachine
         {
             case Event::eStart:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eVerifyingMarker;
                 break;
             }
@@ -115,7 +119,11 @@ namespace statemachine
             }
             case Event::eAbort:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }

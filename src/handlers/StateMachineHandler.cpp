@@ -40,8 +40,8 @@ StateMachineHandler::StateMachineHandler()
  * @date 2024-03-15
  ******************************************************************************/
 StateMachineHandler::~StateMachineHandler()
-{
-    // Nothing to destroy.
+{    // Stop state machine.
+    this->StopStateMachine();
 }
 
 /******************************************************************************
@@ -158,6 +158,9 @@ void StateMachineHandler::StopStateMachine()
     // Stop main thread.
     this->RequestStop();
     this->Join();
+
+    // Send multimedia command to update state display.
+    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
 }
 
 /******************************************************************************

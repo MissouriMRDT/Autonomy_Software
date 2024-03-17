@@ -106,7 +106,11 @@ namespace statemachine
             }
             case Event::eStart:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eApproachingMarker;
                 break;
             }
@@ -118,7 +122,11 @@ namespace statemachine
             }
             case Event::eAbort:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
