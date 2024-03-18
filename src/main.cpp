@@ -112,32 +112,24 @@ int main()
         network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
         network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
         // Start RoveComm instances bound on ports.
-        bool bRoveCommUDPInitSuccess = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
-        bool bRoveCommTCPInitSuccess = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+        network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+        network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
         // Check if RoveComm was successfully initialized.
-        if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
+        if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
         {
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
                          "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                         bRoveCommUDPInitSuccess,
-                         bRoveCommTCPInitSuccess);
+                         network::g_bRoveCommUDPStatus,
+                         network::g_bRoveCommTCPStatus);
 
             // Since RoveComm is crucial, stop code.
             bMainStop = true;
-
-            // Set RoveComm Status
-            network::g_bRoveCommUDPStatus = false;
-            network::g_bRoveCommTCPStatus = false;
         }
         else
         {
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
-
-            // Set RoveComm Status
-            network::g_bRoveCommUDPStatus = true;
-            network::g_bRoveCommTCPStatus = true;
         }
 
         // Initialize drivers.
