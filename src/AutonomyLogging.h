@@ -63,5 +63,64 @@ namespace logging
     /////////////////////////////////////////
 
     void InitializeLoggers(std::string szLoggingOutputPath);
+
+    /////////////////////////////////////////
+    // Define namespace file filters.
+    /////////////////////////////////////////
+
+    /******************************************************************************
+     * @brief This class serves as a container class for handling log filtering of
+     *    loggers. This must be used if you want each handler to have a different
+     *    logging level since adding multiple handlers to the same logger will apply the
+     *    loggers logging level to each handler.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-03-16
+     ******************************************************************************/
+    class LoggingFilter : public quill::FilterBase
+    {
+        private:
+            // Declare private member variables.
+            quill::LogLevel m_eMinLogLevel;
+
+        public:
+            /******************************************************************************
+             * @brief Construct a new Console Filter object.
+             *
+             * @param eMinLogLevel - The minimum acceptable log level for the console handler.
+             *      All log levels above this will also be logged.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-03-16
+             ******************************************************************************/
+            LoggingFilter(const std::string szFilterBaseType, const quill::LogLevel eMinLogLevel) : quill::FilterBase(szFilterBaseType)
+            {
+                // Set member variables.
+                m_eMinLogLevel = eMinLogLevel;
+            };
+
+            /******************************************************************************
+             * @brief This method should never be called by this codebase, it is called internally
+             *      by the quill library.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-03-16
+             ******************************************************************************/
+            QUILL_NODISCARD bool filter(char const* thread_id,
+                                        std::chrono::nanoseconds log_message_timestamp,
+                                        quill::MacroMetadata const& metadata,
+                                        quill::fmt_buffer_t const& formatted_record) noexcept override
+            {
+                // Not using these.
+                (void) thread_id;
+                (void) log_message_timestamp;
+                (void) formatted_record;
+
+                // Log only m_eMinLogLevel or higher to stdout.
+                return metadata.level() >= m_eMinLogLevel;
+            }
+    };
+
 }    // namespace logging
 #endif    // AUTONOMY_LOGGING_H

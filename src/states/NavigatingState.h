@@ -12,6 +12,7 @@
 #define NAVIGATINGSTATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,6 +32,8 @@ namespace statemachine
     class NavigatingState : public State
     {
         private:
+            bool m_bFetchNewWaypoint;
+            geoops::Waypoint m_stGoalWaypoint;
             int m_nMaxDataPoints;
             std::vector<double> m_vRoverXPosition;
             std::vector<double> m_vRoverYPosition;
@@ -44,7 +47,7 @@ namespace statemachine
 
         public:
             NavigatingState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine
