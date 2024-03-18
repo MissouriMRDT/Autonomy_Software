@@ -30,7 +30,7 @@ namespace statemachine
     void ReversingState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
         // TODO: Get Starting Position from GPS
     }
@@ -46,7 +46,7 @@ namespace statemachine
     void ReversingState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Exiting state.");
     }
 
     /******************************************************************************
@@ -75,12 +75,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ReversingState::Run()
+    void ReversingState::Run()
     {
         // TODO: Implement the behavior specific to the Reversing state
         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
-
-        return States::eReversing;
     }
 
     /******************************************************************************
@@ -94,6 +92,7 @@ namespace statemachine
      ******************************************************************************/
     States ReversingState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eReversing;
         bool bCompleteStateExit = true;
 
@@ -101,25 +100,31 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
-                eNextState = States::eReversing;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eReverseComplete:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -127,7 +132,7 @@ namespace statemachine
 
         if (eNextState != States::eReversing)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

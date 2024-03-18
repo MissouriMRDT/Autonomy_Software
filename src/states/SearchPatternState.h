@@ -11,9 +11,8 @@
 #ifndef SEARCHPATTERNSTATE_H
 #define SEARCHPATTERNSTATE_H
 
-#include "../algorithms/DifferentialDrive.hpp"
-#include "../algorithms/SearchPattern.hpp"
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
 #include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
@@ -43,7 +42,7 @@ namespace statemachine
 
             std::vector<TagDetector*> m_vTagDetectors;    // Vector of tag detectors to use for detection in order of highest to lowest priority.
 
-            std::vector<WaypointHandler::Waypoint> m_vSearchPath;
+            std::vector<geoops::Waypoint> m_vSearchPath;
             int m_nSearchPathIdx;
 
         protected:
@@ -52,7 +51,7 @@ namespace statemachine
 
         public:
             SearchPatternState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine

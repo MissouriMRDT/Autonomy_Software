@@ -12,7 +12,7 @@
 #ifndef SEARCH_PATTERN_HPP
 #define SEARCH_PATTERN_HPP
 
-#include "../handlers/WaypointHandler.h"
+#include "../util/GeospatialOperations.hpp"
 
 /// \cond
 #include <cmath>
@@ -46,14 +46,14 @@ namespace searchpattern
      * @author Jacob V (jpvf2d@umsystem.edu)
      * @date 2024-02-04
      ******************************************************************************/
-    inline std::vector<WaypointHandler::Waypoint> CalculateSearchPatternWaypoints(const geoops::UTMCoordinate& stStartingPoint,
-                                                                                  double dAngularStepDegrees     = 57,
-                                                                                  double dMaxRadius              = 25,
-                                                                                  double dStartingHeadingDegrees = 0,
-                                                                                  double dSpacing                = 1)
+    inline std::vector<geoops::Waypoint> CalculateSearchPatternWaypoints(const geoops::UTMCoordinate& stStartingPoint,
+                                                                         double dAngularStepDegrees     = 57,
+                                                                         double dMaxRadius              = 25,
+                                                                         double dStartingHeadingDegrees = 0,
+                                                                         double dSpacing                = 1)
     {
         // Define variables.
-        std::vector<WaypointHandler::Waypoint> stWaypoints;
+        std::vector<geoops::Waypoint> stWaypoints;
         double dAngularStepRadians = dAngularStepDegrees * M_PI / 180;
         double dAngleRadians       = (dStartingHeadingDegrees + 90) * M_PI / 180;
         double dCurrentRadius      = 0;
@@ -69,7 +69,7 @@ namespace searchpattern
 
             // Add the current waypoint to the final vector.
             geoops::UTMCoordinate stCurrentCoordinate(dCurrentX, dCurrentY, stStartingPoint.nZone, stStartingPoint.bWithinNorthernHemisphere);
-            WaypointHandler::Waypoint stCurrentWaypoint(stCurrentCoordinate, WaypointHandler::eNavigationWaypoint);
+            geoops::Waypoint stCurrentWaypoint(stCurrentCoordinate, geoops::WaypointType::eNavigationWaypoint);
             stWaypoints.push_back(stCurrentWaypoint);
 
             // Increment angle and radius for the next waypoint.
@@ -97,14 +97,14 @@ namespace searchpattern
      * @author Jacob V (jpvf2d@umsystem.edu)
      * @date 2024-02-04
      ******************************************************************************/
-    inline std::vector<WaypointHandler::Waypoint> CalculateSearchPatternWaypoints(const geoops::GPSCoordinate& stStartingPoint,
-                                                                                  double dAngularStepDegrees     = 57,
-                                                                                  double dMaxRadius              = 25,
-                                                                                  double dStartingHeadingDegrees = 0,
-                                                                                  double dSpacing                = 1)
+    inline std::vector<geoops::Waypoint> CalculateSearchPatternWaypoints(const geoops::GPSCoordinate& stStartingPoint,
+                                                                         double dAngularStepDegrees     = 57,
+                                                                         double dMaxRadius              = 25,
+                                                                         double dStartingHeadingDegrees = 0,
+                                                                         double dSpacing                = 1)
     {
         // Define variables.
-        std::vector<WaypointHandler::Waypoint> stWaypoints;
+        std::vector<geoops::Waypoint> stWaypoints;
         geoops::UTMCoordinate stStartingPointUTM = geoops::ConvertGPSToUTM(stStartingPoint);
         double dAngularStepRadians               = dAngularStepDegrees * M_PI / 180;
         double dAngleRadians                     = (dStartingHeadingDegrees + 90) * M_PI / 180;
@@ -121,7 +121,7 @@ namespace searchpattern
 
             // Add the current waypoint to the final vector.
             geoops::UTMCoordinate stCurrentCoordinate(dCurrentX, dCurrentY, stStartingPointUTM.nZone, stStartingPointUTM.bWithinNorthernHemisphere);
-            WaypointHandler::Waypoint stCurrentWaypoint(stCurrentCoordinate, WaypointHandler::eNavigationWaypoint);
+            geoops::Waypoint stCurrentWaypoint(stCurrentCoordinate, geoops::WaypointType::eNavigationWaypoint);
             stWaypoints.push_back(stCurrentWaypoint);
 
             // Increment angle and radius for the next waypoint.

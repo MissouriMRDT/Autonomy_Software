@@ -28,8 +28,20 @@ if(NOT CTest_CMake_INCLUDED)
 endif()
 include(FetchContent)                                                               # CMake Dependency Framework
 
+## Enable or Disble Simulation Mode
+option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+if(BUILD_SIM_MODE)
+    message("Sim Mode: Enabled")
+    add_compile_definitions(__AUTONOMY_SIM_MODE__=1)
+    set(EXE_NAME "${PROJECT_NAME}_Sim")
+else()
+    message("Sim Mode: Disabled")
+    add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
+    set(EXE_NAME "${PROJECT_NAME}")
+endif()
+
 ## Define Project Name and Version Number for CPack
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_NAME ${EXE_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
@@ -40,7 +52,7 @@ set(CPACK_GENERATOR "STGZ")
 ## Find RoveComm
 FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
         GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        52140ebaa75c889c4e041645ba23ba4accfec8e8                     # Version 24.2.0
+        GIT_TAG        bdcb60bcea4658f6272289db069efd133f133dec                     # Version 24.2.2
         GIT_SHALLOW    FALSE                                                        # Download only without history
         GIT_PROGRESS   TRUE                                                         # Forces progress status.
     )
@@ -122,7 +134,7 @@ file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${PROJECT_NAME}   ${External_SRC}
+add_executable(${EXE_NAME}   ${External_SRC}
 								 ${SRC}
 								 ${Examples_SRC}
 								 ${Tools_SRC}
@@ -130,13 +142,13 @@ add_executable(${PROJECT_NAME}   ${External_SRC}
 
 ## Set Compile Options for Autonomy Software.
 if(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.
-	target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
+	target_compile_options(${EXE_NAME} PRIVATE /W4 /WX)
 else()
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+	target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 ## Link Libraries to Executable
-target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
+target_link_libraries(${EXE_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
                                                 quill::quill
 												${OpenCV_LIBS}
@@ -146,7 +158,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE   Threads::Threads
     )
 
 ## Package Executable
-install(TARGETS ${PROJECT_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
+install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
@@ -158,17 +170,17 @@ list(LENGTH UnitTests_SRC           UnitTests_LEN)
 list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
-    target_link_libraries(${PROJECT_NAME}_UnitTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
-    add_test(Unit_Tests ${PROJECT_NAME}_UnitTests)
+    add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
+    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    add_test(Unit_Tests ${EXE_NAME}_UnitTests)
 else()
     message("No Unit Tests!")
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${PROJECT_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
-    target_link_libraries(${PROJECT_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
-    add_test(Integration_Tests ${PROJECT_NAME}_IntegrationTests)
+    add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
+    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
 else()
     message("No Integration Tests!")
 endif()
