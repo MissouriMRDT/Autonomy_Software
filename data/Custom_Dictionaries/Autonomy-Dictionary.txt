@@ -30,6 +30,7 @@ Contoller
 cpptools
 cschlosser
 CUDA
+CURRENTLOG
 CURRENTSTATE
 deadband
 debfile
