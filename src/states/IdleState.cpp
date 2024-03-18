@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "IdleState.h"
+#include "../AutonomyGlobals.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -29,14 +30,13 @@ namespace statemachine
     void IdleState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "IdleState: Scheduling next run of state logic.");
 
         m_tIdleTime      = time(nullptr);
         m_bRealigned     = false;
         m_nMaxDataPoints = 100;
 
         m_vRoverPosition.reserve(m_nMaxDataPoints);
-        m_stTest = WaypointHandler::PopNextWaypoint();
     }
 
     /******************************************************************************
@@ -50,7 +50,7 @@ namespace statemachine
     void IdleState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "IdleState: Exiting state.");
 
         m_vRoverPosition.clear();
     }
@@ -81,15 +81,18 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States IdleState::Run()
+    void IdleState::Run()
     {
         // TODO: Implement the behavior specific to the Idle state
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
-        // Store the Rover's position.
-        m_vRoverPosition.push_back(m_stTest.dLatitude, m_stTest.dLongitude);
+        // Get the current rover gps position.
+        geoops::UTMCoordinate stCurrentLocation = globals::g_pNavigationBoard->GetUTMData();
 
-        return States::eIdle;
+        // Store the Rover's position.
+        m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
+
+        return;
     }
 
     /******************************************************************************
@@ -103,6 +106,7 @@ namespace statemachine
      ******************************************************************************/
     States IdleState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eIdle;
         bool bCompleteStateExit = true;
 
@@ -110,7 +114,10 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Start event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
 
                 bool tagInSight    = false;    // TODO: Replace with actual tag detection
                 bool reverseAlways = false;    // TODO: Replace with actual reverse always flag
@@ -118,41 +125,55 @@ namespace statemachine
                 // If there is an ArUco marker in the camera's field of view, transition to backup before navigating.
                 if (tagInSight)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Detected ArUco marker. Transitioning to Reverse State.");
+                    LOG_INFO(logging::g_qSharedLogger, "IdleState: Detected ArUco marker. Transitioning to Reverse State.");
                     eNextState = States::eReversing;
                 }
                 // If the reverse always flag is set, transition to backup before navigating.
                 else if (reverseAlways)
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Reverse always flag set. Transitioning to Reverse State.");
+                    LOG_INFO(logging::g_qSharedLogger, "IdleState: Reverse always flag set. Transitioning to Reverse State.");
                     eNextState = States::eReversing;
                 }
                 // Otherwise, transition to navigating.
                 else
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
-                    eNextState = States::eNavigating;
+                    // Check if waypoint handler has any waypoints.
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                    {
+                        // Submit logger message.
+                        LOG_INFO(logging::g_qSharedLogger, "IdleState: No ArUco marker detected. Transitioning to Navigating State.");
+                        // Change states.
+                        eNextState = States::eNavigating;
+                    }
+                    else
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger,
+                                    "IdleState: Not transitioning to NavigatingState because no waypoints have been added to the waypoint handler!");
+                    }
                 }
 
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
-                eNextState = States::eIdle;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
-                eNextState = States::eIdle;
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "IdleState: Handling unknown event.");
                 break;
             }
         }
 
         if (eNextState != States::eIdle)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "IdleState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

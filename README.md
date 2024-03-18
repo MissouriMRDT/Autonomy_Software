@@ -82,3 +82,27 @@ The **src** directory serves as the main source code directory and contains the 
 - See [INSTALL.md](INSTALL.md) for full installation instructions.
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for full contribution instructions.
 - See [DEBUG.md](DEBUG.md) for full debugging and development instructions.
+
+# Running Autonomy
+
+There are two primary run modes for our Autonomy Codebase.
+
+1) **Standard Mode:** Which operates using the Onboard Rover System and communicates using the standard RoveComm manifest and IP Addresses. To build and run Autonomy in this mode use the following commands:
+    
+    ```
+    mkdir -p <Autonomy Install Location>/build
+    cd <Autonomy Install Location>/build
+    cmake -DBUILD_SIM_MODE=OFF ..
+    make
+    ./Autonomy_Software
+    ```
+
+2) **Simulation Mode:** Which operates using the Webots Robot Simulator and uses the RoveComm manifest but sends all packets to local host instead. This allows the robot simulator to retrieve all the packets and run the simulation. To build and run Autonomy in this mode use the following commands:
+
+    ```
+    mkdir -p <Autonomy Install Location>/build
+    cd <Autonomy Install Location>/build
+    cmake -DBUILD_SIM_MODE=ON ..
+    make
+    ./Autonomy_Software_Sim
+    ```

@@ -32,9 +32,7 @@ namespace statemachine
     void StuckState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
-
-        m_tStuckCheckTime      = time(nullptr);
+        LOG_INFO(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
 
         m_bIsCurrentlyAligning = false;
 
@@ -52,7 +50,7 @@ namespace statemachine
     void StuckState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "StuckState: Exiting state.");
     }
 
     /******************************************************************************
@@ -86,7 +84,7 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States StuckState::Run()
+    void StuckState::Run()
     {
         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
@@ -154,7 +152,7 @@ namespace statemachine
                 if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
                 {
                     m_bIsCurrentlyAligning = false;
-                    return States::eStuck;
+                    return;
                 }
             }
 
@@ -212,7 +210,7 @@ namespace statemachine
             globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
         }
 
-        return States::eStuck;
+        return;
     }
 
     /******************************************************************************
@@ -226,6 +224,7 @@ namespace statemachine
      ******************************************************************************/
     States StuckState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eStuck;
         bool bCompleteStateExit = true;
 
@@ -233,19 +232,27 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Start event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "StuckState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eReversing;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling Abort event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "StuckState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "StuckState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -253,7 +260,7 @@ namespace statemachine
 
         if (eNextState != States::eStuck)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "StuckState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
