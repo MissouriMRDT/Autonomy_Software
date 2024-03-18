@@ -42,7 +42,7 @@ namespace statemachine
             double m_dOriginalHeading;                                   // Original heading the rover was at when reported stuck.
             bool m_bIsCurrentlyAligning;                                 // Is the rover currently trying to align with a target heading.
 
-            std::chrono::system_clock::time_point m_tmLastStuckCheck;    //
+            std::chrono::system_clock::time_point m_tmLastStuckCheck;    // Time since the rover was last checked for being stuck.
             unsigned int m_unStuckChecksOnAttempt;                       //
 
             bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition);
@@ -53,7 +53,7 @@ namespace statemachine
 
         public:
             StuckState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine

@@ -243,23 +243,33 @@ namespace diffdrive
 
         // Get control output from PID controller.
         double dTurnOutput = PID.Calculate(dActualHeading, dGoalHeading);
+
         // Calculate drive powers from inverse kinematics of goal speed and turning adjustment.
         switch (eDriveMethod)
         {
-            case eArcadeDrive: stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, constants::DRIVE_SQUARE_CONTROL_INPUTS); break;
+            case eArcadeDrive:
+            {
+                // Based on our turn output, inverse-proportionally scale down our goal speed. This helps with pivot turns.
+                dGoalSpeed *= 1.0 - std::fabs(dTurnOutput);
+                // Calculate drive power with inverse kinematics.
+                stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                break;
+            }
             case eCurvatureDrive:
+            {
+                // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateCurvatureDrive(dGoalSpeed,
                                                          dTurnOutput,
                                                          constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
                                                          constants::DRIVE_SQUARE_CONTROL_INPUTS);
                 break;
+            }
             default:
-                // Default to arcade drive.
-                stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dGoalHeading, constants::DRIVE_SQUARE_CONTROL_INPUTS);
-
+            {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "eTankDrive is not supported for the CalculateMotorPowerFromHeading() method!");
+                LOG_ERROR(logging::g_qSharedLogger, "eTankDrive is not supported for the CalculateMotorPowerFromHeading() method!");
                 break;
+            }
         }
 
         // Return result powers.
