@@ -12,6 +12,7 @@
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Construct a new State Machine Handler object.
@@ -25,8 +26,8 @@ StateMachineHandler::StateMachineHandler()
     LOG_INFO(logging::g_qSharedLogger, "Initializing State Machine.");
 
     // Set RoveComm Node callbacks.
-    globals::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
-    globals::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
