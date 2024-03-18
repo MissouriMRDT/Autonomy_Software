@@ -28,9 +28,6 @@
  ******************************************************************************/
 namespace logging
 {
-    extern rovecomm::RoveCommUDP* g_pRoveCommUDPNode;
-    extern rovecomm::RoveCommTCP* g_pRoveCommTCPNode;
-
     /////////////////////////////////////////
     // Forward declarations for namespace variables and objects.
     /////////////////////////////////////////
@@ -163,13 +160,10 @@ namespace logging
         stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTLOG")->second.DATA_TYPE;
         stPacket.vData       = StringToVector({formatted_log_message.data(), formatted_log_message.size()});
 
-        // Check if we should send packets to the SIM or board.
-        const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Autonomy::IP_ADDRESS.IP_STR.c_str();
-
         // Send log command over RoveComm to BaseStation.
         if (network::g_bRoveCommUDPStatus && network::g_bRoveCommTCPStatus)
         {
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
         }
     }
 }    // namespace logging
