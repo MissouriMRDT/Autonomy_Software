@@ -40,8 +40,13 @@ StateMachineHandler::StateMachineHandler()
  * @date 2024-03-15
  ******************************************************************************/
 StateMachineHandler::~StateMachineHandler()
-{    // Stop state machine.
-    this->StopStateMachine();
+{
+    // Check if state machine is running.
+    if (this->GetThreadState() == AutonomyThreadState::eRunning)
+    {
+        // Stop state machine.
+        this->StopStateMachine();
+    }
 }
 
 /******************************************************************************

@@ -87,7 +87,7 @@ The **src** directory serves as the main source code directory and contains the 
 
 There are two primary run modes for our Autonomy Codebase.
 
-1) **Standard Mode:** Which operates using the Onboard Rover System and communicates using that standard RoveComm manifest and IP Addresses. To build and run Autonomy in this mode use the following commands:
+1) **Standard Mode:** Which operates using the Onboard Rover System and communicates using the standard RoveComm manifest and IP Addresses. To build and run Autonomy in this mode use the following commands:
     
     ```
     mkdir -p <Autonomy Install Location>/build
