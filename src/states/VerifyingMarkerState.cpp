@@ -30,7 +30,7 @@ namespace statemachine
     void VerifyingMarkerState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Scheduling next run of state logic.");
 
         m_nMaxMarkerIDs = 50;
 
@@ -48,7 +48,7 @@ namespace statemachine
     void VerifyingMarkerState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Exiting state.");
 
         m_vMarkerIDs.clear();
     }
@@ -79,12 +79,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States VerifyingMarkerState::Run()
+    void VerifyingMarkerState::Run()
     {
         // TODO: Implement the behavior specific to the VerifyingMarker state
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
-
-        return States::eVerifyingMarker;
     }
 
     /******************************************************************************
@@ -98,6 +96,7 @@ namespace statemachine
      ******************************************************************************/
     States VerifyingMarkerState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eVerifyingMarker;
         bool bCompleteStateExit = true;
 
@@ -105,25 +104,31 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
-                eNextState = States::eVerifyingMarker;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eVerifyingComplete:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -131,7 +136,7 @@ namespace statemachine
 
         if (eNextState != States::eVerifyingMarker)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

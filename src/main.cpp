@@ -88,6 +88,22 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
+        // Print warnings if running in SIM mode.
+        if (constants::MODE_SIM)
+        {
+            // Print 5 times to make it noticeable.
+            for (int nIter = 0; nIter < 5; ++nIter)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Autonomy_Software is running in SIM mode! If you aren't currently using the WeBots sim, disable SIM mode in CMakeLists.txt or in your build "
+                            "arguments!");
+            }
+
+            // Sleep for 3 seconds to make sure it's seen.
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+        }
+
         /////////////////////////////////////////
         // Setup global objects.
         /////////////////////////////////////////
@@ -95,14 +111,14 @@ int main()
         globals::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
         globals::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
         // Start RoveComm instances bound on ports.
-        bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(constants::ROVECOMM_UDP_PORT);
-        bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), constants::ROVECOMM_TCP_PORT);
+        bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+        bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
         // Check if RoveComm was successfully initialized.
         if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
         {
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
-                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode State: {}",
+                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
                          bRoveCommUDPInitSuccess,
                          bRoveCommTCPInitSuccess);
 
@@ -133,9 +149,6 @@ int main()
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
 
-        // TEST: Send Start Command to enter navigating state.
-        globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::eStart);
-
         /////////////////////////////////////////
         // Declare local variables used in main loop.
         /////////////////////////////////////////
@@ -146,13 +159,10 @@ int main()
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+        IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
-
-        // Used to store camera pose/location of the main cam.
-        sl::Pose slCameraPosition;
-        sl::GeoPose slGeoPosition;
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -160,18 +170,21 @@ int main()
         */
         while (!bMainStop)
         {
-            // Request for pose from main ZED camera.
-            std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
-            std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
-
-            // No need to loop as fast as possible. Sleep...
-            // Only run this main thread once every 20ms.
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            // Send current robot state over RoveComm.
+            // Construct a RoveComm packet with the drive data.
+            rovecomm::RoveCommPacket<uint8_t> stPacket;
+            stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
+            stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
+            // Send drive command over RoveComm to drive board to all subscribers.
+            globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetAverageIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
@@ -185,23 +198,15 @@ int main()
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";
 
-            // Wait for pose to be copied.
-            fuPoseStatus.get();
-            // Get Translations from pose.
-            sl::Translation slCameraLocation = slCameraPosition.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
-            // Wait for geo pose to be copied.
-            fuGeoPoseStatus.get();
-            // Get Translations from pose.
-            slCameraLocation = slGeoPosition.pose_data.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
-
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+
+            // Update IPS tick.
+            IterPerSecond.Tick();
+
+            // No need to loop as fast as possible. Sleep...
+            // Only run this main thread once every 20ms.
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
         /////////////////////////////////////////
