@@ -10,6 +10,7 @@
 
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
+#include "./AutonomyNetworking.h"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -108,19 +109,19 @@ int main()
         // Setup global objects.
         /////////////////////////////////////////
         // Initialize RoveComm.
-        globals::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
-        globals::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+        network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+        network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
         // Start RoveComm instances bound on ports.
-        bool bRoveCommUDPInitSuccess = globals::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
-        bool bRoveCommTCPInitSuccess = globals::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+        network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+        network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
         // Check if RoveComm was successfully initialized.
-        if (!bRoveCommUDPInitSuccess || !bRoveCommTCPInitSuccess)
+        if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
         {
             // Submit logger message.
             LOG_CRITICAL(logging::g_qSharedLogger,
                          "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                         bRoveCommUDPInitSuccess,
-                         bRoveCommTCPInitSuccess);
+                         network::g_bRoveCommUDPStatus,
+                         network::g_bRoveCommTCPStatus);
 
             // Since RoveComm is crucial, stop code.
             bMainStop = true;
@@ -178,7 +179,7 @@ int main()
             stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
             stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
             // Send drive command over RoveComm to drive board to all subscribers.
-            globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
@@ -192,8 +193,8 @@ int main()
             szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(globals::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RoveCommTCP FPS: " + std::to_string(globals::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";
@@ -216,24 +217,24 @@ int main()
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
-        globals::g_pRoveCommUDPNode->CloseUDPSocket();
-        globals::g_pRoveCommTCPNode->CloseTCPSocket();
+        network::g_pRoveCommUDPNode->CloseUDPSocket();
+        network::g_pRoveCommTCPNode->CloseTCPSocket();
 
         // Delete dynamically allocated objects.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
-        delete globals::g_pRoveCommUDPNode;
-        delete globals::g_pRoveCommTCPNode;
+        delete network::g_pRoveCommUDPNode;
+        delete network::g_pRoveCommTCPNode;
 
         // Set dangling pointers to null.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
         globals::g_pWaypointHandler     = nullptr;
-        globals::g_pRoveCommUDPNode     = nullptr;
-        globals::g_pRoveCommTCPNode     = nullptr;
+        network::g_pRoveCommUDPNode     = nullptr;
+        network::g_pRoveCommTCPNode     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.
