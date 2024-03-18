@@ -10,6 +10,7 @@
 
 #include "MultimediaBoard.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /// \cond
 #include <RoveComm/RoveCommManifest.h>
@@ -120,7 +121,7 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
     // Check if we should send packets to the SIM or board.
     const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send multimedia board lighting state to board over RoveComm.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
@@ -149,7 +150,7 @@ void MultimediaBoard::SendRGB(RGB stRGBVal)
     // Check if we should send packets to the SIM or board.
     const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send RGB values to multimedia board over RoveComm.
-    globals::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
