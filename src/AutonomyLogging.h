@@ -117,7 +117,7 @@ namespace logging
                 (void) log_message_timestamp;
                 (void) formatted_record;
 
-                // Log only WARNINGS or higher to stdout.
+                // Log only m_eMinLogLevel or higher to stdout.
                 return metadata.level() >= m_eMinLogLevel;
             }
     };
