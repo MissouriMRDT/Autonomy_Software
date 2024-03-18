@@ -30,21 +30,23 @@
 namespace constants
 {
     ///////////////////////////////////////////////////////////////////////////
-    //// Logging Constants.
+    //// General Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Output Paths.
+    // Program mode constants.
+#if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
+    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+#else
+    const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
+#endif
+
+    // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
-    ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
-    //// RoveComm Constants.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Socket Ports.
-    const int ROVECOMM_UDP_PORT                 = 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
-    const int ROVECOMM_TCP_PORT                 = 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
-    const std::string ROVECOMM_TCP_INTERFACE_IP = "";       // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
+    // RoveComm constants.
+    const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const int ROVECOMM_OUTGOING_TCP_PORT        = MODE_SIM ? 12001 : 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const std::string ROVECOMM_TCP_INTERFACE_IP = "";    // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -54,20 +56,19 @@ namespace constants
     // Power constants.
     const float DRIVE_MAX_POWER  = 1.0;
     const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 0.5;
-    const float DRIVE_MIN_EFFORT = -0.5;
+    const float DRIVE_MAX_EFFORT = 1.0;
+    const float DRIVE_MIN_EFFORT = -1.0;
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.1;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.01;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.0;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_MAX_ERROR_PER_ITER = 100;     // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;     // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_OUTPUT_EFFORT = DRIVE_MAX_EFFORT;    // The max effort the entire PID controller is allowed to output. Range is within DRIVE_MAX/MIN_POWER.
-    const double DRIVE_PID_MAX_RAMP_RATE     = 0.4;                 // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER     = 0.0;                 // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
-    const bool DRIVE_PID_OUTPUT_REVERSED     = false;               // Negates the output of the PID controller.
-    const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.0;      // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.0;      // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;      // The max effort the I term is allowed to contribute.
+    const double DRIVE_PID_MAX_RAMP_RATE      = 0.4;      // The max ramp rate of the output of the PID controller.
+    const double DRIVE_PID_OUTPUT_FILTER      = 0.0;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -222,7 +223,8 @@ namespace constants
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Nothing here yet.
+    // Navigating State.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
