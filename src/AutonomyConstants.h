@@ -44,9 +44,9 @@ namespace constants
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
 
     // RoveComm constants.
-    const int ROVECOMM_OUTGOING_UDP_PORT        = 11001;    // The UDP socket port to use for the main UDP RoveComm instance.
-    const int ROVECOMM_OUTGOING_TCP_PORT        = 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
-    const std::string ROVECOMM_TCP_INTERFACE_IP = "";       // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
+    const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const int ROVECOMM_OUTGOING_TCP_PORT        = MODE_SIM ? 12001 : 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const std::string ROVECOMM_TCP_INTERFACE_IP = "";    // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
