@@ -108,7 +108,7 @@ namespace logging
 
         // Set Handler Filters
         qFileHandler->add_filter(std::make_unique<LoggingFilter>("FileFilter", quill::LogLevel::TraceL3));
-        qConsoleHandler->add_filter(std::make_unique<LoggingFilter>("StdoutFilter", quill::LogLevel::Info));
+        qConsoleHandler->add_filter(std::make_unique<LoggingFilter>("ConsoleFilter", quill::LogLevel::Info));
 
         // Create Loggers
         g_qFileLogger    = quill::create_logger("FILE_LOGGER", {qFileHandler});
