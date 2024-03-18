@@ -34,7 +34,11 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Program mode constants.
-    const bool MODE_SIM = true;    // Whether or not to toggle rovecomm and cameras to use local data from the Webots SIM.
+#if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
+    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+#else
+    const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
+#endif
 
     // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
