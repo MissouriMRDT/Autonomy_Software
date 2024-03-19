@@ -181,7 +181,7 @@ namespace statemachine
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-01-17
              ******************************************************************************/
-            virtual States Run() = 0;
+            virtual void Run() = 0;
 
             /******************************************************************************
              * @brief Accessor for the State private member.

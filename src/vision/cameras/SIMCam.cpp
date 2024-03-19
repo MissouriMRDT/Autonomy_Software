@@ -139,7 +139,7 @@ void SIMCam::PooledLinearCode()
     /////////////////////////////
 
     // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {

@@ -31,7 +31,27 @@
 namespace geoops
 {
     /////////////////////////////////////////
+    // Declare public enums.
+    /////////////////////////////////////////
+
+    // This enum is used to store values for the waypoint type.
+    enum class WaypointType
+    {
+        eNavigationWaypoint,
+        eTagWaypoint,
+        eMalletWaypoint,
+        eWaterBottleWaypoint,
+        eObjectWaypoint,    // Used to represent either Mallet or WaterBottle waypoint.
+        eObstacleWaypoint,
+        eUNKNOWN
+    };
+
+    /////////////////////////////////////////
     // Declare public variables.
+    /////////////////////////////////////////
+
+    /////////////////////////////////////////
+    // Declare public structs that are specific to and used within this class.
     /////////////////////////////////////////
 
     /******************************************************************************
@@ -157,6 +177,44 @@ namespace geoops
                 this->dMeridianConvergence = dMeridianConvergence;
                 this->dScale               = dScale;
             }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for GPSCoordinate struct.
+             *
+             * @param stOtherCoordinate - The other GPSCoordinate struct we are comparing to.
+             * @return true - The two GPSCoordinates are equal.
+             * @return false - The two GPSCoordinates are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator==(const GPSCoordinate& stOtherCoordinate) const
+            {
+                // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
+                if (dLatitude == stOtherCoordinate.dLatitude && dLongitude == stOtherCoordinate.dLongitude && dAltitude == stOtherCoordinate.dAltitude &&
+                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy)
+                {
+                    // Return that the two GPSCoordinates are equal.
+                    return true;
+                }
+                else
+                {
+                    // Return that the two GPSCoordinates are not equal.
+                    return false;
+                }
+            }
+
+            /******************************************************************************
+             * @brief Overridden operator not equals for GPSCoordinate struct.
+             *
+             * @param stOtherCoordinate - The other GPSCoordinate struct we are comparing to.
+             * @return true - The two GPSCoordinates are not equal.
+             * @return false - The two GPSCoordinates are equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator!=(const GPSCoordinate& stOtherCoordinate) const { return !this->operator==(stOtherCoordinate); }
     };
 
     /******************************************************************************
@@ -221,6 +279,45 @@ namespace geoops
                 this->dMeridianConvergence      = dMeridianConvergence;
                 this->dScale                    = dScale;
             }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for UTMCoordinate struct.
+             *
+             * @param stOtherCoordinate - The other UTMCoordinate struct we are comparing to.
+             * @return true - The two UTMCoordinates are equal.
+             * @return false - The two UTMCoordinates are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator==(const UTMCoordinate& stOtherCoordinate) const
+            {
+                // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
+                if (dEasting == stOtherCoordinate.dEasting && dNorthing == stOtherCoordinate.dNorthing && nZone == stOtherCoordinate.nZone &&
+                    bWithinNorthernHemisphere == stOtherCoordinate.bWithinNorthernHemisphere && dAltitude == stOtherCoordinate.dAltitude &&
+                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy)
+                {
+                    // Return that the two UTMCoordinates are equal.
+                    return true;
+                }
+                else
+                {
+                    // Return that the two UTMCoordinates are not equal.
+                    return false;
+                }
+            }
+
+            /******************************************************************************
+             * @brief Overridden operator not equals for UTMCoordinate struct.
+             *
+             * @param stOtherCoordinate - The other UTMCoordinate struct we are comparing to.
+             * @return true - The two UTMCoordinates are not equal.
+             * @return false - The two UTMCoordinates are equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator!=(const UTMCoordinate& stOtherCoordinate) const { return !this->operator==(stOtherCoordinate); }
     };
 
     /******************************************************************************
@@ -258,7 +355,7 @@ namespace geoops
         catch (const GeographicLib::GeographicErr::exception& geError)
         {
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Unable to forward solve a GPSCoordinate to UTMCoordinate. GeographicLib error is: {}", geError.what());
+            LOG_ERROR(logging::g_qSharedLogger, "Unable to forward solve a GPSCoordinate to UTMCoordinate. GeographicLib error is: {}", geError.what());
         }
 
         // Return the converted UTM coordinate.
@@ -300,7 +397,7 @@ namespace geoops
         catch (const GeographicLib::GeographicErr::exception& geError)
         {
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Unable to reverse solve a UTMCoordinate to GPSCoordinate. GeographicLib error is: {}", geError.what());
+            LOG_ERROR(logging::g_qSharedLogger, "Unable to reverse solve a UTMCoordinate to GPSCoordinate. GeographicLib error is: {}", geError.what());
         }
 
         // Return the converted UTM coordinate.
@@ -416,5 +513,120 @@ namespace geoops
         // Return result distance.
         return stMeasurements;
     }
+
+    /******************************************************************************
+     * @brief This struct is used by the WaypointHandler class to store location, size,
+     *      and type information about a given location of interest of waypoint.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-02-02
+     ******************************************************************************/
+    struct Waypoint
+    {
+        private:
+            // Declare struct private member variables.
+            geoops::GPSCoordinate stGPSLocation;    // This is not meant to be changed once this waypoint is created.
+            geoops::UTMCoordinate stUTMLocation;    // This is not meant to be changed once this waypoint is created.
+
+        public:
+            // Declare struct public member variables.
+            WaypointType eType;
+            double dRadius;
+
+            /******************************************************************************
+             * @brief Construct a new Waypoint object.
+             *
+             * @param stGPSLocation - The location of this waypoint stored in a geoops namespace
+             *                  GPSCoordinate struct.
+             * @param eType - The waypoint type. Navigation, Intermediate, Tag, Object, etc.
+             * @param dRadius - The size of the waypoint. This is mainly only useful for objects or when
+             *              you want the rover to just go to a general area.
+             *
+             * @note This will also store the equivalent UTM coordinate.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-02
+             ******************************************************************************/
+            Waypoint(const geoops::GPSCoordinate& stGPSLocation = geoops::GPSCoordinate(), const WaypointType& eType = WaypointType::eUNKNOWN, const double dRadius = 0.0)
+            {
+                // Initialize member variables.
+                this->stGPSLocation = stGPSLocation;
+                this->stUTMLocation = geoops::ConvertGPSToUTM(stGPSLocation);
+                this->eType         = eType;
+                this->dRadius       = dRadius;
+            }
+
+            /******************************************************************************
+             * @brief Construct a new Waypoint object.
+             *
+             * @param stUTMLocation - The location of this waypoint stored in a geoops namespace
+             *                  UTMCoordinate struct.
+             * @param eType - The waypoint type. Navigation, Intermediate, Tag, Object, etc.
+             * @param dRadius - The size of the waypoint. This is mainly only useful for objects or when
+             *              you want the rover to just go to a general area.
+             *
+             * @note This will also store the equivalent GPS coordinate.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-02
+             ******************************************************************************/
+            Waypoint(const geoops::UTMCoordinate& stUTMLocation, const WaypointType& eType = WaypointType::eUNKNOWN, const double dRadius = 0.0)
+            {
+                // Initialize member variables.
+                this->stUTMLocation = stUTMLocation;
+                this->stGPSLocation = geoops::ConvertUTMToGPS(stUTMLocation);
+                this->eType         = eType;
+                this->dRadius       = dRadius;
+            }
+
+            /******************************************************************************
+             * @brief Accessor for the geoops::GPSCoordinate member variable.
+             *
+             * @return geoops::GPSCoordinate - The location of the waypoint stored in a geoops namespace
+             *                      GPSCoordinate struct.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-02
+             ******************************************************************************/
+            const geoops::GPSCoordinate& GetGPSCoordinate() const { return stGPSLocation; }
+
+            /******************************************************************************
+             * @brief Accessor for the geoops::UTMCoordinate member variable.
+             *
+             * @return geoops::UTMCoordinate - The location of the waypoint stored in a geoops namespace
+             *                      UTMCoordinate struct.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-02
+             ******************************************************************************/
+            const geoops::UTMCoordinate& GetUTMCoordinate() const { return stUTMLocation; }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for Waypoint struct.
+             *
+             * @param stOtherCoordinate - The other Waypoint struct we are comparing to.
+             * @return true - The two Waypoints are equal.
+             * @return false - The two Waypoints are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            bool operator==(const Waypoint& stOtherWaypoint) const
+            {
+                // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
+                if (stGPSLocation == stOtherWaypoint.stGPSLocation && stUTMLocation == stOtherWaypoint.stUTMLocation && eType == stOtherWaypoint.eType &&
+                    dRadius == stOtherWaypoint.dRadius)
+                {
+                    // Return that the two Waypoints are equal.
+                    return true;
+                }
+                else
+                {
+                    // Return that the two Waypoints are not equal.
+                    return false;
+                }
+            }
+    };
 }    // namespace geoops
 #endif

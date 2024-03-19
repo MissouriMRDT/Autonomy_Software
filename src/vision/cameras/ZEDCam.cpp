@@ -14,57 +14,6 @@
 #include "../../util/vision/ImageOperations.hpp"
 
 /******************************************************************************
- * @brief This struct is part of the ZEDCam class and is used as a container for all
- *      bounding box data that is going to be passed to the zed api via the ZEDCam's
- *      TrackCustomBoxObjects() method.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-29
- ******************************************************************************/
-struct ZEDCam::ZedObjectData
-
-{
-    private:
-        // Declare and define private struct member variables.
-        std::string szObjectUUID = sl::generate_unique_id().get();    // This will automatically generate a guaranteed unique id so the object is traceable.
-
-        // Declare a private struct for holding point data.
-        /******************************************************************************
-         * @brief This struct is internal to the ZedObjectData struct is used to store
-         *      an X and Y value for the corners of a bounding box.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-08-29
-         ******************************************************************************/
-        struct Corner
-        {
-            public:
-                // Declare public struct member variables.
-                unsigned int nX;
-                unsigned int nY;
-        };
-
-    public:
-        // Declare and define public struct member variables.
-        Corner CornerTL;      // The top left corner of the bounding box.
-        Corner CornerTR;      // The top right corner of the bounding box.
-        Corner CornerBL;      // The bottom left corner of the bounding box.
-        Corner CornerBR;      // The bottom right corner of bounding box.
-        int nClassNumber;     // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the
-        float fConfidence;    // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
-        // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by class
-        // to avoid issues.
-        bool bObjectRemainsOnFloorPlane = false;
-
-        // Declare and define public struct getters.
-        std::string GetObjectUUID() { return szObjectUUID; };
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/******************************************************************************
  * @brief Construct a new Zed Cam:: Zed Cam object.
  *
  * @param nPropResolutionX - X res of camera. Must be smaller than ZED_BASE_RESOLUTION.
@@ -264,8 +213,6 @@ ZEDCam::~ZEDCam()
     // Check if fusion master instance has been started for this camera.
     if (m_bCameraIsFusionMaster)
     {
-        // Signal this camera to stop sending data to Fusion instance.
-        m_slCamera.stopPublishing();
         // Close Fusion instance.
         m_slFusionInstance.close();
     }
@@ -412,7 +359,7 @@ void ZEDCam::ThreadedContinuousCode()
                     // Get the fused geo pose from the camera.
                     sl::GNSS_CALIBRATION_STATE slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
                     // Check that the geo pose was retrieved successfully.
-                    if (slGeoPoseTrackReturnCode != sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+                    if (slGeoPoseTrackReturnCode == sl::GNSS_CALIBRATION_STATE::NOT_CALIBRATED)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
@@ -465,14 +412,9 @@ void ZEDCam::ThreadedContinuousCode()
                     }
                 }
             }
-            // Release camera lock.
-            lkSharedCameraLock.unlock();
         }
         else
         {
-            // Release camera lock.
-            lkSharedCameraLock.unlock();
-
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger,
                       "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
@@ -497,27 +439,34 @@ void ZEDCam::ThreadedContinuousCode()
                             sl::toString(slReturnCode).get());
             }
 
-            // Get the current GPS location from the NavBoard.
-            geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetGPSData();
-            // Repack gps data int sl::GNSSData object.
-            sl::GNSSData slGNSSData = sl::GNSSData();
-            slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
-            // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
-            slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
-
-            // Publish GNSS data to fusion from the NavBoard.
-            slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
-            // Check if the GNSS data was successfully ingested by the Fusion instance.
-            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+            // Check if fusion positional tracking is enabled.
+            if (m_slCamera.isPositionalTrackingEnabled())
             {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_unCameraSerialNumber,
-                            sl::toString(slReturnCode).get());
+                // Get the current GPS location from the NavBoard.
+                geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+                // Repack gps data int sl::GNSSData object.
+                sl::GNSSData slGNSSData = sl::GNSSData();
+                slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
+                // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
+                slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
+
+                // Publish GNSS data to fusion from the NavBoard.
+                slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
+                // Check if the GNSS data was successfully ingested by the Fusion instance.
+                if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_unCameraSerialNumber,
+                                sl::toString(slReturnCode).get());
+                }
             }
         }
+
+        // Release camera lock.
+        lkSharedCameraLock.unlock();
 
         // Acquire a shared_lock on the frame copy queue.
         std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -591,7 +540,7 @@ void ZEDCam::PooledLinearCode()
     if (m_slMemoryType == sl::MEM::CPU)
     {
         // Acquire mutex for getting frames out of the queue.
-        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+        std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
         {
@@ -630,7 +579,7 @@ void ZEDCam::PooledLinearCode()
     else
     {
         // Acquire mutex for getting frames out of the queue.
-        std::unique_lock<std::mutex> lkFrameQueue(m_muFrameCopyMutex);
+        std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
@@ -670,7 +619,7 @@ void ZEDCam::PooledLinearCode()
     //  Pose queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkPoseQueue(m_muPoseCopyMutex);
+    std::unique_lock<std::shared_mutex> lkPoseQueue(m_muPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qPoseCopySchedule.empty())
     {
@@ -692,7 +641,7 @@ void ZEDCam::PooledLinearCode()
     //  GeoPose queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
+    std::unique_lock<std::shared_mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qGeoPoseCopySchedule.empty())
     {
@@ -714,7 +663,7 @@ void ZEDCam::PooledLinearCode()
     //  ObjectData queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectDataCopySchedule.empty())
     {
@@ -736,7 +685,7 @@ void ZEDCam::PooledLinearCode()
     //  ObjectData Batched queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectBatchedDataCopySchedule.empty())
     {
@@ -1225,6 +1174,12 @@ void ZEDCam::DisablePositionalTracking()
 {
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
+    // Check if fusion positional tracking should be enabled for this camera.
+    if (m_bCameraIsFusionMaster)
+    {
+        // Enable fusion positional tracking.
+        m_slFusionInstance.disablePositionalTracking();
+    }
     // Disable pose tracking.
     m_slCamera.disablePositionalTracking();
 }

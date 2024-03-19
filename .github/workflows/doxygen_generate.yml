@@ -43,10 +43,10 @@ jobs:
         run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v4
 
       - name: Run Doxygen
-        uses: mattnotmitt/doxygen-action@1.9.5
+        uses: mattnotmitt/doxygen-action@1.9.8
         with:
           # Path to Doxyfile
           doxyfile-path: ./Doxyfile
@@ -56,10 +56,10 @@ jobs:
           additional-packages: graphviz
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: "docs/Doxygen"
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4

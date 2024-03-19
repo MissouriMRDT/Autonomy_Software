@@ -15,7 +15,10 @@
 #include "../algorithms/DifferentialDrive.hpp"
 
 /// \cond
+#include <RoveComm/RoveComm.h>
+#include <RoveComm/RoveCommManifest.h>
 #include <array>
+#include <shared_mutex>
 
 /// \endcond
 
@@ -35,7 +38,34 @@ class DriveBoard
         /////////////////////////////////////////
 
         diffdrive::DrivePowers m_stDrivePowers;    // Struct used to store the left and right drive powers of the robot.
-        PIDController* m_pPID;                     // The PID controller used for drive towards a heading.
+        controllers::PIDController* m_pPID;        // The PID controller used for drive towards a heading.
+        float m_fMinDriveEffort;                   // The min power limit of the drive. This can be adjusted through RoveComm.
+        float m_fMaxDriveEffort;                   // The max power limit of the drive. This can be adjusted through RoveComm.
+        std::shared_mutex m_muDriveEffortMutex;    // Mutex used for changing the drive efforts.
+
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives a new SETMAXSPEED packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> SetMaxSpeedCallback =
+            [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Call class method to update max speed.
+            this->SetMaxDriveEffort(stPacket.vData[0]);
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", stPacket.vData[0]);
+        };
 
     public:
         /////////////////////////////////////////
@@ -52,12 +82,13 @@ class DriveBoard
                                              const double dGoalHeading,
                                              const double dActualHeading,
                                              const diffdrive::DifferentialControlMethod eKinematicsMethod);
-        void SendDrive(double dLeftSpeed, double dRightSpeed);
+        void SendDrive(diffdrive::DrivePowers& stDrivePowers);
         void SendStop();
 
         /////////////////////////////////////////
         // Setters
         /////////////////////////////////////////
+        void SetMaxDriveEffort(const float fMaxDriveEffortMultiplier);
 
         /////////////////////////////////////////
         // Getters

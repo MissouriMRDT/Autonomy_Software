@@ -30,7 +30,10 @@ namespace globals
     // Versioning:
     IdentitySoftware* g_pIdentifySoftware;
 
-    // Camera handler:
+    // Waypoint Handler:
+    WaypointHandler* g_pWaypointHandler;
+
+    // Camera Handler:
     CameraHandler* g_pCameraHandler;
 
     // Tag Detection Handler:
