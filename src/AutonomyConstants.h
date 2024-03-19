@@ -223,8 +223,12 @@ namespace constants
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
+    // Handler.
+    const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
+
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -232,7 +236,6 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // High Level Functionality Adjustments.
-    const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -250,6 +253,16 @@ namespace constants
     const double ASTAR_MAXIMUM_SEARCH_GRID  = 10.0;         // Maximum search grid size (UTM)
     const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
     const double ASTAR_SQRT_NODE_SIZE       = M_SQRT1_2;    // Square root of m_dNodeSize
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Driver Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // NavBoard.
+    const double NAVBOARD_MAX_GPS_DATA_AGE     = 3.0;    // The maximum age of the current GPS data before printing warnings.
+    const double NAVBOARD_MAX_COMPASS_DATA_AGE = 3.0;    // The maximum age of the current Compass data before printing warnings.
 
     ///////////////////////////////////////////////////////////////////////////
 
