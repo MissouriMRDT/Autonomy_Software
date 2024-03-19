@@ -9,8 +9,9 @@
  ******************************************************************************/
 
 #include "SIMCam.h"
-#include "../../AutonomyConstants.h"
-#include "../../AutonomyLogging.h"
+
+#include "../../../AutonomyConstants.h"
+#include "../../../AutonomyLogging.h"
 
 /******************************************************************************
  * @brief Construct a new SIM Cam:: SIM Cam object.
