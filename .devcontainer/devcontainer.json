@@ -2,8 +2,8 @@
     "name": "MRDT Autonomy C++",
     "runArgs": [
         // Name container.
-        "--name",
-        "Autonomy_Software_devcontainer",
+        // "--name",
+        // "Autonomy_Software_devcontainer",
         // Add all available GPUs
         "--gpus",
         "all",
