@@ -9,8 +9,11 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
+#include "AutonomyNetworking.h"
 
 /// \cond
+#include <RoveComm/RoveComm.h>
+#include <RoveComm/RoveCommManifest.h>
 #include <iostream>
 
 /// \endcond
@@ -30,6 +33,7 @@ namespace logging
     /////////////////////////////////////////
     quill::Logger* g_qFileLogger;
     quill::Logger* g_qConsoleLogger;
+    quill::Logger* g_qRoveCommLogger;
     quill::Logger* g_qSharedLogger;
     std::string g_szProgramStartTimeString;
 
@@ -82,17 +86,22 @@ namespace logging
         std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
         // Create Handlers
-        std::shared_ptr<quill::Handler> qFileHandler    = quill::rotating_file_handler(szFullOutputPath);
-        std::shared_ptr<quill::Handler> qConsoleHandler = quill::stdout_handler();
+        std::shared_ptr<quill::Handler> qFileHandler     = quill::rotating_file_handler(szFullOutputPath);
+        std::shared_ptr<quill::Handler> qConsoleHandler  = quill::stdout_handler();
+        std::shared_ptr<quill::Handler> qRoveCommHandler = quill::create_handler<RoveCommHandler>("RoveCommHandler");
 
         // Configure Patterns
-        qFileHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",       // format
-                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                           // timestamp format
-                                  quill::Timezone::GmtTime);                                                          // timestamp's timezone
+        qFileHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",        // format
+                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                            // timestamp format
+                                  quill::Timezone::GmtTime);                                                           // timestamp's timezone
 
-        qConsoleHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",    // format
-                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                        // timestamp format
-                                     quill::Timezone::GmtTime);                                                       // timestamp's timezone
+        qConsoleHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",     // format
+                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                         // timestamp format
+                                     quill::Timezone::GmtTime);                                                        // timestamp's timezone
+
+        qRoveCommHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",    // format
+                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                        // timestamp format
+                                      quill::Timezone::GmtTime);                                                       // timestamp's timezone
 
         // Enable Color Console
         static_cast<quill::ConsoleHandler*>(qConsoleHandler.get())->enable_console_colours();
@@ -109,20 +118,52 @@ namespace logging
         // Set Handler Filters
         qFileHandler->add_filter(std::make_unique<LoggingFilter>("FileFilter", quill::LogLevel::TraceL3));
         qConsoleHandler->add_filter(std::make_unique<LoggingFilter>("ConsoleFilter", quill::LogLevel::Info));
+        qRoveCommHandler->add_filter(std::make_unique<LoggingFilter>("RoveCommFilter", quill::LogLevel::Info));
 
         // Create Loggers
-        g_qFileLogger    = quill::create_logger("FILE_LOGGER", {qFileHandler});
-        g_qConsoleLogger = quill::create_logger("CONSOLE_LOGGER", {qConsoleHandler});
-        g_qSharedLogger  = quill::create_logger("SHARED_LOGGER", {qFileHandler, qConsoleHandler});
+        g_qFileLogger     = quill::create_logger("FILE_LOGGER", {qFileHandler});
+        g_qConsoleLogger  = quill::create_logger("CONSOLE_LOGGER", {qConsoleHandler});
+        g_qRoveCommLogger = quill::create_logger("ROVECOMM_LOGGER", {qRoveCommHandler});
+        g_qSharedLogger   = quill::create_logger("SHARED_LOGGER", {qFileHandler, qConsoleHandler, qRoveCommHandler});
 
         // Set Base Logging Levels
-        g_qSharedLogger->set_log_level(quill::LogLevel::TraceL3);
         g_qFileLogger->set_log_level(quill::LogLevel::TraceL3);
         g_qConsoleLogger->set_log_level(quill::LogLevel::TraceL3);
+        g_qRoveCommLogger->set_log_level(quill::LogLevel::TraceL3);
+        g_qSharedLogger->set_log_level(quill::LogLevel::TraceL3);
 
         // Enable Backtrace
         g_qFileLogger->init_backtrace(2, quill::LogLevel::Critical);
         g_qConsoleLogger->init_backtrace(2, quill::LogLevel::Critical);
+        g_qRoveCommLogger->init_backtrace(2, quill::LogLevel::Critical);
         g_qSharedLogger->init_backtrace(2, quill::LogLevel::Critical);
+    }
+
+    /******************************************************************************
+     * @brief This method should never be called by this codebase, it is called
+     *        internally by the quill library.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu)
+     * @date 2024-03-17
+     ******************************************************************************/
+    void RoveCommHandler::write(quill::fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+    {
+        // Not using these.
+        (void) log_event;
+
+        std::string szTemp{formatted_log_message.data(), formatted_log_message.size()};
+
+        // Construct a RoveComm packet with the logging data.
+        rovecomm::RoveCommPacket<char> stPacket;
+        stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTLOG")->second.DATA_ID;
+        stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTLOG")->second.DATA_COUNT;
+        stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTLOG")->second.DATA_TYPE;
+        stPacket.vData       = StringToVector({formatted_log_message.data(), formatted_log_message.size()});
+
+        // Send log command over RoveComm to BaseStation.
+        if (network::g_bRoveCommUDPStatus && network::g_bRoveCommTCPStatus)
+        {
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+        }
     }
 }    // namespace logging
