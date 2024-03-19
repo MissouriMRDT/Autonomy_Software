@@ -30,7 +30,7 @@ namespace statemachine
     void ApproachingMarkerState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
 
         m_nNumDetectionAttempts = 0;
     }
@@ -46,7 +46,7 @@ namespace statemachine
     void ApproachingMarkerState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Exiting state.");
     }
 
     /******************************************************************************
@@ -76,12 +76,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ApproachingMarkerState::Run()
+    void ApproachingMarkerState::Run()
     {
         // TODO: Implement the behavior specific to the Approaching Marker state
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Running state-specific behavior.");
-
-        return States::eApproachingMarker;
     }
 
     /******************************************************************************
@@ -95,6 +93,7 @@ namespace statemachine
      ******************************************************************************/
     States ApproachingMarkerState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eIdle;
         bool bCompleteStateExit = true;
 
@@ -102,31 +101,37 @@ namespace statemachine
         {
             case Event::eReachedMarker:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Start event.");
-                eNextState = States::eApproachingMarker;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eMarkerUnseen:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Handling MarkerUnseen event.");
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling MarkerUnseen event.");
                 eNextState = States::eSearchPattern;
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Abort event.");
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -134,7 +139,7 @@ namespace statemachine
 
         if (eNextState != States::eIdle)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)

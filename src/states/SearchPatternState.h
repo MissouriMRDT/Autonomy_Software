@@ -44,7 +44,7 @@ namespace statemachine
 
         public:
             SearchPatternState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine
