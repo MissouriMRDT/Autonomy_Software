@@ -48,10 +48,10 @@ namespace constants
     const float DRIVE_MIN_EFFORT = -0.5;
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.1;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.01;     // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.0;      // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_MAX_ERROR_PER_ITER = 100;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
+    const double DRIVE_PID_PROPORTIONAL       = 0.02;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.003;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.013;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
     const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;      // The max effort the I term is allowed to contribute.
     const double DRIVE_PID_MAX_OUTPUT_EFFORT  = 0.5;      // The max effort the entire PID controller is allowed to output. Range is within DRIVE_MAX/MIN_POWER.
     const double DRIVE_PID_MAX_RAMP_RATE      = 0.4;      // The max ramp rate of the output of the PID controller.

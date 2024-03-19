@@ -31,7 +31,7 @@ DriveBoard::DriveBoard()
     m_pPID = new PIDController(constants::DRIVE_PID_PROPORTIONAL, constants::DRIVE_PID_INTEGRAL, constants::DRIVE_PID_DERIVATIVE);
     m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR_PER_ITER);
     m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
-    m_pPID->SetOutputLimits(constants::DRIVE_PID_MAX_OUTPUT_EFFORT);
+    m_pPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
     m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
     m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
     m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
