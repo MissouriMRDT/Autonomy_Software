@@ -28,6 +28,18 @@ if(NOT CTest_CMake_INCLUDED)
 endif()
 include(FetchContent)                                                               # CMake Dependency Framework
 
+## Enable or Disble Simulation Mode
+option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+if(BUILD_SIM_MODE)
+    message("Sim Mode: Enabled")
+    add_compile_definitions(__AUTONOMY_SIM_MODE__=1)
+    set(EXE_NAME "${PROJECT_NAME}_Sim")
+else()
+    message("Sim Mode: Disabled")
+    add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
+    set(EXE_NAME "${PROJECT_NAME}")
+endif()
+
 ## Define Project Name and Version Number for CPack
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

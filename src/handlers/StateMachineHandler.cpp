@@ -113,6 +113,9 @@ void StateMachineHandler::StartStateMachine()
 
     // Start the state machine thread
     Start();
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "Started State Machine.");
 }
 
 /******************************************************************************
@@ -132,6 +135,12 @@ void StateMachineHandler::StopStateMachine()
     // Stop main thread.
     this->RequestStop();
     this->Join();
+
+    // Send multimedia command to update state display.
+    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "Stopped State Machine.");
 }
 
 /******************************************************************************
