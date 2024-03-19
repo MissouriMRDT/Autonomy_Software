@@ -11,8 +11,8 @@
 #ifndef SIMCAM_H
 #define SIMCAM_H
 
-#include "../../interfaces/AutonomyThread.hpp"
-#include "../../interfaces/Camera.hpp"
+#include "../../../interfaces/AutonomyThread.hpp"
+#include "../../../interfaces/Camera.hpp"
 
 /// \cond
 #include <opencv2/opencv.hpp>
