@@ -24,6 +24,14 @@
 #include "../states/VerifyingMarkerState.h"
 #include "../states/VerifyingObjectState.h"
 
+/// \cond
+#include <RoveComm/RoveComm.h>
+#include <RoveComm/RoveCommManifest.h>
+#include <atomic>
+#include <shared_mutex>
+
+/// \endcond
+
 /******************************************************************************
  * @brief The StateMachineHandler class serves as the main state machine for
  *        Autonomy Software. It will handle all state transitions and run the
@@ -33,36 +41,90 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-01-17
  ******************************************************************************/
-class StateMachineHandler : public AutonomyThread<void>
+class StateMachineHandler : private AutonomyThread<void>
 {
     private:
-        std::shared_ptr<statemachine::State> pCurrentState;
-        std::shared_ptr<statemachine::State> pPreviousState;
-        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>> umExitedStates;
+        /////////////////////////////////////////
+        // Declare private class member variables.
+        /////////////////////////////////////////
+        std::shared_ptr<statemachine::State> m_pCurrentState;
+        std::shared_ptr<statemachine::State> m_pPreviousState;
+        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>> m_umExitedStates;
+        std::shared_mutex m_muStateMutex;
+        std::shared_mutex m_muEventMutex;
+        std::atomic_bool m_bInitialized;
+        std::atomic_bool m_bSwitchingStates;
+        std::atomic_bool m_bExiting;
 
-        bool m_bInitialized;
-        bool m_bSwitchingStates;
-        bool m_bExiting;
-
+        /////////////////////////////////////////
+        // Declare private class methods.
+        /////////////////////////////////////////
         std::shared_ptr<statemachine::State> CreateState(statemachine::States eState);
-        void ChangeState(statemachine::States eNextState);
-
+        void ChangeState(statemachine::States eNextState, const bool bSaveCurrentState = false);
+        void SaveCurrentState();
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 
+        /******************************************************************************
+         * @brief Callback function used to trigger the start of autonomy. No matter what
+         *      state we are in, signal a StartAutonomy Event.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-15
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> AutonomyStartCallback =
+            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stPacket;
+            (void) stdAddr;
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Start Autonomy!");
+
+            // Signal statemachine handler with Start event.
+            this->HandleEvent(statemachine::Event::eStart);
+        };
+
+        /******************************************************************************
+         * @brief Callback function used to trigger autonomy to stop. No matter what
+         *      state we are in, signal an Abort Event.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-15
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> AutonomyStopCallback =
+            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stPacket;
+            (void) stdAddr;
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
+
+            // Signal statemachine handler with stop event.
+            this->HandleEvent(statemachine::Event::eAbort, true);
+        };
+
     public:
+        /////////////////////////////////////////
+        // Declare public class methods and variables.
+        /////////////////////////////////////////
         StateMachineHandler();
-        ~StateMachineHandler() = default;
+        ~StateMachineHandler();
 
         void StartStateMachine();
         void StopStateMachine();
 
-        void HandleEvent(statemachine::Event eEvent);
+        void HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState = false);
 
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
 
-        void SaveCurrentState();
+        using AutonomyThread::GetIPS;
 };
 
 #endif    // STATEMACHINEHANDLER_H

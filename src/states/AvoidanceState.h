@@ -54,7 +54,7 @@ namespace statemachine
 
         public:
             AvoidanceState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine

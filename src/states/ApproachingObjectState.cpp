@@ -30,7 +30,7 @@ namespace statemachine
     void ApproachingObjectState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Scheduling next run of state logic.");
 
         m_nNumDetectionAttempts = 0;
     }
@@ -46,7 +46,7 @@ namespace statemachine
     void ApproachingObjectState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Exiting state.");
     }
 
     /******************************************************************************
@@ -75,12 +75,10 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ApproachingObjectState::Run()
+    void ApproachingObjectState::Run()
     {
         // TODO: Implement the behavior specific to the Approaching Object state
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
-
-        return States::eApproachingObject;
     }
 
     /******************************************************************************
@@ -94,6 +92,7 @@ namespace statemachine
      ******************************************************************************/
     States ApproachingObjectState::TriggerEvent(Event eEvent)
     {
+        // Create instance variables.
         States eNextState       = States::eIdle;
         bool bCompleteStateExit = true;
 
@@ -101,31 +100,43 @@ namespace statemachine
         {
             case Event::eReachedObject:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling ReachedObject event.");
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling ReachedObject event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling Start event.");
-                eNextState = States::eApproachingObject;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                break;
+            }
+            case Event::eAbort:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
+                eNextState = States::eIdle;
                 break;
             }
             case Event::eObjectUnseen:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling ObjectUnseen event.");
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling ObjectUnseen event.");
                 eNextState = States::eSearchPattern;
                 break;
             }
             case Event::eMarkerSeen:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "ApproachingObjectState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -133,7 +144,7 @@ namespace statemachine
 
         if (eNextState != States::eIdle)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
