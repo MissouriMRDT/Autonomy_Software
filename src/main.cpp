@@ -174,11 +174,19 @@ int main()
 
             // Submit logger message.
             LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
+
+            // No need to loop as fast as possible. Sleep...
+            // Only run this main thread once every 20ms.
+            std::this_thread::sleep_for(std::chrono::milliseconds(33));
         }
 
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
+        // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+        network::g_bRoveCommUDPStatus = false;
+        network::g_bRoveCommTCPStatus = false;
+
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
