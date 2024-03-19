@@ -1,5 +1,9 @@
 # Custom Dictionary Words
 ABGR
+ACCURACYDATA
+ADDMARKERLEG
+ADDOBJECTLEG
+ADDPOSITIONLEG
 alloc
 allocs
 APPROACHINGMARKERSTATE
@@ -16,20 +20,25 @@ buildcache
 Buildx
 CALIB
 clayjay
+CLEARWAYPOINTS
 codeql
 codezombiech
 Coeffs
 Colour
+COMPASSDATA
 Contoller
 cpptools
 cschlosser
 CUDA
+CURRENTLOG
+CURRENTSTATE
 deadband
 debfile
 deque
 Desaturate
 devcontainer
 diffdrive
+DISABLEAUTONOMY
 DISPLAYSTATE
 dockerfiles
 dorny
@@ -48,6 +57,7 @@ geoops
 Geospatial
 gmock
 GNSS
+GPSLATLONALT
 GPSMDRS
 GPSSDELC
 gruntfuggly
@@ -101,6 +111,7 @@ rovecomm
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
+SETMAXSPEED
 setpoint
 setpoints
 SIMCAM
@@ -110,6 +121,7 @@ statechart
 STATEDISPLAY
 statemachine
 STATEMACHINEHANDLER
+STOPAUTONOMY
 Struct
 STUCKSTATE
 Styleguides
@@ -119,6 +131,7 @@ Tele
 TELEOP
 tensorflowtag
 threadpool
+timestep
 tparam
 twxs
 UART
@@ -130,6 +143,7 @@ VERIFYINGMARKERSTATE
 VERIFYINGOBJECTSTATE
 VIDEOWRITER
 Watchpoints
+Webots
 wslg
 XYZBGRA
 XYZRGBA
