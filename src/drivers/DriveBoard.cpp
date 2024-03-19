@@ -12,7 +12,14 @@
 #include "./DriveBoard.h"
 
 #include "../AutonomyConstants.h"
+#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
+#include "../AutonomyNetworking.h"
+
+/// \cond
+#include <RoveComm/RoveCommManifest.h>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Construct a new Drive Board::DriveBoard object.
@@ -26,15 +33,21 @@ DriveBoard::DriveBoard()
     // Initialize member variables.
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
+    m_fMinDriveEffort                = constants::DRIVE_MIN_EFFORT;
+    m_fMaxDriveEffort                = constants::DRIVE_MAX_EFFORT;
 
     // Configure PID controller for heading hold function.
-    m_pPID = new PIDController(constants::DRIVE_PID_PROPORTIONAL, constants::DRIVE_PID_INTEGRAL, constants::DRIVE_PID_DERIVATIVE);
+    m_pPID = new controllers::PIDController(constants::DRIVE_PID_PROPORTIONAL, constants::DRIVE_PID_INTEGRAL, constants::DRIVE_PID_DERIVATIVE);
     m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR_PER_ITER);
     m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
     m_pPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
     m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
     m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
     m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
+    m_pPID->EnableContinuousInput(0, 360);
+
+    // Set RoveComm callbacks.
+    network::g_pRoveCommUDPNode->AddUDPCallback<float>(SetMaxSpeedCallback, manifest::Autonomy::COMMANDS.find("SETMAXSPEED")->second.DATA_ID);
 }
 
 /******************************************************************************
@@ -62,7 +75,7 @@ DriveBoard::~DriveBoard()
  *
  * @param dGoalSpeed - The speed to drive at (-1 to 1)
  * @param dGoalHeading - The angle to drive towards. (0 - 360) 0 is North.
- * @param dActualHeading -
+ * @param dActualHeading - The real angle that the Rover is current facing.
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
  * @return diffdrive::DrivePowers - A struct containing two values. (left power, right power)
  *
@@ -77,41 +90,51 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
     // Calculate the drive powers from the current heading, goal heading, and goal speed.
     m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed, dGoalHeading, dActualHeading, eKinematicsMethod, *m_pPID);
 
-    // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
-
     return m_stDrivePowers;
 }
 
 /******************************************************************************
  * @brief Sets the left and right drive powers of the drive board.
  *
- * @param dLeftSpeed - Left drive speed (-1 to 1)
- * @param dRightSpeed - Right drive speed (-1 to 1)
+ * @param stDrivePowers - A struct containing info about the desired drive powers.
+ *              Drive powers are always in between -1.0 and 1.0 no matter what constants
+ *              or RoveComm say. the -1.0 to 1.0 range is automatically mapped to the
+ *              correct DriveBoard range in this method.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-void DriveBoard::SendDrive(double dLeftSpeed, double dRightSpeed)
+void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
 {
     // Limit input values.
-    dLeftSpeed  = std::clamp(dLeftSpeed, -1.0, 1.0);
-    dRightSpeed = std::clamp(dRightSpeed, -1.0, 1.0);
+    double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
+    double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
+
+    // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
+    float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
+    float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
+    // Limit the power to max and min effort defined in constants.
+    fDriveBoardLeftPower  = std::clamp(float(fDriveBoardLeftPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    fDriveBoardRightPower = std::clamp(float(fDriveBoardRightPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
 
     // Update member variables with new target speeds.
-    m_stDrivePowers.dLeftDrivePower  = dLeftSpeed;
-    m_stDrivePowers.dRightDrivePower = dRightSpeed;
+    m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
+    m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
 
-    // TODO: Uncomment once RoveComm is implemented. This is commented to gid rid of unused variable warnings.
-    // // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-    // float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    // float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    // // Limit the power to max and min effort defined in constants.
-    // fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
-    // fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
-
+    // Construct a RoveComm packet with the drive data.
+    rovecomm::RoveCommPacket<float> stPacket;
+    stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(fDriveBoardLeftPower);
+    stPacket.vData.emplace_back(fDriveBoardRightPower);
+    // Check if we should send packets to the SIM or board.
+    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
-    // TODO: Add RoveComm sendpacket.
+    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", fDriveBoardLeftPower, fDriveBoardRightPower);
 }
 
 /******************************************************************************
@@ -127,8 +150,36 @@ void DriveBoard::SendStop()
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
 
+    // Construct a RoveComm packet with the drive data.
+    rovecomm::RoveCommPacket<float> stPacket;
+    stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
+    stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
+    // Check if we should send packets to the SIM or board.
+    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
-    // TODO: Add RoveComm sendpacket.
+    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+}
+
+/******************************************************************************
+ * @brief Set the max power limits of the drive.
+ *
+ * @param fMinDriveEffort - A multiplier from 0-1 for the max power output of the drive.
+ *              Multiplier will be applied to constants::DRIVE_MIN_POWER and constants::DRIVE_MAX_POWER.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-15
+ ******************************************************************************/
+void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
+{
+    // Acquire write lock for writing to max effort member variables.
+    std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+
+    // Update member variables.
+    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fMaxDriveEffortMultiplier;
+    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fMaxDriveEffortMultiplier;
 }
 
 /******************************************************************************

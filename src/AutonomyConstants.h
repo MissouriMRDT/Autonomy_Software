@@ -30,11 +30,23 @@
 namespace constants
 {
     ///////////////////////////////////////////////////////////////////////////
-    //// Logging Constants.
+    //// General Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Output Paths.
+    // Program mode constants.
+#if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
+    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+#else
+    const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
+#endif
+
+    // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
+
+    // RoveComm constants.
+    const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const int ROVECOMM_OUTGOING_TCP_PORT        = MODE_SIM ? 12001 : 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
+    const std::string ROVECOMM_TCP_INTERFACE_IP = "";    // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -44,8 +56,8 @@ namespace constants
     // Power constants.
     const float DRIVE_MAX_POWER  = 1.0;
     const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 0.5;
-    const float DRIVE_MIN_EFFORT = -0.5;
+    const float DRIVE_MAX_EFFORT = 1.0;
+    const float DRIVE_MIN_EFFORT = -1.0;
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL       = 0.02;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -53,7 +65,6 @@ namespace constants
     const double DRIVE_PID_DERIVATIVE         = 0.013;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
     const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;      // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_OUTPUT_EFFORT  = 0.5;      // The max effort the entire PID controller is allowed to output. Range is within DRIVE_MAX/MIN_POWER.
     const double DRIVE_PID_MAX_RAMP_RATE      = 0.4;      // The max ramp rate of the output of the PID controller.
     const double DRIVE_PID_OUTPUT_FILTER      = 0.0;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
     const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
@@ -88,8 +99,8 @@ namespace constants
     const sl::DEPTH_MODE ZED_DEPTH_MODE          = sl::DEPTH_MODE::NEURAL;                     // The measurement accuracy for depth. NEURAL is by far the best.
     const sl::VIEW ZED_RETRIEVE_VIEW             = sl::VIEW::LEFT;                             // The eye to retrieve regular and depth images from.
     const bool ZED_SENSING_FILL                  = false;    // True provides a depth map with a Z value for every pixel (X, Y) in the left image. Slower and worse.
-    const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.2;      // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
-    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 40.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
+    const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.5;      // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
+    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 30.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const int ZED_DEPTH_STABILIZATION = 1;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100] default is 1.
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::STANDARD;    // Positional tracking accuracy.
@@ -97,7 +108,7 @@ namespace constants
     const bool ZED_POSETRACK_POSE_SMOOTHING               = false;    // Smooth pose correction for small drift. Decreases overall precision for small movements.
     const bool ZED_POSETRACK_FLOOR_IS_ORIGIN              = true;     // Sets the floor plane as origin for tracking. This turns on floor plane detection temporarily.
     const bool ZED_POSETRACK_ENABLE_IMU_FUSION            = true;     // Allows ZED to use both optical odometry and IMU data for pose tracking.
-    const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.2;      // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
+    const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.5;      // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
@@ -107,7 +118,7 @@ namespace constants
     const bool ZED_MAPPING_USE_CHUNK_ONLY   = true;    // Only update chunks that have probably changed or have new data. Faster, less accurate.
     const int ZED_MAPPING_STABILITY_COUNTER = 4;       // Number of times that a point should be seen before adding to mesh.
     // ZedCam Object Detection Config.
-    const bool ZED_OBJDETECTION_IMG_SYNC     = true;     // True = Run detection for every frame. False = Run detection async, can lead to delayed detections.
+    const bool ZED_OBJDETECTION_IMG_SYNC     = false;    // True = Run detection for every frame. False = Run detection async, can lead to delayed detections.
     const bool ZED_OBJDETECTION_TRACK_OBJ    = true;     // Whether or not to enable object tracking in the scene. Attempts to maintain OBJ UUIDs.
     const bool ZED_OBJDETECTION_SEGMENTATION = false;    // Use depth data to compute the segmentation for an object. (exact outline/shape)
     const sl::OBJECT_FILTERING_MODE ZED_OBJDETECTION_FILTERING = sl::OBJECT_FILTERING_MODE::NMS3D_PER_CLASS;    // Custom detection, use PER_CLASS or NONE.
@@ -137,7 +148,7 @@ namespace constants
     const bool ZED_MAINCAM_USE_GPU_MAT              = true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
     const bool ZED_MAINCAM_FUSION_MASTER            = true;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;      // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left Side Cam.
@@ -180,7 +191,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 4;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
     const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
@@ -189,7 +200,7 @@ namespace constants
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
 
     // Left Side Cam.
-    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 4;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
     const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
@@ -198,7 +209,7 @@ namespace constants
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
 
     // Right Side Cam.
-    const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 4;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
     const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
@@ -212,7 +223,8 @@ namespace constants
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Nothing here yet.
+    // Navigating State.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -223,6 +235,24 @@ namespace constants
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Algorithm Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Stanley Controller config.
+    const double STANLEY_STEER_CONTROL_GAIN = 0.5;    // Determines how reactive the rover is to yaw adjustments.
+    const double STANLEY_DIST_TO_FRONT_AXLE = 2.9;    // Distance from position sensor to the center of the front axle.
+    const double STANLEY_YAW_TOLERANCE      = 1.0;    // Threshold for limiting unnecessary small movements.
+
+    // ASTAR config.
+    const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles
+    const double ASTAR_MAXIMUM_SEARCH_GRID  = 10.0;         // Maximum search grid size (UTM)
+    const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
+    const double ASTAR_SQRT_NODE_SIZE       = M_SQRT1_2;    // Square root of m_dNodeSize
+
+    ///////////////////////////////////////////////////////////////////////////
+
 }    // namespace constants
 
 #endif    // CONSTS_H

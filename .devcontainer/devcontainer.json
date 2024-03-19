@@ -4,6 +4,9 @@
         // Name container.
         "--name",
         "Autonomy_Software_devcontainer",
+        // Configure container to use the same network stack as the host machine.
+        "--network",
+        "host",
         // Add all available GPUs
         "--gpus",
         "all",
@@ -30,8 +33,8 @@
     "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-        // "dockerfile": "Dockerfile_Jammy"
-        // "dockerfile": "Dockerfile_JetPack"
+    // "dockerfile": "Dockerfile_Jammy"
+    // "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -82,6 +85,8 @@
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
                 "C_Cpp.default.cppStandard": "c++20",
                 "C_Cpp.default.includePath": [
+                    "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/",
+                    "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/**",
                     "/usr/local/include/opencv4",
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
