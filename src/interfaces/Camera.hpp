@@ -159,7 +159,7 @@ class Camera
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
         std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
+        std::shared_mutex m_muFrameCopyMutex;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.

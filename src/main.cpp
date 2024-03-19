@@ -10,6 +10,7 @@
 
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
+#include "./AutonomyNetworking.h"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -88,11 +89,55 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
 
+        // Print warnings if running in SIM mode.
+        if (constants::MODE_SIM)
+        {
+            // Print 5 times to make it noticeable.
+            for (int nIter = 0; nIter < 5; ++nIter)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Autonomy_Software is running in SIM mode! If you aren't currently using the WeBots sim, disable SIM mode in CMakeLists.txt or in your build "
+                            "arguments!");
+            }
+
+            // Sleep for 3 seconds to make sure it's seen.
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+        }
+
+        /////////////////////////////////////////
+        // Setup global objects.
+        /////////////////////////////////////////
+        // Initialize RoveComm.
+        network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+        network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+        // Start RoveComm instances bound on ports.
+        network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+        network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+        // Check if RoveComm was successfully initialized.
+        if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
+        {
+            // Submit logger message.
+            LOG_CRITICAL(logging::g_qSharedLogger,
+                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
+                         network::g_bRoveCommUDPStatus,
+                         network::g_bRoveCommTCPStatus);
+
+            // Since RoveComm is crucial, stop code.
+            bMainStop = true;
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
+        }
+
         // Initialize drivers.
         globals::g_pDriveBoard      = new DriveBoard();
         globals::g_pMultimediaBoard = new MultimediaBoard();
         globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
+        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
         globals::g_pStateMachineHandler = new StateMachineHandler();
@@ -105,11 +150,6 @@ int main()
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
 
-        // TEST: Send Start Command to enter navigating state.
-        globals::g_pStateMachineHandler->HandleEvent(statemachine::Event::eStart);
-
-        // TODO: Initialize RoveComm.
-
         /////////////////////////////////////////
         // Declare local variables used in main loop.
         /////////////////////////////////////////
@@ -120,13 +160,10 @@ int main()
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+        IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
-
-        // Used to store camera pose/location of the main cam.
-        sl::Pose slCameraPosition;
-        sl::GeoPose slGeoPosition;
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -134,46 +171,43 @@ int main()
         */
         while (!bMainStop)
         {
-            // Request for pose from main ZED camera.
-            std::future<bool> fuPoseStatus    = pMainCam->RequestPositionalPoseCopy(slCameraPosition);
-            std::future<bool> fuGeoPoseStatus = pMainCam->RequestFusionGeoPoseCopy(slGeoPosition);
-
-            // No need to loop as fast as possible. Sleep...
-            // Only run this main thread once every 20ms.
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            // Send current robot state over RoveComm.
+            // Construct a RoveComm packet with the drive data.
+            rovecomm::RoveCommPacket<uint8_t> stPacket;
+            stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
+            stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
+            // Send drive command over RoveComm to drive board to all subscribers.
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
-            szMainInfo += "--------[ Threads FPS ]--------\n";
+            szMainInfo += "\n--------[ Threads FPS ]--------\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetAverageIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS:" + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";
 
-            // Wait for pose to be copied.
-            fuPoseStatus.get();
-            // Get Translations from pose.
-            sl::Translation slCameraLocation = slCameraPosition.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam Position - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slCameraPosition.getRotationMatrix().getEulerAngles(false).y) + "\n";
-            // Wait for geo pose to be copied.
-            fuGeoPoseStatus.get();
-            // Get Translations from pose.
-            slCameraLocation = slGeoPosition.pose_data.getTranslation();
-            // Append camera location to string.
-            szMainInfo += "ZED MainCam GeoPosition - X:" + std::to_string(slCameraLocation.x) + " Y:" + std::to_string(slCameraLocation.y) +
-                          " Z:" + std::to_string(slCameraLocation.z) + " Heading:" + std::to_string(slGeoPosition.heading) + "\n";
-
             // Submit logger message.
-            LOG_INFO(logging::g_qConsoleLogger, "{}", szMainInfo);
+            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+
+            // Update IPS tick.
+            IterPerSecond.Tick();
+
+            // No need to loop as fast as possible. Sleep...
+            // Only run this main thread once every 20ms.
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
         /////////////////////////////////////////
@@ -183,16 +217,24 @@ int main()
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
+        network::g_pRoveCommUDPNode->CloseUDPSocket();
+        network::g_pRoveCommTCPNode->CloseTCPSocket();
 
         // Delete dynamically allocated objects.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
+        delete globals::g_pWaypointHandler;
+        delete network::g_pRoveCommUDPNode;
+        delete network::g_pRoveCommTCPNode;
 
         // Set dangling pointers to null.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
+        globals::g_pWaypointHandler     = nullptr;
+        network::g_pRoveCommUDPNode     = nullptr;
+        network::g_pRoveCommTCPNode     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.
