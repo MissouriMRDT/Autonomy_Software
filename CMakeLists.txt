@@ -28,15 +28,23 @@ if(NOT CTest_CMake_INCLUDED)
 endif()
 include(FetchContent)                                                               # CMake Dependency Framework
 
-## Enable or Disble Simulation Mode
+## Enable or Disble Simulation Mode or Valgrind Mode
 option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
+option(BUILD_VALGRIND_MODE "Enable Valgrind Mode" OFF)
 if(BUILD_SIM_MODE)
     message("Sim Mode: Enabled")
     add_compile_definitions(__AUTONOMY_SIM_MODE__=1)
+    add_compile_definitions(__AUTONOMY_VALGRIND_MODE__=0)
     set(EXE_NAME "${PROJECT_NAME}_Sim")
-else()
-    message("Sim Mode: Disabled")
+elseif(BUILD_VALGRIND_MODE)
+    message("Valgrind Mode: Enabled")
     add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
+    add_compile_definitions(__AUTONOMY_VALGRIND_MODE__=1)
+    set(EXE_NAME "${PROJECT_NAME}_Valgrind")
+else()
+    message("Standard Mode: Enabled")
+    add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
+    add_compile_definitions(__AUTONOMY_VALGRIND_MODE__=0)
     set(EXE_NAME "${PROJECT_NAME}")
 endif()
 

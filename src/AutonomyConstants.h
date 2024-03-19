@@ -35,9 +35,17 @@ namespace constants
 
     // Program mode constants.
 #if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
-    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+    const bool MODE_SIM      = true;
+    const bool MODE_VALGRIND = false;
+#elif defined(__AUTONOMY_VALGRIND_MODE__) && __AUTONOMY_VALGRIND_MODE__ == 1
+    // VALGRIND MODE ENABLED: Toggle main program loop to run for 1 minute for valgrind testing.
+    const bool MODE_SIM      = false;
+    const bool MODE_VALGRIND = true;
 #else
-    const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
+    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
+    const bool MODE_SIM      = false;
+    const bool MODE_VALGRIND = false;
 #endif
 
     // Logging constants.

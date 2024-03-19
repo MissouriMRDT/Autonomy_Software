@@ -1,0 +1,5 @@
+{
+    quill-leak
+    Memcheck:Leak
+    obj:/usr/local/lib/libquill.a
+}
