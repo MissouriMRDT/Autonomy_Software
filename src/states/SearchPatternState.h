@@ -11,6 +11,8 @@
 #ifndef SEARCHPATTERNSTATE_H
 #define SEARCHPATTERNSTATE_H
 
+#include <utility>
+
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../vision/aruco/TagDetector.h"
@@ -33,17 +35,14 @@ namespace statemachine
     class SearchPatternState : public State
     {
         private:
-            int m_nMaxDataPoints;
-            std::vector<double> m_vRoverXPosition;
-            std::vector<double> m_vRoverYPosition;
-            time_t m_tStuckCheckTime;
-            double m_dStuckCheckLastPosition[2];
             bool m_bInitialized;
-
-            std::vector<TagDetector*> m_vTagDetectors;    // Vector of tag detectors to use for detection in order of highest to lowest priority.
-
-            std::vector<geoops::Waypoint> m_vSearchPath;
+            size_t m_nMaxDataPoints;
+            std::vector<std::pair<double, double>> m_vRoverPosition;
+            std::chrono::system_clock::time_point m_tmLastStuckCheck;
+            unsigned int m_unStuckChecksOnAttempt;
+            std::vector<TagDetector*> m_vTagDetectors;
             int m_nSearchPathIdx;
+            std::vector<geoops::Waypoint> m_vSearchPath;
 
         protected:
             void Start() override;
