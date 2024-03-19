@@ -150,36 +150,37 @@ endif()
 ## Link Libraries to Executable
 target_link_libraries(${EXE_NAME} PRIVATE   Threads::Threads
 												Eigen3::Eigen
+                                                RoveComm_CPP
                                                 quill::quill
 												${OpenCV_LIBS}
                                                 ${GeographicLib_LIBRARIES}
                                                 ${ZED_LIBS} 
-                                                RoveComm_CPP
     )
 
 ## Package Executable
-install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RoveComm_CPP RUNTIME DESTINATION bin)
+install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES RoveComm_CPP ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
 file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
 file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-file(GLOB Logging_SRC			  	    CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
+file(GLOB         Network_SRC			CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
+file(GLOB         Logging_SRC			CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
 
 list(LENGTH UnitTests_SRC           UnitTests_LEN)
 list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
-    add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Unit_Tests ${EXE_NAME}_UnitTests)
 else()
     message("No Unit Tests!")
 endif()
 
 if (IntegrationTests_LEN GREATER 0)
-    add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
     add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
 else()
     message("No Integration Tests!")
