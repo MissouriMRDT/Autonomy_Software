@@ -364,7 +364,7 @@ void ZEDCam::ThreadedContinuousCode()
                     // Get the fused geo pose from the camera.
                     sl::GNSS_CALIBRATION_STATE slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
                     // Check that the geo pose was retrieved successfully.
-                    if (slGeoPoseTrackReturnCode != sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+                    if (slGeoPoseTrackReturnCode == sl::GNSS_CALIBRATION_STATE::NOT_CALIBRATED)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
@@ -477,27 +477,34 @@ void ZEDCam::ThreadedContinuousCode()
                             sl::toString(slReturnCode).get());
             }
 
-            // Get the current GPS location from the NavBoard.
-            geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetGPSData();
-            // Repack gps data int sl::GNSSData object.
-            sl::GNSSData slGNSSData = sl::GNSSData();
-            slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
-            // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
-            slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
-
-            // Publish GNSS data to fusion from the NavBoard.
-            slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
-            // Check if the GNSS data was successfully ingested by the Fusion instance.
-            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+            // Check if fusion positional tracking is enabled.
+            if (m_slCamera.isPositionalTrackingEnabled())
             {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_unCameraSerialNumber,
-                            sl::toString(slReturnCode).get());
+                // Get the current GPS location from the NavBoard.
+                geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+                // Repack gps data int sl::GNSSData object.
+                sl::GNSSData slGNSSData = sl::GNSSData();
+                slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
+                // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
+                slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
+
+                // Publish GNSS data to fusion from the NavBoard.
+                slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
+                // Check if the GNSS data was successfully ingested by the Fusion instance.
+                if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
+                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                m_unCameraSerialNumber,
+                                sl::toString(slReturnCode).get());
+                }
             }
         }
+
+        // Release camera lock.
+        lkSharedCameraLock.unlock();
 
         // Acquire a shared_lock on the frame copy queue.
         std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1230,6 +1237,12 @@ void ZEDCam::DisablePositionalTracking()
 {
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkSharedLock(m_muCameraMutex);
+    // Check if fusion positional tracking should be enabled for this camera.
+    if (m_bCameraIsFusionMaster)
+    {
+        // Enable fusion positional tracking.
+        m_slFusionInstance.disablePositionalTracking();
+    }
     // Disable pose tracking.
     m_slCamera.disablePositionalTracking();
 }
