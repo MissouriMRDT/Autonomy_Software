@@ -512,6 +512,16 @@ class AutonomyThread
         int GetPoolNumOfThreads() { return m_thPool.get_thread_count(); }
 
         /******************************************************************************
+         * @brief Accessor for the Pool Queue Size private member.
+         *
+         * @return int - The number of tasks queued for the pool.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-14
+         ******************************************************************************/
+        int GetPoolQueueLength() { return m_thPool.get_tasks_queued(); }
+
+        /******************************************************************************
          * @brief Accessor for the Pool Results private member. The action of getting
          *      results will destroy and remove them from this object. This method blocks
          *      if the thread is not finished, so no need to call JoinPool() before getting

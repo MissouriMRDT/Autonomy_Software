@@ -9,6 +9,8 @@
  ******************************************************************************/
 
 #include "WaypointHandler.h"
+#include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /// \cond
 #include <algorithm>
@@ -16,7 +18,7 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Construct a new Waypoint Handler:: Waypoint Handler object.
+ * @brief Construct a new geoops::Waypoint Handler:: geoops::Waypoint Handler object.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -24,11 +26,15 @@
  ******************************************************************************/
 WaypointHandler::WaypointHandler()
 {
-    // Nothing to initialize.
+    // Set RoveComm callbacks.
+    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddPositionLegCallback, manifest::Autonomy::COMMANDS.find("ADDPOSITIONLEG")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddMarkerLegCallback, manifest::Autonomy::COMMANDS.find("ADDMARKERLEG")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddObjectLegCallback, manifest::Autonomy::COMMANDS.find("ADDOBJECTLEG")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(ClearWaypointsCallback, manifest::Autonomy::COMMANDS.find("CLEARWAYPOINTS")->second.DATA_ID);
 }
 
 /******************************************************************************
- * @brief Destroy the Waypoint Handler:: Waypoint Handler object.
+ * @brief Destroy the geoops::Waypoint Handler:: geoops::Waypoint Handler object.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -42,13 +48,13 @@ WaypointHandler::~WaypointHandler()
 /******************************************************************************
  * @brief Append a waypoint to the end of the WaypointHandler's list.
  *
- * @param stWaypoint - The WaypointHandler::Waypoint struct containing information about the waypoint to
+ * @param stWaypoint - The WaypointHandler::geoops::Waypoint struct containing information about the waypoint to
  *                  store in the handler.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-02
  ******************************************************************************/
-void WaypointHandler::AddWaypoint(const Waypoint& stWaypoint)
+void WaypointHandler::AddWaypoint(const geoops::Waypoint& stWaypoint)
 {
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -66,10 +72,10 @@ void WaypointHandler::AddWaypoint(const Waypoint& stWaypoint)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::AddWaypoint(const geoops::GPSCoordinate& stLocation, const WaypointType& eType, const double dRadius)
+void WaypointHandler::AddWaypoint(const geoops::GPSCoordinate& stLocation, const geoops::WaypointType& eType, const double dRadius)
 {
     // Construct a new waypoint struct from the given info.
-    Waypoint stTempWaypoint(stLocation, eType, dRadius);
+    geoops::Waypoint stTempWaypoint(stLocation, eType, dRadius);
 
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -87,10 +93,10 @@ void WaypointHandler::AddWaypoint(const geoops::GPSCoordinate& stLocation, const
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::AddWaypoint(const geoops::UTMCoordinate& stLocation, const WaypointType& eType, const double dRadius)
+void WaypointHandler::AddWaypoint(const geoops::UTMCoordinate& stLocation, const geoops::WaypointType& eType, const double dRadius)
 {
     // Construct a new waypoint struct from the given info.
-    Waypoint stTempWaypoint(stLocation, eType, dRadius);
+    geoops::Waypoint stTempWaypoint(stLocation, eType, dRadius);
 
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -102,12 +108,12 @@ void WaypointHandler::AddWaypoint(const geoops::UTMCoordinate& stLocation, const
  * @brief Store a path in the WaypointHandler.
  *
  * @param szPathName - The key that will be used to store, and later reference, the path in the WaypointHandler.
- * @param vWaypointPath - A vector containing Waypoint structs with data about each point on the path.
+ * @param vWaypointPath - A vector containing geoops::Waypoint structs with data about each point on the path.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::StorePath(const std::string& szPathName, const std::vector<Waypoint>& vWaypointPath)
+void WaypointHandler::StorePath(const std::string& szPathName, const std::vector<geoops::Waypoint>& vWaypointPath)
 {
     // Acquire a write lock on the path unordered map.
     std::unique_lock<std::shared_mutex> lkPathsLock(m_muPathMutex);
@@ -121,7 +127,7 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
  * @param szPathName - The key that will be used to store, and later reference, the path in the WaypointHandler.
  * @param vWaypointPath - A vector containing GPSCoordinate structs containing location data about each point in the path.
  *
- * @note Paths must be stored in the WaypointHandler as a vector is Waypoint structs. This will create a new Waypoint
+ * @note Paths must be stored in the WaypointHandler as a vector is geoops::Waypoint structs. This will create a new geoops::Waypoint
  *      struct for each GPSCoordinate and use a default type of eNavigationWaypoint with a radius of 0.0.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -130,13 +136,13 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
 void WaypointHandler::StorePath(const std::string& szPathName, const std::vector<geoops::GPSCoordinate>& vLocationPath)
 {
     // Create instance variables.
-    std::vector<Waypoint> vWaypointPath;
+    std::vector<geoops::Waypoint> vWaypointPath;
 
-    // Loop through each GPSCoordinate in the given vector and repack the info into a Waypoint.
+    // Loop through each GPSCoordinate in the given vector and repack the info into a geoops::Waypoint.
     for (geoops::GPSCoordinate stLocation : vLocationPath)
     {
         // Create a new waypoint and store location info in it.
-        Waypoint stWaypoint(stLocation, eNavigationWaypoint);
+        geoops::Waypoint stWaypoint(stLocation, geoops::WaypointType::eNavigationWaypoint);
 
         // Append waypoint to the temporary waypoint path.
         vWaypointPath.emplace_back(stWaypoint);
@@ -154,7 +160,7 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
  * @param szPathName - The key that will be used to store, and later reference, the path in the WaypointHandler.
  * @param vWaypointPath - A vector containing UTMCoordinate structs containing location data about each point in the path.
  *
- * @note Paths must be stored in the WaypointHandler as a vector is Waypoint structs. This will create a new Waypoint
+ * @note Paths must be stored in the WaypointHandler as a vector is geoops::Waypoint structs. This will create a new geoops::Waypoint
  *      struct for each UTMCoordinate and use a default type of eNavigationWaypoint with a radius of 0.0.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -163,13 +169,13 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
 void WaypointHandler::StorePath(const std::string& szPathName, const std::vector<geoops::UTMCoordinate>& vLocationPath)
 {
     // Create instance variables.
-    std::vector<Waypoint> vWaypointPath;
+    std::vector<geoops::Waypoint> vWaypointPath;
 
-    // Loop through each UTMCoordinate in the given vector and repack the info into a Waypoint.
+    // Loop through each UTMCoordinate in the given vector and repack the info into a geoops::Waypoint.
     for (geoops::UTMCoordinate stLocation : vLocationPath)
     {
         // Create a new waypoint and store location info in it.
-        Waypoint stWaypoint(stLocation, eNavigationWaypoint);
+        geoops::Waypoint stWaypoint(stLocation, geoops::WaypointType::eNavigationWaypoint);
 
         // Append waypoint to the temporary waypoint path.
         vWaypointPath.emplace_back(stWaypoint);
@@ -184,13 +190,13 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
 /******************************************************************************
  * @brief Append a new object to the WaypointHandler object list.
  *
- * @param stWaypoint - The WaypointHandler::Waypoint struct containing information about the object to
+ * @param stWaypoint - The WaypointHandler::geoops::Waypoint struct containing information about the object to
  *                  store in the handler.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::AddObject(const Waypoint& stWaypoint)
+void WaypointHandler::AddObject(const geoops::Waypoint& stWaypoint)
 {
     // Acquire a write lock on the object vector.
     std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
@@ -210,7 +216,7 @@ void WaypointHandler::AddObject(const Waypoint& stWaypoint)
 void WaypointHandler::AddObject(const geoops::GPSCoordinate& stLocation, const double dRadius)
 {
     // Construct a new waypoint struct from the given info.
-    Waypoint stTempWaypoint(stLocation, eObstacleWaypoint, dRadius);
+    geoops::Waypoint stTempWaypoint(stLocation, geoops::WaypointType::eObstacleWaypoint, dRadius);
 
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
@@ -230,7 +236,7 @@ void WaypointHandler::AddObject(const geoops::GPSCoordinate& stLocation, const d
 void WaypointHandler::AddObject(const geoops::UTMCoordinate& stLocation, const double dRadius)
 {
     // Construct a new waypoint struct from the given info.
-    Waypoint stTempWaypoint(stLocation, eObstacleWaypoint, dRadius);
+    geoops::Waypoint stTempWaypoint(stLocation, geoops::WaypointType::eObstacleWaypoint, dRadius);
 
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
@@ -239,7 +245,7 @@ void WaypointHandler::AddObject(const geoops::UTMCoordinate& stLocation, const d
 }
 
 /******************************************************************************
- * @brief Delete the Waypoint at a given index from the waypoint handler.
+ * @brief Delete the geoops::Waypoint at a given index from the waypoint handler.
  *
  * @param nIndex - The index of the element to remove.
  *
@@ -258,7 +264,7 @@ void WaypointHandler::DeleteWaypoint(const long unsigned int nIndex)
 
         // Acquire a write lock on the waypoint vector.
         std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
-        // Delete the Waypoint at the index.
+        // Delete the geoops::Waypoint at the index.
         m_vWaypointList.erase(m_vWaypointList.begin() + nIndex);
     }
     else
@@ -279,7 +285,7 @@ void WaypointHandler::DeleteWaypoint(const long unsigned int nIndex)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-void WaypointHandler::DeleteWaypoint(const Waypoint& stWaypoint)
+void WaypointHandler::DeleteWaypoint(const geoops::Waypoint& stWaypoint)
 {
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -301,9 +307,10 @@ void WaypointHandler::DeleteWaypoint(const geoops::GPSCoordinate& stLocation)
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
     // Delete any waypoint matching the given location from the list.
-    m_vWaypointList.erase(
-        std::remove_if(m_vWaypointList.begin(), m_vWaypointList.end(), [stLocation](const Waypoint& stWaypoint) { return stWaypoint.GetGPSCoordinate() == stLocation; }),
-        m_vWaypointList.end());
+    m_vWaypointList.erase(std::remove_if(m_vWaypointList.begin(),
+                                         m_vWaypointList.end(),
+                                         [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetGPSCoordinate() == stLocation; }),
+                          m_vWaypointList.end());
 }
 
 /******************************************************************************
@@ -320,9 +327,10 @@ void WaypointHandler::DeleteWaypoint(const geoops::UTMCoordinate& stLocation)
     // Acquire a write lock on the waypoint vector.
     std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
     // Delete any waypoint matching the given location from the list.
-    m_vWaypointList.erase(
-        std::remove_if(m_vWaypointList.begin(), m_vWaypointList.end(), [stLocation](const Waypoint& stWaypoint) { return stWaypoint.GetUTMCoordinate() == stLocation; }),
-        m_vWaypointList.end());
+    m_vWaypointList.erase(std::remove_if(m_vWaypointList.begin(),
+                                         m_vWaypointList.end(),
+                                         [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetUTMCoordinate() == stLocation; }),
+                          m_vWaypointList.end());
 }
 
 /******************************************************************************
@@ -363,7 +371,7 @@ void WaypointHandler::DeleteObject(const long unsigned int nIndex)
 
         // Acquire a write lock on the object vector.
         std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
-        // Delete the Waypoint at the index.
+        // Delete the geoops::Waypoint at the index.
         m_vPermanentObjects.erase(m_vPermanentObjects.begin() + nIndex);
     }
     else
@@ -384,7 +392,7 @@ void WaypointHandler::DeleteObject(const long unsigned int nIndex)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-void WaypointHandler::DeleteObject(const Waypoint& stWaypoint)
+void WaypointHandler::DeleteObject(const geoops::Waypoint& stWaypoint)
 {
     // Acquire a write lock on the object vector.
     std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
@@ -408,7 +416,7 @@ void WaypointHandler::DeleteObject(const geoops::GPSCoordinate& stLocation)
     // Delete any waypoint matching the given location from the list.
     m_vPermanentObjects.erase(std::remove_if(m_vPermanentObjects.begin(),
                                              m_vPermanentObjects.end(),
-                                             [stLocation](const Waypoint& stWaypoint) { return stWaypoint.GetGPSCoordinate() == stLocation; }),
+                                             [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetGPSCoordinate() == stLocation; }),
                               m_vPermanentObjects.end());
 }
 
@@ -428,7 +436,7 @@ void WaypointHandler::DeleteObject(const geoops::UTMCoordinate& stLocation)
     // Delete any waypoint matching the given location from the list.
     m_vPermanentObjects.erase(std::remove_if(m_vPermanentObjects.begin(),
                                              m_vPermanentObjects.end(),
-                                             [stLocation](const Waypoint& stWaypoint) { return stWaypoint.GetUTMCoordinate() == stLocation; }),
+                                             [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetUTMCoordinate() == stLocation; }),
                               m_vPermanentObjects.end());
 }
 
@@ -480,12 +488,12 @@ void WaypointHandler::ClearObjects()
 /******************************************************************************
  * @brief Removes and returns the next waypoint at the front of the list.
  *
- * @return WaypointHandler::Waypoint - The next waypoint data stored in a Waypoint struct.
+ * @return WaypointHandler::geoops::Waypoint - The next waypoint data stored in a geoops::Waypoint struct.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-WaypointHandler::Waypoint WaypointHandler::PopNextWaypoint()
+geoops::Waypoint WaypointHandler::PopNextWaypoint()
 {
     // Acquire a read lock on the waypoint vector.
     std::shared_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -498,7 +506,7 @@ WaypointHandler::Waypoint WaypointHandler::PopNextWaypoint()
         // Acquire a write lock on the waypoint vector.
         std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
         // Pop a waypoint from the front of the waypoint list and store it.
-        Waypoint stWaypoint = m_vWaypointList[0];
+        geoops::Waypoint stWaypoint = m_vWaypointList[0];
         m_vWaypointList.erase(m_vWaypointList.begin());
         // Unlock shared mutex.
         lkWaypointListLock.unlock();
@@ -512,20 +520,20 @@ WaypointHandler::Waypoint WaypointHandler::PopNextWaypoint()
         LOG_ERROR(logging::g_qSharedLogger, "Attempted to pop a waypoint from the WaypointHandler but it is empty!");
 
         // Return an empty waypoint.
-        return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
+        return geoops::Waypoint(geoops::GPSCoordinate(), geoops::WaypointType::eUNKNOWN);
     }
 }
 
 /******************************************************************************
- * @brief Returns an immutable reference to the Waypoint struct at the front of
+ * @brief Returns an immutable reference to the geoops::Waypoint struct at the front of
  *      the list without removing it.
  *
- * @return const WaypointHandler::Waypoint - A reference to a Waypoint struct containing waypoint data.
+ * @return const WaypointHandler::geoops::Waypoint - A reference to a geoops::Waypoint struct containing waypoint data.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-const WaypointHandler::Waypoint WaypointHandler::PeekNextWaypoint()
+const geoops::Waypoint WaypointHandler::PeekNextWaypoint()
 {
     // Acquire a read lock on the waypoint vector.
     std::shared_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -541,7 +549,7 @@ const WaypointHandler::Waypoint WaypointHandler::PeekNextWaypoint()
         LOG_ERROR(logging::g_qSharedLogger, "Attempted to peek a waypoint from the WaypointHandler but it is empty!");
 
         // Return an empty waypoint.
-        return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
+        return geoops::Waypoint(geoops::GPSCoordinate(), geoops::WaypointType::eUNKNOWN);
     }
 }
 
@@ -549,12 +557,12 @@ const WaypointHandler::Waypoint WaypointHandler::PeekNextWaypoint()
  * @brief Retrieve an immutable reference to the waypoint at the given index.
  *
  * @param nIndex - The index of the element to retrieve.
- * @return const WaypointHandler::Waypoint - An immutable reference to the Waypoint containing data.
+ * @return const WaypointHandler::geoops::Waypoint - An immutable reference to the geoops::Waypoint containing data.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-const WaypointHandler::Waypoint WaypointHandler::RetrieveWaypointAtIndex(const long unsigned int nIndex)
+const geoops::Waypoint WaypointHandler::RetrieveWaypointAtIndex(const long unsigned int nIndex)
 {
     // Acquire a read lock on the waypoint vector.
     std::shared_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -572,7 +580,7 @@ const WaypointHandler::Waypoint WaypointHandler::RetrieveWaypointAtIndex(const l
                   nIndex);
 
         // Return an empty waypoint.
-        return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
+        return geoops::Waypoint(geoops::GPSCoordinate(), geoops::WaypointType::eUNKNOWN);
     }
 }
 
@@ -580,12 +588,12 @@ const WaypointHandler::Waypoint WaypointHandler::RetrieveWaypointAtIndex(const l
  * @brief Retrieve an immutable reference to the path at the given path name/key.
  *
  * @param szPathName - The name/key of the path that was previously used to store the path.
- * @return const std::vector<WaypointHandler::Waypoint> - A reference to the Waypoint vector located at the given key.
+ * @return const std::vector<WaypointHandler::geoops::Waypoint> - A reference to the geoops::Waypoint vector located at the given key.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-const std::vector<WaypointHandler::Waypoint> WaypointHandler::RetrievePath(const std::string& szPathName)
+const std::vector<geoops::Waypoint> WaypointHandler::RetrievePath(const std::string& szPathName)
 {
     // Acquire a read lock on the path unordered map.
     std::shared_lock<std::shared_mutex> lkPathsLock(m_muPathMutex);
@@ -598,7 +606,7 @@ const std::vector<WaypointHandler::Waypoint> WaypointHandler::RetrievePath(const
     else
     {
         // Return an empty vector.
-        return std::vector<Waypoint>();
+        return std::vector<geoops::Waypoint>();
     }
 }
 
@@ -606,12 +614,12 @@ const std::vector<WaypointHandler::Waypoint> WaypointHandler::RetrievePath(const
  * @brief Retrieve an immutable reference to the object at the given index.
  *
  * @param nIndex - The index of the element to retrieve.
- * @return const WaypointHandler::Waypoint - An immutable reference to the object Waypoint containing data.
+ * @return const WaypointHandler::geoops::Waypoint - An immutable reference to the object geoops::Waypoint containing data.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-const WaypointHandler::Waypoint WaypointHandler::RetrieveObjectAtIndex(const long unsigned int nIndex)
+const geoops::Waypoint WaypointHandler::RetrieveObjectAtIndex(const long unsigned int nIndex)
 {
     // Acquire a read lock on the waypoint vector.
     std::shared_lock<std::shared_mutex> lkObjectsLock(m_muObjectsMutex);
@@ -627,19 +635,19 @@ const WaypointHandler::Waypoint WaypointHandler::RetrieveObjectAtIndex(const lon
         LOG_ERROR(logging::g_qSharedLogger, "Attempted to retrieve a object at index {} from the WaypointHandler but it is empty or the index is out of bounds!", nIndex);
 
         // Return an empty waypoint.
-        return Waypoint(geoops::GPSCoordinate(), eUNKNOWN);
+        return geoops::Waypoint(geoops::GPSCoordinate(), geoops::WaypointType::eUNKNOWN);
     }
 }
 
 /******************************************************************************
  * @brief Accessor for the full list of current waypoints stored in the WaypointHandler.
  *
- * @return const std::vector<WaypointHandler::Waypoint> - A vector of Waypoint structs currently stored in the WaypointHandler.
+ * @return const std::vector<WaypointHandler::geoops::Waypoint> - A vector of geoops::Waypoint structs currently stored in the WaypointHandler.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-const std::vector<WaypointHandler::Waypoint> WaypointHandler::GetAllWaypoints()
+const std::vector<geoops::Waypoint> WaypointHandler::GetAllWaypoints()
 {
     // Acquire a read lock on the waypoint vector.
     std::shared_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
@@ -650,13 +658,13 @@ const std::vector<WaypointHandler::Waypoint> WaypointHandler::GetAllWaypoints()
 /******************************************************************************
  * @brief Accessor for the full list of current object stored in the WaypointHandler.
  *
- * @return const std::vector<WaypointHandler::Waypoint> - A vector of Waypoint structs representing
+ * @return const std::vector<WaypointHandler::geoops::Waypoint> - A vector of geoops::Waypoint structs representing
  *                                      objects that are currently stored in the WaypointHandler.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-const std::vector<WaypointHandler::Waypoint> WaypointHandler::GetAllObjects()
+const std::vector<geoops::Waypoint> WaypointHandler::GetAllObjects()
 {
     // Acquire a read lock on the path unordered map.
     std::shared_lock<std::shared_mutex> lkObjectsLock(m_muObjectsMutex);
