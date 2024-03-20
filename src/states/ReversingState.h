@@ -32,7 +32,11 @@ namespace statemachine
     {
         private:
             // TODO: Add fetch of current position from GPS
+            geoops::GPSCoordinate stStartPosition = globals::g_pNavigationBoard->GetGPSData();
+            double dCurrentHeading;
             bool m_bInitialized;
+            const double dCurDistance       = 0;    // TODO: set constants?
+            const double dDistanceThreshold = 5;
 
         protected:
             void Start() override;
@@ -40,7 +44,7 @@ namespace statemachine
 
         public:
             ReversingState();
-            void Run() override;
+            States Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine

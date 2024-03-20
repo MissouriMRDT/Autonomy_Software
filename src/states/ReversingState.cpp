@@ -1,3 +1,4 @@
+
 /******************************************************************************
  * @brief Reversing State Implementation for Autonomy State Machine.
  *
@@ -30,9 +31,15 @@ namespace statemachine
     void ReversingState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
+        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
-        // TODO: Get Starting Position from GPS
+        // Get current position and heading
+        stStartPosition = globals::g_pNavigationBoard->GetGPSData();
+        dCurrentHeading = globals::g_pNavigationBoard->GetHeading();
+
+        // For haversine formula convert to radians
+        stStartPosition.dLatitude  = stStartPosition.dLatitude * M_PI / 180;
+        stStartPosition.dLongitude = stStartPosition.dLongitude * M_PI / 180;
     }
 
     /******************************************************************************
@@ -46,7 +53,7 @@ namespace statemachine
     void ReversingState::Exit()
     {
         // Clean up the state before exiting
-        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Exiting state.");
+        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Exiting state.");
     }
 
     /******************************************************************************
@@ -75,10 +82,32 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    void ReversingState::Run()
+    States ReversingState::Run()
     {
-        // TODO: Implement the behavior specific to the Reversing state
         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
+
+        // Make rover reverse
+        diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-1, dCurrentHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eTankDrive);
+        globals::g_pDriveBoard->SendDrive(stReverse);
+
+        // Haversine formula to find distance
+        geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
+        stCurrentPosition.dLatitude             = stCurrentPosition.dLatitude * M_PI / 180;
+        stCurrentPosition.dLongitude            = stCurrentPosition.dLongitude * M_PI / 180;
+
+        double dDistLon                         = stCurrentPosition.dLongitude - stStartPosition.dLongitude;
+        double dDistLat                         = stCurrentPosition.dLatitude - stStartPosition.dLatitude;
+        double a            = pow(sin(dDistLat / 2), 2) + cos(stStartPosition.dLatitude) * cos(stCurrentPosition.dLatitude) * pow(sin(dDistLon / 2), 2);
+        double c            = 2 * asin(sqrt(a));
+        double r            = 6371;    // Radius of earth in kilometers
+        double dCurDistance = c * r;
+
+        if (dCurDistance >= dDistanceThreshold)    // TODO: Currently will keep reversing if the position doesn't change
+        {
+            globals::g_pDriveBoard->SendStop();    // Stop reversing
+            return TriggerEvent(Event::eReverseComplete);
+        }
+        return States::eReversing;
     }
 
     /******************************************************************************
@@ -92,7 +121,6 @@ namespace statemachine
      ******************************************************************************/
     States ReversingState::TriggerEvent(Event eEvent)
     {
-        // Create instance variables.
         States eNextState       = States::eReversing;
         bool bCompleteStateExit = true;
 
@@ -100,31 +128,25 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
-                // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
+                eNextState = States::eReversing;
                 break;
             }
             case Event::eAbort:
             {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
-                // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
+                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eReverseComplete:
             {
-                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Reverse Complete event.");
+                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling stReverse Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_WARNING(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
+                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -132,7 +154,7 @@ namespace statemachine
 
         if (eNextState != States::eReversing)
         {
-            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
