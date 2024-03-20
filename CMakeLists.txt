@@ -197,9 +197,8 @@ target_link_libraries(${EXE_NAME} PRIVATE   Threads::Threads
                                                 quill::quill
 												${OpenCV_LIBS}
                                                 ${GeographicLib_LIBRARIES}
-                                                ${ZED_LIBS} 
-                                                RoveComm_CPP
-                                                ${TORCH_LIBRARIES}
+                                                ${ZED_LIBS}
+                                                libtorch_cuda.so libtorch_cuda_linalg.so
                                                 flatbuffers::flatbuffers
                                                 ${ABSL_LIBRARY_DIRS}
                                                 ${TENSORFLOWLITE_LIBS}
