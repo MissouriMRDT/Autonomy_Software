@@ -12,7 +12,7 @@
 #include <chrono>
 #include <gtest/gtest.h>
 
-#include "../../../../src/algorithms/controllers/PIDController.h"
+#include "../../../../../src/algorithms/controllers/PIDController.h"
 
 /******************************************************************************
  * @brief Check that PIDController doesn't leak any memory.
