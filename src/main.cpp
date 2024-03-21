@@ -15,7 +15,6 @@
 #include <string>
 #include <thread>
 
-#include "../examples/vision/dnn/InferenceYOLOModel.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
@@ -221,6 +220,10 @@ int main()
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
+        // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+        network::g_bRoveCommUDPStatus = false;
+        network::g_bRoveCommTCPStatus = false;
+
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
