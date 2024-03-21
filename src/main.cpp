@@ -185,16 +185,16 @@ int main()
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
-            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetAverageIPS()) + "\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
+            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";

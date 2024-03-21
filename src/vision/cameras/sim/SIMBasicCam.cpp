@@ -1,14 +1,14 @@
 /******************************************************************************
- * @brief Implements the SIMCam class.
+ * @brief Implements the SIMBasicCam class.
  *
- * @file SIMCam.cpp
+ * @file SIMBasicCam.cpp
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  *
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "SIMCam.h"
+#include "SIMBasicCam.h"
 
 #include "../../../AutonomyConstants.h"
 #include "../../../AutonomyLogging.h"
@@ -29,15 +29,15 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-SIMCam::SIMCam(const std::string szCameraPath,
-               const int nPropResolutionX,
-               const int nPropResolutionY,
-               const int nPropFramesPerSecond,
-               const PIXEL_FORMATS ePropPixelFormat,
-               const double dPropHorizontalFOV,
-               const double dPropVerticalFOV,
-               const bool bEnableRecordingFlag,
-               const int nNumFrameRetrievalThreads) :
+SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
+                         const int nPropResolutionX,
+                         const int nPropResolutionY,
+                         const int nPropFramesPerSecond,
+                         const PIXEL_FORMATS ePropPixelFormat,
+                         const double dPropHorizontalFOV,
+                         const double dPropVerticalFOV,
+                         const bool bEnableRecordingFlag,
+                         const int nNumFrameRetrievalThreads) :
     Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
 {
     // Assign member variables.
@@ -68,7 +68,7 @@ SIMCam::SIMCam(const std::string szCameraPath,
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-SIMCam::~SIMCam()
+SIMBasicCam::~SIMBasicCam()
 {
     // Stop threaded code.
     this->RequestStop();
@@ -90,12 +90,12 @@ SIMCam::~SIMCam()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-void SIMCam::ThreadedContinuousCode()
+void SIMBasicCam::ThreadedContinuousCode()
 {
     // Check if camera is NOT open.
     if (!m_cvCamera.isOpened())
     {
-        // Shutdown threads for this SIMCam.
+        // Shutdown threads for this SIMBasicCam.
         this->RequestStop();
 
         // Submit logger message.
@@ -133,7 +133,7 @@ void SIMCam::ThreadedContinuousCode()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-void SIMCam::PooledLinearCode()
+void SIMBasicCam::PooledLinearCode()
 {
     /////////////////////////////
     //  Frame queue.
@@ -177,7 +177,7 @@ void SIMCam::PooledLinearCode()
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-std::future<bool> SIMCam::RequestFrameCopy(cv::Mat& cvFrame)
+std::future<bool> SIMBasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
@@ -208,7 +208,7 @@ std::future<bool> SIMCam::RequestFrameCopy(cv::Mat& cvFrame)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-std::future<bool> SIMCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure)
+std::future<bool> SIMBasicCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure)
 {
     // Create instance variables.
     PIXEL_FORMATS eFrameType;
@@ -244,7 +244,7 @@ std::future<bool> SIMCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
-std::future<bool> SIMCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
+std::future<bool> SIMBasicCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eXYZ);
@@ -269,7 +269,7 @@ std::future<bool> SIMCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-bool SIMCam::GetCameraIsOpen()
+bool SIMBasicCam::GetCameraIsOpen()
 {
     // Get camera status from OpenCV.
     return m_cvCamera.isOpened();
@@ -283,7 +283,7 @@ bool SIMCam::GetCameraIsOpen()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-std::string SIMCam::GetCameraLocation() const
+std::string SIMBasicCam::GetCameraLocation() const
 {
     // Check if camera location is a hardware path or video index.
     if (m_bCameraIsConnectedOnVideoIndex)

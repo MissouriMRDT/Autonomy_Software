@@ -1,15 +1,15 @@
 /******************************************************************************
- * @brief Defines the SIMCam class.
+ * @brief Defines the SIMBasicCam class.
  *
- * @file SIMCam.h
+ * @file SIMBasicCam.h
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef SIMCAM_H
-#define SIMCAM_H
+#ifndef SIMBASICCAM_H
+#define SIMBASICCAM_H
 
 #include "../../../interfaces/AutonomyThread.hpp"
 #include "../../../interfaces/Camera.hpp"
@@ -29,31 +29,31 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-class SIMCam : public Camera<cv::Mat>, public AutonomyThread<void>
+class SIMBasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
 {
     public:
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        SIMCam(const std::string szCameraPath,
-               const int nPropResolutionX,
-               const int nPropResolutionY,
-               const int nPropFramesPerSecond,
-               const PIXEL_FORMATS ePropPixelFormat,
-               const double dPropHorizontalFOV,
-               const double dPropVerticalFOV,
-               const bool bEnableRecordingFlag,
-               const int nNumFrameRetrievalThreads = 10);
-        SIMCam(const int nCameraIndex,
-               const int nPropResolutionX,
-               const int nPropResolutionY,
-               const int nPropFramesPerSecond,
-               const PIXEL_FORMATS ePropPixelFormat,
-               const double dPropHorizontalFOV,
-               const double dPropVerticalFOV,
-               const bool bEnableRecordingFlag,
-               const int nNumFrameRetrievalThreads = 10);
-        ~SIMCam();
+        SIMBasicCam(const std::string szCameraPath,
+                    const int nPropResolutionX,
+                    const int nPropResolutionY,
+                    const int nPropFramesPerSecond,
+                    const PIXEL_FORMATS ePropPixelFormat,
+                    const double dPropHorizontalFOV,
+                    const double dPropVerticalFOV,
+                    const bool bEnableRecordingFlag,
+                    const int nNumFrameRetrievalThreads = 10);
+        SIMBasicCam(const int nCameraIndex,
+                    const int nPropResolutionX,
+                    const int nPropResolutionY,
+                    const int nPropFramesPerSecond,
+                    const PIXEL_FORMATS ePropPixelFormat,
+                    const double dPropHorizontalFOV,
+                    const double dPropVerticalFOV,
+                    const bool bEnableRecordingFlag,
+                    const int nNumFrameRetrievalThreads = 10);
+        ~SIMBasicCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
         std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
