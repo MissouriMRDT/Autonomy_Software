@@ -59,6 +59,9 @@ SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open SIMCamera at path/URL {}", m_szCameraPath);
     }
+
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
 
 /******************************************************************************
