@@ -110,19 +110,19 @@ void SIMBasicCam::ThreadedContinuousCode()
     else
     {
         // TODO: PUT CODE HERE FOR GETTING FRAMES AND DATA FROM SIMULATOR.
+    }
 
-        // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Check if the frame copy queue is empty.
-        if (!m_qFrameCopySchedule.empty())
-        {
-            // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-            this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
-            // Wait for thread pool to finish.
-            this->JoinPool();
-            // Release lock on frame copy queue.
-            lkSchedulers.unlock();
-        }
+    // Acquire a shared_lock on the frame copy queue.
+    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Check if the frame copy queue is empty.
+    if (!m_qFrameCopySchedule.empty())
+    {
+        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
+        this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
+        // Wait for thread pool to finish.
+        this->JoinPool();
+        // Release lock on frame copy queue.
+        lkSchedulers.unlock();
     }
 }
 
