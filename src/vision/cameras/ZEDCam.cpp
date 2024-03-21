@@ -134,7 +134,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         m_unCameraSerialNumber = m_slCamera.getCameraInformation().serial_number;
 
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "{} stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
+        LOG_INFO(logging::g_qSharedLogger, "{} stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
     }
     else
     {
@@ -221,7 +221,7 @@ ZEDCam::~ZEDCam()
     m_slCamera.close();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been successfully closed.", m_unCameraSerialNumber);
+    LOG_INFO(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been successfully closed.", m_unCameraSerialNumber);
 }
 
 /******************************************************************************
@@ -254,6 +254,8 @@ void ZEDCam::ThreadedContinuousCode()
         std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
         // Call generalized update method of zed api.
         sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+
+        // FIXME: Set camera opened toggle here.
         // Check if new frame was computed successfully.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
