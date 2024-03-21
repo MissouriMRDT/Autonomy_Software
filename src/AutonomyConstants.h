@@ -149,7 +149,7 @@ namespace constants
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
     const bool ZED_MAINCAM_FUSION_MASTER            = true;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left Side Cam.
     const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.

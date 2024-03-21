@@ -58,6 +58,9 @@ BasicCam::BasicCam(const std::string szCameraPath,
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
     }
+
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
 
 /******************************************************************************
@@ -117,6 +120,9 @@ BasicCam::BasicCam(const int nCameraIndex,
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
     }
+
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
 
 /******************************************************************************
