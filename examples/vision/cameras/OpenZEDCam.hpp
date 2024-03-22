@@ -131,11 +131,6 @@ void RunExample()
             // Split color from point cloud.
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
-            // Display frame.
-            cv::imshow("FRAME1", cvNormalFrame1);
-            cv::imshow("DEPTH1", cvDepthFrame1);
-            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
-
             // Wait for the other info to be copied.
             if (fuPoseCopyStatus.get())
             {
@@ -154,6 +149,11 @@ void RunExample()
             {
                 LOG_INFO(logging::g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(ExampleZEDCam1->GetSpatialMappingState()).get());
             }
+
+            // Display frames.
+            cv::imshow("FRAME1", cvNormalFrame1);
+            cv::imshow("DEPTH1", cvDepthFrame1);
+            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
         }
 
         // Tick FPS counter.
