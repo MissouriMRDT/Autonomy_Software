@@ -253,7 +253,7 @@ void ZEDCam::ThreadedContinuousCode()
     else
     {
         // Record the start time of this block of code.
-        auto tmStartTime = std::chrono::high_resolution_clock::now().time_since_epoch();
+        std::chrono::system_clock::duration tmStartTime = std::chrono::high_resolution_clock::now().time_since_epoch();
 
         // Acquire write lock for camera object.
         std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
@@ -1297,7 +1297,7 @@ sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const
 sl::ERROR_CODE ZEDCam::EnableSpatialMapping(const int nTimeoutSeconds)
 {
     // Create instance variables.
-    auto tmStartTime = std::chrono::steady_clock::now();
+    std::chrono::time_point tmStartTime = std::chrono::steady_clock::now();
     sl::Pose slCameraPose;
     sl::ERROR_CODE slReturnCode;
 
