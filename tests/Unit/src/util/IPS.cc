@@ -90,8 +90,8 @@ TEST(IPSTest, MetricsFunctionality)
     IPS* pIPS = new IPS();
 
     // Declare a start time, current time, elapsed time.
-    auto tStartTime                            = std::chrono::high_resolution_clock::now();
-    auto tCurrentTime                          = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point tStartTime         = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point tCurrentTime       = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> tElapsedTime = tCurrentTime - tStartTime;
 
     // Loop for a second.

@@ -22,8 +22,8 @@
  ******************************************************************************/
 TEST(ExampleTests, TestIntegerOne_One)
 {
-    const auto expected = 18;
-    const auto actual   = 6 * 3;
+    const int expected = 18;
+    const int actual   = 6 * 3;
     ASSERT_EQ(expected, actual);
 }
 
@@ -36,8 +36,8 @@ TEST(ExampleTests, TestIntegerOne_One)
  ******************************************************************************/
 TEST(ExampleTests, TestIntegerZero_Zero)
 {
-    const auto expected = 9;
-    const auto actual   = 6 + 3;
+    const int expected = 9;
+    const int actual   = 6 + 3;
     ASSERT_EQ(expected, actual);
 }
 
@@ -50,8 +50,8 @@ TEST(ExampleTests, TestIntegerZero_Zero)
  ******************************************************************************/
 TEST(ExampleTests, TestIntegerZero_One)
 {
-    const auto expected = 3;
-    const auto actual   = 6 - 3;
+    const int expected = 3;
+    const int actual   = 6 - 3;
     ASSERT_EQ(actual, expected);
 }
 
@@ -64,7 +64,7 @@ TEST(ExampleTests, TestIntegerZero_One)
  ******************************************************************************/
 TEST(ExampleTests, TestDivision)
 {
-    const auto expected = 2;
-    const auto actual   = 6 / 3;
+    const int expected = 2;
+    const int actual   = 6 / 3;
     ASSERT_EQ(actual, expected);
 }

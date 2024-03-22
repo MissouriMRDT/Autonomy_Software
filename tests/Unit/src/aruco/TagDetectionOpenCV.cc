@@ -88,10 +88,10 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
     // Should have only detected one tag
     ASSERT_EQ(vDetectedTags.size(), 1);
 
-    arucotag::ArucoTag detTag = vDetectedTags[0];
+    arucotag::ArucoTag stDetectedTag = vDetectedTags[0];
 
     // Verify ID is 0
-    EXPECT_EQ(detTag.nID, 0);
+    EXPECT_EQ(stDetectedTag.nID, 0);
 
     // Does the detected tag's corners match with the real tags
     cv::Point2f expectedCornerTL{220, 220};
@@ -99,10 +99,10 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
     cv::Point2f expectedCornerBL{220, 419};
     cv::Point2f expectedCornerBR{419, 419};
 
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTL, detTag.CornerTL);
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTR, detTag.CornerTR);
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBL, detTag.CornerBL);
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBR, detTag.CornerBR);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTL, stDetectedTag.CornerTL);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTR, stDetectedTag.CornerTR);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBL, stDetectedTag.CornerBL);
+    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBR, stDetectedTag.CornerBR);
 }
 
 /******************************************************************************
@@ -140,13 +140,13 @@ TEST(TagDetectOpenCVTest, MultiCleanTagDetect)
     unsigned int unIncorrectlyIdentifiedTags = 0;
 
     // For each detected tag check its one of the real tags
-    for (auto& detTag : vecDetectedTags)
+    for (arucotag::ArucoTag& stDetectedTag : vecDetectedTags)
     {
         // Which real tag does it match
         int nTagIdx = -1;
         for (int i = 0; i < (int) vecIDS.size(); ++i)
         {
-            if (vecIDS[i] == detTag.nID)
+            if (vecIDS[i] == stDetectedTag.nID)
             {
                 // Found the corresponding real tag
                 nTagIdx = i;
@@ -171,10 +171,10 @@ TEST(TagDetectOpenCVTest, MultiCleanTagDetect)
 
         // Do the corners between the expected and detected tags match?
         bool bTLMatch, bTRMatch, bBLMatch, bBRMatch;
-        bTLMatch = PointsAreEqual<float>(expectedCornerTL, detTag.CornerTL);
-        bTRMatch = PointsAreEqual<float>(expectedCornerTR, detTag.CornerTR);
-        bBLMatch = PointsAreEqual<float>(expectedCornerBL, detTag.CornerBL);
-        bBRMatch = PointsAreEqual<float>(expectedCornerBR, detTag.CornerBR);
+        bTLMatch = PointsAreEqual<float>(expectedCornerTL, stDetectedTag.CornerTL);
+        bTRMatch = PointsAreEqual<float>(expectedCornerTR, stDetectedTag.CornerTR);
+        bBLMatch = PointsAreEqual<float>(expectedCornerBL, stDetectedTag.CornerBL);
+        bBRMatch = PointsAreEqual<float>(expectedCornerBR, stDetectedTag.CornerBR);
 
         EXPECT_TRUE(bTLMatch);
         EXPECT_TRUE(bTRMatch);
