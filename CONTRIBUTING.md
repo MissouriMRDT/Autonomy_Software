@@ -129,6 +129,8 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - ZEDSDK > `sl` > Example: `sl::Mat slExampleZedMat`
 - Quill > `q` > Example: `quill::Config qConfig`
 - GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
+- Tensorflow > `tf` > Example: `tflite::Interpreter tfExampleTensorflowType`
+- Libedgetpu > `tpu` > Example: `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType`
 
 ### Macro Names
 

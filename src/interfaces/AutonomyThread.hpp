@@ -302,7 +302,7 @@ class AutonomyThread
             }
 
             // Loop nNumThreads times and queue tasks.
-            for (int i = 0; i < nNumTasksToQueue; ++i)
+            for (unsigned int i = 0; i < nNumTasksToQueue; ++i)
             {
                 // Submit single task to pool queue.
                 m_vPoolReturns.emplace_back(m_thPool.submit_task(
