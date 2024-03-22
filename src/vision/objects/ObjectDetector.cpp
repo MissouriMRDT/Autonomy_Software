@@ -121,6 +121,7 @@ void ObjectDetector::ThreadedContinuousCode()
     // Call detection methods and inference.
     /////////////////////////////////////////
 
+    // TODO: Implement when ready, commented out to suppress warnings.
     // Merge the newly detected objects with the pre-existing detected objects
     // this->UpdateDetectedObjects(vNewlyDetectedObjects);
 
