@@ -77,15 +77,7 @@ namespace statemachine
      ******************************************************************************/
     void ApproachingObjectState::Run()
     {
-        // TODO: Implement the behavior specific to the Approaching Object state
-        // BUG: This breaks occasionally.
-        // HACK: This is bad, never do this.
-        // FIXME: AAAHAHAHHAAH
-        // LEAD: AHAHAHAHA
-        // ISSUE NOTE: WHAT THE HELL
-        // TEST: LKFJLSKDFJLKSDjf
-        // [ ] this is a list item.
-        // [x] this is a checked list item.
+        // TODO: Implement the behavior specific to the Approaching Object state.
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
     }
 
