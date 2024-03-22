@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile_Jammy
       args:
-        RUNNER_VERSION: 'latest'
+        RUNNER_VERSION: '2.314.1'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 2
@@ -33,7 +33,7 @@ services:
       context: .
       dockerfile: Dockerfile_JetPack
       args:
-        RUNNER_VERSION: 'latest'
+        RUNNER_VERSION: '2.314.1'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 1
