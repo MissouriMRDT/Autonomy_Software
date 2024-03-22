@@ -41,8 +41,8 @@ void RunExample()
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
-    cv::Mat cvPreProcessFrame1;
     cv::Mat cvDetectionsFrame1;
+    cv::cuda::GpuMat cvGPUNormalFrame1;
     // Declare vector to store tag detections in.
     std::vector<arucotag::ArucoTag> vTagDetections1;
 
@@ -52,16 +52,37 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
-        // Grab normal frame from camera.
-        std::future<bool> fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
-        // Get detections from tag detector for BasicCam.
-        std::future<bool> fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
+        // Create instance variables.
+        std::future<bool> fuCopyStatus1;
+        std::future<bool> fuDetectionCopyStatus1;
+        std::future<bool> fuDetectionFrameCopyStatus1;
+
+        // Check if the camera is setup to use CPU or GPU mats.
+        if (constants::ZED_MAINCAM_USE_GPU_MAT)
+        {
+            // Grab normal frame from camera.
+            fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
+        }
+        else
+        {
+            // Grab normal frame from camera.
+            fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
+        }
         // Get detections overlay frame from detector.
         std::future<bool> fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestDetectionOverlayFrame(cvDetectionsFrame1);
+        // Grab other info from detector.
+        fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
 
         // Show first frame copy.
-        if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
+        if (fuCopyStatus1.get())
         {
+            // Check if the camera is setup to use CPU or GPU mats.
+            if (constants::ZED_MAINCAM_USE_GPU_MAT)
+            {
+                // Download memory from gpu mats if necessary.
+                cvGPUNormalFrame1.download(cvNormalFrame1);
+            }
+
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
                         std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()),

@@ -33,8 +33,8 @@
     "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-    // "dockerfile": "Dockerfile_Jammy"
-    // "dockerfile": "Dockerfile_JetPack"
+    //     // "dockerfile": "Dockerfile_Jammy"
+    //     "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -80,10 +80,11 @@
                 "extensions.ignoreRecommendations": true,
                 // Git settings.
                 "git.autofetch": true,
+                "git.terminalAuthentication": false,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
-                "C_Cpp.default.cppStandard": "c++20",
+                "C_Cpp.default.cppStandard": "c++17",
                 "C_Cpp.default.includePath": [
                     "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/",
                     "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/**",
@@ -100,7 +101,13 @@
                     "/usr/local/include/gtest/",
                     "/usr/local/include/gtest/**",
                     "/usr/local/include/GeographicLib/",
-                    "/usr/local/include/GeographicLib/**"
+                    "/usr/local/include/GeographicLib/**",
+                    "/usr/local/include/tensorflow/lite/",
+                    "/usr/local/include/tensorflow/lite/**",
+                    "/usr/local/include/edgetpu/",
+                    "/usr/local/include/edgetpu/**",
+                    "/usr/include/torch/",
+                    "/usr/include/torch/**"
                 ],
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
