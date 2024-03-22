@@ -106,7 +106,6 @@ void RunExample()
         std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
 
         // Wait for the frames to be copied.
-        // std::this_thread::sleep_for(std::chrono::seconds(1));
         if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
         {
             // Check if the camera is setup to use CPU or GPU mats.
