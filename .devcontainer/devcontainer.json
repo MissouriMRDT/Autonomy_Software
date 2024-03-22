@@ -166,21 +166,48 @@
                 "doxdocgen.generic.useGitUserName": true,
                 // Todo Tree Extention Settings
                 "todo-tree.general.tags": [
-                    "FIXME:",
-                    "TODO:",
-                    "LEAD:",
-                    "ISSUE NOTE:"
+                    "TODO",
+                    "BUG",
+                    "HACK",
+                    "FIXME",
+                    "LEAD",
+                    "ISSUE NOTE",
+                    "TEST",
+                    "[ ]",
+                    "[x]"
                 ],
+                "todo-tree.highlights.defaultHighlight": {
+                    "icon": "alert",
+                    "type": "text",
+                    "foreground": "#00ff00",
+                    "background": "#ffffff",
+                    "opacity": 50,
+                    "iconColour": "#00ff00"
+                },
                 "todo-tree.highlights.customHighlight": {
                     "TODO": {
-                        "icon": "check",
+                        "icon": "bookmark",
                         "type": "line",
                         "iconColour": "#d000ff",
                         "foreground": "#ffffff",
                         "background": "#d000ff"
                     },
+                    "BUG": {
+                        "icon": "bug",
+                        "type": "line",
+                        "iconColour": "#ff8c00",
+                        "foreground": "#ffffff",
+                        "background": "#ff8c00"
+                    },
+                    "HACK": {
+                        "icon": "circle-slash",
+                        "type": "line",
+                        "iconColour": "#ff1e00",
+                        "foreground": "#ffffff",
+                        "background": "#ff1e00"
+                    },
                     "FIXME": {
-                        "icon": "beaker",
+                        "icon": "alert-fill",
                         "type": "line",
                         "iconColour": "#ff0000",
                         "foreground": "#ffffff",
@@ -189,22 +216,22 @@
                     "LEAD": {
                         "icon": "person",
                         "type": "line",
-                        "iconColour": "#ffffff",
-                        "foreground": "#000000",
-                        "background": "#ffffff"
+                        "iconColour": "#0700d8",
+                        "foreground": "#ffffff",
+                        "background": "#0700d8"
                     },
                     "ISSUE NOTE": {
                         "icon": "book",
                         "type": "line",
                         "iconColour": "#808080",
-                        "foreground": "#000000",
+                        "foreground": "#ffffff",
                         "background": "#808080"
                     },
                     "TEST": {
-                        "icon": "book",
+                        "icon": "beaker",
                         "type": "line",
                         "iconColour": "#c5cb04",
-                        "foreground": "#000000",
+                        "foreground": "#ffffff",
                         "background": "#ccd514"
                     }
                 },
