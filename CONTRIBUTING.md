@@ -58,15 +58,15 @@ Pull Request names should be no more than 50 characters. The description should 
 ### Utilizing TODO-Trees
 
 A list of action items can be built in the TODO extension tab using these keywords to highlight and mark sections of code for later review:
-        // TODO: Implement the behavior specific to the Approaching Object state
-        // BUG: This breaks occasionally.
-        // HACK: This is bad, never do this.
-        // FIXME: Broken
-        // LEAD: Check this out...
-        // ISSUE NOTE: This is messed up.
-        // TEST: Make sure this works, write unit tests.
-        // [ ] This is a list item.
-        // [x] This is a checked list item.
+- // TODO: Implement the behavior specific to the Approaching Object state
+- // BUG: This breaks occasionally.
+- // HACK: This is bad, never do this.
+- // FIXME: Broken
+- // LEAD: Check this out...
+- // ISSUE NOTE: This is messed up.
+- // TEST: Make sure this works, write unit tests.
+- // [ ] This is a list item.
+- // [x] This is a checked list item.
 
 ## Styleguides
 
