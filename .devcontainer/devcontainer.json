@@ -30,7 +30,7 @@
     "mounts": [
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-02-27-00-06-07",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
     //     // "dockerfile": "Dockerfile_Jammy"
