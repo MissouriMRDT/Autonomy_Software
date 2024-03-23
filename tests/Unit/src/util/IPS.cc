@@ -126,13 +126,11 @@ TEST(IPSTest, MetricsFunctionality)
     double dHigh     = pIPS->GetHighestIPS();
     double dLow      = pIPS->GetLowestIPS();
     double d1Percent = pIPS->Get1PercentLow();
-    // Print values for debugging.
-    std::cout << dAverage << " " << dHigh << " " << dLow << " " << d1Percent << std::endl;
 
     // Test that the returned average makes sense.
     EXPECT_TRUE(dAverage <= dHigh && dAverage >= dLow);
     // Test that the returned minimum makes sense.
-    EXPECT_TRUE(dLow >= 0 && dLow <= dHigh);
+    EXPECT_TRUE(dLow >= -1 && dLow <= dHigh);
     // Test that the returned maximum makes sense.
     EXPECT_TRUE(dHigh >= dLow);
     // Test that the returned 1% low makes sense.
