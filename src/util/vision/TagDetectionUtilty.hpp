@@ -19,7 +19,7 @@
 
 #include "../../vision/aruco/ArucoDetection.hpp"
 #include "../../vision/aruco/TagDetector.h"
-#include "../../vision/aruco/TensorflowDetection.hpp"
+#include "../../vision/aruco/TensorflowTagDetection.hpp"
 
 /// \endcond
 

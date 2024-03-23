@@ -31,7 +31,7 @@ namespace statemachine
     void ReversingState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
         // Get current position and heading
         stStartPosition = globals::g_pNavigationBoard->GetGPSData();
@@ -53,7 +53,7 @@ namespace statemachine
     void ReversingState::Exit()
     {
         // Clean up the state before exiting
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "ReversingState: Exiting state.");
     }
 
     /******************************************************************************
@@ -65,6 +65,7 @@ namespace statemachine
      ******************************************************************************/
     ReversingState::ReversingState() : State(States::eReversing)
     {
+        // Submit logger message.
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         m_bInitialized = false;
@@ -82,11 +83,16 @@ namespace statemachine
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2024-01-17
      ******************************************************************************/
-    States ReversingState::Run()
+    void ReversingState::Run()
     {
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
 
         // Make rover reverse
+        // LEAD: @ryanw Are these both supposed to be dCurrentHeading? 2ns param is goal heading, 3rd is current. Doing this does not guarantee that the
+        // LEAD: rover will reverse in a straight line. If you just want to reverse without trying to keep a goal heading, just use SendDrive().
+        // FIXME: You can't use eTankDrive with CalculateMove. If you run the code it will print out an error. Use ArcadeDrive for more intuitive control.
+        // FIXME: Make reverse speed a constant.
         diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-1, dCurrentHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eTankDrive);
         globals::g_pDriveBoard->SendDrive(stReverse);
 
@@ -105,9 +111,10 @@ namespace statemachine
         if (dCurDistance >= dDistanceThreshold)    // TODO: Currently will keep reversing if the position doesn't change
         {
             globals::g_pDriveBoard->SendStop();    // Stop reversing
-            return TriggerEvent(Event::eReverseComplete);
+            // FIXME: Calling this->TriggerEvent() will not change states. Call the state machine handler's HandleEven().
+            // FIXME: globals::g_pStateMachineHandler->HandleEvent(Event::eReverseComplete);
+            TriggerEvent(Event::eReverseComplete);
         }
-        return States::eReversing;
     }
 
     /******************************************************************************
@@ -128,25 +135,24 @@ namespace statemachine
         {
             case Event::eStart:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
-                eNextState = States::eReversing;
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
                 break;
             }
             case Event::eAbort:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
                 eNextState = States::eIdle;
                 break;
             }
             case Event::eReverseComplete:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling stReverse Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling stReverse Complete event.");
                 eNextState = States::eIdle;
                 break;
             }
             default:
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
@@ -154,7 +160,7 @@ namespace statemachine
 
         if (eNextState != States::eReversing)
         {
-            LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
