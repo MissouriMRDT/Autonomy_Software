@@ -16,7 +16,10 @@
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/TensorflowTPU.hpp"
 
+/// \cond
 #include <opencv2/opencv.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions or objects/struct used to aid in easy use
