@@ -85,7 +85,7 @@ SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 InsertNewlineAtEOF: true
-Standard: c++20
+Standard: c++17
 TabWidth: 4
 UseTab: Never
 DisableFormat: false

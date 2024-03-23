@@ -15,6 +15,12 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-arm64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-amd64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
 
@@ -32,6 +38,12 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-arm64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-amd64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
 
@@ -56,6 +68,7 @@ jobs:
   # for the other jobs.
   time-and-date:
     runs-on: [ubuntu-latest]
+    timeout-minutes: 360
 
     # This outputs the current date and time to the GitHub output. This is used to tag the docker images.
     outputs:
@@ -74,6 +87,7 @@ jobs:
   check-amd64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
@@ -82,6 +96,9 @@ jobs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
+      pytorch-amd64: ${{ steps.changes.outputs.pytorch-amd64 }}
+      abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
+      tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
 
     steps:
@@ -106,6 +123,12 @@ jobs:
               - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
             opencv-amd64:
               - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+            pytorch-amd64:
+              - 'tools/package-builders/pytorch/pytorch-amd64-pkg.sh'
+            abseil-amd64:
+              - 'tools/package-builders/abseil/abseil-amd64-pkg.sh'
+            tensorflow-amd64:
+              - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
 
@@ -118,6 +141,7 @@ jobs:
   build-updated-amd64-packages:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -131,6 +155,9 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - pytorch
+          - abseil
+          - tensorflow
           - quill
 
     steps:
@@ -175,11 +202,16 @@ jobs:
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new package into the repository
+          # Copy the new AMD64 packages into the repository
           mkdir -p ${{ matrix.package }}/amd64/
-          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/amd64/
+          cp -r /tmp/pkg/deb/*amd64*.deb ${{ matrix.package }}/amd64/
+
+          # Set up Git LFS
+          git lfs install
 
           # Commit and push changes
+          git lfs track '*.deb'
+          git add .gitattributes
           git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
@@ -201,6 +233,7 @@ jobs:
   check-arm64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
@@ -209,6 +242,9 @@ jobs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
+      pytorch-arm64: ${{ steps.changes.outputs.pytorch-arm64 }}
+      abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
+      tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
 
     steps:
@@ -233,6 +269,12 @@ jobs:
               - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
             opencv-arm64:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            pytorch-arm64:
+              - 'tools/package-builders/pytorch/pytorch-arm64-pkg.sh'
+            abseil-arm64:
+              - 'tools/package-builders/abseil/abseil-arm64-pkg.sh'
+            tensorflow-arm64:
+              - 'tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
 
@@ -245,6 +287,7 @@ jobs:
   build-updated-arm64-packages:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -257,6 +300,9 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - pytorch
+          - abseil
+          - tensorflow
           - quill
 
     steps:
@@ -301,11 +347,16 @@ jobs:
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new package into the repository
+          # Copy the new ARM64 packages into the repository
           mkdir -p ${{ matrix.package }}/arm64/
-          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/arm64/
+          cp -r /tmp/pkg/deb/*arm64*.deb ${{ matrix.package }}/arm64/
+
+          # Set up Git LFS
+          git lfs install
 
           # Commit and push changes
+          git lfs track '*.deb'
+          git add .gitattributes
           git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
@@ -329,6 +380,7 @@ jobs:
   build-and-push-jammy:
     needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
@@ -413,6 +465,7 @@ jobs:
   build-and-push-jetpack:
     needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
