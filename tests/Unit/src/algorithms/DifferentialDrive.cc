@@ -37,11 +37,11 @@ TEST(DifferentialDriveTest, TankDrive)
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
     {
         // Calculate drive powers.
-        auto [dLeftDrivePower, dRightDrivePower] = diffdrive::CalculateTankDrive(aLeftSpeedInput[nIter], aRightSpeedInput[nIter]);
+        diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateTankDrive(aLeftSpeedInput[nIter], aRightSpeedInput[nIter]);
 
         // Check that the expected output values were calculated.
-        EXPECT_NEAR(aLeftSpeedOutput[nIter], dLeftDrivePower, 0.01);      // Left output check.
-        EXPECT_NEAR(aRightSpeedOutput[nIter], dRightDrivePower, 0.01);    // Right output check.
+        EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.01);      // Left output check.
+        EXPECT_NEAR(aRightSpeedOutput[nIter], stDriveOutput.dRightDrivePower, 0.01);    // Right output check.
     }
 }
 
@@ -65,11 +65,11 @@ TEST(DifferentialDriveTest, ArcadeDrive)
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
     {
         // Calculate drive powers.
-        auto [dLeftDrivePower, dRightDrivePower] = diffdrive::CalculateArcadeDrive(aSpeedInput[nIter], aRotationInput[nIter]);
+        diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateArcadeDrive(aSpeedInput[nIter], aRotationInput[nIter]);
 
         // Check that the expected output values were calculated.
-        EXPECT_NEAR(aLeftSpeedOutput[nIter], dLeftDrivePower, 0.02);      // Left output check.
-        EXPECT_NEAR(aRightSpeedOutput[nIter], dRightDrivePower, 0.02);    // Right output check.
+        EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.02);      // Left output check.
+        EXPECT_NEAR(aRightSpeedOutput[nIter], stDriveOutput.dRightDrivePower, 0.02);    // Right output check.
     }
 }
 
@@ -94,10 +94,10 @@ TEST(DifferentialDriveTest, CurvatureDrive)
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
     {
         // Calculate drive powers.
-        auto [dLeftDrivePower, dRightDrivePower] = diffdrive::CalculateCurvatureDrive(aSpeedInput[nIter], aRotationInput[nIter], aAllowTurnInPlaceInput[nIter]);
+        diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateCurvatureDrive(aSpeedInput[nIter], aRotationInput[nIter], aAllowTurnInPlaceInput[nIter]);
 
         // Check that the expected output values were calculated.
-        EXPECT_NEAR(aLeftSpeedOutput[nIter], dLeftDrivePower, 0.02);      // Left output check.
-        EXPECT_NEAR(aRightSpeedOutput[nIter], dRightDrivePower, 0.02);    // Right output check.
+        EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.02);      // Left output check.
+        EXPECT_NEAR(aRightSpeedOutput[nIter], stDriveOutput.dRightDrivePower, 0.02);    // Right output check.
     }
 }
