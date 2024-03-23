@@ -139,7 +139,7 @@ TagDetector::~TagDetector()
     this->Join();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully stopped.", this->GetCameraName());
+    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully destroyed.", this->GetCameraName());
 }
 
 /******************************************************************************
