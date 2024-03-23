@@ -8,6 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include <csignal>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <thread>
+
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
