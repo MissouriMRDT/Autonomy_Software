@@ -12,6 +12,7 @@
 #define REVERSINGSTATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,10 +32,12 @@ namespace statemachine
     class ReversingState : public State
     {
         private:
-            // TODO: Add fetch of current position from GPS
-            geoops::GPSCoordinate stStartPosition = globals::g_pNavigationBoard->GetGPSData();
+            // LEAD: @ryanw Don't initialize values in a header file. This won't even compile.
+            geoops::GPSCoordinate stStartPosition;
             double dCurrentHeading;
             bool m_bInitialized;
+            // LEAD: Don't initialize values in a header file.
+            // FIXME: Move these to constants. Use the same formatting as the other constants sections. There is already a state machine section.
             const double dCurDistance       = 0;    // TODO: set constants?
             const double dDistanceThreshold = 5;
 
@@ -44,7 +47,7 @@ namespace statemachine
 
         public:
             ReversingState();
-            States Run() override;
+            void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
 }    // namespace statemachine
