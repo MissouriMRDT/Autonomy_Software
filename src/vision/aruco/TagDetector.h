@@ -16,7 +16,7 @@
 #include "../../vision/cameras/BasicCam.h"
 #include "../../vision/cameras/ZEDCam.h"
 #include "./ArucoDetection.hpp"
-#include "./TensorflowDetection.hpp"
+#include "./TensorflowTagDetection.hpp"
 
 /// \cond
 #include <future>
@@ -26,7 +26,9 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Run's Aruco detection & camera pose estimation in a multithreading environment
+ * @brief Run's Aruco detection & camera pose estimation in a multithreading environment.
+ *      Given a camera, tag detection using OpenCV's ArUco library and a custom trained
+ *      model for detecting general tags will be continuously ran on the camera frames.
  *
  * What are the threads doing?
  * Continuous Thread:
