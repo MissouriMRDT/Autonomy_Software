@@ -6,7 +6,7 @@ ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="11"
 ARG CUDA_MINOR="7"
 ARG CUDA_PATCH="0"
-ARG RUNNER_VERSION="2.310.2"
+ARG RUNNER_VERSION="2.314.1"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNNER_ALLOW_RUNASROOT=1
 
@@ -42,8 +42,8 @@ RUN chown -R docker /opt/Autonomy_Software/
 RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
-# add over the start.sh script
-RUN wget https://raw.githubusercontent.com/MissouriMRDT/Autonomy_Software/development/tools/action-runners/scripts/start.sh start.sh
+# Add over the start.sh script
+ADD scripts/start.sh start.sh
 
 # make the script executable
 RUN chmod +x start.sh

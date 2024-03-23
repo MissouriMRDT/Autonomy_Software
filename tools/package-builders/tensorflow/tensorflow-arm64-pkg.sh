@@ -7,7 +7,7 @@ cd /tmp
 TENSORFLOW_VERSION="2.13.1"
 TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
 TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
-TENSORFLOW_BAZEL_VERSION="6.1.0"
+TENSORFLOW_BAZEL_VERSION="5.3.0"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb"
@@ -46,7 +46,7 @@ else
     echo "Description: A prebuilt version of Tensorflow. Made by the Mars Rover Design Team." >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
 
     # Download Tensorflow
-    git clone --depth 1 --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow
+    git clone --depth 1 --recurse-submodules --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow
     cd tensorflow
 
     # Fix CUDA Library Path
@@ -87,9 +87,10 @@ else
     cd /tmp
     rm -rf tensorflow
 
-    Download LibEdgeTPU
-    git clone --depth 1 https://github.com/google-coral/libedgetpu.git
+    # Download LibEdgeTPU
+    git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
+    git checkout -f a82c669fb7a9b2e813cfb3d5409fea98d6a6ac8c
 
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
