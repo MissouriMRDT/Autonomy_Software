@@ -94,17 +94,17 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/ar
     dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
     rm abseil_${ABSEIL_VERSION}_arm64.deb
 
-# Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.13.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-    dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-    rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
-
 # Install GeographicLib
 ARG GEOLIB_VERSION="2.3"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
     rm geolib_${GEOLIB_VERSION}_arm64.deb
+
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.13.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
 
 # Install Quill
 ARG QUILL_VERSION="3.7.0"
