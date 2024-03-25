@@ -165,12 +165,6 @@ int main()
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
 
-#if defined(__AUTONOMY_VALGRIND_MODE__) && __AUTONOMY_VALGRIND_MODE__ == 1
-        LOG_WARNING(logging::g_qSharedLogger, "START TIMER");
-
-        int counter = 0;
-#endif
-
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
@@ -210,18 +204,6 @@ int main()
 
             // Update IPS tick.
             IterPerSecond.Tick();
-
-#if defined(__AUTONOMY_VALGRIND_MODE__) && __AUTONOMY_VALGRIND_MODE__ == 1
-            LOG_WARNING(logging::g_qSharedLogger, "TIMER UPDATE: {}", counter);
-
-            counter++;
-
-            if (counter >= 1000)
-            {
-                // Update stop signal.
-                bMainStop = true;
-            }
-#endif
 
             // No need to loop as fast as possible. Sleep...
             // Only run this main thread once every 20ms.

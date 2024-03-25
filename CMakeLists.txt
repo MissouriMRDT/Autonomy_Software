@@ -33,21 +33,13 @@ include(FetchContent)                                                           
 
 ## Enable or Disble Simulation Mode or Valgrind Mode
 option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
-option(BUILD_VALGRIND_MODE "Enable Valgrind Mode" OFF)
 if(BUILD_SIM_MODE)
     message("Sim Mode: Enabled")
     add_compile_definitions(__AUTONOMY_SIM_MODE__=1)
-    add_compile_definitions(__AUTONOMY_VALGRIND_MODE__=0)
     set(EXE_NAME "${PROJECT_NAME}_Sim")
-elseif(BUILD_VALGRIND_MODE)
-    message("Valgrind Mode: Enabled")
-    add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
-    add_compile_definitions(__AUTONOMY_VALGRIND_MODE__=1)
-    set(EXE_NAME "${PROJECT_NAME}_Valgrind")
 else()
     message("Standard Mode: Enabled")
     add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
-    add_compile_definitions(__AUTONOMY_VALGRIND_MODE__=0)
     set(EXE_NAME "${PROJECT_NAME}")
 endif()
 
@@ -60,7 +52,7 @@ set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 set(CPACK_GENERATOR "STGZ")
 
-## Find RoveComm
+## Find and Configure RoveComm
 include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
 add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
