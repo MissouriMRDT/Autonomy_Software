@@ -2,9 +2,9 @@
 
 # Define the path to the executable
 if [ "$1" = "GitHub-Action" ]; then
-  executable_path="/opt/Autonomy_Software/build/Autonomy_Software_Valgrind"
+  executable_path="/opt/Autonomy_Software/build/Autonomy_Software"
 else
-  executable_path="/workspaces/Autonomy_Software/build/Autonomy_Software_Valgrind"
+  executable_path="/workspaces/Autonomy_Software/build/Autonomy_Software"
 fi
 
 # Check if the executable exists
@@ -34,10 +34,4 @@ for supp_file in $supp_files; do
 done
 valgrind_cmd+=" $executable_path"
 
-# Run the Valgrind command
-# if [ "$1" = "GitHub-Action" ]; then
-#     (timeout 20s bash -c "$valgrind_cmd") > /opt/Autonomy_Software/tools/valgrind/valgrind.rpt 2>&1
-# else
-#     (timeout 20s bash -c "$valgrind_cmd") > /workspaces/Autonomy_Software/tools/valgrind/valgrind.rpt 2>&1
-# fi
 timeout 20s bash -c "$valgrind_cmd"

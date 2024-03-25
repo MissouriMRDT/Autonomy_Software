@@ -58,25 +58,12 @@ set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CP
 set(CPACK_GENERATOR "STGZ")
 
 ## Find RoveComm
-FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
-        GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        bdcb60bcea4658f6272289db069efd133f133dec                     # Version 24.2.2
-        GIT_SHALLOW    FALSE                                                        # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-    )
-FetchContent_GetProperties(RoveComm_CPP)
-if(NOT RoveComm_CPP)
-    # Fetch the content using previously declared details
-    FetchContent_Populate(RoveComm_CPP)
+include_directories(external/rovecomm/src)
+add_subdirectory(external/rovecomm)
+add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
-    # Set Library Scope
-    set(RoveComm_CPP_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src/src)
-    set(RoveComm_CPP_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src)
-
-    # Bring the populated content into the build
-    include_directories( ${RoveComm_CPP_INCLUDE_DIR} )
-    add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
-endif()
+## Configure ThreadPool
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PAUSE=1)
 
 ## Find Threads
 find_package(Threads REQUIRED)

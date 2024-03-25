@@ -13,7 +13,7 @@
 #ifndef AUTONOMYTHREAD_H
 #define AUTONOMYTHREAD_H
 
-#include "../../external/threadpool/BSThreadPool.hpp"
+#include "../../external/threadpool/include/BS_thread_pool.hpp"
 #include "../util/IPS.hpp"
 
 /// \cond
@@ -90,8 +90,8 @@ class AutonomyThread
             m_thMainThread.purge();
 
             // Wait for all pools to finish.
-            m_thPool.wait_for_tasks();
-            m_thMainThread.wait_for_tasks();
+            m_thPool.wait();
+            m_thMainThread.wait();
             // Update thread state.
             m_eThreadState = eStopped;
         }
@@ -135,7 +135,7 @@ class AutonomyThread
             m_bStopThreads = false;
 
             // Submit single task to pool queue and store resulting future. Still using pool, as it's scheduling is more efficient.
-            std::future<void> fuMainReturn = m_thMainThread.submit(&AutonomyThread::RunThread, this, std::ref(m_bStopThreads));
+            std::future<void> fuMainReturn = m_thMainThread.submit_task([this]() { this->RunThread(m_bStopThreads); });
 
             // Unpause pool queues.
             m_thPool.unpause();
@@ -171,9 +171,9 @@ class AutonomyThread
         void Join()
         {
             // Wait for pool to finish all tasks.
-            m_thPool.wait_for_tasks();
+            m_thPool.wait();
             // Wait for main thread to finish.
-            m_thMainThread.wait_for_tasks();
+            m_thMainThread.wait();
 
             // Update thread state.
             m_eThreadState = eStopped;
@@ -293,7 +293,7 @@ class AutonomyThread
                 m_thPool.pause();
                 m_thPool.purge();
                 // Wait for threadpool to join.
-                m_thPool.wait_for_tasks();
+                m_thPool.wait();
                 // Unpause queue.
                 m_thPool.unpause();
 
@@ -305,7 +305,7 @@ class AutonomyThread
             for (int i = 0; i < nNumTasksToQueue; ++i)
             {
                 // Submit single task to pool queue.
-                m_vPoolReturns.emplace_back(m_thPool.submit(
+                m_vPoolReturns.emplace_back(m_thPool.submit_task(
                     [this]()
                     {
                         // Run user pool code without lock.
@@ -376,7 +376,7 @@ class AutonomyThread
                 m_thPool.pause();
                 m_thPool.purge();
                 // Wait for threadpool to join.
-                m_thPool.wait_for_tasks();
+                m_thPool.wait();
                 // Unpause queue.
                 m_thPool.unpause();
 
@@ -388,7 +388,7 @@ class AutonomyThread
             for (unsigned int i = 0; i < nNumTasksToQueue; ++i)
             {
                 // Push single task to pool queue. No return value no control.
-                m_thPool.push_task(
+                m_thPool.detach_task(
                     [this]()
                     {
                         // Run user code without lock.
@@ -429,15 +429,15 @@ class AutonomyThread
             // Create new thread pool.
             BS::thread_pool m_thLoopPool = BS::thread_pool(nNumThreads);
 
-            m_thLoopPool.push_loop(tTotalIterations,
-                                   [&tLoopFunction](const int a, const int b)
-                                   {
-                                       // Call loop function without lock.
-                                       tLoopFunction(a, b);
-                                   });
+            m_thLoopPool.detach_blocks(tTotalIterations,
+                                       [&tLoopFunction](const int a, const int b)
+                                       {
+                                           // Call loop function without lock.
+                                           tLoopFunction(a, b);
+                                       });
 
             // Wait for loop to finish.
-            m_thLoopPool.wait_for_tasks();
+            m_thLoopPool.wait();
         }
 
         /******************************************************************************
@@ -458,7 +458,7 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-07-22
          ******************************************************************************/
-        void JoinPool() { m_thPool.wait_for_tasks(); }
+        void JoinPool() { m_thPool.wait(); }
 
         /******************************************************************************
          * @brief Check if the internal pool threads are done executing code and the
