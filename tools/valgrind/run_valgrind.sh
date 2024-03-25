@@ -22,7 +22,7 @@ fi
 
 # Get the directory of the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-echo "  Script:   $script_dir"
+echo "  Script Dir:   $script_dir"
 
 # Attempt to copy the suppressions files from OpenCV install to project directory.
 cp /usr/local/share/opencv*/*.supp $script_dir
