@@ -40,6 +40,15 @@ jobs:
           git pull --ff-only
           git submodule update --recursive --init
 
+      - name: Delete Build Directory
+        run: |
+          if [ -d "/opt/Autonomy_Software/build" ]; then
+              rm -rf "/opt/Autonomy_Software/build"
+              echo "Directory deleted successfully."
+          else
+              echo "Directory does not exist."
+          fi
+
       - name: Build Executable
         run: |
           cd /opt/Autonomy_Software/
