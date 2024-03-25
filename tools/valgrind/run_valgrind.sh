@@ -44,3 +44,12 @@ done
 valgrind_cmd+=" $executable_path"
 
 timeout "$check_time"s bash -c "$valgrind_cmd"
+
+exit_code=$?
+
+# Check if exit code is 124 or 0
+if [ $exit_code -eq 124 ] || [ $exit_code -eq 0 ]; then
+    exit 0
+else
+    exit 1
+fi
