@@ -1,0 +1,9 @@
+[submodule "external/threadpool"]
+	path = external/threadpool
+	url = https://github.com/bshoshany/thread-pool.git
+    tag = v4.1.0
+
+[submodule "external/rovecomm"]
+	path = external/rovecomm
+	url = https://github.com/missourimrdt/rovecomm_cpp.git
+    commit = 120790550ad875909514a3cb2a37f798aa66cdde
