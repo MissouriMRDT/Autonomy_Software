@@ -41,10 +41,11 @@ jobs:
       - name: Checkout Tag
         run: |
           cd /opt/Autonomy_Software/
-          git fetch --tags --force
+          git fetch --tags --force --recurse-submodules
           tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo $tag
           git checkout $tag
+          git submodule update --recursive --init
 
       - name: Build and Create Executable
         run: |
