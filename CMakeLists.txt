@@ -55,6 +55,13 @@ set(CPACK_GENERATOR "STGZ")
 # Configure BSThreadPool
 add_compile_definitions(BS_THREAD_POOL_ENABLE_PAUSE=1)
 
+## Find RoveComm
+set(RoveComm_CPP_INC external/rovecomm/src)
+set(RoveComm_CPP_SRC external/rovecomm)
+include_directories( ${RoveComm_CPP_INC} )
+add_subdirectory(${RoveComm_CPP_SRC})
+add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
+
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 if (NOT LINK_SHARED_ZED AND MSVC)
