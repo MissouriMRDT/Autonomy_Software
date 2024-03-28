@@ -62,14 +62,6 @@ jobs:
           chmod 777 /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh
           /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh "GitHub-Action"
 
-          exit_code=$?
-
-          if [ $exit_code -eq 124 ] || [ $exit_code -eq 0 ]; then
-              exit 0
-          else
-              exit 1
-          fi
-
       - name: Analyze Valgrind - Definitely Lost
         if: success() || failure()
         run: |

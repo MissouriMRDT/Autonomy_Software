@@ -36,3 +36,11 @@ valgrind_cmd+=" $executable_path"
 
 # Run the Valgrind command
 timeout --signal=SIGINT 60s $valgrind_cmd
+
+exit_code=$?
+
+if [ $exit_code -eq 124 ] || [ $exit_code -eq 0 ]; then
+    exit 0
+else
+    exit 1
+fi
