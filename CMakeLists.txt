@@ -52,27 +52,6 @@ set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 set(CPACK_GENERATOR "STGZ")
 
-## Find RoveComm
-FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
-        GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        v24.2.4                                                      # Version 24.2.4
-        GIT_SHALLOW    FALSE                                                        # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-    )
-FetchContent_GetProperties(RoveComm_CPP)
-if(NOT RoveComm_CPP)
-    # Fetch the content using previously declared details
-    FetchContent_Populate(RoveComm_CPP)
-
-    # Set Library Scope
-    set(RoveComm_CPP_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src/src)
-    set(RoveComm_CPP_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src)
-
-    # Bring the populated content into the build
-    include_directories( ${RoveComm_CPP_INCLUDE_DIR} )
-    add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
-endif()
-
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 if (NOT LINK_SHARED_ZED AND MSVC)
