@@ -54,6 +54,8 @@ set(CPACK_GENERATOR "STGZ")
 
 # Configure BSThreadPool
 add_compile_definitions(BS_THREAD_POOL_ENABLE_PAUSE=1)
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PRIORITY=1)
+add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
 
 ## Find RoveComm
 set(RoveComm_CPP_INC external/rovecomm/src)
