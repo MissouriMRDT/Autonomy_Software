@@ -52,6 +52,9 @@ set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 set(CPACK_GENERATOR "STGZ")
 
+# Configure BSThreadPool
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PAUSE=1)
+
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 if (NOT LINK_SHARED_ZED AND MSVC)

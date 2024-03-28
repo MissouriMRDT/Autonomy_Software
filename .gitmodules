@@ -1,0 +1,3 @@
+[submodule "external/threadpool"]
+	path = external/threadpool
+	url = https://github.com/bshoshany/thread-pool.git
