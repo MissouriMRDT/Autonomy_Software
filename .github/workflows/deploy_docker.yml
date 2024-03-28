@@ -108,6 +108,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -167,6 +168,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
       # from the previous job. It runs the package build script for the package that is being built.
@@ -254,6 +256,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -312,6 +315,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
       # from the previous job. It runs the package build script for the package that is being built.
@@ -390,6 +394,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -475,6 +480,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
