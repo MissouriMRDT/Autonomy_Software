@@ -58,11 +58,8 @@ add_compile_definitions(BS_THREAD_POOL_ENABLE_PRIORITY=1)
 add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
 
 ## Find RoveComm
-set(RoveComm_CPP_INC external/rovecomm/src)
-set(RoveComm_CPP_SRC external/rovecomm)
-include_directories( ${RoveComm_CPP_INC} )
-add_subdirectory(${RoveComm_CPP_SRC})
-add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
+include_directories(external/rovecomm/src)
+add_subdirectory(external/rovecomm)
 
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
@@ -168,10 +165,10 @@ file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${EXE_NAME}   ${External_SRC}
-								 ${SRC}
-								 ${Examples_SRC}
-								 ${Tools_SRC}
+add_executable(${EXE_NAME}  ${External_SRC}
+						    ${SRC}
+						    ${Examples_SRC}
+						    ${Tools_SRC}
 	)
 
 ## Set Compile Options for Autonomy Software.
