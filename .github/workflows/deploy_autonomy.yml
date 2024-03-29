@@ -36,7 +36,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
