@@ -91,17 +91,17 @@ namespace logging
         std::shared_ptr<quill::Handler> qRoveCommHandler = quill::create_handler<RoveCommHandler>("RoveCommHandler");
 
         // Configure Patterns
-        qFileHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",        // format
-                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                            // timestamp format
-                                  quill::Timezone::GmtTime);                                                           // timestamp's timezone
+        qFileHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",        // format
+                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                              // timestamp format
+                                  quill::Timezone::GmtTime);                                                             // timestamp's timezone
 
-        qConsoleHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",     // format
-                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                         // timestamp format
-                                     quill::Timezone::GmtTime);                                                        // timestamp's timezone
+        qConsoleHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",     // format
+                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                           // timestamp format
+                                     quill::Timezone::GmtTime);                                                          // timestamp's timezone
 
-        qRoveCommHandler->set_pattern("%(ascii_time) %(level_name) [%(thread)] [%(filename):%(lineno)] %(message)",    // format
-                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                        // timestamp format
-                                      quill::Timezone::GmtTime);                                                       // timestamp's timezone
+        qRoveCommHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",    // format
+                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                          // timestamp format
+                                      quill::Timezone::GmtTime);                                                         // timestamp's timezone
 
         // Enable Color Console
         static_cast<quill::ConsoleHandler*>(qConsoleHandler.get())->enable_console_colours();
