@@ -12,14 +12,16 @@
 #ifndef DEPTH_DETECTION_HPP
 #define DEPTH_DETECTION_HPP
 
-#include <vector>
-
-#include <opencv2/opencv.hpp>
-
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/GeospatialOperations.hpp"
 #include "../../util/vision/ImageOperations.hpp"
+
+/// \cond
+#include <opencv2/opencv.hpp>
+#include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to object detection operations
