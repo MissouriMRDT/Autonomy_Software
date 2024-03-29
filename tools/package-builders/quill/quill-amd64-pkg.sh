@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="3.7.0"
+QUILL_VERSION="3.8.0"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb"

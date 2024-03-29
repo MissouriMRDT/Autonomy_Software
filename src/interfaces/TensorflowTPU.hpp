@@ -14,12 +14,15 @@
 
 #include "../AutonomyLogging.h"
 
+/// \cond
 #include <edgetpu.h>
 #include <tensorflow/lite/builtin_ops.h>
 #include <tensorflow/lite/interpreter.h>
 #include <tensorflow/lite/kernels/register.h>
 #include <tensorflow/lite/model.h>
 #include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class is designed to enable quick, easy, and robust handling of .tflite
