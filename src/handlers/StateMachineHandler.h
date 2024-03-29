@@ -52,9 +52,7 @@ class StateMachineHandler : private AutonomyThread<void>
         std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>> m_umExitedStates;
         std::shared_mutex m_muStateMutex;
         std::shared_mutex m_muEventMutex;
-        std::atomic_bool m_bInitialized;
         std::atomic_bool m_bSwitchingStates;
-        std::atomic_bool m_bExiting;
 
         /////////////////////////////////////////
         // Declare private class methods.
