@@ -202,12 +202,12 @@ namespace statemachine
         // and are in the first three attempts, start reverse.
         if (!m_bIsCurrentlyAligning && m_unAttempts < 4)
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStart);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStart, true);
         }
         // If we have already done three attempts abort the unstuck state.
         else if (m_unAttempts >= 4)
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort, false);
         }
 
         return;
