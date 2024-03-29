@@ -46,8 +46,8 @@ dorny
 doxdocgen
 Doxygen
 driveboard
-edgetpu
 DRIVELEFTRIGHT
+edgetpu
 endcond
 Extention
 feedforward
@@ -139,9 +139,10 @@ STUCKSTATE
 Styleguides
 TAGDETECT
 TAGDETECTOR
+tagdetectutils
 Tele
-tensorflowobject
 TELEOP
+tensorflowobject
 tensorflowtag
 tensorflowyolo
 tflite
