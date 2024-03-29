@@ -37,12 +37,13 @@ jobs:
       - name: Update Branch
         run: |
           cd /opt/Autonomy_Software/
-          git fetch --force
+          git fetch --force --recurse-submodules
           branch=${{ steps.extract_branch.outputs.branch }}
           echo $branch
           git reset --hard origin/$branch
           git checkout $branch
           git pull --ff-only
+          git submodule update --recursive --init
 
       - name: Build Tests
         run: |
