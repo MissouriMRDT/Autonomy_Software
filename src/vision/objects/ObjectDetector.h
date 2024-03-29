@@ -11,15 +11,18 @@
 #ifndef OBJECT_DETECTOR_H
 #define OBJECT_DETECTOR_H
 
-#include <future>
-#include <shared_mutex>
-#include <vector>
-
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../vision/cameras/BasicCam.h"
 #include "../../vision/cameras/ZEDCam.h"
 #include "./DepthDetection.hpp"
 #include "./TensorflowObjectDetection.hpp"
+
+/// \cond
+#include <future>
+#include <shared_mutex>
+#include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class implements a modular and easy to use object detector for a single

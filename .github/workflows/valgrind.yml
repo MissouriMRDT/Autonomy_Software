@@ -1,0 +1,99 @@
+name: Valgrind Memory Check
+
+on:
+  pull_request:
+    branches: ["development"]
+  push:
+    branches: ["development"]
+  workflow_dispatch:
+
+concurrency:
+  group: "valgrind"
+  cancel-in-progress: false
+
+jobs:
+  run-valgrind:
+    runs-on: [self-hosted, linux, X64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update Branch
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --force --recurse-submodules
+          branch=${{ steps.extract_branch.outputs.branch }}
+          echo $branch
+          git reset --hard origin/$branch
+          git checkout $branch
+          git pull --ff-only
+          git submodule update --recursive --init
+
+      - name: Delete Build Directory
+        run: |
+          if [ -d "/opt/Autonomy_Software/build" ]; then
+              rm -rf "/opt/Autonomy_Software/build"
+              echo "Directory deleted successfully."
+          else
+              echo "Directory does not exist."
+          fi
+
+      - name: Build Executable
+        run: |
+          cd /opt/Autonomy_Software/
+          mkdir build
+          cd build
+          cmake ..
+          make Autonomy_Software
+
+      - name: Run Valgrind
+        run: |
+          chmod 777 /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh
+          /opt/Autonomy_Software/tools/valgrind/run_valgrind.sh "GitHub-Action"
+
+      - name: Analyze Valgrind - Definitely Lost
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'definitely lost' valgrind.rpt; then exit 0; fi
+          if grep 'definitely lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Analyze Valgrind - Indirectly Lost
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'indirectly lost' valgrind.rpt; then exit 0; fi
+          if grep 'indirectly lost: 0' valgrind.rpt; then exit 0; else exit 1; fi
+
+      - name: Analyze Valgrind - Possibly Lost
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'possibly lost' valgrind.rpt; then exit 0; fi
+          if grep 'possibly lost: 0' valgrind.rpt; then exit 0; else exit 0; fi
+
+      - name: Analyze Valgrind - Still Reachable
+        if: success() || failure()
+        run: |
+          cd /opt/Autonomy_Software/tools/valgrind
+          if ! grep 'still reachable' valgrind.rpt; then exit 0; fi
+          if grep 'still reachable: 0' valgrind.rpt; then exit 0; else exit 0; fi
+
+      - name: Upload Valgrind Log
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: valgrind.rpt
+          path: /opt/Autonomy_Software/tools/valgrind/valgrind.rpt
+          retention-days: 1
