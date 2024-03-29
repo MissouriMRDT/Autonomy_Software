@@ -36,10 +36,13 @@ or tort (including negligence or otherwise) arising in any way out of
 the use of this software, even if advised of the possibility of such damage.
 */
 
+/// \cond
 #include <ctime>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
+
+/// \endcond
 
 namespace
 {
