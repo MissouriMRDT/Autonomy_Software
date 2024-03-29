@@ -106,7 +106,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
@@ -178,7 +178,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
@@ -278,7 +278,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
@@ -349,7 +349,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
@@ -440,7 +440,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
@@ -538,7 +538,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
