@@ -162,8 +162,6 @@ void StateMachineHandler::StartStateMachine()
 {
     // Initialize the state machine with the initial state
     m_pCurrentState    = CreateState(statemachine::States::eIdle);
-
-    m_bInitialized     = true;
     m_bSwitchingStates = false;
 
     // Start the state machine thread
@@ -211,7 +209,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         states. And verify that the state machine is not exiting. This prevents
         the state machine from running after it has been stopped.
     */
-    if (m_bInitialized && !m_bSwitchingStates && !m_bExiting)
+    if (!m_bSwitchingStates)
     {
         // Run the current state
         m_pCurrentState->Run();
