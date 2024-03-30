@@ -2,7 +2,6 @@
 # FileSystem
 *build*/
 .vscode/
-!.vscode/c_cpp_properties.json
 valgrind.rpt
 
 # Docker Compose. This is a special rule that prevents Personal Access Tokens from being committed.
