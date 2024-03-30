@@ -29,7 +29,6 @@ endif()
 if(NOT CTest_CMake_INCLUDED)
     include(CTest)                                                                  # CMake Testing Framework
 endif()
-include(FetchContent)                                                               # CMake Dependency Framework
 
 ## Enable or Disble Simulation Mode
 option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
@@ -178,23 +177,26 @@ else()
 	target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-## Link Libraries to Executable
-target_link_libraries(${EXE_NAME} PRIVATE   Threads::Threads
-												Eigen3::Eigen
-                                                RoveComm_CPP
-                                                quill::quill
-												${OpenCV_LIBS}
-                                                ${GeographicLib_LIBRARIES}
-                                                ${ZED_LIBS}
-                                                ${TORCH_LIBRARIES}
-                                                flatbuffers::flatbuffers
-                                                ${ABSL_LIBRARY_DIRS}
-                                                ${TENSORFLOWLITE_LIBS}
-                                                ${LIBEDGETPU_LIBS}
+## Set Autonomy Libraries
+set(AUTONOMY_LIBRARIES  Threads::Threads
+                        Eigen3::Eigen
+                        RoveComm_CPP
+                        quill::quill
+                        ${OpenCV_LIBS}
+                        ${GeographicLib_LIBRARIES}
+                        ${ZED_LIBS}
+                        ${TORCH_LIBRARIES}
+                        flatbuffers::flatbuffers
+                        ${ABSL_LIBRARY_DIRS}
+                        ${TENSORFLOWLITE_LIBS}
+                        ${LIBEDGETPU_LIBS}
     )
 
+## Link Libraries to Executable
+target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
+
 ## Package Executable
-install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES RoveComm_CPP ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RUNTIME DESTINATION bin)
+install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
@@ -208,7 +210,7 @@ list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
     add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
     add_test(Unit_Tests ${EXE_NAME}_UnitTests)
 else()
     message("No Unit Tests!")
@@ -216,7 +218,7 @@ endif()
 
 if (IntegrationTests_LEN GREATER 0)
     add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
     add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
 else()
     message("No Integration Tests!")
