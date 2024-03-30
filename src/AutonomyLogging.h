@@ -120,7 +120,7 @@ namespace logging
                 (void) formatted_record;
 
                 // Log only m_eMinLogLevel or higher to stdout.
-                return metadata.level() >= m_eMinLogLevel;
+                return metadata.log_level() >= m_eMinLogLevel;
             }
     };
 
