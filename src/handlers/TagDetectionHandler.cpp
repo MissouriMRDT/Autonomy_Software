@@ -57,6 +57,37 @@ TagDetectionHandler::TagDetectionHandler()
                                              constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
                                              false);
 
+    // // Check if tensorflow detection is enabled for main ZEDCam.
+    // if (constants::TAGDETECT_MAINCAM_ENABLE_DNN)
+    // {
+    //     // Attempt to init tensorflow detection.
+    //     if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_MODEL_PATH))
+    //     {
+    //         // Set tensorflow detection enabled.
+    //         m_pTagDetectorMainCam->EnableTensorflowDetection(0.4f, 0.6f);
+    //     }
+    // }
+    // // Check if tensorflow detection is enabled for left BasicCam.
+    // if (constants::TAGDETECT_LEFTCAM_ENABLE_DNN)
+    // {
+    //     // Attempt to init tensorflow detection.
+    //     if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_MODEL_PATH))
+    //     {
+    //         // Set tensorflow detection enabled.
+    //         m_pTagDetectorLeftCam->EnableTensorflowDetection(0.4f, 0.6f);
+    //     }
+    // }
+    // // Check if tensorflow detection is enabled for right BasicCam.
+    // if (constants::TAGDETECT_RIGHTCAM_ENABLE_DNN)
+    // {
+    //     // Attempt to init tensorflow detection.
+    //     if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_MODEL_PATH))
+    //     {
+    //         // Set tensorflow detection enabled.
+    //         m_pTagDetectorRightCam->EnableTensorflowDetection(0.4f, 0.6f);
+    //     }
+    // }
+
     // Initialize recording handler for detectors.
     m_pRecordingHandler = new RecordingHandler(RecordingHandler::RecordingMode::eTagDetectionHandler);
 }
