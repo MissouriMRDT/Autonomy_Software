@@ -131,6 +131,25 @@ class TensorflowTPU
         }
 
         /******************************************************************************
+         * @brief Release all hardware and reset models and interpreters.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-31
+         ******************************************************************************/
+        void CloseHardware()
+        {
+            // Set opened toggle.
+            m_bDeviceOpened = false;
+            // Close tflite interpreter.
+            m_pInterpreter.reset();
+            // Close edgetpu hardware.
+            m_pEdgeTPUContext.reset();
+            // Close model.
+            m_pTFLiteModel.reset();
+        }
+
+        /******************************************************************************
          * @brief Attempt to open the model at the given path and load it onto the EdgeTPU device.
          *
          * @param eDeviceType - An enumerator specifying which device this model should run on. (PCIe, USB, or autoselect)
@@ -272,6 +291,9 @@ class TensorflowTPU
 
                                     // Set toggle that model is opened with device.
                                     m_bDeviceOpened = true;
+
+                                    // Update return status.
+                                    tfReturnStatus = TfLiteStatus::kTfLiteOk;
                                 }
                             }
                         }

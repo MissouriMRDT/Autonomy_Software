@@ -256,11 +256,11 @@ void TagDetector::ThreadedContinuousCode()
         // Actual detection logic goes here.
         /////////////////////////////////////////
         // Drop the Alpha channel from the image copy to preproc frame.
-        cv::cvtColor(m_cvFrame, m_cvProcFrame, cv::COLOR_BGRA2BGR);
+        cv::cvtColor(m_cvFrame, m_cvArucoProcFrame, cv::COLOR_BGRA2BGR);
         // Run image through some pre-processing step to improve detection.
-        arucotag::PreprocessFrame(m_cvProcFrame, m_cvProcFrame);
+        arucotag::PreprocessFrame(m_cvArucoProcFrame, m_cvArucoProcFrame);
         // Detect tags in the image
-        std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvProcFrame, m_cvArucoDetector);
+        std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
 
         // // Estimate the positions of the tags using the point cloud
         // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
@@ -272,18 +272,18 @@ void TagDetector::ThreadedContinuousCode()
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
         // Draw tag overlays onto normal image.
-        arucotag::DrawDetections(m_cvProcFrame, m_vDetectedArucoTags);
+        arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
         // Check if tensorflow detection if turned on.
         if (m_bTensorflowEnabled)
         {
             // Detect tags in the image.
             // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
+            cv::cvtColor(m_cvFrame, m_cvTensorflowProcFrame, cv::COLOR_BGRA2RGB);
+            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvTensorflowProcFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
 
             // Draw tag overlays onto normal image.
-            tensorflowtag::DrawDetections(m_cvProcFrame, m_vDetectedTensorTags);
+            tensorflowtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTensorTags);
         }
 
         /////////////////////////////////////////////////////////////////////////////////////
@@ -335,8 +335,8 @@ void TagDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case eArucoDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
-            default: *(stContainer.pFrame) = m_cvProcFrame;
+            case eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
+            default: *(stContainer.pFrame) = m_cvArucoProcFrame;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -502,6 +502,8 @@ bool TagDetector::InitTensorflowDetection(const std::string szModelPath, yolomod
         LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Tensorflow detection for TagDetector.");
         // Update member variable.
         m_bTensorflowInitialized = false;
+        // Close hardware.
+        m_pTensorflowDetector->CloseHardware();
         // Return status.
         return false;
     }
