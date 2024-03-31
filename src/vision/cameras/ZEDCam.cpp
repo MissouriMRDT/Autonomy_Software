@@ -447,9 +447,6 @@ void ZEDCam::ThreadedContinuousCode()
                             sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                             m_unCameraSerialNumber);
             }
-
-            // Release camera lock.
-            lkSharedCameraLock.unlock();
         }
         else
         {
