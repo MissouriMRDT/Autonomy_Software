@@ -47,7 +47,7 @@
 Welcome to the Autonomy Software repository of the [Mars Rover Design Team (MRDT)](https://marsrover.mst.edu) at [Missouri University of Science and Technology (Missouri S&T)](https://mst.edu)! This repository contains the source code, documentation, and other resources for the development of the Autonomy Software for our Mars Rover. The Autonomy Software project aims to compete in the University Rover Challenge (URC) by demonstrating advanced autonomous capabilities and robust navigation algorithms.
 
 ### Here's the overall layout of our codebase:
-![Autonomy_Software Codebase Structure](https://missourimrdt.github.io/Autonomy_Software/src_2main_8cpp.html)
+![Autonomy_Software Codebase Structure](https://missourimrdt.github.io/Autonomy_Software/src_2main_8cpp__incl.png)
 
 
 ### API Documentation
