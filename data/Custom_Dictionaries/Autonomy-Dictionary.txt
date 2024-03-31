@@ -34,6 +34,8 @@ CURRENTLOG
 CURRENTSTATE
 deadband
 debfile
+Deblur
+Denoise
 depthobject
 deque
 Desaturate
@@ -46,9 +48,10 @@ dorny
 doxdocgen
 Doxygen
 driveboard
-edgetpu
 DRIVELEFTRIGHT
+edgetpu
 endcond
+ESPCN
 Extention
 feedforward
 flatbuffer
@@ -106,6 +109,7 @@ OBJECTDETECT
 Objectness
 odometry
 opencv
+OTSU
 parallelizable
 Parens
 pathplanners
@@ -126,6 +130,7 @@ SEARCHPATTERNSTATE
 SETMAXSPEED
 setpoint
 setpoints
+Shafe
 SIMCAM
 softprops
 STARTAUTONOMY
@@ -137,11 +142,12 @@ STOPAUTONOMY
 Struct
 STUCKSTATE
 Styleguides
+superres
 TAGDETECT
 TAGDETECTOR
 Tele
-tensorflowobject
 TELEOP
+tensorflowobject
 tensorflowtag
 tensorflowyolo
 tflite
@@ -151,6 +157,7 @@ tparam
 twxs
 UART
 UNVALIDATED
+upsample
 UTMMDRS
 UTMUPS
 valgrind
