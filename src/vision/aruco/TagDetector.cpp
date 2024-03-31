@@ -42,6 +42,8 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
 {
     // Initialize member variables.
     m_pCamera                          = pBasicCam;
+    m_bTensorflowInitialized           = false;
+    m_bTensorflowEnabled               = false;
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
@@ -98,6 +100,8 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
 {
     // Initialize member variables.
     m_pCamera                          = pZEDCam;
+    m_bTensorflowInitialized           = false;
+    m_bTensorflowEnabled               = false;
     m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
@@ -257,8 +261,6 @@ void TagDetector::ThreadedContinuousCode()
         arucotag::PreprocessFrame(m_cvProcFrame, m_cvProcFrame);
         // Detect tags in the image
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvProcFrame, m_cvArucoDetector);
-        // Draw tag overlays onto normal image.
-        arucotag::DrawDetections(m_cvProcFrame, vNewlyDetectedTags);
 
         // // Estimate the positions of the tags using the point cloud
         // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
@@ -269,6 +271,20 @@ void TagDetector::ThreadedContinuousCode()
 
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
+        // Draw tag overlays onto normal image.
+        arucotag::DrawDetections(m_cvProcFrame, m_vDetectedArucoTags);
+
+        // Check if tensorflow detection if turned on.
+        if (m_bTensorflowEnabled)
+        {
+            // Detect tags in the image.
+            // Drop the Alpha channel from the image copy to preproc frame.
+            cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
+
+            // Draw tag overlays onto normal image.
+            tensorflowtag::DrawDetections(m_cvProcFrame, m_vDetectedTensorTags);
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////
 
@@ -454,6 +470,89 @@ std::future<bool> TagDetector::RequestDetectedTensorflowTags(std::vector<tensorf
 }
 
 /******************************************************************************
+ * @brief Attempt to open the next available TPU hardware and load model at the given
+ *      path onto the device.
+ *
+ * @param szModelPath - The absolute path to the model to open.
+ * @param ePerformanceMode - The performance mode to launch the TPU device in.
+ * @return true - Model was opened and loaded successfully onto the TPU device.
+ * @return false - Something went wrong, model/device not opened.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-31
+ ******************************************************************************/
+bool TagDetector::InitTensorflowDetection(const std::string szModelPath, yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode)
+{
+    // Initialize a new YOLOModel object.
+    m_pTensorflowDetector = std::make_shared<yolomodel::tensorflow::TPUInterpreter>(szModelPath, ePerformanceMode);
+    // Open and load a new YOLOModel from the given path into an EdgeTPU device.
+    TfLiteStatus tfReturnStatus = m_pTensorflowDetector->OpenAndLoad();
+
+    // Check if device/model was opened without issue.
+    if (tfReturnStatus == TfLiteStatus::kTfLiteOk)
+    {
+        // Update member variable.
+        m_bTensorflowInitialized = true;
+        // Return status.
+        return true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open Tensorflow model for TagDetector.");
+        // Update member variable.
+        m_bTensorflowInitialized = false;
+        // Return status.
+        return false;
+    }
+}
+
+/******************************************************************************
+ * @brief Turn on tensorflow detection with given parameters.
+ *
+ * @param fMinObjectConfidence - The lower limit of detection confidence.
+ * @param fNMSThreshold - The overlap thresh for NMS algorithm.
+ *
+ * @note Tensorflow model must be initialized first with the InitTensorflowDetection() method.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-31
+ ******************************************************************************/
+void TagDetector::EnableTensorflowDetection(const float fMinObjectConfidence, const float fNMSThreshold)
+{
+    // Update member variables.
+    m_fMinObjectConfidence = fMinObjectConfidence;
+    m_fNMSThreshold        = fNMSThreshold;
+
+    // Check if tensorflow model has been initialized.
+    if (m_bTensorflowInitialized)
+    {
+        // Update member variable.
+        m_bTensorflowEnabled = true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Tried to enable tensorflow detection for TagDetector but it has not been initialized yet!");
+        // Update member variable.
+        m_bTensorflowEnabled = false;
+    }
+}
+
+/******************************************************************************
+ * @brief Set flag to stop tag detection with the tensorflow model.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-31
+ ******************************************************************************/
+void TagDetector::DisableTensorflowDetection()
+{
+    // Update member variables.
+    m_bTensorflowEnabled = false;
+}
+
+/******************************************************************************
  * @brief Updates the detected aruco tags including forgetting tags that haven't been seen for long enough.
  *      If a new tag is spotted: add it to the detected tags vector
  *      If a tag has been spotted again: update the tags distance and angle
@@ -534,90 +633,6 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
     {
         // Add the newly detected tags to the member variable list
         m_vDetectedArucoTags.push_back(stTag);
-    }
-}
-
-/******************************************************************************
- * @brief Updates the detected tensorflow tags including forgetting tags that haven't been seen for long enough.
- *      If a new tag is spotted: add it to the detected tags vector
- *      If a tag has been spotted again: update the tags distance and angle
- *      If a tag hasn't been seen for a while: remove it from the vector
- *
- * @param vNewlyDetectedTags - Input vector of TensorflowTag structs containing the tag info.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
- ******************************************************************************/
-void TagDetector::UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags)
-{
-    // Sort tags from least to greatest.
-    std::sort(vNewlyDetectedTags.begin(),
-              vNewlyDetectedTags.end(),
-              [](const tensorflowtag::TensorflowTag& stTag1, const tensorflowtag::TensorflowTag& stTag2) { return stTag1.nID < stTag2.nID; });
-
-    // Get the beginning of the new tags and the current tags vector.
-    std::vector<tensorflowtag::TensorflowTag>::iterator itNewItr = vNewlyDetectedTags.begin();
-    std::vector<tensorflowtag::TensorflowTag>::iterator itOldItr = m_vDetectedTensorTags.begin();
-
-    // Create vector for storing new tags.
-    std::vector<tensorflowtag::TensorflowTag> vNewTags;
-
-    // Here we process tags from both the newly detected and previously detected tags in the order of increasing id.
-    while (itNewItr != vNewlyDetectedTags.end() || itOldItr != m_vDetectedTensorTags.end())
-    {
-        // If the id's match then update the previously detected tag.
-        if (itNewItr != vNewlyDetectedTags.end() && itOldItr != m_vDetectedTensorTags.end() && itOldItr->nID == itNewItr->nID)
-        {
-            // Update data for tag.
-            itOldItr->dYawAngle             = itNewItr->dYawAngle;
-            itOldItr->dStraightLineDistance = itNewItr->dStraightLineDistance;
-            itOldItr->vCorners              = itNewItr->vCorners;
-            itOldItr->nFramesSinceLastHit   = 0;
-            itOldItr->nHits                 = std::max(itOldItr->nHits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
-
-            // Move to next tags.
-            itOldItr++;
-            itNewItr++;
-        }
-        // If a previously detected tag wasn't detected in the frame
-        else if (itOldItr != m_vDetectedTensorTags.end() && (itNewItr == vNewlyDetectedTags.end() || itOldItr->nID < itNewItr->nID))
-        {
-            // Increment hit counter.
-            itOldItr->nFramesSinceLastHit++;
-
-            // Check if the tag should be removed.
-            if ((itOldItr->nHits >= constants::ARUCO_VALIDATION_THRESHOLD && itOldItr->nFramesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD) ||
-                !(itOldItr->nHits >= constants::ARUCO_VALIDATION_THRESHOLD && itOldItr->nFramesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD))
-            {
-                // Remove the tag from the detected tags member variable.
-                itOldItr = m_vDetectedTensorTags.erase(itOldItr);
-            }
-            else
-            {
-                // Decrement the old iterator.
-                itOldItr++;
-            }
-        }
-        // A tag was detected for the first time.
-        else if (itNewItr != vNewlyDetectedTags.end())
-        {
-            // Set the new tags attributes for a first detection.
-            itNewItr->nHits               = 1;
-            itNewItr->nFramesSinceLastHit = 0;
-
-            // Add tag to new tags vector.
-            vNewTags.push_back(*itNewItr);
-
-            // Increment the new iterator.
-            itNewItr++;
-        }
-    }
-
-    // Loop through the new tag vector.
-    for (tensorflowtag::TensorflowTag& stTag : vNewTags)
-    {
-        // Add the newly detected tags to the member variable list
-        m_vDetectedTensorTags.push_back(stTag);
     }
 }
 
