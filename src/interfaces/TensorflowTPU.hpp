@@ -445,7 +445,7 @@ class TensorflowTPU
         /////////////////////////////////////////
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual T Inference(P& tInput, float fMinObjectConfidence, float fNMSThreshold) = 0;
+        virtual T Inference(const P& tInput, const float fMinObjectConfidence, const float fNMSThreshold) = 0;
 
         /////////////////////////////////////////
         // Declare private member variables.
