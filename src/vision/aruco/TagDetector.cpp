@@ -274,17 +274,17 @@ void TagDetector::ThreadedContinuousCode()
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvProcFrame, m_vDetectedArucoTags);
 
-        // // Check if tensorflow detection if turned on.
-        // if (m_bTensorflowEnabled)
-        // {
-        //     // Detect tags in the image.
-        //     // Drop the Alpha channel from the image copy to preproc frame.
-        //     cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-        //     m_vDetectedTensorTags = tensorflowtag::Detect(m_cvFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
+        // Check if tensorflow detection if turned on.
+        if (m_bTensorflowEnabled)
+        {
+            // Detect tags in the image.
+            // Drop the Alpha channel from the image copy to preproc frame.
+            cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
 
-        //     // Draw tag overlays onto normal image.
-        //     tensorflowtag::DrawDetections(m_cvProcFrame, m_vDetectedTensorTags);
-        // }
+            // Draw tag overlays onto normal image.
+            tensorflowtag::DrawDetections(m_cvProcFrame, m_vDetectedTensorTags);
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////
 
