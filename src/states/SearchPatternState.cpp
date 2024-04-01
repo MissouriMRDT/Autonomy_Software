@@ -35,23 +35,24 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
+        // Initialize member variables.
         m_nMaxDataPoints   = 100;
         m_tmLastStuckCheck = std::chrono::system_clock::now();
-
         m_vRoverPosition.reserve(m_nMaxDataPoints);
+        m_eCurrentSearchPatternType = eSpiral;
 
         // Calculate the search path.
-        geoops::GPSCoordinate stCurrentPosGPS = globals::g_pNavigationBoard->GetGPSData();
-        m_vSearchPath                         = searchpattern::CalculateSearchPatternWaypoints(stCurrentPosGPS,
+        m_stSearchPatternCenter = globals::g_pNavigationBoard->GetGPSData();
+        m_vSearchPath           = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter,
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
                                                                        constants::SEARCH_MAX_RADIUS,
                                                                        constants::SEARCH_STARTING_HEADING_DEGREES,
                                                                        constants::SEARCH_SPACING);
-        m_nSearchPathIdx                      = 0;
+        m_nSearchPathIdx        = 0;
 
-        m_vTagDetectors                       = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadLeftArucoEye),
-                                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadRightArucoEye)};
+        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadLeftArucoEye),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadRightArucoEye)};
     }
 
     /******************************************************************************
@@ -154,36 +155,39 @@ namespace statemachine
         /* ---  Check if the rover is stuck --- */
         //////////////////////////////////////////
 
-        // Time since we last checked if the rover is stuck.
-        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        double dTimeSinceLastCheck                          = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() / 1e6);
-        if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
-        {
-            // Update time since last check to now.
-            m_tmLastStuckCheck = tmCurrentTime;
+        // // Time since we last checked if the rover is stuck.
+        // std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        // double dTimeSinceLastCheck                          = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() /
+        // 1e6); if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
+        // {
+        //     // Update time since last check to now.
+        //     m_tmLastStuckCheck = tmCurrentTime;
 
-            // Get the rover's current velocities.
-            double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
-            double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
+        //     // Get the rover's current velocities.
+        //     double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
+        //     double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
 
-            // Check if the rover is rotating or moving linearly.
-            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_ROT_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_VEL_THRESH)
-            {
-                ++m_unStuckChecksOnAttempt;
-            }
-            else
-            {
-                m_unStuckChecksOnAttempt = 0;
-            }
+        //     // Check if the rover is rotating or moving linearly.
+        //     if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_ROT_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_VEL_THRESH)
+        //     {
+        //         ++m_unStuckChecksOnAttempt;
+        //     }
+        //     else
+        //     {
+        //         m_unStuckChecksOnAttempt = 0;
+        //     }
 
-            // Has the rover been stuck on enough consecutive checks that we start StuckState.
-            if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
-            {
-                // TODO: Allow the rover to resume a search path after becoming unstuck.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, false);
-                return;
-            }
-        }
+        //     // Has the rover been stuck on enough consecutive checks that we start StuckState.
+        //     if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
+        //     {
+        //         // Remove the current waypoint from the search pattern so we don't get stuck again.
+        //         m_vSearchPath.erase(m_vSearchPath.begin() + m_nSearchPathIdx);
+        //         // Handle state transition and save the current search pattern state.
+        //         globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+        //         // Don't execute the rest of the state.
+        //         return;
+        //     }
+        // }
 
         ///////////////////////////////////
         /* --- Follow Search Pattern --- */
@@ -195,7 +199,7 @@ namespace statemachine
         geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
         bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
 
-        // If the entire search pattern has been completed without seeing tags or objects, terminate search.
+        // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
         if (bReachedTarget && m_nSearchPathIdx >= int(m_vSearchPath.size() - 1))
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
@@ -259,8 +263,60 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
-                // Change states.
-                eNextState = States::eIdle;
+                // Stop drive.
+                globals::g_pDriveBoard->SendStop();
+
+                // Regenerate a new search pattern.
+                switch (m_eCurrentSearchPatternType)
+                {
+                    // Check which pattern to do next.
+                    case eSpiral:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
+                        // Generate vertical zigzag pattern.
+                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_SPACING,
+                                                                                       true);
+                        // Reset index counter.
+                        m_nSearchPathIdx = 0;
+                        // Update current search pattern
+                        m_eCurrentSearchPatternType = eZigZag;
+                        break;
+                    }
+                    case eZigZag:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
+                        // Generate vertical zigzag pattern.
+                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_SPACING,
+                                                                                       false);
+                        // Reset index counter.
+                        m_nSearchPathIdx = 0;
+                        // Update current search pattern
+                        m_eCurrentSearchPatternType = END;
+                        break;
+                    }
+                    case END:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: All patterns failed to find anything, giving up...");
+                        // Change states.
+                        eNextState = States::eIdle;
+                        break;
+                    }
+                    default:
+                    {
+                        // Change states.
+                        eNextState = States::eIdle;
+                        break;
+                    }
+                }
                 break;
             }
             case Event::eAbort:

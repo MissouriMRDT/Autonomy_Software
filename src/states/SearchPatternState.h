@@ -35,20 +35,43 @@ namespace statemachine
     class SearchPatternState : public State
     {
         private:
+            /////////////////////////////////////////
+            // Declare private enums and structs that are specific to and used withing this class.
+            /////////////////////////////////////////
+
+            // Enum for storing which search pattern type we are using.
+            enum SearchPatternType
+            {
+                eSpiral,
+                eZigZag,
+                END
+            };
+
+            /////////////////////////////////////////
+            // Declare private member variables.
+            /////////////////////////////////////////
             bool m_bInitialized;
-            size_t m_nMaxDataPoints;
+            geoops::GPSCoordinate m_stSearchPatternCenter;
+            std::vector<TagDetector*> m_vTagDetectors;
+            std::vector<geoops::Waypoint> m_vSearchPath;
+            int m_nSearchPathIdx;
+            SearchPatternType m_eCurrentSearchPatternType;
             std::vector<std::pair<double, double>> m_vRoverPosition;
+            size_t m_nMaxDataPoints;
             std::chrono::system_clock::time_point m_tmLastStuckCheck;
             unsigned int m_unStuckChecksOnAttempt;
-            std::vector<TagDetector*> m_vTagDetectors;
-            int m_nSearchPathIdx;
-            std::vector<geoops::Waypoint> m_vSearchPath;
 
         protected:
+            /////////////////////////////////////////
+            // Declare protected class methods.
+            /////////////////////////////////////////
             void Start() override;
             void Exit() override;
 
         public:
+            /////////////////////////////////////////
+            // Declare public class methods.
+            /////////////////////////////////////////
             SearchPatternState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;
