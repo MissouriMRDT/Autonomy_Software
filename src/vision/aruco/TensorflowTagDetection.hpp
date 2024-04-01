@@ -14,6 +14,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
 #include <opencv2/objdetect/aruco_detector.hpp>
@@ -49,7 +50,6 @@ namespace tensorflowtag
             cv::Point2f CornerBL;                                                                 // The bottom left corner of the bounding box.
             cv::Point2f CornerBR;                                                                 // The bottom right corner of bounding box.
             std::vector<cv::Point2f*> vCorners = {&CornerTL, &CornerTR, &CornerBL, &CornerBR};    // Provide an easy method for getting all corners.
-            int nID;                                                                              // ID of the tag.
             int nHits;                                                                            // Total number of detections for tag id.
             int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
             double dConfidence;              // The detection confidence of the tag reported from the tensorflow model.
@@ -87,19 +87,108 @@ namespace tensorflowtag
     }
 
     /******************************************************************************
-     * @brief detect ArUco tags in the provided image
+     * @brief Detect ArUco tags in the provided image using a YOLO DNN model.
      *
-     * @param cvFrame - The camera frame to run ArUco detection on.
+     * @param cvFrame - The camera frame to run tensorflow detection on. Should be RGB format.
+     * @param tfTensorflowDetector - The configured tensorflow detector to use for detection.
+     * @param fMinObjectConfidence - Minimum confidence required for an object to be considered a valid detection
+     * @param fNMSThreshold - Threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
      * @return std::vector<TensorflowTag> - The resultant vector containing the detected tags in the frame.
      *
-     * @author jspencerpittman (jspencerpittman@gmail.com)
+     * @note The given cvFrame SHOULD BE IN RGB FORMAT.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
      ******************************************************************************/
-    inline std::vector<TensorflowTag> Detect(const cv::Mat& cvFrame)
+    inline std::vector<TensorflowTag> Detect(const cv::Mat& cvFrame,
+                                             yolomodel::tensorflow::TPUInterpreter& tfTensorflowDetector,
+                                             const float fMinObjectConfidence = 0.40f,
+                                             const float fNMSThreshold        = 0.60f)
     {
-        // TODO: Write different util classes to easily open and inference new models. Then put tag detection specific inferencing here.
-        cvFrame.empty();
-        return std::vector<TensorflowTag>();
+        // Declare instance variables.
+        std::vector<TensorflowTag> vDetectedTags;
+
+        // Check if the tensorflow TPU interpreter hardware is opened and the model is loaded.
+        if (tfTensorflowDetector.GetDeviceIsOpened())
+        {
+            // Run inference on YOLO model with current image.
+            std::vector<std::vector<yolomodel::Detection>> vOutputTensorTags = tfTensorflowDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
+
+            // Repackage detections into tensorflow tags.
+            for (std::vector<yolomodel::Detection> vTagDetections : vOutputTensorTags)
+            {
+                // Loop through each detection.
+                for (yolomodel::Detection stTagDetection : vTagDetections)
+                {
+                    // Create and initialize new TensorflowTag.
+                    TensorflowTag stDetectedTag;
+                    stDetectedTag.dConfidence = stTagDetection.fConfidence;
+                    stDetectedTag.CornerTL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y);
+                    stDetectedTag.CornerTR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width, stTagDetection.cvBoundingBox.y);
+                    stDetectedTag.CornerBL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
+                    stDetectedTag.CornerBR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width,
+                                                         stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
+
+                    // Add TensorflowTag to return vector.
+                    vDetectedTags.emplace_back(stDetectedTag);
+                }
+            }
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "TensorflowDetect: Unable to detect tags using YOLO tensorflow detection because hardware is not opened or model is not initialized.");
+        }
+
+        // Return the detected tags.
+        return vDetectedTags;
+    }
+
+    /******************************************************************************
+     * @brief Given a vector of TensorflowTag structs draw each tag corner and confidence onto the given image.
+     *
+     * @param cvDetectionsFrame - The frame to draw overlay onto.
+     * @param vDetectedTags - The vector of TensorflowTag structs used to draw tag corners and confidences onto image.
+     *
+     * @note Image must be a 1 or 3 channel image and image must match dimensions of image when used for
+     *      detection of the given tags.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-03-31
+     ******************************************************************************/
+    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<TensorflowTag>& vDetectedTags)
+    {
+        // Check if the given frame is a 1 or 3 channel image. (not BGRA)
+        if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
+        {
+            // Loop through each detection.
+            for (TensorflowTag stTag : vDetectedTags)
+            {
+                // Draw bounding box onto image.
+                cv::rectangle(cvDetectionsFrame, stTag.CornerTL, stTag.CornerBR, cv::Scalar(255, 255, 255), 2);
+                // Draw classID background box onto image.
+                cv::rectangle(cvDetectionsFrame,
+                              cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 20),
+                              cv::Point(stTag.CornerTR.x, stTag.CornerTL.y),
+                              cv::Scalar(255, 255, 255),
+                              cv::FILLED);
+                // Draw class text onto image.
+                cv::putText(cvDetectionsFrame,
+                            "Tag Conf: " + std::to_string(stTag.dConfidence),
+                            cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 5),
+                            cv::FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            cv::Scalar(0, 0, 0));
+            }
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "TensorflowDetect: Unable to draw markers on image because it is empty or because it has {} channels. (Should be 1 or 3)",
+                      cvDetectionsFrame.channels());
+        }
     }
 }    // namespace tensorflowtag
 

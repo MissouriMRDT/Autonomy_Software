@@ -189,7 +189,9 @@ namespace statemachine
         {
             case Event::eNoWaypoint:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
@@ -233,10 +235,22 @@ namespace statemachine
             }
             case Event::eNewWaypoint:
             {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
-                // Get and store new goal waypoint.
-                m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                // Check if the next goal waypoint equals the current one.
+                if (m_stGoalWaypoint == globals::g_pWaypointHandler->PeekNextWaypoint())
+                {
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Reusing current Waypoint.");
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
+                    // Get and store new goal waypoint.
+                    m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                }
+
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Set toggle.
                 m_bFetchNewWaypoint = false;
                 break;
@@ -257,6 +271,8 @@ namespace statemachine
                 globals::g_pDriveBoard->SendStop();
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Set toggle.
+                m_bFetchNewWaypoint = true;
                 // Change states.
                 eNextState = States::eIdle;
                 break;

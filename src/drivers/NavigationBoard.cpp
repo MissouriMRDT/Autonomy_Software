@@ -60,8 +60,21 @@ NavigationBoard::~NavigationBoard() {}
  ******************************************************************************/
 geoops::GPSCoordinate NavigationBoard::GetGPSData()
 {
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
     // Acquire read lock for getting GPS struct.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+    // Calculate time elapsed since last GPS data update.
+    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - this->GetGPSTimestamp()).count();
+    // Check the last time that our current GPS data has been updated.
+    if (nGPSDataAge >= constants::NAVBOARD_MAX_GPS_DATA_AGE)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Current GPS data is out of date! GPS timestamp is {} seconds old!", nGPSDataAge);
+    }
+
+    // Return current GPS location.
     return m_stLocation;
 }
 
@@ -76,8 +89,20 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
  ******************************************************************************/
 geoops::UTMCoordinate NavigationBoard::GetUTMData()
 {
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
     // Acquire read lock for getting UTM struct.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+    // Calculate time elapsed since last GPS data update.
+    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - this->GetGPSTimestamp()).count();
+    // Check the last time that our current GPS data has been updated.
+    if (nGPSDataAge >= constants::NAVBOARD_MAX_GPS_DATA_AGE)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Current GPS data is out of date! GPS timestamp is {} seconds old!", nGPSDataAge);
+    }
+
     // Convert the currently stored GPS coord to UTM and return.
     return geoops::ConvertGPSToUTM(m_stLocation);
 }
@@ -92,8 +117,21 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
  ******************************************************************************/
 double NavigationBoard::GetHeading()
 {
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
     // Acquire read lock for getting compass double.
     std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+    // Calculate time elapsed since last GPS data update.
+    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - this->GetCompassTimestamp()).count();
+    // Check the last time that our current GPS data has been updated.
+    if (nCompassDataAge >= constants::NAVBOARD_MAX_COMPASS_DATA_AGE)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Current Compass data is out of date! Compass timestamp is {} seconds old!", nCompassDataAge);
+    }
+
+    // Return current Compass data.
     return m_dHeading;
 }
 
@@ -108,8 +146,21 @@ double NavigationBoard::GetHeading()
  ******************************************************************************/
 double NavigationBoard::GetVelocity()
 {
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
     // Acquire read lock for getting velocity double.
     std::shared_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
+    // Calculate time elapsed since last GPS data update.
+    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - this->GetGPSTimestamp()).count();
+    // Check the last time that our current GPS data has been updated.
+    if (nGPSDataAge >= constants::NAVBOARD_MAX_GPS_DATA_AGE)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Current Velocity data is out of date! GPS timestamp is {} seconds old!", nGPSDataAge);
+    }
+
+    // Return current velocity.
     return m_dVelocity;
 }
 
@@ -124,8 +175,21 @@ double NavigationBoard::GetVelocity()
  ******************************************************************************/
 double NavigationBoard::GetAngularVelocity()
 {
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
     // Acquire read lock for getting angular velocity double.
     std::shared_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
+    // Calculate time elapsed since last GPS data update.
+    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - this->GetCompassTimestamp()).count();
+    // Check the last time that our current GPS data has been updated.
+    if (nCompassDataAge >= constants::NAVBOARD_MAX_COMPASS_DATA_AGE)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Current Angular Velocity data is out of date! Compass timestamp is {} seconds old!", nCompassDataAge);
+    }
+
+    // Return angular velocity.
     return m_dAngularVelocity;
 }
 
