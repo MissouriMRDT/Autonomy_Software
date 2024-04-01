@@ -326,8 +326,6 @@ namespace statemachine
      *      have a confidence of at least APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD.
      *
      * @param tTarget - Reference to store the tag identified as the target.
-     * @param dAngleThreshold - An angle threshold in degrees that the current tag can be from the target tag.
-     * @param dDistanceThreshold - A distance threshold in meters that the current tag can be form the target tag.
      * @return true - A target marker was identified.
      * @return false - A target marker was not identified.
      *
