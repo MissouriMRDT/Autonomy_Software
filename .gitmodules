@@ -1,0 +1,6 @@
+[submodule "external/threadpool"]
+	path = external/threadpool
+	url = https://github.com/bshoshany/thread-pool.git
+[submodule "external/rovecomm"]
+	path = external/rovecomm
+	url = https://github.com/MissouriMRDT/RoveComm_CPP.git
