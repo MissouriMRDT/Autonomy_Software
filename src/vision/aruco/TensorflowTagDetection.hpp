@@ -190,6 +190,43 @@ namespace tensorflowtag
                       cvDetectionsFrame.channels());
         }
     }
+
+    /******************************************************************************
+     * @brief Estimate the pose of a position with respect to the observer using a point cloud
+     *
+     * @param cvPointCloud - A point cloud of x,y,z coordinates.
+     * @param stTag - The tag we are estimating the pose of and then storing the distance and angle calculations in.
+     *
+     * @note The angle only takes into account how far forward/backward and left/right the tag is with respect to the rover. This meaning I ignore the up/down position of
+     * the tag when calculating the angle.
+     *
+     * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-04-01
+     ******************************************************************************/
+    inline void EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, TensorflowTag& stTag)
+    {
+        // Confirm correct coordinate system.
+        if (constants::ZED_COORD_SYSTEM != sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP)
+        {
+            // Submit logger message.
+            LOG_CRITICAL(logging::g_qSharedLogger, "TensorflowDetection: Calculations won't work for anything other than ZED coordinate system == LEFT_HANDED_Y_UP");
+        }
+
+        // Find the center point of the given tag.
+        cv::Point2f cvCenter = FindTagCenter(stTag);
+
+        // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
+        cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);
+        float fForward         = cvCoordinate[2];    // Z
+        float fRight           = cvCoordinate[0];    // X
+        float fUp              = cvCoordinate[1];    // Y
+
+        // Calculate euclidean distance from ZED camera left eye to the point of interest
+        stTag.dStraightLineDistance = sqrt(pow(fForward, 2) + pow(fRight, 2) + pow(fUp, 2));
+
+        // Calculate the angle on plane horizontal to the viewpoint
+        stTag.dYawAngle = atan2(fRight, fForward);
+    }
 }    // namespace tensorflowtag
 
 #endif
