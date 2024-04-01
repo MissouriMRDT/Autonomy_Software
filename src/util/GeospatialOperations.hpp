@@ -605,7 +605,7 @@ namespace geoops
             /******************************************************************************
              * @brief Overridden operator equals for Waypoint struct.
              *
-             * @param stOtherCoordinate - The other Waypoint struct we are comparing to.
+             * @param stOtherWaypoint - The other Waypoint struct we are comparing to.
              * @return true - The two Waypoints are equal.
              * @return false - The two Waypoints are not equal.
              *
@@ -627,6 +627,18 @@ namespace geoops
                     return false;
                 }
             }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for Waypoint struct.
+             *
+             * @param stOtherWaypoint - The other Waypoint struct we are comparing to.
+             * @return true - The two Waypoints are equal.
+             * @return false - The two Waypoints are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-03-18
+             ******************************************************************************/
+            bool operator!=(const Waypoint& stOtherWaypoint) const { return !this->operator==(stOtherWaypoint); }
     };
 }    // namespace geoops
 #endif

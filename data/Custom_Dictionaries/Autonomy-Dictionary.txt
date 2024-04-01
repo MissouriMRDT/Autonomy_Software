@@ -131,6 +131,7 @@ SETMAXSPEED
 setpoint
 setpoints
 Shafe
+SIMBASICCAM
 SIMCAM
 softprops
 STARTAUTONOMY
