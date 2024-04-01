@@ -103,7 +103,7 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     m_pCamera                          = pZEDCam;
     m_bTensorflowInitialized           = false;
     m_bTensorflowEnabled               = false;
-    m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
+    m_bUsingZedCamera                  = true;    // Toggle ZED functions on.
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
