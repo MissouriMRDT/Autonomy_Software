@@ -14,12 +14,15 @@
 
 #include "../AutonomyLogging.h"
 
+/// \cond
 #include <edgetpu.h>
 #include <tensorflow/lite/builtin_ops.h>
 #include <tensorflow/lite/interpreter.h>
 #include <tensorflow/lite/kernels/register.h>
 #include <tensorflow/lite/model.h>
 #include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class is designed to enable quick, easy, and robust handling of .tflite
@@ -125,6 +128,25 @@ class TensorflowTPU
                 // Close model.
                 m_pTFLiteModel.reset();
             }
+        }
+
+        /******************************************************************************
+         * @brief Release all hardware and reset models and interpreters.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-31
+         ******************************************************************************/
+        void CloseHardware()
+        {
+            // Set opened toggle.
+            m_bDeviceOpened = false;
+            // Close tflite interpreter.
+            m_pInterpreter.reset();
+            // Close edgetpu hardware.
+            m_pEdgeTPUContext.reset();
+            // Close model.
+            m_pTFLiteModel.reset();
         }
 
         /******************************************************************************
@@ -269,6 +291,9 @@ class TensorflowTPU
 
                                     // Set toggle that model is opened with device.
                                     m_bDeviceOpened = true;
+
+                                    // Update return status.
+                                    tfReturnStatus = TfLiteStatus::kTfLiteOk;
                                 }
                             }
                         }
@@ -442,7 +467,7 @@ class TensorflowTPU
         /////////////////////////////////////////
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual T Inference(P& tInput, float fMinObjectConfidence, float fNMSThreshold) = 0;
+        virtual T Inference(const P& tInput, const float fMinObjectConfidence, const float fNMSThreshold) = 0;
 
         /////////////////////////////////////////
         // Declare private member variables.

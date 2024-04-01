@@ -15,7 +15,6 @@
 #define FETCH_CONTAINERS_HPP
 
 /// \cond
-
 #include <future>
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>

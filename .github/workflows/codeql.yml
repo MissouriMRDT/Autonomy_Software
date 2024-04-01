@@ -20,7 +20,7 @@ on:
       - tests/**
       - tools/**
       - .github/workflows/codeql.yml
-      
+
   workflow_dispatch:
 
 permissions:
@@ -46,8 +46,16 @@ jobs:
         language: ["cpp", "python"]
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -64,3 +72,9 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{matrix.language}}"
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software

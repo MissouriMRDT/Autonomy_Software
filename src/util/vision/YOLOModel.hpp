@@ -16,7 +16,10 @@
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/TensorflowTPU.hpp"
 
+/// \cond
 #include <opencv2/opencv.hpp>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions or objects/struct used to aid in easy use
@@ -61,12 +64,12 @@ namespace yolomodel
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-11-15
      ******************************************************************************/
-    void NonMaxSuppression(std::vector<Detection>& vObjects,
-                           std::vector<int>& vClassIDs,
-                           std::vector<float>& vClassConfidences,
-                           std::vector<cv::Rect>& vBoundingBoxes,
-                           float fMinObjectConfidence,
-                           float fNMSThreshold)
+    inline void NonMaxSuppression(std::vector<Detection>& vObjects,
+                                  std::vector<int>& vClassIDs,
+                                  std::vector<float>& vClassConfidences,
+                                  std::vector<cv::Rect>& vBoundingBoxes,
+                                  float fMinObjectConfidence,
+                                  float fNMSThreshold)
     {
         // Create instance variables.
         std::vector<int> vNMSValidIndices;
@@ -99,7 +102,7 @@ namespace yolomodel
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-11-15
      ******************************************************************************/
-    void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
+    inline void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
     {
         // Loop through each detection.
         for (Detection stObject : vObjects)
@@ -271,7 +274,9 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-13
                  ******************************************************************************/
-                std::vector<std::vector<Detection>> Inference(cv::Mat& cvInputFrame, float fMinObjectConfidence = 0.85, float fNMSThreshold = 0.6) override
+                std::vector<std::vector<Detection>> Inference(const cv::Mat& cvInputFrame,
+                                                              const float fMinObjectConfidence = 0.85,
+                                                              const float fNMSThreshold        = 0.6) override
                 {
                     // Create instance variables.
                     std::vector<std::vector<Detection>> vTensorObjectOutputs;
