@@ -125,6 +125,7 @@
                     "build",
                     "data",
                     "docs",
+                    "external",
                     ".devcontainer",
                     "README.md",
                     "src/util/OpenCV/ArucoSamplesUtility.hpp"
