@@ -12,13 +12,15 @@
 #ifndef TENSORFLOW_OBJECT_DETECTION_HPP
 #define TENSORFLOW_OBJECT_DETECTION_HPP
 
-#include <vector>
-
-#include <opencv2/opencv.hpp>
-
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/GeospatialOperations.hpp"
+
+/// \cond
+#include <opencv2/opencv.hpp>
+#include <vector>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing functions related to tensorflow object detection

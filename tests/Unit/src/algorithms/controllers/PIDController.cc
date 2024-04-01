@@ -8,11 +8,14 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../../../../../src/algorithms/controllers/PIDController.h"
+
+/// \cond
 #include <array>
 #include <chrono>
 #include <gtest/gtest.h>
 
-#include "../../../../../src/algorithms/controllers/PIDController.h"
+/// \endcond
 
 /******************************************************************************
  * @brief Check that PIDController doesn't leak any memory.

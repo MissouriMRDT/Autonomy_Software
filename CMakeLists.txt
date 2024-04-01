@@ -52,26 +52,14 @@ set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 set(CPACK_GENERATOR "STGZ")
 
+# Configure BSThreadPool
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PAUSE=1)
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PRIORITY=1)
+add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
+
 ## Find RoveComm
-FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
-        GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        v24.2.4                                                      # Version 24.2.4
-        GIT_SHALLOW    FALSE                                                        # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-    )
-FetchContent_GetProperties(RoveComm_CPP)
-if(NOT RoveComm_CPP)
-    # Fetch the content using previously declared details
-    FetchContent_Populate(RoveComm_CPP)
-
-    # Set Library Scope
-    set(RoveComm_CPP_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src/src)
-    set(RoveComm_CPP_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src)
-
-    # Bring the populated content into the build
-    include_directories( ${RoveComm_CPP_INCLUDE_DIR} )
-    add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
-endif()
+include_directories(external/rovecomm/src)
+add_subdirectory(external/rovecomm)
 
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
@@ -177,10 +165,10 @@ file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${EXE_NAME}   ${External_SRC}
-								 ${SRC}
-								 ${Examples_SRC}
-								 ${Tools_SRC}
+add_executable(${EXE_NAME}  ${External_SRC}
+						    ${SRC}
+						    ${Examples_SRC}
+						    ${Tools_SRC}
 	)
 
 ## Set Compile Options for Autonomy Software.
