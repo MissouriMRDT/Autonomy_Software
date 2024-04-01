@@ -67,8 +67,7 @@ namespace statemachine
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Exiting state.");
 
-        m_vRoverPosition.clear();
-
+        // Stop drive.
         globals::g_pDriveBoard->SendStop();
     }
 
@@ -197,7 +196,7 @@ namespace statemachine
         bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
 
         // If the entire search pattern has been completed without seeing tags or objects, terminate search.
-        if (bReachedTarget && m_nSearchPathIdx == (int) m_vSearchPath.size())
+        if (bReachedTarget && m_nSearchPathIdx >= int(m_vSearchPath.size() - 1))
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
             return;
@@ -251,14 +250,16 @@ namespace statemachine
             case Event::eStart:
             {
                 // Submit logger message
-                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
+                LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eSearchFailed:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
+                // Change states.
                 eNextState = States::eIdle;
                 break;
             }
