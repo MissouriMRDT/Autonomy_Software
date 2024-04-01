@@ -123,7 +123,7 @@ class WaypointHandler
 
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Navigation geoops::Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
+                     "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
                      stPacket.vData[0],
                      stPacket.vData[1]);
         };
@@ -152,10 +152,7 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Marker geoops::Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1]);
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
         };
 
         /******************************************************************************
@@ -182,10 +179,7 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Object geoops::Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1]);
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
         };
 
         /******************************************************************************

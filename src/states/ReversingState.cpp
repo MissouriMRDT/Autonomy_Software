@@ -93,7 +93,8 @@ namespace statemachine
         // LEAD: rover will reverse in a straight line. If you just want to reverse without trying to keep a goal heading, just use SendDrive().
         // FIXME: You can't use eTankDrive with CalculateMove. If you run the code it will print out an error. Use ArcadeDrive for more intuitive control.
         // FIXME: Make reverse speed a constant.
-        diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-1, dCurrentHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eTankDrive);
+        diffdrive::DrivePowers stReverse =
+            globals::g_pDriveBoard->CalculateMove(-1, dCurrentHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stReverse);
 
         // Haversine formula to find distance

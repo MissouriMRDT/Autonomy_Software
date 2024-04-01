@@ -89,8 +89,8 @@ namespace statemachine
     {
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Running state-specific behavior.");
 
-        bool bDetectedTagAR;    // Was the tag detected through OpenCV.
-        bool bDetectedTagTF;    // Was the tag detected through Tensorflow.
+        bool bDetectedTagAR = false;    // Was the tag detected through OpenCV.
+        bool bDetectedTagTF = false;    // Was the tag detected through Tensorflow.
 
         // If a target hasn't been identified yet attempt to find a target tag in the rover's vision.
         if (!m_bDetected && m_nNumDetectionAttempts < constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
@@ -112,7 +112,8 @@ namespace statemachine
                 if (bDetectedTagTF)
                 {
                     // Save the identified tag's ID.
-                    m_nTargetTagID          = m_stTargetTagTF.nID;
+                    // LEAD: Commented this out since TensorflowTag no longer has ID.
+                    // m_nTargetTagID          = m_stTargetTagTF.nID;
                     m_bDetected             = true;
                     m_nNumDetectionAttempts = 0;
                 }
@@ -136,11 +137,12 @@ namespace statemachine
 
         // Attempt to find the target marker in OpenCV.
         bDetectedTagAR = tagdetectutils::FindArucoTagByID(m_nTargetTagID, m_stTargetTagAR, m_vTagDetectors);
-        if (!bDetectedTagAR)
-        {
-            // Attempt to find the target marker in TensorFlow.
-            bDetectedTagTF = tagdetectutils::FindTensorflowTagByID(m_nTargetTagID, m_stTargetTagTF, m_vTagDetectors);
-        }
+        // LEAD: Commented this out since TensorflowTag no longer has ID.
+        // if (!bDetectedTagAR)
+        // {
+        //     // Attempt to find the target marker in TensorFlow.
+        //     bDetectedTagTF = tagdetectutils::FindTensorflowTagByID(m_nTargetTagID, m_stTargetTagTF, m_vTagDetectors);
+        // }
 
         // The target marker wasn't found.
         if (!bDetectedTagAR && !bDetectedTagTF)
@@ -197,7 +199,7 @@ namespace statemachine
 
         // Move the rover to the target's estimated position.
         diffdrive::DrivePowers stDrivePowers =
-            globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER, dTargetHeading, dCurrHeading, diffdrive::eTankDrive);
+            globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER, dTargetHeading, dCurrHeading, diffdrive::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return;
@@ -324,6 +326,8 @@ namespace statemachine
      *      have a confidence of at least APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD.
      *
      * @param tTarget - Reference to store the tag identified as the target.
+     * @param dAngleThreshold - An angle threshold in degrees that the current tag can be from the target tag.
+     * @param dDistanceThreshold - A distance threshold in meters that the current tag can be form the target tag.
      * @return true - A target marker was identified.
      * @return false - A target marker was not identified.
      *
@@ -334,11 +338,12 @@ namespace statemachine
     {
         // Load all detected tags in the rover's vision.
         std::vector<tensorflowtag::TensorflowTag> vDetectedTags;
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTags, m_vTagDetectors, true);
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTags, m_vTagDetectors);
 
         tensorflowtag::TensorflowTag stBestTag;
         stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
-        stBestTag.nID                   = -1;
+        bool bTagIdentified             = false;
+        // stBestTag.nID                   = -1;
 
         // Select the tag that is the closest to the rover's current position and above the confidence threshold.
         for (const tensorflowtag::TensorflowTag& stCandidate : vDetectedTags)
@@ -346,20 +351,33 @@ namespace statemachine
             if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance && stCandidate.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD)
             {
                 stBestTag = stCandidate;
+
+                // Update tag found toggle.
+                bTagIdentified = true;
             }
         }
 
-        // A tag was found.
-        if (stBestTag.nID >= 0)
+        // Check if a tag has been identified.
+        if (bTagIdentified)
         {
             // Save it to the passed in reference.
             stTarget = stBestTag;
-            return true;
         }
-        // No target tag was found.
-        else
-        {
-            return false;
-        }
+
+        return bTagIdentified;
+
+        // LEAD: Since TensorflowTag no longer has ID, commented out.
+        // // A tag was found.
+        // if (stBestTag.nID >= 0)
+        // {
+        //     // Save it to the passed in reference.
+        //     stTarget = stBestTag;
+        //     return true;
+        // }
+        // // No target tag was found.
+        // else
+        // {
+        //     return false;
+        // }
     }
 }    // namespace statemachine

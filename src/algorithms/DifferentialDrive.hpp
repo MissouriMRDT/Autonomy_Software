@@ -57,7 +57,6 @@ namespace diffdrive
     // Enumerator used to specify what method of drive control to use.
     enum DifferentialControlMethod
     {
-        eTankDrive,        // Simple controller. Left and right input is directly assigned to each side of the drivetrain.
         eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
         eCurvatureDrive    // Similar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
     };
