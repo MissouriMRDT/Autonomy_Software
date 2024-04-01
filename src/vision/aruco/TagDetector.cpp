@@ -280,14 +280,12 @@ void TagDetector::ThreadedContinuousCode()
         arucotag::PreprocessFrame(m_cvArucoProcFrame, m_cvArucoProcFrame);
         // Detect tags in the image
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
-
-        // // Estimate the positions of the tags using the point cloud
-        // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
-        // {
-        //     // Use the point cloud to get the location of the tag.
-        //     arucotag::EstimatePoseFromPointCloud(cvPointCloud, stTag);
-        // }
-
+        // Estimate the positions of the tags using the point cloud
+        for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+        {
+            // Use the point cloud to get the location of the tag.
+            arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+        }
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
         // Draw tag overlays onto normal image.
@@ -296,11 +294,16 @@ void TagDetector::ThreadedContinuousCode()
         // Check if tensorflow detection if turned on.
         if (m_bTensorflowEnabled)
         {
-            // Detect tags in the image.
             // Drop the Alpha channel from the image copy to preproc frame.
             cv::cvtColor(m_cvFrame, m_cvTensorflowProcFrame, cv::COLOR_BGRA2RGB);
+            // Detect tags in the image.
             m_vDetectedTensorTags = tensorflowtag::Detect(m_cvTensorflowProcFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
-
+            // Estimate the positions of the tags using the point cloud
+            for (tensorflowtag::TensorflowTag& stTag : m_vDetectedTensorTags)
+            {
+                // Use the point cloud to get the location of the tag.
+                tensorflowtag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+            }
             // Draw tag overlays onto normal image.
             tensorflowtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTensorTags);
         }
