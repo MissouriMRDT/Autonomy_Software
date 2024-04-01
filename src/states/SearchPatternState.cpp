@@ -131,7 +131,7 @@ namespace statemachine
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
 
         tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors, false);
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
 
         if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
         {
