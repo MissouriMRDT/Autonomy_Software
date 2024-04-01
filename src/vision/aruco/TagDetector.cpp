@@ -45,8 +45,9 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
     m_bTensorflowInitialized           = false;
     m_bTensorflowEnabled               = false;
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
-    m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
+    m_bCameraIsOpened                  = false;
+    m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_szCameraName                     = dynamic_cast<BasicCam*>(pBasicCam)->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
@@ -103,8 +104,9 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     m_bTensorflowInitialized           = false;
     m_bTensorflowEnabled               = false;
     m_bUsingZedCamera                  = true;    // Toggle ZED functions off.
-    m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_bUsingGpuMats                    = bUsingGpuMats;
+    m_bCameraIsOpened                  = false;
+    m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
     m_szCameraName                     = dynamic_cast<ZEDCam*>(pZEDCam)->GetCameraModel() + "_" + std::to_string(dynamic_cast<ZEDCam*>(pZEDCam)->GetCameraSerial());
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
@@ -155,24 +157,31 @@ TagDetector::~TagDetector()
  ******************************************************************************/
 void TagDetector::ThreadedContinuousCode()
 {
-    // Create instance variables.
-    bool bCameraIsOpened = true;
-
     // Check if using ZEDCam or BasicCam.
     if (m_bUsingZedCamera)
     {
         // Check if camera is NOT open.
         if (!dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraIsOpen())
         {
-            // Shutdown threads for this ZEDCam.
-            this->RequestStop();
             // Set camera opened toggle.
-            bCameraIsOpened = false;
+            m_bCameraIsOpened = false;
 
-            // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger,
-                         "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
-                         dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraSerial());
+            // If camera's not open on first iteration of thread, it's probably not present, so stop.
+            if (this->GetThreadState() == eStarting)
+            {
+                // Shutdown threads for this ZEDCam.
+                this->RequestStop();
+
+                // Submit logger message.
+                LOG_CRITICAL(logging::g_qSharedLogger,
+                             "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
+                             dynamic_cast<ZEDCam*>(m_pCamera)->GetCameraSerial());
+            }
+        }
+        else
+        {
+            // Set camera opened toggle.
+            m_bCameraIsOpened = true;
         }
     }
     else
@@ -180,20 +189,30 @@ void TagDetector::ThreadedContinuousCode()
         // Check if camera is NOT open.
         if (!dynamic_cast<BasicCam*>(m_pCamera)->GetCameraIsOpen())
         {
-            // Shutdown threads for this BasicCam.
-            this->RequestStop();
             // Set camera opened toggle.
-            bCameraIsOpened = false;
+            m_bCameraIsOpened = false;
 
-            // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger,
-                         "TagDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
-                         dynamic_cast<BasicCam*>(m_pCamera)->GetCameraLocation());
+            // If camera's not open on first iteration of thread, it's probably not present, so stop.
+            if (this->GetThreadState() == eStarting)
+            {
+                // Shutdown threads for this BasicCam.
+                this->RequestStop();
+
+                // Submit logger message.
+                LOG_CRITICAL(logging::g_qSharedLogger,
+                             "TagDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
+                             dynamic_cast<BasicCam*>(m_pCamera)->GetCameraLocation());
+            }
+        }
+        else
+        {
+            // Set camera opened toggle.
+            m_bCameraIsOpened = true;
         }
     }
 
     // Check if camera is opened.
-    if (bCameraIsOpened)
+    if (m_bCameraIsOpened)
     {
         // Create future for indicating when the frame has been copied.
         std::future<bool> fuPointCloudCopyStatus;
@@ -287,21 +306,20 @@ void TagDetector::ThreadedContinuousCode()
         }
 
         /////////////////////////////////////////////////////////////////////////////////////
+    }
 
-        // Acquire a shared_lock on the detected tags copy queue.
-        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Check if the detected tag copy queue is empty.
-        if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty() || !m_qDetectedTagDrawnOverlayFrames.empty())
-        {
-            size_t siQueueLength =
-                std::max({m_qDetectedArucoTagCopySchedule.size(), m_qDetectedTensorflowTagCopySchedule.size(), m_qDetectedTagDrawnOverlayFrames.size()});
-            // Start the thread pool to store multiple copies of the detected tags to the requesting threads
-            this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
-            // Wait for thread pool to finish.
-            this->JoinPool();
-            // Release lock on frame copy queue.
-            lkSchedulers.unlock();
-        }
+    // Acquire a shared_lock on the detected tags copy queue.
+    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Check if the detected tag copy queue is empty.
+    if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty() || !m_qDetectedTagDrawnOverlayFrames.empty())
+    {
+        size_t siQueueLength = std::max({m_qDetectedArucoTagCopySchedule.size(), m_qDetectedTensorflowTagCopySchedule.size(), m_qDetectedTagDrawnOverlayFrames.size()});
+        // Start the thread pool to store multiple copies of the detected tags to the requesting threads
+        this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
+        // Wait for thread pool to finish.
+        this->JoinPool();
+        // Release lock on frame copy queue.
+        lkSchedulers.unlock();
     }
 }
 

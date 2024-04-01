@@ -61,12 +61,12 @@ namespace constants
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.0;      // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.0;      // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.005;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.02;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.3;      // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_RAMP_RATE      = 0.4;      // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER      = 0.0;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.15;      // The max effort the I term is allowed to contribute.
+    const double DRIVE_PID_MAX_RAMP_RATE      = 0.1;      // The max ramp rate of the output of the PID controller.
+    const double DRIVE_PID_OUTPUT_FILTER      = 0.1;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
     const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
     const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
@@ -150,7 +150,7 @@ namespace constants
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
     const bool ZED_MAINCAM_FUSION_MASTER            = true;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left Side Cam.
     const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
@@ -242,8 +242,12 @@ namespace constants
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
+    // Handler.
+    const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
+
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -251,7 +255,6 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // High Level Functionality Adjustments.
-    const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -269,6 +272,16 @@ namespace constants
     const double ASTAR_MAXIMUM_SEARCH_GRID  = 10.0;         // Maximum search grid size (UTM)
     const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
     const double ASTAR_SQRT_NODE_SIZE       = M_SQRT1_2;    // Square root of m_dNodeSize
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Driver Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // NavBoard.
+    const double NAVBOARD_MAX_GPS_DATA_AGE     = 3.0;    // The maximum age of the current GPS data before printing warnings.
+    const double NAVBOARD_MAX_COMPASS_DATA_AGE = 3.0;    // The maximum age of the current Compass data before printing warnings.
 
     ///////////////////////////////////////////////////////////////////////////
 
