@@ -146,6 +146,7 @@ Styleguides
 superres
 TAGDETECT
 TAGDETECTOR
+tagdetectutils
 Tele
 TELEOP
 tensorflowobject
