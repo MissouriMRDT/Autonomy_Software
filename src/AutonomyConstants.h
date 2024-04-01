@@ -253,15 +253,15 @@ namespace constants
     const double STUCK_MOTOR_POWER          = 0.5;    // The amount of power the motors use when becoming unstuck.
     const double STUCK_SAME_POINT_PROXIMITY = 1.0;    // Points within this proximity of another point are considered the same.
     const double STUCK_CHECK_INTERVAL       = 1.0;    // Period in between consecutive checks of if the rover's rotating.
-    const double STUCK_CHECK_ROT_THRESH     = 1.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double STUCK_CHECK_VEL_THRESH     = 0.1;    // Minimum velocity required to consider the rover as actively moving.
+    const double STUCK_CHECK_ROT_THRESH     = 5.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double STUCK_CHECK_VEL_THRESH     = 0.3;    // Minimum velocity required to consider the rover as actively moving.
     const unsigned int STUCK_CHECK_ATTEMPTS = 5;      // Max number of failed checks of the rover's rotation before next attempt.
 
     // Search Pattern State
     const double SEARCH_ANGULAR_STEP_DEGREES     = 57;     // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_MAX_RADIUS               = 25;     //  The maximum radius to cover in the search (meters).
     const double SEARCH_STARTING_HEADING_DEGREES = 0;      // The angle the rover is facing at the start of the search(degrees).
-    const double SEARCH_SPACING                  = 1;      // The spacing between successive points in the spiral (meters).
+    const double SEARCH_SPACING                  = 2;      // The spacing between successive points in the spiral (meters).
     const double SEARCH_WAYPOINT_PROXIMITY       = 1;      // How close a rover must be to a point to have it count as visited.
     const double SEARCH_MOTOR_POWER              = 0.5;    // The amount of power the motors use when approaching the marker.
     // Handler.
