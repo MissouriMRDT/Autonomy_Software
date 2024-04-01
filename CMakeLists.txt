@@ -59,6 +59,7 @@ add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
 ## Find RoveComm
 include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
+add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
