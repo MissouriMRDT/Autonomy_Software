@@ -136,13 +136,13 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         m_unCameraSerialNumber = m_slCamera.getCameraInformation().serial_number;
 
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "{} stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
+        LOG_INFO(logging::g_qSharedLogger, "{} ZED stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
     }
     else
     {
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger,
-                  "Unable to open stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                  "Unable to open ZED stereo camera {} ({})! sl::ERROR_CODE is: {}",
                   sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                   m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
@@ -173,7 +173,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
             {
                 // Submit logger message.
                 LOG_DEBUG(logging::g_qSharedLogger,
-                          "Initialized FUSION instance for camera {} ({})!",
+                          "Initialized FUSION instance for ZED camera {} ({})!",
                           sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                           m_unCameraSerialNumber);
             }
@@ -197,6 +197,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                       sl::toString(slReturnCode).get());
         }
     }
+
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
 
 /******************************************************************************
@@ -223,7 +226,7 @@ ZEDCam::~ZEDCam()
     m_slCamera.close();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been successfully closed.", m_unCameraSerialNumber);
+    LOG_INFO(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been successfully closed.", m_unCameraSerialNumber);
 }
 
 /******************************************************************************
@@ -243,12 +246,54 @@ void ZEDCam::ThreadedContinuousCode()
     // Check if camera is opened.
     if (!m_slCamera.isOpened())
     {
-        // Shutdown threads for this ZEDCam.
-        this->RequestStop();
-        // Submit logger message.
-        LOG_CRITICAL(logging::g_qSharedLogger,
-                     "Camera start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
-                     m_unCameraSerialNumber);
+        // If this is the first iteration of the thread the camera probably isn't present so stop thread to save resources.
+        if (this->GetThreadState() == eStarting)
+        {
+            // Shutdown threads for this ZEDCam.
+            this->RequestStop();
+            // Submit logger message.
+            LOG_CRITICAL(logging::g_qSharedLogger,
+                         "Camera start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
+                         m_unCameraSerialNumber);
+        }
+        else
+        {
+            // Create instance variables.
+            static bool bReopenAlreadyChecked     = false;
+            std::chrono::time_point tmCurrentTime = std::chrono::system_clock::now();
+            // Convert time point to seconds since epoch
+            int nTimeSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime.time_since_epoch()).count();
+
+            // Only try to reopen camera every 5 seconds.
+            if (nTimeSinceEpoch % 5 == 0 && !bReopenAlreadyChecked)
+            {
+                // Attempt to reopen camera.
+                sl::ERROR_CODE slReturnCode = m_slCamera.open(m_slCameraParams);
+
+                // Check if camera was reopened.
+                if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been reconnected and reopened!", m_unCameraSerialNumber);
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Attempt to reopen ZED stereo camera with serial number {} has failed! Trying again in 5 seconds...",
+                                m_unCameraSerialNumber);
+                    // Sleep for five seconds.
+                }
+
+                // Set toggle.
+                bReopenAlreadyChecked = true;
+            }
+            else if (nTimeSinceEpoch % 5 != 0)
+            {
+                // Reset toggle.
+                bReopenAlreadyChecked = false;
+            }
+        }
     }
     else
     {
@@ -259,6 +304,7 @@ void ZEDCam::ThreadedContinuousCode()
         std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
         // Call generalized update method of zed api.
         sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+
         // Check if new frame was computed successfully.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
         {
@@ -452,10 +498,13 @@ void ZEDCam::ThreadedContinuousCode()
         {
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger,
-                      "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}",
+                      "Unable to update stereo camera {} ({}) frames, measurements, and sensors! sl::ERROR_CODE is: {}. Closing camera...",
                       sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                       m_unCameraSerialNumber,
                       sl::toString(slReturnCode).get());
+
+            // Release camera resources.
+            m_slCamera.close();
         }
 
         // Check if this camera is the fusion master instance. Feed data to sl::Fusion.
@@ -502,59 +551,59 @@ void ZEDCam::ThreadedContinuousCode()
 
         // Release camera lock.
         lkSharedCameraLock.unlock();
-
-        // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Check if any requests have been made.
-        if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-            !m_qGeoPoseCopySchedule.empty() || m_qFloorCopySchedule.size() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
-        {
-            // Find the queue with the longest length.
-            size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
-                                                m_qGPUFrameCopySchedule.size(),
-                                                m_qCustomBoxIngestSchedule.size(),
-                                                m_qPoseCopySchedule.size(),
-                                                m_qGeoPoseCopySchedule.size(),
-                                                m_qFloorCopySchedule.size(),
-                                                m_qObjectDataCopySchedule.size(),
-                                                m_qObjectBatchedDataCopySchedule.size()});
-
-            // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
-            this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
-
-            // Static bool for keeping track of reset toggle action.
-            static bool bQueueTogglesAlreadyReset = false;
-            // Get current time.
-            std::chrono::_V2::system_clock::duration tmCurrentTime = std::chrono::high_resolution_clock::now().time_since_epoch();
-            // Only reset once every couple seconds.
-            if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !bQueueTogglesAlreadyReset)
-            {
-                // Reset queue counters.
-                m_bNormalFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bDepthFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bPointCloudsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bGeoPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bFloorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-                m_bBatchedObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-
-                // Set reset toggle.
-                bQueueTogglesAlreadyReset = true;
-            }
-            // Crucial for toggle action. If time is not evenly devisable and toggles have previously been set, reset queue reset boolean.
-            else if (bQueueTogglesAlreadyReset)
-            {
-                // Reset reset toggle.
-                bQueueTogglesAlreadyReset = false;
-            }
-
-            // Wait for thread pool to finish.
-            this->JoinPool();
-        }
-        // Release lock on frame copy queue.
-        lkSchedulers.unlock();
     }
+
+    // Acquire a shared_lock on the frame copy queue.
+    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Check if any requests have been made.
+    if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
+        !m_qGeoPoseCopySchedule.empty() || m_qFloorCopySchedule.size() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
+    {
+        // Find the queue with the longest length.
+        size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
+                                            m_qGPUFrameCopySchedule.size(),
+                                            m_qCustomBoxIngestSchedule.size(),
+                                            m_qPoseCopySchedule.size(),
+                                            m_qGeoPoseCopySchedule.size(),
+                                            m_qFloorCopySchedule.size(),
+                                            m_qObjectDataCopySchedule.size(),
+                                            m_qObjectBatchedDataCopySchedule.size()});
+
+        // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
+        this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
+
+        // Static bool for keeping track of reset toggle action.
+        static bool bQueueTogglesAlreadyReset = false;
+        // Get current time.
+        std::chrono::_V2::system_clock::duration tmCurrentTime = std::chrono::high_resolution_clock::now().time_since_epoch();
+        // Only reset once every couple seconds.
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !bQueueTogglesAlreadyReset)
+        {
+            // Reset queue counters.
+            m_bNormalFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bDepthFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bPointCloudsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bGeoPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bFloorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bBatchedObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+
+            // Set reset toggle.
+            bQueueTogglesAlreadyReset = true;
+        }
+        // Crucial for toggle action. If time is not evenly devisable and toggles have previously been set, reset queue reset boolean.
+        else if (bQueueTogglesAlreadyReset)
+        {
+            // Reset reset toggle.
+            bQueueTogglesAlreadyReset = false;
+        }
+
+        // Wait for thread pool to finish.
+        this->JoinPool();
+    }
+    // Release lock on frame copy queue.
+    lkSchedulers.unlock();
 }
 
 /******************************************************************************
