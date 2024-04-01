@@ -120,6 +120,7 @@ class TagDetector : public AutonomyThread<void>
         std::atomic_bool m_bTensorflowEnabled;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
+        bool m_bCameraIsOpened;
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
