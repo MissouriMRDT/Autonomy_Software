@@ -95,12 +95,128 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Jason Pittman (jspencerpittman@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void SearchPatternState::Run()
     {
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
+
+        //////////////////////////
+        /* --- Log Position --- */
+        //////////////////////////
+
+        geoops::UTMCoordinate stCurrPosUTM = globals::g_pNavigationBoard->GetUTMData();
+        if (m_vRoverPosition.size() == m_nMaxDataPoints)
+        {
+            m_vRoverPosition.erase(m_vRoverPosition.begin());
+        }
+        m_vRoverPosition.emplace_back(stCurrPosUTM.dEasting, stCurrPosUTM.dNorthing);
+
+        /*
+            The overall flow of this state is as follows.
+            1. Is there a tag -> MarkerSeen
+            2. Is there an object -> ObjectSeen
+            3. Is there an obstacle -> TBD
+            4. Is the rover stuck -> Stuck
+            5. Is the search pattern complete -> Abort
+            6. Follow the search pattern.
+        */
+
+        /////////////////////////
+        /* --- Detect Tags --- */
+        /////////////////////////
+
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+
+        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors, false);
+
+        if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+            return;
+        }
+
+        ////////////////////////////
+        /* --- Detect Objects --- */
+        ////////////////////////////
+
+        // TODO: Add object detection to SearchPattern state
+
+        //////////////////////////////
+        /* --- Detect Obstacles --- */
+        //////////////////////////////
+
+        // TODO: Add obstacle detection to SearchPattern state
+
+        //////////////////////////////////////////
+        /* ---  Check if the rover is stuck --- */
+        //////////////////////////////////////////
+
+        // Time since we last checked if the rover is stuck.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        double dTimeSinceLastCheck                          = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() / 1e6);
+        if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
+        {
+            // Update time since last check to now.
+            m_tmLastStuckCheck = tmCurrentTime;
+
+            // Get the rover's current velocities.
+            double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
+            double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
+
+            // Check if the rover is rotating or moving linearly.
+            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_ROT_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_VEL_THRESH)
+            {
+                ++m_unStuckChecksOnAttempt;
+            }
+            else
+            {
+                m_unStuckChecksOnAttempt = 0;
+            }
+
+            // Has the rover been stuck on enough consecutive checks that we start StuckState.
+            if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
+            {
+                // TODO: Allow the rover to resume a search path after becoming unstuck.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, false);
+                return;
+            }
+        }
+
+        ///////////////////////////////////
+        /* --- Follow Search Pattern --- */
+        ///////////////////////////////////
+
+        // Have we reached the current waypoint?
+        geoops::GPSCoordinate stCurrentPosGPS    = globals::g_pNavigationBoard->GetGPSData();
+        geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
+        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
+
+        // If the entire search pattern has been completed without seeing tags or objects, terminate search.
+        if (bReachedTarget && m_nSearchPathIdx == (int) m_vSearchPath.size())
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
+            return;
+        }
+        // Move on to the next waypoint in the search path.
+        else if (bReachedTarget)
+        {
+            ++m_nSearchPathIdx;
+            stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
+            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        }
+
+        // Drive to target waypoint.
+        double dCurrHeading = globals::g_pNavigationBoard->GetHeading();
+        diffdrive::DrivePowers stDrivePowers =
+            globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER, stCurrRelToTarget.dStartRelativeBearing, dCurrHeading, diffdrive::eArcadeDrive);
+        globals::g_pDriveBoard->SendDrive(stDrivePowers);
+
+        return;
     }
 
     /******************************************************************************
