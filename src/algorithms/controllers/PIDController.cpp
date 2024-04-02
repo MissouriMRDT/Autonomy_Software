@@ -90,7 +90,6 @@ namespace controllers
         // Determine error from setpoint.
         double dError = dSetpoint - dActual;
 
-        // TODO: Ensure this wraparound login is correct.
         // Check if the input, and therefor controller is continuous.
         if (m_bControllerIsContinuous)
         {

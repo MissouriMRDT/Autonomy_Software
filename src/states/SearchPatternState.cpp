@@ -155,39 +155,39 @@ namespace statemachine
         /* ---  Check if the rover is stuck --- */
         //////////////////////////////////////////
 
-        // // Time since we last checked if the rover is stuck.
-        // std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        // double dTimeSinceLastCheck                          = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() /
-        // 1e6); if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
-        // {
-        //     // Update time since last check to now.
-        //     m_tmLastStuckCheck = tmCurrentTime;
+        // Time since we last checked if the rover is stuck.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        double dTimeSinceLastCheck                          = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() / 1e6);
+        if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
+        {
+            // Update time since last check to now.
+            m_tmLastStuckCheck = tmCurrentTime;
 
-        //     // Get the rover's current velocities.
-        //     double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
-        //     double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
+            // Get the rover's current velocities.
+            double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
+            double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
 
-        //     // Check if the rover is rotating or moving linearly.
-        //     if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_ROT_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_VEL_THRESH)
-        //     {
-        //         ++m_unStuckChecksOnAttempt;
-        //     }
-        //     else
-        //     {
-        //         m_unStuckChecksOnAttempt = 0;
-        //     }
+            // Check if the rover is rotating or moving linearly.
+            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_ROT_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_VEL_THRESH)
+            {
+                ++m_unStuckChecksOnAttempt;
+            }
+            else
+            {
+                m_unStuckChecksOnAttempt = 0;
+            }
 
-        //     // Has the rover been stuck on enough consecutive checks that we start StuckState.
-        //     if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
-        //     {
-        //         // Remove the current waypoint from the search pattern so we don't get stuck again.
-        //         m_vSearchPath.erase(m_vSearchPath.begin() + m_nSearchPathIdx);
-        //         // Handle state transition and save the current search pattern state.
-        //         globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-        //         // Don't execute the rest of the state.
-        //         return;
-        //     }
-        // }
+            // Has the rover been stuck on enough consecutive checks that we start StuckState.
+            if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
+            {
+                // Remove the current waypoint from the search pattern so we don't get stuck again.
+                m_vSearchPath.erase(m_vSearchPath.begin() + m_nSearchPathIdx);
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+                // Don't execute the rest of the state.
+                return;
+            }
+        }
 
         ///////////////////////////////////
         /* --- Follow Search Pattern --- */
@@ -214,9 +214,11 @@ namespace statemachine
         }
 
         // Drive to target waypoint.
-        double dCurrHeading = globals::g_pNavigationBoard->GetHeading();
-        diffdrive::DrivePowers stDrivePowers =
-            globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER, stCurrRelToTarget.dStartRelativeBearing, dCurrHeading, diffdrive::eArcadeDrive);
+        double dCurrHeading                  = globals::g_pNavigationBoard->GetHeading();
+        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
+                                                                                     stCurrRelToTarget.dStartRelativeBearing,
+                                                                                     dCurrHeading,
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return;

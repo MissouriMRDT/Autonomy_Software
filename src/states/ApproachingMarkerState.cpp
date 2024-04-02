@@ -198,8 +198,10 @@ namespace statemachine
         }
 
         // Move the rover to the target's estimated position.
-        diffdrive::DrivePowers stDrivePowers =
-            globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER, dTargetHeading, dCurrHeading, diffdrive::eArcadeDrive);
+        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
+                                                                                     dTargetHeading,
+                                                                                     dCurrHeading,
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return;
