@@ -63,16 +63,18 @@ namespace constants
     const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_INTEGRAL           = 0.005;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_DERIVATIVE         = 0.02;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_FEEDFORWARD        = 0.0;      // The feedforward for the controller used to predict control output.
     const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
     const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.15;     // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_RAMP_RATE      = 0.1;      // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER      = 0.1;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const double DRIVE_PID_MAX_RAMP_RATE      = 0.08;     // The max ramp rate of the output of the PID controller.
+    const double DRIVE_PID_OUTPUT_FILTER      = 0.78;     // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const double DRIVE_PID_TOLERANCE          = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint.
     const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
     const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////.;'//////////////////
     //// Recording Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -258,12 +260,12 @@ namespace constants
     const unsigned int STUCK_CHECK_ATTEMPTS = 5;      // Max number of failed checks of the rover's rotation before next attempt.
 
     // Search Pattern State
-    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;     // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_MAX_RADIUS               = 25;     //  The maximum radius to cover in the search (meters).
-    const double SEARCH_STARTING_HEADING_DEGREES = 0;      // The angle the rover is facing at the start of the search(degrees).
-    const double SEARCH_SPACING                  = 2;      // The spacing between successive points in the spiral (meters).
-    const double SEARCH_WAYPOINT_PROXIMITY       = 1;      // How close a rover must be to a point to have it count as visited.
-    const double SEARCH_MOTOR_POWER              = 0.5;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;                  // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_MAX_RADIUS               = 25;                  //  The maximum radius to cover in the search (meters).
+    const double SEARCH_STARTING_HEADING_DEGREES = 0;                   // The angle the rover is facing at the start of the search(degrees).
+    const double SEARCH_SPACING                  = 2;                   // The spacing between successive points in the spiral (meters).
+    const double SEARCH_WAYPOINT_PROXIMITY       = 1;                   // How close a rover must be to a point to have it count as visited.
+    const double SEARCH_MOTOR_POWER              = DRIVE_MAX_EFFORT;    // The amount of power the motors use when approaching the marker.
     // Handler.
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
