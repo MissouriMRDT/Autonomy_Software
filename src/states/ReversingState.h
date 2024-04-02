@@ -14,6 +14,11 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 
+/// \cond
+#include <chrono>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -32,14 +37,10 @@ namespace statemachine
     class ReversingState : public State
     {
         private:
-            // LEAD: @ryanw Don't initialize values in a header file. This won't even compile.
-            geoops::GPSCoordinate stStartPosition;
-            double dCurrentHeading;
+            geoops::GPSCoordinate m_stStartPosition;
+            double m_dStartHeading;
+            std::chrono::system_clock::time_point m_tmStartReversingTime;
             bool m_bInitialized;
-            // LEAD: Don't initialize values in a header file.
-            // FIXME: Move these to constants. Use the same formatting as the other constants sections. There is already a state machine section.
-            const double dCurDistance       = 0;    // TODO: set constants?
-            const double dDistanceThreshold = 5;
 
         protected:
             void Start() override;
