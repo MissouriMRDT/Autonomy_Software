@@ -263,6 +263,23 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
 }
 
 /******************************************************************************
+ * @brief Clear all saved states.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-01
+ ******************************************************************************/
+void StateMachineHandler::ClearSavedStates()
+{
+    // Acquire write lock for clearing saved states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    // Clear all saved states.
+    m_umSavedStates.clear();
+    // Reset previous state to nullptr;
+    m_pPreviousState = std::make_shared<statemachine::IdleState>();
+}
+
+/******************************************************************************
  * @brief Accessor for the Current State private member.
  *
  * @return States - The current state of the state machine.
