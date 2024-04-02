@@ -84,7 +84,7 @@ bool IsOutwardSpiral(const std::vector<geoops::Waypoint>& vPoints)
  ******************************************************************************/
 bool IsZigZag(const std::vector<geoops::Waypoint>& vPoints)
 {
-    //
+    // TODO: Write this function so unit tests work for new searchpattern.
 }
 
 /******************************************************************************
