@@ -33,13 +33,12 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
-        // Get current position and heading
-        stStartPosition = globals::g_pNavigationBoard->GetGPSData();
-        dCurrentHeading = globals::g_pNavigationBoard->GetHeading();
+        // Store the starting position and heading of rover when it entered this state.
+        m_stStartPosition = globals::g_pNavigationBoard->GetGPSData();
+        m_dStartHeading   = globals::g_pNavigationBoard->GetHeading();
 
-        // For haversine formula convert to radians
-        stStartPosition.dLatitude  = stStartPosition.dLatitude * M_PI / 180;
-        stStartPosition.dLongitude = stStartPosition.dLongitude * M_PI / 180;
+        // Store state start time.
+        m_tmStartReversingTime = std::chrono::high_resolution_clock::now();
     }
 
     /******************************************************************************
@@ -88,33 +87,47 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
 
-        // Make rover reverse
-        // LEAD: @ryanw Are these both supposed to be dCurrentHeading? 2ns param is goal heading, 3rd is current. Doing this does not guarantee that the
-        // LEAD: rover will reverse in a straight line. If you just want to reverse without trying to keep a goal heading, just use SendDrive().
-        // FIXME: You can't use eTankDrive with CalculateMove. If you run the code it will print out an error. Use ArcadeDrive for more intuitive control.
-        // FIXME: Make reverse speed a constant.
-        diffdrive::DrivePowers stReverse =
-            globals::g_pDriveBoard->CalculateMove(-1, dCurrentHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
-        globals::g_pDriveBoard->SendDrive(stReverse);
-
-        // Haversine formula to find distance
+        // Get current position and heading.
         geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
-        stCurrentPosition.dLatitude             = stCurrentPosition.dLatitude * M_PI / 180;
-        stCurrentPosition.dLongitude            = stCurrentPosition.dLongitude * M_PI / 180;
+        double dCurrentHeading                  = globals::g_pNavigationBoard->GetHeading();
+        // Get the current time.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::high_resolution_clock::now();
 
-        double dDistLon                         = stCurrentPosition.dLongitude - stStartPosition.dLongitude;
-        double dDistLat                         = stCurrentPosition.dLatitude - stStartPosition.dLatitude;
-        double a            = pow(sin(dDistLat / 2), 2) + cos(stStartPosition.dLatitude) * cos(stCurrentPosition.dLatitude) * pow(sin(dDistLon / 2), 2);
-        double c            = 2 * asin(sqrt(a));
-        double r            = 6371;    // Radius of earth in kilometers
-        double dCurDistance = c * r;
+        // Calculate current distance from start point.
+        geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stCurrentPosition, m_stStartPosition);
 
-        if (dCurDistance >= dDistanceThreshold)    // TODO: Currently will keep reversing if the position doesn't change
+        // Calculate time elapsed.
+        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStartReversingTime).count();
+        // Check if rover has reversed the desired distance or timeout has been reached.
+        if (stMeasurement.dDistanceMeters >= constants::REVERSE_DISTANCE || dTimeElapsed >= constants::REVERSE_TIMEOUT)
         {
-            globals::g_pDriveBoard->SendStop();    // Stop reversing
-            // FIXME: Calling this->TriggerEvent() will not change states. Call the state machine handler's HandleEven().
-            // FIXME: globals::g_pStateMachineHandler->HandleEvent(Event::eReverseComplete);
-            TriggerEvent(Event::eReverseComplete);
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTimeElapsed);
+            // Stop reversing.
+            globals::g_pDriveBoard->SendStop();
+            // Handle reversing complete event.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eReverseComplete);
+            // Exit method without running other code below.
+            return;
+        }
+
+        // Check if we should try to maintain heading while reversing.
+        if (constants::REVERSE_MAINTAIN_HEADING)
+        {
+            // Reverse straight backwards.
+            diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_POWER),
+                                                                                     m_dStartHeading,
+                                                                                     dCurrentHeading,
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
+            // Send drive powers.
+            globals::g_pDriveBoard->SendDrive(stReverse);
+        }
+        else
+        {
+            // Just set reverse drive powers manually.
+            diffdrive::DrivePowers stMotorPowers{-std::fabs(constants::REVERSE_POWER), -std::fabs(constants::REVERSE_POWER)};
+            // Send drive powers.
+            globals::g_pDriveBoard->SendDrive(stMotorPowers);
         }
     }
 
@@ -147,8 +160,10 @@ namespace statemachine
             }
             case Event::eReverseComplete:
             {
-                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling stReverse Complete event.");
-                eNextState = States::eIdle;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling ReverseComplete event.");
+                // Transition back to state that triggered reversing.
+                eNextState = globals::g_pStateMachineHandler->GetPreviousState();
                 break;
             }
             default:

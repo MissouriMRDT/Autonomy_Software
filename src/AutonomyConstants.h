@@ -259,6 +259,12 @@ namespace constants
     const double STUCK_CHECK_VEL_THRESH     = 0.3;    // Minimum velocity required to consider the rover as actively moving.
     const unsigned int STUCK_CHECK_ATTEMPTS = 5;      // Max number of failed checks of the rover's rotation before next attempt.
 
+    // Reverse State.
+    const double REVERSE_POWER          = DRIVE_MAX_EFFORT;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE       = 3.0;                 // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT        = 5.0;                 // Reverse state timeout in seconds.
+    const bool REVERSE_MAINTAIN_HEADING = true;                // Whether or not the rover should maintain heading while reversing.
+
     // Search Pattern State
     const double SEARCH_ANGULAR_STEP_DEGREES     = 57;                  // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_MAX_RADIUS               = 25;                  //  The maximum radius to cover in the search (meters).

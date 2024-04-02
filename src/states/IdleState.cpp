@@ -35,8 +35,10 @@ namespace statemachine
         m_tIdleTime      = time(nullptr);
         m_bRealigned     = false;
         m_nMaxDataPoints = 100;
-
         m_vRoverPosition.reserve(m_nMaxDataPoints);
+
+        // Ensure drive is stopped.
+        globals::g_pDriveBoard->SendStop();
     }
 
     /******************************************************************************
@@ -92,10 +94,10 @@ namespace statemachine
         m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
 
         // If the last state was searchpattern and the waypoint handler has been cleared, reset.
-        if (globals::g_pStateMachineHandler->GetPreviousState() == States::eSearchPattern && globals::g_pWaypointHandler->GetWaypointCount() <= 0)
+        if (globals::g_pStateMachineHandler->GetPreviousState() != States::eIdle && globals::g_pWaypointHandler->GetWaypointCount() <= 0)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "IdleState: WaypointHandler queue has been cleared while in IdleState, deleting old saved states...");
+            LOG_INFO(logging::g_qSharedLogger, "IdleState: WaypointHandler queue is empty while in IdleState, deleting old saved states...");
             // Reset all old states. Since waypoint handler has been cleared, there's no need to save old searchpattern state.
             globals::g_pStateMachineHandler->ClearSavedStates();
         }
