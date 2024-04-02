@@ -42,7 +42,7 @@ namespace statemachine
         m_eCurrentSearchPatternType = eSpiral;
 
         // Calculate the search path.
-        m_stSearchPatternCenter = globals::g_pNavigationBoard->GetGPSData();
+        m_stSearchPatternCenter = globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate();
         m_vSearchPath           = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter,
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
                                                                        constants::SEARCH_MAX_RADIUS,
@@ -241,13 +241,21 @@ namespace statemachine
         {
             case Event::eMarkerSeen:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change states.
                 eNextState = States::eApproachingMarker;
                 break;
             }
             case Event::eObjectSeen:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change state.
                 eNextState = States::eApproachingObject;
                 break;
             }
@@ -306,6 +314,8 @@ namespace statemachine
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: All patterns failed to find anything, giving up...");
+                        // Pop old waypoint out of queue.
+                        globals::g_pWaypointHandler->PopNextWaypoint();
                         // Change states.
                         eNextState = States::eIdle;
                         break;

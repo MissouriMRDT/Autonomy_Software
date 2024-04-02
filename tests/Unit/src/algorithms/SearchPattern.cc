@@ -72,6 +72,22 @@ bool IsOutwardSpiral(const std::vector<geoops::Waypoint>& vPoints)
 }
 
 /******************************************************************************
+ * @brief Function used in testing to determine if a returns list of waypoints
+ *      is a good zigzag.
+ *
+ * @param vPoints - The list of waypoint that, in order, should form a zigzag.
+ * @return true - The list of waypoints is a valid zigzag.
+ * @return false - The list of waypoint is not a valid zigzag.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-01
+ ******************************************************************************/
+bool IsZigZag(const std::vector<geoops::Waypoint>& vPoints)
+{
+    //
+}
+
+/******************************************************************************
  * @brief Test SearchPattern algorithm functionality.
  *
  *
@@ -107,4 +123,42 @@ TEST(SearchPatternTest, SpiralPatternShapeUTM)
 
     // Check if the returned path resembles an outward spiral pattern.
     EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-01
+ ******************************************************************************/
+TEST(SearchPatternTest, ZigZagPatternShapeGPS)
+{
+    // Create a new GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stGPSRollaCoordinate);
+
+    // Check if the returned path resembles an outward spiral pattern.
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-01
+ ******************************************************************************/
+TEST(SearchPatternTest, ZigZagPatternShapeUTM)
+{
+    // Create a new GPS coordinate.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stUTMRollaCoordinate);
+
+    // Check if the returned path resembles an outward spiral pattern.
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
 }

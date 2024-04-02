@@ -119,6 +119,7 @@ class StateMachineHandler : private AutonomyThread<void>
 
         void HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState = false);
 
+        void ClearSavedStates();
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
 

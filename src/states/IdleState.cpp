@@ -83,16 +83,22 @@ namespace statemachine
      ******************************************************************************/
     void IdleState::Run()
     {
-        // TODO: Implement the behavior specific to the Idle state
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
         // Get the current rover gps position.
         geoops::UTMCoordinate stCurrentLocation = globals::g_pNavigationBoard->GetUTMData();
-
         // Store the Rover's position.
         m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
 
-        return;
+        // If the last state was searchpattern and the waypoint handler has been cleared, reset.
+        if (globals::g_pStateMachineHandler->GetPreviousState() == States::eSearchPattern && globals::g_pWaypointHandler->GetWaypointCount() <= 0)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "IdleState: WaypointHandler queue has been cleared while in IdleState, deleting old saved states...");
+            // Reset all old states. Since waypoint handler has been cleared, there's no need to save old searchpattern state.
+            globals::g_pStateMachineHandler->ClearSavedStates();
+        }
     }
 
     /******************************************************************************
