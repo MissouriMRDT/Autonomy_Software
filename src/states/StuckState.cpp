@@ -202,12 +202,16 @@ namespace statemachine
         // and are in the first three attempts, start reverse.
         if (!m_bIsCurrentlyAligning && m_unAttempts < 4)
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStart, true);
+            // Handle reversing event.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
         }
         // If we have already done three attempts abort the unstuck state.
         else if (m_unAttempts >= 4)
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort, false);
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "StuckState: After multiple attempt, autonomy was unable to get the rover unstuck.");
+            // Return to idle.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
         }
 
         return;
@@ -236,8 +240,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "StuckState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eReversing;
                 break;
             }
             case Event::eAbort:
@@ -248,6 +250,14 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eIdle;
+                break;
+            }
+            case Event::eReverse:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "StuckState: Handling Reverse event.");
+                // Change state.
+                eNextState = States::eReversing;
                 break;
             }
             default:
