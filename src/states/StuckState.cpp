@@ -34,8 +34,16 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
 
+        // Initialize member variables.
+        m_unAttempts           = 1;
+        m_dOriginalHeading     = 0;
         m_bIsCurrentlyAligning = false;
 
+        // Store the postion and heading where the rover get stuck.
+        m_stOriginalPosition = globals::g_pNavigationBoard->GetGPSData();
+        m_dOriginalHeading   = globals::g_pNavigationBoard->GetHeading();
+
+        // Stop drivetrain.
         globals::g_pDriveBoard->SendStop();
     }
 
@@ -71,17 +79,12 @@ namespace statemachine
             Start();
             m_bInitialized = true;
         }
-
-        m_unAttempts           = 1;
-        m_stOriginalPosition   = geoops::GPSCoordinate(0, 0);
-        m_dOriginalHeading     = 0;
-        m_bIsCurrentlyAligning = false;
     }
 
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void StuckState::Run()
@@ -106,19 +109,11 @@ namespace statemachine
                 // If this attempt requires the rover to rotate we initialize
                 //  the members are used to determine if the rover's stuck in a way
                 //  it can't rotate.
-                if (1 < m_unAttempts && m_unAttempts < 4)
+                if (m_unAttempts > 1 && m_unAttempts < 4)
                 {
                     m_unStuckChecksOnAttempt = 0;
                     m_tmLastStuckCheck       = std::chrono::system_clock::now();
                 }
-            }
-            else
-            {
-                // If this is our first attempt at becoming 'unstuck' from this position save
-                //  the current location and heading for future attempts.
-                m_unAttempts         = 1;
-                m_stOriginalPosition = stCurrentPosition;
-                m_dOriginalHeading   = globals::g_pNavigationBoard->GetHeading();
             }
         }
 
