@@ -176,14 +176,19 @@
                 "doxdocgen.generic.useGitUserEmail": true,
                 "doxdocgen.generic.useGitUserName": true,
                 // Todo Tree Extention Settings
+                "todo-tree.filtering.excludeGlobs": [
+                    "**/CONTRIBUTING.md"
+                ],
                 "todo-tree.general.tags": [
-                    "TODO",
-                    "BUG",
-                    "HACK",
-                    "FIXME",
-                    "LEAD",
-                    "ISSUE NOTE",
-                    "TEST",
+                    "* @todo",
+                    "@todo",
+                    "TODO:",
+                    "BUG:",
+                    "HACK:",
+                    "FIXME:",
+                    "LEAD:",
+                    "ISSUE NOTE:",
+                    "TEST:",
                     "[ ]",
                     "[x]"
                 ],
@@ -196,49 +201,63 @@
                     "iconColour": "#00ff00"
                 },
                 "todo-tree.highlights.customHighlight": {
-                    "TODO": {
+                    "* @todo": {
                         "icon": "bookmark",
                         "type": "line",
                         "iconColour": "#d000ff",
                         "foreground": "#ffffff",
                         "background": "#d000ff"
                     },
-                    "BUG": {
+                    "@todo": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "TODO:": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "BUG:": {
                         "icon": "bug",
                         "type": "line",
                         "iconColour": "#ff8c00",
                         "foreground": "#ffffff",
                         "background": "#ff8c00"
                     },
-                    "HACK": {
+                    "HACK:": {
                         "icon": "circle-slash",
                         "type": "line",
                         "iconColour": "#ff1e00",
                         "foreground": "#ffffff",
                         "background": "#ff1e00"
                     },
-                    "FIXME": {
+                    "FIXME:": {
                         "icon": "alert-fill",
                         "type": "line",
                         "iconColour": "#ff0000",
                         "foreground": "#ffffff",
                         "background": "#ff0000"
                     },
-                    "LEAD": {
+                    "LEAD:": {
                         "icon": "person",
                         "type": "line",
                         "iconColour": "#0700d8",
                         "foreground": "#ffffff",
                         "background": "#0700d8"
                     },
-                    "ISSUE NOTE": {
+                    "ISSUE NOTE:": {
                         "icon": "book",
                         "type": "line",
                         "iconColour": "#808080",
                         "foreground": "#ffffff",
                         "background": "#808080"
                     },
-                    "TEST": {
+                    "TEST:": {
                         "icon": "beaker",
                         "type": "line",
                         "iconColour": "#c5cb04",
