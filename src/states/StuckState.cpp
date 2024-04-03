@@ -45,6 +45,8 @@ namespace statemachine
         // Store the postion and heading where the rover get stuck.
         m_stOriginalPosition = globals::g_pNavigationBoard->GetGPSData();
         m_dOriginalHeading   = globals::g_pNavigationBoard->GetHeading();
+        // Get state start time.
+        m_tmStuckStartTime = std::chrono::system_clock::now();
 
         // Stop drivetrain.
         globals::g_pDriveBoard->SendStop();
@@ -98,162 +100,166 @@ namespace statemachine
         // Store the current postion and heading.
         geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
         double dCurrentHeading                  = globals::g_pNavigationBoard->GetHeading();
+        // Get current time.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
         // Check if we are unstuck from our starting spot.
         if (!this->SamePosition(m_stOriginalPosition, stCurrentPosition))
         {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
+                        std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
             // Handing unstuck event. Destroy this unstuck state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
         }
-
-        // Perform unstuck logic.
-        switch (m_eAttemptType)
+        else
         {
-            // On the first attempt we use the rover's original heading so alignment would already be completed.
-            case eReverseCurrentHeading:
+            // Perform unstuck logic.
+            switch (m_eAttemptType)
             {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "StuckState: Maintaining current heading and reversing...");
-                // Update stuck type enum for if we are still stuck after reversing.
-                m_eAttemptType = eReverseLeft;
-                // Handle reversing event. Save current state.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
-                break;
-            }
-                // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
-            case eReverseLeft:
-            {
-                // Check if we are already realigning.
-                if (!m_bIsCurrentlyAligning)
+                // On the first attempt we use the rover's original heading so alignment would already be completed.
+                case eReverseCurrentHeading:
                 {
                     // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees clockwise...", constants::STUCK_ALIGN_DEGREES);
-                    // Set aligning toggle.
-                    m_bIsCurrentlyAligning = true;
-                    // Update start heading.
-                    m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
-                    // Update start time.
-                    m_tmAlignStartTime = std::chrono::system_clock::now();
+                    LOG_INFO(logging::g_qSharedLogger, "StuckState: Maintaining current heading and reversing...");
+                    // Update stuck type enum for if we are still stuck after reversing.
+                    m_eAttemptType = eReverseLeft;
+                    // Handle reversing event. Save current state.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                    break;
                 }
-                else
+                    // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
+                case eReverseLeft:
                 {
-                    // Get current time.
-                    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-                    // Calculate time elapsed since realignment was started.
-                    double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmAlignStartTime).count();
-                    // Calculate the goal realignment heading.
-                    double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES, 0, 360);
-                    // Calculate total rotation degrees so far.
-                    double dRealignmentDegrees = numops::AngularDifference<double>(dCurrentHeading, dGoalHeading);
-
-                    // Align drivetrain to a certain heading with 0 forward/reverse power.
-                    diffdrive::DrivePowers stTurnPowers =
-                        globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
-                    // Send drive powers.
-                    globals::g_pDriveBoard->SendDrive(stTurnPowers);
-
-                    // Check if we have successfully realigned.
-                    if (dRealignmentDegrees <= constants::STUCK_ALIGN_TOLERANCE)
+                    // Check if we are already realigning.
+                    if (!m_bIsCurrentlyAligning)
                     {
                         // Submit logger message.
-                        LOG_INFO(logging::g_qSharedLogger, "StuckState: Realignment complete! Reversing...");
-                        // Update stuck type enum for if we are still stuck after reversing.
-                        m_eAttemptType = eReverseRight;
-                        // Reset currently aligning toggle.
-                        m_bIsCurrentlyAligning = false;
-                        // Handle reversing event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                        LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees clockwise...", constants::STUCK_ALIGN_DEGREES);
+                        // Set aligning toggle.
+                        m_bIsCurrentlyAligning = true;
+                        // Update start heading.
+                        m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
+                        // Update start time.
+                        m_tmAlignStartTime = std::chrono::system_clock::now();
                     }
-                    // If not aligned yet, check if we hit the timeout.
-                    else if (dTimeElapsed >= constants::STUCK_HEADING_ALIGN_TIMEOUT)
+                    else
                     {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger,
-                                    "ReversingState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
-                                    dRealignmentDegrees,
-                                    dTimeElapsed);
-                        // Update stuck type enum for if we are still stuck after reversing.
-                        m_eAttemptType = eReverseRight;
-                        // Handle reversing event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
-                    }
-                }
-                break;
-            }
-            // For the third do it constants::STUCK_ALIGN_DEGREES degrees to the left of the original heading.
-            case eReverseRight:
-            {
-                // Check if we are already realigning.
-                if (!m_bIsCurrentlyAligning)
-                {
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees counter-clockwise...", constants::STUCK_ALIGN_DEGREES);
-                    // Set aligning toggle.
-                    m_bIsCurrentlyAligning = true;
-                    // Update start heading.
-                    m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
-                    // Update start time.
-                    m_tmAlignStartTime = std::chrono::system_clock::now();
-                }
-                else
-                {
-                    // Get current time.
-                    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-                    // Calculate time elapsed since realignment was started.
-                    double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmAlignStartTime).count();
-                    // Calculate the goal realignment heading.
-                    double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES, 0, 360);
-                    // Calculate total rotation degrees so far.
-                    double dRealignmentDegrees = numops::AngularDifference<double>(dCurrentHeading, dGoalHeading);
+                        // Calculate time elapsed since realignment was started.
+                        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmAlignStartTime).count();
+                        // Calculate the goal realignment heading.
+                        double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES, 0, 360);
+                        // Calculate total rotation degrees so far.
+                        double dRealignmentDegrees = numops::AngularDifference<double>(dCurrentHeading, dGoalHeading);
 
-                    // Align drivetrain to a certain heading with 0 forward/reverse power.
-                    diffdrive::DrivePowers stTurnPowers =
-                        globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
-                    // Send drive powers.
-                    globals::g_pDriveBoard->SendDrive(stTurnPowers);
+                        // Align drivetrain to a certain heading with 0 forward/reverse power.
+                        diffdrive::DrivePowers stTurnPowers =
+                            globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
+                        // Send drive powers.
+                        globals::g_pDriveBoard->SendDrive(stTurnPowers);
 
-                    // Check if we have successfully realigned.
-                    if (dRealignmentDegrees <= constants::STUCK_ALIGN_TOLERANCE)
-                    {
-                        // Submit logger message.
-                        LOG_INFO(logging::g_qSharedLogger, "StuckState: Realignment complete! Reversing...");
-                        // Update stuck type enum for if we are still stuck after reversing.
-                        m_eAttemptType = eGiveUp;
-                        // Reset currently aligning toggle.
-                        m_bIsCurrentlyAligning = false;
-                        // Handle reversing event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
-                    }
-                    // If not aligned yet, check if we hit the timeout.
-                    else if (dTimeElapsed >= constants::STUCK_HEADING_ALIGN_TIMEOUT)
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger,
-                                    "ReversingState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
-                                    dRealignmentDegrees,
-                                    dTimeElapsed);
-                        // Update stuck type enum for if we are still stuck after reversing.
-                        m_eAttemptType = eGiveUp;
-                        // Handle reversing event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                        // Check if we have successfully realigned.
+                        if (dRealignmentDegrees <= constants::STUCK_ALIGN_TOLERANCE)
+                        {
+                            // Submit logger message.
+                            LOG_INFO(logging::g_qSharedLogger, "StuckState: Realignment complete! Reversing...");
+                            // Update stuck type enum for if we are still stuck after reversing.
+                            m_eAttemptType = eReverseRight;
+                            // Reset currently aligning toggle.
+                            m_bIsCurrentlyAligning = false;
+                            // Handle reversing event.
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                        }
+                        // If not aligned yet, check if we hit the timeout.
+                        else if (dTimeElapsed >= constants::STUCK_HEADING_ALIGN_TIMEOUT)
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger,
+                                        "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
+                                        dRealignmentDegrees,
+                                        dTimeElapsed);
+                            // Update stuck type enum for if we are still stuck after reversing.
+                            m_eAttemptType = eReverseRight;
+                            // Handle reversing event.
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                        }
                     }
                     break;
                 }
-                case eGiveUp:
+                // For the third do it constants::STUCK_ALIGN_DEGREES degrees to the left of the original heading.
+                case eReverseRight:
                 {
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "StuckState: After multiple attempts, autonomy was unable to get the rover unstuck. Giving Up...");
-                    // Return to idle.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
-                    break;
-                }
-                default:
-                {
-                    // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "StuckState: Unknown attempt type!");
-                    // Return to idle.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
-                    break;
+                    // Check if we are already realigning.
+                    if (!m_bIsCurrentlyAligning)
+                    {
+                        // Submit logger message.
+                        LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees counter-clockwise...", constants::STUCK_ALIGN_DEGREES);
+                        // Set aligning toggle.
+                        m_bIsCurrentlyAligning = true;
+                        // Update start heading.
+                        m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
+                        // Update start time.
+                        m_tmAlignStartTime = std::chrono::system_clock::now();
+                    }
+                    else
+                    {
+                        // Calculate time elapsed since realignment was started.
+                        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmAlignStartTime).count();
+                        // Calculate the goal realignment heading.
+                        double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES, 0, 360);
+                        // Calculate total rotation degrees so far.
+                        double dRealignmentDegrees = numops::AngularDifference<double>(dCurrentHeading, dGoalHeading);
+
+                        // Align drivetrain to a certain heading with 0 forward/reverse power.
+                        diffdrive::DrivePowers stTurnPowers =
+                            globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
+                        // Send drive powers.
+                        globals::g_pDriveBoard->SendDrive(stTurnPowers);
+
+                        // Check if we have successfully realigned.
+                        if (dRealignmentDegrees <= constants::STUCK_ALIGN_TOLERANCE)
+                        {
+                            // Submit logger message.
+                            LOG_INFO(logging::g_qSharedLogger, "StuckState: Realignment complete! Reversing...");
+                            // Update stuck type enum for if we are still stuck after reversing.
+                            m_eAttemptType = eGiveUp;
+                            // Reset currently aligning toggle.
+                            m_bIsCurrentlyAligning = false;
+                            // Handle reversing event.
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                        }
+                        // If not aligned yet, check if we hit the timeout.
+                        else if (dTimeElapsed >= constants::STUCK_HEADING_ALIGN_TIMEOUT)
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger,
+                                        "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
+                                        constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
+                                        dTimeElapsed);
+                            // Update stuck type enum for if we are still stuck after reversing.
+                            m_eAttemptType = eGiveUp;
+                            // Handle reversing event.
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
+                        }
+                        break;
+                    }
+                    case eGiveUp:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "StuckState: After multiple attempts, autonomy was unable to get the rover unstuck. Giving Up...");
+                        // Return to idle.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+                        break;
+                    }
+                    default:
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger, "StuckState: Unknown attempt type!");
+                        // Return to idle.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+                        break;
+                    }
                 }
             }
         }
