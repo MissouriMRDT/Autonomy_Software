@@ -40,6 +40,7 @@ namespace statemachine
             geoops::GPSCoordinate m_stStartPosition;
             double m_dStartHeading;
             std::chrono::system_clock::time_point m_tmStartReversingTime;
+            std::chrono::system_clock::time_point m_tmTimeSinceLastMeter;
             bool m_bInitialized;
 
         protected:
