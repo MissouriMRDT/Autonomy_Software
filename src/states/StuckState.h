@@ -56,6 +56,7 @@ namespace statemachine
             geoops::GPSCoordinate m_stOriginalPosition;                  // Original position where rover was reported stuck.
             double m_dOriginalHeading;                                   // Original heading the rover was at when reported stuck.
             bool m_bIsCurrentlyAligning;                                 // Is the rover currently trying to align with a target heading.
+            std::chrono::system_clock::time_point m_tmStuckStartTime;    // The timestamp storing when the rover starting stuck state.
             std::chrono::system_clock::time_point m_tmAlignStartTime;    // The timestamp storing when the rover starting realigning.
 
             /////////////////////////////////////////
