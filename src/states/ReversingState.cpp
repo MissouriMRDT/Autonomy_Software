@@ -88,12 +88,14 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
 
+        // Create instance variables.
+        static bool bTimeSinceLastMeterAlreadySet = false;
+
         // Get current position and heading.
         geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
         double dCurrentHeading                  = globals::g_pNavigationBoard->GetHeading();
         // Get the current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::high_resolution_clock::now();
-
         // Calculate current distance from start point.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stCurrentPosition, m_stStartPosition);
 
@@ -104,7 +106,7 @@ namespace statemachine
         if (stMeasurement.dDistanceMeters >= constants::REVERSE_DISTANCE)
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Successfully reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTotalTimeElapsed);
+            LOG_WARNING(logging::g_qSharedLogger, "ReversingState: Successfully reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTotalTimeElapsed);
             // Stop reversing.
             globals::g_pDriveBoard->SendStop();
             // Handle reversing complete event.
@@ -117,9 +119,10 @@ namespace statemachine
         {
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger,
-                        "ReversingState: Reversed {} meters in {} seconds before timeout was reached. Rover is still stuck...",
+                        "ReversingState: Reversed {} meters in {} seconds before timeout was reached. Goal was {} meters, so rover must be running into something...",
                         stMeasurement.dDistanceMeters,
-                        dTotalTimeElapsed);
+                        dTotalTimeElapsed,
+                        constants::REVERSE_DISTANCE);
             // Stop reversing.
             globals::g_pDriveBoard->SendStop();
             // Handle reversing complete event.
@@ -128,10 +131,17 @@ namespace statemachine
             return;
         }
         // Reset the timestamp since last meter every other meter reversed.
-        else if (int(stMeasurement.dDistanceMeters) % 2 == 0)
+        else if (int(stMeasurement.dDistanceMeters) % 2 == 0 && !bTimeSinceLastMeterAlreadySet)
         {
             // Update timestamp.
             m_tmTimeSinceLastMeter = std::chrono::high_resolution_clock::now();
+            // Set toggle.
+            bTimeSinceLastMeterAlreadySet = true;
+        }
+        else if (int(stMeasurement.dDistanceMeters) % 2 != 0 && bTimeSinceLastMeterAlreadySet)
+        {
+            // Reset toggle.
+            bTimeSinceLastMeterAlreadySet = false;
         }
 
         // Check if we should try to maintain heading while reversing.
