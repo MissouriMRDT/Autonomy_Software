@@ -39,6 +39,7 @@ namespace statemachine
 
         // Store state start time.
         m_tmStartReversingTime = std::chrono::high_resolution_clock::now();
+        m_tmTimeSinceLastMeter = m_tmStartReversingTime;
     }
 
     /******************************************************************************
@@ -97,18 +98,40 @@ namespace statemachine
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stCurrentPosition, m_stStartPosition);
 
         // Calculate time elapsed.
-        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStartReversingTime).count();
+        double dTotalTimeElapsed          = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStartReversingTime).count();
+        double dTimeElapsedSinceLastMeter = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmTimeSinceLastMeter).count();
         // Check if rover has reversed the desired distance or timeout has been reached.
-        if (stMeasurement.dDistanceMeters >= constants::REVERSE_DISTANCE || dTimeElapsed >= constants::REVERSE_TIMEOUT)
+        if (stMeasurement.dDistanceMeters >= constants::REVERSE_DISTANCE)
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTimeElapsed);
+            LOG_INFO(logging::g_qSharedLogger, "ReversingState: Successfully reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTotalTimeElapsed);
             // Stop reversing.
             globals::g_pDriveBoard->SendStop();
             // Handle reversing complete event.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReverseComplete);
             // Exit method without running other code below.
             return;
+        }
+        // Check if we aren't covering enough distance within the timeout limit.
+        else if (dTimeElapsedSinceLastMeter >= constants::REVERSE_TIMEOUT_PER_METER)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "ReversingState: Reversed {} meters in {} seconds before timeout was reached. Rover is still stuck...",
+                        stMeasurement.dDistanceMeters,
+                        dTotalTimeElapsed);
+            // Stop reversing.
+            globals::g_pDriveBoard->SendStop();
+            // Handle reversing complete event.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck);
+            // Exit method without running other code below.
+            return;
+        }
+        // Reset the timestamp since last meter every other meter reversed.
+        else if (int(stMeasurement.dDistanceMeters) % 2 == 0)
+        {
+            // Update timestamp.
+            m_tmTimeSinceLastMeter = std::chrono::high_resolution_clock::now();
         }
 
         // Check if we should try to maintain heading while reversing.
@@ -142,6 +165,7 @@ namespace statemachine
      ******************************************************************************/
     States ReversingState::TriggerEvent(Event eEvent)
     {
+        // Initialize member variables.
         States eNextState       = States::eReversing;
         bool bCompleteStateExit = true;
 
@@ -149,12 +173,15 @@ namespace statemachine
         {
             case Event::eStart:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
                 break;
             }
             case Event::eAbort:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
+                // Change states.
                 eNextState = States::eIdle;
                 break;
             }
@@ -166,9 +193,19 @@ namespace statemachine
                 eNextState = globals::g_pStateMachineHandler->GetPreviousState();
                 break;
             }
+            case Event::eStuck:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Stuck event.");
+                // Change states.
+                eNextState = States::eStuck;
+                break;
+            }
             default:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling unknown event.");
+                // Change states.
                 eNextState = States::eIdle;
                 break;
             }
