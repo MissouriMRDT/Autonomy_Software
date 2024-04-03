@@ -157,7 +157,7 @@ namespace statemachine
 
         // Time since we last checked if the rover is stuck.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        double dTimeSinceLastCheck                          = (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastStuckCheck).count() / 1e6);
+        double dTimeSinceLastCheck                          = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLastStuckCheck).count();
         if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
         {
             // Update time since last check to now.
@@ -168,7 +168,7 @@ namespace statemachine
             double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
 
             // Check if the rover is rotating or moving linearly.
-            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_ROT_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_VEL_THRESH)
+            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_VEL_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_ROT_THRESH)
             {
                 ++m_unStuckChecksOnAttempt;
             }
@@ -180,8 +180,17 @@ namespace statemachine
             // Has the rover been stuck on enough consecutive checks that we start StuckState.
             if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
             {
-                // Remove the current waypoint from the search pattern so we don't get stuck again.
-                m_vSearchPath.erase(m_vSearchPath.begin() + m_nSearchPathIdx);
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
+                // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
+                m_nSearchPathIdx += 1;
+                // Check path index is within bounds.
+                if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
+                {
+                    m_nSearchPathIdx = m_vSearchPath.size() - 1;
+                }
+                // Reset stuck check attempts.
+                m_unStuckChecksOnAttempt = 0;
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
                 // Don't execute the rest of the state.
