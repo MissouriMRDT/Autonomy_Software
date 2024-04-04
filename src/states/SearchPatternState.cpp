@@ -10,6 +10,7 @@
 
 #include "SearchPatternState.h"
 #include "../AutonomyGlobals.h"
+#include "../algorithms/DifferentialDrive.hpp"
 #include "../algorithms/SearchPattern.hpp"
 #include "../interfaces/State.hpp"
 
@@ -34,14 +35,24 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
-        m_nMaxDataPoints             = 100;
-        m_tStuckCheckTime            = time(nullptr);
+        // Initialize member variables.
+        m_nMaxDataPoints   = 100;
+        m_tmLastStuckCheck = std::chrono::system_clock::now();
+        m_vRoverPosition.reserve(m_nMaxDataPoints);
+        m_eCurrentSearchPatternType = eSpiral;
 
-        m_dStuckCheckLastPosition[0] = 0;
-        m_dStuckCheckLastPosition[1] = 0;
+        // Calculate the search path.
+        m_stSearchPatternCenter = globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate();
+        m_vSearchPath           = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter,
+                                                                       constants::SEARCH_ANGULAR_STEP_DEGREES,
+                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                       constants::SEARCH_STARTING_HEADING_DEGREES,
+                                                                       constants::SEARCH_SPACING);
+        m_nSearchPathIdx        = 0;
 
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
+        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadLeftArucoEye),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadRightArucoEye)};
     }
 
     /******************************************************************************
@@ -57,8 +68,8 @@ namespace statemachine
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Exiting state.");
 
-        m_vRoverXPosition.clear();
-        m_vRoverYPosition.clear();
+        // Stop drive.
+        globals::g_pDriveBoard->SendStop();
     }
 
     /******************************************************************************
@@ -84,13 +95,142 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Jason Pittman (jspencerpittman@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void SearchPatternState::Run()
     {
-        // TODO: Implement the behavior specific to the SearchPattern state
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
+
+        //////////////////////////
+        /* --- Log Position --- */
+        //////////////////////////
+
+        geoops::UTMCoordinate stCurrPosUTM = globals::g_pNavigationBoard->GetUTMData();
+        if (m_vRoverPosition.size() == m_nMaxDataPoints)
+        {
+            m_vRoverPosition.erase(m_vRoverPosition.begin());
+        }
+        m_vRoverPosition.emplace_back(stCurrPosUTM.dEasting, stCurrPosUTM.dNorthing);
+
+        /*
+            The overall flow of this state is as follows.
+            1. Is there a tag -> MarkerSeen
+            2. Is there an object -> ObjectSeen
+            3. Is there an obstacle -> TBD
+            4. Is the rover stuck -> Stuck
+            5. Is the search pattern complete -> Abort
+            6. Follow the search pattern.
+        */
+
+        /////////////////////////
+        /* --- Detect Tags --- */
+        /////////////////////////
+
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+
+        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
+
+        if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+            return;
+        }
+
+        ////////////////////////////
+        /* --- Detect Objects --- */
+        ////////////////////////////
+
+        // TODO: Add object detection to SearchPattern state
+
+        //////////////////////////////
+        /* --- Detect Obstacles --- */
+        //////////////////////////////
+
+        // TODO: Add obstacle detection to SearchPattern state
+
+        //////////////////////////////////////////
+        /* ---  Check if the rover is stuck --- */
+        //////////////////////////////////////////
+
+        // Time since we last checked if the rover is stuck.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        double dTimeSinceLastCheck                          = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLastStuckCheck).count();
+        if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
+        {
+            // Update time since last check to now.
+            m_tmLastStuckCheck = tmCurrentTime;
+
+            // Get the rover's current velocities.
+            double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
+            double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
+
+            // Check if the rover is rotating or moving linearly.
+            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_VEL_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_ROT_THRESH)
+            {
+                ++m_unStuckChecksOnAttempt;
+            }
+            else
+            {
+                m_unStuckChecksOnAttempt = 0;
+            }
+
+            // Has the rover been stuck on enough consecutive checks that we start StuckState.
+            if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
+                // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
+                m_nSearchPathIdx += 1;
+                // Check path index is within bounds.
+                if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
+                {
+                    m_nSearchPathIdx = m_vSearchPath.size() - 1;
+                }
+                // Reset stuck check attempts.
+                m_unStuckChecksOnAttempt = 0;
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+                // Don't execute the rest of the state.
+                return;
+            }
+        }
+
+        ///////////////////////////////////
+        /* --- Follow Search Pattern --- */
+        ///////////////////////////////////
+
+        // Have we reached the current waypoint?
+        geoops::GPSCoordinate stCurrentPosGPS    = globals::g_pNavigationBoard->GetGPSData();
+        geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
+        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
+
+        // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
+        if (bReachedTarget && m_nSearchPathIdx >= int(m_vSearchPath.size() - 1))
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
+            return;
+        }
+        // Move on to the next waypoint in the search path.
+        else if (bReachedTarget)
+        {
+            ++m_nSearchPathIdx;
+            stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
+            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        }
+
+        // Drive to target waypoint.
+        double dCurrHeading                  = globals::g_pNavigationBoard->GetHeading();
+        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
+                                                                                     stCurrRelToTarget.dStartRelativeBearing,
+                                                                                     dCurrHeading,
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
+        globals::g_pDriveBoard->SendDrive(stDrivePowers);
+
+        return;
     }
 
     /******************************************************************************
@@ -112,28 +252,92 @@ namespace statemachine
         {
             case Event::eMarkerSeen:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change states.
                 eNextState = States::eApproachingMarker;
                 break;
             }
             case Event::eObjectSeen:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change state.
                 eNextState = States::eApproachingObject;
                 break;
             }
             case Event::eStart:
             {
                 // Submit logger message
-                LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
+                LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eSearchFailed:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling SearchFailed event.");
-                eNextState = States::eIdle;
+                // Stop drive.
+                globals::g_pDriveBoard->SendStop();
+
+                // Regenerate a new search pattern.
+                switch (m_eCurrentSearchPatternType)
+                {
+                    // Check which pattern to do next.
+                    case eSpiral:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
+                        // Generate vertical zigzag pattern.
+                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_SPACING,
+                                                                                       true);
+                        // Reset index counter.
+                        m_nSearchPathIdx = 0;
+                        // Update current search pattern
+                        m_eCurrentSearchPatternType = eZigZag;
+                        break;
+                    }
+                    case eZigZag:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
+                        // Generate vertical zigzag pattern.
+                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_MAX_RADIUS,
+                                                                                       constants::SEARCH_SPACING,
+                                                                                       false);
+                        // Reset index counter.
+                        m_nSearchPathIdx = 0;
+                        // Update current search pattern
+                        m_eCurrentSearchPatternType = END;
+                        break;
+                    }
+                    case END:
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: All patterns failed to find anything, giving up...");
+                        // Pop old waypoint out of queue.
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                        // Change states.
+                        eNextState = States::eIdle;
+                        break;
+                    }
+                    default:
+                    {
+                        // Change states.
+                        eNextState = States::eIdle;
+                        break;
+                    }
+                }
                 break;
             }
             case Event::eAbort:
