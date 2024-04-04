@@ -27,12 +27,14 @@ ObjectDetectionHandler::ObjectDetectionHandler()
                                                   constants::ZED_MAINCAM_USE_GPU_MAT);
 
     // Initialize detector for left aruco BasicCam.
-    m_pObjectDetectorLeftCam =
-        new ObjectDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye), constants::OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS, false);
+    m_pObjectDetectorLeftCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam),
+                                                  constants::OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
+                                                  constants::ZED_LEFTCAM_USE_GPU_MAT);
 
     // Initialize detector for right aruco BasicCam.
-    m_pObjectDetectorRightCam =
-        new ObjectDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye), constants::OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS, false);
+    m_pObjectDetectorRightCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam),
+                                                   constants::OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
+                                                   constants::ZED_RIGHTCAM_USE_GPU_MAT);
 }
 
 /******************************************************************************
@@ -110,8 +112,8 @@ ObjectDetector* ObjectDetectionHandler::GetObjectDetector(ObjectDetectors eDetec
     switch (eDetectorName)
     {
         case eHeadMainCam: return m_pObjectDetectorMainCam;
-        case eHeadLeftEye: return m_pObjectDetectorLeftCam;
-        case eHeadRightEye: return m_pObjectDetectorRightCam;
+        case eFrameLeftCam: return m_pObjectDetectorLeftCam;
+        case eFrameRightCam: return m_pObjectDetectorRightCam;
         default: return m_pObjectDetectorMainCam;
     }
 }

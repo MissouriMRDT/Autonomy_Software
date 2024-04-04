@@ -68,6 +68,7 @@ GNSS
 GPSLATLONALT
 GPSMDRS
 GPSSDELC
+GROUNDCAM
 gruntfuggly
 gtest
 hyperthreaded

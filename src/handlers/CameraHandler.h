@@ -38,8 +38,9 @@ class CameraHandler
         /////////////////////////////////////////
 
         ZEDCam* m_pMainCam;
-        BasicCam* m_pLeftCam;
-        BasicCam* m_pRightCam;
+        ZEDCam* m_pLeftCam;
+        ZEDCam* m_pRightCam;
+        BasicCam* m_pGroundCam;
         RecordingHandler* m_pRecordingHandler;
 
     public:
@@ -51,14 +52,15 @@ class CameraHandler
         {
             ZEDCAM_START,
             eHeadMainCam,
+            eFrameLeftCam,
+            eFrameRightCam,
             ZEDCAM_END
         };
 
         enum BasicCamName    // Enum for different basic cameras.
         {
             BASICCAM_START,
-            eHeadLeftArucoEye,
-            eHeadRightArucoEye,
+            eHeadGroundCam,
             BASICCAM_END
         };
 
