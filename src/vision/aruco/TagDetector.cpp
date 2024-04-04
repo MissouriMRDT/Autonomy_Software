@@ -67,7 +67,7 @@ TagDetector::TagDetector(BasicCam* pBasicCam,
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera at path/index: {}", m_szCameraName);
+    LOG_INFO(logging::g_qSharedLogger, "TagDetector created for camera at path/index: {}", m_szCameraName);
 }
 
 /******************************************************************************
@@ -126,7 +126,7 @@ TagDetector::TagDetector(ZEDCam* pZEDCam,
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector created for camera: {}", m_szCameraName);
+    LOG_INFO(logging::g_qSharedLogger, "TagDetector created for camera: {}", m_szCameraName);
 }
 
 /******************************************************************************
@@ -143,7 +143,7 @@ TagDetector::~TagDetector()
     this->Join();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully destroyed.", this->GetCameraName());
+    LOG_INFO(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully destroyed.", this->GetCameraName());
 }
 
 /******************************************************************************
