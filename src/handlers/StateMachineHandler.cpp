@@ -28,6 +28,7 @@ StateMachineHandler::StateMachineHandler()
     // Set RoveComm Node callbacks.
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::BMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
