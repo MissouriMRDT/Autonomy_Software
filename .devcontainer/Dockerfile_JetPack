@@ -1,16 +1,16 @@
 # Image Variables
-ARG L4T_MAJOR="35"
-ARG L4T_MINOR="4"
-ARG L4T_PATCH="1"
+ARG L4T_MAJOR="36"
+ARG L4T_MINOR="2"
+ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
 
 # Base Image
 FROM nvcr.io/nvidia/${L4T_BASE}:r${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH}
 
 # Install Variables
-ARG L4T_MAJOR="35"
-ARG L4T_MINOR="4"
-ARG L4T_PATCH="1"
+ARG L4T_MAJOR="36"
+ARG L4T_MINOR="2"
+ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
  
 # Set Non-Interactive Mode
@@ -66,7 +66,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="0"
+ARG ZED_MINOR="1"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
