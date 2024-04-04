@@ -6,6 +6,7 @@ ADDOBJECTLEG
 ADDPOSITIONLEG
 alloc
 allocs
+ANGULARDIFFERENCE
 APPROACHINGMARKERSTATE
 APPROACHINGOBJECTSTATE
 APRILTAG
@@ -146,6 +147,7 @@ Styleguides
 superres
 TAGDETECT
 TAGDETECTOR
+tagdetectutils
 Tele
 TELEOP
 tensorflowobject
@@ -157,6 +159,7 @@ timestep
 tparam
 twxs
 UART
+unstuckith
 UNVALIDATED
 upsample
 UTMMDRS

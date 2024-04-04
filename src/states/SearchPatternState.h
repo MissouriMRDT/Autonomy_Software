@@ -11,7 +11,11 @@
 #ifndef SEARCHPATTERNSTATE_H
 #define SEARCHPATTERNSTATE_H
 
+#include <utility>
+
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+#include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,18 +35,43 @@ namespace statemachine
     class SearchPatternState : public State
     {
         private:
-            int m_nMaxDataPoints;
-            std::vector<double> m_vRoverXPosition;
-            std::vector<double> m_vRoverYPosition;
-            time_t m_tStuckCheckTime;
-            double m_dStuckCheckLastPosition[2];
+            /////////////////////////////////////////
+            // Declare private enums and structs that are specific to and used withing this class.
+            /////////////////////////////////////////
+
+            // Enum for storing which search pattern type we are using.
+            enum SearchPatternType
+            {
+                eSpiral,
+                eZigZag,
+                END
+            };
+
+            /////////////////////////////////////////
+            // Declare private member variables.
+            /////////////////////////////////////////
             bool m_bInitialized;
+            geoops::GPSCoordinate m_stSearchPatternCenter;
+            std::vector<TagDetector*> m_vTagDetectors;
+            std::vector<geoops::Waypoint> m_vSearchPath;
+            int m_nSearchPathIdx;
+            SearchPatternType m_eCurrentSearchPatternType;
+            std::vector<std::pair<double, double>> m_vRoverPosition;
+            size_t m_nMaxDataPoints;
+            std::chrono::system_clock::time_point m_tmLastStuckCheck;
+            unsigned int m_unStuckChecksOnAttempt;
 
         protected:
+            /////////////////////////////////////////
+            // Declare protected class methods.
+            /////////////////////////////////////////
             void Start() override;
             void Exit() override;
 
         public:
+            /////////////////////////////////////////
+            // Declare public class methods.
+            /////////////////////////////////////////
             SearchPatternState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;

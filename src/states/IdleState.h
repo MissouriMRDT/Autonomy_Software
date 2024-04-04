@@ -13,6 +13,11 @@
 
 #include "../interfaces/State.hpp"
 
+/// \cond
+#include <tuple>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -33,8 +38,7 @@ namespace statemachine
         private:
             time_t m_tIdleTime;
             bool m_bRealigned;
-            std::vector<double> m_vRoverXPosition;
-            std::vector<double> m_vRoverYPosition;
+            std::vector<std::tuple<double, double>> m_vRoverPosition;
             int m_nMaxDataPoints;
             bool m_bInitialized;
 

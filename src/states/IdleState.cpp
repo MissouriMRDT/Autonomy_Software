@@ -35,9 +35,10 @@ namespace statemachine
         m_tIdleTime      = time(nullptr);
         m_bRealigned     = false;
         m_nMaxDataPoints = 100;
+        m_vRoverPosition.reserve(m_nMaxDataPoints);
 
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
+        // Ensure drive is stopped.
+        globals::g_pDriveBoard->SendStop();
     }
 
     /******************************************************************************
@@ -53,8 +54,7 @@ namespace statemachine
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "IdleState: Exiting state.");
 
-        m_vRoverXPosition.clear();
-        m_vRoverYPosition.clear();
+        m_vRoverPosition.clear();
     }
 
     /******************************************************************************
@@ -85,8 +85,22 @@ namespace statemachine
      ******************************************************************************/
     void IdleState::Run()
     {
-        // TODO: Implement the behavior specific to the Idle state
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
+
+        // Get the current rover gps position.
+        geoops::UTMCoordinate stCurrentLocation = globals::g_pNavigationBoard->GetUTMData();
+        // Store the Rover's position.
+        m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
+
+        // If the last state was searchpattern and the waypoint handler has been cleared, reset.
+        if (globals::g_pStateMachineHandler->GetPreviousState() != States::eIdle && globals::g_pWaypointHandler->GetWaypointCount() <= 0)
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "IdleState: WaypointHandler queue is empty while in IdleState, deleting old saved states...");
+            // Reset all old states. Since waypoint handler has been cleared, there's no need to save old searchpattern state.
+            globals::g_pStateMachineHandler->ClearSavedStates();
+        }
     }
 
     /******************************************************************************
