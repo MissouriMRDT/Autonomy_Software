@@ -107,6 +107,56 @@ class StateMachineHandler : private AutonomyThread<void>
             this->HandleEvent(statemachine::Event::eAbort, true);
         };
 
+        /******************************************************************************
+         * @brief Callback function used to force autonomy into Idle state if battery voltage gets too low.
+         *      No matter what state we are in, signal an Abort Event.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-04-04
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> BMSCellVoltageCallback =
+            [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Create instance variables.
+            double dTotalCellVoltages   = 0.0;
+            int nValidCellVoltageValues = 0;
+
+            // Loop through voltage values and average all of the valid ones.
+            for (int nIter = 0; nIter < stPacket.unDataCount; ++nIter)
+            {
+                // Check if the voltage values is greater than at least 0.1.
+                if (stPacket.vData[nIter] >= 0.1)
+                {
+                    // Add cell voltage value to total.
+                    dTotalCellVoltages += stPacket.vData[nIter];
+                    // Increment voltage voltage counter.
+                    ++nValidCellVoltageValues;
+                }
+            }
+            // Calculate average cell voltage.
+            double dAverageCellVoltage = dTotalCellVoltages / nValidCellVoltageValues;
+
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: BMS Cell Voltages. Average voltage is: {}");
+
+            // Check if voltage is above the safe minimum for lithium ion batteries.
+            if (dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE && this->GetCurrentState() != statemachine::States::eIdle)
+            {
+                // Submit logger message.
+                LOG_CRITICAL(logging::g_qSharedLogger,
+                             "Incoming BMS Packet: Average cell voltage is {} which is below the safe minimum of {}. Entering Idle state...",
+                             dAverageCellVoltage,
+                             constants::BATTERY_MINIMUM_CELL_VOLTAGE);
+
+                // Signal statemachine handler with stop event.
+                this->HandleEvent(statemachine::Event::eAbort, true);
+            }
+        };
+
     public:
         /////////////////////////////////////////
         // Declare public class methods and variables.
