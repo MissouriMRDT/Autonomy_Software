@@ -221,8 +221,9 @@ int main()
             // Extract and save spatial map.
             std::future<sl::Mesh> fuSpatialMap;
             pMainCam->ExtractSpatialMapAsync(fuSpatialMap);
-            sl::Mesh slSpatialMap = fuSpatialMap.get();
-            slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
+            sl::Mesh slSpatialMap  = fuSpatialMap.get();
+            std::string szFilePath = "./logs/" + logging::g_szProgramStartTimeString + "/spatial_map";
+            slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
         }
 
         // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
