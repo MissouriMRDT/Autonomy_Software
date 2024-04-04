@@ -88,10 +88,17 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
-        // Get the current rover gps position.
-        geoops::UTMCoordinate stCurrentLocation = globals::g_pNavigationBoard->GetUTMData();
-        // Store the Rover's position.
-        m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
+        // Get the current time and time since last GPS update.
+        std::chrono::system_clock::time_point tmCurrentTime            = std::chrono::system_clock::now();
+        std::chrono::system_clock::time_point tmTimeSinceLastGPSUpdate = globals::g_pNavigationBoard->GetGPSTimestamp();
+        // Check if GPS data is up-to-date.
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - tmTimeSinceLastGPSUpdate).count() < constants::NAVBOARD_MAX_GPS_DATA_AGE)
+        {
+            // Get the current rover gps position.
+            geoops::UTMCoordinate stCurrentLocation = globals::g_pNavigationBoard->GetUTMData();
+            // Store the Rover's position.
+            m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
+        }
 
         // If the last state was searchpattern and the waypoint handler has been cleared, reset.
         if (globals::g_pStateMachineHandler->GetPreviousState() != States::eIdle && globals::g_pWaypointHandler->GetWaypointCount() <= 0)

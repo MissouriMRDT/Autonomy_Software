@@ -155,11 +155,12 @@ int main()
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
         ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-        BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
-        BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
+        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam);
+        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam);
+        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadGroundCam);
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
-        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
-        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameLeftCam);
+        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameRightCam);
         IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
@@ -190,6 +191,7 @@ int main()
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
