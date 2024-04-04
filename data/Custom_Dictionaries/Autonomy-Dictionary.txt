@@ -20,6 +20,7 @@ BASICCAM
 buildcache
 Buildx
 CALIB
+CELLVOLTAGE
 clayjay
 CLEARWAYPOINTS
 codeql

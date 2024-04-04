@@ -40,6 +40,9 @@ namespace constants
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
 
+    // Safety constants.
+    const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;    // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
+
     // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
 
