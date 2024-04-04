@@ -20,6 +20,7 @@ BASICCAM
 buildcache
 Buildx
 CALIB
+CELLVOLTAGE
 clayjay
 CLEARWAYPOINTS
 codeql
@@ -68,6 +69,7 @@ GNSS
 GPSLATLONALT
 GPSMDRS
 GPSSDELC
+GROUNDCAM
 gruntfuggly
 gtest
 hyperthreaded

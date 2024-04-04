@@ -42,8 +42,8 @@ class ObjectDetectionHandler
         enum ObjectDetectors    // Enum for different cameras that detectors are being ran on.
         {
             eHeadMainCam,
-            eHeadLeftEye,
-            eHeadRightEye
+            eFrameLeftCam,
+            eFrameRightCam
         };
 
         /////////////////////////////////////////

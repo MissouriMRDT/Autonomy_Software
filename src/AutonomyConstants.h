@@ -40,6 +40,9 @@ namespace constants
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
 
+    // Safety constants.
+    const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;    // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
+
     // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
 
@@ -81,13 +84,15 @@ namespace constants
     // Recording adjustments.
     const int RECORDER_FPS = 15;    // The FPS all recordings should run at.
     // Camera recording toggles.
-    const bool ZED_MAINCAM_ENABLE_RECORDING       = true;    // Whether or not to record the main ZED camera.
-    const bool BASICCAM_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera.
-    const bool BASICCAM_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera.
+    const bool ZED_MAINCAM_ENABLE_RECORDING        = true;    // Whether or not to record the main ZED camera.
+    const bool ZED_LEFTCAM_ENABLE_RECORDING        = true;    // Whether or not to record the left ZED camera.
+    const bool ZED_RIGHTCAM_ENABLE_RECORDING       = true;    // Whether or not to record the right ZED camera.
+    const bool BASICCAM_GROUNDCAM_ENABLE_RECORDING = true;    // Whether or not to record the ground USB camera.
     // TagDetector recording toggles.
-    const bool TAGDETECT_MAINCAM_ENABLE_RECORDING  = true;    // Whether or not to record the main ZED camera tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the left USB camera tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING = true;    // Whether or not to record the right USB camera tag detector.
+    const bool TAGDETECT_MAINCAM_ENABLE_RECORDING   = true;    // Whether or not to record the main ZED camera tag detector.
+    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING   = true;    // Whether or not to record the left ZED camera tag detector.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the right ZED camera tag detector.
+    const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING = true;    // Whether of not to record the ground USB camera tag detector.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -152,27 +157,41 @@ namespace constants
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;        // Whether of not to use float32 or unsigned short (16) for depth measure.
     const bool ZED_MAINCAM_FUSION_MASTER            = true;        // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
-    // Left Side Cam.
-    const int BASICCAM_LEFTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
-    const int BASICCAM_LEFTCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the maincam images to.
-    const int BASICCAM_LEFTCAM_FPS                     = 30;      // The FPS to use for the maincam.
-    const int BASICCAM_LEFTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_LEFTCAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int BASICCAM_LEFTCAM_INDEX                   = 0;       // The /dev/video index of the camera.
-    const PIXEL_FORMATS BASICCAM_LEFTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
+    // Left ZED Camera.
+    const int ZED_LEFTCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the leftcam images to.
+    const int ZED_LEFTCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the leftcam images to.
+    const int ZED_LEFTCAM_FPS                       = 60;          // The FPS to use for the leftcam.
+    const int ZED_LEFTCAM_HORIZONTAL_FOV            = 110;         // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_LEFTCAM_VERTICAL_FOV              = 70;          // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_LEFTCAM_USE_GPU_MAT              = true;        // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH = true;        // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_LEFTCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS   = 5;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_LEFTCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 15723847
 
-    // Right Side Cam.
-    const int BASICCAM_RIGHTCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the maincam images to.
-    const int BASICCAM_RIGHTCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the maincam images to.
-    const int BASICCAM_RIGHTCAM_FPS                     = 30;      // The FPS to use for the maincam.
-    const int BASICCAM_RIGHTCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
-    const int BASICCAM_RIGHTCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_RIGHTCAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int BASICCAM_RIGHTCAM_INDEX                   = 2;       // The /dev/video index of the camera.
-    const PIXEL_FORMATS BASICCAM_RIGHTCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
+    // Right ZED Camera.
+    const int ZED_RIGHTCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the rightcam images to.
+    const int ZED_RIGHTCAM_RESOLUTIONY               = 720;      // The vertical pixel resolution to resize the rightcam images to.
+    const int ZED_RIGHTCAM_FPS                       = 60;       // The FPS to use for the rightcam.
+    const int ZED_RIGHTCAM_HORIZONTAL_FOV            = 110;      // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_RIGHTCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_RIGHTCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_RIGHTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_RIGHTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 0
+
+    // Ground Basic Cam.
+    const int BASICCAM_GROUNDCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.
+    const int BASICCAM_GROUNDCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the basiccam images to.
+    const int BASICCAM_GROUNDCAM_FPS                     = 30;      // The FPS to use for the basiccam.
+    const int BASICCAM_GROUNDCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
+    const int BASICCAM_GROUNDCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
+    const int BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_GROUNDCAM_INDEX                   = 0;       // The /dev/video index of the camera.
+    const PIXEL_FORMATS BASICCAM_GROUNDCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -204,7 +223,7 @@ namespace constants
     const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
     const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
 
-    // Left Side Cam.
+    // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
@@ -215,7 +234,7 @@ namespace constants
     const bool TAGDETECT_LEFTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
     const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
 
-    // Right Side Cam.
+    // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
