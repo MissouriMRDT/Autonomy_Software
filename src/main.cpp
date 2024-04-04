@@ -164,6 +164,7 @@ int main()
 
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
+        pMainCam->EnableSpatialMapping();
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -213,6 +214,18 @@ int main()
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
+
+        // Check if ZED spatial map was enabled.
+        if (pMainCam->GetSpatialMappingState() == sl::SPATIAL_MAPPING_STATE::OK)
+        {
+            // Extract and save spatial map.
+            std::future<sl::Mesh> fuSpatialMap;
+            pMainCam->ExtractSpatialMapAsync(fuSpatialMap);
+            sl::Mesh slSpatialMap  = fuSpatialMap.get();
+            std::string szFilePath = "./logs/" + logging::g_szProgramStartTimeString + "/spatial_map";
+            slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
+        }
+
         // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
         network::g_bRoveCommUDPStatus = false;
         network::g_bRoveCommTCPStatus = false;
