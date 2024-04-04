@@ -116,11 +116,15 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
         }
 
         // Check if the state exists in exitedStates
-        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umExitedStates.find(eNextState);
-        if (itState != m_umExitedStates.end())
+        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umSavedStates.find(eNextState);
+        if (itState != m_umSavedStates.end())
         {
             // Load the existing state
             m_pCurrentState = itState->second;
+            // Remove new current state state from saved states.
+            m_umSavedStates.erase(eNextState);
+
+            // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Recalling State: {}", m_pCurrentState->ToString());
         }
         else
@@ -148,7 +152,7 @@ void StateMachineHandler::SaveCurrentState()
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Saving State: {}", m_pCurrentState->ToString());
     // Add state to map.
-    m_umExitedStates[m_pCurrentState->GetState()] = m_pCurrentState;
+    m_umSavedStates[m_pCurrentState->GetState()] = m_pCurrentState;
 }
 
 /******************************************************************************
@@ -256,6 +260,23 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
 
     // Transition to the next state
     ChangeState(eNextState, bSaveCurrentState);
+}
+
+/******************************************************************************
+ * @brief Clear all saved states.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-01
+ ******************************************************************************/
+void StateMachineHandler::ClearSavedStates()
+{
+    // Acquire write lock for clearing saved states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    // Clear all saved states.
+    m_umSavedStates.clear();
+    // Reset previous state to nullptr;
+    m_pPreviousState = std::make_shared<statemachine::IdleState>();
 }
 
 /******************************************************************************

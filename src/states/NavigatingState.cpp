@@ -88,12 +88,8 @@ namespace statemachine
      ******************************************************************************/
     void NavigatingState::Run()
     {
-        // TODO: Implement the behavior specific to the Navigating state
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
-
-        ///////////////////////////////////
-        // TEST: Waypoint Navigation.
-        ///////////////////////////////////
 
         // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
@@ -214,9 +210,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker Waypoint event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eSearchPattern;
                 break;
@@ -226,9 +220,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Object Waypoint event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eSearchPattern;
                 break;

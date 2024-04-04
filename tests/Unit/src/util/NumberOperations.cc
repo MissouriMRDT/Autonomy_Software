@@ -126,3 +126,29 @@ TEST(NumOpsTest, InputAngleModulus)
         EXPECT_EQ(dResult, aOutput[nIter]);
     }
 }
+
+/******************************************************************************
+ * @brief Test the functionality of the AngularDifference function.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-03
+ ******************************************************************************/
+TEST(NumOpsTest, AngularDifference)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                   = 8;
+    const double aFirstValues[nTestValuesLength]  = {0.0, 330.0, 30.0, 270.0, 60.0, 0.0, 170.0, 60.0};
+    const double aSecondValues[nTestValuesLength] = {0.0, 30.0, 330.0, 180.0, 120.0, 360.0, 190.0, 90.0};
+    const double aOutput[nTestValuesLength]       = {0.0, 60.0, -60.0, 90.0, 60.0, 0.0, 20.0, 30.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Calculate valid bounds.
+        double dResult = numops::AngularDifference(aFirstValues[nIter], aSecondValues[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_EQ(dResult, aOutput[nIter]);
+    }
+}
