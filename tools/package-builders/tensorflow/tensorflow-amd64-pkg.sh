@@ -29,16 +29,10 @@ else
     ln -fs /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
 
     # Install Docker in Docker. Using docker to build libedgetpu is by far the easiest way to do this.
-    if ! command -v docker &> /dev/null; then
-        # Docker is not installed, proceed with installation
-        echo "Installing Docker..."
-        curl -sSL https://get.docker.com/ | sh
-        ulimit -n 65536 in /etc/init.d/docker
-        service docker start
-    else
-        # Docker is already installed
-        echo "Docker is already installed."
-    fi
+    echo "Installing Docker..."
+    curl -sSL https://get.docker.com/ | sh
+    ulimit -n 65536 in /etc/init.d/docker
+    service docker start
     
     # Delete Old Packages
     rm -rf /tmp/pkg
