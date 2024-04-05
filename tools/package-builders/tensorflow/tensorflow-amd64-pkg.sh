@@ -13,7 +13,7 @@ TENSORFLOW_BAZEL_VERSION="6.1.0"
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb"
 
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if curl --output /dev/null --silent --head --fail "$FILE_URLtest"; then
     echo "Package version ${TENSORFLOW_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
@@ -28,10 +28,17 @@ else
     # Symbolically link bazel-(version) install to /usr/bin/bazel.
     ln -fs /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
 
-    # Install Docker in Docker. Using docker to build libedgetpu is byfar the easiest way to do this.
-    curl -sSL https://get.docker.com/ | sh
-    ulimit -n 65536 in /etc/init.d/docker
-    service docker start
+    # Install Docker in Docker. Using docker to build libedgetpu is by far the easiest way to do this.
+    if ! command -v docker &> /dev/null; then
+        # Docker is not installed, proceed with installation
+        echo "Installing Docker..."
+        curl -sSL https://get.docker.com/ | sh
+        ulimit -n 65536 in /etc/init.d/docker
+        service docker start
+    else
+        # Docker is already installed
+        echo "Docker is already installed."
+    fi
     
     # Delete Old Packages
     rm -rf /tmp/pkg

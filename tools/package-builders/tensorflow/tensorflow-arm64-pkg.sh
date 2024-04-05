@@ -27,10 +27,17 @@ else
     # Install python packages.
     apt update && apt install -y python3 python-is-python3
 
-    # Install Docker in Docker. Using docker to build libedgetpu is byfar the easiest way to do this.
-    curl -sSL https://get.docker.com/ | sh
-    ulimit -n 65536 in /etc/init.d/docker
-    service docker start
+    # Install Docker in Docker. Using docker to build libedgetpu is by far the easiest way to do this.
+    if ! command -v docker &> /dev/null; then
+        # Docker is not installed, proceed with installation
+        echo "Installing Docker..."
+        curl -sSL https://get.docker.com/ | sh
+        ulimit -n 65536 in /etc/init.d/docker
+        service docker start
+    else
+        # Docker is already installed
+        echo "Docker is already installed."
+    fi
     
     # Delete Old Packages
     rm -rf /tmp/pkg
