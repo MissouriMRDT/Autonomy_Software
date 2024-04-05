@@ -1,7 +1,7 @@
 # Image Variables
 ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
+ARG CUDA_MAJOR="12"
+ARG CUDA_MINOR="2"
 ARG CUDA_PATCH="0"
 ARG CUDNN_VERSION="8"
 
@@ -10,8 +10,8 @@ FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn${CUDNN_
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
+ARG CUDA_MAJOR="12"
+ARG CUDA_MINOR="2"
 ARG CUDA_PATCH="0"
 ARG CUDNN_VERSION="8"
 
@@ -94,7 +94,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.0.1"
+ARG TORCH_VERSION="2.2.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
@@ -112,7 +112,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/am
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
 # Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.13.1"
+ARG TENSORFLOW_VERSION="2.15.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
     dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
     rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
