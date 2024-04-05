@@ -62,36 +62,36 @@ else
     git clone --depth 1 --recurse-submodules --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow
     cd tensorflow
 
-    # Build Tensorflow
-    bazel build \
-        -c opt \
-        --config=monolithic \
-        --config=cuda \
-        --config=tensorrt \
-        --verbose_failures \
-        --local_ram_resources=HOST_RAM*0.5 \
-        --local_cpu_resources=HOST_CPUS*0.5 \
-        //tensorflow/lite:libtensorflowlite.so
+    # # Build Tensorflow
+    # bazel build \
+    #     -c opt \
+    #     --config=monolithic \
+    #     --config=cuda \
+    #     --config=tensorrt \
+    #     --verbose_failures \
+    #     --local_ram_resources=HOST_RAM*0.5 \
+    #     --local_cpu_resources=HOST_CPUS*0.5 \
+    #     //tensorflow/lite:libtensorflowlite.so
 
-    # Install Tensorflow
-    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp bazel-bin/tensorflow/lite/libtensorflowlite.so /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
-    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/lite && cp -r tensorflow/lite /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/
+    # # Install Tensorflow
+    # mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp bazel-bin/tensorflow/lite/libtensorflowlite.so /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
+    # mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/lite && cp -r tensorflow/lite /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/
 
-    # Build Flatbuffers
-    mkdir -p /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build && cd /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build
-    cmake \
-        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local \
-        -G "Unix Makefiles" \
-        -D CMAKE_BUILD_TYPE=Release ..
+    # # Build Flatbuffers
+    # mkdir -p /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build && cd /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build
+    # cmake \
+    #     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local \
+    #     -G "Unix Makefiles" \
+    #     -D CMAKE_BUILD_TYPE=Release ..
 
-    # Install Flatbuffers
-    make
-    make install
-    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib
-    cp -r /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/*flatbuffers* /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib/
+    # # Install Flatbuffers
+    # make
+    # make install
+    # mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib
+    # cp -r /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/*flatbuffers* /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib/
 
-    # Cleanup Install
-    rm -rf /tmp/tensorflow
+    # # Cleanup Install
+    # rm -rf /tmp/tensorflow
 
     # Download LibEdgeTPU
     cd /tmp/ && git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
@@ -100,6 +100,7 @@ else
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
+    cat Makefile
     DOCKER_CPUS="k8" DOCKER_IMAGE="ubuntu:22.04" DOCKER_TARGETS=libedgetpu make docker-build
 
     # Install LibEdgeTPU
