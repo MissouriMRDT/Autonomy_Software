@@ -97,6 +97,8 @@ else
     cd /tmp/ && git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
 
+    sed -i '/^DOCKER_MAKE_COMMAND :=/c DOCKER_MAKE_COMMAND := \\\nls -al; ls -al /workspace; \\' Makefile
+
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
@@ -107,15 +109,15 @@ else
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/
 
-    # Cleanup Install
-    rm -rf /tmp/libedgetpu
+    # # Cleanup Install
+    # rm -rf /tmp/libedgetpu
 
-    # Create Package
-    dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64
+    # # Create Package
+    # dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
+    # # Create Package Directory
+    # mkdir -p /tmp/pkg/deb
 
-    # Copy Package
-    cp /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64.deb /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+    # # Copy Package
+    # cp /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64.deb /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_amd64.deb
 fi
