@@ -24,9 +24,14 @@ else
     curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg
     mv bazel-archive-keyring.gpg /usr/share/keyrings
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
-    apt update && apt install -y bazel-${TENSORFLOW_BAZEL_VERSION} python3 python-is-python3
+    apt update && apt install -y bazel-${TENSORFLOW_BAZEL_VERSION} python3 python-is-python3 libabsl-dev libflatbuffers-dev
     # Symbolically link bazel-(version) install to /usr/bin/bazel.
     ln -fs /usr/bin/bazel-${TENSORFLOW_BAZEL_VERSION} /usr/bin/bazel
+
+    # Install Docker in Docker. Using docker to build libedgetpu is byfar the easiest way to do this.
+    curl -sSL https://get.docker.com/ | sh
+    ulimit -n 65536 in /etc/init.d/docker
+    service docker start
     
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -84,12 +89,11 @@ else
     # Download LibEdgeTPU
     cd /tmp/ && git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
-    git checkout -f a82c669fb7a9b2e813cfb3d5409fea98d6a6ac8c
 
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
-    make TF_PYTHON_VERSION=3.10
+    DOCKER_CPUS="k8" DOCKER_IMAGE="ubuntu:22.04" DOCKER_TARGETS=libedgetpu make docker-build
 
     # Install LibEdgeTPU
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
