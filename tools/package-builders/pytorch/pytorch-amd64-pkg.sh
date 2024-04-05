@@ -4,8 +4,8 @@
 cd /tmp
 
 # Install Variables
-TORCH_VERSION="2.2.1"
-TORCH_CUDA_VERSION="cu122"
+TORCH_VERSION="2.2.2"
+TORCH_CUDA_VERSION="cu121"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb"

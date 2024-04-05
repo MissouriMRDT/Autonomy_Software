@@ -28,7 +28,7 @@ RUN echo "${TZ}" > /etc/localtime && \
     echo "${TZ}" > /etc/timezone
 
 # Set CUDA Version
-RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
+RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
 # Add APT Repo for PCIe drivers.
 RUN apt update && apt install -y curl && \
