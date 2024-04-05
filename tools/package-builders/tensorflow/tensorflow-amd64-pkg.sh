@@ -97,7 +97,7 @@ else
     cd /tmp/ && git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
 
-    sed -i '/^DOCKER_MAKE_COMMAND :=/c DOCKER_MAKE_COMMAND := \\\nls -al; ls -al /workspace; \\' Makefile
+    sed -i '/^DOCKER_MAKE_COMMAND :=/c DOCKER_MAKE_COMMAND := \\\nls -al; ls -al /workspace; ls -al /tmp; \\' Makefile
 
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
