@@ -26,6 +26,11 @@ else
 
     # Install python packages.
     apt update && apt install -y python3 python-is-python3
+
+    # Install Docker in Docker. Using docker to build libedgetpu is byfar the easiest way to do this.
+    curl -sSL https://get.docker.com/ | sh
+    ulimit -n 65536 in /etc/init.d/docker
+    service docker start
     
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -90,12 +95,11 @@ else
     # Download LibEdgeTPU
     git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
-    git checkout -f a82c669fb7a9b2e813cfb3d5409fea98d6a6ac8c
 
     # Build LibEdgeTPU
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
-    make CPU="aarch64"
+    DOCKER_CPUS="aarch64" DOCKER_IMAGE="debian:bookworm" DOCKER_TARGETS=libedgetpu make docker-build
 
     # Install LibEdgeTPU
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/ && cp ./out/direct/aarch64/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local/lib/

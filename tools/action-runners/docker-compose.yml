@@ -1,6 +1,3 @@
----
-version: '3.8'
-
 services:
   jammy-runner:
     image: ghcr.io/missourimrdt/jammy-runner:latest
