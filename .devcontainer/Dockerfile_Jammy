@@ -88,7 +88,7 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.8.1"
+ARG OPENCV_VERSION="4.9.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
