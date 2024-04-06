@@ -719,3 +719,9 @@ int WaypointHandler::GetObjectsCount()
     // Return total number of objects stored.
     return m_vPermanentObjects.size();
 }
+
+// /***/
+// geoops::GPSCoordinate GetGPSData()
+// {
+    
+// }
