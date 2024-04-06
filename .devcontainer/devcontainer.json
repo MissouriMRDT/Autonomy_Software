@@ -30,7 +30,7 @@
     "mounts": [
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-04-06-01-55-01",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-04-06-04-42-36",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
     //     "dockerfile": "Dockerfile_Jammy"
@@ -92,8 +92,8 @@
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
                     "/usr/local/zed/include/**",
-                    "/usr/local/cuda-11.7/include",
-                    "/usr/local/cuda-11.7/include/**",
+                    "/usr/local/cuda-12.2/include",
+                    "/usr/local/cuda-12.2/include/**",
                     "/usr/local/include/quill",
                     "/usr/local/include/quill/**",
                     "/usr/local/include/gmock",
