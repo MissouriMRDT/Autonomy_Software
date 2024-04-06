@@ -76,47 +76,47 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     mkdir -p /root/Documents/ZED/ && \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
-# # Install OpenCV
-# ARG OPENCV_VERSION="4.8.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
-#     dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
-#     rm opencv_${OPENCV_VERSION}_arm64.deb
+# Install OpenCV
+ARG OPENCV_VERSION="4.9.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
+    dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
+    rm opencv_${OPENCV_VERSION}_arm64.deb
 
-# # Install PyTorch.
-# ARG TORCH_VERSION="2.2.2"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
-#     dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
-#     rm pytorch_${TORCH_VERSION}_arm64.deb
+# Install PyTorch.
+ARG TORCH_VERSION="2.2.2"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
+    dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
+    rm pytorch_${TORCH_VERSION}_arm64.deb
 
-# # Install Abseil.
-# ARG ABSEIL_VERSION="20230802.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
-#     dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
-#     rm abseil_${ABSEIL_VERSION}_arm64.deb
+# Install Abseil.
+ARG ABSEIL_VERSION="20230802.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
+    dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
+    rm abseil_${ABSEIL_VERSION}_arm64.deb
 
-# # Install GeographicLib
-# ARG GEOLIB_VERSION="2.3"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
-#     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
-#     rm geolib_${GEOLIB_VERSION}_arm64.deb
+# Install GeographicLib
+ARG GEOLIB_VERSION="2.3"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
+    dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
+    rm geolib_${GEOLIB_VERSION}_arm64.deb
 
-# # Install Tensorflow.
-# ARG TENSORFLOW_VERSION="2.15.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-#     dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-#     rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
 
-# # Install Quill
-# ARG QUILL_VERSION="3.8.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
-#     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
-#     rm quill_${QUILL_VERSION}_arm64.deb
+# Install Quill
+ARG QUILL_VERSION="3.8.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
+    dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
+    rm quill_${QUILL_VERSION}_arm64.deb
 
-# # Install Google Test
-# ARG GTEST_VERSION="1.14.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
-#     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
-#     rm gtest_${GTEST_VERSION}_arm64.deb
+# Install Google Test
+ARG GTEST_VERSION="1.14.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
+    dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
+    rm gtest_${GTEST_VERSION}_arm64.deb
 
 # Enable Make Threads
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
