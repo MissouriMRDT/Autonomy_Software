@@ -13,7 +13,7 @@ TENSORFLOW_BAZEL_VERSION="6.1.0"
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb"
 
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URLtest"; then
+if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${TENSORFLOW_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
@@ -62,62 +62,85 @@ else
     git clone --depth 1 --recurse-submodules --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow
     cd tensorflow
 
-    # # Build Tensorflow
-    # bazel build \
-    #     -c opt \
-    #     --config=monolithic \
-    #     --config=cuda \
-    #     --config=tensorrt \
-    #     --verbose_failures \
-    #     --local_ram_resources=HOST_RAM*0.5 \
-    #     --local_cpu_resources=HOST_CPUS*0.5 \
-    #     //tensorflow/lite:libtensorflowlite.so
+    # Build Tensorflow
+    bazel build \
+        -c opt \
+        --config=monolithic \
+        --config=cuda \
+        --config=tensorrt \
+        --verbose_failures \
+        --local_ram_resources=HOST_RAM*0.5 \
+        --local_cpu_resources=HOST_CPUS*0.5 \
+        //tensorflow/lite:libtensorflowlite.so
 
-    # # Install Tensorflow
-    # mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp bazel-bin/tensorflow/lite/libtensorflowlite.so /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
-    # mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/lite && cp -r tensorflow/lite /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/
+    # Install Tensorflow
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp bazel-bin/tensorflow/lite/libtensorflowlite.so /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/lite && cp -r tensorflow/lite /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/tensorflow/
 
-    # # Build Flatbuffers
-    # mkdir -p /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build && cd /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build
-    # cmake \
-    #     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local \
-    #     -G "Unix Makefiles" \
-    #     -D CMAKE_BUILD_TYPE=Release ..
+    # Build Flatbuffers
+    mkdir -p /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build && cd /tmp/tensorflow/bazel-tensorflow/external/flatbuffers/build
+    cmake \
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local \
+        -G "Unix Makefiles" \
+        -D CMAKE_BUILD_TYPE=Release ..
 
-    # # Install Flatbuffers
-    # make
-    # make install
-    # mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib
-    # cp -r /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/*flatbuffers* /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib/
+    # Install Flatbuffers
+    make
+    make install
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib
+    cp -r /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/*flatbuffers* /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/lib/
 
-    # # Cleanup Install
-    # rm -rf /tmp/tensorflow
+    # Cleanup Install
+    rm -rf /tmp/tensorflow
 
     # Download LibEdgeTPU
     cd /tmp/ && git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
 
-    sed -i '/^DOCKER_MAKE_COMMAND :=/c DOCKER_MAKE_COMMAND := \\\nls -al; ls -al /workspace; ls -al /tmp; \\' Makefile
-
-    # Build LibEdgeTPU
+    # sed -i '/^DOCKER_MAKE_COMMAND :=/c DOCKER_MAKE_COMMAND := \\\necho $(MAKEFILE_DIR); \\' Makefile
+    # Replace docker workspace in Makefile with our docker volume.
+    # sed -i 's/DOCKER_CONTEXT_DIR := $(MAKEFILE_DIR)/DOCKER_CONTEXT_DIR = /workspace/docker/g' ./Makefile
+    # sed -i 's/DOCKER_WORKSPACE := $(MAKEFILE_DIR)/DOCKER_WORKSPACE = libedgetpu_build/g' ./Makefile
+    # sed -i '/--embed_label/d; /--stamp/ i \\  --embed_label="'${TENSORFLOW_COMMIT}'" --experimental_repo_remote_exec \\' ./Makefile
+    # Set LibEdgeTPU tensorflow commit.
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
-    export DOCKER_CPUS="k8" DOCKER_IMAGE="ubuntu:22.04" DOCKER_TARGETS=libedgetpu 
-    make docker-build
+
+    # # Create external docker volume for sharing libedgetpu repo.
+    # docker volume create libedgetpu_build
+    # # Volume must be tied to dummy container to work.
+    # docker container create --name dummy -v libedgetpu_build:/workspace alpine
+    # # Iterate through files and directories in /tmp/libedgetpu
+    # for FILE_OR_DIR in /tmp/libedgetpu/*; do
+    #     # Extract the file or directory name
+    #     FILE_NAME=$(basename "$FILE_OR_DIR")
+    #     # Copy the file or directory into the container
+    #     docker cp "$FILE_OR_DIR" "dummy:/workspace/$FILE_NAME"
+    # done
+
+    # Build LibEdgeTPU.
+    DOCKER_CPUS="k8" DOCKER_IMAGE="ubuntu:22.04" DOCKER_TARGETS=libedgetpu make docker-build
+    # Copy build out dir from docker volume to current dir.
+    # docker cp libedgetpu-builder:/workspace/out ./
 
     # Install LibEdgeTPU
-    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
-    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/ && cp ./tflite/public/edgetpu.h /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/
+    mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/ && mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/
+    cp ./out/direct/k8/libedgetpu.so.1.0 /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/lib/
+    cp ./tflite/public/edgetpu.h /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64/usr/local/include/edgetpu/
+
 
     # Cleanup Install
     rm -rf /tmp/libedgetpu
+    # Delete docker dummy container and volume.
+    # docker rm dummy
+    # docker volume rm libedgetpu_build
 
-    # # Create Package
-    # dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64
+    # Create Package
+    dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64
 
-    # # Create Package Directory
-    # mkdir -p /tmp/pkg/deb
+    # Create Package Directory
+    mkdir -p /tmp/pkg/deb
 
-    # # Copy Package
-    # cp /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64.deb /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+    # Copy Package
+    cp /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_amd64.deb /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_amd64.deb
 fi
