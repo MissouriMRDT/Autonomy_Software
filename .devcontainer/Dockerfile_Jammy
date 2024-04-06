@@ -94,7 +94,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.2.1"
+ARG TORCH_VERSION="2.2.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
