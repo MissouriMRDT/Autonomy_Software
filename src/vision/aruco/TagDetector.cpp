@@ -280,12 +280,54 @@ void TagDetector::ThreadedContinuousCode()
         arucotag::PreprocessFrame(m_cvArucoProcFrame, m_cvArucoProcFrame);
         // Detect tags in the image
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+
+        /* FIXME: Issue #237
+        cv::Matx<float, 4, 1>::Matx(cv::Matx<float, 4, 1> * const this, const float * values) (\usr\local\include\opencv4\opencv2\core\matx.hpp:686)
+        cv::Vec<float, 4>::Vec(cv::Vec<float, 4> * const this, const cv::Vec<float, 4> & m) (\usr\local\include\opencv4\opencv2\core\matx.hpp:1050)
+        arucotag::EstimatePoseFromPointCloud(const cv::Mat & cvPointCloud, arucotag::ArucoTag & stTag)
+        (\workspaces\Autonomy_Software\src\vision\aruco\ArucoDetection.hpp:244) TagDetector::ThreadedContinuousCode(TagDetector * const this)
+        (\workspaces\Autonomy_Software\src\vision\aruco\TagDetector.cpp:287) AutonomyThread<void>::RunThread(AutonomyThread<void> * const this, std::atomic_bool &
+        bStopThread) (\workspaces\Autonomy_Software\src\interfaces\AutonomyThread.hpp:617) AutonomyThread<void>::Start()::{lambda()#1}::operator()()
+        const(AutonomyThread<void> * const this) (\workspaces\Autonomy_Software\src\interfaces\AutonomyThread.hpp:139)
+        BS::thread_pool::submit_task<AutonomyThread<void>::Start()::{lambda()#1}, void>(AutonomyThread<void>::Start()::{lambda()#1}&&, short)::{lambda()#1}::operator()()
+        const(const struct {...} * const this) (\workspaces\Autonomy_Software\external\threadpool\include\BS_thread_pool.hpp:617) std::__invoke_impl<void,
+        BS::thread_pool::submit_task<AutonomyThread<void>::Start()::{lambda()#1}, void>(AutonomyThread<void>::Start()::{lambda()#1}&&,
+        short)::{lambda()#1}&>(std::__invoke_other, BS::thread_pool::submit_task<AutonomyThread<void>::Start()::{lambda()#1},
+        void>(AutonomyThread<void>::Start()::{lambda()#1}&&, short)::{lambda()#1}&)(struct {...} & __f)
+        (\usr\include\c++\10\bits\invoke.h:60) std::__invoke_r<void, BS::thread_pool::submit_task<AutonomyThread<void>::Start()::{lambda()#1},
+        void>(AutonomyThread<void>::Start()::{lambda()#1}&&, short)::{lambda()#1}&>(BS::thread_pool::submit_task<AutonomyThread<void>::Start()::{lambda()#1},
+        void>(AutonomyThread<void>::Start()::{lambda()#1}&&, short)::{lambda()#1}&)(struct {...} & __fn) (\usr\include\c++\10\bits\invoke.h:110)
+        std::_Function_handler<void (), BS::thread_pool::submit_task<AutonomyThread<void>::Start()::{lambda()#1}, void>(AutonomyThread<void>::Start()::{lambda()#1}&&,
+        short)::{lambda()#1}>::_M_invoke(std::_Any_data const&)(const std::_Any_data & __functor) (\usr\include\c++\10\bits\std_function.h:291) std::function<void
+        ()>::operator()() const(const std::function<void()> * const this) (\usr\include\c++\10\bits\std_function.h:622) BS::thread_pool::worker(unsigned int,
+        std::function<void
+        ()> const&)(BS::thread_pool * const this, const BS::concurrency_t idx, const std::function<void()> & init_task)
+        (\workspaces\Autonomy_Software\external\threadpool\include\BS_thread_pool.hpp:937) std::__invoke_impl<void, void (BS::thread_pool::*)(unsigned int,
+        std::function<void ()> const&), BS::thread_pool*, unsigned int, std::function<void ()> >(std::__invoke_memfun_deref, void (BS::thread_pool::*&&)(unsigned int,
+        std::function<void ()> const&), BS::thread_pool*&&, unsigned int&&, std::function<void ()>&&)(void (BS::thread_pool::*&&)(BS::thread_pool * const, unsigned int,
+        const std::function<void()> &) __f, BS::thread_pool *&& __t) (\usr\include\c++\10\bits\invoke.h:73) std::__invoke<void (BS::thread_pool::*)(unsigned int,
+        std::function<void ()> const&), BS::thread_pool*, unsigned int, std::function<void ()> >(void (BS::thread_pool::*&&)(unsigned int, std::function<void ()> const&),
+        BS::thread_pool*&&, unsigned int&&, std::function<void
+        ()>&&)(void (BS::thread_pool::*&&)(BS::thread_pool * const, unsigned int, const std::function<void()> &) __fn) (\usr\include\c++\10\bits\invoke.h:95)
+        std::thread::_Invoker<std::tuple<void (BS::thread_pool::*)(unsigned int, std::function<void ()> const&), BS::thread_pool*, unsigned int, std::function<void ()> >
+        >::_M_invoke<0ul, 1ul, 2ul, 3ul>(std::_Index_tuple<0ul, 1ul, 2ul, 3ul>)(std::thread::_Invoker<std::tuple<void (BS::thread_pool::*)(unsigned int, const
+        std::function<void()>&), BS::thread_pool*, unsigned int, std::function<void()> > > * const this) (\usr\include\c++\10\thread:264)
+        std::thread::_Invoker<std::tuple<void (BS::thread_pool::*)(unsigned int, std::function<void ()> const&), BS::thread_pool*, unsigned int, std::function<void ()> >
+        >::operator()()(std::thread::_Invoker<std::tuple<void (BS::thread_pool::*)(unsigned int, const std::function<void()>&), BS::thread_pool*, unsigned int,
+        std::function<void()> > > * const this) (\usr\include\c++\10\thread:271) std::thread::_State_impl<std::thread::_Invoker<std::tuple<void
+        (BS::thread_pool::*)(unsigned int, std::function<void ()> const&), BS::thread_pool*, unsigned int, std::function<void ()> > >
+        >::_M_run()(std::thread::_State_impl<std::thread::_Invoker<std::tuple<void (BS::thread_pool::*)(unsigned int, const std::function<void()>&), BS::thread_pool*,
+        unsigned int, std::function<void()> > > > * const this)
+        (\usr\include\c++\10\thread:215) libstdc++.so.6![Unknown/Just-In-Time compiled code] (Unknown Source:0) libc.so.6!start_thread(void * arg) (pthread_create.c:442)
+        libc.so.6!clone3() (clone3.S:81)
+        */
+
         // Estimate the positions of the tags using the point cloud
-        for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
-        {
-            // Use the point cloud to get the location of the tag.
-            arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-        }
+        // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+        // {
+        //     // Use the point cloud to get the location of the tag.
+        //     arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+        // }
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
         // Draw tag overlays onto normal image.
