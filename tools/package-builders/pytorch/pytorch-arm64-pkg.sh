@@ -17,6 +17,9 @@ if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
 else
     echo "Package version ${TORCH_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+
+    # Install dependencies.
+    apt update && apt install -y python3-numpy python-is-python3
     
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -36,13 +39,12 @@ else
     echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team." >> /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/DEBIAN/control
 
     # Download Torch
-    git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
-    mkdir pytorch-build
-    cd pytorch-build
-
+    # git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
     # Install python dependencies for building libtorch.
-    pip3 install -r requirements.txt
+    cd pytorch && pip3 install -r requirements.txt
     
+    # mkdir pytorch-build
+    cd /tmp/pytorch-build    
     # Build Torch
     cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release -DPYTHON_EXECUTABLE:PATH=`which python3` -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install ../pytorch
 
@@ -62,9 +64,9 @@ else
         cp -r /tmp/pytorch-install/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share/
 
         # Cleanup Install
-        rm -rf /tmp/pytorch
-        rm -rf /tmp/pytorch-build
-        rm -rf /tmp/pytorch-install
+        # rm -rf /tmp/pytorch
+        # rm -rf /tmp/pytorch-build
+        # rm -rf /tmp/pytorch-install
 
         # Create Package
         dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
@@ -76,7 +78,7 @@ else
         cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
     else
         # Cleanup Install
-        rm -rf /tmp/pytorch
+        # rm -rf /tmp/pytorch
 
         # Return non success exit code.
         exit 1

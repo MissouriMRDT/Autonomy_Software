@@ -31,12 +31,12 @@ RUN apt update && apt install -y curl && \
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential gfortran cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
     libavcodec-dev libavformat-dev libswresample-dev libcanberra-gtk3-module zstd wget less \
-    libdc1394-22-dev libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools \
+    libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools \
     libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev tzdata \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
-    v4l-utils zlib1g-dev python3-dev python-numpy libboost-all-dev valgrind doxygen graphviz nano \
+    v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
     vim-common libedgetpu1-std gasket-dkms ca-certificates
 
 # This symbolic link is needed to use the streaming features on Jetson inside a container
