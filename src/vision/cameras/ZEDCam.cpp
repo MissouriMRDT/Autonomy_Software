@@ -74,6 +74,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_slCameraParams.camera_fps             = nPropFramesPerSecond;
     m_slCameraParams.coordinate_units       = constants::ZED_MEASURE_UNITS;
     m_slCameraParams.coordinate_system      = constants::ZED_COORD_SYSTEM;
+    m_slCameraParams.sdk_verbose            = constants::ZED_SDK_VERBOSE;
     m_slCameraParams.depth_mode             = constants::ZED_DEPTH_MODE;
     m_slCameraParams.depth_minimum_distance = fMinSenseDistance;
     m_slCameraParams.depth_maximum_distance = fMaxSenseDistance;
@@ -116,7 +117,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
 
     // Setup object detection/tracking parameters.
     m_slObjectDetectionParams.detection_model      = sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS;
-    m_slObjectDetectionParams.image_sync           = constants::ZED_OBJDETECTION_IMG_SYNC;
     m_slObjectDetectionParams.enable_tracking      = constants::ZED_OBJDETECTION_TRACK_OBJ;
     m_slObjectDetectionParams.enable_segmentation  = constants::ZED_OBJDETECTION_SEGMENTATION;
     m_slObjectDetectionParams.filtering_mode       = constants::ZED_OBJDETECTION_FILTERING;
@@ -408,9 +408,9 @@ void ZEDCam::ThreadedContinuousCode()
                 if (m_bCameraIsFusionMaster && m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
                 {
                     // Get the fused geo pose from the camera.
-                    sl::GNSS_CALIBRATION_STATE slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
+                    sl::GNSS_FUSION_STATUS slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
                     // Check that the geo pose was retrieved successfully.
-                    if (slGeoPoseTrackReturnCode == sl::GNSS_CALIBRATION_STATE::NOT_CALIBRATED)
+                    if (slGeoPoseTrackReturnCode == sl::GNSS_FUSION_STATUS::RECALIBRATION_IN_PROGRESS)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
@@ -1172,7 +1172,7 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
 sl::FUSION_ERROR_CODE ZEDCam::SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID)
 {
     // Create instance variables.
-    sl::FUSION_ERROR_CODE slReturnCode = sl::FUSION_ERROR_CODE::NOT_ENABLE;
+    sl::FUSION_ERROR_CODE slReturnCode = sl::FUSION_ERROR_CODE::MODULE_NOT_ENABLED;
 
     // Check if this camera is a fusion master.
     if (m_bCameraIsFusionMaster)
