@@ -31,7 +31,7 @@
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
     "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-04-06-04-42-36",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2024-04-07-01-39-33",
     // "build": {
     //     "dockerfile": "Dockerfile_Jammy"
     //     // "dockerfile": "Dockerfile_JetPack"
@@ -41,6 +41,7 @@
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
+    "postStartCommand": "git config --global --add safe.directory \"*\"",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
@@ -81,6 +82,7 @@
                 // Git settings.
                 "git.autofetch": true,
                 "git.terminalAuthentication": false,
+                "git.safedirectory": "*",
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
