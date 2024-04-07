@@ -720,8 +720,179 @@ int WaypointHandler::GetObjectsCount()
     return m_vPermanentObjects.size();
 }
 
-// /***/
-// geoops::GPSCoordinate GetGPSData()
-// {
-    
-// }
+/******************************************************************************
+ * @brief Retrieve the rover's current GPS position. Automatically picks between
+ *      getting the position from the NavBoard or ZEDSDK Fusion module. In most cases,
+ *      this will be the method that should be called over getting the data directly
+ *      from NavBoard.
+ *
+ * @return geoops::GPSCoordinate - The current position of the rover in GPS format.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-06
+ ******************************************************************************/
+geoops::GPSCoordinate WaypointHandler::SmartRetrieveGPSData()
+{
+    // Create instance variables.
+    ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    geoops::GPSCoordinate stCurrentPosition;
+
+    // Check if the main ZED camera is opened and the fusion module is initialized.
+    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster())
+    {
+        // Create instance variables.
+        sl::Pose slCurrentCameraPose;
+
+        // Get the current camera pose from the ZEDCam.
+        std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        // Wait for future to be fulfilled.
+        if (fuResultStatus.get())
+        {
+            // Repack the camera pose into a GPSCoordinate.
+            stCurrentPosition.dLatitude  = slCurrentCameraPose.getTranslation().tx;
+            stCurrentPosition.dLongitude = slCurrentCameraPose.getTranslation().tz;
+            stCurrentPosition.dAltitude  = slCurrentCameraPose.getTranslation().ty;
+        }
+        else
+        {
+            // Just return normal GPS position from NavBoard.
+            stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
+        }
+    }
+    else
+    {
+        // Just return normal GPS position from NavBoard.
+        stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
+    }
+
+    return stCurrentPosition;
+}
+
+/******************************************************************************
+ * @brief Retrieve the rover's current UTM position. Automatically picks between
+ *      getting the position from the NavBoard or ZEDSDK Fusion module. In most cases,
+ *      this will be the method that should be called over getting the data directly
+ *      from NavBoard.
+ *
+ * @return geoops::UTMCoordinate - The current position of the rover in UTM format.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-06
+ ******************************************************************************/
+geoops::UTMCoordinate WaypointHandler::SmartRetrieveUTMData()
+{
+    // Create instance variables.
+    ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    geoops::GPSCoordinate stCurrentPosition;
+    geoops::UTMCoordinate stCurrentPositionUTM;
+
+    // Check if the main ZED camera is opened and the fusion module is initialized.
+    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster())
+    {
+        // Create instance variables.
+        sl::Pose slCurrentCameraPose;
+
+        // Get the current camera pose from the ZEDCam.
+        std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        // Wait for future to be fulfilled.
+        if (fuResultStatus.get())
+        {
+            // Repack the camera pose into a UTMCoordinate.
+            stCurrentPosition.dLatitude  = slCurrentCameraPose.getTranslation().tx;
+            stCurrentPosition.dLongitude = slCurrentCameraPose.getTranslation().tz;
+            stCurrentPosition.dAltitude  = slCurrentCameraPose.getTranslation().ty;
+            // Convert GPS to UTM position.
+            stCurrentPositionUTM = geoops::ConvertGPSToUTM(stCurrentPosition);
+        }
+        else
+        {
+            // Just return normal UTM position from NavBoard.
+            stCurrentPositionUTM = globals::g_pNavigationBoard->GetUTMData();
+        }
+    }
+    else
+    {
+        // Just return normal UTM position from NavBoard.
+        stCurrentPositionUTM = globals::g_pNavigationBoard->GetUTMData();
+    }
+
+    return stCurrentPositionUTM;
+}
+
+/******************************************************************************
+ * @brief Retrieve the rover's current compass heading. Automatically picks between
+ *      getting the position from the NavBoard or ZEDSDK Fusion module. In most cases,
+ *      this will be the method that should be called over getting the data directly
+ *      from NavBoard.
+ *
+ * @return double - The rovers current heading in degrees with North being zero. (CW = pos)
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-06
+ ******************************************************************************/
+double WaypointHandler::SmartRetrieveHeading()
+{
+    // Create instance variables.
+    ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    double dCurrentHeading;
+
+    // Check if the main ZED camera is opened and the fusion module is initialized.
+    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster())
+    {
+        // Create instance variables.
+        sl::Pose slCurrentCameraPose;
+
+        // Get the current camera pose from the ZEDCam.
+        std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        // Wait for future to be fulfilled.
+        if (fuResultStatus.get())
+        {
+            // Repack the camera pose into a UTMCoordinate.
+            dCurrentHeading = slCurrentCameraPose.getEulerAngles(false)[2];
+        }
+        else
+        {
+            // Just return normal compass heading from NavBoard.
+            dCurrentHeading = globals::g_pNavigationBoard->GetHeading();
+        }
+    }
+    else
+    {
+        // Just return normal compass heading from NavBoard.
+        dCurrentHeading = globals::g_pNavigationBoard->GetHeading();
+    }
+
+    return dCurrentHeading;
+}
+
+/******************************************************************************
+ * @brief Retrieve the rover's current velocity. Currently there is no easy way
+ *      to get the velocity of the ZEDCam so this method just returns the GPS-based
+ *      velocity.
+ *
+ * @return double - The current velocity of the rover. (m/s)
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-06
+ ******************************************************************************/
+double WaypointHandler::SmartRetrieveVelocity()
+{
+    // Return the GPS-based velocity from the NavBoard.
+    return globals::g_pNavigationBoard->GetVelocity();
+}
+
+/******************************************************************************
+ * @brief Retrieve the rover's current velocity. Currently there is no easy way
+ *      to get the velocity of the ZEDCam so this method just returns the GPS-based
+ *      velocity.
+ *
+ * @return double - The current angular velocity of the rover. (deg/s)
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-06
+ ******************************************************************************/
+double WaypointHandler::SmartRetrieveAngularVelocity()
+{
+    // Return the GPS-based angular velocity from the NavBoard.
+    return globals::g_pNavigationBoard->GetAngularVelocity();
+}

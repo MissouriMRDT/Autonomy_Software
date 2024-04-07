@@ -282,6 +282,7 @@ void TagDetector::ThreadedContinuousCode()
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
 
         // Estimate the positions of the tags using the point cloud
+        // FIXME: This segfaults when using the .at() method.
         // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
         // {
         //     // Use the point cloud to get the location of the tag.

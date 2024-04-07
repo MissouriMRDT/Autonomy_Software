@@ -44,7 +44,7 @@ namespace constants
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;    // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
 
     // Logging constants.
-    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
+    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "../logs/";    // The absolute to write output logging and video files to.
 
     // RoveComm constants.
     const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
@@ -59,20 +59,20 @@ namespace constants
     // Power constants.
     const float DRIVE_MAX_POWER  = 1.0;
     const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 0.3 /*1.0*/;
-    const float DRIVE_MIN_EFFORT = -0.3 /*1.0*/;
+    const float DRIVE_MAX_EFFORT = 0.3;
+    const float DRIVE_MIN_EFFORT = -0.3;
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.01;             // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.0 /*0.005*/;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.0 /*0.02*/;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_FEEDFORWARD        = 0.0;              // The feedforward for the controller used to predict control output.
-    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;              // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.15;             // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_RAMP_RATE      = 0.08;             // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER      = 0.78;             // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
-    const double DRIVE_PID_TOLERANCE          = 1.0;              // The max allowable error from the setpoint for the controller to be considered at the setpoint.
-    const bool DRIVE_PID_OUTPUT_REVERSED      = false;            // Negates the output of the PID controller.
+    const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.005;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.02;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_FEEDFORWARD        = 0.0;      // The feedforward for the controller used to predict control output.
+    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.15;     // The max effort the I term is allowed to contribute.
+    const double DRIVE_PID_MAX_RAMP_RATE      = 0.08;     // The max ramp rate of the output of the PID controller.
+    const double DRIVE_PID_OUTPUT_FILTER      = 0.78;     // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
+    const double DRIVE_PID_TOLERANCE          = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint.
+    const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
     const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////

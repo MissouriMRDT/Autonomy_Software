@@ -95,7 +95,7 @@ namespace statemachine
         if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - tmTimeSinceLastGPSUpdate).count() < constants::NAVBOARD_MAX_GPS_DATA_AGE)
         {
             // Get the current rover gps position.
-            geoops::UTMCoordinate stCurrentLocation = globals::g_pNavigationBoard->GetUTMData();
+            geoops::UTMCoordinate stCurrentLocation = globals::g_pWaypointHandler->SmartRetrieveUTMData();
             // Store the Rover's position.
             m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
         }

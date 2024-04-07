@@ -34,8 +34,8 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
         // Store the starting position and heading of rover when it entered this state.
-        m_stStartPosition = globals::g_pNavigationBoard->GetGPSData();
-        m_dStartHeading   = globals::g_pNavigationBoard->GetHeading();
+        m_stStartPosition = globals::g_pWaypointHandler->SmartRetrieveGPSData();
+        m_dStartHeading   = globals::g_pWaypointHandler->SmartRetrieveHeading();
 
         // Store state start time.
         m_tmStartReversingTime = std::chrono::high_resolution_clock::now();
@@ -92,8 +92,8 @@ namespace statemachine
         static bool bTimeSinceLastMeterAlreadySet = false;
 
         // Get current position and heading.
-        geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
-        double dCurrentHeading                  = globals::g_pNavigationBoard->GetHeading();
+        geoops::GPSCoordinate stCurrentPosition = globals::g_pWaypointHandler->SmartRetrieveGPSData();
+        double dCurrentHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
         // Get the current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::high_resolution_clock::now();
         // Calculate current distance from start point.

@@ -83,13 +83,11 @@ class WaypointHandler
         int GetObjectsCount();
 
         // Smart location retrieving.
-        geoops::GPSCoordinate GetGPSData();
-        geoops::UTMCoordinate GetUTMData();
-        double GetHeading();
-        double GetVelocity();
-        double GetAngularVelocity();
-        std::chrono::system_clock::time_point GetGPSTimestamp();
-        std::chrono::system_clock::time_point GetCompassTimestamp();
+        geoops::GPSCoordinate SmartRetrieveGPSData();
+        geoops::UTMCoordinate SmartRetrieveUTMData();
+        double SmartRetrieveHeading();
+        double SmartRetrieveVelocity();
+        double SmartRetrieveAngularVelocity();
 
     private:
         /////////////////////////////////////////
