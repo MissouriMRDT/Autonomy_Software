@@ -10,7 +10,7 @@ OPENCV_VERSION="4.9.0"
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb"
 
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if curl --output /dev/null --silent --head --fail "$FILE_URLtest"; then
     echo "Package version ${OPENCV_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
