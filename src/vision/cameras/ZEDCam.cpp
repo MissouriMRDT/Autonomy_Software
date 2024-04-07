@@ -527,7 +527,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (m_slCamera.isPositionalTrackingEnabled())
             {
                 // Get the current GPS location from the NavBoard.
-                geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+                geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pWaypointHandler->SmartRetrieveGPSData();
                 // Repack gps data int sl::GNSSData object.
                 sl::GNSSData slGNSSData = sl::GNSSData();
                 slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
@@ -555,6 +555,17 @@ void ZEDCam::ThreadedContinuousCode()
                                 sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                 m_unCameraSerialNumber,
                                 sl::toString(slReturnCode).get());
+                }
+                else
+                {
+                    // Get the current status of the fusion positional tracking.
+                    sl::FusedPositionalTrackingStatus slFusionPoseTrackStatus = m_slFusionInstance.getFusedPositionalTrackingStatus();
+                    // Submit logger message. DEBUG log the current fused position tracking state.
+                    LOG_DEBUG(logging::g_qSharedLogger,
+                              "PoseTrack Fusion Status: {}, GNSS Fusion Status: {}, VIO SpatialMemory Status: {}",
+                              sl::toString(slFusionPoseTrackStatus.tracking_fusion_status),
+                              sl::toString(slFusionPoseTrackStatus.gnss_fusion_status),
+                              sl::toString(slFusionPoseTrackStatus.spatial_memory_status));
                 }
             }
         }
