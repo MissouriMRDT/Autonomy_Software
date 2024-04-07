@@ -43,8 +43,8 @@ namespace statemachine
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
         // Store the postion and heading where the rover get stuck.
-        m_stOriginalPosition = globals::g_pNavigationBoard->GetGPSData();
-        m_dOriginalHeading   = globals::g_pNavigationBoard->GetHeading();
+        m_stOriginalPosition = globals::g_pWaypointHandler->SmartRetrieveGPSData();
+        m_dOriginalHeading   = globals::g_pWaypointHandler->SmartRetrieveHeading();
         // Get state start time.
         m_tmStuckStartTime = std::chrono::system_clock::now();
 
@@ -98,8 +98,8 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
         // Store the current postion and heading.
-        geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
-        double dCurrentHeading                  = globals::g_pNavigationBoard->GetHeading();
+        geoops::GPSCoordinate stCurrentPosition = globals::g_pWaypointHandler->SmartRetrieveGPSData();
+        double dCurrentHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
         // Get current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
@@ -140,7 +140,7 @@ namespace statemachine
                         // Set aligning toggle.
                         m_bIsCurrentlyAligning = true;
                         // Update start heading.
-                        m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
+                        m_dOriginalHeading = globals::g_pWaypointHandler->SmartRetrieveHeading();
                         // Update start time.
                         m_tmAlignStartTime = std::chrono::system_clock::now();
                     }
@@ -198,7 +198,7 @@ namespace statemachine
                         // Set aligning toggle.
                         m_bIsCurrentlyAligning = true;
                         // Update start heading.
-                        m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
+                        m_dOriginalHeading = globals::g_pWaypointHandler->SmartRetrieveHeading();
                         // Update start time.
                         m_tmAlignStartTime = std::chrono::system_clock::now();
                     }

@@ -531,6 +531,16 @@ void ZEDCam::ThreadedContinuousCode()
                 // Repack gps data int sl::GNSSData object.
                 sl::GNSSData slGNSSData = sl::GNSSData();
                 slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
+                // Calculate the covariance matrix from the 2D and 3D accuracies.
+                slGNSSData.position_covariance = {stCurrentGPSLocation.d2DAccuracy * stCurrentGPSLocation.d2DAccuracy,
+                                                  0.0,
+                                                  0.0,
+                                                  0.0,
+                                                  stCurrentGPSLocation.d2DAccuracy * stCurrentGPSLocation.d2DAccuracy,
+                                                  0.0,
+                                                  0.0,
+                                                  0.0,
+                                                  stCurrentGPSLocation.d3DAccuracy * stCurrentGPSLocation.d3DAccuracy};
                 // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
                 slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
 

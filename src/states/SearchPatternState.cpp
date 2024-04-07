@@ -106,7 +106,7 @@ namespace statemachine
         /* --- Log Position --- */
         //////////////////////////
 
-        geoops::UTMCoordinate stCurrPosUTM = globals::g_pNavigationBoard->GetUTMData();
+        geoops::UTMCoordinate stCurrPosUTM = globals::g_pWaypointHandler->SmartRetrieveUTMData();
         if (m_vRoverPosition.size() == m_nMaxDataPoints)
         {
             m_vRoverPosition.erase(m_vRoverPosition.begin());
@@ -164,8 +164,8 @@ namespace statemachine
             m_tmLastStuckCheck = tmCurrentTime;
 
             // Get the rover's current velocities.
-            double dCurrVelocity    = globals::g_pNavigationBoard->GetVelocity();
-            double dAngularVelocity = globals::g_pNavigationBoard->GetAngularVelocity();
+            double dCurrVelocity    = globals::g_pWaypointHandler->SmartRetrieveVelocity();
+            double dAngularVelocity = globals::g_pWaypointHandler->SmartRetrieveAngularVelocity();
 
             // Check if the rover is rotating or moving linearly.
             if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_VEL_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_ROT_THRESH)
@@ -203,7 +203,7 @@ namespace statemachine
         ///////////////////////////////////
 
         // Have we reached the current waypoint?
-        geoops::GPSCoordinate stCurrentPosGPS    = globals::g_pNavigationBoard->GetGPSData();
+        geoops::GPSCoordinate stCurrentPosGPS    = globals::g_pWaypointHandler->SmartRetrieveGPSData();
         geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
         geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
         bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
@@ -223,7 +223,7 @@ namespace statemachine
         }
 
         // Drive to target waypoint.
-        double dCurrHeading                  = globals::g_pNavigationBoard->GetHeading();
+        double dCurrHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
                                                                                      stCurrRelToTarget.dStartRelativeBearing,
                                                                                      dCurrHeading,

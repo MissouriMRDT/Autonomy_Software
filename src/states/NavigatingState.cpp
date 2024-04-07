@@ -102,10 +102,10 @@ namespace statemachine
         if (!m_bFetchNewWaypoint)
         {
             // Get Current rover heading.
-            geoops::UTMCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetUTMData();
-            double dCurrentHeading                     = globals::g_pNavigationBoard->GetHeading();
+            geoops::UTMCoordinate stCurrentLocation = globals::g_pWaypointHandler->SmartRetrieveUTMData();
+            double dCurrentHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
             // Calculate distance and bearing from goal waypoint.
-            geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentGPSLocation, m_stGoalWaypoint.GetUTMCoordinate());
+            geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentLocation, m_stGoalWaypoint.GetUTMCoordinate());
             // Check if we are at the goal waypoint.
             if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
             {

@@ -164,7 +164,7 @@ namespace statemachine
         }
 
         // Get the current absolute heading of the rover.
-        double dCurrHeading = globals::g_pNavigationBoard->GetHeading();
+        double dCurrHeading = globals::g_pWaypointHandler->SmartRetrieveHeading();
 
         // Find the target's heading and distance with respect to the rover's current position.
         double dTargetHeading;
