@@ -171,10 +171,8 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        sl::Pose slPoseTest;
         while (!bMainStop)
         {
-            std::future<bool> fuPoseReturnStatus = pMainCam->RequestPositionalPoseCopy(slPoseTest);
             // Send current robot state over RoveComm.
             // Construct a RoveComm packet with the drive data.
             rovecomm::RoveCommPacket<uint8_t> stPacket;
@@ -190,7 +188,7 @@ int main()
             // Get FPS of all cameras and detectors and construct the info into a string.
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
             szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
             szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
@@ -203,16 +201,10 @@ int main()
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
             szMainInfo += "\n--------[ Camera Info ]--------\n";
-
-            fuPoseReturnStatus.get();
-            // Wait for the
-            sl::Translation slTranslation = slPoseTest.getTranslation();
-            sl::float3 slEulerAngles      = slPoseTest.getEulerAngles(false);
-            LOG_INFO(logging::g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-            LOG_INFO(logging::g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+            szMainInfo += "MainCam GeoPose: " + std::to_string(globals::g_pWaypointHandler->SmartRetrieveHeading()) + "\n";
 
             // Submit logger message.
-            // LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
 
             // Update IPS tick.
             IterPerSecond.Tick();

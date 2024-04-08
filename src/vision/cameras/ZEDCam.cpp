@@ -297,9 +297,6 @@ void ZEDCam::ThreadedContinuousCode()
     }
     else
     {
-        // Record the start time of this block of code.
-        std::chrono::system_clock::duration tmStartTime = std::chrono::high_resolution_clock::now().time_since_epoch();
-
         // Acquire write lock for camera object.
         std::unique_lock<std::shared_mutex> lkSharedCameraLock(m_muCameraMutex);
         // Call generalized update method of zed api.
@@ -410,7 +407,7 @@ void ZEDCam::ThreadedContinuousCode()
                     // Get the fused geo pose from the camera.
                     sl::GNSS_FUSION_STATUS slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
                     // Check that the geo pose was retrieved successfully.
-                    if (slGeoPoseTrackReturnCode == sl::GNSS_FUSION_STATUS::RECALIBRATION_IN_PROGRESS)
+                    if (slGeoPoseTrackReturnCode != sl::GNSS_FUSION_STATUS::OK && slGeoPoseTrackReturnCode != sl::GNSS_FUSION_STATUS::CALIBRATION_IN_PROGRESS)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
@@ -526,46 +523,52 @@ void ZEDCam::ThreadedContinuousCode()
             // Check if fusion positional tracking is enabled.
             if (m_slCamera.isPositionalTrackingEnabled())
             {
-                // Get the current GPS location from the NavBoard.
-                geoops::GPSCoordinate stCurrentGPSLocation = globals::g_pWaypointHandler->SmartRetrieveGPSData();
-                // Repack gps data int sl::GNSSData object.
-                sl::GNSSData slGNSSData = sl::GNSSData();
-                slGNSSData.setCoordinates(stCurrentGPSLocation.dLatitude, stCurrentGPSLocation.dLongitude, stCurrentGPSLocation.dAltitude, false);
-                // Calculate the covariance matrix from the 2D and 3D accuracies.
-                slGNSSData.position_covariance = {stCurrentGPSLocation.d2DAccuracy * stCurrentGPSLocation.d2DAccuracy,
-                                                  0.0,
-                                                  0.0,
-                                                  0.0,
-                                                  stCurrentGPSLocation.d2DAccuracy * stCurrentGPSLocation.d2DAccuracy,
-                                                  0.0,
-                                                  0.0,
-                                                  0.0,
-                                                  stCurrentGPSLocation.d3DAccuracy * stCurrentGPSLocation.d3DAccuracy};
-                // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
-                slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
+                // Check if the GPS data from the NavBoard is recent.
+                if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100)
+                {
+                    // Get the current GPS location from the NavBoard.
+                    geoops::GPSCoordinate stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+                    // Repack gps data int sl::GNSSData object.
+                    sl::GNSSData slGNSSData = sl::GNSSData();
+                    slGNSSData.setCoordinates(stNewGPSLocation.dLatitude, stNewGPSLocation.dLongitude, stNewGPSLocation.dAltitude, false);
+                    // Calculate the covariance matrix from the 2D and 3D accuracies.
+                    slGNSSData.position_covariance = {stNewGPSLocation.d2DAccuracy * stNewGPSLocation.d2DAccuracy,
+                                                      0.0,
+                                                      0.0,
+                                                      0.0,
+                                                      stNewGPSLocation.d2DAccuracy * stNewGPSLocation.d2DAccuracy,
+                                                      0.0,
+                                                      0.0,
+                                                      0.0,
+                                                      stNewGPSLocation.d3DAccuracy * stNewGPSLocation.d3DAccuracy};
+                    // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
+                    slGNSSData.ts          = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
+                    slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FIX;
 
-                // Publish GNSS data to fusion from the NavBoard.
-                slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
-                // Check if the GNSS data was successfully ingested by the Fusion instance.
-                if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger,
-                                "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
-                                sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                                m_unCameraSerialNumber,
-                                sl::toString(slReturnCode).get());
-                }
-                else
-                {
-                    // Get the current status of the fusion positional tracking.
-                    sl::FusedPositionalTrackingStatus slFusionPoseTrackStatus = m_slFusionInstance.getFusedPositionalTrackingStatus();
-                    // Submit logger message. DEBUG log the current fused position tracking state.
-                    LOG_DEBUG(logging::g_qSharedLogger,
-                              "PoseTrack Fusion Status: {}, GNSS Fusion Status: {}, VIO SpatialMemory Status: {}",
-                              sl::toString(slFusionPoseTrackStatus.tracking_fusion_status).get(),
-                              sl::toString(slFusionPoseTrackStatus.gnss_fusion_status).get(),
-                              sl::toString(slFusionPoseTrackStatus.spatial_memory_status).get());
+                    // Publish GNSS data to fusion from the NavBoard.
+                    slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
+                    // Check if the GNSS data was successfully ingested by the Fusion instance.
+                    if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(
+                            logging::g_qSharedLogger,
+                            "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
+                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                            m_unCameraSerialNumber,
+                            sl::toString(slReturnCode).get());
+                    }
+                    else
+                    {
+                        // Get the current status of the fusion positional tracking.
+                        sl::FusedPositionalTrackingStatus slFusionPoseTrackStatus = m_slFusionInstance.getFusedPositionalTrackingStatus();
+                        // Submit logger message. DEBUG log the current fused position tracking state.
+                        LOG_DEBUG(logging::g_qSharedLogger,
+                                  "PoseTrack Fusion Status: {}, GNSS Fusion Status: {}, VIO SpatialMemory Status: {}",
+                                  sl::toString(slFusionPoseTrackStatus.tracking_fusion_status).get(),
+                                  sl::toString(slFusionPoseTrackStatus.gnss_fusion_status).get(),
+                                  sl::toString(slFusionPoseTrackStatus.spatial_memory_status).get());
+                    }
                 }
             }
         }
@@ -1286,7 +1289,18 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeigh
     else if (m_bCameraIsFusionMaster)
     {
         // Enable fusion positional tracking.
-        m_slFusionInstance.enablePositionalTracking(m_slFusionPoseTrackingParams);
+        sl::FUSION_ERROR_CODE slFusionReturnCode = m_slFusionInstance.enablePositionalTracking(m_slFusionPoseTrackingParams);
+
+        // Check if the fusion positional tracking was enabled successfully.
+        if (slFusionReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "Failed to enable fusion positional tracking for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
+                      sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                      m_unCameraSerialNumber,
+                      sl::toString(slFusionReturnCode).get());
+        }
     }
 
     // Return error code.
@@ -1743,7 +1757,8 @@ std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
 }
 
 /******************************************************************************
- * @brief Accessor for if the positional tracking functionality of the camera has been enabled.
+ * @brief Accessor for if the positional tracking functionality of the camera has been enabled
+ *      and functioning.
  *
  * @return true - Positional tracking is enabled.
  * @return false - Positional tracking is not enabled.
@@ -1753,7 +1768,7 @@ std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
  ******************************************************************************/
 bool ZEDCam::GetPositionalTrackingEnabled()
 {
-    return m_slCamera.isPositionalTrackingEnabled();
+    return m_slCamera.isPositionalTrackingEnabled() && m_slCamera.getPositionalTrackingStatus().odometry_status == sl::ODOMETRY_STATUS::OK;
 }
 
 /******************************************************************************
