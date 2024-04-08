@@ -114,3 +114,27 @@ There are two primary run modes for our Autonomy Codebase.
     make
     ./Autonomy_Software_Sim
     ```
+
+# Additional Modes
+
+To simplify and shorten the build time for development, we have moved the testing suites and installer to be locked behind a set of build arguments. These arguments are defaulted to `OFF` and can be combined and added with the simulation mode commands above.
+
+1) **Test Mode:** To build and run Autonomy with Unit and Integration Tests use the following commands:
+
+    ```
+    mkdir -p <Autonomy Install Location>/build
+    cd <Autonomy Install Location>/build
+    cmake -DBUILD_TESTS_MODE=ON ..
+    make
+    ./Autonomy_Software
+    ```
+
+2) **Install Mode:** To build and run Autonomy with the install packager use the following commands:
+
+    ```
+    mkdir -p <Autonomy Install Location>/build
+    cd <Autonomy Install Location>/build
+    cmake -DBUILD_INSTALL_MODE=ON ..
+    make
+    ./Autonomy_Software
+    ```
