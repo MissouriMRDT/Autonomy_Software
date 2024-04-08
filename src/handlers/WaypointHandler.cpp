@@ -14,6 +14,7 @@
 
 /// \cond
 #include <algorithm>
+#include <cmath>
 
 /// \endcond
 
@@ -741,17 +742,17 @@ geoops::GPSCoordinate WaypointHandler::SmartRetrieveGPSData()
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster())
     {
         // Create instance variables.
-        sl::Pose slCurrentCameraPose;
+        sl::GeoPose slCurrentCameraGeoPose;
 
         // Get the current camera pose from the ZEDCam.
-        std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        std::future<bool> fuResultStatus = pMainCam->RequestFusionGeoPoseCopy(slCurrentCameraGeoPose);
         // Wait for future to be fulfilled.
         if (fuResultStatus.get())
         {
             // Repack the camera pose into a GPSCoordinate.
-            stCurrentPosition.dLatitude  = slCurrentCameraPose.getTranslation().tx;
-            stCurrentPosition.dLongitude = slCurrentCameraPose.getTranslation().tz;
-            stCurrentPosition.dAltitude  = slCurrentCameraPose.getTranslation().ty;
+            stCurrentPosition.dLatitude  = slCurrentCameraGeoPose.latlng_coordinates.getLatitude(false);
+            stCurrentPosition.dLongitude = slCurrentCameraGeoPose.latlng_coordinates.getLongitude(false);
+            stCurrentPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
         }
         else
         {
@@ -787,20 +788,20 @@ geoops::UTMCoordinate WaypointHandler::SmartRetrieveUTMData()
     geoops::UTMCoordinate stCurrentPositionUTM;
 
     // Check if the main ZED camera is opened and the fusion module is initialized.
-    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster())
+    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster() && pMainCam->GetPositionalTrackingEnabled())
     {
         // Create instance variables.
-        sl::Pose slCurrentCameraPose;
+        sl::GeoPose slCurrentCameraGeoPose;
 
         // Get the current camera pose from the ZEDCam.
-        std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        std::future<bool> fuResultStatus = pMainCam->RequestFusionGeoPoseCopy(slCurrentCameraGeoPose);
         // Wait for future to be fulfilled.
         if (fuResultStatus.get())
         {
             // Repack the camera pose into a UTMCoordinate.
-            stCurrentPosition.dLatitude  = slCurrentCameraPose.getTranslation().tx;
-            stCurrentPosition.dLongitude = slCurrentCameraPose.getTranslation().tz;
-            stCurrentPosition.dAltitude  = slCurrentCameraPose.getTranslation().ty;
+            stCurrentPosition.dLatitude  = slCurrentCameraGeoPose.latlng_coordinates.getLatitude(false);
+            stCurrentPosition.dLongitude = slCurrentCameraGeoPose.latlng_coordinates.getLongitude(false);
+            stCurrentPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
             // Convert GPS to UTM position.
             stCurrentPositionUTM = geoops::ConvertGPSToUTM(stCurrentPosition);
         }
@@ -837,18 +838,18 @@ double WaypointHandler::SmartRetrieveHeading()
     double dCurrentHeading;
 
     // Check if the main ZED camera is opened and the fusion module is initialized.
-    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster())
+    if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster() && pMainCam->GetPositionalTrackingEnabled())
     {
         // Create instance variables.
-        sl::Pose slCurrentCameraPose;
+        sl::GeoPose slCurrentCameraGeoPose;
 
         // Get the current camera pose from the ZEDCam.
-        std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        std::future<bool> fuResultStatus = pMainCam->RequestFusionGeoPoseCopy(slCurrentCameraGeoPose);
         // Wait for future to be fulfilled.
         if (fuResultStatus.get())
         {
             // Repack the camera pose into a UTMCoordinate.
-            dCurrentHeading = slCurrentCameraPose.getEulerAngles(false)[2];
+            dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);
         }
         else
         {
