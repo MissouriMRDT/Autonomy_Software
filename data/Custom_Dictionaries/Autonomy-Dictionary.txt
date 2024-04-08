@@ -85,6 +85,8 @@ jspencerpittman
 Jter
 jthread
 keyscan
+latlng
+latlon
 LEDRGB
 LEFTCAM
 libedgetpu
