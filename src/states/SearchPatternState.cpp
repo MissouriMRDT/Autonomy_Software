@@ -36,8 +36,9 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nMaxDataPoints   = 100;
-        m_tmLastStuckCheck = std::chrono::system_clock::now();
+        m_nMaxDataPoints         = 100;
+        m_tmLastStuckCheck       = std::chrono::system_clock::now();
+        m_unStuckChecksOnAttempt = 0;
         m_vRoverPosition.reserve(m_nMaxDataPoints);
         m_eCurrentSearchPatternType = eSpiral;
 
@@ -100,18 +101,21 @@ namespace statemachine
      ******************************************************************************/
     void SearchPatternState::Run()
     {
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
+
+        // Get the current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         //////////////////////////
         /* --- Log Position --- */
         //////////////////////////
 
-        geoops::UTMCoordinate stCurrPosUTM = globals::g_pWaypointHandler->SmartRetrieveUTMData();
         if (m_vRoverPosition.size() == m_nMaxDataPoints)
         {
             m_vRoverPosition.erase(m_vRoverPosition.begin());
         }
-        m_vRoverPosition.emplace_back(stCurrPosUTM.dEasting, stCurrPosUTM.dNorthing);
+        m_vRoverPosition.emplace_back(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing);
 
         /*
             The overall flow of this state is as follows.
@@ -203,9 +207,8 @@ namespace statemachine
         ///////////////////////////////////
 
         // Have we reached the current waypoint?
-        geoops::GPSCoordinate stCurrentPosGPS    = globals::g_pWaypointHandler->SmartRetrieveGPSData();
         geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
-        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
 
         // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
@@ -219,14 +222,13 @@ namespace statemachine
         {
             ++m_nSearchPathIdx;
             stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
-            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentPosGPS, stCurrTargetGPS);
+            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         }
 
         // Drive to target waypoint.
-        double dCurrHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
                                                                                      stCurrRelToTarget.dStartRelativeBearing,
-                                                                                     dCurrHeading,
+                                                                                     stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 

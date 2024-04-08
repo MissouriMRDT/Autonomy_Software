@@ -87,10 +87,15 @@ namespace statemachine
      ******************************************************************************/
     void ApproachingMarkerState::Run()
     {
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Running state-specific behavior.");
 
+        // Create instance variables.
         bool bDetectedTagAR = false;    // Was the tag detected through OpenCV.
         bool bDetectedTagTF = false;    // Was the tag detected through Tensorflow.
+
+        // Get the current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // If a target hasn't been identified yet attempt to find a target tag in the rover's vision.
         if (!m_bDetected && m_nNumDetectionAttempts < constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
@@ -164,7 +169,7 @@ namespace statemachine
         }
 
         // Get the current absolute heading of the rover.
-        double dCurrHeading = globals::g_pWaypointHandler->SmartRetrieveHeading();
+        double dCurrHeading = stCurrentRoverPose.GetCompassHeading();
 
         // Find the target's heading and distance with respect to the rover's current position.
         double dTargetHeading;

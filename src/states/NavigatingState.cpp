@@ -101,18 +101,18 @@ namespace statemachine
         // Check if we are at the goal waypoint. (only if we aren't waiting for a goal waypoint)
         if (!m_bFetchNewWaypoint)
         {
-            // Get Current rover heading.
-            geoops::UTMCoordinate stCurrentLocation = globals::g_pWaypointHandler->SmartRetrieveUTMData();
-            double dCurrentHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
+            // Get Current rover pose.
+            geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
             // Calculate distance and bearing from goal waypoint.
-            geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentLocation, m_stGoalWaypoint.GetUTMCoordinate());
+            geoops::GeoMeasurement stGoalWaypointMeasurement =
+                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
             // Check if we are at the goal waypoint.
             if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
             {
                 // Calculate drive move/powers.
                 diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
                                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
-                                                                                             dCurrentHeading,
+                                                                                             stCurrentRoverPose.GetCompassHeading(),
                                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
                 // Send drive powers over RoveComm.
                 globals::g_pDriveBoard->SendDrive(stDriveSpeeds);

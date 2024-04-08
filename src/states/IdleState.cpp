@@ -40,8 +40,8 @@ namespace statemachine
         // Update ZEDCam position if needed.
         this->UpdateZEDPosition();
 
-        // Ensure drive is stopped.
-        globals::g_pDriveBoard->SendStop();
+        // Get the start rover pose.
+        m_stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
     }
 
     /******************************************************************************
@@ -94,13 +94,29 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
+        // Create instance variables.
+        geoops::RoverPose stCurrentRoverPose;
+
         // Check if GPS data is up-to-date.
         if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() < constants::NAVBOARD_MAX_GPS_DATA_AGE)
         {
             // Get the current rover gps position.
-            geoops::UTMCoordinate stCurrentLocation = globals::g_pWaypointHandler->SmartRetrieveUTMData();
+            stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
             // Store the Rover's position.
-            m_vRoverPosition.push_back(std::make_tuple(stCurrentLocation.dEasting, stCurrentLocation.dNorthing));
+            m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
+
+            // Calculate distance from current position to position when idle state was entered.
+            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
+            // Check if the rover is still moving.
+            if (stMeasurement.dDistanceMeters > 0.1)
+            {
+                // Send stop drive command.
+                globals::g_pDriveBoard->SendStop();
+                // Update Idle start pose.
+                m_stStartRoverPose = stCurrentRoverPose;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "IdleState: Stopped drive.");
+            }
         }
 
         // If the last state was searchpattern and the waypoint handler has been cleared, reset.
@@ -179,6 +195,8 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Ensure drive is stopped.
+                globals::g_pDriveBoard->SendStop();
                 break;
             }
             default:
@@ -222,8 +240,7 @@ namespace statemachine
         if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
         {
             // Check GPS-based compass heading timestamp and accuracy.
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetCompassDataAge()).count() <=
-                    constants::NAVBOARD_MAX_COMPASS_DATA_AGE &&
+            if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetCompassDataAge()).count() <= constants::NAVBOARD_MAX_COMPASS_DATA_AGE &&
                 globals::g_pNavigationBoard->GetHeadingAccuracy() < 4.0)
             {
                 // Get the most recent compass heading from the NavBoard.

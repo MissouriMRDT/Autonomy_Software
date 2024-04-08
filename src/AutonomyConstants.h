@@ -59,8 +59,8 @@ namespace constants
     // Power constants.
     const float DRIVE_MAX_POWER  = 1.0;
     const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 0.3;
-    const float DRIVE_MIN_EFFORT = -0.3;
+    const float DRIVE_MAX_EFFORT = 1.0;
+    const float DRIVE_MIN_EFFORT = -1.0;
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
