@@ -563,9 +563,9 @@ void ZEDCam::ThreadedContinuousCode()
                     // Submit logger message. DEBUG log the current fused position tracking state.
                     LOG_DEBUG(logging::g_qSharedLogger,
                               "PoseTrack Fusion Status: {}, GNSS Fusion Status: {}, VIO SpatialMemory Status: {}",
-                              sl::toString(slFusionPoseTrackStatus.tracking_fusion_status),
-                              sl::toString(slFusionPoseTrackStatus.gnss_fusion_status),
-                              sl::toString(slFusionPoseTrackStatus.spatial_memory_status));
+                              sl::toString(slFusionPoseTrackStatus.tracking_fusion_status).get(),
+                              sl::toString(slFusionPoseTrackStatus.gnss_fusion_status).get(),
+                              sl::toString(slFusionPoseTrackStatus.spatial_memory_status).get());
                 }
             }
         }
