@@ -46,6 +46,17 @@ namespace constants
     // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "./logs/";    // The absolute to write output logging and video files to.
 
+    // Logging color constants.
+    const std::string szTraceL3Color   = "\033[30m";           // Standard Grey
+    const std::string szTraceL2Color   = "\033[30m";           // Standard Grey
+    const std::string szTraceL1Color   = "\033[30m";           // Standard Grey
+    const std::string szDebugColor     = "\033[36m";           // Standard Cyan
+    const std::string szInfoColor      = "\033[32m";           // Standard Green
+    const std::string szWarningColor   = "\033[93m\033[1m";    // Bright Bold Yellow
+    const std::string szErrorColor     = "\033[91m\033[1m";    // Bright Bold Red
+    const std::string szCriticalColor  = "\033[95m\033[1m";    // Bright Bold Magenta
+    const std::string szBacktraceColor = "\033[34m";           // Standard Blue
+
     // RoveComm constants.
     const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
     const int ROVECOMM_OUTGOING_TCP_PORT        = MODE_SIM ? 12001 : 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
