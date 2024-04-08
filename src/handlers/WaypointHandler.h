@@ -83,9 +83,7 @@ class WaypointHandler
         int GetObjectsCount();
 
         // Smart location retrieving.
-        geoops::GPSCoordinate SmartRetrieveGPSData();
-        geoops::UTMCoordinate SmartRetrieveUTMData();
-        double SmartRetrieveHeading();
+        geoops::RoverPose SmartRetrieveRoverPose();
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
 

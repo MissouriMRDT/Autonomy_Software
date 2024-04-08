@@ -411,7 +411,7 @@ void ZEDCam::ThreadedContinuousCode()
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,
-                                    "Geo pose tracking state for stereo camera {} ({}) is suboptimal! sl::GNSS_CALIBRATION_STATE is: {}",
+                                    "Geo pose tracking state for stereo camera {} ({}) is suboptimal! sl::GNSS_FUSION_STATUS is: {}",
                                     sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
                                     m_unCameraSerialNumber,
                                     sl::toString(slGeoPoseTrackReturnCode).get());
@@ -543,7 +543,8 @@ void ZEDCam::ThreadedContinuousCode()
                                                       stNewGPSLocation.d3DAccuracy * stNewGPSLocation.d3DAccuracy};
                     // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
                     slGNSSData.ts          = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
-                    slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FIX;
+                    slGNSSData.gnss_status = sl::GNSS_STATUS::SINGLE;
+                    slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_2D;
 
                     // Publish GNSS data to fusion from the NavBoard.
                     slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);

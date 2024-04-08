@@ -34,8 +34,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "ReversingState: Scheduling next run of state logic.");
 
         // Store the starting position and heading of rover when it entered this state.
-        m_stStartPosition = globals::g_pWaypointHandler->SmartRetrieveGPSData();
-        m_dStartHeading   = globals::g_pWaypointHandler->SmartRetrieveHeading();
+        m_stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Store state start time.
         m_tmStartReversingTime = std::chrono::high_resolution_clock::now();
@@ -92,12 +91,11 @@ namespace statemachine
         static bool bTimeSinceLastMeterAlreadySet = false;
 
         // Get current position and heading.
-        geoops::GPSCoordinate stCurrentPosition = globals::g_pWaypointHandler->SmartRetrieveGPSData();
-        double dCurrentHeading                  = globals::g_pWaypointHandler->SmartRetrieveHeading();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         // Get the current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::high_resolution_clock::now();
         // Calculate current distance from start point.
-        geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stCurrentPosition, m_stStartPosition);
+        geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), m_stStartRoverPose.GetGPSCoordinate());
 
         // Calculate time elapsed.
         double dTotalTimeElapsed          = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStartReversingTime).count();
@@ -149,8 +147,8 @@ namespace statemachine
         {
             // Reverse straight backwards.
             diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_POWER),
-                                                                                     m_dStartHeading,
-                                                                                     dCurrentHeading,
+                                                                                     m_stStartRoverPose.GetCompassHeading(),
+                                                                                     stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers.
             globals::g_pDriveBoard->SendDrive(stReverse);
