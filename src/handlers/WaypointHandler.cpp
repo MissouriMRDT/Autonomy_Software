@@ -758,7 +758,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
             stCurrentPosition.dLongitude = slCurrentCameraGeoPose.latlng_coordinates.getLongitude(false);
             stCurrentPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
             // Repack the camera pose into a UTMCoordinate.
-            dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some reason.
+            // dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some reason.
             dCurrentHeading = numops::InputAngleModulus(slTestPose.getEulerAngles(false).y, 0.0f, 360.0f);
         }
         else
