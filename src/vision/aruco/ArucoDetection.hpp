@@ -240,6 +240,18 @@ namespace arucotag
         // Find the center point of the given tag.
         cv::Point2f cvCenter = FindTagCenter(stTag);
 
+        // Ensure the detected center is inside the domain of the point cloud.
+        if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols)
+        {
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
+                        cvCenter.y,
+                        cvCenter.x,
+                        cvPointCloud.rows,
+                        cvPointCloud.cols);
+            return;
+        }
+
         // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
         cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);
         float fForward         = cvCoordinate[2];    // Z
