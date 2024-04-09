@@ -125,7 +125,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR);
         void DisablePositionalTracking();
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
-        sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 10);
+        sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 5);
         void DisableSpatialMapping();
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
         void DisableObjectDetection();

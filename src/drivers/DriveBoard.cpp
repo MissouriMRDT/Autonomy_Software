@@ -171,6 +171,9 @@ void DriveBoard::SendStop()
     const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
     network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain");
 }
 
 /******************************************************************************
