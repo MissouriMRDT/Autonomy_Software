@@ -39,7 +39,7 @@ else
     echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team." >> /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/DEBIAN/control
 
     # Download Torch
-    # git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
+    git clone --depth 1 --branch v${TORCH_VERSION} --recurse-submodule https://github.com/pytorch/pytorch.git
     # Install python dependencies for building libtorch.
     cd pytorch && pip3 install -r requirements.txt
     
@@ -64,9 +64,9 @@ else
         cp -r /tmp/pytorch-install/share/* /tmp/pkg/pytorch_${TORCH_VERSION}_arm64/usr/share/
 
         # Cleanup Install
-        # rm -rf /tmp/pytorch
-        # rm -rf /tmp/pytorch-build
-        # rm -rf /tmp/pytorch-install
+        rm -rf /tmp/pytorch
+        rm -rf /tmp/pytorch-build
+        rm -rf /tmp/pytorch-install
 
         # Create Package
         dpkg --build /tmp/pkg/pytorch_${TORCH_VERSION}_arm64
@@ -78,7 +78,7 @@ else
         cp /tmp/pkg/pytorch_${TORCH_VERSION}_arm64.deb /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
     else
         # Cleanup Install
-        # rm -rf /tmp/pytorch
+        rm -rf /tmp/pytorch
 
         # Return non success exit code.
         exit 1

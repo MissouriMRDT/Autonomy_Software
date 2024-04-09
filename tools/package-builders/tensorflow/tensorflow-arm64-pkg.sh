@@ -97,7 +97,7 @@ else
 
     # Cleanup Install
     cd /tmp
-    # rm -rf tensorflow
+    rm -rf tensorflow
 
     # Download LibEdgeTPU
     git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
@@ -136,7 +136,7 @@ else
 
     # Cleanup Install
     cd ../
-    # rm -rf libedgetpu
+    rm -rf libedgetpu
 
     # Create Package
     dpkg --build /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64
