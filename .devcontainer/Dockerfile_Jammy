@@ -1,8 +1,8 @@
 # Image Variables
 ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
-ARG CUDA_PATCH="0"
+ARG CUDA_MAJOR="12"
+ARG CUDA_MINOR="2"
+ARG CUDA_PATCH="2"
 ARG CUDNN_VERSION="8"
 
 # Base Image
@@ -10,9 +10,9 @@ FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn${CUDNN_
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="11"
-ARG CUDA_MINOR="7"
-ARG CUDA_PATCH="0"
+ARG CUDA_MAJOR="12"
+ARG CUDA_MINOR="2"
+ARG CUDA_PATCH="2"
 ARG CUDNN_VERSION="8"
 
 # Set Non-Interactive Mode
@@ -28,7 +28,7 @@ RUN echo "${TZ}" > /etc/localtime && \
     echo "${TZ}" > /etc/timezone
 
 # Set CUDA Version
-RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
+RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
 # Add APT Repo for PCIe drivers.
 RUN apt update && apt install -y curl && \
@@ -77,7 +77,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="0"
+ARG ZED_MINOR="1"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}${CUDA_MINOR%.*}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
@@ -88,13 +88,13 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.8.1"
+ARG OPENCV_VERSION="4.9.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.0.1"
+ARG TORCH_VERSION="2.2.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
@@ -112,7 +112,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/am
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
 # Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.13.1"
+ARG TENSORFLOW_VERSION="2.15.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
     dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
     rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb

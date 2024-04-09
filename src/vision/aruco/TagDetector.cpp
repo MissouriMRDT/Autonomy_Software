@@ -280,12 +280,14 @@ void TagDetector::ThreadedContinuousCode()
         arucotag::PreprocessFrame(m_cvArucoProcFrame, m_cvArucoProcFrame);
         // Detect tags in the image
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+
         // Estimate the positions of the tags using the point cloud
-        for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
-        {
-            // Use the point cloud to get the location of the tag.
-            arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-        }
+        // FIXME: This segfaults when using the .at() method.
+        // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+        // {
+        //     // Use the point cloud to get the location of the tag.
+        //     arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+        // }
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
         // Draw tag overlays onto normal image.
