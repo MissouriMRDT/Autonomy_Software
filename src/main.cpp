@@ -200,7 +200,6 @@ int main()
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
-            szMainInfo += "\n--------[ Camera Info ]--------\n";
 
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
@@ -209,8 +208,7 @@ int main()
             IterPerSecond.Tick();
 
             // No need to loop as fast as possible. Sleep...
-            // Only run this main thread once every 33ms. (30 FPS)
-            std::this_thread::sleep_for(std::chrono::milliseconds(33));
+            std::this_thread::sleep_for(std::chrono::milliseconds(60));
         }
 
         /////////////////////////////////////////
@@ -224,7 +222,7 @@ int main()
             std::future<sl::Mesh> fuSpatialMap;
             pMainCam->ExtractSpatialMapAsync(fuSpatialMap);
             sl::Mesh slSpatialMap  = fuSpatialMap.get();
-            std::string szFilePath = "./logs/" + logging::g_szProgramStartTimeString + "/spatial_map";
+            std::string szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + logging::g_szProgramStartTimeString + "/spatial_map";
             slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
         }
 
