@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-OPENCV_VERSION="4.8.1"
+OPENCV_VERSION="4.9.0"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb"

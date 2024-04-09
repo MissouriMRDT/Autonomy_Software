@@ -43,8 +43,9 @@ namespace statemachine
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
         // Store the postion and heading where the rover get stuck.
-        m_stOriginalPosition = globals::g_pNavigationBoard->GetGPSData();
-        m_dOriginalHeading   = globals::g_pNavigationBoard->GetHeading();
+        geoops::RoverPose stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        m_stOriginalPosition               = stStartRoverPose.GetGPSCoordinate();
+        m_dOriginalHeading                 = stStartRoverPose.GetCompassHeading();
         // Get state start time.
         m_tmStuckStartTime = std::chrono::system_clock::now();
 
@@ -98,13 +99,12 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
         // Store the current postion and heading.
-        geoops::GPSCoordinate stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
-        double dCurrentHeading                  = globals::g_pNavigationBoard->GetHeading();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         // Get current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
         // Check if we are unstuck from our starting spot.
-        if (!this->SamePosition(m_stOriginalPosition, stCurrentPosition))
+        if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
         {
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger,
@@ -140,7 +140,7 @@ namespace statemachine
                         // Set aligning toggle.
                         m_bIsCurrentlyAligning = true;
                         // Update start heading.
-                        m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
+                        m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
                         // Update start time.
                         m_tmAlignStartTime = std::chrono::system_clock::now();
                     }
@@ -151,11 +151,13 @@ namespace statemachine
                         // Calculate the goal realignment heading.
                         double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES, 0, 360);
                         // Calculate total rotation degrees so far.
-                        double dRealignmentDegrees = numops::AngularDifference<double>(dCurrentHeading, dGoalHeading);
+                        double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
 
                         // Align drivetrain to a certain heading with 0 forward/reverse power.
-                        diffdrive::DrivePowers stTurnPowers =
-                            globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
+                        diffdrive::DrivePowers stTurnPowers = globals::g_pDriveBoard->CalculateMove(0.0,
+                                                                                                    dGoalHeading,
+                                                                                                    stCurrentRoverPose.GetCompassHeading(),
+                                                                                                    diffdrive::DifferentialControlMethod::eArcadeDrive);
                         // Send drive powers.
                         globals::g_pDriveBoard->SendDrive(stTurnPowers);
 
@@ -198,7 +200,7 @@ namespace statemachine
                         // Set aligning toggle.
                         m_bIsCurrentlyAligning = true;
                         // Update start heading.
-                        m_dOriginalHeading = globals::g_pNavigationBoard->GetHeading();
+                        m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
                         // Update start time.
                         m_tmAlignStartTime = std::chrono::system_clock::now();
                     }
@@ -209,11 +211,13 @@ namespace statemachine
                         // Calculate the goal realignment heading.
                         double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES, 0, 360);
                         // Calculate total rotation degrees so far.
-                        double dRealignmentDegrees = numops::AngularDifference<double>(dCurrentHeading, dGoalHeading);
+                        double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
 
                         // Align drivetrain to a certain heading with 0 forward/reverse power.
-                        diffdrive::DrivePowers stTurnPowers =
-                            globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, dCurrentHeading, diffdrive::DifferentialControlMethod::eArcadeDrive);
+                        diffdrive::DrivePowers stTurnPowers = globals::g_pDriveBoard->CalculateMove(0.0,
+                                                                                                    dGoalHeading,
+                                                                                                    stCurrentRoverPose.GetCompassHeading(),
+                                                                                                    diffdrive::DifferentialControlMethod::eArcadeDrive);
                         // Send drive powers.
                         globals::g_pDriveBoard->SendDrive(stTurnPowers);
 

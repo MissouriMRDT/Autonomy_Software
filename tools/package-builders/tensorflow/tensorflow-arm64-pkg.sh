@@ -4,10 +4,10 @@
 cd /tmp
 
 # Install Variables
-TENSORFLOW_VERSION="2.13.1"
-TENSORFLOW_COMMIT="f841394b1b714c5cc5366536411cf146c8c570df"
-TENSORFLOW_COMMIT_MD5_HASH="fa01678847283115e0b359ebb4db427ab88e289ab0b20376e1a2b3cb775eb720"
-TENSORFLOW_BAZEL_VERSION="5.3.0"
+TENSORFLOW_VERSION="2.15.0"
+TENSORFLOW_COMMIT="6887368d6d46223f460358323c4b76d61d1558a8"
+TENSORFLOW_COMMIT_MD5_HASH="bb25fa4574e42ea4d452979e1d2ba3b86b39569d6b8106a846a238b880d73652"
+TENSORFLOW_BAZEL_VERSION="6.1.0"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb"
@@ -26,6 +26,18 @@ else
 
     # Install python packages.
     apt update && apt install -y python3 python-is-python3
+
+    # # Install Docker in Docker. Using docker to build libedgetpu is by far the easiest way to do this.
+    # if ! command -v docker &> /dev/null; then
+    #     # Docker is not installed, proceed with installation
+    #     echo "Installing Docker..."
+    #     curl -sSL https://get.docker.com/ | sh
+    #     ulimit -n 65536 in /etc/init.d/docker
+    #     service docker start
+    # else
+    #     # Docker is already installed
+    #     echo "Docker is already installed."
+    # fi
     
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -90,11 +102,32 @@ else
     # Download LibEdgeTPU
     git clone --recurse-submodules https://github.com/google-coral/libedgetpu.git
     cd libedgetpu
-    git checkout -f a82c669fb7a9b2e813cfb3d5409fea98d6a6ac8c
 
-    # Build LibEdgeTPU
+    # sed -i '/^DOCKER_MAKE_COMMAND :=/c DOCKER_MAKE_COMMAND := \\\necho $(MAKEFILE_DIR); \\' Makefile
+    # Replace docker workspace in Makefile with our docker volume.
+    # sed -i 's/DOCKER_CONTEXT_DIR := $(MAKEFILE_DIR)/DOCKER_CONTEXT_DIR = /workspace/docker/g' ./Makefile
+    # sed -i 's/DOCKER_WORKSPACE := $(MAKEFILE_DIR)/DOCKER_WORKSPACE = libedgetpu_build/g' ./Makefile
+    # sed -i '/--embed_label/d; /--stamp/ i \\  --embed_label="'${TENSORFLOW_COMMIT}'" \\' ./Makefile
+    # Set LibEdgeTPU tensorflow commit.
     sed -i 's/TENSORFLOW_COMMIT = "[^"]*"/TENSORFLOW_COMMIT = "'"${TENSORFLOW_COMMIT}"'"/' ./workspace.bzl
     sed -i 's/TENSORFLOW_SHA256 = "[^"]*"/TENSORFLOW_SHA256 = "'"${TENSORFLOW_COMMIT_MD5_HASH}"'"/' ./workspace.bzl
+
+    # # Create external docker volume for sharing libedgetpu repo.
+    # docker volume create libedgetpu_build
+    # # Volume must be tied to dummy container to work.
+    # docker container create --name dummy -v libedgetpu_build:/workspace alpine
+    # # Iterate through files and directories in /tmp/libedgetpu
+    # for FILE_OR_DIR in /tmp/libedgetpu/*; do
+    #     # Extract the file or directory name
+    #     FILE_NAME=$(basename "$FILE_OR_DIR")
+    #     # Copy the file or directory into the container
+    #     docker cp "$FILE_OR_DIR" "dummy:/workspace/$FILE_NAME"
+    # done
+
+    # Build LibEdgeTPU.
+    # Copy build out dir from docker volume to current dir.
+    # docker cp libedgetpu-builder:/workspace/out ./
+    # DOCKER_CPUS="aarch64" DOCKER_IMAGE="ubuntu:22.04" DOCKER_TARGETS=libedgetpu make docker-build
     make CPU="aarch64"
 
     # Install LibEdgeTPU

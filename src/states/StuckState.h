@@ -15,7 +15,10 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 
+/// \cond
 #include <chrono>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
