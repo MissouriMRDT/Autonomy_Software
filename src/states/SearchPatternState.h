@@ -11,11 +11,13 @@
 #ifndef SEARCHPATTERNSTATE_H
 #define SEARCHPATTERNSTATE_H
 
-#include <utility>
-
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../vision/aruco/TagDetector.h"
+
+/// \cond
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
