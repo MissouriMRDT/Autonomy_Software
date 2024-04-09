@@ -54,10 +54,11 @@ class NavigationBoard
         geoops::GPSCoordinate GetGPSData();
         geoops::UTMCoordinate GetUTMData();
         double GetHeading();
+        double GetHeadingAccuracy();
         double GetVelocity();
         double GetAngularVelocity();
-        std::chrono::system_clock::time_point GetGPSTimestamp();
-        std::chrono::system_clock::time_point GetCompassTimestamp();
+        std::chrono::system_clock::duration GetGPSDataAge();
+        std::chrono::system_clock::duration GetCompassDataAge();
 
     private:
         /////////////////////////////////////////
@@ -66,6 +67,7 @@ class NavigationBoard
 
         geoops::GPSCoordinate m_stLocation;                                 // Store current global position in UTM format.
         double m_dHeading;                                                  // Store current GPS heading.
+        double m_dHeadingAccuracy;                                          // Store current GPS heading accuracy in degrees.
         double m_dVelocity;                                                 // Store current GPS-based velocity.
         double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
         std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
@@ -139,10 +141,13 @@ class NavigationBoard
 
             // Acquire write lock for writing to GPS struct.
             std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+            std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
             // Repack data from RoveCommPacket into member variable.
             m_stLocation.d2DAccuracy = stPacket.vData[0];
             m_stLocation.d3DAccuracy = stPacket.vData[1];
+            m_dHeadingAccuracy       = stPacket.vData[2];
             // Unlock mutex.
+            lkCompassProcessLock.unlock();
             lkGPSProcessLock.unlock();
 
             // Submit logger message.
