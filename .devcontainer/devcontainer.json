@@ -30,8 +30,8 @@
     "mounts": [
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-04-06-04-42-36",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2024-04-07-01-39-33",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
     //     "dockerfile": "Dockerfile_Jammy"
     //     // "dockerfile": "Dockerfile_JetPack"
@@ -82,11 +82,10 @@
                 // Git settings.
                 "git.autofetch": true,
                 "git.terminalAuthentication": false,
-                "git.safedirectory": "*",
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
-                "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
-                "C_Cpp.default.cppStandard": "c++17",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
+                "C_Cpp.default.cppStandard": "c++20",
                 "C_Cpp.default.includePath": [
                     "./external/rovecomm/src",
                     "./external/rovecomm/src/**",
