@@ -12,7 +12,6 @@
 #ifndef DIFFERENTIAL_DRIVE_HPP
 #define DIFFERENTIAL_DRIVE_HPP
 
-#include "../AutonomyConstants.h"
 #include "../AutonomyLogging.h"
 #include "../util/NumberOperations.hpp"
 #include "controllers/PIDController.h"
@@ -55,9 +54,8 @@ namespace diffdrive
 
     // Enum for choosing the differential drive method for certain functions.
     // Enumerator used to specify what method of drive control to use.
-    enum DifferentialControlMethod
+    enum class DifferentialControlMethod
     {
-        eTankDrive,        // Simple controller. Left and right input is directly assigned to each side of the drivetrain.
         eArcadeDrive,      // Typical drive control method for flightsticks. Uses speed and turn input to determine drive powers.
         eCurvatureDrive    // Similar to arcade drive with flightsticks, but the current turning speed of the robot is dampened when moving fast.
     };
@@ -188,7 +186,7 @@ namespace diffdrive
         }
 
         // Check if turn-in-place is allowed.
-        if (bAllowTurnInPlace && dSpeed == 0.0)
+        if (bAllowTurnInPlace && dSpeed <= 0.01)
         {
             // Differential drive inverse kinematics for curvature drive with turn while stopped.
             dLeftSpeed  = dSpeed + dRotation;
@@ -225,6 +223,8 @@ namespace diffdrive
      * @param dActualHeading - The actual current heading of the robot.
      * @param eDriveMethod - The differential drive method to use for navigation. MUST NOT BE TANK.
      * @param PID - A reference to the PID controller to use for hitting the heading setpoint.
+     * @param bSquareControlInput - Can provide smoother control at goal heading.
+     * @param bCurvatureDriveAllowTurningWhileStopped - Allow DifferentialControlMethod::eCurvatureDrive to turn in-place.
      * @return DrivePowers - The resultant drive powers.
      *
      * @note This method does not support tank drive as a control method.
@@ -235,8 +235,10 @@ namespace diffdrive
     inline DrivePowers CalculateMotorPowerFromHeading(double dGoalSpeed,
                                                       double dGoalHeading,
                                                       double dActualHeading,
-                                                      DifferentialControlMethod eDriveMethod,
-                                                      controllers::PIDController& PID)
+                                                      const DifferentialControlMethod eDriveMethod,
+                                                      controllers::PIDController& PID,
+                                                      const bool bSquareControlInput                     = false,
+                                                      const bool bCurvatureDriveAllowTurningWhileStopped = true)
     {
         // Create instance variables.
         DrivePowers stOutputPowers;
@@ -247,21 +249,20 @@ namespace diffdrive
         // Calculate drive powers from inverse kinematics of goal speed and turning adjustment.
         switch (eDriveMethod)
         {
-            case eArcadeDrive:
+            case DifferentialControlMethod::eArcadeDrive:
             {
                 // Based on our turn output, inverse-proportionally scale down our goal speed. This helps with pivot turns.
                 dGoalSpeed *= 1.0 - std::fabs(dTurnOutput);
                 // Calculate drive power with inverse kinematics.
-                stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, bSquareControlInput);
                 break;
             }
-            case eCurvatureDrive:
+            case DifferentialControlMethod::eCurvatureDrive:
             {
+                // Based on our turn output, inverse-proportionally scale down our goal speed. This helps with pivot turns.
+                dGoalSpeed *= 1.0 - std::fabs(dTurnOutput);
                 // Calculate drive power with inverse kinematics.
-                stOutputPowers = CalculateCurvatureDrive(dGoalSpeed,
-                                                         dTurnOutput,
-                                                         constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED,
-                                                         constants::DRIVE_SQUARE_CONTROL_INPUTS);
+                stOutputPowers = CalculateCurvatureDrive(dGoalSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
                 break;
             }
             default:

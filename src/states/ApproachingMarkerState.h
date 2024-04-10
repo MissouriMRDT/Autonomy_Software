@@ -16,7 +16,7 @@
 #include "../util/vision/TagDetectionUtilty.hpp"
 #include "../vision/aruco/ArucoDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
-#include "../vision/aruco/TensorflowDetection.hpp"
+#include "../vision/aruco/TensorflowTagDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.

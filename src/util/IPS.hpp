@@ -138,11 +138,11 @@ class IPS
         void Tick()
         {
             // Get the current and elapsed time.
-            auto tCurrentTime              = std::chrono::high_resolution_clock::now();
-            auto tElapsedTimeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(tCurrentTime - m_tLastUpdateTime).count();
+            std::chrono::time_point tCurrentTime = std::chrono::high_resolution_clock::now();
+            int nElapsedTimeSinceLastTick        = std::chrono::duration_cast<std::chrono::microseconds>(tCurrentTime - m_tLastUpdateTime).count();
 
             // Calculate current IPS. 1 second == 1000000 microseconds.
-            m_dCurrentIPS = 1e6 / tElapsedTimeSinceLastTick;
+            m_dCurrentIPS = 1e6 / nElapsedTimeSinceLastTick;
 
             // Calculate IPS overall stats.
             this->UpdateMetrics();

@@ -88,12 +88,8 @@ namespace statemachine
      ******************************************************************************/
     void NavigatingState::Run()
     {
-        // TODO: Implement the behavior specific to the Navigating state
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
-
-        ///////////////////////////////////
-        // TEST: Waypoint Navigation.
-        ///////////////////////////////////
 
         // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
@@ -105,18 +101,18 @@ namespace statemachine
         // Check if we are at the goal waypoint. (only if we aren't waiting for a goal waypoint)
         if (!m_bFetchNewWaypoint)
         {
-            // Get Current rover heading.
-            geoops::UTMCoordinate stCurrentGPSLocation = globals::g_pNavigationBoard->GetUTMData();
-            double dCurrentHeading                     = globals::g_pNavigationBoard->GetHeading();
+            // Get Current rover pose.
+            geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
             // Calculate distance and bearing from goal waypoint.
-            geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentGPSLocation, m_stGoalWaypoint.GetUTMCoordinate());
+            geoops::GeoMeasurement stGoalWaypointMeasurement =
+                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
             // Check if we are at the goal waypoint.
             if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
             {
                 // Calculate drive move/powers.
                 diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
                                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
-                                                                                             dCurrentHeading,
+                                                                                             stCurrentRoverPose.GetCompassHeading(),
                                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
                 // Send drive powers over RoveComm.
                 globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
@@ -189,7 +185,9 @@ namespace statemachine
         {
             case Event::eNoWaypoint:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling No Waypoint event.");
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
@@ -212,9 +210,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Marker Waypoint event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eSearchPattern;
                 break;
@@ -224,19 +220,29 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached Object Waypoint event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eSearchPattern;
                 break;
             }
             case Event::eNewWaypoint:
             {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
-                // Get and store new goal waypoint.
-                m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                // Check if the next goal waypoint equals the current one.
+                if (m_stGoalWaypoint == globals::g_pWaypointHandler->PeekNextWaypoint())
+                {
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Reusing current Waypoint.");
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
+                    // Get and store new goal waypoint.
+                    m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                }
+
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Set toggle.
                 m_bFetchNewWaypoint = false;
                 break;
@@ -257,6 +263,8 @@ namespace statemachine
                 globals::g_pDriveBoard->SendStop();
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Set toggle.
+                m_bFetchNewWaypoint = true;
                 // Change states.
                 eNextState = States::eIdle;
                 break;
