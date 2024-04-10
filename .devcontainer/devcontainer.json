@@ -28,19 +28,21 @@
     ],
     // Mount shared workspace volumes. Bind from host machine to container.
     "mounts": [
-        "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated"
+        "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
+        "type=bind,source=${localEnv:HOME}/.ssh,target=/root/.ssh"
     ],
     "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-    //     // "dockerfile": "Dockerfile_Jammy"
-    //     "dockerfile": "Dockerfile_JetPack"
+    //     "dockerfile": "Dockerfile_Jammy"
+    //     // "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
+    "postStartCommand": "git config --global --add safe.directory \"*\"",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
@@ -81,10 +83,11 @@
                 // Git settings.
                 "git.autofetch": true,
                 "git.terminalAuthentication": false,
+                "git.detectSubmodules": false,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
-                "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
-                "C_Cpp.default.cppStandard": "c++17",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
+                "C_Cpp.default.cppStandard": "c++20",
                 "C_Cpp.default.includePath": [
                     "./external/rovecomm/src",
                     "./external/rovecomm/src/**",
@@ -93,8 +96,8 @@
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
                     "/usr/local/zed/include/**",
-                    "/usr/local/cuda-11.7/include",
-                    "/usr/local/cuda-11.7/include/**",
+                    "/usr/local/cuda-12.2/include",
+                    "/usr/local/cuda-12.2/include/**",
                     "/usr/local/include/quill",
                     "/usr/local/include/quill/**",
                     "/usr/local/include/gmock",
