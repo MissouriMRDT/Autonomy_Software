@@ -15,6 +15,12 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-arm64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-amd64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
 
@@ -32,6 +38,12 @@ on:
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
       - "tools/package-builders/opencv/opencv-amd64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-arm64-pkg.sh"
+      - "tools/package-builders/pytorch/pytorch-amd64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-arm64-pkg.sh"
+      - "tools/package-builders/abseil/abseil-amd64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh"
+      - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
 
@@ -56,6 +68,7 @@ jobs:
   # for the other jobs.
   time-and-date:
     runs-on: [ubuntu-latest]
+    timeout-minutes: 360
 
     # This outputs the current date and time to the GitHub output. This is used to tag the docker images.
     outputs:
@@ -74,6 +87,7 @@ jobs:
   check-amd64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
@@ -82,15 +96,25 @@ jobs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
+      pytorch-amd64: ${{ steps.changes.outputs.pytorch-amd64 }}
+      abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
+      tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -106,8 +130,20 @@ jobs:
               - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
             opencv-amd64:
               - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
+            pytorch-amd64:
+              - 'tools/package-builders/pytorch/pytorch-amd64-pkg.sh'
+            abseil-amd64:
+              - 'tools/package-builders/abseil/abseil-amd64-pkg.sh'
+            tensorflow-amd64:
+              - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
 
   # This job is to rebuild the updated AMD64 packages and push them to the package repository. It is run on a
   # self-hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It gets the list of
@@ -118,6 +154,7 @@ jobs:
   build-updated-amd64-packages:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -131,15 +168,25 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - pytorch
+          - abseil
+          - tensorflow
           - quill
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
       # from the previous job. It runs the package build script for the package that is being built.
@@ -175,11 +222,16 @@ jobs:
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new package into the repository
+          # Copy the new AMD64 packages into the repository
           mkdir -p ${{ matrix.package }}/amd64/
-          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/amd64/
+          cp -r /tmp/pkg/deb/*amd64*.deb ${{ matrix.package }}/amd64/
+
+          # Set up Git LFS
+          git lfs install
 
           # Commit and push changes
+          git lfs track '*.deb'
+          git add .gitattributes
           git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
@@ -194,6 +246,12 @@ jobs:
         if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
         run: rm -rf /tmp/pkg/*
 
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+
   # This job is used to check if any of the packages for ARM64 need to be rebuilt. If any of the package build
   # scripts have been updated, then the packages need to be rebuilt in the next job. This job is run on a self-
   # hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It outputs a variable for
@@ -201,6 +259,7 @@ jobs:
   check-arm64-packages:
     needs: [time-and-date]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This outputs a variable for each package that is set to true if the package needs to be rebuilt. This is
@@ -209,15 +268,25 @@ jobs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
+      pytorch-arm64: ${{ steps.changes.outputs.pytorch-arm64 }}
+      abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
+      tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -233,8 +302,20 @@ jobs:
               - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
             opencv-arm64:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
+            pytorch-arm64:
+              - 'tools/package-builders/pytorch/pytorch-arm64-pkg.sh'
+            abseil-arm64:
+              - 'tools/package-builders/abseil/abseil-arm64-pkg.sh'
+            tensorflow-arm64:
+              - 'tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
 
   # This job is to rebuild the updated ARM64 packages and push them to the package repository. It is run on a
   # self-hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It gets the list of
@@ -245,6 +326,7 @@ jobs:
   build-updated-arm64-packages:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -257,15 +339,25 @@ jobs:
           - geolib
           - gtest
           - opencv
+          - pytorch
+          - abseil
+          - tensorflow
           - quill
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
       # from the previous job. It runs the package build script for the package that is being built.
@@ -301,11 +393,16 @@ jobs:
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new package into the repository
+          # Copy the new ARM64 packages into the repository
           mkdir -p ${{ matrix.package }}/arm64/
-          cp -r /tmp/pkg/deb/*.deb ${{ matrix.package }}/arm64/
+          cp -r /tmp/pkg/deb/*arm64*.deb ${{ matrix.package }}/arm64/
+
+          # Set up Git LFS
+          git lfs install
 
           # Commit and push changes
+          git lfs track '*.deb'
+          git add .gitattributes
           git add .
           git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
           git push origin main
@@ -320,6 +417,12 @@ jobs:
         if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
         run: rm -rf /tmp/pkg/*
 
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+
   # This job is used to build and push the new jammy docker image. It is run on a self-hosted runner because
   # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then
   # the image is tagged with the date and time. If this is being run on a push, then the image is tagged with
@@ -329,15 +432,23 @@ jobs:
   build-and-push-jammy:
     needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
     runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -404,6 +515,12 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jammy:buildcache,mode=max
 
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+
   # This job is used to build and push the new jetpack docker image. It is run on a self-hosted runner because
   # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then
   # the image is tagged with the date and time. If this is being run on a push, then the image is tagged with
@@ -413,15 +530,23 @@ jobs:
   build-and-push-jetpack:
     needs: [time-and-date, check-arm64-packages, build-updated-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       # This step is used to checkout the repository. It is needed so that the package build scripts can be
       # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
 
       # This step is used to check if any of the package build scripts have been updated. If any of the package
       # build scripts have been updated, then the packages need to be rebuilt in the next job. This step outputs
@@ -487,3 +612,9 @@ jobs:
           push: true
           cache-from: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache
           cache-to: type=registry,ref=ghcr.io/missourimrdt/autonomy-jetpack:buildcache,mode=max
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software

@@ -155,15 +155,17 @@ int main()
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
         ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-        BasicCam* pLeftCam          = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
-        BasicCam* pRightCam         = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye);
+        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam);
+        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam);
+        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadGroundCam);
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
-        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadLeftArucoEye);
-        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadRightArucoEye);
+        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameLeftCam);
+        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameRightCam);
         IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
+        pMainCam->EnableSpatialMapping();
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -185,19 +187,19 @@ int main()
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
-            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetAverageIPS()) + "\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
-            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetAverageIPS()) + "\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
+            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
-            szMainInfo += "\n--------[ Camera Info ]--------\n";
 
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
@@ -206,13 +208,28 @@ int main()
             IterPerSecond.Tick();
 
             // No need to loop as fast as possible. Sleep...
-            // Only run this main thread once every 20ms.
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(60));
         }
 
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
+
+        // Check if ZED spatial map was enabled.
+        if (pMainCam->GetSpatialMappingState() == sl::SPATIAL_MAPPING_STATE::OK)
+        {
+            // Extract and save spatial map.
+            std::future<sl::Mesh> fuSpatialMap;
+            pMainCam->ExtractSpatialMapAsync(fuSpatialMap);
+            sl::Mesh slSpatialMap  = fuSpatialMap.get();
+            std::string szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + logging::g_szProgramStartTimeString + "/spatial_map";
+            slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
+        }
+
+        // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+        network::g_bRoveCommUDPStatus = false;
+        network::g_bRoveCommTCPStatus = false;
+
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();

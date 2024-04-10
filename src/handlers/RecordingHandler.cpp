@@ -103,6 +103,8 @@ void RecordingHandler::ThreadedContinuousCode()
     // Check what mode recorder was initialized with.
     switch (m_eRecordingMode)
     {
+        // FIXME: Make this not slow down when a camera is unplugged while running.
+
         // Record video feeds from the CameraHandler.
         case eCameraHandler:
             // Update recordable cameras.

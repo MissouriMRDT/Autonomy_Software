@@ -53,6 +53,23 @@ Commit names should be no more than 50 characters. They should have `#<issue num
 
 Pull Request names should be no more than 50 characters. The description should be quite detailed in everything that was added and should have `closed #<issue num>` to mark that the pull request will fix an issue.
 
+## Marking Issues in Code
+
+### Utilizing TODO-Trees
+
+A list of action items can be built in the TODO extension tab using these keywords to highlight and mark sections of code for later review:
+- // * @todo Implement the behavior specific to the Approaching Object state
+- // @todo Implement the behavior specific to the Approaching Object state
+- // TODO: Implement the behavior specific to the Approaching Object state
+- // BUG: This breaks occasionally.
+- // HACK: This is bad, never do this.
+- // FIXME: Broken
+- // LEAD: Check this out...
+- // ISSUE NOTE: This is messed up.
+- // TEST: Make sure this works, write unit tests.
+- // [ ] This is a list item.
+- // [x] This is a checked list item.
+
 ## Styleguides
 
 ### Variable Names
@@ -114,6 +131,8 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - ZEDSDK > `sl` > Example: `sl::Mat slExampleZedMat`
 - Quill > `q` > Example: `quill::Config qConfig`
 - GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
+- Tensorflow > `tf` > Example: `tflite::Interpreter tfExampleTensorflowType`
+- Libedgetpu > `tpu` > Example: `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType`
 
 ### Macro Names
 

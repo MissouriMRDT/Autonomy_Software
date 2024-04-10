@@ -1,6 +1,3 @@
----
-version: '3.8'
-
 services:
   jammy-runner:
     image: ghcr.io/missourimrdt/jammy-runner:latest
@@ -8,10 +5,10 @@ services:
       context: .
       dockerfile: Dockerfile_Jammy
       args:
-        RUNNER_VERSION: '2.310.2'
+        RUNNER_VERSION: '2.314.1'
     command: unix-connect:/var/run/docker.sock
     deploy:
-      replicas: 5
+      replicas: 2
       resources:
         reservations:
           devices:
@@ -23,16 +20,17 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: <TOKEN>
+      GH_TOKEN: <GH_PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
+
   jetpack-runner:
     image: ghcr.io/missourimrdt/jetpack-runner:latest
     build:
       context: .
       dockerfile: Dockerfile_JetPack
       args:
-        RUNNER_VERSION: '2.310.2'
+        RUNNER_VERSION: '2.314.1'
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 1
@@ -47,7 +45,7 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     environment:
-      GH_TOKEN: <TOKEN>
+      GH_TOKEN: <GH_PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
 

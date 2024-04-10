@@ -210,7 +210,7 @@ void RunExample()
     ///  Linear generator.
     ////////////////////////////////////
     // Start the timer
-    auto tmStartTime = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point tmStartTime = std::chrono::high_resolution_clock::now();
 
     // Create generator.
     ArucoGenerateTagsLinear LinearTagGenerator;
@@ -252,20 +252,20 @@ void RunExample()
     LinearTagGenerator.Start();
 
     // End the timer
-    auto tmEndTime = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point tmEndTime = std::chrono::high_resolution_clock::now();
     // Calculate the elapsed time
-    auto singleThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
+    int nSingledThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
     // Print the result
-    std::cout << "Time taken for single threaded generator: " << singleThreadedDuration << " milliseconds." << std::endl;
+    std::cout << "Time taken for single threaded generator: " << nSingledThreadedDuration << " milliseconds." << std::endl;
 
     // Remove all png files in the current directory.
-    for (const auto& entry : std::filesystem::directory_iterator("."))
+    for (const std::filesystem::directory_entry& stdEntry : std::filesystem::directory_iterator("."))
     {
         // Loop all *.png files.
-        if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png")
+        if (std::filesystem::is_regular_file(stdEntry) && stdEntry.path().extension() == ".png")
         {
             // Delete.
-            std::filesystem::remove(entry.path());
+            std::filesystem::remove(stdEntry.path());
         }
     }
 
@@ -326,8 +326,8 @@ void RunExample()
     // End the timer
     tmEndTime = std::chrono::high_resolution_clock::now();
     // Calculate the elapsed time
-    auto tmMultiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
+    int nMultiThreadedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(tmEndTime - tmStartTime).count();
     // Print the result
-    std::cout << "Time taken for multithreaded generator: " << tmMultiThreadedDuration << " milliseconds." << std::endl;
+    std::cout << "Time taken for multithreaded generator: " << nMultiThreadedDuration << " milliseconds." << std::endl;
     std::cout << "\n\nCheck your build directory for all aruco tags!" << std::endl;
 }

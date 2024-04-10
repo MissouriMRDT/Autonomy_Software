@@ -51,13 +51,16 @@ BasicCam::BasicCam(const std::string szCameraPath,
     if (m_cvCamera.open(szCameraPath))
     {
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
+        LOG_INFO(logging::g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
     }
     else
     {
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
     }
+
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
 
 /******************************************************************************
@@ -110,13 +113,16 @@ BasicCam::BasicCam(const int nCameraIndex,
     if (m_cvCamera.isOpened())
     {
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "Camera {} at video index {} has been successfully opened.", m_cvCamera.getBackendName(), m_nCameraIndex);
+        LOG_INFO(logging::g_qSharedLogger, "Camera {} at video index {} has been successfully opened.", m_cvCamera.getBackendName(), m_nCameraIndex);
     }
     else
     {
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
     }
+
+    // Set max FPS of the ThreadedContinuousCode method.
+    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
 
 /******************************************************************************
@@ -136,7 +142,7 @@ BasicCam::~BasicCam()
     m_cvCamera.release();
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Basic camera at video index {} has been successfully closed.", m_nCameraIndex);
+    LOG_INFO(logging::g_qSharedLogger, "Basic camera at video index {} has been successfully closed.", m_nCameraIndex);
 }
 
 /******************************************************************************
@@ -156,14 +162,61 @@ void BasicCam::ThreadedContinuousCode()
     // Check if camera is NOT open.
     if (!m_cvCamera.isOpened())
     {
-        // Shutdown threads for this BasicCam.
-        this->RequestStop();
+        // If this is the first iteration of the thread the camera probably isn't present so stop thread to save resources.
+        if (this->GetThreadState() == eStarting)
+        {
+            // Shutdown threads for this BasicCam.
+            this->RequestStop();
 
-        // Submit logger message.
-        LOG_CRITICAL(logging::g_qSharedLogger,
-                     "Camera start was attempted for BasicCam at {}/{}, but camera never properly opened or it has become disconnected!",
-                     m_nCameraIndex,
-                     m_szCameraPath);
+            // Submit logger message.
+            LOG_CRITICAL(logging::g_qSharedLogger, "Camera start was attempted for BasicCam at {}/{}, but camera was never opened!", m_nCameraIndex, m_szCameraPath);
+        }
+        else
+        {
+            // Create instance variables.
+            bool bCameraReopened                  = false;
+            static bool bReopenAlreadyChecked     = false;
+            std::chrono::time_point tmCurrentTime = std::chrono::system_clock::now();
+            // Convert time point to seconds since epoch
+            int nTimeSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime.time_since_epoch()).count();
+
+            // Only try to reopen camera every 5 seconds.
+            if (nTimeSinceEpoch % 5 == 0 && !bReopenAlreadyChecked)
+            {
+                // Check if camera was opened with an index or path.
+                if (m_nCameraIndex == -1)
+                {
+                    // Attempt to reopen camera.
+                    bCameraReopened = m_cvCamera.open(m_szCameraPath);
+                }
+                else
+                {
+                    // Attempt to reopen camera.
+                    bCameraReopened = m_cvCamera.open(m_nCameraIndex);
+                }
+
+                // Check if camera was reopened.
+                if (bCameraReopened)
+                {
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {}/{} has been reconnected and reopened!", m_nCameraIndex, m_szCameraPath);
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "Attempt to reopen Camera {}/{} has failed! Trying again in 5 seconds...", m_nCameraIndex, m_szCameraPath);
+                    // Sleep for five seconds.
+                }
+
+                // Set toggle.
+                bReopenAlreadyChecked = true;
+            }
+            else if (nTimeSinceEpoch % 5 != 0)
+            {
+                // Reset toggle.
+                bReopenAlreadyChecked = false;
+            }
+        }
     }
     else
     {
@@ -176,21 +229,26 @@ void BasicCam::ThreadedContinuousCode()
         else
         {
             // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Unable to read new frame for camera {}, {}!", m_nCameraIndex, m_szCameraPath);
-        }
+            LOG_ERROR(logging::g_qSharedLogger, "Unable to read new frame for camera {}, {}! Closing camera...", m_nCameraIndex, m_szCameraPath);
+            // Release camera capture.
+            m_cvCamera.release();
 
-        // Acquire a shared_lock on the frame copy queue.
-        std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Check if the frame copy queue is empty.
-        if (!m_qFrameCopySchedule.empty())
-        {
-            // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-            this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
-            // Wait for thread pool to finish.
-            this->JoinPool();
-            // Release lock on frame copy queue.
-            lkSchedulers.unlock();
+            // Fill camera frame member variable with zeros. This ensures a non-corrupt, black image.
+            m_cvFrame = cv::Mat::zeros(m_nPropResolutionY, m_nPropResolutionX, CV_8UC3);
         }
+    }
+
+    // Acquire a shared_lock on the frame copy queue.
+    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Check if the frame copy queue is empty.
+    if (!m_qFrameCopySchedule.empty())
+    {
+        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
+        this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
+        // Wait for thread pool to finish.
+        this->JoinPool();
+        // Release lock on frame copy queue.
+        lkSchedulers.unlock();
     }
 }
 

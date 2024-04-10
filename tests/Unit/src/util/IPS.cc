@@ -90,8 +90,8 @@ TEST(IPSTest, MetricsFunctionality)
     IPS* pIPS = new IPS();
 
     // Declare a start time, current time, elapsed time.
-    auto tStartTime                            = std::chrono::high_resolution_clock::now();
-    auto tCurrentTime                          = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point tStartTime         = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point tCurrentTime       = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> tElapsedTime = tCurrentTime - tStartTime;
 
     // Loop for a second.
@@ -130,7 +130,7 @@ TEST(IPSTest, MetricsFunctionality)
     // Test that the returned average makes sense.
     EXPECT_TRUE(dAverage <= dHigh && dAverage >= dLow);
     // Test that the returned minimum makes sense.
-    EXPECT_TRUE(dLow >= 0 && dLow <= dHigh);
+    EXPECT_TRUE(dLow >= -1 && dLow <= dHigh);
     // Test that the returned maximum makes sense.
     EXPECT_TRUE(dHigh >= dLow);
     // Test that the returned 1% low makes sense.

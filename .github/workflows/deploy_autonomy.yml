@@ -32,8 +32,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -41,10 +49,11 @@ jobs:
       - name: Checkout Tag
         run: |
           cd /opt/Autonomy_Software/
-          git fetch --tags --force
+          git fetch --tags --force --recurse-submodules
           tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo $tag
           git checkout $tag
+          git submodule update --recursive --init
 
       - name: Build and Create Executable
         run: |
@@ -65,13 +74,27 @@ jobs:
           name: Autonomy-${{ matrix.architecture }}
           path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+
   create-release:
     runs-on: [self-hosted, linux, X64]
     needs: build-and-upload
 
     steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -102,3 +125,9 @@ jobs:
           files: "/opt/Autonomy_Software/artifacts/**"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software

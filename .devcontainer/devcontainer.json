@@ -34,14 +34,15 @@
     "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-    // "dockerfile": "Dockerfile_Jammy"
-    // "dockerfile": "Dockerfile_JetPack"
+    //     "dockerfile": "Dockerfile_Jammy"
+    //     // "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
+    "postStartCommand": "git config --global --add safe.directory \"*\"",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
@@ -81,27 +82,38 @@
                 "extensions.ignoreRecommendations": true,
                 // Git settings.
                 "git.autofetch": true,
+                "git.terminalAuthentication": false,
+                "git.detectSubmodules": false,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
-                "C_Cpp.default.compilerPath": "/usr/bin/g++-10",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
                 "C_Cpp.default.cppStandard": "c++20",
                 "C_Cpp.default.includePath": [
-                    "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/",
-                    "/workspaces/Autonomy_Software/build/_deps/rovecomm_cpp-src/src/**",
+                    "./external/rovecomm/src",
+                    "./external/rovecomm/src/**",
                     "/usr/local/include/opencv4",
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
                     "/usr/local/zed/include/**",
-                    "/usr/local/cuda-11.7/include",
-                    "/usr/local/cuda-11.7/include/**",
-                    "/usr/local/include/quill/",
+                    "/usr/local/cuda-12.2/include",
+                    "/usr/local/cuda-12.2/include/**",
+                    "/usr/local/include/quill",
                     "/usr/local/include/quill/**",
-                    "/usr/local/include/gmock/",
+                    "/usr/local/include/gmock",
                     "/usr/local/include/gmock/**",
-                    "/usr/local/include/gtest/",
+                    "/usr/local/include/gtest",
                     "/usr/local/include/gtest/**",
-                    "/usr/local/include/GeographicLib/",
-                    "/usr/local/include/GeographicLib/**"
+                    "/usr/local/include/GeographicLib",
+                    "/usr/local/include/GeographicLib/**",
+                    "/usr/local/include/tensorflow/lite",
+                    "/usr/local/include/tensorflow/lite/**",
+                    "/usr/local/include/edgetpu",
+                    "/usr/local/include/edgetpu/**",
+                    "/usr/include/torch",
+                    "/usr/include/torch/**"
+                ],
+                "C_Cpp.default.defines": [
+                    "__ROVECOMM_LIBRARY_MODE__=1"
                 ],
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
@@ -116,6 +128,7 @@
                     "build",
                     "data",
                     "docs",
+                    "external",
                     ".devcontainer",
                     "README.md",
                     "src/util/OpenCV/ArucoSamplesUtility.hpp"
@@ -166,46 +179,92 @@
                 "doxdocgen.generic.useGitUserEmail": true,
                 "doxdocgen.generic.useGitUserName": true,
                 // Todo Tree Extention Settings
-                "todo-tree.general.tags": [
-                    "FIXME:",
-                    "TODO:",
-                    "LEAD:",
-                    "ISSUE NOTE:"
+                "todo-tree.filtering.excludeGlobs": [
+                    "**/CONTRIBUTING.md"
                 ],
+                "todo-tree.general.tags": [
+                    "* @todo",
+                    "@todo",
+                    "TODO:",
+                    "BUG:",
+                    "HACK:",
+                    "FIXME:",
+                    "LEAD:",
+                    "ISSUE NOTE:",
+                    "TEST:",
+                    "[ ]",
+                    "[x]"
+                ],
+                "todo-tree.highlights.defaultHighlight": {
+                    "icon": "alert",
+                    "type": "text",
+                    "foreground": "#00ff00",
+                    "background": "#ffffff",
+                    "opacity": 50,
+                    "iconColour": "#00ff00"
+                },
                 "todo-tree.highlights.customHighlight": {
-                    "TODO": {
-                        "icon": "check",
+                    "* @todo": {
+                        "icon": "bookmark",
                         "type": "line",
                         "iconColour": "#d000ff",
                         "foreground": "#ffffff",
                         "background": "#d000ff"
                     },
-                    "FIXME": {
-                        "icon": "beaker",
+                    "@todo": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "TODO:": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "BUG:": {
+                        "icon": "bug",
+                        "type": "line",
+                        "iconColour": "#ff8c00",
+                        "foreground": "#ffffff",
+                        "background": "#ff8c00"
+                    },
+                    "HACK:": {
+                        "icon": "circle-slash",
+                        "type": "line",
+                        "iconColour": "#ff1e00",
+                        "foreground": "#ffffff",
+                        "background": "#ff1e00"
+                    },
+                    "FIXME:": {
+                        "icon": "alert-fill",
                         "type": "line",
                         "iconColour": "#ff0000",
                         "foreground": "#ffffff",
                         "background": "#ff0000"
                     },
-                    "LEAD": {
+                    "LEAD:": {
                         "icon": "person",
                         "type": "line",
-                        "iconColour": "#ffffff",
-                        "foreground": "#000000",
-                        "background": "#ffffff"
+                        "iconColour": "#0700d8",
+                        "foreground": "#ffffff",
+                        "background": "#0700d8"
                     },
-                    "ISSUE NOTE": {
+                    "ISSUE NOTE:": {
                         "icon": "book",
                         "type": "line",
                         "iconColour": "#808080",
-                        "foreground": "#000000",
+                        "foreground": "#ffffff",
                         "background": "#808080"
                     },
-                    "TEST": {
-                        "icon": "book",
+                    "TEST:": {
+                        "icon": "beaker",
                         "type": "line",
                         "iconColour": "#c5cb04",
-                        "foreground": "#000000",
+                        "foreground": "#ffffff",
                         "background": "#ccd514"
                     }
                 },

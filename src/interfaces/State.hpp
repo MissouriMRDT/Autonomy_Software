@@ -71,6 +71,7 @@ namespace statemachine
         eReverseComplete,
         eSearchFailed,
         eStuck,
+        eUnstuck,
 
         NUM_EVENTS
     };

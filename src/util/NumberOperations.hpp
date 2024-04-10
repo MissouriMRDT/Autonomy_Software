@@ -35,13 +35,13 @@ namespace numops
      * @param tValue - The value to clamp.
      * @param tMin - Minimum value quantity.
      * @param tMax - Maximum value quantity.
-     * @return T - The clamped value.
+     * @return constexpr T - The clamped value.
      *
      * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
      * @date 2023-06-20
      ******************************************************************************/
     template<typename T>
-    inline T Clamp(T tValue, T tMin, T tMax)
+    inline constexpr T Clamp(T tValue, T tMin, T tMax)
     {
         return std::max(std::min(tMax, tValue), tMin);
     }
@@ -84,13 +84,13 @@ namespace numops
      * @param tOldMaximum - The current range's maximum value.
      * @param tNewMinimum - The new range's minimum value.
      * @param tNewMaximum - The new range's maximum value.
-     * @return T - The resultant templated type mapped to the new range.
+     * @return constexpr T - The resultant templated type mapped to the new range.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-22
      ******************************************************************************/
     template<typename T>
-    inline T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
+    inline constexpr T MapRange(const T tValue, const T tOldMinimum, const T tOldMaximum, const T tNewMinimum, const T tNewMaximum)
     {
         // Check if the ranges are valid.
         if (tOldMinimum == tOldMaximum || tNewMinimum == tNewMaximum)
@@ -138,6 +138,50 @@ namespace numops
 
         // Return wrapped number.
         return tValue;
+    }
+
+    /******************************************************************************
+     * @brief Calculates the distance in degrees between two angles. This function
+     *      accounts for wrap around so that the most acute or smallest radial distance
+     *      between the two points is returned.
+     *
+     * @tparam T - Template value specifying the type of the number to find difference of.
+     * @param tFirstValue - The first value.
+     * @param tSecondValue - The second value. This will be subtracted from the first value.
+     * @return constexpr T - The smallest angular distance.
+     *
+     * @note This function expects the two values to be between 0-360.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-04-03
+     ******************************************************************************/
+    template<typename T>
+    inline constexpr T AngularDifference(T tFirstValue, T tSecondValue)
+    {
+        // Check input.
+        if (!Bounded<T>(tFirstValue, 0, 360) && !Bounded<T>(tSecondValue, 0, 360))
+        {
+            // Submit logger message.
+            std::cerr << "ANGULARDIFFERENCE: An input value is not valid must be between 0-360. The result difference will not be accurate!" << std::endl;
+        }
+
+        // Find absolute difference between the two values.
+        T tDifference = std::abs(tFirstValue - tSecondValue);
+        // If greater than 180 degrees, subtract 360/
+        if (tDifference > 180)
+        {
+            // Wrap value.
+            tDifference -= 360;
+
+            // Check if first values is bigger than second value. If it is, flip sign so that clockwise is positive.
+            if (tFirstValue > tSecondValue)
+            {
+                tDifference *= -1;
+            }
+        }
+
+        // Return value.
+        return tDifference;
     }
 }    // namespace numops
 #endif

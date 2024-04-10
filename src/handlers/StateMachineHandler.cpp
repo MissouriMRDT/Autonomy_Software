@@ -28,6 +28,7 @@ StateMachineHandler::StateMachineHandler()
     // Set RoveComm Node callbacks.
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::BMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
@@ -116,11 +117,15 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
         }
 
         // Check if the state exists in exitedStates
-        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umExitedStates.find(eNextState);
-        if (itState != m_umExitedStates.end())
+        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umSavedStates.find(eNextState);
+        if (itState != m_umSavedStates.end())
         {
             // Load the existing state
             m_pCurrentState = itState->second;
+            // Remove new current state state from saved states.
+            m_umSavedStates.erase(eNextState);
+
+            // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Recalling State: {}", m_pCurrentState->ToString());
         }
         else
@@ -148,7 +153,7 @@ void StateMachineHandler::SaveCurrentState()
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Saving State: {}", m_pCurrentState->ToString());
     // Add state to map.
-    m_umExitedStates[m_pCurrentState->GetState()] = m_pCurrentState;
+    m_umSavedStates[m_pCurrentState->GetState()] = m_pCurrentState;
 }
 
 /******************************************************************************
@@ -162,12 +167,13 @@ void StateMachineHandler::StartStateMachine()
 {
     // Initialize the state machine with the initial state
     m_pCurrentState    = CreateState(statemachine::States::eIdle);
-
-    m_bInitialized     = true;
     m_bSwitchingStates = false;
 
     // Start the state machine thread
     Start();
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "Started State Machine.");
 }
 
 /******************************************************************************
@@ -190,6 +196,11 @@ void StateMachineHandler::StopStateMachine()
 
     // Send multimedia command to update state display.
     globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
+    // Stop drive.
+    globals::g_pDriveBoard->SendStop();
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "Stopped State Machine.");
 }
 
 /******************************************************************************
@@ -211,7 +222,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         states. And verify that the state machine is not exiting. This prevents
         the state machine from running after it has been stopped.
     */
-    if (m_bInitialized && !m_bSwitchingStates && !m_bExiting)
+    if (!m_bSwitchingStates)
     {
         // Run the current state
         m_pCurrentState->Run();
@@ -252,6 +263,23 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
 
     // Transition to the next state
     ChangeState(eNextState, bSaveCurrentState);
+}
+
+/******************************************************************************
+ * @brief Clear all saved states.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-01
+ ******************************************************************************/
+void StateMachineHandler::ClearSavedStates()
+{
+    // Acquire write lock for clearing saved states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    // Clear all saved states.
+    m_umSavedStates.clear();
+    // Reset previous state to nullptr;
+    m_pPreviousState = std::make_shared<statemachine::IdleState>();
 }
 
 /******************************************************************************
