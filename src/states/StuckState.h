@@ -15,7 +15,10 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 
+/// \cond
 #include <chrono>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -35,23 +38,46 @@ namespace statemachine
     class StuckState : public State
     {
         private:
-            bool m_bInitialized;
+            /////////////////////////////////////////
+            // Declare private enums and structs that are specific to and used withing this class.
+            /////////////////////////////////////////
 
-            unsigned int m_unAttempts;                                   // Current attempt we are on for a given position.
+            enum AttemptType
+            {
+                eReverseCurrentHeading,
+                eReverseLeft,
+                eReverseRight,
+                eGiveUp
+            };
+
+            /////////////////////////////////////////
+            // Declare private member variables.
+            /////////////////////////////////////////
+            bool m_bInitialized;
+            States m_eTriggeringState;                                   // The state that the rover got stuck in before triggering a stuck event.
+            AttemptType m_eAttemptType;                                  // Current attempt we are on for a given position.
             geoops::GPSCoordinate m_stOriginalPosition;                  // Original position where rover was reported stuck.
             double m_dOriginalHeading;                                   // Original heading the rover was at when reported stuck.
             bool m_bIsCurrentlyAligning;                                 // Is the rover currently trying to align with a target heading.
+            std::chrono::system_clock::time_point m_tmStuckStartTime;    // The timestamp storing when the rover starting stuck state.
+            std::chrono::system_clock::time_point m_tmAlignStartTime;    // The timestamp storing when the rover starting realigning.
 
-            std::chrono::system_clock::time_point m_tmLastStuckCheck;    // Time since the rover was last checked for being stuck.
-            unsigned int m_unStuckChecksOnAttempt;                       //
-
+            /////////////////////////////////////////
+            // Declare private class methods.
+            /////////////////////////////////////////
             bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition);
 
         protected:
+            /////////////////////////////////////////
+            // Declare protected class methods.
+            /////////////////////////////////////////
             void Start() override;
             void Exit() override;
 
         public:
+            /////////////////////////////////////////
+            // Declare public class methods.
+            /////////////////////////////////////////
             StuckState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;

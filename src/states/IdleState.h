@@ -12,6 +12,7 @@
 #define IDLESTATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
 
 /// \cond
 #include <tuple>
@@ -38,9 +39,12 @@ namespace statemachine
         private:
             time_t m_tIdleTime;
             bool m_bRealigned;
+            geoops::RoverPose m_stStartRoverPose;
             std::vector<std::tuple<double, double>> m_vRoverPosition;
             int m_nMaxDataPoints;
             bool m_bInitialized;
+
+            void UpdateZEDPosition();
 
         protected:
             void Start() override;

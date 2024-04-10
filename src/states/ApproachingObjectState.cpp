@@ -77,7 +77,7 @@ namespace statemachine
      ******************************************************************************/
     void ApproachingObjectState::Run()
     {
-        // TODO: Implement the behavior specific to the Approaching Object state
+        // TODO: Implement the behavior specific to the Approaching Object state.
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
     }
 

@@ -12,9 +12,12 @@ cmake_minimum_required(VERSION 3.24.3)
 ## C++ Version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.02.00)
+project(Autonomy_Software VERSION 24.02.00 LANGUAGES CXX CUDA)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
@@ -26,10 +29,9 @@ endif()
 if(NOT CTest_CMake_INCLUDED)
     include(CTest)                                                                  # CMake Testing Framework
 endif()
-include(FetchContent)                                                               # CMake Dependency Framework
 
 ## Enable or Disble Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 if(BUILD_SIM_MODE)
     message("Sim Mode: Enabled")
     add_compile_definitions(__AUTONOMY_SIM_MODE__=1)
@@ -49,26 +51,24 @@ set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 set(CPACK_GENERATOR "STGZ")
 
+# Configure BSThreadPool
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PAUSE=1)
+add_compile_definitions(BS_THREAD_POOL_ENABLE_PRIORITY=1)
+add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
+
 ## Find RoveComm
-FetchContent_Declare(RoveComm_CPP                                                   # Custom Network Protocol (RoveComm C++)
-        GIT_REPOSITORY https://github.com/MissouriMRDT/RoveComm_CPP.git             # Source Code URL
-        GIT_TAG        bdcb60bcea4658f6272289db069efd133f133dec                     # Version 24.2.2
-        GIT_SHALLOW    FALSE                                                        # Download only without history
-        GIT_PROGRESS   TRUE                                                         # Forces progress status.
-    )
-FetchContent_GetProperties(RoveComm_CPP)
-if(NOT RoveComm_CPP)
-    # Fetch the content using previously declared details
-    FetchContent_Populate(RoveComm_CPP)
+include_directories(external/rovecomm/src)
+add_subdirectory(external/rovecomm)
+add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
-    # Set Library Scope
-    set(RoveComm_CPP_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src/src)
-    set(RoveComm_CPP_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/rovecomm_cpp-src)
-
-    # Bring the populated content into the build
-    include_directories( ${RoveComm_CPP_INCLUDE_DIR} )
-    add_subdirectory(${RoveComm_CPP_SOURCE_DIR})
+## Determine if shared or static libraries will be used.
+option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+if (NOT LINK_SHARED_ZED AND MSVC)
+    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
 endif()
+
+## Determine if all variables should be listed. Nice for finding available vars when using find_package.
+option(LIST_ALL_VARS "Print all CMAKE variables." OFF)
 
 ## Find Threads
 find_package(Threads REQUIRED)
@@ -93,36 +93,67 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
 
-## Find CUDA.
-find_package(CUDA 11.4 REQUIRED)
-message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
-
 ## Find ZEDSDK. Add as system package to supress library warnings.
-find_package(ZED REQUIRED)
+find_package(ZED 4 REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
-link_directories(${ZED_LIBRARY_DIRS})
 
 ## Find CUDA. Must match ZEDSDK version. Add as system package to supress library warnings.
 find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
-include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
-link_directories(${CUDA_LIBRARY_DIRS})
-## Determine if shared or static libraries will be used.
-option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
-if (NOT LINK_SHARED_ZED AND MSVC)
-    message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
-endif()
+## Find PyTorch.
+set (CAFFE2_USE_CUDNN "1")
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
+## Find flatbuffers. This is a dependency of tensorflow.
+find_package(Flatbuffers REQUIRED)
+
+## Find Abseil. This is a dependency of tensorflow.
+find_package(absl REQUIRED)
+set(ABSL_LIBRARY_DIRS absl::algorithm 
+                    absl::base 
+                    absl::debugging 
+                    absl::flat_hash_map 
+                    absl::flags 
+                    absl::memory 
+                    absl::meta 
+                    absl::numeric 
+                    absl::random_random 
+                    absl::strings 
+                    absl::synchronization 
+                    absl::time 
+                    absl::utility
+    )
+
+## Find TensorflowLite.
+find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
+
+## Find Libedgetpu. This is used for interfacing with all Coral devices.
+find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
+include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
+
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
-    SET(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
+    set(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
 else()
-    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} CUDA::toolkit)
+    set(ZED_LIBS ${ZED_LIBRARIES_STATIC_RELEASE} CUDA::toolkit)
 endif()
 
 ## Add special flag if compiling on aarch64.
-IF (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+if (CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
     add_definitions(-DJETSON_STYLE)
-ENDIF()
+endif()
+
+## Check if all variables should be listed.
+if (LIST_ALL_VARS)
+    get_cmake_property(_variableNames VARIABLES)
+    list (SORT _variableNames)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
+endif()
 
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
@@ -134,10 +165,10 @@ file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${EXE_NAME}   ${External_SRC}
-								 ${SRC}
-								 ${Examples_SRC}
-								 ${Tools_SRC}
+add_executable(${EXE_NAME}  ${External_SRC}
+						    ${SRC}
+						    ${Examples_SRC}
+						    ${Tools_SRC}
 	)
 
 ## Set Compile Options for Autonomy Software.
@@ -147,18 +178,26 @@ else()
 	target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-## Link Libraries to Executable
-target_link_libraries(${EXE_NAME} PRIVATE   Threads::Threads
-												Eigen3::Eigen
-                                                RoveComm_CPP
-                                                quill::quill
-												${OpenCV_LIBS}
-                                                ${GeographicLib_LIBRARIES}
-                                                ${ZED_LIBS} 
+## Set Autonomy Libraries
+set(AUTONOMY_LIBRARIES  Threads::Threads
+                        Eigen3::Eigen
+                        RoveComm_CPP
+                        quill::quill
+                        ${OpenCV_LIBS}
+                        ${GeographicLib_LIBRARIES}
+                        ${ZED_LIBS}
+                        ${TORCH_LIBRARIES}
+                        flatbuffers::flatbuffers
+                        ${ABSL_LIBRARY_DIRS}
+                        ${TENSORFLOWLITE_LIBS}
+                        ${LIBEDGETPU_LIBS}
     )
 
+## Link Libraries to Executable
+target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
+
 ## Package Executable
-install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES RoveComm_CPP ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RUNTIME DESTINATION bin)
+install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
 
 ## Unit/Integration Tests
 file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
@@ -172,7 +211,7 @@ list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
 
 if (UnitTests_LEN GREATER 0)
     add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
     add_test(Unit_Tests ${EXE_NAME}_UnitTests)
 else()
     message("No Unit Tests!")
@@ -180,7 +219,7 @@ endif()
 
 if (IntegrationTests_LEN GREATER 0)
     add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
+    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
     add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
 else()
     message("No Integration Tests!")

@@ -122,10 +122,10 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         // Setters for class member variables.
         /////////////////////////////////////////
 
-        sl::ERROR_CODE EnablePositionalTracking();
+        sl::ERROR_CODE EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR);
         void DisablePositionalTracking();
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
-        sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 10);
+        sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 5);
         void DisableSpatialMapping();
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
         void DisableObjectDetection();
@@ -141,6 +141,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         unsigned int GetCameraSerial();
         std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
         std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose);
+        std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane);
         bool GetPositionalTrackingEnabled();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
@@ -171,6 +172,8 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::PositionalTrackingFusionParameters m_slFusionPoseTrackingParams;
         sl::Pose m_slCameraPose;
         sl::GeoPose m_slFusionGeoPose;
+        sl::Plane m_slFloorPlane;
+        sl::Transform m_slFloorTrackingTransform;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
         sl::ObjectDetectionParameters m_slObjectDetectionParams;
         sl::BatchParameters m_slObjectDetectionBatchParams;
@@ -180,6 +183,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         bool m_bCameraIsFusionMaster;
         int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
+        float m_fExpectedCameraHeightFromFloorTolerance;
 
         // Mats for storing frames and measures.
 
@@ -194,12 +198,13 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
         std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<double>>> m_qIMUDataCopySchedule;
+        std::queue<containers::DataFetchContainer<sl::Plane>> m_qFloorCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
         std::shared_mutex m_muCustomBoxIngestMutex;
         std::shared_mutex m_muPoseCopyMutex;
         std::shared_mutex m_muGeoPoseCopyMutex;
+        std::shared_mutex m_muFloorCopyMutex;
         std::shared_mutex m_muObjectDataCopyMutex;
         std::shared_mutex m_muObjectBatchedDataCopyMutex;
         std::atomic<bool> m_bNormalFramesQueued;
@@ -207,6 +212,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         std::atomic<bool> m_bPointCloudsQueued;
         std::atomic<bool> m_bPosesQueued;
         std::atomic<bool> m_bGeoPosesQueued;
+        std::atomic<bool> m_bFloorsQueued;
         std::atomic<bool> m_bObjectsQueued;
         std::atomic<bool> m_bBatchedObjectsQueued;
 

@@ -125,9 +125,11 @@ namespace arucotag
     /******************************************************************************
      * @brief Detect ArUco tags in the provided image.
      *
-     * @param cvFrame - The camera frame to run ArUco detection on.
+     * @param cvFrame - The camera frame to run ArUco detection on. Should be BGR format.
      * @param cvArucoDetector - The configured aruco detector to use for detection.
      * @return std::vector<ArucoTag> - The resultant vector containing the detected tags in the frame.
+     *
+     * @note The given cvFrame SHOULD BE IN BGR FORMAT.
      *
      * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
@@ -167,16 +169,17 @@ namespace arucotag
 
     /******************************************************************************
      * @brief Given a vector of ArucoTag structs draw each tag corner and ID onto the given image.
-     *      Image must be a 1 or 3 channel image and image must match dimensions of image when used for
-     *      detection of the given tags.
      *
      * @param cvDetectionsFrame - The frame to draw overlay onto.
      * @param vDetectedTags - The vector of ArucoTag struct used to draw tag corners and IDs onto image.
      *
+     * @note Image must be a 1 or 3 channel image and image must match dimensions of image when used for
+     *      detection of the given tags.
+     *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-19
      ******************************************************************************/
-    inline void DrawDetections(cv::Mat& cvDetectionsFrame, std::vector<ArucoTag> vDetectedTags)
+    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<ArucoTag>& vDetectedTags)
     {
         // Create instance variables.
         std::vector<int> vIDs;
@@ -208,7 +211,7 @@ namespace arucotag
         {
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger,
-                      "ArucoDetect: Unable to draw markers on image because it is empty or it has {} channels. (Should be 1 or 3)",
+                      "ArucoDetect: Unable to draw markers on image because it is empty or because it has {} channels. (Should be 1 or 3)",
                       cvDetectionsFrame.channels());
         }
     }
