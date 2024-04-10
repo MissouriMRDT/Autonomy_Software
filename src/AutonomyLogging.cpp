@@ -106,15 +106,15 @@ namespace logging
         // Configure Patterns
         qFileHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",        // format
                                   "%Y-%m-%d %H:%M:%S.%Qms",                                                              // timestamp format
-                                  quill::Timezone::GmtTime);                                                             // timestamp's timezone
+                                  quill::Timezone::LocalTime);                                                           // timestamp's timezone
 
         qConsoleHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",     // format
                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                           // timestamp format
-                                     quill::Timezone::GmtTime);                                                          // timestamp's timezone
+                                     quill::Timezone::LocalTime);                                                        // timestamp's timezone
 
         qRoveCommHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",    // format
                                       "%Y-%m-%d %H:%M:%S.%Qms",                                                          // timestamp format
-                                      quill::Timezone::GmtTime);                                                         // timestamp's timezone
+                                      quill::Timezone::LocalTime);                                                       // timestamp's timezone
 
         // Configure Quill
         quill::Config qConfig;
