@@ -91,6 +91,7 @@ latlon
 LEDRGB
 LEFTCAM
 libedgetpu
+localtime
 MAINCAM
 MAINCAN
 mainpage
