@@ -42,6 +42,7 @@ depthobject
 deque
 Desaturate
 devcontainer
+DGNSS
 diffdrive
 DISABLEAUTONOMY
 DISPLAYSTATE
@@ -85,6 +86,8 @@ jspencerpittman
 Jter
 jthread
 keyscan
+latlng
+latlon
 LEDRGB
 LEFTCAM
 libedgetpu

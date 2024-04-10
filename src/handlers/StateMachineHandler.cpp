@@ -196,6 +196,8 @@ void StateMachineHandler::StopStateMachine()
 
     // Send multimedia command to update state display.
     globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
+    // Stop drive.
+    globals::g_pDriveBoard->SendStop();
 
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Stopped State Machine.");

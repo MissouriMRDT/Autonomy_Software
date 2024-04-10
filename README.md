@@ -28,15 +28,15 @@
       <img src="https://img.shields.io/badge/Ubuntu_Jammy-latest-orange" alt="jammy-pkg" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
-      <img src="https://img.shields.io/badge/NVIDIA_JetPack_5-latest-orange" alt="jetpack-pkg" />
+      <img src="https://img.shields.io/badge/NVIDIA_JetPack_6-latest-orange" alt="jetpack-pkg" />
     </a>
   </div>
   <div>
     <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
       <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
     </a>
-    <a href="https://en.cppreference.com/w/cpp/17">
-      <img src="https://img.shields.io/badge/language-C%2B%2B17-blue.svg?style=flat-round" alt="language" />
+    <a href="https://en.cppreference.com/w/cpp/20">
+      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
     </a>
   </div>
 </div>
