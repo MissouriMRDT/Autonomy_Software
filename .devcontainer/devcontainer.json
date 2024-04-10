@@ -91,6 +91,7 @@
                 "C_Cpp.default.includePath": [
                     "./external/rovecomm/src",
                     "./external/rovecomm/src/**",
+                    "./external/threadpool/include/**",
                     "/usr/local/include/opencv4",
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
