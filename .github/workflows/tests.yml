@@ -57,7 +57,7 @@ jobs:
           if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
-          cmake ..
+          cmake -DBUILD_TESTS_MODE=ON ..
           make
 
       - name: Check File Existence (${{ matrix.type }} Tests)
