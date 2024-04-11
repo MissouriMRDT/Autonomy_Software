@@ -64,7 +64,7 @@ TagDetectionHandler::TagDetectionHandler()
         if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_MODEL_PATH))
         {
             // Set tensorflow detection enabled.
-            m_pTagDetectorMainCam->EnableTensorflowDetection(0.4f, 0.6f);
+            m_pTagDetectorMainCam->EnableTensorflowDetection(constants::TAGDETECT_MAINCAM_DNN_CONFIDENCE, constants::TAGDETECT_MAINCAM_DNN_NMS_THRESH);
         }
     }
     // Check if tensorflow detection is enabled for left BasicCam.
@@ -74,7 +74,7 @@ TagDetectionHandler::TagDetectionHandler()
         if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_MODEL_PATH))
         {
             // Set tensorflow detection enabled.
-            m_pTagDetectorLeftCam->EnableTensorflowDetection(0.4f, 0.6f);
+            m_pTagDetectorLeftCam->EnableTensorflowDetection(constants::TAGDETECT_LEFTCAM_DNN_CONFIDENCE, constants::TAGDETECT_LEFTCAM_DNN_NMS_THRESH);
         }
     }
     // Check if tensorflow detection is enabled for right BasicCam.
@@ -84,7 +84,7 @@ TagDetectionHandler::TagDetectionHandler()
         if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_MODEL_PATH))
         {
             // Set tensorflow detection enabled.
-            m_pTagDetectorRightCam->EnableTensorflowDetection(0.4f, 0.6f);
+            m_pTagDetectorRightCam->EnableTensorflowDetection(constants::TAGDETECT_RIGHTCAM_DNN_CONFIDENCE, constants::TAGDETECT_RIGHTCAM_DNN_NMS_THRESH);
         }
     }
 

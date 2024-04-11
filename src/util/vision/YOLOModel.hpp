@@ -255,14 +255,6 @@ namespace yolomodel
                  *      on the EdgeTPU, then parse and repackage the output tensor data into a vector
                  *      of easy-to-use Detection structs.
                  *
-                 *      YOLOv5 predicts 25200 grid_cells when fed with a (3, 640, 640) image
-                 *     (Three detection layers for small, medium, and large objects same size as input with same bit depth).
-                 *      Each grid_cell is a vector composed by (5 + num_classes) values where the 5 values are [objectness_score, Xc, Yc, W, H].
-                 *      Output would be [1, 25200, 13] for a model with eight classes and 640x640 input size.
-                 *
-                 *      Check out https://pub.towardsai.net/yolov5-m-implementation-from-scratch-with-pytorch-c8f84a66c98b
-                 *      for some great info.
-                 *
                  * @param cvInputFrame - The RGB camera frame to run detection on.
                  * @param fMinObjectConfidence - Minimum confidence required for an object to be considered a valid detection
                  * @param fNMSThreshold - Threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
@@ -270,6 +262,7 @@ namespace yolomodel
                  *                          There will be an std::vector<Detection> for each output tensor.
                  *
                  * @note The input image MUST BE RGB format, otherwise you will likely experience prediction accuracy problems.
+                 * @note This function can automatically decode output from YOLOv5 and YOLOv8 models.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-13
@@ -433,6 +426,14 @@ namespace yolomodel
                  * @param nOriginalFrameWidth - The pixel width of the normal/original camera frame. This is not the size of the model input or resized image.
                  * @param nOriginalFrameHeight - The pixel height of the normal/original camera frame. This is not the size of the model input or resized image.
                  *
+                 * @note YOLOv5 predicts 25200 grid_cells when fed with a (3, 640, 640) image
+                 *     (Three detection layers for small, medium, and large objects same size as input with same bit depth).
+                 *      Each grid_cell is a vector composed by (5 + num_classes) values where the 5 values are [objectness_score, Xc, Yc, W, H].
+                 *      Output would be [1, 25200, 13] for a model with eight classes and 640x640 input size.
+                 *
+                 *      Check out https://pub.towardsai.net/yolov5-m-implementation-from-scratch-with-pytorch-c8f84a66c98b
+                 *      for some great info.
+                 *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-15
                  ******************************************************************************/
@@ -492,15 +493,19 @@ namespace yolomodel
                             int nCenterY = vGridPrediction[1] * nOriginalFrameHeight;
                             int nWidth   = vGridPrediction[2] * nOriginalFrameWidth;
                             int nHeight  = vGridPrediction[3] * nOriginalFrameHeight;
-                            // Repackaged bounding box data to be more readable.
-                            cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
-                            cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
-                            cvBoundingBox.width  = nWidth;
-                            cvBoundingBox.height = nHeight;
-                            // Add data to vectors.
-                            vClassIDs.emplace_back(nClassID);
-                            vClassConfidences.emplace_back(fClassConfidence);
-                            vBoundingBoxes.emplace_back(cvBoundingBox);
+                            // Check if the width and height of the object are greater than zero.
+                            if (nWidth > 0 && nHeight > 0)
+                            {
+                                // Repackaged bounding box data to be more readable.
+                                cvBoundingBox.x      = int(nCenterX - (0.5 * nWidth));     // Rect.x is the top-left corner not center point.
+                                cvBoundingBox.y      = int(nCenterY - (0.5 * nHeight));    // Rect.y is the top-left corner not center point.
+                                cvBoundingBox.width  = nWidth;
+                                cvBoundingBox.height = nHeight;
+                                // Add data to vectors.
+                                vClassIDs.emplace_back(nClassID);
+                                vClassConfidences.emplace_back(fClassConfidence);
+                                vBoundingBoxes.emplace_back(cvBoundingBox);
+                            }
                         }
                     }
                 }
@@ -519,6 +524,10 @@ namespace yolomodel
                  * @param fMinObjectConfidence - The minimum confidence for determining which predictions to throw out.
                  * @param nOriginalFrameWidth - The pixel width of the normal/original camera frame. This is not the size of the model input or resized image.
                  * @param nOriginalFrameHeight - The pixel height of the normal/original camera frame. This is not the size of the model input or resized image.
+                 *
+                 * @note For YOLOv8, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
+                 *      of 80x80, 40x40, 20x20. Each grid point has 1 anchor, and each anchor contains a vector 4 + nc long, where nc is the number
+                 *      of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400]
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-15

@@ -109,7 +109,7 @@ void RunExample()
         std::future<bool> fuPointCloudCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
-        if (constants::ZED_MAINCAM_USE_GPU_MAT)
+        if (ExampleZEDCam1->GetUsingGPUMem())
         {
             // Grab frames from camera.
             fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
@@ -130,7 +130,7 @@ void RunExample()
         if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
         {
             // Check if the camera is setup to use CPU or GPU mats.
-            if (constants::ZED_MAINCAM_USE_GPU_MAT)
+            if (ExampleZEDCam1->GetUsingGPUMem())
             {
                 // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
