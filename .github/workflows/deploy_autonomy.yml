@@ -61,7 +61,7 @@ jobs:
           if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
-          cmake ..
+          cmake -DBUILD_INSTALL_MODE=ON ..
           make
           make package
 
