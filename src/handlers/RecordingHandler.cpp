@@ -309,7 +309,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             else if (m_vZEDCameras[nIter] != nullptr)
             {
                 // Check if the camera is setup to use CPU or GPU mats.
-                if (constants::ZED_MAINCAM_USE_GPU_MAT)
+                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
                 {
                     // Grab frames from camera.
                     m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vGPUFrames[nIter]);
@@ -355,7 +355,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             else if (m_vZEDCameras[nIter] != nullptr)
             {
                 // Check if the camera is setup to use CPU or GPU mats.
-                if (constants::ZED_MAINCAM_USE_GPU_MAT)
+                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
                 {
                     // Wait for future to be fulfilled.
                     if (m_vFrameFutures[nIter].get() && !m_vGPUFrames[nIter].empty())

@@ -220,8 +220,10 @@ namespace constants
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                            // Whether or not to use DNN detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/tag_v5n_x320/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -232,7 +234,9 @@ namespace constants
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_LEFTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/tag_v5n_x320/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -243,7 +247,9 @@ namespace constants
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_RIGHTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH      = "../data/models/yolo_models/tag_v5n_x320/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
