@@ -520,8 +520,9 @@ void ZEDCam::ThreadedContinuousCode()
                             sl::toString(slReturnCode).get());
             }
 
-            // Check if fusion positional tracking is enabled.
-            if (m_slCamera.isPositionalTrackingEnabled())
+            // Check if fusion positional tracking is enabled and GPS data from NavBoard is recent.
+            if (m_slCamera.isPositionalTrackingEnabled() &&
+                std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100)
             {
                 // Get current/updated GPS data from NavBoard.
                 geoops::GPSCoordinate stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
