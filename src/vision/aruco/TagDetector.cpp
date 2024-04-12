@@ -614,7 +614,6 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
             itOldItr->CornerTR              = itNewItr->CornerTR;
             itOldItr->CornerBR              = itNewItr->CornerBR;
             itOldItr->CornerBL              = itNewItr->CornerBL;
-            itOldItr->vCorners              = {&itOldItr->CornerTL, &itOldItr->CornerTR, &itOldItr->CornerBL, &itOldItr->CornerBR};
             itOldItr->nFramesSinceLastHit   = 0;
             itOldItr->nHits                 = std::max(itOldItr->nHits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
 
