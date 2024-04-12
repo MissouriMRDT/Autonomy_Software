@@ -45,12 +45,12 @@ namespace tensorflowtag
     {
         public:
             // Declare public struct member attributes.
-            cv::Point2f CornerTL;                                                                 // The top left corner of the bounding box.
-            cv::Point2f CornerTR;                                                                 // The top right corner of the bounding box.
-            cv::Point2f CornerBL;                                                                 // The bottom left corner of the bounding box.
-            cv::Point2f CornerBR;                                                                 // The bottom right corner of bounding box.
-            std::vector<cv::Point2f*> vCorners = {&CornerTL, &CornerTR, &CornerBL, &CornerBR};    // Provide an easy method for getting all corners.
-            int nHits;                                                                            // Total number of detections for tag id.
+            cv::Point2f CornerTL;                                                                       // The top left corner of the bounding box.
+            cv::Point2f CornerTR;                                                                       // The top right corner of the bounding box.
+            cv::Point2f CornerBL;                                                                       // The bottom left corner of the bounding box.
+            cv::Point2f CornerBR;                                                                       // The bottom right corner of bounding box.
+            const std::vector<cv::Point2f*> vCorners = {&CornerTL, &CornerTR, &CornerBL, &CornerBR};    // Provide an easy method for getting all corners.
+            int nHits;                                                                                  // Total number of detections for tag id.
             int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
             double dConfidence;              // The detection confidence of the tag reported from the tensorflow model.
             double dStraightLineDistance;    // Distance between the tag and the camera.
