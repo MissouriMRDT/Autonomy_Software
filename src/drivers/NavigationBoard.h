@@ -143,9 +143,9 @@ class NavigationBoard
             std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
             std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
             // Repack data from RoveCommPacket into member variable.
-            m_stLocation.d2DAccuracy = stPacket.vData[0];
-            m_stLocation.d3DAccuracy = stPacket.vData[1];
-            m_dHeadingAccuracy       = stPacket.vData[2];
+            m_stLocation.d2DAccuracy = std::fabs(stPacket.vData[0]);
+            m_stLocation.d3DAccuracy = std::fabs(stPacket.vData[1]);
+            m_dHeadingAccuracy       = std::fabs(stPacket.vData[2]);
             // Unlock mutex.
             lkCompassProcessLock.unlock();
             lkGPSProcessLock.unlock();

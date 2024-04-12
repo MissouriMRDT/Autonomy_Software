@@ -523,27 +523,30 @@ void ZEDCam::ThreadedContinuousCode()
             // Check if fusion positional tracking is enabled.
             if (m_slCamera.isPositionalTrackingEnabled())
             {
+                // Get current/updated GPS data from NavBoard.
+                geoops::GPSCoordinate stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
                 // Check if the GPS data from the NavBoard is recent.
-                if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100)
+                if (stNewGPSLocation.d2DAccuracy != m_stCurrentGPSBasedPosition.d2DAccuracy && stNewGPSLocation.d3DAccuracy != m_stCurrentGPSBasedPosition.d3DAccuracy)
                 {
-                    // Get the current GPS location from the NavBoard.
-                    geoops::GPSCoordinate stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
                     // Repack gps data int sl::GNSSData object.
                     sl::GNSSData slGNSSData = sl::GNSSData();
                     slGNSSData.setCoordinates(stNewGPSLocation.dLatitude, stNewGPSLocation.dLongitude, stNewGPSLocation.dAltitude, false);
+                    // Position covariance matrix expects millimeters.
+                    double dHorizontalAccuracy = stNewGPSLocation.d2DAccuracy * 1000;
+                    double dVerticalAccuracy   = stNewGPSLocation.d3DAccuracy * 1000;
                     // Calculate the covariance matrix from the 2D and 3D accuracies.
-                    slGNSSData.position_covariance = {stNewGPSLocation.d2DAccuracy * stNewGPSLocation.d2DAccuracy,
+                    slGNSSData.position_covariance = {dHorizontalAccuracy * dHorizontalAccuracy,
                                                       0.0,
                                                       0.0,
                                                       0.0,
-                                                      stNewGPSLocation.d2DAccuracy * stNewGPSLocation.d2DAccuracy,
+                                                      dHorizontalAccuracy * dHorizontalAccuracy,
                                                       0.0,
                                                       0.0,
                                                       0.0,
-                                                      stNewGPSLocation.d3DAccuracy * stNewGPSLocation.d3DAccuracy};
+                                                      dVerticalAccuracy * dVerticalAccuracy};
                     // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
                     slGNSSData.ts          = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
-                    slGNSSData.gnss_status = sl::GNSS_STATUS::SINGLE;
+                    slGNSSData.gnss_status = sl::GNSS_STATUS::PPS;
                     slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_2D;
 
                     // Publish GNSS data to fusion from the NavBoard.
@@ -551,13 +554,31 @@ void ZEDCam::ThreadedContinuousCode()
                     // Check if the GNSS data was successfully ingested by the Fusion instance.
                     if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
                     {
-                        // Submit logger message.
-                        LOG_WARNING(
-                            logging::g_qSharedLogger,
-                            "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE is: {}",
-                            sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
-                            m_unCameraSerialNumber,
-                            sl::toString(slReturnCode).get());
+                        // Covariance error.
+                        if (slReturnCode == sl::FUSION_ERROR_CODE::GNSS_DATA_COVARIANCE_MUST_VARY || slReturnCode == sl::FUSION_ERROR_CODE::INVALID_COVARIANCE)
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger,
+                                        "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE "
+                                        "is: {}({}). Current accuracy data is 2D: {}, 3D {}.",
+                                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                        m_unCameraSerialNumber,
+                                        sl::toString(slReturnCode).get(),
+                                        static_cast<int>(slReturnCode),
+                                        stNewGPSLocation.d2DAccuracy,
+                                        stNewGPSLocation.d3DAccuracy);
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger,
+                                        "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE "
+                                        "is: {}({})",
+                                        sl::toString(m_slCamera.getCameraInformation().camera_model).get(),
+                                        m_unCameraSerialNumber,
+                                        sl::toString(slReturnCode).get(),
+                                        static_cast<int>(slReturnCode));
+                        }
                     }
                     else
                     {
@@ -570,6 +591,9 @@ void ZEDCam::ThreadedContinuousCode()
                                   sl::toString(slFusionPoseTrackStatus.gnss_fusion_status).get(),
                                   sl::toString(slFusionPoseTrackStatus.spatial_memory_status).get());
                     }
+
+                    // Update current GPS position.
+                    m_stCurrentGPSBasedPosition = stNewGPSLocation;
                 }
             }
         }

@@ -14,6 +14,7 @@
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
+#include "../../util/GeospatialOperations.hpp"
 
 /// \cond
 #include <future>
@@ -184,6 +185,9 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         int m_nNumFrameRetrievalThreads;
         unsigned int m_unCameraSerialNumber;
         float m_fExpectedCameraHeightFromFloorTolerance;
+
+        // Data from NavBoard.
+        geoops::GPSCoordinate m_stCurrentGPSBasedPosition;
 
         // Mats for storing frames and measures.
 
