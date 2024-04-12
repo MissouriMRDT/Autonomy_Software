@@ -188,9 +188,9 @@ namespace yolomodel
                 // Define public struct attributes.
                 /////////////////////////////////////////
 
-                int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
-                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
-                                                   // The model has. The first five values are objectness_score, X_min, Y_min, width, height.
+                int nAnchors;                      // Determined from the trained image size of the model.
+                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
+                                                   // nc is the number of classes The model has.
                 int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
                 int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
                 float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
@@ -301,13 +301,14 @@ namespace yolomodel
                         }
 
                         // Create a vector to store reshaped input image in 1 dimension.
-                        std::vector<uint8_t> vInputData(m_cvFrame.data,
-                                                        m_cvFrame.data + (static_cast<unsigned long>(m_cvFrame.cols) * m_cvFrame.rows * m_cvFrame.elemSize()));
-                        // // Quantize input data.
+                        std::vector<int8_t> vInputData(m_cvFrame.data,
+                                                       m_cvFrame.data + (static_cast<unsigned long>(m_cvFrame.cols) * m_cvFrame.rows * m_cvFrame.elemSize()));
+                        // Quantize input data.
                         // for (long unsigned int nIter = 0; nIter < vInputData.size(); ++nIter)
                         // {
                         //     // Quantize value.
-                        //     vInputData[nIter] = std::round(vInputData[nIter] / stInputDimensions.fQuantScale) + stInputDimensions.nQuantZeroPoint;
+                        //     vInputData[nIter] = std::round((vInputData[nIter] - 128) / stInputDimensions.fQuantScale) + stInputDimensions.nQuantZeroPoint;
+                        //     // vInputData[nIter] = vInputData[nIter] - 128;
                         // }
                         // Retrieve a new input tensor from the TPU interpreter and copy data to it. This tensor is automatically quantized because it is typed.
                         TfLiteTensor* pInputTensor = m_pInterpreter->tensor(stInputDimensions.nTensorIndex);
@@ -527,7 +528,8 @@ namespace yolomodel
                  *
                  * @note For YOLOv8, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
                  *      of 80x80, 40x40, 20x20. Each grid point has 1 anchor, and each anchor contains a vector 4 + nc long, where nc is the number
-                 *      of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400]
+                 *      of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400] (80 classes). Notice how the larger dimensions is swapped
+                 *      when compared to YOLOv8.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-15
@@ -550,22 +552,23 @@ namespace yolomodel
                     vGridPrediction.resize(stOutputDimensions.nObjectnessLocationClasses);
 
                     /*
-                       Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
-                       Then, repackage into nice detection structs.
-                       For YOLOv8, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
-                       of 80x80, 40x40, 20x20. Each grid point has 1 anchor, and each anchor contains a vector 4 + nc long, where nc is the number
-                       of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400]
+                        Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
+                        Then, repackage into nice detection structs.
+                        For YOLOv8, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
+                        of 80x80, 40x40, 20x20. Each grid point has 1 anchor, and each anchor contains a vector 4 + nc long, where nc is the number
+                        of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400] (80 classes). Notice how the larger dimensions is swapped
+                        when compared to YOLOv8.
                     */
                     for (int nIter = 0; nIter < stOutputDimensions.nAnchors; ++nIter)
                     {
                         // Loop through the number of object info and class confidences in the 2nd dimension.
                         // Predictions have format {center_x, center_y, width, height, class0_conf, class1_conf, ...}
+                        std::string szTest = "";
                         for (int nJter = 0; nJter < stOutputDimensions.nObjectnessLocationClasses; ++nJter)
                         {
-                            // Repackage value into more usable vector. Also undo quantization the data.
-                            vGridPrediction[nJter] =
-                                (tfOutputTensor->data.int8[(nIter * stOutputDimensions.nObjectnessLocationClasses) + nJter] - stOutputDimensions.nQuantZeroPoint) *
-                                stOutputDimensions.fQuantScale;
+                            // Repackage values into more usable vector. Also undo quantization the data.
+                            vGridPrediction[nJter] = (tfOutputTensor->data.int8[nIter + (nJter * stOutputDimensions.nAnchors)] - stOutputDimensions.nQuantZeroPoint) *
+                                                     stOutputDimensions.fQuantScale;
                         }
 
                         // Find class ID based on which class confidence has the highest score.
@@ -576,7 +579,7 @@ namespace yolomodel
                         float fClassConfidence = vGridPrediction[nClassID + 4];
 
                         // Check if class confidence meets threshold.
-                        if (fClassConfidence == fMinObjectConfidence)
+                        if (fClassConfidence >= fMinObjectConfidence)
                         {
                             // Scale bounding box to match original input image size.
                             cv::Rect cvBoundingBox;
