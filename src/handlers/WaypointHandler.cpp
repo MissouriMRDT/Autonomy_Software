@@ -760,12 +760,28 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
             // Repack the camera pose into a UTMCoordinate.
             // dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some reason.
             dCurrentHeading = numops::InputAngleModulus(slTestPose.getEulerAngles(false).y, 0.0f, 360.0f);
+
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger,
+                      "Rover Pose is currently: {} (lat), {} (lon), {} (alt), {} (degrees), GNSS/VIO FUSED? = true",
+                      stCurrentPosition.dLatitude,
+                      stCurrentPosition.dLongitude,
+                      stCurrentPosition.dAltitude,
+                      dCurrentHeading);
         }
         else
         {
             // Just return normal GPS position and heading from NavBoard.
             stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
             dCurrentHeading   = globals::g_pNavigationBoard->GetHeading();
+
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger,
+                      "Rover Pose is currently: {} (lat), {} (lon), {} (alt), {} (degrees), GNSS/VIO FUSED? = false",
+                      stCurrentPosition.dLatitude,
+                      stCurrentPosition.dLongitude,
+                      stCurrentPosition.dAltitude,
+                      dCurrentHeading);
         }
     }
     else
@@ -773,6 +789,14 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
         // Just return normal GPS position and heading from NavBoard.
         stCurrentPosition = globals::g_pNavigationBoard->GetGPSData();
         dCurrentHeading   = globals::g_pNavigationBoard->GetHeading();
+
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Rover Pose is currently: {} (lat), {} (lon), {} (alt), {} (degrees), GNSS/VIO FUSED? = false",
+                  stCurrentPosition.dLatitude,
+                  stCurrentPosition.dLongitude,
+                  stCurrentPosition.dAltitude,
+                  dCurrentHeading);
     }
 
     return geoops::RoverPose(stCurrentPosition, dCurrentHeading);
