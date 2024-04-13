@@ -97,26 +97,23 @@ namespace statemachine
         // Create instance variables.
         geoops::RoverPose stCurrentRoverPose;
 
-        // Check if GPS data is up-to-date.
-        if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() < constants::NAVBOARD_MAX_GPS_DATA_AGE)
-        {
-            // Get the current rover gps position.
-            stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-            // Store the Rover's position.
-            m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
 
-            // Calculate distance from current position to position when idle state was entered.
-            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
-            // Check if the rover is still moving.
-            if (stMeasurement.dDistanceMeters > 0.1)
-            {
-                // Send stop drive command.
-                globals::g_pDriveBoard->SendStop();
-                // Update Idle start pose.
-                m_stStartRoverPose = stCurrentRoverPose;
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "IdleState: Stopped drive.");
-            }
+        // Get the current rover gps position.
+        stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        // Store the Rover's position.
+        m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
+
+        // Calculate distance from current position to position when idle state was entered.
+        geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
+        // Check if the rover is still moving.
+        if (stMeasurement.dDistanceMeters > 0.1)
+        {
+            // Send stop drive command.
+            globals::g_pDriveBoard->SendStop();
+            // Update Idle start pose.
+            m_stStartRoverPose = stCurrentRoverPose;
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "IdleState: Stopped drive.");
         }
 
         // If the last state was searchpattern and the waypoint handler has been cleared, reset.
