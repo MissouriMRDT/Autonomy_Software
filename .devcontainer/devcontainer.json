@@ -10,7 +10,7 @@
         // Add all available GPUs
         "--gpus",
         "all",
-        "--runtime=nvidia",
+        // "--runtime=nvidia",
         // Grants permission to the container to access USBs.
         "--privileged",
         "-v",
@@ -31,8 +31,8 @@
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    // "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
-    "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
     //     "dockerfile": "Dockerfile_Jammy"
     //     // "dockerfile": "Dockerfile_JetPack"
