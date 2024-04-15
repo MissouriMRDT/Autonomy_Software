@@ -521,7 +521,7 @@ void ZEDCam::ThreadedContinuousCode()
             }
 
             // Check if fusion positional tracking is enabled and GPS data from NavBoard is recent.
-            if (m_slCamera.isPositionalTrackingEnabled() &&
+            if (constants::FUSION_ENABLE_GNSS_FUSION && m_slCamera.isPositionalTrackingEnabled() &&
                 std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100)
             {
                 // Get current/updated GPS data from NavBoard.
@@ -547,8 +547,8 @@ void ZEDCam::ThreadedContinuousCode()
                                                       dVerticalAccuracy * dVerticalAccuracy};
                     // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
                     slGNSSData.ts          = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
-                    slGNSSData.gnss_status = sl::GNSS_STATUS::PPS;
-                    slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_2D;
+                    slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FLOAT;
+                    slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_3D;
 
                     // Publish GNSS data to fusion from the NavBoard.
                     slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
