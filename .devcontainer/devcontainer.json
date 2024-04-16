@@ -83,7 +83,7 @@
                 // Git settings.
                 "git.autofetch": true,
                 "git.terminalAuthentication": false,
-                "git.detectSubmodules": false,
+                "git.detectSubmodules": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
