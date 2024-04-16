@@ -201,7 +201,7 @@ namespace constants
     const int BASICCAM_GROUNDCAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASICCAM_GROUNDCAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
     const int BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int BASICCAM_GROUNDCAM_INDEX                   = 0;       // The /dev/video index of the camera.
+    const int BASICCAM_GROUNDCAM_INDEX                   = 2;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_GROUNDCAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
 
