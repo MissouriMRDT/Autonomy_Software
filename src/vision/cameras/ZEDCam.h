@@ -118,6 +118,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE RebootCamera();
         sl::FUSION_ERROR_CODE SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID);
         sl::CameraIdentifier PublishCameraToFusion();
+        sl::FUSION_ERROR_CODE IngestGPSDataToFusion(geoops::GPSCoordinate stNewGPSLocation);
 
         /////////////////////////////////////////
         // Setters for class member variables.
@@ -126,7 +127,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::ERROR_CODE EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR);
         void DisablePositionalTracking();
         sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
-        sl::ERROR_CODE EnableSpatialMapping(const int nTimeoutSeconds = 5);
+        sl::ERROR_CODE EnableSpatialMapping();
         void DisableSpatialMapping();
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
         void DisableObjectDetection();
@@ -167,6 +168,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::Fusion m_slFusionInstance;
+        std::shared_mutex m_muFusionMutex;
         sl::InitFusionParameters m_slFusionParams;
         sl::MEASURE m_slDepthMeasureType;
         sl::PositionalTrackingParameters m_slPoseTrackingParams;
@@ -181,10 +183,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         sl::Objects m_slDetectedObjects;
         std::vector<sl::ObjectsBatch> m_slDetectedObjectsBatched;
         sl::MEM m_slMemoryType;
-        bool m_bCameraIsFusionMaster;
-        int m_nNumFrameRetrievalThreads;
+        sl::MODEL m_slCameraModel;
         unsigned int m_unCameraSerialNumber;
+        bool m_bCameraIsFusionMaster;
         float m_fExpectedCameraHeightFromFloorTolerance;
+        int m_nNumFrameRetrievalThreads;
 
         // Data from NavBoard.
         geoops::GPSCoordinate m_stCurrentGPSBasedPosition;
