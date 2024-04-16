@@ -29,6 +29,7 @@
     // Mount shared workspace volumes. Bind from host machine to container.
     "mounts": [
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
+        "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
     "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
