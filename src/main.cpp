@@ -212,7 +212,7 @@ int main()
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+            LOG_INFO(logging::g_qSharedLogger, "{}", szMainInfo);
 
             // Update IPS tick.
             IterPerSecond.Tick();

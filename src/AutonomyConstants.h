@@ -132,11 +132,11 @@ namespace constants
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
-    const float ZED_MAPPING_RANGE_METER                                   = 40.0;    // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
-    const float ZED_MAPPING_RESOLUTION_METER                              = 0.1;     // The approx goal precision for spatial mapping in METERS. Higher = Faster.
+    const float ZED_MAPPING_RANGE_METER                                   = 20.0;    // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
+    const float ZED_MAPPING_RESOLUTION_METER                              = 0.03;    // The approx goal precision for spatial mapping in METERS. Higher = Faster.
     const int ZED_MAPPING_MAX_MEMORY                                      = 4096;    // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
     const bool ZED_MAPPING_USE_CHUNK_ONLY   = true;    // Only update chunks that have probably changed or have new data. Faster, less accurate.
-    const int ZED_MAPPING_STABILITY_COUNTER = 4;       // Number of times that a point should be seen before adding to mesh.
+    const int ZED_MAPPING_STABILITY_COUNTER = 3;       // Number of times that a point should be seen before adding to mesh.
     // ZedCam Object Detection Config.
     const bool ZED_OBJDETECTION_TRACK_OBJ                      = true;     // Whether or not to enable object tracking in the scene. Attempts to maintain OBJ UUIDs.
     const bool ZED_OBJDETECTION_SEGMENTATION                   = false;    // Use depth data to compute the segmentation for an object. (exact outline/shape)
