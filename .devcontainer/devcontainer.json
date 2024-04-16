@@ -60,7 +60,8 @@
                 "codezombiech.gitignore",
                 "cschlosser.doxdocgen",
                 "gruntfuggly.todo-tree",
-                "streetsidesoftware.code-spell-checker"
+                "streetsidesoftware.code-spell-checker",
+                "eamodio.gitlens"
             ],
             "settings": {
                 // VSCode settings.

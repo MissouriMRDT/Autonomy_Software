@@ -15,6 +15,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/TensorflowTPU.hpp"
+#include "../../interfaces/TorchModel.h"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -667,6 +668,40 @@ namespace yolomodel
                 cv::Mat m_cvFrame;
         };
     }    // namespace tensorflow
+
+    namespace pytorch
+    {
+        struct InputTensorDimensions
+        {
+            public:
+                /////////////////////////////////////////
+                // Define public struct attributes.
+                /////////////////////////////////////////
+
+                int nHeight;            // The height of the input image.
+                int nWidth;             // The width of the input image.
+                int nChannels;          // The number of channels of the input image.
+                int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
+                int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
+                float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
+        };
+
+        struct OutputTensorDimensions
+        {
+            public:
+                /////////////////////////////////////////
+                // Define public struct attributes.
+                /////////////////////////////////////////
+
+                int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
+                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
+                                                   // The model has. The first five values are objectness_score, X_min, Y_min, width, height.
+                int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
+                int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
+                float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
+        };
+
+    }    // namespace pytorch
 }    // namespace yolomodel
 
 #endif

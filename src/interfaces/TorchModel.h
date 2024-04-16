@@ -1,15 +1,15 @@
 /******************************************************************************
  * @brief
  *
- * @file TorchModel.hpp
+ * @file TorchModel.h
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-04-10
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef TORCH_MODEL_HPP
-#define TORCH_MODEL_HPP
+#ifndef TORCH_MODEL_H
+#define TORCH_MODEL_H
 
 #include "../AutonomyLogging.h"
 
@@ -31,22 +31,17 @@ class TorchModel
             eGPU
         };
 
-        TorchModel(const std::string& szModelPath) { m_szModelPath = szModelPath; }
+        TorchModel(const std::string& szModelPath);
 
-        ~TorchModel() {}
+        ~TorchModel();
 
-        void LoadModel(DeviceType eDeviceType = eGPU)
-        {
-            m_eDevice = (eDeviceType == eGPU && torch::cuda::is_available()) ? torch::kCUDA : torch::kCPU;
-            m_ltModel = torch::jit::load(m_szModelPath, m_eDevice);
-            m_ltModel->to(m_eDevice);
-        }
+        void LoadModel(DeviceType eDeviceType = eGPU);
 
-        std::shared_ptr<torch::jit::script::Module> GetModel() { return m_ltModel; }
+        std::shared_ptr<torch::jit::script::Module> GetModel();
 
-        torch::Device GetDevice() { return m_eDevice; }
+        torch::Device GetDevice();
 
-        std::string GetPath() { return m_szModelPath; }
+        std::string GetPath();
 
     protected:
         virtual T Inference(const P& tInput, const float fMinObjectConfidence, const float fNMSThreshold) = 0;
@@ -57,4 +52,4 @@ class TorchModel
         std::string m_szModelPath;
 };
 
-#endif    // TORCH_MODEL_HPP
+#endif    // TORCH_MODEL_H
