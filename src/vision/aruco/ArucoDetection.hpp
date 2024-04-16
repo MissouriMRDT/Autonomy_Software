@@ -104,7 +104,7 @@ namespace arucotag
         // Grayscale.
         cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGRA2GRAY);
         // Reduce number of colors/gradients in the image.
-        imgops::ColorReduce(cvOutputFrame);
+        // imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/5, /*sigmaColor =*/0.2, /*sigmaSpace =*/3);
         // imgops::CustomBilateralFilter(cvInputFrame, 3, 0.1, 3);
@@ -239,6 +239,18 @@ namespace arucotag
 
         // Find the center point of the given tag.
         cv::Point2f cvCenter = FindTagCenter(stTag);
+
+        // Ensure the detected center is inside the domain of the point cloud.
+        if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols)
+        {
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
+                        cvCenter.y,
+                        cvCenter.x,
+                        cvPointCloud.rows,
+                        cvPointCloud.cols);
+            return;
+        }
 
         // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
         cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);
