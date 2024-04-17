@@ -27,8 +27,12 @@ jobs:
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
           awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+
           if [ -s lines_with_lead.txt ]; then
             current_file=""
+            commit_link="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            discord_message=":warning: **Software Lead Help Requests Detected** :warning:\nSee the commit here: [Commit ${{ github.sha }}]($commit_link)\n\n**Affected Files:**\n"
+            
             while IFS=: read -r line content; do
               new_path=$(echo $content | sed -n -e 's/^+++ b\/\(.*\)/\1/p')
               if [[ ! -z "$new_path" ]]; then
@@ -37,7 +41,7 @@ jobs:
               fi
               if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
                 echo "::warning file=${current_file},line=${line}::Help Request Found!"
-                body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+                body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: $commit_link"
                 
                 # Posting to GitHub
                 curl \
@@ -47,13 +51,14 @@ jobs:
                   -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
                   https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
                 
-                # Posting to Discord
-                discord_message=":warning: **Software Lead Help Requests Detected** :warning:\nSee the commit here: [Commit ${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
-                curl -H "Content-Type: application/json" \
-                  -d "{\"content\": \"$discord_message\"}" \
-                  $DISCORD_WEBHOOK_URL
+                # Prepare Discord message
+                discord_message+="- $current_file (Line $line)\n"
               fi
             done < lines_with_lead.txt
+
+            # Posting a single message to Discord
+            curl -H "Content-Type: application/json" \
+              -d "{\"content\": \"$discord_message\"}" \
+              $DISCORD_WEBHOOK_URL
           else
             echo "No 'LEAD:' keyword found."
-          fi
