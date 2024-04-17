@@ -21,7 +21,7 @@ jobs:
       - name: Scan for 'LEAD:' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }} # Set your Discord webhook URL in the repository secrets
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
@@ -29,26 +29,20 @@ jobs:
           awk '/^\+.*LEAD:/ || /^+++ b\// {print $0}' diff.txt > lines_with_lead.txt
 
           current_file=""
-          while IFS=: read -r line content; do
-            if [[ $content =~ ^\+\+\+ b\/(.*) ]]; then
+          while IFS= read -r content; do
+            if [[ "$content" =~ ^\+\+\+ b\/(.*)$ ]]; then
               current_file="${BASH_REMATCH[1]}"
-              continue
-            fi
-            if [[ $content =~ LEAD: && ! $current_file =~ (devcontainer.json|CONTRIBUTING.md|.github/workflows/help_request.yml)$ ]]; then
-              echo "::warning file=$current_file,line=$line::Lead Help Request Found"
-              body="Detected a request for help from @MissouriMRDT/software_leads on this line. File: ${{ env.REPO_PATH }}/$current_file:$line"
+            elif [[ "$content" =~ ^\+.*LEAD: ]] && ! [[ "$current_file" =~ ^(devcontainer.json|CONTRIBUTING.md|.github/workflows/help_request.yml)$ ]]; then
+              line_number=$(grep -n "$content" diff.txt | cut -d: -f1)
+              echo "::warning file=$current_file,line=$line_number::Lead Help Request Found"
+              body="Detected a request for help from @MissouriMRDT/software_leads on this line. File: ${{ env.REPO_PATH }}/$current_file:$line_number"
               # Posting to GitHub
-              curl \
-                -X POST \
-                -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Accept: application/vnd.github.v3+json" \
-                -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
-                https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
+              curl -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
+                -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line_number, \"commit_id\": \"${{ github.sha }}\"}" \
+                "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments"
               # Posting to Discord
-              discord_message=":warning: **Software Leads Help Request Detected** :warning:\n**File**: ${{ env.REPO_PATH }}/$current_file\n**Line**: $line\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
-              curl -H "Content-Type: application/json" \
-                -d "{\"content\": \"$discord_message\"}" \
-                $DISCORD_WEBHOOK_URL
+              discord_message=":warning: **Software Leads Help Request Detected** :warning:\n**File**: ${{ env.REPO_PATH }}/$current_file\n**Line**: $line_number\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+              curl -H "Content-Type: application/json" -d "{\"content\": \"$discord_message\"}" $DISCORD_WEBHOOK_URL
             fi
           done < lines_with_lead.txt
           if [ -z "$current_file" ]; then
