@@ -6,6 +6,7 @@ ADDOBJECTLEG
 ADDPOSITIONLEG
 alloc
 allocs
+ANGULARDIFFERENCE
 APPROACHINGMARKERSTATE
 APPROACHINGOBJECTSTATE
 APRILTAG
@@ -19,6 +20,7 @@ BASICCAM
 buildcache
 Buildx
 CALIB
+CELLVOLTAGE
 clayjay
 CLEARWAYPOINTS
 codeql
@@ -34,10 +36,13 @@ CURRENTLOG
 CURRENTSTATE
 deadband
 debfile
+Deblur
+Denoise
 depthobject
 deque
 Desaturate
 devcontainer
+DGNSS
 diffdrive
 DISABLEAUTONOMY
 DISPLAYSTATE
@@ -46,9 +51,10 @@ dorny
 doxdocgen
 Doxygen
 driveboard
-edgetpu
 DRIVELEFTRIGHT
+edgetpu
 endcond
+ESPCN
 Extention
 feedforward
 flatbuffer
@@ -64,6 +70,7 @@ GNSS
 GPSLATLONALT
 GPSMDRS
 GPSSDELC
+GROUNDCAM
 gruntfuggly
 gtest
 hyperthreaded
@@ -79,9 +86,12 @@ jspencerpittman
 Jter
 jthread
 keyscan
+latlng
+latlon
 LEDRGB
 LEFTCAM
 libedgetpu
+localtime
 MAINCAM
 MAINCAN
 mainpage
@@ -106,6 +116,7 @@ OBJECTDETECT
 Objectness
 odometry
 opencv
+OTSU
 parallelizable
 Parens
 pathplanners
@@ -126,6 +137,8 @@ SEARCHPATTERNSTATE
 SETMAXSPEED
 setpoint
 setpoints
+Shafe
+SIMBASICCAM
 SIMCAM
 softprops
 STARTAUTONOMY
@@ -137,11 +150,13 @@ STOPAUTONOMY
 Struct
 STUCKSTATE
 Styleguides
+superres
 TAGDETECT
 TAGDETECTOR
+tagdetectutils
 Tele
-tensorflowobject
 TELEOP
+tensorflowobject
 tensorflowtag
 tensorflowyolo
 tflite
@@ -150,7 +165,9 @@ timestep
 tparam
 twxs
 UART
+unstuckith
 UNVALIDATED
+upsample
 UTMMDRS
 UTMUPS
 valgrind

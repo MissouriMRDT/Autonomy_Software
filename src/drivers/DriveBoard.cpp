@@ -37,12 +37,16 @@ DriveBoard::DriveBoard()
     m_fMaxDriveEffort                = constants::DRIVE_MAX_EFFORT;
 
     // Configure PID controller for heading hold function.
-    m_pPID = new controllers::PIDController(constants::DRIVE_PID_PROPORTIONAL, constants::DRIVE_PID_INTEGRAL, constants::DRIVE_PID_DERIVATIVE);
+    m_pPID = new controllers::PIDController(constants::DRIVE_PID_PROPORTIONAL,
+                                            constants::DRIVE_PID_INTEGRAL,
+                                            constants::DRIVE_PID_DERIVATIVE,
+                                            constants::DRIVE_PID_FEEDFORWARD);
     m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR_PER_ITER);
     m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
-    m_pPID->SetOutputLimits(constants::DRIVE_MAX_POWER);
+    m_pPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
     m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
     m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
+    m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_TOLERANCE);
     m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
     m_pPID->EnableContinuousInput(0, 360);
 
@@ -88,7 +92,13 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
                                                  const diffdrive::DifferentialControlMethod eKinematicsMethod)
 {
     // Calculate the drive powers from the current heading, goal heading, and goal speed.
-    m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed, dGoalHeading, dActualHeading, eKinematicsMethod, *m_pPID);
+    m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed,
+                                                                dGoalHeading,
+                                                                dActualHeading,
+                                                                eKinematicsMethod,
+                                                                *m_pPID,
+                                                                constants::DRIVE_SQUARE_CONTROL_INPUTS,
+                                                                constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED);
 
     return m_stDrivePowers;
 }
@@ -161,6 +171,9 @@ void DriveBoard::SendStop()
     const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
     network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain");
 }
 
 /******************************************************************************

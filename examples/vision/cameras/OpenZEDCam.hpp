@@ -12,6 +12,7 @@
 #include "../../../src/AutonomyConstants.h"
 #include "../../../src/AutonomyGlobals.h"
 #include "../../../src/AutonomyLogging.h"
+#include "../../../src/AutonomyNetworking.h"
 #include "../../../src/util/ExampleChecker.h"
 #include "../../../src/util/vision/ImageOperations.hpp"
 
@@ -47,6 +48,26 @@ const bool ENABLE_SPATIAL_MAPPING = false;
  ******************************************************************************/
 void RunExample()
 {
+    // Initialize RoveComm.
+    network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+    network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+    // Start RoveComm instances bound on ports.
+    network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+    network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+    // Check if RoveComm was successfully initialized.
+    if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
+    {
+        // Submit logger message.
+        LOG_CRITICAL(logging::g_qSharedLogger,
+                     "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
+                     network::g_bRoveCommUDPStatus,
+                     network::g_bRoveCommTCPStatus);
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
+    }
     // Initialize and start handlers.
     globals::g_pNavigationBoard = new NavigationBoard();
     globals::g_pCameraHandler   = new CameraHandler();
@@ -182,13 +203,21 @@ void RunExample()
     /////////////////////////////////////////
     // Cleanup.
     /////////////////////////////////////////
+    // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+    network::g_bRoveCommUDPStatus = false;
+    network::g_bRoveCommTCPStatus = false;
+
     // Stop camera threads.
     globals::g_pCameraHandler->StopAllCameras();
 
     // Delete dynamically allocated objects.
     delete globals::g_pCameraHandler;
     delete globals::g_pNavigationBoard;
+    delete network::g_pRoveCommUDPNode;
+    delete network::g_pRoveCommTCPNode;
     // Set dangling pointers to null.
     globals::g_pCameraHandler   = nullptr;
     globals::g_pNavigationBoard = nullptr;
+    network::g_pRoveCommUDPNode = nullptr;
+    network::g_pRoveCommTCPNode = nullptr;
 }

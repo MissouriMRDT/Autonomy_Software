@@ -104,7 +104,7 @@ namespace arucotag
         // Grayscale.
         cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGRA2GRAY);
         // Reduce number of colors/gradients in the image.
-        imgops::ColorReduce(cvOutputFrame);
+        // imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/5, /*sigmaColor =*/0.2, /*sigmaSpace =*/3);
         // imgops::CustomBilateralFilter(cvInputFrame, 3, 0.1, 3);
@@ -125,9 +125,11 @@ namespace arucotag
     /******************************************************************************
      * @brief Detect ArUco tags in the provided image.
      *
-     * @param cvFrame - The camera frame to run ArUco detection on.
+     * @param cvFrame - The camera frame to run ArUco detection on. Should be BGR format.
      * @param cvArucoDetector - The configured aruco detector to use for detection.
      * @return std::vector<ArucoTag> - The resultant vector containing the detected tags in the frame.
+     *
+     * @note The given cvFrame SHOULD BE IN BGR FORMAT.
      *
      * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
@@ -167,16 +169,17 @@ namespace arucotag
 
     /******************************************************************************
      * @brief Given a vector of ArucoTag structs draw each tag corner and ID onto the given image.
-     *      Image must be a 1 or 3 channel image and image must match dimensions of image when used for
-     *      detection of the given tags.
      *
      * @param cvDetectionsFrame - The frame to draw overlay onto.
      * @param vDetectedTags - The vector of ArucoTag struct used to draw tag corners and IDs onto image.
      *
+     * @note Image must be a 1 or 3 channel image and image must match dimensions of image when used for
+     *      detection of the given tags.
+     *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-19
      ******************************************************************************/
-    inline void DrawDetections(cv::Mat& cvDetectionsFrame, std::vector<ArucoTag> vDetectedTags)
+    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<ArucoTag>& vDetectedTags)
     {
         // Create instance variables.
         std::vector<int> vIDs;
@@ -236,6 +239,18 @@ namespace arucotag
 
         // Find the center point of the given tag.
         cv::Point2f cvCenter = FindTagCenter(stTag);
+
+        // Ensure the detected center is inside the domain of the point cloud.
+        if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols)
+        {
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
+                        cvCenter.y,
+                        cvCenter.x,
+                        cvPointCloud.rows,
+                        cvPointCloud.cols);
+            return;
+        }
 
         // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
         cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);

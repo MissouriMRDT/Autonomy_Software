@@ -10,11 +10,11 @@
 cmake_minimum_required(VERSION 3.24.3)
 
 ## C++ Version
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
 project(Autonomy_Software VERSION 24.02.00 LANGUAGES CXX CUDA)
@@ -29,7 +29,6 @@ endif()
 if(NOT CTest_CMake_INCLUDED)
     include(CTest)                                                                  # CMake Testing Framework
 endif()
-include(FetchContent)                                                               # CMake Dependency Framework
 
 ## Enable or Disble Simulation Mode
 option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
@@ -60,6 +59,7 @@ add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
 ## Find RoveComm
 include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
+add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
 ## Determine if shared or static libraries will be used.
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
@@ -178,46 +178,57 @@ else()
 	target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-## Link Libraries to Executable
-target_link_libraries(${EXE_NAME} PRIVATE   Threads::Threads
-												Eigen3::Eigen
-                                                RoveComm_CPP
-                                                quill::quill
-												${OpenCV_LIBS}
-                                                ${GeographicLib_LIBRARIES}
-                                                ${ZED_LIBS}
-                                                ${TORCH_LIBRARIES}
-                                                flatbuffers::flatbuffers
-                                                ${ABSL_LIBRARY_DIRS}
-                                                ${TENSORFLOWLITE_LIBS}
-                                                ${LIBEDGETPU_LIBS}
+## Set Autonomy Libraries
+set(AUTONOMY_LIBRARIES  Threads::Threads
+                        Eigen3::Eigen
+                        RoveComm_CPP
+                        quill::quill
+                        ${OpenCV_LIBS}
+                        ${GeographicLib_LIBRARIES}
+                        ${ZED_LIBS}
+                        ${TORCH_LIBRARIES}
+                        flatbuffers::flatbuffers
+                        ${ABSL_LIBRARY_DIRS}
+                        ${TENSORFLOWLITE_LIBS}
+                        ${LIBEDGETPU_LIBS}
     )
 
-## Package Executable
-install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES RoveComm_CPP ${OpenCV_LIBS} ${GeographicLib_LIBRARIES} ${ZED_LIBS} quill::quill RUNTIME DESTINATION bin)
+## Link Libraries to Executable
+target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 
-## Unit/Integration Tests
-file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
-file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
-file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-file(GLOB         Network_SRC			CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
-file(GLOB         Logging_SRC			CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
-
-list(LENGTH UnitTests_SRC           UnitTests_LEN)
-list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
-
-if (UnitTests_LEN GREATER 0)
-    add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
-    add_test(Unit_Tests ${EXE_NAME}_UnitTests)
-else()
-    message("No Unit Tests!")
+## Enable or Disble Install Mode
+option(BUILD_INSTALL_MODE "Enable Install Mode" OFF)
+if(BUILD_INSTALL_MODE)
+    ## Package Executable
+    install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
 endif()
 
-if (IntegrationTests_LEN GREATER 0)
-    add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main RoveComm_CPP quill::quill ${OpenCV_LIBS} ${GeographicLib_LIBRARIES})
-    add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
-else()
-    message("No Integration Tests!")
+## Enable or Disble Tests Mode
+option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
+if(BUILD_TESTS_MODE)
+    ## Unit/Integration Tests
+    file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
+    file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
+    file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+    file(GLOB         Network_SRC			CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
+    file(GLOB         Logging_SRC			CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
+
+    list(LENGTH UnitTests_SRC           UnitTests_LEN)
+    list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
+
+    if (UnitTests_LEN GREATER 0)
+        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
+        add_test(Unit_Tests ${EXE_NAME}_UnitTests)
+    else()
+        message("No Unit Tests!")
+    endif()
+
+    if (IntegrationTests_LEN GREATER 0)
+        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
+        add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
+    else()
+        message("No Integration Tests!")
+    endif()
 endif()
