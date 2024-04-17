@@ -102,7 +102,8 @@ find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find PyTorch.
-set (CAFFE2_USE_CUDNN "1")
+set(CAFFE2_USE_CUDNN "1")
+set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.9 9.0")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
