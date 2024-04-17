@@ -12,6 +12,12 @@
 #define REVERSINGSTATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+
+/// \cond
+#include <chrono>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,7 +37,9 @@ namespace statemachine
     class ReversingState : public State
     {
         private:
-            // TODO: Add fetch of current position from GPS
+            geoops::RoverPose m_stStartRoverPose;
+            std::chrono::system_clock::time_point m_tmStartReversingTime;
+            std::chrono::system_clock::time_point m_tmTimeSinceLastMeter;
             bool m_bInitialized;
 
         protected:

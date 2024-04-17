@@ -37,7 +37,7 @@ void RunExample()
     globals::g_pCameraHandler = new CameraHandler();
 
     // Get reference to camera.
-    BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye);
+    BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadGroundCam);
     // Start basic cam.
     ExampleBasicCam1->Start();
 

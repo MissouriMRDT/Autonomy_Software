@@ -85,26 +85,36 @@ namespace logging
         // Construct the full output path.
         std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
+        // Set Console Color Profile
+        quill::ConsoleColours qColors;
+        qColors.set_default_colours();
+        qColors.set_colour(quill::LogLevel::TraceL3, constants::szTraceL3Color);
+        qColors.set_colour(quill::LogLevel::TraceL2, constants::szTraceL2Color);
+        qColors.set_colour(quill::LogLevel::TraceL1, constants::szTraceL1Color);
+        qColors.set_colour(quill::LogLevel::Debug, constants::szDebugColor);
+        qColors.set_colour(quill::LogLevel::Info, constants::szInfoColor);
+        qColors.set_colour(quill::LogLevel::Warning, constants::szWarningColor);
+        qColors.set_colour(quill::LogLevel::Error, constants::szErrorColor);
+        qColors.set_colour(quill::LogLevel::Critical, constants::szCriticalColor);
+        qColors.set_colour(quill::LogLevel::Backtrace, constants::szBacktraceColor);
+
         // Create Handlers
         std::shared_ptr<quill::Handler> qFileHandler     = quill::rotating_file_handler(szFullOutputPath);
-        std::shared_ptr<quill::Handler> qConsoleHandler  = quill::stdout_handler();
+        std::shared_ptr<quill::Handler> qConsoleHandler  = quill::stdout_handler("ConsoleHandler", qColors);
         std::shared_ptr<quill::Handler> qRoveCommHandler = quill::create_handler<RoveCommHandler>("RoveCommHandler");
 
         // Configure Patterns
         qFileHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",        // format
                                   "%Y-%m-%d %H:%M:%S.%Qms",                                                              // timestamp format
-                                  quill::Timezone::GmtTime);                                                             // timestamp's timezone
+                                  quill::Timezone::LocalTime);                                                           // timestamp's timezone
 
         qConsoleHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",     // format
                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                           // timestamp format
-                                     quill::Timezone::GmtTime);                                                          // timestamp's timezone
+                                     quill::Timezone::LocalTime);                                                        // timestamp's timezone
 
         qRoveCommHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",    // format
                                       "%Y-%m-%d %H:%M:%S.%Qms",                                                          // timestamp format
-                                      quill::Timezone::GmtTime);                                                         // timestamp's timezone
-
-        // Enable Color Console
-        static_cast<quill::ConsoleHandler*>(qConsoleHandler.get())->enable_console_colours();
+                                      quill::Timezone::LocalTime);                                                       // timestamp's timezone
 
         // Configure Quill
         quill::Config qConfig;

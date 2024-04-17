@@ -12,6 +12,11 @@
 #define APPROACHINGMARKERSTATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+#include "../util/vision/TagDetectionUtilty.hpp"
+#include "../vision/aruco/ArucoDetection.hpp"
+#include "../vision/aruco/TagDetector.h"
+#include "../vision/aruco/TensorflowTagDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,8 +36,19 @@ namespace statemachine
     class ApproachingMarkerState : public State
     {
         private:
-            int m_nNumDetectionAttempts;
             bool m_bInitialized;
+
+            int m_nNumDetectionAttempts;                     // Number of consecutive unsuccessful attempts to detect a tag.
+            int m_nTargetTagID;                              // ID of the target tag.
+            bool m_bDetected;                                // Has a target tag been detected and identified yet.
+            arucotag::ArucoTag m_stTargetTagAR;              // Detected target tag from OpenCV.
+            tensorflowtag::TensorflowTag m_stTargetTagTF;    // Detected target tag from Tensorflow.
+            double m_dLastTargetHeading;                     // Last recorded heading of the target with respect to the rover's position.
+            double m_dLastTargetDistance;                    // Last recorded distance of the target with respect to the rover's position.
+            std::vector<TagDetector*> m_vTagDetectors;       // Vector of tag detectors to use for detection in order of highest to lowest priority.
+
+            bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
+            bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);
 
         protected:
             void Start() override;

@@ -72,11 +72,15 @@ class TagDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
+        bool InitTensorflowDetection(const std::string szModelPath,
+                                     yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode = yolomodel::tensorflow::TPUInterpreter::eMax);
 
         /////////////////////////////////////////
         // Mutators.
         /////////////////////////////////////////
 
+        void EnableTensorflowDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
+        void DisableTensorflowDetection();
         void SetDetectorFPS(const int nRecordingFPS);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
 
@@ -85,6 +89,7 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
 
         bool GetIsReady();
+        bool GetTensorflowDetectionEnabled() const;
         int GetDetectorFPS() const;
         bool GetEnableRecordingFlag() const;
         std::string GetCameraName();
@@ -98,7 +103,6 @@ class TagDetector : public AutonomyThread<void>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
-        void UpdateDetectedTags(std::vector<tensorflowtag::TensorflowTag>& vNewlyDetectedTags);
 
         /////////////////////////////////////////
         // Declare private member variables.
@@ -109,8 +113,14 @@ class TagDetector : public AutonomyThread<void>
         cv::aruco::ArucoDetector m_cvArucoDetector;
         cv::aruco::DetectorParameters m_cvArucoDetectionParams;
         cv::aruco::Dictionary m_cvTagDictionary;
+        std::shared_ptr<yolomodel::tensorflow::TPUInterpreter> m_pTensorflowDetector;
+        std::atomic<float> m_fMinObjectConfidence;
+        std::atomic<float> m_fNMSThreshold;
+        std::atomic_bool m_bTensorflowInitialized;
+        std::atomic_bool m_bTensorflowEnabled;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
+        bool m_bCameraIsOpened;
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
@@ -123,7 +133,8 @@ class TagDetector : public AutonomyThread<void>
         // Create frames for storing images and point clouds.
 
         cv::Mat m_cvFrame;
-        cv::Mat m_cvProcFrame;
+        cv::Mat m_cvArucoProcFrame;
+        cv::Mat m_cvTensorflowProcFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;
 

@@ -605,7 +605,7 @@ namespace geoops
             /******************************************************************************
              * @brief Overridden operator equals for Waypoint struct.
              *
-             * @param stOtherCoordinate - The other Waypoint struct we are comparing to.
+             * @param stOtherWaypoint - The other Waypoint struct we are comparing to.
              * @return true - The two Waypoints are equal.
              * @return false - The two Waypoints are not equal.
              *
@@ -627,6 +627,136 @@ namespace geoops
                     return false;
                 }
             }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for Waypoint struct.
+             *
+             * @param stOtherWaypoint - The other Waypoint struct we are comparing to.
+             * @return true - The two Waypoints are equal.
+             * @return false - The two Waypoints are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-03-18
+             ******************************************************************************/
+            bool operator!=(const Waypoint& stOtherWaypoint) const { return !this->operator==(stOtherWaypoint); }
+    };
+
+    /******************************************************************************
+     * @brief This struct is used by the WaypointHandler to provide an easy way to store
+     *      all pose data about the rover.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-04-08
+     ******************************************************************************/
+    struct RoverPose
+    {
+        private:
+            // Declare struct private member variables.
+            Waypoint stRoverPosition;    // Stores the rover's 3D location in UTM and GPS form.
+            double dRoverHeading;        // Stores the rover's compass heading. North = 0, CW=pos
+
+        public:
+            /******************************************************************************
+             * @brief Construct a new Rover Pose object.
+             *
+             * @param stRoverPosition - The current location of the rover stored in a GPSCoordinate struct.
+             * @param dRoverHeading - The current heading of the rover.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            RoverPose(const geoops::GPSCoordinate& stRoverPosition = geoops::GPSCoordinate(), const double dRoverHeading = 0.0)
+            {
+                // Update member variables.
+                this->stRoverPosition = Waypoint(stRoverPosition);
+                this->dRoverHeading   = dRoverHeading;
+            }
+
+            /******************************************************************************
+             * @brief Construct a new Rover Pose object.
+             *
+             * @param stRoverPosition - The current location of the rover stored in a UTMCoordinate struct.
+             * @param dRoverHeading - The current heading of the rover.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            RoverPose(const geoops::UTMCoordinate& stRoverPosition, const double dRoverHeading = 0.0)
+            {
+                // Update member variables.
+                this->stRoverPosition = Waypoint(stRoverPosition);
+                this->dRoverHeading   = dRoverHeading;
+            }
+
+            /******************************************************************************
+             * @brief Accessor for the geoops::GPSCoordinate member variable.
+             *
+             * @return geoops::GPSCoordinate - The location of the RoverPose stored in a geoops namespace
+             *                      GPSCoordinate struct.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            const geoops::GPSCoordinate& GetGPSCoordinate() const { return stRoverPosition.GetGPSCoordinate(); }
+
+            /******************************************************************************
+             * @brief Accessor for the geoops::UTMCoordinate member variable.
+             *
+             * @return geoops::UTMCoordinate - The location of the RoverPose stored in a geoops namespace
+             *                      UTMCoordinate struct.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            const geoops::UTMCoordinate& GetUTMCoordinate() const { return stRoverPosition.GetUTMCoordinate(); }
+
+            /******************************************************************************
+             * @brief Accessor for the Compass Heading private member.
+             *
+             * @return const double - The compass heading of the rover pose.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            double GetCompassHeading() const { return dRoverHeading; }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for RoverPose struct.
+             *
+             * @param stOtherRoverPose - The other Waypoint struct we are comparing to.
+             * @return true - The two RoverPoses are equal.
+             * @return false - The two RoverPoses are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            bool operator==(const RoverPose& stOtherRoverPose) const
+            {
+                // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
+                if (stRoverPosition == stOtherRoverPose.GetGPSCoordinate() && stRoverPosition == stOtherRoverPose.GetUTMCoordinate() &&
+                    dRoverHeading == stOtherRoverPose.dRoverHeading)
+                {
+                    // Return that the two Waypoints are equal.
+                    return true;
+                }
+                else
+                {
+                    // Return that the two Waypoints are not equal.
+                    return false;
+                }
+            }
+
+            /******************************************************************************
+             * @brief Overridden operator equals for RoverPose struct.
+             *
+             * @param stOtherRoverPose - The other RoverPose struct we are comparing to.
+             * @return true - The two RoverPoses are equal.
+             * @return false - The two RoverPoses are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-08
+             ******************************************************************************/
+            bool operator!=(const RoverPose& stOtherRoverPose) const { return !this->operator==(stOtherRoverPose); }
     };
 }    // namespace geoops
 #endif

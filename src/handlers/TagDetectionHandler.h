@@ -34,6 +34,7 @@ class TagDetectionHandler
         TagDetector* m_pTagDetectorMainCam;
         TagDetector* m_pTagDetectorLeftCam;
         TagDetector* m_pTagDetectorRightCam;
+        TagDetector* m_pTagDetectorGroundCam;
         RecordingHandler* m_pRecordingHandler;
 
     public:
@@ -45,8 +46,8 @@ class TagDetectionHandler
         {
             TAGDETECTOR_START,
             eHeadMainCam,
-            eHeadLeftArucoEye,
-            eHeadRightArucoEye,
+            eFrameLeftCam,
+            eFrameRightCam,
             TAGDETECTOR_END
         };
 

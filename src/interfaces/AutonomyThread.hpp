@@ -14,10 +14,10 @@
 #ifndef AUTONOMYTHREAD_H
 #define AUTONOMYTHREAD_H
 
-#include "../../external/threadpool/include/BS_thread_pool.hpp"
 #include "../util/IPS.hpp"
 
 /// \cond
+#include "../../external/threadpool/include/BS_thread_pool.hpp"
 #include <atomic>
 #include <chrono>
 #include <vector>

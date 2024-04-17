@@ -33,8 +33,8 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
 
-    // Initialize detector for left aruco BasicCam.
-    m_pTagDetectorLeftCam = new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadLeftArucoEye),
+    // Initialize detector for left aruco ZEDCam.
+    m_pTagDetectorLeftCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam),
                                             constants::TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER,
                                             constants::TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD,
                                             constants::TAGDETECT_LEFTCAM_MARKER_BORDER_BITS,
@@ -45,8 +45,8 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
                                             false);
 
-    // Initialize detector for right aruco BasicCam.
-    m_pTagDetectorRightCam = new TagDetector(globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadRightArucoEye),
+    // Initialize detector for right aruco ZEDCam.
+    m_pTagDetectorRightCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam),
                                              constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER,
                                              constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD,
                                              constants::TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS,
@@ -56,6 +56,37 @@ TagDetectionHandler::TagDetectionHandler()
                                              constants::TAGDETECT_RIGHTCAM_ENABLE_RECORDING,
                                              constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
                                              false);
+
+    // Check if tensorflow detection is enabled for main ZEDCam.
+    if (constants::TAGDETECT_MAINCAM_ENABLE_DNN)
+    {
+        // Attempt to init tensorflow detection.
+        if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_MODEL_PATH))
+        {
+            // Set tensorflow detection enabled.
+            m_pTagDetectorMainCam->EnableTensorflowDetection(0.4f, 0.6f);
+        }
+    }
+    // Check if tensorflow detection is enabled for left BasicCam.
+    if (constants::TAGDETECT_LEFTCAM_ENABLE_DNN)
+    {
+        // Attempt to init tensorflow detection.
+        if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_MODEL_PATH))
+        {
+            // Set tensorflow detection enabled.
+            m_pTagDetectorLeftCam->EnableTensorflowDetection(0.4f, 0.6f);
+        }
+    }
+    // Check if tensorflow detection is enabled for right BasicCam.
+    if (constants::TAGDETECT_RIGHTCAM_ENABLE_DNN)
+    {
+        // Attempt to init tensorflow detection.
+        if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_MODEL_PATH))
+        {
+            // Set tensorflow detection enabled.
+            m_pTagDetectorRightCam->EnableTensorflowDetection(0.4f, 0.6f);
+        }
+    }
 
     // Initialize recording handler for detectors.
     m_pRecordingHandler = new RecordingHandler(RecordingHandler::RecordingMode::eTagDetectionHandler);
@@ -97,10 +128,10 @@ void TagDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pTagDetectorMainCam->Start();
-
-    // Start the left and right aruco eyes.
     m_pTagDetectorLeftCam->Start();
     m_pTagDetectorRightCam->Start();
+
+    // Start the BasicCam aruco eyes.
 }
 
 /******************************************************************************
@@ -129,15 +160,15 @@ void TagDetectionHandler::StopAllDetectors()
     m_pRecordingHandler->RequestStop();
     m_pRecordingHandler->Join();
 
-    // Stop ZED maincam detector.
+    // Stop ZED detectors.
     m_pTagDetectorMainCam->RequestStop();
-    m_pTagDetectorMainCam->Join();
-
-    // Stop BasicCam left aruco eye detector.
     m_pTagDetectorLeftCam->RequestStop();
     m_pTagDetectorRightCam->RequestStop();
+    m_pTagDetectorMainCam->Join();
     m_pTagDetectorLeftCam->Join();
     m_pTagDetectorRightCam->Join();
+
+    // Stop BasicCam aruco eye detectors.
 }
 
 /******************************************************************************
@@ -169,8 +200,8 @@ TagDetector* TagDetectionHandler::GetTagDetector(TagDetectors eDetectorName)
     switch (eDetectorName)
     {
         case eHeadMainCam: return m_pTagDetectorMainCam;
-        case eHeadLeftArucoEye: return m_pTagDetectorLeftCam;
-        case eHeadRightArucoEye: return m_pTagDetectorRightCam;
+        case eFrameLeftCam: return m_pTagDetectorLeftCam;
+        case eFrameRightCam: return m_pTagDetectorRightCam;
         default: return m_pTagDetectorMainCam;
     }
 }
