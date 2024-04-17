@@ -3,7 +3,7 @@ name: Lead Commenter
 on:
   push:
     branches-ignore:
-      - development # Ignore pushes to the development branch
+      - development
 
 jobs:
   comment-on-lead:
@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          fetch-depth: 2 # Fetch the last two commits for diff
+          fetch-depth: 2
 
       - name: Scan for 'LEAD' and Comment
         env:
@@ -23,35 +23,40 @@ jobs:
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
-          awk '/^\+.*LEAD:/ && !/^+++ b\/(devcontainer.json|CONTRIBUTING.md|help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+          awk '/^\+.*LEAD:/ && !/^+++ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
 
           declare -A file_lines
           if [ -s lines_with_lead.txt ]; then
             current_file=""
             while IFS=: read -r line content; do
-              if [[ $content =~ ^\+\+\+ b\/(.*) ]]; then
-                current_file=${BASH_REMATCH[1]}
+              new_path=$(echo $content | sed -n -e 's/^+++ b\/\(.*\)/\1/p')
+              if [[ ! -z "$new_path" ]]; then
+                current_file=$new_path
                 continue
               fi
-              if [[ $content =~ LEAD: && "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
-                file_lines[$current_file]+="Line $line: ${content#*LEAD: }\n"
+              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
+                file_lines["$current_file"]+="${line}, "
               fi
             done < lines_with_lead.txt
 
             for file in "${!file_lines[@]}"; do
               lines="${file_lines[$file]}"
-              echo "::warning file=$file::LEAD keyword found"
-              body="Detected a request for help from @MissouriMRDT/software_leads in this file:\n$lines\nFile: ${{ github.workspace }}/$file"
+              lines=${lines%, }  # Remove trailing comma
+              echo "::warning file=$file::LEAD keyword found on lines $lines"
+              body="Detected a request for help from @MissouriMRDT/software_leads in this file. File: ${{ github.workspace }}/$file on lines $lines"
               # Posting to GitHub
-              curl -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
+              curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
                 -d "{\"body\": \"$body\", \"path\": \"$file\", \"position\": 1, \"commit_id\": \"${{ github.sha }}\"}" \
                 "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments"
             done
-
-            # Aggregate all messages for a single Discord message per commit
-            discord_message=":warning: **Software Lead Help Request Detected** :warning:\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n"
+            
+            # Posting one message to Discord for the entire commit
+            discord_message=":warning: **Software Lead Help Requests Detected in Commit** :warning:\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n"
             for file in "${!file_lines[@]}"; do
-              discord_message+="**File**: ${{ github.workspace }}/$file\n${file_lines[$file]}\n"
+              lines="${file_lines[$file]}"
+              lines=${lines%, }
+              discord_message+="**File**: ${{ github.workspace }}/$file - Lines: $lines\n"
             done
             curl -H "Content-Type: application/json" \
               -d "{\"content\": \"$discord_message\"}" \
