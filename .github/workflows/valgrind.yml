@@ -44,7 +44,8 @@ jobs:
           git reset --hard origin/$branch
           git checkout $branch
           git pull --ff-only
-          git submodule update --recursive --init
+          git submodule update --force --recursive --init
+          git config --global --add safe.directory /opt/Autonomy_Software/external
 
       - name: Delete Build Directory
         run: |
