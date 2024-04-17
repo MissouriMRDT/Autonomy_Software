@@ -62,3 +62,4 @@ jobs:
               $DISCORD_WEBHOOK_URL
           else
             echo "No 'LEAD:' keyword found."
+          fi
