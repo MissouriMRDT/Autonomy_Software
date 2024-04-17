@@ -231,14 +231,23 @@ void StateMachineHandler::ThreadedContinuousCode()
     // Get pointer to main camera.
     ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
     // Check GNSS Fusion is enabled and the main ZED camera is a fusion master.
-    if (constants::FUSION_ENABLE_GNSS_FUSION && pMainCam->GetIsFusionMaster() && pMainCam->GetPositionalTrackingEnabled())
+    if (constants::FUSION_ENABLE_GNSS_FUSION)
     {
         // Get current GPS age.
         if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100)
         {
-            // Feed current GPS location to main ZED camera.
-            pMainCam->IngestGPSDataToFusion(globals::g_pNavigationBoard->GetGPSData());
+            // Check if main ZED camera is setup to use GPS fusion.
+            if (pMainCam->GetIsFusionMaster() && pMainCam->GetPositionalTrackingEnabled())
+            {
+                // Feed current GPS location to main ZED camera.
+                pMainCam->IngestGPSDataToFusion(globals::g_pNavigationBoard->GetGPSData());
+            }
         }
+    }
+    // If not using GPS fusion then realign the camera's relative
+    else if (pMainCam->GetPositionalTrackingEnabled())
+    {
+        //
     }
 }
 
