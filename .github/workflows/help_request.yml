@@ -3,7 +3,7 @@ name: Lead Commenter
 on:
   push:
     branches-ignore:
-      - development
+      - development # Exclude the development branch
 
 jobs:
   comment-on-lead:
@@ -15,11 +15,18 @@ jobs:
           submodules: recursive
           fetch-depth: 2
 
+      - name: Setup Bash
+        run: |
+          echo "BASH_ENV=~/.bashrc" >> $GITHUB_ENV
+          echo "source ~/.bashrc" >> $GITHUB_ENV
+
       - name: Scan for 'LEAD' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          shell: bash
+
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
@@ -35,29 +42,24 @@ jobs:
                 continue
               fi
               if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
-                file_lines["$current_file"]+="${line}, "
+                file_lines["$current_file"]+="$line, "
               fi
             done < lines_with_lead.txt
 
             for file in "${!file_lines[@]}"; do
               lines="${file_lines[$file]}"
               lines=${lines%, }  # Remove trailing comma
-              echo "::warning file=$file::LEAD keyword found on lines $lines"
-              body="Detected a request for help from @MissouriMRDT/software_leads in this file. File: ${{ github.workspace }}/$file on lines $lines"
+              echo "::warning file=$file::LEAD keyword found"
+              body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
               # Posting to GitHub
               curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
                 -H "Accept: application/vnd.github.v3+json" \
                 -d "{\"body\": \"$body\", \"path\": \"$file\", \"position\": 1, \"commit_id\": \"${{ github.sha }}\"}" \
                 "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments"
             done
-            
-            # Posting one message to Discord for the entire commit
-            discord_message=":warning: **Software Lead Help Requests Detected in Commit** :warning:\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\n"
-            for file in "${!file_lines[@]}"; do
-              lines="${file_lines[$file]}"
-              lines=${lines%, }
-              discord_message+="**File**: ${{ github.workspace }}/$file - Lines: $lines\n"
-            done
+
+            # Posting one simplified message to Discord for the entire commit
+            discord_message=":warning: **Software Lead Help Requests Detected** :warning:\n**Nice!** See the commit here: [Commit ${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
             curl -H "Content-Type: application/json" \
               -d "{\"content\": \"$discord_message\"}" \
               $DISCORD_WEBHOOK_URL
