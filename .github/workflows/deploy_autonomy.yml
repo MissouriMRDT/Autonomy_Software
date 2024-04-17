@@ -53,7 +53,7 @@ jobs:
           tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo $tag
           git checkout $tag
-          git submodule update --force --recursive --init --remote
+          git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
       - name: Build and Create Executable
