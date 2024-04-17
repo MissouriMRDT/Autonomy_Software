@@ -202,7 +202,7 @@ namespace statemachine
                 // Set toggle to get new waypoint.
                 m_bFetchNewWaypoint = true;
                 // Change state.
-                eNextState = States::eIdle;
+                eNextState = States::eAvoidance;
                 break;
             }
             case Event::eReachedMarker:

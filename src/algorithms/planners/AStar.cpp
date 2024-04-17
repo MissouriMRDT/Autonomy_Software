@@ -321,10 +321,12 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-12
      ******************************************************************************/
-    void AStar::RoundUTMCoordinate(geoops::UTMCoordinate& stRoundCoordinate)
+    geoops::UTMCoordinate AStar::RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound)
     {
-        stRoundCoordinate.dEasting  = std::round(stRoundCoordinate.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
-        stRoundCoordinate.dNorthing = std::round(stRoundCoordinate.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+        geoops::UTMCoordinate stRounded = geoops::UTMCoordinate(stCoordinateToRound);
+        stRounded.dEasting              = std::round(stCoordinateToRound.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+        stRounded.dNorthing             = std::round(stCoordinateToRound.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+        return stRounded;
     }
 
     /******************************************************************************
@@ -366,6 +368,8 @@ namespace pathplanners
         // Base case: Check for origin node.
         if (stEndNode.stParentNode == nullptr)
         {
+            // Reverse vector since nodes were constructed from the goal.
+            std::reverse(m_vPathCoordinates.begin(), m_vPathCoordinates.end());
             return;
         }
         // Recursive case: call ConstructPath on parent pointer.
@@ -389,8 +393,8 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(geoops::UTMCoordinate& stStartCoordinate,
-                                                                geoops::UTMCoordinate& stGoalCoordinate,
+    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
+                                                                const geoops::UTMCoordinate& stGoalCoordinate,
                                                                 const std::vector<sl::ObjectData>& vObstacles)
     {
         // Translate Object data from camera and construct obstacle nodes.
@@ -398,6 +402,7 @@ namespace pathplanners
         UpdateObstacleData(vObstacles);
 
         // Map the goalLocation to an edge node based on maximum search size.
+        // TODO: debug this method.
         FindNearestBoundaryPoint(stGoalCoordinate);
         // Round Coordinates.
         RoundUTMCoordinate(stStartCoordinate);

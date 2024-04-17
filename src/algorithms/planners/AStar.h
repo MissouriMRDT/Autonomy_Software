@@ -59,7 +59,7 @@ namespace pathplanners
             void FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
-            void RoundUTMCoordinate(geoops::UTMCoordinate& stCoordinateToRound);
+            geoops::UTMCoordinate RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound);
             double CalculateNodeHValue(const nodes::AStarNode& stNodeToCalculate);
             void ConstructPath(const nodes::AStarNode& stFinalNode);
 
@@ -74,8 +74,8 @@ namespace pathplanners
             AStar();
             ~AStar();
 
-            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(geoops::UTMCoordinate& stStartCoordinate,
-                                                                 geoops::UTMCoordinate& stGoalCoordinate,
+            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
+                                                                 const geoops::UTMCoordinate& stGoalCoordinate,
                                                                  const std::vector<sl::ObjectData>& vObstacles = std::vector<sl::ObjectData>());
 
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);

@@ -11,7 +11,10 @@
 #ifndef AVOIDANCESTATE_H
 #define AVOIDANCESTATE_H
 
+#include "../algorithms/controllers/StanleyController.h"
+#include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -43,9 +46,15 @@ namespace statemachine
             double m_nMaxDataPoints;
             time_t m_tPathStartTime;
             time_t m_tStuckCheckTime;
-            double m_dStuckCheckLastPosition[2];
-            // TODO: Add ASTAR Pathfinder
-            // TODO: Add Stanley Controller
+
+            pathplanners::AStar m_stPlanner;
+            controllers::StanleyController m_stController =
+                controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
+            geoops::UTMCoordinate m_stStart;
+            geoops::UTMCoordinate m_stGoal;
+            geoops::Waypoint m_stGoalWaypoint;
+            std::vector<geoops::UTMCoordinate> m_vPlannedRoute;
+
             bool m_bInitialized;
 
         protected:

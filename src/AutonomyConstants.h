@@ -292,11 +292,16 @@ namespace constants
     const double SEARCH_SPACING                  = 2;                   // The spacing between successive points in the spiral (meters).
     const double SEARCH_WAYPOINT_PROXIMITY       = 1;                   // How close a rover must be to a point to have it count as visited.
     const double SEARCH_MOTOR_POWER              = DRIVE_MAX_EFFORT;    // The amount of power the motors use when approaching the marker.
+
     // Handler.
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+
+    // Avoidance State.
+    const double AVOIDANCE_STUCK_TIMER_THRESHOLD = 5;      // The number of seconds until avoidance state will transition to stuck state.
+    const double AVOIDANCE_STATE_DRIVE           = 0.5;    // Drive speed of avoidance state (set to 0.5 * MAX_DRIVE)
 
     ///////////////////////////////////////////////////////////////////////////
 
