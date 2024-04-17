@@ -15,7 +15,10 @@ jobs:
           submodules: recursive
           fetch-depth: 2
 
-      - name: Scan for 'LEAD' and Comment
+      - name: Setup environment
+        run: echo "REPO_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Scan for 'LEAD:' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -23,7 +26,7 @@ jobs:
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
-          awk '/^\+.*LEAD:/ && !/^+++ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+          awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
 
           if [ -s lines_with_lead.txt ]; then
             current_file=""
@@ -35,7 +38,7 @@ jobs:
               fi
               if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
                 echo "::warning file=${current_file},line=${line}::LEAD keyword found"
-                body="Detected a request for help from @MissouriMRDT/software_leads in this line. File: ${{ github.workspace }}/${current_file}:$line"
+                body="@MissouriMRDT/software_leads detected 'LEAD:' in this line. File: ${{ env.REPO_PATH }}/${current_file}:$line"
                 # Posting to GitHub
                 curl \
                   -X POST \
@@ -44,7 +47,7 @@ jobs:
                   -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
                   https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
                 # Posting to Discord
-                discord_message=":warning: **@Software Lead Help Request Detected** :warning:\n**File**: ${{ github.workspace }}/${current_file}\n**Line**: $line\n**Keyword**: 'LEAD:'\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                discord_message=":warning: **LEAD Keyword Detected** :warning:\n**File**: ${{ env.REPO_PATH }}/${current_file}\n**Line**: $line\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
                 curl -H "Content-Type: application/json" \
                   -d "{\"content\": \"$discord_message\"}" \
                   $DISCORD_WEBHOOK_URL
