@@ -1,0 +1,62 @@
+name: Lead Commenter
+
+on:
+  push:
+    branches-ignore:
+      - development
+
+jobs:
+  comment-on-lead:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+
+      - name: Setup environment
+        run: echo "REPO_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Scan for 'LEAD' and Comment/Send
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
+          echo "Scanning for 'LEAD:' keyword..."
+          git diff HEAD^ HEAD > diff.txt
+          awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+
+          if [ -s lines_with_lead.txt ]; then
+            current_file=""
+            commit_link="https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            discord_message=":warning: **Software Lead Help Requests Detected** :warning:\nSee the commit here: [${{ github.sha }}]($commit_link)"
+            
+            while IFS=: read -r line content; do
+              new_path=$(echo $content | sed -n -e 's/^+++ b\/\(.*\)/\1/p')
+              if [[ ! -z "$new_path" ]]; then
+                current_file=$new_path
+                continue
+              fi
+              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
+                echo "::warning file=${current_file},line=${line}::Help Request Found!"
+                body="Software Lead Help Requests Detected. See details in the commit: $commit_link"
+                
+                # Posting to GitHub
+                curl \
+                  -X POST \
+                  -H "Authorization: token $GITHUB_TOKEN" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
+                  https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
+              fi
+            done < lines_with_lead.txt
+
+            # Posting a single message to Discord
+            curl -H "Content-Type: application/json" \
+              -d "{\"content\": \"$discord_message\"}" \
+              $DISCORD_WEBHOOK_URL
+          else
+            echo "No 'LEAD:' keyword found."
+          fi
