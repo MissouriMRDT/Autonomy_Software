@@ -15,18 +15,11 @@ jobs:
           submodules: recursive
           fetch-depth: 2
 
-      - name: Setup Bash
-        run: |
-          echo "BASH_ENV=~/.bashrc" >> $GITHUB_ENV
-          echo "source ~/.bashrc" >> $GITHUB_ENV
-
       - name: Scan for 'LEAD' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          shell: bash
-
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
