@@ -21,38 +21,36 @@ jobs:
       - name: Scan for 'LEAD:' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }} # Set your Discord webhook URL in the repository secrets
         run: |
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
-          awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+          awk '/^\+.*LEAD:/ || /^+++ b\// {print $0}' diff.txt > lines_with_lead.txt
 
-          if [ -s lines_with_lead.txt ]; then
-            current_file=""
-            while IFS=: read -r line content; do
-              new_path=$(echo $content | sed -n -e 's/^+++ b\/\(.*\)/\1/p')
-              if [[ ! -z "$new_path" ]]; then
-                current_file=$new_path
-                continue
-              fi
-              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
-                echo "::warning file=${current_file},line=${line}::LEAD keyword found"
-                body="@MissouriMRDT/software_leads detected 'LEAD:' in this line. File: ${{ env.REPO_PATH }}/${current_file}:$line"
-                # Posting to GitHub
-                curl \
-                  -X POST \
-                  -H "Authorization: token $GITHUB_TOKEN" \
-                  -H "Accept: application/vnd.github.v3+json" \
-                  -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
-                  https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
-                # Posting to Discord
-                discord_message=":warning: **LEAD Keyword Detected** :warning:\n**File**: ${{ env.REPO_PATH }}/${current_file}\n**Line**: $line\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
-                curl -H "Content-Type: application/json" \
-                  -d "{\"content\": \"$discord_message\"}" \
-                  $DISCORD_WEBHOOK_URL
-              fi
-            done < lines_with_lead.txt
-          else
+          current_file=""
+          while IFS=: read -r line content; do
+            if [[ $content =~ ^\+\+\+ b\/(.*) ]]; then
+              current_file="${BASH_REMATCH[1]}"
+              continue
+            fi
+            if [[ $content =~ LEAD: && ! $current_file =~ (devcontainer.json|CONTRIBUTING.md|.github/workflows/help_request.yml)$ ]]; then
+              echo "::warning file=$current_file,line=$line::Lead Help Request Found"
+              body="Detected a request for help from @MissouriMRDT/software_leads on this line. File: ${{ env.REPO_PATH }}/$current_file:$line"
+              # Posting to GitHub
+              curl \
+                -X POST \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
+                https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
+              # Posting to Discord
+              discord_message=":warning: **Software Leads Help Request Detected** :warning:\n**File**: ${{ env.REPO_PATH }}/$current_file\n**Line**: $line\n**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+              curl -H "Content-Type: application/json" \
+                -d "{\"content\": \"$discord_message\"}" \
+                $DISCORD_WEBHOOK_URL
+            fi
+          done < lines_with_lead.txt
+          if [ -z "$current_file" ]; then
             echo "No 'LEAD:' keyword found."
           fi
