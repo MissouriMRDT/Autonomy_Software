@@ -18,7 +18,7 @@ jobs:
       - name: Setup environment
         run: echo "REPO_PATH=$(pwd)" >> $GITHUB_ENV
 
-      - name: Scan for 'LEAD' and Comment/Send
+      - name: Scan for 'LEAD:' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
