@@ -738,7 +738,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
     // Create instance variables.
     ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
     geoops::GPSCoordinate stCurrentPosition;
-    double dCurrentHeading = 0.0;;
+    double dCurrentHeading = 0.0;
 
     // Check if the main ZED camera is opened and the fusion module is initialized.
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetIsFusionMaster() && pMainCam->GetPositionalTrackingEnabled())
