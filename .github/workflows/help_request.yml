@@ -43,7 +43,7 @@ jobs:
               lines="${file_lines[$file]}"
               lines=${lines%, }  # Remove trailing comma
               echo "::warning file=$file::Help Request Detected"
-              body="Detected a request for help from @MissouriMRDT/software_leads.\nFile: $file\nSee details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+              body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
               # Posting to GitHub
               curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
                 -H "Accept: application/vnd.github.v3+json" \
