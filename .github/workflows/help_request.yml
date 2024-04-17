@@ -21,9 +21,9 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
-          echo "Scanning for 'LEAD:' keyword..."
+          echo "Scanning for 'LEAD' keyword..."
           git diff HEAD^ HEAD > diff.txt
-          awk '/^\+.*LEAD:/ && !/^+++ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+          awk '/^\+.*LEAD:/ && !/^+++ b\/(devcontainer.json|CONTRIBUTING.md|help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
 
           declare -A file_lines
           if [ -s lines_with_lead.txt ]; then
@@ -34,7 +34,7 @@ jobs:
                 current_file=$new_path
                 continue
               fi
-              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
+              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != "help_request.yml" ]]; then
                 file_lines["$current_file"]+="$line, "
               fi
             done < lines_with_lead.txt
@@ -42,8 +42,8 @@ jobs:
             for file in "${!file_lines[@]}"; do
               lines="${file_lines[$file]}"
               lines=${lines%, }  # Remove trailing comma
-              echo "::warning file=$file::LEAD keyword found"
-              body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+              echo "::warning file=$file::Help Request Detected"
+              body="Detected a request for help from @MissouriMRDT/software_leads.\nFile: $file\nSee details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
               # Posting to GitHub
               curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
                 -H "Accept: application/vnd.github.v3+json" \
@@ -52,10 +52,10 @@ jobs:
             done
 
             # Posting one simplified message to Discord for the entire commit
-            discord_message=":warning: **Software Lead Help Requests Detected** :warning:\n**Nice!** See the commit here: [Commit ${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+            discord_message=":warning: **Software Lead Help Requests Detected** :warning:\nSee the commit here: [Commit ${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
             curl -H "Content-Type: application/json" \
               -d "{\"content\": \"$discord_message\"}" \
               $DISCORD_WEBHOOK_URL
           else
-            echo "No 'LEAD:' keyword found."
+            echo "No 'LEAD' keyword found."
           fi
