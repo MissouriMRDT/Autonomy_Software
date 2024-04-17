@@ -3,7 +3,7 @@ name: Lead Commenter
 on:
   push:
     branches-ignore:
-      - development # Exclude the development branch
+      - development
 
 jobs:
   comment-on-lead:
@@ -15,17 +15,18 @@ jobs:
           submodules: recursive
           fetch-depth: 2
 
-      - name: Scan for 'LEAD' and Comment
+      - name: Setup environment
+        run: echo "REPO_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Scan for 'LEAD:' and Comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
-          echo "Scanning for 'LEAD' keyword..."
+          echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
-          awk '/^\+.*LEAD:/ && !/^+++ b\/(devcontainer.json|CONTRIBUTING.md|help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
-
-          declare -A file_lines
+          awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
           if [ -s lines_with_lead.txt ]; then
             current_file=""
             while IFS=: read -r line content; do
@@ -34,28 +35,25 @@ jobs:
                 current_file=$new_path
                 continue
               fi
-              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != "help_request.yml" ]]; then
-                file_lines["$current_file"]+="$line, "
+              if [[ "$current_file" != "devcontainer.json" && "$current_file" != "CONTRIBUTING.md" && "$current_file" != ".github/workflows/help_request.yml" ]]; then
+                echo "::warning file=${current_file},line=${line}::Help Request Found!"
+                body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+                
+                # Posting to GitHub
+                curl \
+                  -X POST \
+                  -H "Authorization: token $GITHUB_TOKEN" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -d "{\"body\": \"$body\", \"path\": \"$current_file\", \"position\": $line, \"commit_id\": \"${{ github.sha }}\"}" \
+                  https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments
+                
+                # Posting to Discord
+                discord_message=":warning: **Software Lead Help Requests Detected** :warning:\nSee the commit here: [Commit ${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                curl -H "Content-Type: application/json" \
+                  -d "{\"content\": \"$discord_message\"}" \
+                  $DISCORD_WEBHOOK_URL
               fi
             done < lines_with_lead.txt
-
-            for file in "${!file_lines[@]}"; do
-              lines="${file_lines[$file]}"
-              lines=${lines%, }  # Remove trailing comma
-              echo "::warning file=$file::Help Request Detected"
-              body="Detected a request for help from @MissouriMRDT/software_leads. See details in the commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
-              # Posting to GitHub
-              curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Accept: application/vnd.github.v3+json" \
-                -d "{\"body\": \"$body\", \"path\": \"$file\", \"position\": 1, \"commit_id\": \"${{ github.sha }}\"}" \
-                "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments"
-            done
-
-            # Posting one simplified message to Discord for the entire commit
-            discord_message=":warning: **Software Lead Help Requests Detected** :warning:\nSee the commit here: [Commit ${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
-            curl -H "Content-Type: application/json" \
-              -d "{\"content\": \"$discord_message\"}" \
-              $DISCORD_WEBHOOK_URL
           else
-            echo "No 'LEAD' keyword found."
+            echo "No 'LEAD:' keyword found."
           fi
