@@ -26,7 +26,7 @@ jobs:
           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
           echo "Scanning for 'LEAD:' keyword..."
           git diff HEAD^ HEAD > diff.txt
-          awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|.github\/workflows\/help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
+          awk '/^\+.*LEAD:/ && !/^\+\+\+ b\/(devcontainer.json|CONTRIBUTING.md|help_request.yml)/{print NR ":" $0}' diff.txt > lines_with_lead.txt
 
           if [ -s lines_with_lead.txt ]; then
             current_file=""
