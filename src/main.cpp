@@ -147,15 +147,14 @@ int main()
         globals::g_pMultimediaBoard = new MultimediaBoard();
         globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
-        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pCameraHandler       = new CameraHandler();
+        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
         globals::g_pStateMachineHandler = new StateMachineHandler();
 
-        // Start handlers.
+        // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
-        globals::g_pStateMachineHandler->StartStateMachine();
         // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
@@ -176,6 +175,9 @@ int main()
         // Camera and TagDetector config.
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
         pMainCam->EnableSpatialMapping();
+
+        // Now that cameras and detectors are configured start state machine.
+        globals::g_pStateMachineHandler->StartStateMachine();
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.

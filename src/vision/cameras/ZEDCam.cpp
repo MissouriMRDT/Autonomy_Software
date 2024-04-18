@@ -1415,7 +1415,7 @@ sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewG
                                     stNewGPSLocation.d2DAccuracy,
                                     stNewGPSLocation.d3DAccuracy);
                     }
-                    else
+                    else if (slReturnCode != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger,

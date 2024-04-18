@@ -234,7 +234,8 @@ void StateMachineHandler::ThreadedContinuousCode()
     // Create instance variable.
     static geoops::GPSCoordinate stNewGPSLocation;
     // Check if GPS data is recent and updated.
-    if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= constants::NAVBOARD_MAX_GPS_DATA_AGE)
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100 ||
+        (stNewGPSLocation.dLatitude == 0.0 && stNewGPSLocation.dLongitude == 0.0))
     {
         // Get the current NavBoard GPS data.
         stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
@@ -247,7 +248,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         stNewGPSLocation.dAltitude != m_stCurrentGPSLocation.dAltitude)
     {
         // Check GNSS Fusion is enabled and the main ZED camera is a fusion master.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && m_stCurrentGPSLocation.bIsDifferential)
+        if (constants::FUSION_ENABLE_GNSS_FUSION && stNewGPSLocation.bIsDifferential)
         {
             // Check if main ZED camera is setup to use GPS fusion.
             if (m_pMainCam->GetIsFusionMaster() && m_pMainCam->GetPositionalTrackingEnabled())
@@ -261,6 +262,11 @@ void StateMachineHandler::ThreadedContinuousCode()
             // Reset DiffGPS warning print toggle.
             if (bAlreadyPrintedDiffGPSWarning)
             {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
+
+                // Rest toggle.
                 bAlreadyPrintedDiffGPSWarning = false;
             }
         }
@@ -269,7 +275,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         {
             // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
-                globals::g_pNavigationBoard->GetHeading() <= constants::STUCK_CHECK_ROT_THRESH)
+                globals::g_pNavigationBoard->GetHeading() <= constants::STUCK_CHECK_ROT_THRESH && m_pMainCam->GetPositionalTrackingEnabled())
             {
                 // Update current GPS position.
                 m_stCurrentGPSLocation = stNewGPSLocation;
@@ -416,7 +422,12 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
         else
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading.");
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading.");
         }
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading. The camera is not open yet!");
     }
 }
