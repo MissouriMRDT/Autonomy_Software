@@ -11,7 +11,6 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
-#include "../interfaces/AutonomyThread.hpp"
 #include "./CameraHandler.h"
 
 #include "../states/ApproachingMarkerState.h"
