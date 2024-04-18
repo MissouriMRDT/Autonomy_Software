@@ -11,7 +11,6 @@
 #ifndef OBJECT_DETECTOR_H
 #define OBJECT_DETECTOR_H
 
-#include "../../interfaces/AutonomyThread.hpp"
 #include "../../vision/cameras/BasicCam.h"
 #include "../../vision/cameras/ZEDCam.h"
 #include "./DepthDetection.hpp"

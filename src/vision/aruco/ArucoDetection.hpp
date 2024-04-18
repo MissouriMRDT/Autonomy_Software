@@ -12,7 +12,6 @@
 #ifndef ARUCO_DETECTION_HPP
 #define ARUCO_DETECTION_HPP
 
-#include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/vision/ImageOperations.hpp"
 

@@ -11,8 +11,6 @@
 #ifndef ZEDCAM_H
 #define ZEDCAM_H
 
-#include "../../AutonomyConstants.h"
-#include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/Camera.hpp"
 #include "../../util/GeospatialOperations.hpp"
 
@@ -34,7 +32,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
+class ZEDCam : public Camera<cv::Mat>
 {
     public:
         /////////////////////////////////////////
