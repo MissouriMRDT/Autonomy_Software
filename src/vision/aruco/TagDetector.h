@@ -12,7 +12,6 @@
 #ifndef TAG_DETECTOR_H
 #define TAG_DETECTOR_H
 
-#include "../../interfaces/AutonomyThread.hpp"
 #include "../../vision/cameras/BasicCam.h"
 #include "../../vision/cameras/ZEDCam.h"
 #include "./ArucoDetection.hpp"

@@ -12,7 +12,6 @@
 #ifndef ARUCO_DETECTION_HPP
 #define ARUCO_DETECTION_HPP
 
-#include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/vision/ImageOperations.hpp"
 
@@ -45,13 +44,13 @@ namespace arucotag
     {
         public:
             // Declare public struct member attributes.
-            cv::Point2f CornerTL;                                                                 // The top left corner of the bounding box.
-            cv::Point2f CornerTR;                                                                 // The top right corner of the bounding box.
-            cv::Point2f CornerBL;                                                                 // The bottom left corner of the bounding box.
-            cv::Point2f CornerBR;                                                                 // The bottom right corner of bounding box.
-            std::vector<cv::Point2f*> vCorners = {&CornerTL, &CornerTR, &CornerBL, &CornerBR};    // Provide an easy method for getting all corners.
-            int nID;                                                                              // ID of the tag.
-            int nHits;                                                                            // Total number of detections for tag id.
+            cv::Point2f CornerTL;                                                                       // The top left corner of the bounding box.
+            cv::Point2f CornerTR;                                                                       // The top right corner of the bounding box.
+            cv::Point2f CornerBL;                                                                       // The bottom left corner of the bounding box.
+            cv::Point2f CornerBR;                                                                       // The bottom right corner of bounding box.
+            std::vector<const cv::Point2f*> vCorners = {&CornerTL, &CornerTR, &CornerBL, &CornerBR};    // Provide an easy method for getting all corners.
+            int nID;                                                                                    // ID of the tag.
+            int nHits;                                                                                  // Total number of detections for tag id.
             int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
             double dStraightLineDistance;    // Distance between the tag and the camera.
             double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
@@ -72,7 +71,7 @@ namespace arucotag
         cv::Point2f cvCenter(0, 0);
 
         // Loop through each corner of the tag.
-        for (cv::Point2f* cvCorner : stTag.vCorners)
+        for (const cv::Point2f* cvCorner : stTag.vCorners)
         {
             // Add each tag x, y to the center x, y.
             cvCenter.x += cvCorner->x;

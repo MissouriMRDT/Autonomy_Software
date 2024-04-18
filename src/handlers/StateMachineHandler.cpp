@@ -30,6 +30,9 @@ StateMachineHandler::StateMachineHandler()
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::BMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
+    // Initialize member variables.
+    m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
 }
@@ -227,6 +230,74 @@ void StateMachineHandler::ThreadedContinuousCode()
         // Run the current state
         m_pCurrentState->Run();
     }
+
+    // Create instance variable.
+    static geoops::GPSCoordinate stNewGPSLocation;
+    // Check if GPS data is recent and updated.
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100 ||
+        (stNewGPSLocation.dLatitude == 0.0 && stNewGPSLocation.dLongitude == 0.0))
+    {
+        // Get the current NavBoard GPS data.
+        stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+    }
+
+    // Create static boolean value for toggling DiffGPS warning log print.
+    static bool bAlreadyPrintedDiffGPSWarning = false;
+    // Check if the current GPS data is different from the old.
+    if (stNewGPSLocation.dLatitude != m_stCurrentGPSLocation.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSLocation.dLongitude &&
+        stNewGPSLocation.dAltitude != m_stCurrentGPSLocation.dAltitude)
+    {
+        // Check GNSS Fusion is enabled and the main ZED camera is a fusion master.
+        if (constants::FUSION_ENABLE_GNSS_FUSION && stNewGPSLocation.bIsDifferential)
+        {
+            // Check if main ZED camera is setup to use GPS fusion.
+            if (m_pMainCam->GetIsFusionMaster() && m_pMainCam->GetPositionalTrackingEnabled())
+            {
+                // Update current GPS position.
+                m_stCurrentGPSLocation = stNewGPSLocation;
+                // Feed current GPS location to main ZED camera.
+                m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
+            }
+
+            // Reset DiffGPS warning print toggle.
+            if (bAlreadyPrintedDiffGPSWarning)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
+
+                // Rest toggle.
+                bAlreadyPrintedDiffGPSWarning = false;
+            }
+        }
+        // If not using GPS fusion then realign the camera's relative position to current GPS position when in Idle.
+        else if (m_pCurrentState->GetState() == statemachine::States::eIdle)
+        {
+            // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
+            if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
+                globals::g_pNavigationBoard->GetHeading() <= constants::STUCK_CHECK_ROT_THRESH && m_pMainCam->GetPositionalTrackingEnabled())
+            {
+                // Update current GPS position.
+                m_stCurrentGPSLocation = stNewGPSLocation;
+                // Get current compass heading.
+                double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
+                // Realign the main ZED cameras pose with current GPS-based position and heading.
+                this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
+            }
+
+            // Check if GPS coordinate from NavBoard is not differential and print warning log.
+            if (!bAlreadyPrintedDiffGPSWarning)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
+                            "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
+
+                // Set already printed toggle.
+                bAlreadyPrintedDiffGPSWarning = true;
+            }
+        }
+    }
 }
 
 /******************************************************************************
@@ -307,4 +378,56 @@ statemachine::States StateMachineHandler::GetPreviousState() const
 {
     // Check if the previous state exists and return it if it does otherwise return Idle
     return m_pPreviousState ? m_pPreviousState->GetState() : statemachine::States::eIdle;
+}
+
+/******************************************************************************
+ * @brief This is used to realign the ZEDs forward direction with the rover's
+ *      current compass heading. Realigning GPS latlon is not necessary since
+ *      we're using the ZEDSDK's Fusion module. The heading of the camera's
+ *      GeoPose is actually automatically realigned too depending on what direction
+ *      We are headed, but this is just to be safe.
+ *
+ * @param eCameraName - The camera name represented as an enum from the CameraHandler class.
+ * @param stNewCameraPosition - The new UTM position of the ZED camera.
+ * @param dNewCameraHeading - The new compass heading of the ZED camera.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-17
+ ******************************************************************************/
+void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading)
+{
+    // Get main ZEDCam.
+    ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
+
+    // Check if main ZEDCam is opened and positional tracking is enabled.
+    if (pMainCam->GetCameraIsOpen())
+    {
+        // Request for the cameras current pose.
+        ZEDCam::Pose stCurrentCameraPose;
+        std::future<bool> fuPoseReturnStatus = pMainCam->RequestPositionalPoseCopy(stCurrentCameraPose);
+        // Wait for pose to be copied.
+        if (fuPoseReturnStatus.get())
+        {
+            // Update camera Y heading with GPSs current heading.
+            pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
+                                        stNewCameraPosition.dAltitude,
+                                        stNewCameraPosition.dNorthing,
+                                        stCurrentCameraPose.stEulerAngles.dXO,
+                                        dNewCameraHeading,
+                                        stCurrentCameraPose.stEulerAngles.dZO);
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position.");
+        }
+        else
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading.");
+        }
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading. The camera is not open yet!");
+    }
 }

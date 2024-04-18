@@ -11,7 +11,6 @@
 #ifndef STUCKSTATE_H
 #define STUCKSTATE_H
 
-#include "../algorithms/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 

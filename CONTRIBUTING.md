@@ -120,6 +120,7 @@ Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
 - Thread > `th` > Example: `jthread thExampleUseOfThread`
 - Mutex > `mu` > Example: `mutex muExampleUseOfMutex`
 - Lock > `lk` > Example: `lock lkExampleUseOfLock`
+- Condition Variable > `cd` > Example: `condition_variable cdExampleUseOfConditionVariable`
 - Struct > `st` > Example: `StructName stExampleUseOfStruct`
 - Future > `fu` > Example: `future<void> fuExampleUseOfFuture`
 - Promise > `pm` > Example: `promise<void> pmExampleUseIfPromise`
