@@ -753,11 +753,11 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
         {
             // Create instance variables.
             sl::GeoPose slCurrentCameraGeoPose;
-            sl::Pose slCurrentCameraVIOPose;
+            ZEDCam::Pose stCurrentCameraVIOPose;
 
             // Get the current camera pose from the ZEDCam.
             std::future<bool> fuResultStatus  = pMainCam->RequestFusionGeoPoseCopy(slCurrentCameraGeoPose);
-            std::future<bool> fuResultStatus2 = pMainCam->RequestPositionalPoseCopy(slCurrentCameraVIOPose);
+            std::future<bool> fuResultStatus2 = pMainCam->RequestPositionalPoseCopy(stCurrentCameraVIOPose);
             // Wait for future to be fulfilled.
             if (fuResultStatus.get() && fuResultStatus2.get())
             {
@@ -767,7 +767,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
                 stCurrentPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
                 // Repack the camera pose into a UTMCoordinate.
                 // dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some reason.
-                dCurrentHeading = numops::InputAngleModulus(slCurrentCameraVIOPose.getEulerAngles(false).y, 0.0f, 360.0f);
+                dCurrentHeading = numops::InputAngleModulus(stCurrentCameraVIOPose.stEulerAngles.dYO, 0.0, 360.0);
 
                 // Set fused toggle.
                 bVIOGPSFused = true;
@@ -782,23 +782,23 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
         else
         {
             // Create instance variables.
-            sl::Pose slCurrentCameraVIOPose;
+            ZEDCam::Pose stCurrentCameraVIOPose;
 
             // Get the current camera pose from the ZEDCam.
-            std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraVIOPose);
+            std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(stCurrentCameraVIOPose);
             // Wait for future to be fulfilled.
             if (fuResultStatus.get())
             {
                 // Camera is using UTM. Modify current GPS position to be camera's position.
                 geoops::UTMCoordinate stCameraUTMLocation = geoops::ConvertGPSToUTM(stCurrentGPSPosition);
                 // Repack the camera pose into a GPSCoordinate.
-                stCameraUTMLocation.dEasting  = slCurrentCameraVIOPose.getTranslation().x;
-                stCameraUTMLocation.dNorthing = slCurrentCameraVIOPose.getTranslation().z;
-                stCameraUTMLocation.dAltitude = slCurrentCameraVIOPose.getTranslation().y;
+                stCameraUTMLocation.dEasting  = stCurrentCameraVIOPose.stTranslation.dX;
+                stCameraUTMLocation.dNorthing = stCurrentCameraVIOPose.stTranslation.dZ;
+                stCameraUTMLocation.dAltitude = stCurrentCameraVIOPose.stTranslation.dY;
                 // Convert back to GPS coordinate and store.
                 stCurrentPosition = geoops::ConvertUTMToGPS(stCameraUTMLocation);
                 // Get compass heading based off of the ZED's aligned accelerometer.
-                dCurrentHeading = numops::InputAngleModulus(slCurrentCameraVIOPose.getEulerAngles(false).y, 0.0f, 360.0f);
+                dCurrentHeading = numops::InputAngleModulus(stCurrentCameraVIOPose.stEulerAngles.dYO, 0.0, 360.0);
 
                 // Set fused toggle.
                 bVIOGPSFused = false;

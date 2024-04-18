@@ -467,12 +467,8 @@ void ZEDCam::ThreadedContinuousCode()
                     // Check if this camera has Fusion instance enabled.
                     if (m_bCameraIsFusionMaster)
                     {
-                        // Acquire read lock.
-                        std::shared_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
                         // Get tracking pose from Fusion.
                         slPoseTrackReturnCode = m_slFusionInstance.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-                        // Release lock.
-                        lkFusionLock.unlock();
                     }
                     else
                     {
@@ -494,12 +490,8 @@ void ZEDCam::ThreadedContinuousCode()
                 // Check if geo poses have been requested.
                 if (m_bCameraIsFusionMaster && m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
                 {
-                    // Acquire read lock.
-                    std::shared_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
                     // Get the fused geo pose from the camera.
                     sl::GNSS_FUSION_STATUS slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
-                    // Release lock.
-                    lkFusionLock.unlock();
                     // Check that the geo pose was retrieved successfully.
                     if (slGeoPoseTrackReturnCode != sl::GNSS_FUSION_STATUS::OK && slGeoPoseTrackReturnCode != sl::GNSS_FUSION_STATUS::CALIBRATION_IN_PROGRESS)
                     {
@@ -755,20 +747,22 @@ void ZEDCam::PooledLinearCode()
     if (!m_qPoseCopySchedule.empty())
     {
         // Get pose container out of queue.
-        containers::DataFetchContainer<sl::Pose> stContainer = m_qPoseCopySchedule.front();
+        containers::DataFetchContainer<Pose> stContainer = m_qPoseCopySchedule.front();
         // Pop out of queue.
         m_qPoseCopySchedule.pop();
         // Release lock.
         lkPoseQueue.unlock();
 
-        // Copy pose.
-        *(stContainer.pData) = sl::Pose(m_slCameraPose);
+        // Create instance variables.
+        Pose stPose(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
+                    m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
+                    m_slCameraPose.getTranslation().z + m_dPoseOffsetZ,
+                    m_slCameraPose.getEulerAngles(false).x,
+                    m_slCameraPose.getEulerAngles(false).y,
+                    m_slCameraPose.getEulerAngles(false).z);
 
-        // Adjust for an pose offsets from SetPositionalPose() method.
-        sl::Translation slTranslationOffset(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
-                                            m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
-                                            m_slCameraPose.getTranslation().z + m_dPoseOffsetZ);
-        stContainer.pData->pose_data.setTranslation(slTranslationOffset);
+        // Copy pose.
+        *(stContainer.pData) = stPose;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -1577,9 +1571,10 @@ void ZEDCam::DisablePositionalTracking()
  * @return sl::ERROR_CODE - Whether or not the pose was set successfully.
  *
  * @bug The ZEDSDK currently cannot handle resetting the positional pose with large translational (dX, dY, dZ) values without breaking positional
- *      tracking. To fix this I (claytonraycowen@gmail.com), have decided to just handle the translation offsets internally. So when SetPositionalPose()
- *      is called is assigns the dX, dY, and dZ values to private member variables of this class, then the offsets are added the the pose in the PooledLinearCode()
- *      under the pose requests section. If StereoLabs fixes this in the future, I will go back to using the sl::Translation to reset positional tracking.
+ *      tracking. This is because the values are floats and not doubles. To fix this I (claytonraycowen@gmail.com), have decided to just handle the translation offsets
+ *      internally. So when SetPositionalPose() is called is assigns the dX, dY, and dZ values to private member variables of this class, then the offsets are added the
+ *      the pose in the PooledLinearCode() under the pose requests section. If StereoLabs fixes this in the future, I will go back to using the sl::Translation to reset
+ *      positional tracking.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
@@ -1842,9 +1837,9 @@ unsigned int ZEDCam::GetCameraSerial()
 /******************************************************************************
  * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
  *      Puts a Pose pointer into a queue so a copy of a pose from the camera can be written to it.
- *      If positional tracking is not enabled, this method will return false and the sl::Pose may be uninitialized.
+ *      If positional tracking is not enabled, this method will return false and the ZEDCam::Pose may be uninitialized.
  *
- * @param slPose - A reference to the sl::Pose object to copy the current camera pose to.
+ * @param stPose - A reference to the ZEDCam::Pose object to copy the current camera pose to.
  * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
  *                          Value will be true if pose was successfully retrieved.
  *
@@ -1854,7 +1849,7 @@ unsigned int ZEDCam::GetCameraSerial()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
+std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
 {
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
@@ -1864,7 +1859,7 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(sl::Pose& slPose)
         // Release lock.
         lkCameraLock.unlock();
         // Assemble the data container.
-        containers::DataFetchContainer<sl::Pose> stContainer(slPose);
+        containers::DataFetchContainer<Pose> stContainer(stPose);
 
         // Acquire lock on pose copy queue.
         std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
