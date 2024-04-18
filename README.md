@@ -56,7 +56,7 @@ Click <a href="https://missourimrdt.github.io/Autonomy_Software/" target="_blank
 
 
 ### Here's the overall layout of the Autonomy_Software codebase:
-![Autonomy_Software Codebase Structure](https://missourimrdt.github.io/Autonomy_Software/src_2main_8cpp__incl.png)
+![Autonomy_Software Codebase Structure](https://missourimrdt.github.io/Autonomy_Software/main_8cpp__incl.png)
 
 ## Overview
 
