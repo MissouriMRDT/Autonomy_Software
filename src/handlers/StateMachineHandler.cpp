@@ -265,7 +265,7 @@ void StateMachineHandler::ThreadedContinuousCode()
             }
         }
         // If not using GPS fusion then realign the camera's relative position to current GPS position when in Idle.
-        else if (m_pMainCam->GetPositionalTrackingEnabled() && m_pCurrentState->GetState() == statemachine::States::eIdle)
+        else if (m_pCurrentState->GetState() == statemachine::States::eIdle)
         {
             // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
@@ -397,8 +397,8 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
     {
         // Request for the cameras current pose.
-        sl::Pose slCurrentCameraPose;
-        std::future<bool> fuPoseReturnStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
+        ZEDCam::Pose stCurrentCameraPose;
+        std::future<bool> fuPoseReturnStatus = pMainCam->RequestPositionalPoseCopy(stCurrentCameraPose);
         // Wait for pose to be copied.
         if (fuPoseReturnStatus.get())
         {
@@ -406,9 +406,12 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
             pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
                                         stNewCameraPosition.dAltitude,
                                         stNewCameraPosition.dNorthing,
-                                        slCurrentCameraPose.getEulerAngles().x,
+                                        stCurrentCameraPose.stEulerAngles.dXO,
                                         dNewCameraHeading,
-                                        slCurrentCameraPose.getEulerAngles().z);
+                                        stCurrentCameraPose.stEulerAngles.dZO);
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position.");
         }
         else
         {

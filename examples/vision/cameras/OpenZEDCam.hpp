@@ -95,7 +95,7 @@ void RunExample()
     cv::cuda::GpuMat cvGPUDepthFrame1;
     cv::cuda::GpuMat cvGPUPointCloud1;
     // Declare other data types to store data in.
-    sl::Pose slPose;
+    ZEDCam::Pose stPose;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -124,7 +124,7 @@ void RunExample()
             fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(slPose);
+        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
 
         // Wait for the frames to be copied.
         if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
@@ -155,12 +155,16 @@ void RunExample()
             // Wait for the other info to be copied.
             if (fuPoseCopyStatus.get())
             {
-                // Wait for the
-                sl::Translation slTranslation = slPose.getTranslation();
-                sl::float3 slEulerAngles      = slPose.getEulerAngles(false);
-
-                LOG_INFO(logging::g_qConsoleLogger, "Positional Tracking: X: {} | Y: {} | Z: {}", slTranslation.x, slTranslation.y, slTranslation.z);
-                LOG_INFO(logging::g_qConsoleLogger, "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}", slEulerAngles[0], slEulerAngles[1], slEulerAngles[2]);
+                LOG_INFO(logging::g_qConsoleLogger,
+                         "Positional Tracking: X: {} | Y: {} | Z: {}",
+                         stPose.stTranslation.dX,
+                         stPose.stTranslation.dY,
+                         stPose.stTranslation.dZ);
+                LOG_INFO(logging::g_qConsoleLogger,
+                         "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}",
+                         stPose.stEulerAngles.dXO,
+                         stPose.stEulerAngles.dYO,
+                         stPose.stEulerAngles.dZO);
             }
 
             // Print info.

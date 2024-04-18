@@ -89,6 +89,66 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
                 std::string GetObjectUUID() { return szObjectUUID; };
         };
 
+        /******************************************************************************
+         * @brief This struct is used within the ZEDCam class to store the camera pose with high precision.
+         *      The sl::Pose object from the ZEDSDK stores everything as float which is not precise enough for storing
+         *      relative UTM values. This struct replaces that.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-04-17
+         ******************************************************************************/
+        struct Pose
+        {
+            private:
+                // Declare struct for storing translation values.
+                struct Translation
+                {
+                    public:
+                        double dX;    // Translation in ZED_MEASURE_UNITS on the x-axis.
+                        double dY;    // Translation in ZED_MEASURE_UNITS on the y-axis.
+                        double dZ;    // Translation in ZED_MEASURE_UNITS on the z-axis.
+                };
+
+                // Declare struct for storing rotation values.
+                struct EulerAngles
+                {
+                    public:
+                        double dXO;    // Rotation in degrees around the x-axis.
+                        double dYO;    // Rotation in degrees around the y-axis.
+                        double dZO;    // Rotation in degrees around the z-axis.
+                };
+
+            public:
+                // Declare struct public member variables.
+                Translation stTranslation;
+                EulerAngles stEulerAngles;
+
+                /******************************************************************************
+                 * @brief Construct a new Pose object.
+                 *
+                 * @param dX - The X position of the camera in ZED_MEASURE_UNITS.
+                 * @param dY - The Y position of the camera in ZED_MEASURE_UNITS.
+                 * @param dZ - The Z position of the camera in ZED_MEASURE_UNITS.
+                 * @param dXO - The tilt of the camera around the X axis in degrees.
+                 * @param dYO - The tilt of the camera around the Y axis in degrees.
+                 * @param dZO - The tilt of the camera around the Z axis in degrees.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2024-04-17
+                 ******************************************************************************/
+                Pose(const double dX = 0.0, const double dY = 0.0, const double dZ = 0.0, const double dXO = 0.0, const double dYO = 0.0, const double dZO = 0.0)
+                {
+                    // Initialize member variables.
+                    stTranslation.dX  = dX;
+                    stTranslation.dY  = dY;
+                    stTranslation.dZ  = dZ;
+                    stEulerAngles.dXO = dXO;
+                    stEulerAngles.dYO = dYO;
+                    stEulerAngles.dZO = dZO;
+                }
+        };
+
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
@@ -141,7 +201,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         bool GetIsFusionMaster() const;
         std::string GetCameraModel();
         unsigned int GetCameraSerial();
-        std::future<bool> RequestPositionalPoseCopy(sl::Pose& slPose);
+        std::future<bool> RequestPositionalPoseCopy(Pose& stPose);
         std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose);
         std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane);
         bool GetPositionalTrackingEnabled();
@@ -208,7 +268,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUFrameCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<ZedObjectData>>> m_qCustomBoxIngestSchedule;
-        std::queue<containers::DataFetchContainer<sl::Pose>> m_qPoseCopySchedule;
+        std::queue<containers::DataFetchContainer<Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::Plane>> m_qFloorCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;

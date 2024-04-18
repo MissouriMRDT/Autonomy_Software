@@ -229,6 +229,8 @@ int main()
         // Check if ZED spatial map was enabled.
         if (pMainCam->GetSpatialMappingState() == sl::SPATIAL_MAPPING_STATE::OK)
         {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Exporting ZED spatial map...");
             // Extract and save spatial map.
             std::future<sl::Mesh> fuSpatialMap;
             pMainCam->ExtractSpatialMapAsync(fuSpatialMap);
