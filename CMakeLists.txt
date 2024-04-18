@@ -31,7 +31,7 @@ if(NOT CTest_CMake_INCLUDED)
 endif()
 
 ## Enable or Disble Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 if(BUILD_SIM_MODE)
     message("Sim Mode: Enabled")
     add_compile_definitions(__AUTONOMY_SIM_MODE__=1)
