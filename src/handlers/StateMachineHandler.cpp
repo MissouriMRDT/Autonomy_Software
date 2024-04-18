@@ -394,7 +394,7 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
     ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
 
     // Check if main ZEDCam is opened and positional tracking is enabled.
-    if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
+    if (pMainCam->GetCameraIsOpen())
     {
         // Request for the cameras current pose.
         ZEDCam::Pose stCurrentCameraPose;

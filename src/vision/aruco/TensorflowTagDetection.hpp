@@ -12,8 +12,6 @@
 #ifndef TENSORFLOW_TAG_DETECTION_HPP
 #define TENSORFLOW_TAG_DETECTION_HPP
 
-#include "../../AutonomyConstants.h"
-#include "../../AutonomyLogging.h"
 #include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
