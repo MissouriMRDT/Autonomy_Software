@@ -58,6 +58,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_bCameraIsFusionMaster     = bEnableFusionMaster;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
     m_unCameraSerialNumber      = unCameraSerialNumber;
+    m_dPoseOffsetX              = 0.0;
+    m_dPoseOffsetY              = 0.0;
+    m_dPoseOffsetZ              = 0.0;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -761,6 +764,12 @@ void ZEDCam::PooledLinearCode()
         // Copy pose.
         *(stContainer.pData) = sl::Pose(m_slCameraPose);
 
+        // Adjust for an pose offsets from SetPositionalPose() method.
+        sl::Translation slTranslationOffset(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
+                                            m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
+                                            m_slCameraPose.getTranslation().z + m_dPoseOffsetZ);
+        stContainer.pData->pose_data.setTranslation(slTranslationOffset);
+
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
@@ -1105,8 +1114,12 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
  ******************************************************************************/
 sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
 {
-    // Create new translation to set position back to zero.
-    sl::Translation slZeroTranslation(0.0, 0.0, 0.0);
+    // Create new translation to set position back to user given values.
+    sl::Translation slZeroTranslation(0, 0, 0);
+    // Update offset member variables.
+    m_dPoseOffsetX = 0.0;
+    m_dPoseOffsetY = 0.0;
+    m_dPoseOffsetZ = 0.0;
     // This will reset position and coordinate frame.
     sl::Rotation slZeroRotation;
     slZeroRotation.setEulerAngles(sl::float3(0.0, 0.0, 0.0), false);
@@ -1563,24 +1576,33 @@ void ZEDCam::DisablePositionalTracking()
  * @param dZO - The tilt of the camera around the Z axis in degrees.
  * @return sl::ERROR_CODE - Whether or not the pose was set successfully.
  *
+ * @bug The ZEDSDK currently cannot handle resetting the positional pose with large translational (dX, dY, dZ) values without breaking positional
+ *      tracking. To fix this I (claytonraycowen@gmail.com), have decided to just handle the translation offsets internally. So when SetPositionalPose()
+ *      is called is assigns the dX, dY, and dZ values to private member variables of this class, then the offsets are added the the pose in the PooledLinearCode()
+ *      under the pose requests section. If StereoLabs fixes this in the future, I will go back to using the sl::Translation to reset positional tracking.
+ *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
+sl::ERROR_CODE ZEDCam::SetPositionalPose(const float dX, const float dY, const float dZ, const float dXO, const float dYO, const float dZO)
 {
     // Create new translation to set position back to user given values.
-    sl::Translation slZeroTranslation(dX, dY, dZ);
+    sl::Translation slZeroTranslation(0, 0, 0);
+    // Update offset member variables.
+    m_dPoseOffsetX = dX;
+    m_dPoseOffsetY = dY;
+    m_dPoseOffsetZ = dZ;
     // This will reset position and coordinate frame.
-    sl::Rotation slZeroRotation;
-    slZeroRotation.setEulerAngles(sl::float3(dXO, dYO, dZO), false);
+    sl::Rotation slNewRotation;
+    slNewRotation.setEulerAngles(sl::float3(dXO, dYO, dZO), false);
 
     // Store new translation and rotation in a transform object.
-    sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
+    sl::Transform slNewTransform(slNewRotation, slZeroTranslation);
 
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     // Reset the positional tracking location of the camera.
-    return m_slCamera.resetPositionalTracking(slZeroTransform);
+    return m_slCamera.resetPositionalTracking(slNewTransform);
 }
 
 /******************************************************************************

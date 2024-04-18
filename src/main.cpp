@@ -181,6 +181,7 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
+        sl::Pose slTest;
         while (!bMainStop)
         {
             // Send current robot state over RoveComm.

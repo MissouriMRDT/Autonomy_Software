@@ -421,7 +421,7 @@ namespace geoops
             // Reverse solve for the UTM coord.
             GeographicLib::UTMUPS::Reverse(stUTMCoord.nZone,
                                            stUTMCoord.bWithinNorthernHemisphere,
-                                           stUTMCoord.dEasting,
+                                           std::fabs(stUTMCoord.dEasting),
                                            stUTMCoord.dNorthing,
                                            stConvertCoord.dLatitude,
                                            stConvertCoord.dLongitude,

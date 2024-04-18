@@ -31,7 +31,6 @@ StateMachineHandler::StateMachineHandler()
     network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::BMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // Initialize member variables.
-    // Get pointer to main camera.
     m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
@@ -232,22 +231,31 @@ void StateMachineHandler::ThreadedContinuousCode()
         m_pCurrentState->Run();
     }
 
-    // Create static boolean value for toggling DiffGPS warning log print.
-    static bool bAlreadyPrintedDiffGPSWarning = false;
+    // Create instance variable.
+    static geoops::GPSCoordinate stNewGPSLocation;
     // Check if GPS data is recent and updated.
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100)
+    if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= constants::NAVBOARD_MAX_GPS_DATA_AGE)
     {
         // Get the current NavBoard GPS data.
-        geoops::GPSCoordinate stCurrentUTMLocation = globals::g_pNavigationBoard->GetGPSData();
+        stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
+    }
 
+    // Create static boolean value for toggling DiffGPS warning log print.
+    static bool bAlreadyPrintedDiffGPSWarning = false;
+    // Check if the current GPS data is different from the old.
+    if (stNewGPSLocation.dLatitude != m_stCurrentGPSLocation.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSLocation.dLongitude &&
+        stNewGPSLocation.dAltitude != m_stCurrentGPSLocation.dAltitude)
+    {
         // Check GNSS Fusion is enabled and the main ZED camera is a fusion master.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && stCurrentUTMLocation.bIsDifferential)
+        if (constants::FUSION_ENABLE_GNSS_FUSION && m_stCurrentGPSLocation.bIsDifferential)
         {
             // Check if main ZED camera is setup to use GPS fusion.
             if (m_pMainCam->GetIsFusionMaster() && m_pMainCam->GetPositionalTrackingEnabled())
             {
+                // Update current GPS position.
+                m_stCurrentGPSLocation = stNewGPSLocation;
                 // Feed current GPS location to main ZED camera.
-                m_pMainCam->IngestGPSDataToFusion(stCurrentUTMLocation);
+                m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
             }
 
             // Reset DiffGPS warning print toggle.
@@ -263,18 +271,20 @@ void StateMachineHandler::ThreadedContinuousCode()
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
                 globals::g_pNavigationBoard->GetHeading() <= constants::STUCK_CHECK_ROT_THRESH)
             {
+                // Update current GPS position.
+                m_stCurrentGPSLocation = stNewGPSLocation;
                 // Get current compass heading.
                 double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
                 // Realign the main ZED cameras pose with current GPS-based position and heading.
-                this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(stCurrentUTMLocation), dCurrentCompassHeading);
+                this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
             }
 
             // Check if GPS coordinate from NavBoard is not differential and print warning log.
-            if (!stCurrentUTMLocation.bIsDifferential)
+            if (!bAlreadyPrintedDiffGPSWarning)
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger,
-                            "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion and instead fallback to aligning "
+                            "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
                             "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
 
                 // Set already printed toggle.
