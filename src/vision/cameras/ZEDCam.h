@@ -126,7 +126,7 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
 
         sl::ERROR_CODE EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR);
         void DisablePositionalTracking();
-        sl::ERROR_CODE SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
+        sl::ERROR_CODE SetPositionalPose(const float dX, const float dY, const float dZ, const float dXO, const float dYO, const float dZO);
         sl::ERROR_CODE EnableSpatialMapping();
         void DisableSpatialMapping();
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
@@ -188,6 +188,11 @@ class ZEDCam : public Camera<cv::Mat>, public AutonomyThread<void>
         bool m_bCameraIsFusionMaster;
         float m_fExpectedCameraHeightFromFloorTolerance;
         int m_nNumFrameRetrievalThreads;
+
+        // Pose tracking offsets. (ZEDSDK is broken and can't handle large translations internally)
+        double m_dPoseOffsetX;
+        double m_dPoseOffsetY;
+        double m_dPoseOffsetZ;
 
         // Data from NavBoard.
         geoops::GPSCoordinate m_stCurrentGPSBasedPosition;
