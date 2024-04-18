@@ -44,8 +44,6 @@ namespace statemachine
             int m_nMaxDataPoints;
             bool m_bInitialized;
 
-            void UpdateZEDPosition();
-
         protected:
             void Start() override;
             void Exit() override;

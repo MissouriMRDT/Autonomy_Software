@@ -11,7 +11,7 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
-#include "../interfaces/AutonomyThread.hpp"
+#include "./CameraHandler.h"
 
 #include "../states/ApproachingMarkerState.h"
 #include "../states/ApproachingObjectState.h"
@@ -53,6 +53,8 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_mutex m_muStateMutex;
         std::shared_mutex m_muEventMutex;
         std::atomic_bool m_bSwitchingStates;
+        ZEDCam* m_pMainCam;
+        geoops::GPSCoordinate m_stCurrentGPSLocation;
 
         /////////////////////////////////////////
         // Declare private class methods.
@@ -62,6 +64,7 @@ class StateMachineHandler : private AutonomyThread<void>
         void SaveCurrentState();
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
+        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
 
         /******************************************************************************
          * @brief Callback function used to trigger the start of autonomy. No matter what
