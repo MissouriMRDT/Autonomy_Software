@@ -257,6 +257,15 @@ void StateMachineHandler::ThreadedContinuousCode()
                 m_stCurrentGPSLocation = stNewGPSLocation;
                 // Feed current GPS location to main ZED camera.
                 m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
+
+                // FIXME: This is only because the ZEDSDK's fusion module compass values is bad remove this once stereolab's fixes it.
+                if (m_pCurrentState->GetState() == statemachine::States::eIdle)
+                {
+                    // Get current compass heading.
+                    double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
+                    // Realign the main ZED cameras pose with current GPS-based position and heading.
+                    this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
+                }
             }
 
             // Reset DiffGPS warning print toggle.
@@ -275,7 +284,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         {
             // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
-                globals::g_pNavigationBoard->GetHeading() <= constants::STUCK_CHECK_ROT_THRESH && m_pMainCam->GetPositionalTrackingEnabled())
+                globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH && m_pMainCam->GetPositionalTrackingEnabled())
             {
                 // Update current GPS position.
                 m_stCurrentGPSLocation = stNewGPSLocation;
