@@ -61,6 +61,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_dPoseOffsetX              = 0.0;
     m_dPoseOffsetY              = 0.0;
     m_dPoseOffsetZ              = 0.0;
+    m_dPoseOffsetXO             = 0.0;
+    m_dPoseOffsetYO             = 0.0;
+    m_dPoseOffsetZO             = 0.0;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -757,9 +760,9 @@ void ZEDCam::PooledLinearCode()
         Pose stPose(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
                     m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
                     m_slCameraPose.getTranslation().z + m_dPoseOffsetZ,
-                    m_slCameraPose.getEulerAngles(false).x,
-                    m_slCameraPose.getEulerAngles(false).y,
-                    m_slCameraPose.getEulerAngles(false).z);
+                    numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x + m_dPoseOffsetXO, 0.0, 360.0),
+                    numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y + m_dPoseOffsetYO, 0.0, 360.0),
+                    numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z + m_dPoseOffsetZO, 0.0, 360.0));
 
         // Copy pose.
         *(stContainer.pData) = stPose;
@@ -1565,9 +1568,9 @@ void ZEDCam::DisablePositionalTracking()
  * @param dX - The X position of the camera in ZED_MEASURE_UNITS.
  * @param dY - The Y position of the camera in ZED_MEASURE_UNITS.
  * @param dZ - The Z position of the camera in ZED_MEASURE_UNITS.
- * @param dXO - The tilt of the camera around the X axis in degrees.
- * @param dYO - The tilt of the camera around the Y axis in degrees.
- * @param dZO - The tilt of the camera around the Z axis in degrees.
+ * @param dXO - The tilt of the camera around the X axis in degrees. (0-360)
+ * @param dYO - The tilt of the camera around the Y axis in degrees. (0-360)
+ * @param dZO - The tilt of the camera around the Z axis in degrees. (0-360)
  * @return sl::ERROR_CODE - Whether or not the pose was set successfully.
  *
  * @bug The ZEDSDK currently cannot handle resetting the positional pose with large translational (dX, dY, dZ) values without breaking positional
@@ -1579,25 +1582,19 @@ void ZEDCam::DisablePositionalTracking()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::SetPositionalPose(const float dX, const float dY, const float dZ, const float dXO, const float dYO, const float dZO)
+void ZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
 {
-    // Create new translation to set position back to user given values.
-    sl::Translation slZeroTranslation(0, 0, 0);
     // Update offset member variables.
-    m_dPoseOffsetX = dX;
-    m_dPoseOffsetY = dY;
-    m_dPoseOffsetZ = dZ;
-    // This will reset position and coordinate frame.
-    sl::Rotation slNewRotation;
-    slNewRotation.setEulerAngles(sl::float3(dXO, dYO, dZO), false);
-
-    // Store new translation and rotation in a transform object.
-    sl::Transform slNewTransform(slNewRotation, slZeroTranslation);
-
-    // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Reset the positional tracking location of the camera.
-    return m_slCamera.resetPositionalTracking(slNewTransform);
+    m_dPoseOffsetX = dX - m_slCameraPose.getTranslation().x;
+    m_dPoseOffsetY = dY - m_slCameraPose.getTranslation().y;
+    m_dPoseOffsetZ = dZ - m_slCameraPose.getTranslation().z;
+    // Find the angular distance from current and desired pose angles.
+    m_dPoseOffsetXO =
+        numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x, 0.0, 360.0), dXO), 0.0, 360.0);
+    m_dPoseOffsetYO =
+        numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y, 0.0, 360.0), dYO), 0.0, 360.0);
+    m_dPoseOffsetZO =
+        numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z, 0.0, 360.0), dZO), 0.0, 360.0);
 }
 
 /******************************************************************************
@@ -2033,6 +2030,22 @@ bool ZEDCam::GetPositionalTrackingEnabled()
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     return m_slCamera.isPositionalTrackingEnabled() && m_slCamera.getPositionalTrackingStatus().odometry_status == sl::ODOMETRY_STATUS::OK;
+}
+
+/******************************************************************************
+ * @brief Accessor for the current positional tracking status of the camera.
+ *
+ * @return sl::PositionalTrackingStatus - The sl::PositionalTrackingStatus struct storing
+ *      information about the current VIO positional tracking state.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-20
+ ******************************************************************************/
+sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    return m_slCamera.getPositionalTrackingStatus();
 }
 
 /******************************************************************************

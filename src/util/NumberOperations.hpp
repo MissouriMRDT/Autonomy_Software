@@ -112,12 +112,12 @@ namespace numops
     }
 
     /******************************************************************************
-     * @brief Calculates the modulus of an input angle to -180, 180
+     * @brief Calculates the modulus of an input angle.
      *
      * @tparam T - Template value specifying the type of the number to find modulus of.
      * @param tValue - Input value to wrap.
-     * @param tMinValue - The minimum value expected from the input.
-     * @param tMaxValue - The maximum value expected from the input.
+     * @param tMinValue - The minimum value expected from the input. INCLUSIVE
+     * @param tMaxValue - The maximum value expected from the input. NOT INCLUSIVE
      * @return constexpr T - The wrapped value.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
@@ -135,6 +135,12 @@ namespace numops
         // Wrap input if it's below the minimum input.
         int nNumMin = (tValue - tMaxValue) / tModulus;
         tValue -= nNumMin * tModulus;
+
+        // Check if the final value is the max value, set to min.
+        if (tValue == tMaxValue)
+        {
+            tValue = tMinValue;
+        }
 
         // Return wrapped number.
         return tValue;
