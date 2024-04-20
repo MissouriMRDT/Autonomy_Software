@@ -75,7 +75,7 @@
                 "editor.insertSpaces": true,
                 "editor.detectIndentation": false,
                 "editor.rulers": [
-                    150
+                    170
                 ],
                 "search.exclude": {
                     "**/docs": true

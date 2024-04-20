@@ -110,18 +110,17 @@ TEST(NumOpsTest, MapRange)
 TEST(NumOpsTest, InputAngleModulus)
 {
     // Create array for storing input and expect output values.
-    const int nTestValuesLength               = 7;
-    const double aValues[nTestValuesLength]   = {1.0, -1.0, 4.0, 360.0, 350.0, 170.0, -90};
-    const double aMinimums[nTestValuesLength] = {0.0, 0.0, -2.0, -180.0, -180.0, -180.0, 0.0};
-    const double aMaximums[nTestValuesLength] = {2.0, 2.0, 2.0, 180.0, 180.0, 180.0, 360.0};
-    const double aOutput[nTestValuesLength]   = {1.0, 1.0, 0.0, 0.0, -10.0, 170.0, 270.0};
+    const int nTestValuesLength               = 9;
+    const double aValues[nTestValuesLength]   = {1.0, -1.0, 4.0, 360.0, 350.0, 170.0, -90, 360.0, -90};
+    const double aMinimums[nTestValuesLength] = {0.0, 0.0, -2.0, -180.0, -180.0, -180.0, 0.0, 0.0, 0.0};
+    const double aMaximums[nTestValuesLength] = {2.0, 2.0, 2.0, 180.0, 180.0, 180.0, 360.0, 360.0, 360.0};
+    const double aOutput[nTestValuesLength]   = {1.0, 1.0, 0.0, 0.0, -10.0, 170.0, 270.0, 0.0, 270.0};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
     {
         // Calculate valid bounds.
         double dResult = numops::InputAngleModulus(aValues[nIter], aMinimums[nIter], aMaximums[nIter]);
-
         // Check that the expected output values were calculated.
         EXPECT_EQ(dResult, aOutput[nIter]);
     }
