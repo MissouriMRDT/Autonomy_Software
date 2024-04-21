@@ -226,7 +226,7 @@ namespace statemachine
         }
 
         // Drive to target waypoint.
-        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
+        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
                                                                                      stCurrRelToTarget.dStartRelativeBearing,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
