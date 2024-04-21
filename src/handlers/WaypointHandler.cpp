@@ -767,7 +767,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
                 stCurrentPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
                 // Repack the camera pose into a UTMCoordinate.
                 // dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some reason.
-                dCurrentHeading = numops::InputAngleModulus(stCurrentCameraVIOPose.stEulerAngles.dYO, 0.0, 360.0);
+                dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
 
                 // Set fused toggle.
                 bVIOGPSFused = true;
@@ -798,7 +798,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
                 // Convert back to GPS coordinate and store.
                 stCurrentPosition = geoops::ConvertUTMToGPS(stCameraUTMLocation);
                 // Get compass heading based off of the ZED's aligned accelerometer.
-                dCurrentHeading = numops::InputAngleModulus(stCurrentCameraVIOPose.stEulerAngles.dYO, 0.0, 360.0);
+                dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
 
                 // Set fused toggle.
                 bVIOGPSFused = false;
@@ -813,11 +813,12 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
     }
 
     // Submit logger message.
+    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentGPSPosition);
     LOG_DEBUG(logging::g_qSharedLogger,
               "Rover Pose is currently: {} (lat), {} (lon), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}",
-              stCurrentPosition.dLatitude,
-              stCurrentPosition.dLongitude,
-              stCurrentPosition.dAltitude,
+              stCurrentUTMPosition.dEasting,
+              stCurrentUTMPosition.dNorthing,
+              stCurrentUTMPosition.dAltitude,
               dCurrentHeading,
               bVIOGPSFused ? "true" : "false");
 
