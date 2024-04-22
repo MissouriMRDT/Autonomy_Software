@@ -760,7 +760,7 @@ void ZEDCam::PooledLinearCode()
         double dNewYO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y + m_dPoseOffsetYO, 0.0, 360.0);
         double dNewZO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z + m_dPoseOffsetZO, 0.0, 360.0);
         // Rotate coordinate frame.
-        numops::CoordinateFrameRotate3D(vPointCloud, dNewXO, dNewYO, dNewZO);
+        numops::CoordinateFrameRotate3D(vPointCloud, m_dPoseOffsetXO, m_dPoseOffsetYO, m_dPoseOffsetZO);
         // Repack values into pose.
         Pose stPose(vPointCloud[0].tX + m_dPoseOffsetX, vPointCloud[0].tY + m_dPoseOffsetY, vPointCloud[0].tZ + m_dPoseOffsetZ, dNewXO, dNewYO, dNewZO);
 
@@ -786,20 +786,6 @@ void ZEDCam::PooledLinearCode()
             }
         }
 
-        LOG_DEBUG(logging::g_qFileLogger,
-                  "{} {} {} | {} {} {} {} {} {} | {} {} {}",
-                  m_slCameraPose.getTranslation().x,
-                  m_slCameraPose.getTranslation().y,
-                  m_slCameraPose.getTranslation().z,
-                  m_dPoseOffsetX,
-                  m_dPoseOffsetY,
-                  m_dPoseOffsetZ,
-                  m_dPoseOffsetXO,
-                  m_dPoseOffsetYO,
-                  m_dPoseOffsetZO,
-                  vPointCloud[0].tX,
-                  vPointCloud[0].tY,
-                  vPointCloud[0].tZ);
         // Copy pose.
         *(stContainer.pData) = stPose;
 
