@@ -265,15 +265,6 @@ void StateMachineHandler::ThreadedContinuousCode()
                 m_stCurrentGPSLocation = stNewGPSLocation;
                 // Feed current GPS location to main ZED camera.
                 m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
-
-                // FIXME: This is only because the ZEDSDK's fusion module compass values is bad remove this once stereolab's fixes it.
-                if (m_pCurrentState->GetState() == statemachine::States::eIdle)
-                {
-                    // Get current compass heading.
-                    double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
-                    // Realign the main ZED cameras pose with current GPS-based position and heading.
-                    this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
-                }
             }
 
             // Reset DiffGPS warning print toggle.
@@ -287,8 +278,21 @@ void StateMachineHandler::ThreadedContinuousCode()
                 bAlreadyPrintedDiffGPSWarning = false;
             }
         }
-        // If not using GPS fusion then realign the camera's relative position to current GPS position when in Idle.
-        else if (m_pCurrentState->GetState() == statemachine::States::eIdle)
+        // Check if GPS coordinate from NavBoard is not differential and print warning log.
+        else if (!bAlreadyPrintedDiffGPSWarning)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
+                        "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
+
+            // Set already printed toggle.
+            bAlreadyPrintedDiffGPSWarning = true;
+        }
+
+        // Realign the camera's relative position to current GPS position when in Idle. This does not affect fusion, but makes sure we can fallback to the camera pose for
+        // positioning.
+        if (m_pCurrentState->GetState() == statemachine::States::eIdle)
         {
             // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
@@ -300,18 +304,6 @@ void StateMachineHandler::ThreadedContinuousCode()
                 double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
                 // Realign the main ZED cameras pose with current GPS-based position and heading.
                 this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
-            }
-
-            // Check if GPS coordinate from NavBoard is not differential and print warning log.
-            if (!bAlreadyPrintedDiffGPSWarning)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
-                            "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
-
-                // Set already printed toggle.
-                bAlreadyPrintedDiffGPSWarning = true;
             }
         }
     }

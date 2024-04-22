@@ -204,6 +204,7 @@ class ZEDCam : public Camera<cv::Mat>
         std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane);
         bool GetPositionalTrackingEnabled();
         sl::PositionalTrackingStatus GetPositionalTrackingState();
+        sl::FusedPositionalTrackingStatus GetFusedPositionalTrackingState();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
         bool GetObjectDetectionEnabled();

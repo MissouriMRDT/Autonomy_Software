@@ -744,12 +744,17 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
     geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
     double dCurrentHeading                     = dCurrentGPSHeading;
     bool bVIOGPSFused                          = false;
+    static bool bAlreadyPrinted                = false;
 
     // Check if the main ZED camera is opened and the fusion module is initialized.
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
     {
-        // Check if GNSS fusion is enabled and current GPS data from has differential accuracy.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && pMainCam->GetIsFusionMaster() && stCurrentGPSPosition.bIsDifferential)
+        // Get the fused positional tracking state of the main camera.
+        sl::GNSS_FUSION_STATUS slGNSSFusionStatus = pMainCam->GetFusedPositionalTrackingState().gnss_fusion_status;
+
+        // Check if GNSS fusion is enabled and current GPS data from has differential accuracy and GNSS fusion is calibrated.
+        if (constants::FUSION_ENABLE_GNSS_FUSION && pMainCam->GetIsFusionMaster() && stCurrentGPSPosition.bIsDifferential &&
+            (slGNSSFusionStatus == sl::GNSS_FUSION_STATUS::OK || slGNSSFusionStatus == sl::GNSS_FUSION_STATUS::RECALIBRATION_IN_PROGRESS))
         {
             // Create instance variables.
             sl::GeoPose slCurrentCameraGeoPose;
@@ -777,6 +782,15 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
                 // Just return normal GPS position and heading from NavBoard.
                 stCurrentVIOPosition = stCurrentGPSPosition;
                 dCurrentHeading      = dCurrentGPSHeading;
+            }
+
+            // Check toggle so we only print once.
+            if (bAlreadyPrinted)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "GNSS Fusion has now converged! Using GNSS Fusion for rover pose...");
+                // Set toggle.
+                bAlreadyPrinted = false;
             }
         }
         else
@@ -808,6 +822,15 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
                 // Just return normal GPS position and heading from NavBoard.
                 stCurrentVIOPosition = stCurrentGPSPosition;
                 dCurrentHeading      = dCurrentGPSHeading;
+            }
+
+            // Check toggle so we only print once.
+            if (!bAlreadyPrinted)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "GNSS Fusion is still calibrating. Using VIO tracking for rover pose...");
+                // Set toggle.
+                bAlreadyPrinted = true;
             }
         }
     }
