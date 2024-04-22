@@ -281,6 +281,11 @@ void BasicCam::PooledLinearCode()
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedFrameStatus->set_value(true);
     }
+    else
+    {
+        // Release lock.
+        lkFrameQueue.unlock();
+    }
 }
 
 /******************************************************************************
