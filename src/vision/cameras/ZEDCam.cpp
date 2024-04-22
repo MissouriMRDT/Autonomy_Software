@@ -1382,12 +1382,10 @@ sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewG
                                                   0.0,
                                                   0.0,
                                                   dVerticalAccuracy * dVerticalAccuracy};
-                // Acquire lock.
-                lkCameraLock.lock();
+
                 // Set GNSS timestamp from input GPSCoordinate data. sl::GNSSData expects time since epoch.
                 slGNSSData.ts = sl::Timestamp(std::chrono::time_point_cast<std::chrono::nanoseconds>(stNewGPSLocation.tmTimestamp).time_since_epoch().count());
-                // Release lock.
-                lkCameraLock.unlock();
+
                 // Get the GNSS fix type status from the given GPS coordinate.
                 switch (stNewGPSLocation.eCoordinateAccuracyFixType)
                 {
