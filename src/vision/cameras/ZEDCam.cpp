@@ -758,17 +758,37 @@ void ZEDCam::PooledLinearCode()
 
         // Rotate the ZED position coordinate frame to realign with the UTM global coordinate frame.
         std::vector<numops::CoordinatePoint<double>> vPointCloud;
-        vPointCloud.emplace_back(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
-                                 m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
-                                 m_slCameraPose.getTranslation().z + m_dPoseOffsetZ);
-        numops::CoordinateFrameRotate3D(vPointCloud, m_dPoseOffsetXO, m_dPoseOffsetYO, m_dPoseOffsetZO);
+        vPointCloud.emplace_back(m_slCameraPose.getTranslation().x, m_slCameraPose.getTranslation().y, m_slCameraPose.getTranslation().z);
+        // Get angle realignments.
+        double dNewXO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x + m_dPoseOffsetXO, 0.0, 360.0);
+        double dNewYO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y + m_dPoseOffsetYO, 0.0, 360.0);
+        double dNewZO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z + m_dPoseOffsetZO, 0.0, 360.0);
+        // Rotate coordinate frame.
+        numops::CoordinateFrameRotate3D(vPointCloud, dNewXO, dNewYO, dNewZO);
         // Repack values into pose.
-        Pose stPose(vPointCloud[0].tX,
-                    vPointCloud[0].tY,
-                    vPointCloud[0].tZ,
-                    numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x + m_dPoseOffsetXO, 0.0, 360.0),
-                    numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y + m_dPoseOffsetYO, 0.0, 360.0),
-                    numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z + m_dPoseOffsetZO, 0.0, 360.0));
+        Pose stPose(vPointCloud[0].tX + m_dPoseOffsetX, vPointCloud[0].tY + m_dPoseOffsetY, vPointCloud[0].tZ + m_dPoseOffsetZ, dNewXO, dNewYO, dNewZO);
+
+        // Check ZED coordinate system.
+        switch (m_slCameraParams.coordinate_system)
+        {
+            case sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP:
+            {
+                // Realign based in the signedness of this coordinate system. Z is backwards.
+                stPose.stTranslation.dZ *= -1;
+                break;
+            }
+            case sl::COORDINATE_SYSTEM::LEFT_HANDED_Z_UP:
+            {
+                // Realign based in the signedness of this coordinate system. Z is backwards.
+                stPose.stTranslation.dZ *= -1;
+                break;
+            }
+            default:
+            {
+                // No need to flip signs for other coordinate systems.
+                break;
+            }
+        }
 
         LOG_DEBUG(logging::g_qFileLogger,
                   "{} {} {} | {} {} {} {} {} {} | {} {} {}",
