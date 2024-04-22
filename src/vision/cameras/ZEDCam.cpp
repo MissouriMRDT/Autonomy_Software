@@ -758,9 +758,9 @@ void ZEDCam::PooledLinearCode()
 
         // Rotate the ZED position coordinate frame to realign with the UTM global coordinate frame.
         std::vector<numops::CoordinatePoint<double>> vPointCloud;
-        vPointCloud.emplace_back(m_slCameraPose.getTranslation().x + m_dPoseOffsetX);
-        vPointCloud.emplace_back(m_slCameraPose.getTranslation().y + m_dPoseOffsetY);
-        vPointCloud.emplace_back(m_slCameraPose.getTranslation().z + m_dPoseOffsetZ);
+        vPointCloud.emplace_back(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
+                                 m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
+                                 m_slCameraPose.getTranslation().z + m_dPoseOffsetZ);
         numops::CoordinateFrameRotate3D(vPointCloud, m_dPoseOffsetXO, m_dPoseOffsetYO, m_dPoseOffsetZO);
         // Repack values into pose.
         Pose stPose(vPointCloud[0].tX,
