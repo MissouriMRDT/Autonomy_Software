@@ -1389,8 +1389,8 @@ sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewG
                                                   dVerticalAccuracy * dVerticalAccuracy};
                 // Acquire lock.
                 lkCameraLock.lock();
-                // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
-                slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
+                // Set GNSS timestamp from input GPSCoordinate data. sl::GNSSData expects time since epoch.
+                slGNSSData.ts = sl::Timestamp(std::chrono::time_point_cast<std::chrono::nanoseconds>(stNewGPSLocation.tmTimestamp).time_since_epoch().count());
                 // Release lock.
                 lkCameraLock.unlock();
                 // Get the GNSS fix type status from the given GPS coordinate.

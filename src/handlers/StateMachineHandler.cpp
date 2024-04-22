@@ -242,7 +242,7 @@ void StateMachineHandler::ThreadedContinuousCode()
     // Create instance variable.
     static geoops::GPSCoordinate stNewGPSLocation;
     // Check if GPS data is recent and updated.
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() <= 100 ||
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSLastUpdateTime()).count() <= 100 ||
         (stNewGPSLocation.dLatitude == 0.0 && stNewGPSLocation.dLongitude == 0.0))
     {
         // Get the current NavBoard GPS data.
