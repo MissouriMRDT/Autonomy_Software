@@ -756,10 +756,17 @@ void ZEDCam::PooledLinearCode()
         // Release lock.
         lkPoseQueue.unlock();
 
-        // Create instance variables.
-        Pose stPose(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
-                    m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
-                    m_slCameraPose.getTranslation().z + m_dPoseOffsetZ,
+        // Rotate the ZED position coordinate frame to realign with the UTM global coordinate frame.
+        std::vector<numops::CoordinatePoint<double>> vPointCloud;
+        vPointCloud.emplace_back(m_slCameraPose.getTranslation().x + m_dPoseOffsetX);
+        vPointCloud.emplace_back(m_slCameraPose.getTranslation().y + m_dPoseOffsetY);
+        vPointCloud.emplace_back(m_slCameraPose.getTranslation().z + m_dPoseOffsetZ);
+        numops::CoordinateFrameRotate3D(vPointCloud, m_dPoseOffsetXO, m_dPoseOffsetYO, m_dPoseOffsetZO);
+        LOG_INFO(logging::g_qConsoleLogger, "{} {} {}", m_dPoseOffsetXO, m_dPoseOffsetYO, m_dPoseOffsetZO);
+        // Repack values into pose.
+        Pose stPose(vPointCloud[0].tX,
+                    vPointCloud[0].tY,
+                    vPointCloud[0].tZ,
                     numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x + m_dPoseOffsetXO, 0.0, 360.0),
                     numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y + m_dPoseOffsetYO, 0.0, 360.0),
                     numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z + m_dPoseOffsetZO, 0.0, 360.0));
