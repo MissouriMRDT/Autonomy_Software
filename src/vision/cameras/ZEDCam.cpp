@@ -601,17 +601,12 @@ void ZEDCam::ThreadedContinuousCode()
         !m_qGeoPoseCopySchedule.empty() || m_qFloorCopySchedule.size() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
     {
         // Find the queue with the longest length.
-        size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
-                                            m_qGPUFrameCopySchedule.size(),
-                                            m_qCustomBoxIngestSchedule.size(),
-                                            m_qPoseCopySchedule.size(),
-                                            m_qGeoPoseCopySchedule.size(),
-                                            m_qFloorCopySchedule.size(),
-                                            m_qObjectDataCopySchedule.size(),
-                                            m_qObjectBatchedDataCopySchedule.size()});
+        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qGPUFrameCopySchedule.size() + m_qCustomBoxIngestSchedule.size() + m_qPoseCopySchedule.size() +
+                                    m_qGeoPoseCopySchedule.size() + m_qFloorCopySchedule.size() + m_qObjectDataCopySchedule.size() +
+                                    m_qObjectBatchedDataCopySchedule.size();
 
         // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
-        this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
+        this->RunDetachedPool(siTotalQueueLength, m_nNumFrameRetrievalThreads);
 
         // Static bool for keeping track of reset toggle action.
         static bool bQueueTogglesAlreadyReset = false;
@@ -643,6 +638,7 @@ void ZEDCam::ThreadedContinuousCode()
         // Wait for thread pool to finish.
         this->JoinPool();
     }
+
     // Release lock on frame copy queue.
     lkSchedulers.unlock();
 }
@@ -810,6 +806,11 @@ void ZEDCam::PooledLinearCode()
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
+    else
+    {
+        // Release lock.
+        lkPoseQueue.unlock();
+    }
 
     /////////////////////////////
     //  GeoPose queue.
@@ -832,6 +833,11 @@ void ZEDCam::PooledLinearCode()
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
+    else
+    {
+        // Release lock.
+        lkGeoPoseQueue.unlock();
+    }
 
     /////////////////////////////
     //  Plane queue.
@@ -850,6 +856,11 @@ void ZEDCam::PooledLinearCode()
 
         // Copy pose.
         *(stContainer.pData) = sl::Plane(m_slFloorPlane);
+    }
+    else
+    {
+        // Release lock.
+        lkPlaneQueue.unlock();
     }
 
     /////////////////////////////
@@ -873,6 +884,11 @@ void ZEDCam::PooledLinearCode()
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
+    else
+    {
+        // Release lock.
+        lkObjectDataQueue.unlock();
+    }
 
     /////////////////////////////
     //  ObjectData Batched queue.
@@ -894,6 +910,11 @@ void ZEDCam::PooledLinearCode()
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
+    }
+    else
+    {
+        // Release lock.
+        lkObjectBatchedDataQueue.unlock();
     }
 }
 

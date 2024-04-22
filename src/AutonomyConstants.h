@@ -119,8 +119,8 @@ namespace constants
     const bool ZED_SDK_VERBOSE                   = false;                                      // Enable verbose output from the internal Camera library in the ZEDSDK.
     const bool ZED_SENSING_FILL                  = false;    // True provides a depth map with a Z value for every pixel (X, Y) in the left image. Slower and worse.
     const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.5;      // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
-    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 30.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
-    const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.25;     // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
+    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 20.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
+    const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.5;      // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
     const int ZED_DEPTH_STABILIZATION            = 1;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::GEN_1;    // Positional tracking accuracy.
