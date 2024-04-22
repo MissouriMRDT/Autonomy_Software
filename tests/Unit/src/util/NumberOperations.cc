@@ -162,16 +162,16 @@ TEST(NumOpsTest, AngularDifference)
 TEST(NumOpsTest, CoordinateFrameRotate3D)
 {
     // Create array for storing input and expect output values.
-    const int nTestValuesLength                = 7;
-    const double aX[nTestValuesLength]         = {15.0, 1.0, 1.0, 1.0, 5.0, 10.0, 420000.0};
-    const double aY[nTestValuesLength]         = {10.0, 0.0, 0.0, 0.0, 5.0, 10.0, 315.0};
-    const double aZ[nTestValuesLength]         = {40.0, 0.0, 0.0, 0.0, 5.0, 10.0, -65780.0};
-    const double aXRot[nTestValuesLength]      = {0.0, 90.0, 0.0, 0.0, 90.0, 90.0, 0.0};
-    const double aYRot[nTestValuesLength]      = {0.0, 0.0, 90.0, 0.0, 90.0, 45.0, 65.4};
-    const double aZRot[nTestValuesLength]      = {0.0, 0.0, 0.0, 90.0, 90.0, 30.0, 0.0};
-    const double aExpectedX[nTestValuesLength] = {15.0, 1.0, 0.0, 0.0, 5.0, 17.25, 115028.38};
-    const double aExpectedY[nTestValuesLength] = {10.0, 0.0, 0.0, 1.0, 5.0, -1.59, 315.0};
-    const double aExpectedZ[nTestValuesLength] = {40.0, 0.0, -1.0, 0.0, -5.0, 0.0, -409262.11};
+    const int nTestValuesLength                = 8;
+    const double aX[nTestValuesLength]         = {607350.5439843171, 15.0, 1.0, 1.0, 1.0, 5.0, 10.0, 420000.0};
+    const double aY[nTestValuesLength]         = {314.26934576034546, 10.0, 0.0, 0.0, 0.0, 5.0, 10.0, 315.0};
+    const double aZ[nTestValuesLength]         = {4201167.977962418, 40.0, 0.0, 0.0, 0.0, 5.0, 10.0, -65780.0};
+    const double aXRot[nTestValuesLength]      = {0.0, 0.0, 90.0, 0.0, 0.0, 90.0, 90.0, 0.0};
+    const double aYRot[nTestValuesLength]      = {0.0, 0.0, 0.0, 90.0, 0.0, 90.0, 45.0, 65.4};
+    const double aZRot[nTestValuesLength]      = {0.0, 0.0, 0.0, 0.0, 90.0, 90.0, 30.0, 0.0};
+    const double aExpectedX[nTestValuesLength] = {607350.5439843171, 15.0, 1.0, 0.0, 0.0, 5.0, 17.25, 115028.38};
+    const double aExpectedY[nTestValuesLength] = {314.2693457603454, 10.0, 0.0, 0.0, 1.0, 5.0, -1.59, 315.0};
+    const double aExpectedZ[nTestValuesLength] = {4201167.977962418, 40.0, 0.0, -1.0, 0.0, -5.0, 0.0, -409262.11};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
