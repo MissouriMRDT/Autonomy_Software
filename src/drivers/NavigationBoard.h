@@ -57,8 +57,8 @@ class NavigationBoard
         double GetHeadingAccuracy();
         double GetVelocity();
         double GetAngularVelocity();
-        std::chrono::system_clock::duration GetGPSDataAge();
-        std::chrono::system_clock::duration GetCompassDataAge();
+        std::chrono::system_clock::duration GetGPSLastUpdateTime();
+        std::chrono::system_clock::duration GetCompassLastUpdateTime();
 
     private:
         /////////////////////////////////////////
@@ -117,7 +117,8 @@ class NavigationBoard
             m_stLocation.dLatitude  = stPacket.vData[0];
             m_stLocation.dLongitude = stPacket.vData[1];
             m_stLocation.dAltitude  = stPacket.vData[2];
-            // Update GPS time.
+            m_stLocation.tmTimestamp = tmCurrentTime;
+            // Update GPS update time.
             m_tmLastGPSUpdateTime = tmCurrentTime;
             // Unlock mutex.
             lkGPSWriteProcessLock.unlock();
