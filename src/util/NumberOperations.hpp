@@ -187,7 +187,8 @@ namespace numops
     /******************************************************************************
      * @brief Calculates the distance in degrees between two angles. This function
      *      accounts for wrap around so that the most acute or smallest radial distance
-     *      between the two points is returned.
+     *      between the two points is returned. The distance is positive if going from
+     *      the first angle to the second angle results in clockwise motion.
      *
      * @tparam T - Template value specifying the type of the number to find difference of.
      * @param tFirstValue - The first value.
