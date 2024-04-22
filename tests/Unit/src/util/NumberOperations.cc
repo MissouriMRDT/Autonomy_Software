@@ -151,3 +151,41 @@ TEST(NumOpsTest, AngularDifference)
         EXPECT_EQ(dResult, aOutput[nIter]);
     }
 }
+
+/******************************************************************************
+ * @brief Test the functionality of the CoordinateFrameRotate3D function.
+ *
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-03
+ ******************************************************************************/
+TEST(NumOpsTest, CoordinateFrameRotate3D)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                = 6;
+    const double aX[nTestValuesLength]         = {1.0, 1.0, 1.0, 5.0, 10.0, 420000.0};
+    const double aY[nTestValuesLength]         = {0.0, 0.0, 0.0, 5.0, 10.0, 315.0};
+    const double aZ[nTestValuesLength]         = {0.0, 0.0, 0.0, 5.0, 10.0, -65780.0};
+    const double aXRot[nTestValuesLength]      = {90.0, 0.0, 0.0, 90.0, 90.0, 0.0};
+    const double aYRot[nTestValuesLength]      = {0.0, 90.0, 0.0, 90.0, 45.0, 65.4};
+    const double aZRot[nTestValuesLength]      = {0.0, 0.0, 90.0, 90.0, 30.0, 0.0};
+    const double aExpectedX[nTestValuesLength] = {1.0, 0.0, 0.0, 5.0, 17.25, 115028.38};
+    const double aExpectedY[nTestValuesLength] = {0.0, 0.0, 1.0, 5.0, -1.59, 315.0};
+    const double aExpectedZ[nTestValuesLength] = {0.0, -1.0, 0.0, -5.0, 0.0, -409262.11};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Pack point cloud vector.
+        std::vector<numops::CoordinatePoint<double>> vPointCloud;
+        vPointCloud.emplace_back(numops::CoordinatePoint(aX[nIter], aY[nIter], aZ[nIter]));
+
+        // Calculate new rotated point.
+        numops::CoordinateFrameRotate3D(vPointCloud, aXRot[nIter], aYRot[nIter], aZRot[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(vPointCloud[0].tX, aExpectedX[nIter], 0.01);
+        EXPECT_NEAR(vPointCloud[0].tY, aExpectedY[nIter], 0.01);
+        EXPECT_NEAR(vPointCloud[0].tZ, aExpectedZ[nIter], 0.01);
+    }
+}
