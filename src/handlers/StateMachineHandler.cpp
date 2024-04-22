@@ -25,6 +25,14 @@ StateMachineHandler::StateMachineHandler()
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Initializing State Machine.");
 
+    // Subscribe to BMS packets.
+    rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
+    stSubscribePacket.unDataId    = manifest::System::SUBSCRIBE_DATA_ID;
+    stSubscribePacket.unDataCount = 0;
+    stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
+    stSubscribePacket.vData       = std::vector<uint8_t>{};
+    network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::BMS::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+
     // Set RoveComm Node callbacks.
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
@@ -284,7 +292,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         {
             // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
-                globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH && m_pMainCam->GetPositionalTrackingEnabled())
+                globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH)
             {
                 // Update current GPS position.
                 m_stCurrentGPSLocation = stNewGPSLocation;
@@ -409,7 +417,7 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
     ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
 
     // Check if main ZEDCam is opened and positional tracking is enabled.
-    if (pMainCam->GetCameraIsOpen())
+    if (pMainCam->GetCameraIsOpen() && m_pMainCam->GetPositionalTrackingEnabled())
     {
         // Request for the cameras current pose.
         ZEDCam::Pose stCurrentCameraPose;
@@ -437,6 +445,8 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
     else
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading. The camera is not open yet!");
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "Failed to realign the ZEDCam's pose with the given UTM position and compass heading. The camera is not open yet or positional tracking status is "
+                  "suboptimal!");
     }
 }
