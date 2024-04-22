@@ -86,6 +86,8 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
     }
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
     }
@@ -122,6 +124,8 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
     }
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
     }
@@ -157,6 +161,8 @@ double NavigationBoard::GetHeading()
     }
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
     }
@@ -192,6 +198,8 @@ double NavigationBoard::GetHeadingAccuracy()
     }
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
     }
@@ -228,6 +236,8 @@ double NavigationBoard::GetVelocity()
     }
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
     }
@@ -264,6 +274,8 @@ double NavigationBoard::GetAngularVelocity()
     }
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
     }

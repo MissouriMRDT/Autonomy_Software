@@ -764,27 +764,22 @@ void ZEDCam::PooledLinearCode()
         // Repack values into pose.
         Pose stPose(vPointCloud[0].tX + m_dPoseOffsetX, vPointCloud[0].tY + m_dPoseOffsetY, vPointCloud[0].tZ + m_dPoseOffsetZ, dNewXO, dNewYO, dNewZO);
 
-        // Check ZED coordinate system.
-        switch (m_slCameraParams.coordinate_system)
-        {
-            case sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP:
-            {
-                // Realign based in the signedness of this coordinate system. Z is backwards.
-                stPose.stTranslation.dZ *= -1;
-                break;
-            }
-            case sl::COORDINATE_SYSTEM::LEFT_HANDED_Z_UP:
-            {
-                // Realign based in the signedness of this coordinate system. Z is backwards.
-                stPose.stTranslation.dZ *= -1;
-                break;
-            }
-            default:
-            {
-                // No need to flip signs for other coordinate systems.
-                break;
-            }
-        }
+        // ISSUE NOTE: Might be in the future if we ever change our coordinate system on the ZED. This can be used to fix the directions of the Pose's coordinate system.
+        // // Check ZED coordinate system.
+        // switch (m_slCameraParams.coordinate_system)
+        // {
+        //     case sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP:
+        //     {
+        //         // Realign based in the signedness of this coordinate system. Z is backwards.
+        //         stPose.stTranslation.dZ *= -1;
+        //         break;
+        //     }
+        //     default:
+        //     {
+        //         // No need to flip signs for other coordinate systems.
+        //         break;
+        //     }
+        // }
 
         // Copy pose.
         *(stContainer.pData) = stPose;
@@ -2096,6 +2091,22 @@ sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     return m_slCamera.getPositionalTrackingStatus();
+}
+
+/******************************************************************************
+ * @brief Accessor for the current positional tracking status of the fusion instance.
+ *
+ * @return sl::FusedPositionalTrackingStatus - The sl::FusedPositionalTrackingStatus struct storing
+ *      information about the current VIO and GNSS fusion positional tracking state.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-22
+ ******************************************************************************/
+sl::FusedPositionalTrackingStatus ZEDCam::GetFusedPositionalTrackingState()
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
+    return m_slFusionInstance.getFusedPositionalTrackingStatus();
 }
 
 /******************************************************************************
