@@ -292,7 +292,7 @@ void StateMachineHandler::ThreadedContinuousCode()
 
         // Realign the camera's relative position to current GPS position when in Idle. This does not affect fusion, but makes sure we can fallback to the camera pose for
         // positioning.
-        if (m_pCurrentState->GetState() == statemachine::States::eIdle)
+        if (m_pCurrentState->GetState() == statemachine::States::eIdle && m_pMainCam->GetPositionalTrackingEnabled())
         {
             // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
             if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
@@ -409,7 +409,7 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
     ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
 
     // Check if main ZEDCam is opened and positional tracking is enabled.
-    if (pMainCam->GetCameraIsOpen() && m_pMainCam->GetPositionalTrackingEnabled())
+    if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
     {
         // Request for the cameras current pose.
         ZEDCam::Pose stCurrentCameraPose;
