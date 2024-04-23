@@ -114,9 +114,9 @@ class NavigationBoard
             // Acquire write lock for writing to GPS struct.
             std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
             // Repack data from RoveCommPacket into member variable.
-            m_stLocation.dLatitude  = stPacket.vData[0];
-            m_stLocation.dLongitude = stPacket.vData[1];
-            m_stLocation.dAltitude  = stPacket.vData[2];
+            m_stLocation.dLatitude   = stPacket.vData[0];
+            m_stLocation.dLongitude  = stPacket.vData[1];
+            m_stLocation.dAltitude   = stPacket.vData[2];
             m_stLocation.tmTimestamp = tmCurrentTime;
             // Update GPS update time.
             m_tmLastGPSUpdateTime = tmCurrentTime;
