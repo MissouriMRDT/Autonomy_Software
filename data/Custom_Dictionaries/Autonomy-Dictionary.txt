@@ -166,6 +166,7 @@ tparam
 twxs
 UART
 UBLOX
+unquantized
 unstuckith
 UNVALIDATED
 upsample
