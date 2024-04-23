@@ -287,7 +287,7 @@ namespace constants
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
     // Stuck State
-    const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in between consecutive checks of if the rover's rotating.
+    const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
     const double STUCK_CHECK_ROT_THRESH      = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
     const double STUCK_CHECK_VEL_THRESH      = 0.5;     // Minimum velocity required to consider the rover as actively moving.

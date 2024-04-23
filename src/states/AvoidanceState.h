@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef AVOIDANCESTATE_H
-#define AVOIDANCESTATE_H
+#ifndef AVOIDANCE_STATE_H
+#define AVOIDANCE_STATE_H
 
 #include "../interfaces/State.hpp"
 
