@@ -36,11 +36,10 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nMaxDataPoints         = 100;
-        m_tmLastStuckCheck       = std::chrono::system_clock::now();
-        m_unStuckChecksOnAttempt = 0;
+        m_nMaxDataPoints = 100;
         m_vRoverPosition.reserve(m_nMaxDataPoints);
         m_eCurrentSearchPatternType = eSpiral;
+        m_nSearchPathIdx            = 0;
 
         // Calculate the search path.
         m_stSearchPatternCenter = globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate();
@@ -49,7 +48,6 @@ namespace statemachine
                                                                        constants::SEARCH_MAX_RADIUS,
                                                                        constants::SEARCH_STARTING_HEADING_DEGREES,
                                                                        constants::SEARCH_SPACING);
-        m_nSearchPathIdx        = 0;
 
         m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                                    globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
@@ -82,10 +80,16 @@ namespace statemachine
      ******************************************************************************/
     SearchPatternState::SearchPatternState() : State(States::eSearchPattern)
     {
+        // Submit logger message.
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
-
+        // Initialize member variables.
+        m_bInitialized  = false;
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
+        // Start state.
         if (!m_bInitialized)
         {
             Start();
@@ -159,47 +163,22 @@ namespace statemachine
         /* ---  Check if the rover is stuck --- */
         //////////////////////////////////////////
 
-        // Time since we last checked if the rover is stuck.
-        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        double dTimeSinceLastCheck                          = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLastStuckCheck).count();
-        if (dTimeSinceLastCheck > constants::STUCK_CHECK_INTERVAL)
+        // Check if stuck.
+        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         {
-            // Update time since last check to now.
-            m_tmLastStuckCheck = tmCurrentTime;
-
-            // Get the rover's current velocities.
-            double dCurrVelocity    = globals::g_pWaypointHandler->SmartRetrieveVelocity();
-            double dAngularVelocity = globals::g_pWaypointHandler->SmartRetrieveAngularVelocity();
-
-            // Check if the rover is rotating or moving linearly.
-            if (std::abs(dCurrVelocity) < constants::STUCK_CHECK_VEL_THRESH && std::abs(dAngularVelocity) < constants::STUCK_CHECK_ROT_THRESH)
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
+            // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
+            m_nSearchPathIdx += 1;
+            // Check path index is within bounds.
+            if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
             {
-                ++m_unStuckChecksOnAttempt;
+                m_nSearchPathIdx = m_vSearchPath.size() - 1;
             }
-            else
-            {
-                m_unStuckChecksOnAttempt = 0;
-            }
-
-            // Has the rover been stuck on enough consecutive checks that we start StuckState.
-            if (m_unStuckChecksOnAttempt >= constants::STUCK_CHECK_ATTEMPTS)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
-                // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
-                m_nSearchPathIdx += 1;
-                // Check path index is within bounds.
-                if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
-                {
-                    m_nSearchPathIdx = m_vSearchPath.size() - 1;
-                }
-                // Reset stuck check attempts.
-                m_unStuckChecksOnAttempt = 0;
-                // Handle state transition and save the current search pattern state.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-                // Don't execute the rest of the state.
-                return;
-            }
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
         }
 
         ///////////////////////////////////

@@ -18,7 +18,7 @@
 
 /// \cond
 #include <array>
-#include <math.h>
+#include <cmath>
 
 /// \endcond
 
