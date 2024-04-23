@@ -148,7 +148,7 @@ namespace constants
     const sl::UNIT FUSION_MEASUREMENT_UNITS         = ZED_MEASURE_UNITS;    // The base measurement unit to use for depth and other measurements.
     const sl::COORDINATE_SYSTEM FUSION_COORD_SYSTEM = ZED_COORD_SYSTEM;     // Coordinate system to use for measurements.
     const bool FUSION_SDK_VERBOSE                   = false;                // Enable verbose output from the internal fusion library in the ZEDSDK.
-    const bool FUSION_ENABLE_GNSS_FUSION            = false;                // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
+    const bool FUSION_ENABLE_GNSS_FUSION            = true;                 // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
 
     // BasicCam Basic Config.
     const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD = cv::InterpolationFlags::INTER_LINEAR;    // The algorithm used to fill in pixels when resizing.
@@ -166,7 +166,7 @@ namespace constants
     const int ZED_MAINCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
     const bool ZED_MAINCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_MAINCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const bool ZED_MAINCAM_FUSION_MASTER            = true;     // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
@@ -227,34 +227,40 @@ namespace constants
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = false;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                            // Whether or not to use DNN detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = false;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_LEFTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_RIGHTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH      = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
