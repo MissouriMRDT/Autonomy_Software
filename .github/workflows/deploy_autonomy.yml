@@ -127,6 +127,56 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Update Versions
+        run: |
+          # Setup Environment
+          cd /opt/Autonomy_Software
+          git fetch --tags --force --recurse-submodules
+          git checkout development
+          git pull
+          git submodule update --force --recursive --init
+
+          # Find and Format Latest Tag
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          clean_tag="${latest_tag#v}"
+          formatted_tag=$(echo $clean_tag | awk -F. '{ printf "%02d.%02d.%02d", $1, $2, $3 }')
+
+          # Update Version Numbers throughout the repository
+          sed -i 's/\(project(Autonomy_Software VERSION \)[0-9]\+\.[0-9]\+\.[0-9]\+/\1'"${formatted_tag}"'/' CMakeLists.txt
+          sed -i "s/\(##[[:space:]]*v\)[0-9]\+\.[0-9]\+\.[0-9]\+ Build/\1$formatted_tag Build/" CMakeLists.txt
+          sed -i "s/\(PROJECT_NUMBER[[:space:]]*=[[:space:]]*\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$clean_tag/" Doxyfile
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Dockerfile_Jammy
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Dockerfile_JetPack
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Dockerfile_Jammy
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Dockerfile_JetPack
+
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Commit and Push Changes
+          git checkout -b "${clean_tag}/update-versions"
+          git add .
+          git commit -m "Update Version Numbers to ${clean_tag}"
+          git push --set-upstream origin "${clean_tag}/update-versions"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "${clean_tag}/update-versions"
+          delete-branch: true
+          title: "Update Version Numbers to ${clean_tag}"
+          draft: false
+
       - name: Cleanup Action Environment
         if: always()
         run: |
