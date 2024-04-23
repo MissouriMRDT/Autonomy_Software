@@ -29,7 +29,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-class BasicCam : public Camera<cv::Mat>, public AutonomyThread<void>
+class BasicCam : public Camera<cv::Mat>
 {
     public:
         /////////////////////////////////////////

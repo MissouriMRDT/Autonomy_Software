@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef IDLESTATE_H
-#define IDLESTATE_H
+#ifndef IDLE_STATE_H
+#define IDLE_STATE_H
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
@@ -43,8 +43,6 @@ namespace statemachine
             std::vector<std::tuple<double, double>> m_vRoverPosition;
             int m_nMaxDataPoints;
             bool m_bInitialized;
-
-            void UpdateZEDPosition();
 
         protected:
             void Start() override;

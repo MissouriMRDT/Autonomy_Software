@@ -57,8 +57,8 @@ class NavigationBoard
         double GetHeadingAccuracy();
         double GetVelocity();
         double GetAngularVelocity();
-        std::chrono::system_clock::duration GetGPSDataAge();
-        std::chrono::system_clock::duration GetCompassDataAge();
+        std::chrono::system_clock::duration GetGPSLastUpdateTime();
+        std::chrono::system_clock::duration GetCompassLastUpdateTime();
 
     private:
         /////////////////////////////////////////
@@ -114,10 +114,11 @@ class NavigationBoard
             // Acquire write lock for writing to GPS struct.
             std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
             // Repack data from RoveCommPacket into member variable.
-            m_stLocation.dLatitude  = stPacket.vData[0];
-            m_stLocation.dLongitude = stPacket.vData[1];
-            m_stLocation.dAltitude  = stPacket.vData[2];
-            // Update GPS time.
+            m_stLocation.dLatitude   = stPacket.vData[0];
+            m_stLocation.dLongitude  = stPacket.vData[1];
+            m_stLocation.dAltitude   = stPacket.vData[2];
+            m_stLocation.tmTimestamp = tmCurrentTime;
+            // Update GPS update time.
             m_tmLastGPSUpdateTime = tmCurrentTime;
             // Unlock mutex.
             lkGPSWriteProcessLock.unlock();
@@ -143,19 +144,23 @@ class NavigationBoard
             std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
             std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
             // Repack data from RoveCommPacket into member variable.
-            m_stLocation.d2DAccuracy = stPacket.vData[0];
-            m_stLocation.d3DAccuracy = stPacket.vData[1];
-            m_dHeadingAccuracy       = stPacket.vData[2];
+            m_stLocation.d2DAccuracy                = std::fabs(stPacket.vData[0]);
+            m_stLocation.d3DAccuracy                = std::fabs(stPacket.vData[1]);
+            m_dHeadingAccuracy                      = std::fabs(stPacket.vData[2]);
+            m_stLocation.eCoordinateAccuracyFixType = static_cast<geoops::PositionFixType>(stPacket.vData[3]);
+            m_stLocation.bIsDifferential            = static_cast<bool>(stPacket.vData[4]);
             // Unlock mutex.
             lkCompassProcessLock.unlock();
             lkGPSProcessLock.unlock();
 
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger,
-                      "Incoming Accuracy Data: (2D: {}, 3D: {}, Compass: {})",
-                      m_stLocation.d2DAccuracy,
-                      m_stLocation.d3DAccuracy,
-                      stPacket.vData[2]);
+                      "Incoming Accuracy Data: (2D: {}, 3D: {}, Compass: {}, FIX_TYPE: {}, Differential?: {})",
+                      stPacket.vData[0],
+                      stPacket.vData[1],
+                      stPacket.vData[2],
+                      stPacket.vData[3],
+                      stPacket.vData[4]);
         };
 
         /******************************************************************************
