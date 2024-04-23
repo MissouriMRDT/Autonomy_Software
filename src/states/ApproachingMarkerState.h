@@ -8,15 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef APPROACHINGMARKERSTATE_H
-#define APPROACHINGMARKERSTATE_H
+#ifndef APPROACHING_MARKER_STATE_H
+#define APPROACHING_MARKER_STATE_H
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/vision/TagDetectionUtilty.hpp"
-#include "../vision/aruco/ArucoDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
-#include "../vision/aruco/TensorflowTagDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.

@@ -91,6 +91,7 @@ latlon
 LEDRGB
 LEFTCAM
 libedgetpu
+localtime
 MAINCAM
 MAINCAN
 mainpage
@@ -164,6 +165,8 @@ timestep
 tparam
 twxs
 UART
+UBLOX
+unquantized
 unstuckith
 UNVALIDATED
 upsample
@@ -173,6 +176,7 @@ valgrind
 VERIFYINGMARKERSTATE
 VERIFYINGOBJECTSTATE
 VIDEOWRITER
+VIOGPS
 Watchpoints
 Webots
 wslg

@@ -102,7 +102,8 @@ find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find PyTorch.
-set (CAFFE2_USE_CUDNN "1")
+set(CAFFE2_USE_CUDNN "1")
+set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.9 9.0")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
@@ -196,31 +197,39 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
 ## Link Libraries to Executable
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 
-## Package Executable
-install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
-
-## Unit/Integration Tests
-file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
-file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
-file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-file(GLOB         Network_SRC			CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
-file(GLOB         Logging_SRC			CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
-
-list(LENGTH UnitTests_SRC           UnitTests_LEN)
-list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
-
-if (UnitTests_LEN GREATER 0)
-    add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-    add_test(Unit_Tests ${EXE_NAME}_UnitTests)
-else()
-    message("No Unit Tests!")
+## Enable or Disble Install Mode
+option(BUILD_INSTALL_MODE "Enable Install Mode" OFF)
+if(BUILD_INSTALL_MODE)
+    ## Package Executable
+    install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
 endif()
 
-if (IntegrationTests_LEN GREATER 0)
-    add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
-    target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-    add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
-else()
-    message("No Integration Tests!")
+## Enable or Disble Tests Mode
+option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
+if(BUILD_TESTS_MODE)
+    ## Unit/Integration Tests
+    file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
+    file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
+    file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+    file(GLOB         Network_SRC			CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
+    file(GLOB         Logging_SRC			CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
+
+    list(LENGTH UnitTests_SRC           UnitTests_LEN)
+    list(LENGTH IntegrationTests_SRC    IntegrationTests_LEN)
+
+    if (UnitTests_LEN GREATER 0)
+        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
+        add_test(Unit_Tests ${EXE_NAME}_UnitTests)
+    else()
+        message("No Unit Tests!")
+    endif()
+
+    if (IntegrationTests_LEN GREATER 0)
+        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
+        add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
+    else()
+        message("No Integration Tests!")
+    endif()
 endif()
