@@ -14,8 +14,8 @@
 
 /// \cond
 #include <algorithm>
+#include <cmath>
 #include <iostream>
-#include <math.h>
 
 /// \endcond
 
