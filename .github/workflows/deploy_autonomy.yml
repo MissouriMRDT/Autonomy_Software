@@ -149,12 +149,13 @@ jobs:
         working-directory: /opt/Autonomy_Software/artifacts/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: false
           name: "${{ steps.version.outputs.version }}"
           files: "/opt/Autonomy_Software/artifacts/**"
+          tag_name: "${{ steps.version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
