@@ -70,8 +70,8 @@ namespace constants
     // Power constants.
     const float DRIVE_MAX_POWER  = 1.0;
     const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 0.35;
-    const float DRIVE_MIN_EFFORT = -0.35;
+    const float DRIVE_MAX_EFFORT = 0.5;
+    const float DRIVE_MIN_EFFORT = -0.5;
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -159,16 +159,16 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int ZED_MAINCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_RESOLUTIONY               = 720;      // The vertical pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_FPS                       = 60;       // The FPS to use for the maincam.
-    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;      // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_MAINCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_MAINCAM_FUSION_MASTER            = true;     // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_RESOLUTIONX               = 1280;    // The horizontal pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_RESOLUTIONY               = 720;     // The vertical pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_FPS                       = 60;      // The FPS to use for the maincam.
+    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;     // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_MAINCAM_VERTICAL_FOV              = 70;      // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_MAINCAM_USE_GPU_MAT              = true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_MAINCAM_FUSION_MASTER            = true;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left ZED Camera.
     const int ZED_LEFTCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the leftcam images to.
@@ -227,27 +227,27 @@ namespace constants
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = false;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                             // Whether or not to use DNN detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = false;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
     const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_LEFTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
+    const std::string TAGDETECT_LEFTCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -258,9 +258,9 @@ namespace constants
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_RIGHTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH      = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE        = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH        = 0.4f;    // The threshold for non-max suppression filtering.
+    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
@@ -297,10 +297,10 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_POWER             = DRIVE_MAX_EFFORT;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                 // The distance to reverse in meters.
-    const double REVERSE_TIMEOUT_PER_METER = 5.0;                 // Reverse state timeout in seconds for each meter reversed.
-    const bool REVERSE_MAINTAIN_HEADING    = true;                // Whether or not the rover should maintain heading while reversing.
+    const double REVERSE_POWER             = DRIVE_MAX_POWER;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 3.0;                // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT_PER_METER = 5.0;                // Reverse state timeout in seconds for each meter reversed.
+    const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
     const double SEARCH_ANGULAR_STEP_DEGREES     = 57;                  // The amount the angle is incremented in each iteration of the loop (degrees).
