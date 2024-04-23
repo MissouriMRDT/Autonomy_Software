@@ -184,7 +184,7 @@ class ZEDCam : public Camera<cv::Mat>
 
         sl::ERROR_CODE EnablePositionalTracking(const float fExpectedCameraHeightFromFloorTolerance = constants::ZED_DEFAULT_FLOOR_PLANE_ERROR);
         void DisablePositionalTracking();
-        sl::ERROR_CODE SetPositionalPose(const float dX, const float dY, const float dZ, const float dXO, const float dYO, const float dZO);
+        void SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
         sl::ERROR_CODE EnableSpatialMapping();
         void DisableSpatialMapping();
         sl::ERROR_CODE EnableObjectDetection(const bool bEnableBatching = false);
@@ -203,6 +203,8 @@ class ZEDCam : public Camera<cv::Mat>
         std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose);
         std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane);
         bool GetPositionalTrackingEnabled();
+        sl::PositionalTrackingStatus GetPositionalTrackingState();
+        sl::FusedPositionalTrackingStatus GetFusedPositionalTrackingState();
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState();
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture);
         bool GetObjectDetectionEnabled();
@@ -251,6 +253,9 @@ class ZEDCam : public Camera<cv::Mat>
         double m_dPoseOffsetX;
         double m_dPoseOffsetY;
         double m_dPoseOffsetZ;
+        double m_dPoseOffsetXO;
+        double m_dPoseOffsetYO;
+        double m_dPoseOffsetZO;
 
         // Data from NavBoard.
         geoops::GPSCoordinate m_stCurrentGPSBasedPosition;

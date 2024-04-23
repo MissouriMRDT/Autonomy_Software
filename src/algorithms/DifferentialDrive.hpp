@@ -18,7 +18,7 @@
 
 /// \cond
 #include <array>
-#include <math.h>
+#include <cmath>
 
 /// \endcond
 
@@ -251,16 +251,16 @@ namespace diffdrive
         {
             case DifferentialControlMethod::eArcadeDrive:
             {
-                // Based on our turn output, inverse-proportionally scale down our goal speed. This helps with pivot turns.
-                dGoalSpeed *= 1.0 - std::fabs(dTurnOutput);
+                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
+                dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, bSquareControlInput);
                 break;
             }
             case DifferentialControlMethod::eCurvatureDrive:
             {
-                // Based on our turn output, inverse-proportionally scale down our goal speed. This helps with pivot turns.
-                dGoalSpeed *= 1.0 - std::fabs(dTurnOutput);
+                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
+                dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateCurvatureDrive(dGoalSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
                 break;

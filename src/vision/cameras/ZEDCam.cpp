@@ -61,6 +61,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_dPoseOffsetX              = 0.0;
     m_dPoseOffsetY              = 0.0;
     m_dPoseOffsetZ              = 0.0;
+    m_dPoseOffsetXO             = 0.0;
+    m_dPoseOffsetYO             = 0.0;
+    m_dPoseOffsetZO             = 0.0;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -598,17 +601,12 @@ void ZEDCam::ThreadedContinuousCode()
         !m_qGeoPoseCopySchedule.empty() || m_qFloorCopySchedule.size() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
     {
         // Find the queue with the longest length.
-        size_t siMaxQueueLength = std::max({m_qFrameCopySchedule.size(),
-                                            m_qGPUFrameCopySchedule.size(),
-                                            m_qCustomBoxIngestSchedule.size(),
-                                            m_qPoseCopySchedule.size(),
-                                            m_qGeoPoseCopySchedule.size(),
-                                            m_qFloorCopySchedule.size(),
-                                            m_qObjectDataCopySchedule.size(),
-                                            m_qObjectBatchedDataCopySchedule.size()});
+        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qGPUFrameCopySchedule.size() + m_qCustomBoxIngestSchedule.size() + m_qPoseCopySchedule.size() +
+                                    m_qGeoPoseCopySchedule.size() + m_qFloorCopySchedule.size() + m_qObjectDataCopySchedule.size() +
+                                    m_qObjectBatchedDataCopySchedule.size();
 
         // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
-        this->RunDetachedPool(siMaxQueueLength, m_nNumFrameRetrievalThreads);
+        this->RunDetachedPool(siTotalQueueLength, m_nNumFrameRetrievalThreads);
 
         // Static bool for keeping track of reset toggle action.
         static bool bQueueTogglesAlreadyReset = false;
@@ -640,6 +638,7 @@ void ZEDCam::ThreadedContinuousCode()
         // Wait for thread pool to finish.
         this->JoinPool();
     }
+
     // Release lock on frame copy queue.
     lkSchedulers.unlock();
 }
@@ -753,19 +752,45 @@ void ZEDCam::PooledLinearCode()
         // Release lock.
         lkPoseQueue.unlock();
 
-        // Create instance variables.
-        Pose stPose(m_slCameraPose.getTranslation().x + m_dPoseOffsetX,
-                    m_slCameraPose.getTranslation().y + m_dPoseOffsetY,
-                    m_slCameraPose.getTranslation().z + m_dPoseOffsetZ,
-                    m_slCameraPose.getEulerAngles(false).x,
-                    m_slCameraPose.getEulerAngles(false).y,
-                    m_slCameraPose.getEulerAngles(false).z);
+        // Rotate the ZED position coordinate frame to realign with the UTM global coordinate frame.
+        std::vector<numops::CoordinatePoint<double>> vPointCloud;
+        vPointCloud.emplace_back(m_slCameraPose.getTranslation().x, m_slCameraPose.getTranslation().y, m_slCameraPose.getTranslation().z);
+        // Get angle realignments.
+        double dNewXO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x + m_dPoseOffsetXO, 0.0, 360.0);
+        double dNewYO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y + m_dPoseOffsetYO, 0.0, 360.0);
+        double dNewZO = numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z + m_dPoseOffsetZO, 0.0, 360.0);
+        // Rotate coordinate frame.
+        numops::CoordinateFrameRotate3D(vPointCloud, m_dPoseOffsetXO, m_dPoseOffsetYO, m_dPoseOffsetZO);
+        // Repack values into pose.
+        Pose stPose(vPointCloud[0].tX + m_dPoseOffsetX, vPointCloud[0].tY + m_dPoseOffsetY, vPointCloud[0].tZ + m_dPoseOffsetZ, dNewXO, dNewYO, dNewZO);
+
+        // ISSUE NOTE: Might be in the future if we ever change our coordinate system on the ZED. This can be used to fix the directions of the Pose's coordinate system.
+        // // Check ZED coordinate system.
+        // switch (m_slCameraParams.coordinate_system)
+        // {
+        //     case sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP:
+        //     {
+        //         // Realign based in the signedness of this coordinate system. Z is backwards.
+        //         stPose.stTranslation.dZ *= -1;
+        //         break;
+        //     }
+        //     default:
+        //     {
+        //         // No need to flip signs for other coordinate systems.
+        //         break;
+        //     }
+        // }
 
         // Copy pose.
         *(stContainer.pData) = stPose;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
+    }
+    else
+    {
+        // Release lock.
+        lkPoseQueue.unlock();
     }
 
     /////////////////////////////
@@ -789,6 +814,11 @@ void ZEDCam::PooledLinearCode()
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
+    else
+    {
+        // Release lock.
+        lkGeoPoseQueue.unlock();
+    }
 
     /////////////////////////////
     //  Plane queue.
@@ -807,6 +837,11 @@ void ZEDCam::PooledLinearCode()
 
         // Copy pose.
         *(stContainer.pData) = sl::Plane(m_slFloorPlane);
+    }
+    else
+    {
+        // Release lock.
+        lkPlaneQueue.unlock();
     }
 
     /////////////////////////////
@@ -830,6 +865,11 @@ void ZEDCam::PooledLinearCode()
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
+    else
+    {
+        // Release lock.
+        lkObjectDataQueue.unlock();
+    }
 
     /////////////////////////////
     //  ObjectData Batched queue.
@@ -851,6 +891,11 @@ void ZEDCam::PooledLinearCode()
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
+    }
+    else
+    {
+        // Release lock.
+        lkObjectBatchedDataQueue.unlock();
     }
 }
 
@@ -1121,6 +1166,9 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     // Store new translation and rotation in a transform object.
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
+    // Submit logger message.
+    LOG_WARNING(logging::g_qSharedLogger, "Resetting positional tracking for camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
+
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
     // Reset the positional tracking location of the camera.
@@ -1334,12 +1382,10 @@ sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewG
                                                   0.0,
                                                   0.0,
                                                   dVerticalAccuracy * dVerticalAccuracy};
-                // Acquire lock.
-                lkCameraLock.lock();
-                // Get the timestamp of the most recent image from the camera. GNSSData must properly align with an image timestamp or data will be discarded.
-                slGNSSData.ts = m_slCamera.getTimestamp(sl::TIME_REFERENCE::IMAGE);
-                // Release lock.
-                lkCameraLock.unlock();
+
+                // Set GNSS timestamp from input GPSCoordinate data. sl::GNSSData expects time since epoch.
+                slGNSSData.ts = sl::Timestamp(std::chrono::time_point_cast<std::chrono::nanoseconds>(stNewGPSLocation.tmTimestamp).time_since_epoch().count());
+
                 // Get the GNSS fix type status from the given GPS coordinate.
                 switch (stNewGPSLocation.eCoordinateAccuracyFixType)
                 {
@@ -1565,9 +1611,9 @@ void ZEDCam::DisablePositionalTracking()
  * @param dX - The X position of the camera in ZED_MEASURE_UNITS.
  * @param dY - The Y position of the camera in ZED_MEASURE_UNITS.
  * @param dZ - The Z position of the camera in ZED_MEASURE_UNITS.
- * @param dXO - The tilt of the camera around the X axis in degrees.
- * @param dYO - The tilt of the camera around the Y axis in degrees.
- * @param dZO - The tilt of the camera around the Z axis in degrees.
+ * @param dXO - The tilt of the camera around the X axis in degrees. (0-360)
+ * @param dYO - The tilt of the camera around the Y axis in degrees. (0-360)
+ * @param dZO - The tilt of the camera around the Z axis in degrees. (0-360)
  * @return sl::ERROR_CODE - Whether or not the pose was set successfully.
  *
  * @bug The ZEDSDK currently cannot handle resetting the positional pose with large translational (dX, dY, dZ) values without breaking positional
@@ -1579,25 +1625,19 @@ void ZEDCam::DisablePositionalTracking()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-27
  ******************************************************************************/
-sl::ERROR_CODE ZEDCam::SetPositionalPose(const float dX, const float dY, const float dZ, const float dXO, const float dYO, const float dZO)
+void ZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
 {
-    // Create new translation to set position back to user given values.
-    sl::Translation slZeroTranslation(0, 0, 0);
     // Update offset member variables.
-    m_dPoseOffsetX = dX;
-    m_dPoseOffsetY = dY;
-    m_dPoseOffsetZ = dZ;
-    // This will reset position and coordinate frame.
-    sl::Rotation slNewRotation;
-    slNewRotation.setEulerAngles(sl::float3(dXO, dYO, dZO), false);
-
-    // Store new translation and rotation in a transform object.
-    sl::Transform slNewTransform(slNewRotation, slZeroTranslation);
-
-    // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Reset the positional tracking location of the camera.
-    return m_slCamera.resetPositionalTracking(slNewTransform);
+    m_dPoseOffsetX = dX - m_slCameraPose.getTranslation().x;
+    m_dPoseOffsetY = dY - m_slCameraPose.getTranslation().y;
+    m_dPoseOffsetZ = dZ - m_slCameraPose.getTranslation().z;
+    // Find the angular distance from current and desired pose angles.
+    m_dPoseOffsetXO =
+        numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x, 0.0, 360.0), dXO), 0.0, 360.0);
+    m_dPoseOffsetYO =
+        numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).y, 0.0, 360.0), dYO), 0.0, 360.0);
+    m_dPoseOffsetZO =
+        numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).z, 0.0, 360.0), dZO), 0.0, 360.0);
 }
 
 /******************************************************************************
@@ -2033,6 +2073,38 @@ bool ZEDCam::GetPositionalTrackingEnabled()
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     return m_slCamera.isPositionalTrackingEnabled() && m_slCamera.getPositionalTrackingStatus().odometry_status == sl::ODOMETRY_STATUS::OK;
+}
+
+/******************************************************************************
+ * @brief Accessor for the current positional tracking status of the camera.
+ *
+ * @return sl::PositionalTrackingStatus - The sl::PositionalTrackingStatus struct storing
+ *      information about the current VIO positional tracking state.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-20
+ ******************************************************************************/
+sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    return m_slCamera.getPositionalTrackingStatus();
+}
+
+/******************************************************************************
+ * @brief Accessor for the current positional tracking status of the fusion instance.
+ *
+ * @return sl::FusedPositionalTrackingStatus - The sl::FusedPositionalTrackingStatus struct storing
+ *      information about the current VIO and GNSS fusion positional tracking state.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-04-22
+ ******************************************************************************/
+sl::FusedPositionalTrackingStatus ZEDCam::GetFusedPositionalTrackingState()
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
+    return m_slFusionInstance.getFusedPositionalTrackingStatus();
 }
 
 /******************************************************************************

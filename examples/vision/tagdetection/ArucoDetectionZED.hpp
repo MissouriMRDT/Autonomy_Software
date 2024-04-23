@@ -25,28 +25,7 @@
  ******************************************************************************/
 void RunExample()
 {
-    // Initialize RoveComm.
-    network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
-    network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
-    // Start RoveComm instances bound on ports.
-    network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
-    network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
-    // Check if RoveComm was successfully initialized.
-    if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
-    {
-        // Submit logger message.
-        LOG_CRITICAL(logging::g_qSharedLogger,
-                     "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                     network::g_bRoveCommUDPStatus,
-                     network::g_bRoveCommTCPStatus);
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
-    }
     // Initialize and start handlers.
-    globals::g_pNavigationBoard     = new NavigationBoard();
     globals::g_pCameraHandler       = new CameraHandler();
     globals::g_pTagDetectionHandler = new TagDetectionHandler();
 
@@ -79,7 +58,7 @@ void RunExample()
         std::future<bool> fuDetectionFrameCopyStatus1;
 
         // Check if the camera is setup to use CPU or GPU mats.
-        if (constants::ZED_MAINCAM_USE_GPU_MAT)
+        if (ExampleZEDCam1->GetUsingGPUMem())
         {
             // Grab normal frame from camera.
             fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
@@ -98,7 +77,7 @@ void RunExample()
         if (fuCopyStatus1.get())
         {
             // Check if the camera is setup to use CPU or GPU mats.
-            if (constants::ZED_MAINCAM_USE_GPU_MAT)
+            if (ExampleZEDCam1->GetUsingGPUMem())
             {
                 // Download memory from gpu mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
