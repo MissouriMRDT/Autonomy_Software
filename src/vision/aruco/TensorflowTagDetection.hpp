@@ -212,11 +212,11 @@ namespace tensorflowtag
         if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols || cvCenter.y < 0 || cvCenter.x < 0)
         {
             LOG_ERROR(logging::g_qSharedLogger,
-                        "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
-                        cvCenter.y,
-                        cvCenter.x,
-                        cvPointCloud.rows,
-                        cvPointCloud.cols);
+                      "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
+                      cvCenter.y,
+                      cvCenter.x,
+                      cvPointCloud.rows,
+                      cvPointCloud.cols);
             return;
         }
 
