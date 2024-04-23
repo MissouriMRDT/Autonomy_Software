@@ -8,11 +8,12 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef NAVIGATINGSTATE_H
-#define NAVIGATINGSTATE_H
+#ifndef NAVIGATING_STATE_H
+#define NAVIGATING_STATE_H
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/states/StuckDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -40,6 +41,7 @@ namespace statemachine
             time_t m_tStuckCheckTime;
             double m_dStuckCheckLastPosition[2];
             bool m_bInitialized;
+            statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
         protected:
             void Start() override;

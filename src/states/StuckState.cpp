@@ -180,10 +180,12 @@ namespace statemachine
                             // Submit logger message.
                             LOG_WARNING(logging::g_qSharedLogger,
                                         "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
-                                        dRealignmentDegrees,
+                                        constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
                                         dTimeElapsed);
                             // Update stuck type enum for if we are still stuck after reversing.
                             m_eAttemptType = eReverseRight;
+                            // Reset currently aligning toggle.
+                            m_bIsCurrentlyAligning = false;
                             // Handle reversing event.
                             globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
                         }
@@ -244,27 +246,29 @@ namespace statemachine
                                         dTimeElapsed);
                             // Update stuck type enum for if we are still stuck after reversing.
                             m_eAttemptType = eGiveUp;
+                            // Reset currently aligning toggle.
+                            m_bIsCurrentlyAligning = false;
                             // Handle reversing event.
                             globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
                         }
-                        break;
                     }
-                    case eGiveUp:
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "StuckState: After multiple attempts, autonomy was unable to get the rover unstuck. Giving Up...");
-                        // Return to idle.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
-                        break;
-                    }
-                    default:
-                    {
-                        // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger, "StuckState: Unknown attempt type!");
-                        // Return to idle.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
-                        break;
-                    }
+                    break;
+                }
+                case eGiveUp:
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "StuckState: After multiple attempts, autonomy was unable to get the rover unstuck. Giving Up...");
+                    // Return to idle.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+                    break;
+                }
+                default:
+                {
+                    // Submit logger message.
+                    LOG_ERROR(logging::g_qSharedLogger, "StuckState: Unknown attempt type!");
+                    // Return to idle.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+                    break;
                 }
             }
         }

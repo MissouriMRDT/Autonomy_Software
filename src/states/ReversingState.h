@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef REVERSINGSTATE_H
-#define REVERSINGSTATE_H
+#ifndef REVERSING_STATE_H
+#define REVERSING_STATE_H
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"

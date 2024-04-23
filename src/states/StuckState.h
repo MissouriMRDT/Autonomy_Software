@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef STUCKSTATE_H
-#define STUCKSTATE_H
+#ifndef STUCK_STATE_H
+#define STUCK_STATE_H
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"

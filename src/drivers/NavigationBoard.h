@@ -57,8 +57,8 @@ class NavigationBoard
         double GetHeadingAccuracy();
         double GetVelocity();
         double GetAngularVelocity();
-        std::chrono::system_clock::duration GetGPSDataAge();
-        std::chrono::system_clock::duration GetCompassDataAge();
+        std::chrono::system_clock::duration GetGPSLastUpdateTime();
+        std::chrono::system_clock::duration GetCompassLastUpdateTime();
 
     private:
         /////////////////////////////////////////
@@ -114,10 +114,11 @@ class NavigationBoard
             // Acquire write lock for writing to GPS struct.
             std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
             // Repack data from RoveCommPacket into member variable.
-            m_stLocation.dLatitude  = stPacket.vData[0];
-            m_stLocation.dLongitude = stPacket.vData[1];
-            m_stLocation.dAltitude  = stPacket.vData[2];
-            // Update GPS time.
+            m_stLocation.dLatitude   = stPacket.vData[0];
+            m_stLocation.dLongitude  = stPacket.vData[1];
+            m_stLocation.dAltitude   = stPacket.vData[2];
+            m_stLocation.tmTimestamp = tmCurrentTime;
+            // Update GPS update time.
             m_tmLastGPSUpdateTime = tmCurrentTime;
             // Unlock mutex.
             lkGPSWriteProcessLock.unlock();

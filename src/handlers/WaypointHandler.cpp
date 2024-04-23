@@ -740,16 +740,21 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
 
     // Create instance variables.
-    ZEDCam* pMainCam                        = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-    geoops::GPSCoordinate stCurrentPosition = stCurrentGPSPosition;
-    double dCurrentHeading                  = dCurrentGPSHeading;
-    bool bVIOGPSFused                       = false;
+    ZEDCam* pMainCam                           = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
+    double dCurrentHeading                     = dCurrentGPSHeading;
+    bool bVIOGPSFused                          = false;
+    static bool bAlreadyPrinted                = false;
 
     // Check if the main ZED camera is opened and the fusion module is initialized.
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
     {
-        // Check if GNSS fusion is enabled and current GPS data from has differential accuracy.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && pMainCam->GetIsFusionMaster() && stCurrentGPSPosition.bIsDifferential)
+        // Get the fused positional tracking state of the main camera.
+        sl::GNSS_FUSION_STATUS slGNSSFusionStatus = pMainCam->GetFusedPositionalTrackingState().gnss_fusion_status;
+
+        // Check if GNSS fusion is enabled and current GPS data from has differential accuracy and GNSS fusion is calibrated.
+        if (constants::FUSION_ENABLE_GNSS_FUSION && pMainCam->GetIsFusionMaster() && stCurrentGPSPosition.bIsDifferential &&
+            (slGNSSFusionStatus == sl::GNSS_FUSION_STATUS::OK || slGNSSFusionStatus == sl::GNSS_FUSION_STATUS::RECALIBRATION_IN_PROGRESS))
         {
             // Create instance variables.
             sl::GeoPose slCurrentCameraGeoPose;
@@ -762,12 +767,12 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
             if (fuResultStatus.get() && fuResultStatus2.get())
             {
                 // Repack the camera pose into a GPSCoordinate.
-                stCurrentPosition.dLatitude  = slCurrentCameraGeoPose.latlng_coordinates.getLatitude(false);
-                stCurrentPosition.dLongitude = slCurrentCameraGeoPose.latlng_coordinates.getLongitude(false);
-                stCurrentPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
+                stCurrentVIOPosition.dLatitude  = slCurrentCameraGeoPose.latlng_coordinates.getLatitude(false);
+                stCurrentVIOPosition.dLongitude = slCurrentCameraGeoPose.latlng_coordinates.getLongitude(false);
+                stCurrentVIOPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
                 // Repack the camera pose into a UTMCoordinate.
                 // dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some reason.
-                dCurrentHeading = numops::InputAngleModulus(stCurrentCameraVIOPose.stEulerAngles.dYO, 0.0, 360.0);
+                dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
 
                 // Set fused toggle.
                 bVIOGPSFused = true;
@@ -775,8 +780,17 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
             else
             {
                 // Just return normal GPS position and heading from NavBoard.
-                stCurrentPosition = stCurrentGPSPosition;
-                dCurrentHeading   = dCurrentGPSHeading;
+                stCurrentVIOPosition = stCurrentGPSPosition;
+                dCurrentHeading      = dCurrentGPSHeading;
+            }
+
+            // Check toggle so we only print once.
+            if (bAlreadyPrinted)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "GNSS Fusion has now converged! Using GNSS Fusion for rover pose...");
+                // Set toggle.
+                bAlreadyPrinted = false;
             }
         }
         else
@@ -796,9 +810,9 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
                 stCameraUTMLocation.dNorthing = stCurrentCameraVIOPose.stTranslation.dZ;
                 stCameraUTMLocation.dAltitude = stCurrentCameraVIOPose.stTranslation.dY;
                 // Convert back to GPS coordinate and store.
-                stCurrentPosition = geoops::ConvertUTMToGPS(stCameraUTMLocation);
+                stCurrentVIOPosition = geoops::ConvertUTMToGPS(stCameraUTMLocation);
                 // Get compass heading based off of the ZED's aligned accelerometer.
-                dCurrentHeading = numops::InputAngleModulus(stCurrentCameraVIOPose.stEulerAngles.dYO, 0.0, 360.0);
+                dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
 
                 // Set fused toggle.
                 bVIOGPSFused = false;
@@ -806,22 +820,32 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose()
             else
             {
                 // Just return normal GPS position and heading from NavBoard.
-                stCurrentPosition = stCurrentGPSPosition;
-                dCurrentHeading   = dCurrentGPSHeading;
+                stCurrentVIOPosition = stCurrentGPSPosition;
+                dCurrentHeading      = dCurrentGPSHeading;
+            }
+
+            // Check toggle so we only print once.
+            if (!bAlreadyPrinted)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "GNSS Fusion is still calibrating. Using VIO tracking for rover pose...");
+                // Set toggle.
+                bAlreadyPrinted = true;
             }
         }
     }
 
     // Submit logger message.
+    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentVIOPosition);
     LOG_DEBUG(logging::g_qSharedLogger,
               "Rover Pose is currently: {} (lat), {} (lon), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}",
-              stCurrentPosition.dLatitude,
-              stCurrentPosition.dLongitude,
-              stCurrentPosition.dAltitude,
+              stCurrentUTMPosition.dEasting,
+              stCurrentUTMPosition.dNorthing,
+              stCurrentUTMPosition.dAltitude,
               dCurrentHeading,
               bVIOGPSFused ? "true" : "false");
 
-    return geoops::RoverPose(stCurrentPosition, dCurrentHeading);
+    return geoops::RoverPose(stCurrentVIOPosition, dCurrentHeading);
 }
 
 /******************************************************************************

@@ -274,9 +274,6 @@ class AutonomyThread
             // Check if the pools need to be resized.
             if (m_thPool.get_thread_count() != nNumThreads)
             {
-                // Tell any open thread to stop.
-                m_bStopThreads = true;
-
                 // Pause queuing of new tasks to the threads, then purge them.
                 m_thPool.pause();
                 m_thPool.purge();
@@ -287,15 +284,10 @@ class AutonomyThread
 
                 // Clear results vector.
                 m_vPoolReturns.clear();
-                // Reset thread stop toggle.
-                m_bStopThreads = false;
             }
             // Check if the current pool tasks should be stopped before queueing more tasks.
             else if (bForceStopCurrentThreads)
             {
-                // Tell any open thread to stop.
-                m_bStopThreads = true;
-
                 // Pause queuing of new tasks to the threads, then purge them.
                 m_thPool.pause();
                 m_thPool.purge();
@@ -303,9 +295,6 @@ class AutonomyThread
                 m_thPool.wait();
                 // Unpause queue.
                 m_thPool.unpause();
-
-                // Reset stop toggle.
-                m_bStopThreads = false;
             }
 
             // Loop nNumThreads times and queue tasks.
@@ -357,9 +346,6 @@ class AutonomyThread
             // Check if the pools need to be resized.
             if (m_thPool.get_thread_count() != nNumThreads)
             {
-                // Tell any open thread to stop.
-                m_bStopThreads = true;
-
                 // Pause queuing of new tasks to the threads, then purge them.
                 m_thPool.pause();
                 m_thPool.purge();
@@ -370,15 +356,10 @@ class AutonomyThread
 
                 // Clear results vector.
                 m_vPoolReturns.clear();
-                // Reset thread stop toggle.
-                m_bStopThreads = false;
             }
             // Check if the current pool tasks should be stopped before queueing more tasks.
             else if (bForceStopCurrentThreads)
             {
-                // Tell any open thread to stop.
-                m_bStopThreads = true;
-
                 // Pause queuing of new tasks to the threads, then purge them.
                 m_thPool.pause();
                 m_thPool.purge();
@@ -386,9 +367,6 @@ class AutonomyThread
                 m_thPool.wait();
                 // Unpause queue.
                 m_thPool.unpause();
-
-                // Reset stop toggle.
-                m_bStopThreads = false;
             }
 
             // Loop nNumThreads times and queue tasks.
