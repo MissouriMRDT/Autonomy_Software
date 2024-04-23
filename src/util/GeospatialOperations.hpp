@@ -17,6 +17,7 @@
 /// \cond
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/UTMUPS.hpp>
+#include <chrono>
 
 /// \endcond
 
@@ -156,6 +157,7 @@ namespace geoops
             double dScale;                                 // The scale factor applied to the UTM coordinates for map projection.
             PositionFixType eCoordinateAccuracyFixType;    // The type of satellite location lock the coordinate was taken under.
             bool bIsDifferential;                          // Whether of not the coordinate was taken under a differential GPS lock.
+            std::chrono::system_clock::time_point tmTimestamp;    // The chrono time point when the GPS coordinate was created/received.
 
             /////////////////////////////////////////
             // Declare public methods.
@@ -176,15 +178,16 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            GPSCoordinate(double dLatitude                           = 0.0,
-                          double dLongitude                          = 0.0,
-                          double dAltitude                           = 0.0,
-                          double d2DAccuracy                         = -1.0,
-                          double d3DAccuracy                         = -1.0,
-                          double dMeridianConvergence                = -1.0,
-                          double dScale                              = 0.0,
-                          PositionFixType eCoordinateAccuracyFixType = PositionFixType::eUNKNOWN,
-                          bool bIsDifferential                       = false)
+            GPSCoordinate(double dLatitude                                  = 0.0,
+                          double dLongitude                                 = 0.0,
+                          double dAltitude                                  = 0.0,
+                          double d2DAccuracy                                = -1.0,
+                          double d3DAccuracy                                = -1.0,
+                          double dMeridianConvergence                       = -1.0,
+                          double dScale                                     = 0.0,
+                          PositionFixType eCoordinateAccuracyFixType        = PositionFixType::eUNKNOWN,
+                          bool bIsDifferential                              = false,
+                          std::chrono::system_clock::time_point tmTimestamp = std::chrono::system_clock::time_point().min())
             {
                 // Initialize member variables with given values.
                 this->dLatitude                  = dLatitude;
@@ -196,6 +199,7 @@ namespace geoops
                 this->dScale                     = dScale;
                 this->eCoordinateAccuracyFixType = eCoordinateAccuracyFixType;
                 this->bIsDifferential            = bIsDifferential;
+                this->tmTimestamp                = tmTimestamp;
             }
 
             /******************************************************************************
@@ -260,6 +264,7 @@ namespace geoops
             double dScale;                                 // The scale factor applied to the UTM coordinates for map projection.
             PositionFixType eCoordinateAccuracyFixType;    // The type of satellite location lock the coordinate was taken under.
             bool bIsDifferential;                          // Whether of not the coordinate was taken under a differential GPS lock.
+            std::chrono::system_clock::time_point tmTimestamp;    // The chrono time point when the GPS coordinate was created/received.
 
             /////////////////////////////////////////
             // Declare public methods.
@@ -283,17 +288,18 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            UTMCoordinate(double dEasting                            = 0.0,
-                          double dNorthing                           = 0.0,
-                          int nZone                                  = 0,
-                          bool bWithinNorthernHemisphere             = true,
-                          double dAltitude                           = 0.0,
-                          double d2DAccuracy                         = -1.0,
-                          double d3DAccuracy                         = -1.0,
-                          double dMeridianConvergence                = -1.0,
-                          double dScale                              = 0.0,
-                          PositionFixType eCoordinateAccuracyFixType = PositionFixType::eUNKNOWN,
-                          bool bIsDifferential                       = false)
+            UTMCoordinate(double dEasting                                   = 0.0,
+                          double dNorthing                                  = 0.0,
+                          int nZone                                         = 0,
+                          bool bWithinNorthernHemisphere                    = true,
+                          double dAltitude                                  = 0.0,
+                          double d2DAccuracy                                = -1.0,
+                          double d3DAccuracy                                = -1.0,
+                          double dMeridianConvergence                       = -1.0,
+                          double dScale                                     = 0.0,
+                          PositionFixType eCoordinateAccuracyFixType        = PositionFixType::eUNKNOWN,
+                          bool bIsDifferential                              = false,
+                          std::chrono::system_clock::time_point tmTimestamp = std::chrono::system_clock::time_point().min())
             {
                 // Initialize member variables with given values.
                 this->dEasting                   = dEasting;
@@ -307,6 +313,7 @@ namespace geoops
                 this->dScale                     = dScale;
                 this->eCoordinateAccuracyFixType = eCoordinateAccuracyFixType;
                 this->bIsDifferential            = bIsDifferential;
+                this->tmTimestamp                = tmTimestamp;
             }
 
             /******************************************************************************
@@ -370,6 +377,7 @@ namespace geoops
         stConvertCoord.dAltitude                  = stGPSCoord.dAltitude;
         stConvertCoord.eCoordinateAccuracyFixType = stGPSCoord.eCoordinateAccuracyFixType;
         stConvertCoord.bIsDifferential            = stGPSCoord.bIsDifferential;
+        stConvertCoord.tmTimestamp                = stGPSCoord.tmTimestamp;
 
         // Catch errors from GeographicLib.
         try
@@ -414,6 +422,7 @@ namespace geoops
         stConvertCoord.dAltitude                  = stUTMCoord.dAltitude;
         stConvertCoord.eCoordinateAccuracyFixType = stUTMCoord.eCoordinateAccuracyFixType;
         stConvertCoord.bIsDifferential            = stUTMCoord.bIsDifferential;
+        stConvertCoord.tmTimestamp                = stUTMCoord.tmTimestamp;
 
         // Catch errors from GeographicLib.
         try

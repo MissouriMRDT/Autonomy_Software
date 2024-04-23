@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef APPROACHINGOBJECTSTATE_H
-#define APPROACHINGOBJECTSTATE_H
+#ifndef APPROACHING_OBJECT_STATE_H
+#define APPROACHING_OBJECT_STATE_H
 
 #include "../interfaces/State.hpp"
 

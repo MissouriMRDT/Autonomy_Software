@@ -39,23 +39,26 @@ namespace controllers
     PIDController::PIDController(const double dKp, const double dKi, const double dKd, const double dKff)
     {
         // Initialize member variable.
-        m_dKp                    = dKp;
-        m_dKi                    = dKi;
-        m_dKd                    = dKd;
-        m_dKff                   = dKff;
-        m_dSetpoint              = 0.0;
-        m_dErrorSum              = 0.0;
-        m_dMaxError              = 0.0;
-        m_dMaxIEffort            = 0.0;
-        m_dMinEffort             = 0.0;
-        m_dMaxEffort             = 0.0;
-        m_dLastActual            = 0.0;
-        m_dOutputRampRate        = 0.0;
-        m_dLastControlOutput     = 0.0;
-        m_dOutputFilter          = 0.0;
-        m_dMaxSetpointDifference = 0.0;
-        m_bFirstCalculation      = true;
-        m_bReversed              = false;
+        m_dKp                     = dKp;
+        m_dKi                     = dKi;
+        m_dKd                     = dKd;
+        m_dKff                    = dKff;
+        m_dSetpoint               = 0.0;
+        m_dErrorSum               = 0.0;
+        m_dMaxError               = 0.0;
+        m_dMaxIEffort             = 0.0;
+        m_dMinEffort              = 0.0;
+        m_dMaxEffort              = 0.0;
+        m_dLastActual             = 0.0;
+        m_dOutputRampRate         = 0.0;
+        m_dLastControlOutput      = 0.0;
+        m_dOutputFilter           = 0.0;
+        m_dMaxSetpointDifference  = 0.0;
+        m_dMinimumContinuousInput = 0.0;
+        m_dMaximumContinuousInput = 360.0;
+        m_bControllerIsContinuous = false;
+        m_bFirstCalculation       = true;
+        m_bReversed               = false;
     }
 
     /******************************************************************************
