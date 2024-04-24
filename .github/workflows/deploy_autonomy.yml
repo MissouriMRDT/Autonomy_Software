@@ -213,6 +213,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Prepare Pull Request
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          clean_tag="${latest_tag#v}"
           
       - name: Create Pull Request
         uses: devops-infra/action-pull-request@v0.5.5
