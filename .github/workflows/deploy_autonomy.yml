@@ -195,8 +195,12 @@ jobs:
           # Commit and Push Changes
           git checkout -b topic/update-versions
           git add .
-          git commit -m "Update Version Numbers to ${clean_tag}"
-          git push --set-upstream origin topic/update-versions
+          if git diff --quiet && git diff --cached --quiet; then
+              echo "No changes to commit."
+          else
+              git commit -m "Update Version Numbers to ${clean_tag}"
+              git push --set-upstream origin topic/update-versions
+          fi
           git checkout development
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -218,7 +222,18 @@ jobs:
           ref: development
           submodules: recursive
 
+      - name: Check for Branch
+        id: check_branch
+        run: |
+          if git ls-remote --heads origin topic/update-versions | grep -q 'refs/heads/topic/update-versions'; then
+            echo "Branch exists."
+            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "Branch does not exist."
+            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+
       - name: Create Pull Request
+        if: env.BRANCH_EXISTS == 'true'
         run: gh pr create -B development -H topic/update-versions -t 'Update Software Version Numbers' -b 'Automatically Update Versions' -l '1-Star,enhancement' -a MRDT-Software
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
