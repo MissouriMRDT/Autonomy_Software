@@ -176,6 +176,9 @@ jobs:
           clean_tag="${latest_tag#v}"
           formatted_tag=$(echo $clean_tag | awk -F. '{ printf "%02d.%02d.%02d", $1, $2, $3 }')
 
+          # Print Latest Tag
+          echo $latest_tag
+
           # Update Version Numbers throughout the repository
           sed -i 's/\(project(Autonomy_Software VERSION \)[0-9]\+\.[0-9]\+\.[0-9]\+/\1'"${formatted_tag}"'/' CMakeLists.txt
           sed -i "s/\(##[[:space:]]*v\)[0-9]\+\.[0-9]\+\.[0-9]\+ Build/\1$formatted_tag Build/" CMakeLists.txt
