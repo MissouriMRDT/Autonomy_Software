@@ -216,10 +216,6 @@ jobs:
           submodules: recursive
           
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: development
-          branch: topic/update-versions
-          title: "Update Software Version Numbers"
-          draft: false
+        run: gh pr create -B development -H topic/update-versions --title 'Update Software Version Numbers' --body 'Automatically Update Versions'
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
