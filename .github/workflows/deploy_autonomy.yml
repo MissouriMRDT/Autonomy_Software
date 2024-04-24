@@ -216,6 +216,6 @@ jobs:
           submodules: recursive
 
       - name: Create Pull Request
-        run: gh pr create -B development -H topic/update-versions -t 'Update Software Version Numbers' -b 'Automatically Update Versions' -l '1-Star,enhancement' -a '@me'
+        run: gh pr create -B development -H topic/update-versions -t 'Update Software Version Numbers' -b 'Automatically Update Versions' -l '1-Star,enhancement' -a MRDT-Software
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
