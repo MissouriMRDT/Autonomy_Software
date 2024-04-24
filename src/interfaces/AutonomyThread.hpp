@@ -414,11 +414,12 @@ class AutonomyThread
             // Create new thread pool.
             BS::thread_pool m_thLoopPool = BS::thread_pool(nNumThreads);
 
-            m_thLoopPool.detach_blocks(tTotalIterations,
-                                       [&tLoopFunction](const int a, const int b)
+            m_thLoopPool.detach_blocks(0,
+                                       tTotalIterations,
+                                       [&tLoopFunction](const int nStart, const int nEnd)
                                        {
                                            // Call loop function without lock.
-                                           tLoopFunction(a, b);
+                                           tLoopFunction(nStart, nEnd);
                                        });
 
             // Wait for loop to finish.
