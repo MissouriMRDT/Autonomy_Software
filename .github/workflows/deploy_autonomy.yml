@@ -231,6 +231,7 @@ jobs:
           else
             echo "Branch does not exist."
             echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+          fi
 
       - name: Create Pull Request
         if: env.BRANCH_EXISTS == 'true'
