@@ -201,6 +201,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          base: "development"
           branch: "${clean_tag}/update-versions"
           delete-branch: true
           title: "Update Version Numbers to ${clean_tag}"
