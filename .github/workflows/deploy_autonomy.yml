@@ -199,13 +199,18 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: devops-infra/action-pull-request@v0.5.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: development
-          branch: '${clean_tag}/update-versions'
-          title: "Update Version Numbers to ${clean_tag}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          source_branch: ${clean_tag}/update-versions
+          target_branch: development
+          title: Update Software Versions
+          label: enhancement,1-Star
           draft: false
+          old_string: "<!-- Add your description here -->"
+          new_string: "** Automatic pull request**"
+          get_diff: true
+          allow_no_diff: false
 
       - name: Cleanup Action Environment
         if: always()
