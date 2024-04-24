@@ -195,17 +195,12 @@ jobs:
           git commit -m "Update Version Numbers to ${clean_tag}"
           git push --set-upstream origin "${clean_tag}/update-versions"
           git checkout development
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Create Pull Request
-        uses: repo-sync/pull-request@v2
-        with:
-          destination_branch: "development"
-          source_branch: "${clean_tag}/update-versions"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_title: "Update Version Numbers to ${clean_tag}"
-          pr_body: "This is an automated PR for updating version numbers."
+          # Create Pull Request
+          gh pr create -B development -H '${clean_tag}/update-versions' --title 'Update Version Numbers to ${clean_tag}' --body 'This is an automated PR for updating version numbers.'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Cleanup Action Environment
         if: always()
