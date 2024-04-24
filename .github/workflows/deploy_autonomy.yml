@@ -144,7 +144,7 @@ jobs:
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 git@github.com:MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -156,8 +156,15 @@ jobs:
 
       - name: Update Versions
         run: |
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
           # Setup Environment
           cd /opt/Autonomy_Software
+          git remote set-url origin git@github.com:MissouriMRDT/Autonomy_Software.git
           git fetch --tags --force --recurse-submodules
           git checkout development
           git pull
@@ -181,12 +188,6 @@ jobs:
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
           git config --global user.name "MRDT-Software"
-
-          # Set up SSH key
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
           # Commit and Push Changes
           git checkout -b "${clean_tag}/update-versions"
