@@ -199,13 +199,13 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: repo-sync/pull-request@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: "${clean_tag}/update-versions"
-          delete-branch: true
-          title: "Update Version Numbers to ${clean_tag}"
-          draft: false
+          destination_branch: "development"
+          source_branch: "${clean_tag}/update-versions"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: "Update Version Numbers to ${clean_tag}"
+          pr_body: "This is an automated PR for updating version numbers."
 
       - name: Cleanup Action Environment
         if: always()
