@@ -137,14 +137,14 @@ jobs:
 
   update-versions:
     runs-on: [self-hosted, linux, X64]
-    needs: [build-and-upload, create-release]
+    # needs: [build-and-upload, create-release]
 
     steps:
       - name: Setup Action Environment
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 git@github.com:MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
