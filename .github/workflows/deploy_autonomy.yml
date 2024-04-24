@@ -212,18 +212,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: development
           submodules: recursive
           
       - name: Create Pull Request
-        uses: devops-infra/action-pull-request@v0.5.5
+        uses: peter-evans/create-pull-request@v6
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          source_branch: topic/update-versions
-          target_branch: development
-          title: Update Software Versions
-          label: enhancement,1-Star
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: development
+          branch: topic/update-versions
+          title: "Update Software Version Numbers"
           draft: false
-          old_string: "<!-- Add your description here -->"
-          new_string: "** Automatic pull request**"
-          get_diff: true
-          allow_no_diff: false
