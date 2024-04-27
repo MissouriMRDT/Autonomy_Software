@@ -281,7 +281,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Approaching Marker State
-    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
+    // const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;   // How many consecutive failed attempts at detecting a tag before giving up on marker.
+    const double APPROACH_MARKER_DETECTION_TIMESPAN      = 3;      // Duration we can go without a detected tag before aborting state.
     const double APPROACH_MARKER_MOTOR_POWER             = 0.5;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 5;      // How close the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
@@ -291,6 +292,7 @@ namespace constants
     const double VERIFY_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
     const double VERIFY_MARKER_VERIFY_TIMESPAN         = 2.0;
     const double VERIFY_MARKER_LIGHT_TIMESPAN          = 3.0;
+    const double VERIFY_MARKER_DETECTION_TIMESPAN      = 1.5;    // Duration we can go without a detected tag before aborting state.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.

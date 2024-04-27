@@ -36,14 +36,14 @@ namespace statemachine
         private:
             bool m_bInitialized;
 
-            int m_nNumDetectionAttempts;                     // Number of consecutive unsuccessful attempts to detect a tag.
-            int m_nTargetTagID;                              // ID of the target tag.
-            bool m_bDetected;                                // Has a target tag been detected and identified yet.
-            arucotag::ArucoTag m_stTargetTagAR;              // Detected target tag from OpenCV.
-            tensorflowtag::TensorflowTag m_stTargetTagTF;    // Detected target tag from Tensorflow.
-            double m_dLastTargetHeading;                     // Last recorded heading of the target with respect to the rover's position.
-            double m_dLastTargetDistance;                    // Last recorded distance of the target with respect to the rover's position.
-            std::vector<TagDetector*> m_vTagDetectors;       // Vector of tag detectors to use for detection in order of highest to lowest priority.
+            std::chrono::system_clock::time_point m_tmLastDetectedTag;    // When verification began.
+            int m_nTargetTagID;                                           // ID of the target tag.
+            bool m_bDetected;                                             // Has a target tag been detected and identified yet.
+            arucotag::ArucoTag m_stTargetTagAR;                           // Detected target tag from OpenCV.
+            tensorflowtag::TensorflowTag m_stTargetTagTF;                 // Detected target tag from Tensorflow.
+            double m_dLastTargetHeading;                                  // Last recorded heading of the target with respect to the rover's position.
+            double m_dLastTargetDistance;                                 // Last recorded distance of the target with respect to the rover's position.
+            std::vector<TagDetector*> m_vTagDetectors;                    // Vector of tag detectors to use for detection in order of highest to lowest priority.
 
             bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
             bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);

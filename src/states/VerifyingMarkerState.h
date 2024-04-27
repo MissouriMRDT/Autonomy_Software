@@ -40,11 +40,11 @@ namespace statemachine
             int m_nMaxMarkerIDs;
             bool m_bInitialized;
 
-            int m_nNumDetectionAttempts;                                    // Number of consecutive unsuccessful attempts to detect a tag.
             arucotag::ArucoTag m_stTargetTagAR;                             // Detected target tag from OpenCV.
             tensorflowtag::TensorflowTag m_stTargetTagTF;                   // Detected target tag from Tensorflow.
             std::vector<TagDetector*> m_vTagDetectors;                      // Vector of tag detectors to use for detection in order of highest to lowest priority.
 
+            std::chrono::system_clock::time_point m_tmLastDetectedTag;      // When verification began.
             std::chrono::system_clock::time_point m_tmVerificationStart;    // When verification began.
             std::chrono::system_clock::time_point m_tmLighStart;            // When lights began.
 

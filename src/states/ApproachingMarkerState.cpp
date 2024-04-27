@@ -33,15 +33,15 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
 
-        m_nNumDetectionAttempts = 0;
-        m_nTargetTagID          = -1;
-        m_bDetected             = false;
-        m_dLastTargetHeading    = 0;
-        m_dLastTargetDistance   = 0;
+        m_tmLastDetectedTag   = std::chrono::system_clock::now();
+        m_nTargetTagID        = -1;
+        m_bDetected           = false;
+        m_dLastTargetHeading  = 0;
+        m_dLastTargetDistance = 0;
 
-        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        m_vTagDetectors       = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
     }    // namespace statemachine
 
     /******************************************************************************
@@ -98,7 +98,8 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // If a target hasn't been identified yet attempt to find a target tag in the rover's vision.
-        if (!m_bDetected && m_nNumDetectionAttempts < constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
+        double dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - std::chrono::system_clock::now()).count();
+        if (!m_bDetected && dTimeSinceLastDetectedTag < constants::APPROACH_MARKER_DETECTION_TIMESPAN)
         {
             // Attempt to identify the target with OpenCV.
             // While OpenCV struggles to find tags, the tags it does find are much more reliable compared to TensorFlow.
@@ -106,9 +107,9 @@ namespace statemachine
             if (bDetectedTagAR)
             {
                 // Save the identified tag's ID.
-                m_nTargetTagID          = m_stTargetTagAR.nID;
-                m_bDetected             = true;
-                m_nNumDetectionAttempts = 0;
+                m_nTargetTagID      = m_stTargetTagAR.nID;
+                m_bDetected         = true;
+                m_tmLastDetectedTag = std::chrono::system_clock::now();
             }
             else
             {
@@ -119,17 +120,10 @@ namespace statemachine
                     // Save the identified tag's ID.
                     // LEAD: Commented this out since TensorflowTag no longer has ID.
                     // m_nTargetTagID          = m_stTargetTagTF.nID;
-                    m_bDetected             = true;
-                    m_nNumDetectionAttempts = 0;
+                    m_bDetected         = true;
+                    m_tmLastDetectedTag = std::chrono::system_clock::now();
                 }
             }
-
-            // Both OpenCV & TensorFlow failed to identify a target tag.
-            if (!m_bDetected)
-            {
-                ++m_nNumDetectionAttempts;
-            }
-
             return;
         }
         // A target hasn't been identified and the amount of attempts has exceeded the limit.
@@ -149,20 +143,15 @@ namespace statemachine
         //     bDetectedTagTF = tagdetectutils::FindTensorflowTagByID(m_nTargetTagID, m_stTargetTagTF, m_vTagDetectors);
         // }
 
-        // The target marker wasn't found.
-        if (!bDetectedTagAR && !bDetectedTagTF)
+        if (bDetectedTagAR || bDetectedTagTF)
         {
-            ++m_nNumDetectionAttempts;
-        }
-        // The target marker was found.
-        else
-        {
-            m_nNumDetectionAttempts = 0;
+            m_tmLastDetectedTag = std::chrono::system_clock::now();
         }
 
         // If we have made too many consecutive failed detection attempts
         // inform the statemachine the marker has been lost.
-        if (m_nNumDetectionAttempts >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
+        double dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastDetectedTag).count();
+        if (dTimeSinceLastDetectedTag >= constants::APPROACH_MARKER_DETECTION_TIMESPAN)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;

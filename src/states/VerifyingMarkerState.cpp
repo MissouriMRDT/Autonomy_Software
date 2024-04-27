@@ -36,13 +36,13 @@ namespace statemachine
 
         m_vMarkerIDs.reserve(m_nMaxMarkerIDs);
 
-        m_tmVerificationStart   = std::chrono::system_clock::now();
-        bVerification           = true;
+        m_tmVerificationStart = std::chrono::system_clock::now();
+        bVerification         = true;
 
-        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
-        m_nNumDetectionAttempts = 0;
+        m_vTagDetectors       = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        m_tmLastDetectedTag   = std::chrono::system_clock::now();
     }
 
     /******************************************************************************
@@ -100,7 +100,7 @@ namespace statemachine
             {
                 bVerification = false;
                 m_tmLighStart = tmCurrentTime;
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
             }
         }
         else
@@ -108,7 +108,7 @@ namespace statemachine
             double dTimeSinceLightStart = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLighStart).count();
             if (dTimeSinceLightStart > constants::VERIFY_MARKER_LIGHT_TIMESPAN)
             {
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoardLightingState::eOff);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete);
                 return;
             }
@@ -124,14 +124,11 @@ namespace statemachine
 
         if (bDetectedTagAR || bDetectedTagTF)
         {
-            m_nNumDetectionAttempts = 0;
-        }
-        else
-        {
-            ++m_nNumDetectionAttempts;
+            m_tmLastDetectedTag = std::chrono::system_clock::now();
         }
 
-        if (m_nNumDetectionAttempts > constants::VERIFY_MARKER_DETECT_ATTEMPTS_LIMIT)
+        double dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastDetectedTag).count();
+        if (dTimeSinceLastDetectedTag > constants::VERIFY_MARKER_DETECTION_TIMESPAN)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
