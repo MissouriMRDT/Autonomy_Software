@@ -35,6 +35,14 @@ namespace statemachine
         m_nMaxMarkerIDs = 50;
 
         m_vMarkerIDs.reserve(m_nMaxMarkerIDs);
+
+        m_tmVerificationStart   = std::chrono::system_clock::now();
+        bVerification           = true;
+
+        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        m_nNumDetectionAttempts = 0;
     }
 
     /******************************************************************************
@@ -83,6 +91,51 @@ namespace statemachine
     {
         // TODO: Implement the behavior specific to the VerifyingMarker state
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
+
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        if (bVerification)
+        {
+            double dTimeSinceVerificationStart = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmVerificationStart).count();
+            if (dTimeSinceVerificationStart > constants::VERIFY_MARKER_VERIFY_TIMESPAN)
+            {
+                bVerification = false;
+                m_tmLighStart = tmCurrentTime;
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoardLightingState::eAutonomy);
+            }
+        }
+        else
+        {
+            double dTimeSinceLightStart = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLighStart).count();
+            if (dTimeSinceLightStart > constants::VERIFY_MARKER_LIGHT_TIMESPAN)
+            {
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoardLightingState::eOff);
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete);
+                return;
+            }
+        }
+
+        bool bDetectedTagAR, bDetectedTagTF;
+
+        bDetectedTagAR = IdentifyTargetArucoMarker(m_stTargetTagAR);
+        if (!bDetectedTagAR)
+        {
+            bDetectedTagTF = IdentifyTargetTensorflowMarker(m_stTargetTagTF);
+        }
+
+        if (bDetectedTagAR || bDetectedTagTF)
+        {
+            m_nNumDetectionAttempts = 0;
+        }
+        else
+        {
+            ++m_nNumDetectionAttempts;
+        }
+
+        if (m_nNumDetectionAttempts > constants::VERIFY_MARKER_DETECT_ATTEMPTS_LIMIT)
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
+            return;
+        }
     }
 
     /******************************************************************************
@@ -107,7 +160,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Start event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eVerifyingComplete:
@@ -121,7 +174,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eIdle;
                 break;
@@ -146,5 +199,110 @@ namespace statemachine
         }
 
         return eNextState;
+    }
+
+    /******************************************************************************
+     * @brief Identify a target marker in the rover's vision, using OpenCV detection.
+     *
+     * @note If multiple markers are detected the closest one will be chosen as the target.
+     *
+     * @param tTarget - Reference to store the tag identified as the target.
+     * @return true - A target marker was identified.
+     * @return false - A target marker was not identified.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-29
+     ******************************************************************************/
+    bool VerifyingMarkerState::IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget)
+    {
+        // Load all detected tags in the rover's vision.
+        std::vector<arucotag::ArucoTag> vDetectedTags;
+        tagdetectutils::LoadDetectedArucoTags(vDetectedTags, m_vTagDetectors, true);
+
+        arucotag::ArucoTag stBestTag;
+        stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
+        stBestTag.nID                   = -1;
+
+        // Select the tag that is the closest to the rover's current position.
+        for (const arucotag::ArucoTag& stCandidate : vDetectedTags)
+        {
+            if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance)
+            {
+                stBestTag = stCandidate;
+            }
+        }
+
+        // A tag was found.
+        if (stBestTag.nID >= 0)
+        {
+            // Save it to the passed in reference.
+            stTarget = stBestTag;
+            return true;
+        }
+        // No target tag was found.
+        else
+        {
+            return false;
+        }
+    }
+
+    /******************************************************************************
+     * @brief Identify a target marker in the rover's vision, using Tensorflow detection.
+     *
+     * @note If multiple markers are detected the closest one will be chosen as the target. Also all tags must
+     *      have a confidence of at least APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD.
+     *
+     * @param tTarget - Reference to store the tag identified as the target.
+     * @return true - A target marker was identified.
+     * @return false - A target marker was not identified.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-02-29
+     ******************************************************************************/
+    bool VerifyingMarkerState::IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget)
+    {
+        // Load all detected tags in the rover's vision.
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTags;
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTags, m_vTagDetectors);
+
+        tensorflowtag::TensorflowTag stBestTag;
+        stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
+        bool bTagIdentified             = false;
+        // stBestTag.nID                   = -1;
+
+        // Select the tag that is the closest to the rover's current position and above the confidence threshold.
+        for (const tensorflowtag::TensorflowTag& stCandidate : vDetectedTags)
+        {
+            if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance && stCandidate.dConfidence >= constants::VERIFY_MARKER_TF_CONFIDENCE_THRESHOLD)
+            {
+                stBestTag = stCandidate;
+
+                // Update tag found toggle.
+                bTagIdentified = true;
+            }
+        }
+
+        // Check if a tag has been identified.
+        if (bTagIdentified)
+        {
+            // Save it to the passed in reference.
+            stTarget = stBestTag;
+        }
+
+        return bTagIdentified;
+
+        // LEAD: Since TensorflowTag no longer has ID, commented out.
+        // // A tag was found.
+        // if (stBestTag.nID >= 0)
+        // {
+        //     // Save it to the passed in reference.
+        //     stTarget = stBestTag;
+        //     return true;
+        // }
+        // // No target tag was found.
+        // else
+        // {
+        //     return false;
+        // }
     }
 }    // namespace statemachine

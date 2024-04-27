@@ -12,6 +12,11 @@
 #define VERIFYING_MARKER_STATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+#include "../util/vision/TagDetectionUtilty.hpp"
+#include "../vision/aruco/ArucoDetection.hpp"
+#include "../vision/aruco/TagDetector.h"
+#include "../vision/aruco/TensorflowTagDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -34,6 +39,19 @@ namespace statemachine
             std::vector<int> m_vMarkerIDs;
             int m_nMaxMarkerIDs;
             bool m_bInitialized;
+
+            int m_nNumDetectionAttempts;                                    // Number of consecutive unsuccessful attempts to detect a tag.
+            arucotag::ArucoTag m_stTargetTagAR;                             // Detected target tag from OpenCV.
+            tensorflowtag::TensorflowTag m_stTargetTagTF;                   // Detected target tag from Tensorflow.
+            std::vector<TagDetector*> m_vTagDetectors;                      // Vector of tag detectors to use for detection in order of highest to lowest priority.
+
+            std::chrono::system_clock::time_point m_tmVerificationStart;    // When verification began.
+            std::chrono::system_clock::time_point m_tmLighStart;            // When lights began.
+
+            bool bVerification;
+
+            bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
+            bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);
 
         protected:
             void Start() override;
