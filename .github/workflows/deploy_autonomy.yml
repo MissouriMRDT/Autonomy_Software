@@ -83,7 +83,7 @@ jobs:
 
   create-release:
     runs-on: [self-hosted, linux, X64]
-    needs: build-and-upload
+    needs: [build-and-upload]
 
     steps:
       - name: Setup Action Environment
@@ -118,7 +118,7 @@ jobs:
         working-directory: /opt/Autonomy_Software/artifacts/
 
       - name: Create Release
-        if: github.event_name == 'push' && github.ref == 'refs/tags/v*'
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           draft: false
@@ -137,7 +137,7 @@ jobs:
 
   update-versions:
     runs-on: [self-hosted, linux, X64]
-    # needs: [build-and-upload, create-release]
+    needs: [build-and-upload, create-release]
 
     steps:
       - name: Setup Action Environment
@@ -176,6 +176,9 @@ jobs:
           clean_tag="${latest_tag#v}"
           formatted_tag=$(echo $clean_tag | awk -F. '{ printf "%02d.%02d.%02d", $1, $2, $3 }')
 
+          # Print Latest Tag
+          echo $latest_tag
+
           # Update Version Numbers throughout the repository
           sed -i 's/\(project(Autonomy_Software VERSION \)[0-9]\+\.[0-9]\+\.[0-9]\+/\1'"${formatted_tag}"'/' CMakeLists.txt
           sed -i "s/\(##[[:space:]]*v\)[0-9]\+\.[0-9]\+\.[0-9]\+ Build/\1$formatted_tag Build/" CMakeLists.txt
@@ -192,8 +195,12 @@ jobs:
           # Commit and Push Changes
           git checkout -b topic/update-versions
           git add .
-          git commit -m "Update Version Numbers to ${clean_tag}"
-          git push --set-upstream origin topic/update-versions
+          if git diff --quiet && git diff --cached --quiet; then
+              echo "No changes to commit."
+          else
+              git commit -m "Update Version Numbers to ${clean_tag}"
+              git push --set-upstream origin topic/update-versions
+          fi
           git checkout development
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -206,7 +213,7 @@ jobs:
 
   create-request:
     runs-on: ubuntu-latest
-    needs: [update-versions]
+    needs: [build-and-upload, create-release, update-versions]
 
     steps:
       - name: Checkout repository
@@ -215,7 +222,19 @@ jobs:
           ref: development
           submodules: recursive
 
+      - name: Check for Branch
+        id: check_branch
+        run: |
+          if git ls-remote --heads origin topic/update-versions | grep -q 'refs/heads/topic/update-versions'; then
+            echo "Branch exists."
+            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "Branch does not exist."
+            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+          fi
+
       - name: Create Pull Request
-        run: gh pr create -B development -H topic/update-versions --title 'Update Software Version Numbers' --body 'Automatically Update Versions'
+        if: env.BRANCH_EXISTS == 'true'
+        run: gh pr create -B development -H topic/update-versions -t 'Update Software Version Numbers' -b 'Automatically Update Versions' -l '1-Star,enhancement' -a MRDT-Software
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
