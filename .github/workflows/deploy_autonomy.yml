@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
   packages: read
   id-token: write
 
@@ -53,7 +53,8 @@ jobs:
           tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo $tag
           git checkout $tag
-          git submodule update --recursive --init
+          git submodule update --force --recursive --init
+          git config --global --add safe.directory /opt/Autonomy_Software/external
 
       - name: Build and Create Executable
         run: |
@@ -117,12 +118,14 @@ jobs:
         working-directory: /opt/Autonomy_Software/artifacts/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'push' && github.ref == 'refs/tags/v*'
+        uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: false
           name: "${{ steps.version.outputs.version }}"
           files: "/opt/Autonomy_Software/artifacts/**"
+          tag_name: "${{ steps.version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -131,3 +134,88 @@ jobs:
         run: |
           cd /opt
           rm -rf /opt/Autonomy_Software
+
+  update-versions:
+    runs-on: [self-hosted, linux, X64]
+    # needs: [build-and-upload, create-release]
+
+    steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
+      - name: Update Versions
+        run: |
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Setup Environment
+          cd /opt/Autonomy_Software
+          git remote set-url origin git@github.com:MissouriMRDT/Autonomy_Software.git
+          git fetch --tags --force --recurse-submodules
+          git checkout development
+          git pull
+          git submodule update --force --recursive --init
+          git config --global --add safe.directory /opt/Autonomy_Software/external
+
+          # Find and Format Latest Tag
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          clean_tag="${latest_tag#v}"
+          formatted_tag=$(echo $clean_tag | awk -F. '{ printf "%02d.%02d.%02d", $1, $2, $3 }')
+
+          # Update Version Numbers throughout the repository
+          sed -i 's/\(project(Autonomy_Software VERSION \)[0-9]\+\.[0-9]\+\.[0-9]\+/\1'"${formatted_tag}"'/' CMakeLists.txt
+          sed -i "s/\(##[[:space:]]*v\)[0-9]\+\.[0-9]\+\.[0-9]\+ Build/\1$formatted_tag Build/" CMakeLists.txt
+          sed -i "s/\(PROJECT_NUMBER[[:space:]]*=[[:space:]]*\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$clean_tag/" Doxyfile
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Dockerfile_Jammy
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Dockerfile_JetPack
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Dockerfile_Jammy
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Dockerfile_JetPack
+
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Commit and Push Changes
+          git checkout -b topic/update-versions
+          git add .
+          git commit -m "Update Version Numbers to ${clean_tag}"
+          git push --set-upstream origin topic/update-versions
+          git checkout development
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+
+  create-request:
+    runs-on: ubuntu-latest
+    needs: [update-versions]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: development
+          submodules: recursive
+          
+      - name: Create Pull Request
+        run: gh pr create -B development -H topic/update-versions --title 'Update Software Version Numbers' --body 'Automatically Update Versions'
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

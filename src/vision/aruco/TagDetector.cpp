@@ -282,12 +282,11 @@ void TagDetector::ThreadedContinuousCode()
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
 
         // Estimate the positions of the tags using the point cloud
-        // FIXME: This segfaults when using the .at() method.
-        // for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
-        // {
-        //     // Use the point cloud to get the location of the tag.
-        //     arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-        // }
+        for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+        {
+            // Use the point cloud to get the location of the tag.
+            arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+        }
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);
         // Draw tag overlays onto normal image.
@@ -611,7 +610,10 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
             // Update data for tag.
             itOldItr->dYawAngle             = itNewItr->dYawAngle;
             itOldItr->dStraightLineDistance = itNewItr->dStraightLineDistance;
-            itOldItr->vCorners              = itNewItr->vCorners;
+            itOldItr->CornerTL              = itNewItr->CornerTL;
+            itOldItr->CornerTR              = itNewItr->CornerTR;
+            itOldItr->CornerBR              = itNewItr->CornerBR;
+            itOldItr->CornerBL              = itNewItr->CornerBL;
             itOldItr->nFramesSinceLastHit   = 0;
             itOldItr->nHits                 = std::max(itOldItr->nHits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
 

@@ -1,6 +1,6 @@
 ####################################################################################################################
 ##											Autonomy Software												   	  ##
-##											v24.02.00 Build 001												 	  ##
+##											v24.03.00 Build 001												 	  ##
 ##										  Mars Rover Design Team												  ##
 ##								   Copyright 2023 - All Rights Reserved										 	  ##
 ####################################################################################################################
@@ -17,7 +17,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.02.00 LANGUAGES CXX CUDA)
+project(Autonomy_Software VERSION 24.03.00 LANGUAGES CXX CUDA)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
@@ -102,7 +102,8 @@ find_package(CUDAToolkit ${ZED_CUDA_VERSION} REQUIRED)
 include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find PyTorch.
-set (CAFFE2_USE_CUDNN "1")
+set(CAFFE2_USE_CUDNN "1")
+set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.9 9.0")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 

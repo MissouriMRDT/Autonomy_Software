@@ -12,7 +12,6 @@
 #ifndef ARUCO_DETECTION_HPP
 #define ARUCO_DETECTION_HPP
 
-#include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/vision/ImageOperations.hpp"
 
@@ -45,13 +44,12 @@ namespace arucotag
     {
         public:
             // Declare public struct member attributes.
-            cv::Point2f CornerTL;                                                                 // The top left corner of the bounding box.
-            cv::Point2f CornerTR;                                                                 // The top right corner of the bounding box.
-            cv::Point2f CornerBL;                                                                 // The bottom left corner of the bounding box.
-            cv::Point2f CornerBR;                                                                 // The bottom right corner of bounding box.
-            std::vector<cv::Point2f*> vCorners = {&CornerTL, &CornerTR, &CornerBL, &CornerBR};    // Provide an easy method for getting all corners.
-            int nID;                                                                              // ID of the tag.
-            int nHits;                                                                            // Total number of detections for tag id.
+            cv::Point2f CornerTL;            // The top left corner of the bounding box.
+            cv::Point2f CornerTR;            // The top right corner of the bounding box.
+            cv::Point2f CornerBL;            // The bottom left corner of the bounding box.
+            cv::Point2f CornerBR;            // The bottom right corner of bounding box.
+            int nID;                         // ID of the tag.
+            int nHits;                       // Total number of detections for tag id.
             int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
             double dStraightLineDistance;    // Distance between the tag and the camera.
             double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
@@ -71,13 +69,9 @@ namespace arucotag
         // Average of the four corners
         cv::Point2f cvCenter(0, 0);
 
-        // Loop through each corner of the tag.
-        for (cv::Point2f* cvCorner : stTag.vCorners)
-        {
-            // Add each tag x, y to the center x, y.
-            cvCenter.x += cvCorner->x;
-            cvCenter.y += cvCorner->y;
-        }
+        // Add each tag x, y to the center x, y.
+        cvCenter.x += stTag.CornerBL.x + stTag.CornerBR.x + stTag.CornerTL.x + stTag.CornerTR.x;
+        cvCenter.y += stTag.CornerBL.y + stTag.CornerBR.y + stTag.CornerTL.y + stTag.CornerTR.y;
         // Divide by number of corners.
         cvCenter.x /= 4;
         cvCenter.y /= 4;
@@ -104,7 +98,7 @@ namespace arucotag
         // Grayscale.
         cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGRA2GRAY);
         // Reduce number of colors/gradients in the image.
-        imgops::ColorReduce(cvOutputFrame);
+        // imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
         // cv::bilateralFilter(cvInputFrame, cvInputFrame, /*diameter =*/5, /*sigmaColor =*/0.2, /*sigmaSpace =*/3);
         // imgops::CustomBilateralFilter(cvInputFrame, 3, 0.1, 3);
@@ -239,6 +233,18 @@ namespace arucotag
 
         // Find the center point of the given tag.
         cv::Point2f cvCenter = FindTagCenter(stTag);
+
+        // Ensure the detected center is inside the domain of the point cloud.
+        if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols || cvCenter.y < 0 || cvCenter.x < 0)
+        {
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
+                      cvCenter.y,
+                      cvCenter.x,
+                      cvPointCloud.rows,
+                      cvPointCloud.cols);
+            return;
+        }
 
         // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
         cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);

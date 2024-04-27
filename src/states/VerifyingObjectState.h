@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef VERIFYINGOBJECTSTATE_H
-#define VERIFYINGOBJECTSTATE_H
+#ifndef VERIFYING_OBJECT_STATE_H
+#define VERIFYING_OBJECT_STATE_H
 
 #include "../interfaces/State.hpp"
 
