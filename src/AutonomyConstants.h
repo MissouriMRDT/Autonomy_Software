@@ -323,6 +323,10 @@ namespace constants
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
 
+    // Avoidance State.
+    const double AVOIDANCE_STUCK_TIMER_THRESHOLD = 5;      // The number of seconds until avoidance state will transition to stuck state.
+    const double AVOIDANCE_STATE_DRIVE           = 0.5;    // Drive speed of avoidance state (set to 0.5 * MAX_DRIVE)
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

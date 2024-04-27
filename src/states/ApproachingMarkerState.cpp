@@ -150,7 +150,7 @@ namespace statemachine
 
         // If we have made too many consecutive failed detection attempts
         // inform the statemachine the marker has been lost.
-        double dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastDetectedTag).count();
+        dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastDetectedTag).count();
         if (dTimeSinceLastDetectedTag >= constants::APPROACH_MARKER_DETECTION_TIMESPAN)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
