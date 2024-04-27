@@ -98,14 +98,14 @@ namespace statemachine
             double dTimeSinceVerificationStart = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmVerificationStart).count();
             if (dTimeSinceVerificationStart > constants::VERIFY_MARKER_VERIFY_TIMESPAN)
             {
-                bVerification = false;
-                m_tmLighStart = tmCurrentTime;
+                bVerification  = false;
+                m_tmLightStart = tmCurrentTime;
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
             }
         }
         else
         {
-            double dTimeSinceLightStart = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLighStart).count();
+            double dTimeSinceLightStart = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLightStart).count();
             if (dTimeSinceLightStart > constants::VERIFY_MARKER_LIGHT_TIMESPAN)
             {
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
@@ -130,7 +130,7 @@ namespace statemachine
         double dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastDetectedTag).count();
         if (dTimeSinceLastDetectedTag > constants::VERIFY_MARKER_DETECTION_TIMESPAN)
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
             return;
         }
     }
@@ -173,7 +173,7 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 // globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
-                eNextState = States::eIdle;
+                eNextState = States::eSearchPattern;
                 break;
             }
             default:

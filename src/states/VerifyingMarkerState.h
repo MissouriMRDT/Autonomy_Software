@@ -46,7 +46,7 @@ namespace statemachine
 
             std::chrono::system_clock::time_point m_tmLastDetectedTag;      // When verification began.
             std::chrono::system_clock::time_point m_tmVerificationStart;    // When verification began.
-            std::chrono::system_clock::time_point m_tmLighStart;            // When lights began.
+            std::chrono::system_clock::time_point m_tmLightStart;           // When lights began.
 
             bool bVerification;
 
