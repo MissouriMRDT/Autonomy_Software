@@ -34,6 +34,7 @@ cschlosser
 CUDA
 CURRENTLOG
 CURRENTSTATE
+DBUILD
 deadband
 debfile
 Deblur
@@ -49,9 +50,11 @@ DISPLAYSTATE
 dockerfiles
 dorny
 doxdocgen
+Doxyfile
 Doxygen
 driveboard
 DRIVELEFTRIGHT
+eamodio
 edgetpu
 endcond
 ESPCN
@@ -115,6 +118,7 @@ OBJDETECTION
 OBJECTDETECT
 Objectness
 odometry
+opencontainers
 opencv
 OTSU
 parallelizable
