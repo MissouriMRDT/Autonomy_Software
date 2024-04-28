@@ -15,6 +15,7 @@
 #include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/states/StuckDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -34,7 +35,7 @@ namespace statemachine
     class AvoidanceState : public State
     {
         private:
-            TimeIntervalBasedStuckDetector m_stStuckChecker;
+            statemachine::TimeIntervalBasedStuckDetector m_stStuckChecker;
 
             pathplanners::AStar m_stPlanner;
             controllers::StanleyController m_stController =
