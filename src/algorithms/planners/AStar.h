@@ -56,7 +56,7 @@ namespace pathplanners
             /////////////////////////////////////////
             // Declare private methods.
             /////////////////////////////////////////
-            void FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
+            geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
             geoops::UTMCoordinate RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound);

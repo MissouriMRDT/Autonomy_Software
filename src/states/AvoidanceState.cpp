@@ -134,8 +134,8 @@ namespace statemachine
         geoops::RoverPose stCurrentPose                  = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
 
-        // Check to see if rover velocity is below stuck threshold.
-        if (globals::g_pWaypointHandler->SmartRetrieveVelocity() < constants::STUCK_CHECK_VEL_THRESH)
+        // Check to see if rover velocity is below stuck threshold (scaled to avoidance speed).
+        if (globals::g_pWaypointHandler->SmartRetrieveVelocity() < constants::AVOIDANCE_STATE_DRIVE * constants::STUCK_CHECK_VEL_THRESH)
         {
             // Check to see if enough time has elapsed.
             if (difftime(time(nullptr), m_tStuckCheckTime) > constants::AVOIDANCE_STUCK_TIMER_THRESHOLD)
@@ -161,7 +161,7 @@ namespace statemachine
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
 
-        // Goal is reached, end obstacle avoidance:
+        // Local goal is reached, end obstacle avoidance:
         else
         {
             globals::g_pDriveBoard->SendStop();
