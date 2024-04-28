@@ -57,11 +57,11 @@ namespace pathplanners
         {
             public:
                 // Declare struct public member variables.
-                const AStarNode* stParentNode;           // A pointer to the parent node the this nodes comes after in the path.
-                geoops::UTMCoordinate stNodeLocation;    // The global position of this point/node stored in UTM format.
-                double dKg;                              // The cost of the path from the star node to the current node.
-                double dKh;                              // The heuristic estimate of how much it will cost to get to the end node.
-                double dKf;                              // The sum of dKg and dKh. An estimate for the total cost of the node.
+                std::shared_ptr<AStarNode> stdParentNode;    // A shared pointer to the parent node the this nodes comes after in the path.
+                geoops::UTMCoordinate stNodeLocation;        // The global position of this point/node stored in UTM format.
+                double dKg;                                  // The cost of the path from the star node to the current node.
+                double dKh;                                  // The heuristic estimate of how much it will cost to get to the end node.
+                double dKf;                                  // The sum of dKg and dKh. An estimate for the total cost of the node.
 
                 /******************************************************************************
                  * @brief Construct a new AStarNode struct.
@@ -75,14 +75,14 @@ namespace pathplanners
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2024-02-01
                  ******************************************************************************/
-                AStarNode(const AStarNode* stParentNode              = nullptr,
+                AStarNode(std::shared_ptr<AStarNode> stdParentNode   = nullptr,
                           const geoops::UTMCoordinate stNodeLocation = geoops::UTMCoordinate(),
                           const double dKg                           = 0.0,
                           const double dKh                           = 0.0,
                           const double dKf                           = 0.0)
                 {
                     // Initialize struct member variables.
-                    this->stParentNode   = stParentNode;
+                    this->stdParentNode  = stdParentNode;
                     this->stNodeLocation = stNodeLocation;
                     this->dKg            = dKg;
                     this->dKh            = dKh;
