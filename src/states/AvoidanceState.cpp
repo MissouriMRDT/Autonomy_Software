@@ -42,8 +42,18 @@ namespace statemachine
         // Plan avoidance route using AStar.
         // TODO: Add obstacles to params.
         m_vPlannedRoute = m_stPlanner.PlanAvoidancePath(m_stStart, m_stGoalWaypoint.GetUTMCoordinate());
-        m_stGoal        = m_vPlannedRoute.back();
-        m_stController.SetPath(m_vPlannedRoute);
+
+        // Check for AStar failure.
+        if (!m_vPlannedRoute.empty())
+        {
+            m_stGoal = m_vPlannedRoute.back();
+            m_stController.SetPath(m_vPlannedRoute);
+        }
+        // Exit Obstacle Avoidance if AStar fails to generate a path.
+        else
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eEndObstacleAvoidance, false);
+        }
     }
 
     /******************************************************************************
@@ -79,10 +89,10 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         m_bInitialized   = false;
-        m_stStuckChecker = TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                          constants::STUCK_CHECK_INTERVAL,
-                                                          constants::STUCK_CHECK_VEL_THRESH,
-                                                          constants::STUCK_CHECK_ROT_THRESH);
+        m_stStuckChecker = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                        constants::STUCK_CHECK_INTERVAL,
+                                                                        constants::STUCK_CHECK_VEL_THRESH,
+                                                                        constants::STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
