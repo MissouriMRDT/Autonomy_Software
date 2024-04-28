@@ -33,24 +33,6 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
-        // TODO: Determine how position data should be saved here:
-        m_nMaxDataPoints = 100;
-
-        m_vRoverXPath.reserve(m_nMaxDataPoints);
-        m_vRoverYPath.reserve(m_nMaxDataPoints);
-        m_vRoverYawPath.reserve(m_nMaxDataPoints);
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYawPosition.reserve(m_nMaxDataPoints);
-        m_vRoverVelocity.reserve(m_nMaxDataPoints);
-
-        m_nLastIDX   = 0;
-        m_nTargetIDX = 0;
-
-        // TODO: Use chrono or time()?
-        m_tPathStartTime  = time(nullptr);
-        m_tStuckCheckTime = time(nullptr);
-
         // Initialize ASTAR Pathfinder:
         // TODO: Poll zedCam / object detector for seen obstacles to pass to AStar.
         // Determine start and goal (peek waypoint for goal).
@@ -77,20 +59,9 @@ namespace statemachine
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Exiting state.");
 
-        m_nMaxDataPoints = 100;
-
-        m_vRoverXPath.clear();
-        m_vRoverYPath.clear();
-        m_vRoverYawPath.clear();
-        m_vRoverXPosition.clear();
-        m_vRoverYPosition.clear();
-        m_vRoverYawPosition.clear();
-        m_vRoverVelocity.clear();
-
-        m_nTargetIDX = 0;
-
         // Clear ASTAR Pathfinder
         m_stPlanner.ClearObstacleData();
+
         // Clear Stanley Controller
         std::vector<geoops::UTMCoordinate> v_clear = {};
         m_stController.SetPath(v_clear);
@@ -107,7 +78,11 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
+        m_bInitialized   = false;
+        m_stStuckChecker = TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                          constants::STUCK_CHECK_INTERVAL,
+                                                          constants::STUCK_CHECK_VEL_THRESH,
+                                                          constants::STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
@@ -127,6 +102,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Running state-specific behavior.");
 
         // TODO: build in obstacle detection and refresh of astar path when a new object is detected
+        // This can be done by calling PlanAvoidanceRoute() with an updated obstacle vector.
 
         // A route has already been plotted by the planner and passed to the controller.
         // Navigate by issuing drive commands from the controller.
@@ -135,14 +111,10 @@ namespace statemachine
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
 
         // Check to see if rover velocity is below stuck threshold (scaled to avoidance speed).
-        if (globals::g_pWaypointHandler->SmartRetrieveVelocity() < constants::AVOIDANCE_STATE_DRIVE * constants::STUCK_CHECK_VEL_THRESH)
+        if (m_stStuckChecker.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         {
-            // Check to see if enough time has elapsed.
-            if (difftime(time(nullptr), m_tStuckCheckTime) > constants::AVOIDANCE_STUCK_TIMER_THRESHOLD)
-            {
-                // TODO: Determine how control flows out of here: Do we return to this state after stuck state? Re-Started? etc.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, false);
-            }
+            LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Rover has become stuck");
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
         }
 
         // Goal has not been reached yet:

@@ -320,7 +320,7 @@ namespace constants
 
     // Avoidance State.
     const double AVOIDANCE_STUCK_TIMER_THRESHOLD = 5;      // The number of seconds until avoidance state will transition to stuck state.
-    const double AVOIDANCE_STATE_DRIVE           = 1.0;    // Drive speed of avoidance state (set to 0.5 * MAX_DRIVE)
+    const double AVOIDANCE_STATE_DRIVE           = 1.0;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 

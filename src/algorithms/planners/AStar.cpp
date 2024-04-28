@@ -70,8 +70,6 @@ namespace pathplanners
     /******************************************************************************
      * @brief Helper function to destroy objects from m_vObstacles.
      *
-     * @todo Determine if this needs to be public for error handling.
-     *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
@@ -145,9 +143,6 @@ namespace pathplanners
      *          rover's current location.
      *
      * @param stGoalCoordinate - UTMCoordinate reference representing the current rover destination.
-     *
-     * @todo Test that this correctly maps UTMCoordinates to the correct boundary point,
-     *          avoiding obstacles at the boundary.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-15
@@ -287,8 +282,6 @@ namespace pathplanners
      *
      * @param dEasting - A const double reference representing a dEasting to evaluate.
      * @param dNorthing - A const double reference representing a dNorthing to evaluate.
-     *
-     * @todo Rewrite to utilize geoops::CalculateGeoMeasurement()
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-06
@@ -446,9 +439,6 @@ namespace pathplanners
         UTMCoordinateToString(m_stStartNode.stNodeLocation, szLocationString);
         umOpenListLookup.emplace(std::make_pair(szLocationString, 0.0));
 
-        // DEBUG:
-        double dMinDistance = INFINITY;
-
         // While open list is not empty:
         while (!vOpenList.empty())
         {
@@ -460,20 +450,6 @@ namespace pathplanners
             // Put Q on closed list to allocate parent pointers of successors.
             // Note: make_shared creates a copy of nextParent on the heap, and points to that copy.
             vClosedList.push_back(std::make_shared<nodes::AStarNode>(nextParent));
-
-            // DEBUG:
-            geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(nextParent.stNodeLocation, m_stGoalNode.stNodeLocation);
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Current node ({}, {}) distance to goal: {}",
-                     nextParent.stNodeLocation.dEasting,
-                     nextParent.stNodeLocation.dNorthing,
-                     stDistanceToGoal.dDistanceMeters);
-
-            if (stDistanceToGoal.dDistanceMeters < dMinDistance)
-            {
-                dMinDistance = stDistanceToGoal.dDistanceMeters;
-                LOG_INFO(logging::g_qSharedLogger, "Popping min Node ({}, {}) off open list", nextParent.stNodeLocation.dEasting, nextParent.stNodeLocation.dNorthing);
-            }
 
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
