@@ -70,7 +70,11 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
+        m_bInitialized  = false;
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
@@ -129,8 +133,8 @@ namespace statemachine
         // A target hasn't been identified and the amount of attempts has exceeded the limit.
         else if (!m_bDetected)
         {
-            // Abort approaching marker.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+            // Trigger event eMarkerUnseen.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
 
@@ -198,6 +202,17 @@ namespace statemachine
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
+        // Check if stuck.
+        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has become stuck!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
+        }
+
         return;
     }
 
@@ -221,7 +236,8 @@ namespace statemachine
             case Event::eReachedMarker:
             {
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
-                eNextState = States::eIdle;
+                // Transitions to VerifyingMarkerState when marker is reached.
+                eNextState = States::eVerifyingMarker;
                 break;
             }
             case Event::eStart:
@@ -246,6 +262,12 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
                 eNextState = States::eIdle;
+                break;
+            }
+            case Event::eStuck:
+            {
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Stuck event.");
+                eNextState = States::eStuck;
                 break;
             }
             default:

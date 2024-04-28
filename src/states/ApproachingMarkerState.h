@@ -14,6 +14,7 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/vision/TagDetectionUtilty.hpp"
+#include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
@@ -44,6 +45,7 @@ namespace statemachine
             double m_dLastTargetHeading;                                  // Last recorded heading of the target with respect to the rover's position.
             double m_dLastTargetDistance;                                 // Last recorded distance of the target with respect to the rover's position.
             std::vector<TagDetector*> m_vTagDetectors;                    // Vector of tag detectors to use for detection in order of highest to lowest priority.
+            statemachine::TimeIntervalBasedStuckDetector m_StuckDetector; // Stuck detector
 
             bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
             bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);
