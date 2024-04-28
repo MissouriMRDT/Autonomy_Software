@@ -510,7 +510,7 @@ namespace pathplanners
                 // Compute dKg, dKh, and dKf for successor.
                 // Calculate successor previous path cost.
                 vSuccessors[i].dKg = nextParent.dKg + constants::ASTAR_NODE_SIZE;
-                // Calculate successor future path cost through diagonal distance heuristic.
+                // Calculate successor future path cost through geo measurement.
                 vSuccessors[i].dKh = CalculateNodeHValue(vSuccessors[i]);
                 // f = g + h
                 vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
