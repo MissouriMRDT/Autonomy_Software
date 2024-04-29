@@ -1,11 +1,11 @@
 /******************************************************************************
- * @brief Unit test for PIDController algorithm class.
+ * @brief Unit test for AStar algorithm class.
  *
- * @file PIDController.cc
- * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-10-12
+ * @file AStarPlanner.cc
+ * @author Kai Shafe (kasq5m@umsystem.edu)
+ * @date 2024-4-28
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright MRDT 2024 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/planners/AStar.h"

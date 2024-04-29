@@ -195,7 +195,7 @@ namespace pathplanners
     geoops::UTMCoordinate AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate)
     {
         // Create return value.
-        geoops::UTMCoordinate stBoundaryCoordinate(stGoalCoordinate);
+        geoops::UTMCoordinate stBoundaryCoordinate = stGoalCoordinate;
         // Determine components of the distance vector formed by the current location and goal.
         const double dDeltaX         = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
         const double dDeltaY         = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
