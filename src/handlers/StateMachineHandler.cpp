@@ -25,7 +25,7 @@ StateMachineHandler::StateMachineHandler()
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Initializing State Machine.");
 
-    // Subscribe to BMS packets.
+    // Subscribe to PMS packets.
     rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
     stSubscribePacket.unDataId    = manifest::System::SUBSCRIBE_DATA_ID;
     stSubscribePacket.unDataCount = 0;
@@ -36,7 +36,7 @@ StateMachineHandler::StateMachineHandler()
     // Set RoveComm Node callbacks.
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::PMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<float>(PMSCellVoltageCallback, manifest::PMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // Initialize member variables.
     m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
