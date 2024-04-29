@@ -56,12 +56,9 @@ namespace pathplanners
             /////////////////////////////////////////
             // Declare private methods.
             /////////////////////////////////////////
-            geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
             void UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
-            geoops::UTMCoordinate RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound);
             double CalculateNodeHValue(const nodes::AStarNode& stNodeToCalculate);
-            void ConstructPath(const nodes::AStarNode& stFinalNode);
 
         public:
             /////////////////////////////////////////
@@ -79,6 +76,10 @@ namespace pathplanners
                                                                  const std::vector<sl::ObjectData>& vObstacles = std::vector<sl::ObjectData>());
 
             void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles);
+            // Moved to public for unit testing.
+            geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
+            geoops::UTMCoordinate RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound);
+            void ConstructPath(const nodes::AStarNode& stFinalNode);
 
             /////////////////////////////////////////
             // Setters.
@@ -86,9 +87,12 @@ namespace pathplanners
             void AddObstacle(const sl::ObjectData& stObstacle);
             void ClearObstacleData();
 
+            void SetStartCoordinate(const geoops::UTMCoordinate& stStart) { m_stStartNode = nodes::AStarNode(nullptr, stStart); }
+
             /////////////////////////////////////////
             // Getters.
             /////////////////////////////////////////
+            const std::vector<geoops::UTMCoordinate> GetPath() { return m_vPathCoordinates; }
     };
 }    // namespace pathplanners
 
