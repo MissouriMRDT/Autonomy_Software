@@ -38,8 +38,8 @@ namespace statemachine
             statemachine::TimeIntervalBasedStuckDetector m_stStuckChecker;
 
             pathplanners::AStar m_stPlanner;
-            controllers::StanleyController m_stController =
-                controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
+            controllers::StanleyController m_stController;
+            geoops::RoverPose m_stPose;
             geoops::UTMCoordinate m_stStart;
             geoops::UTMCoordinate m_stGoal;
             geoops::Waypoint m_stGoalWaypoint;

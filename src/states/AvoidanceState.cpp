@@ -33,10 +33,14 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
+        // Initialize Stanley Controller:
+        m_stController = controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
+
         // Initialize ASTAR Pathfinder:
         // TODO: Poll zedCam / object detector for seen obstacles to pass to AStar.
         // Determine start and goal (peek waypoint for goal).
-        m_stStart        = globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate();
+        m_stPose         = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        m_stStart        = m_stPose.GetUTMCoordinate();
         m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
 
         // Plan avoidance route using AStar.
@@ -73,8 +77,7 @@ namespace statemachine
         m_stPlanner.ClearObstacleData();
 
         // Clear Stanley Controller
-        std::vector<geoops::UTMCoordinate> v_clear = {};
-        m_stController.SetPath(v_clear);
+        m_stController.ClearPath();
     }
 
     /******************************************************************************
@@ -134,11 +137,15 @@ namespace statemachine
             // Check for any new objects:
             // Re-plan route (call planPath again):
 
+            // Update pose for drive calculation.
+            m_stPose               = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            const double dVelocity = globals::g_pWaypointHandler->SmartRetrieveVelocity();
             // Calculate drive move/powers at the speed multiplier.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_DRIVE,
-                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
-                                                                                         stCurrentPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
+            diffdrive::DrivePowers stDriveSpeeds =
+                globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_MOTOR_POWER,
+                                                      m_stController.Calculate(m_stPose.GetUTMCoordinate(), dVelocity, m_stPose.GetCompassHeading()),
+                                                      stCurrentPose.GetCompassHeading(),
+                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive command to drive board.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }

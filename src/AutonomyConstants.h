@@ -299,7 +299,7 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_POWER             = DRIVE_MAX_POWER;    // The speed to drive backwards at.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_POWER;    // The speed to drive backwards at.
     const double REVERSE_DISTANCE          = 3.0;                // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
@@ -319,7 +319,7 @@ namespace constants
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
 
     // Avoidance State.
-    const double AVOIDANCE_STATE_DRIVE = 1.0;    // Drive speed of avoidance state
+    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_POWER;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 

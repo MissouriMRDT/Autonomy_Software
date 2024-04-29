@@ -52,7 +52,7 @@ namespace controllers
             /////////////////////////////////////////
             // Declare public methods and member variables.
             /////////////////////////////////////////
-
+            StanleyController();
             StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
             StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
             StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
@@ -72,6 +72,8 @@ namespace controllers
 
             void SetPath(std::vector<geoops::UTMCoordinate>& vUTMPath);
             void SetPath(std::vector<geoops::GPSCoordinate>& vGPSPath);
+
+            void ClearPath();
 
             /////////////////////////////////////////
             // Getters.
