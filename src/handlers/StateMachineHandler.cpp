@@ -31,12 +31,12 @@ StateMachineHandler::StateMachineHandler()
     stSubscribePacket.unDataCount = 0;
     stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
     stSubscribePacket.vData       = std::vector<uint8_t>{};
-    network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::BMS::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+    network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::PMS::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 
     // Set RoveComm Node callbacks.
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::BMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<float>(BMSCellVoltageCallback, manifest::PMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // Initialize member variables.
     m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
