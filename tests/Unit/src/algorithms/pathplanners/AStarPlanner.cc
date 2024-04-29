@@ -182,7 +182,7 @@ TEST(AStarPlannerTest, ConstructPath)
     for (size_t siIter = 1; siIter <= siTestValuesLength; siIter++)
     {
         aOriginalNodes[siIter] =
-            pathplanners::nodes::AStarNode(std::make_shared<pathplanners::nodes::AStarNode>(aOriginalNodes[siIter - 1], aOriginalCoordinates[siIter]));
+            pathplanners::nodes::AStarNode(std::make_shared<pathplanners::nodes::AStarNode>(aOriginalNodes[siIter - 1]), aOriginalCoordinates[siIter]);
     }
 
     // Construct coordinate vector with ConstructPath().
