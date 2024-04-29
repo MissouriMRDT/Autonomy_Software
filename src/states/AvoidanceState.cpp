@@ -33,6 +33,9 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
+        // Store the state that got stuck and triggered a stuck event.
+        m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
+
         // Initialize Stanley Controller:
         m_stController = controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
 
@@ -196,7 +199,7 @@ namespace statemachine
             case Event::eEndObstacleAvoidance:
             {
                 LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling EndObstacleAvoidance event.");
-                eNextState = States::NUM_STATES;    // Replace with `get_prev_state()`
+                eNextState = m_eTriggeringState;
                 break;
             }
             case Event::eStuck:

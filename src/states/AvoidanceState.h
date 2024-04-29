@@ -36,7 +36,6 @@ namespace statemachine
     {
         private:
             statemachine::TimeIntervalBasedStuckDetector m_stStuckChecker;
-
             pathplanners::AStar m_stPlanner;
             controllers::StanleyController m_stController;
             geoops::RoverPose m_stPose;
@@ -44,7 +43,7 @@ namespace statemachine
             geoops::UTMCoordinate m_stGoal;
             geoops::Waypoint m_stGoalWaypoint;
             std::vector<geoops::UTMCoordinate> m_vPlannedRoute;
-
+            States m_eTriggeringState;
             bool m_bInitialized;
 
         protected:
