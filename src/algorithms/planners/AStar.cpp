@@ -79,21 +79,25 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Intended to be called as a helper function by the PlanAvoidancePath method.
-     *      This method takes in a vector of ObjectData objects and translates them to
-     *      a UTMCoordinate and estimated size that is stored in the m_vObstacles vector.
+     * @brief This method clears any saved obstacles in AStar, takes in a vector of
+     *      sl::ObjectData objects and translates them to a UTMCoordinate and estimated
+     *      size that is stored in the m_vObstacles vector.
      *
      * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
      *
      * @todo Validate data being pulled from ObjectData structs.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-15
      ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles)
+    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool& bClearObstacles)
     {
         // Remove stale obstacle data.
-        ClearObstacleData();
+        if (bClearObstacles)
+        {
+            ClearObstacleData();
+        }
         // For each object in vObstacles:
         for (size_t i = 0; i < vObstacles.size(); i++)
         {
@@ -111,8 +115,34 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief This method clears any saved obstacles in AStar, takes in a vector of
+     *      AStar::Obstacle and saves a copy to the m_vObstacles vector.
+     *
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
+     *
+     * @todo Validate data being pulled from ObjectData structs.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool& bClearObstacles)
+    {
+        // Remove stale obstacle data.
+        if (bClearObstacles)
+        {
+            ClearObstacleData();
+        }
+        // For each object in vObstacles:
+        for (size_t i = 0; i < vObstacles.size(); i++)
+        {
+            m_vObstacles.emplace_back(vObstacles[i]);
+        }
+    }
+
+    /******************************************************************************
      * @brief This method is intended to be called when a new obstacle is detected
-     *          from the ZedCam to add a new obstacle to be considered in path finding.
+     *      from the ZedCam to add a new obstacle to be considered in path finding.
      *
      * @param stObstacle - A reference to an ObjectData struct representing the obstacle
      *                      to add.
@@ -132,6 +162,21 @@ namespace pathplanners
         stObstacleToAdd.fRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
         // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
         m_vObstacles.emplace_back(stObstacleToAdd);
+    }
+
+    /******************************************************************************
+     * @brief This method is intended to be called when a new obstacle is detected
+     *      to add a new obstacle to be considered in path finding.
+     *
+     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
+     *                      to add.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::AddObstacle(const Obstacle& stObstacle)
+    {
+        m_vObstacles.emplace_back(stObstacle);
     }
 
     /******************************************************************************
@@ -261,16 +306,17 @@ namespace pathplanners
      *      for O(1) lookup of nodes at a particular location.
      *
      * @param stToTranslate - A UTMCoordinate struct reference containing the data to translate.
-     * @param szTranslated - A string to be mutated to contain the translated coordinate.
      *
+     * @return - A string containing the translated coordinate.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-05
      ******************************************************************************/
-    void AStar::UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate, std::string& szTranslation)
+    std::string AStar::UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate)
     {
-        szTranslation = std::to_string(stToTranslate.dEasting);
+        std::string szTranslation = std::to_string(stToTranslate.dEasting);
         szTranslation.append(std::to_string(stToTranslate.dNorthing));
+        return szTranslation;
     }
 
     /******************************************************************************
@@ -337,26 +383,6 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Helper function used to calculate ASTAR node heuristic distance value.
-     *          This implementation uses the geoops::CalculateGeoMeasurement() method
-     *          to calculate distance.
-     *
-     * @pre - Assumes stNodeToCalculate's and m_stGoalNode's UTMCoordinates have been initialized with the
-     *          node's location and the goal node's coordinate respectively.
-     *
-     * @param stNodeToCalculate - A const AStarNode reference.
-     *
-     * @return - Returns a double representing the Kh value for stNodeToCalculate.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-12
-     ******************************************************************************/
-    double AStar::CalculateNodeHValue(const nodes::AStarNode& stNodeToCalculate)
-    {
-        return geoops::CalculateGeoMeasurement(stNodeToCalculate.stNodeLocation, m_stGoalNode.stNodeLocation).dDistanceMeters;
-    }
-
-    /******************************************************************************
      * @brief Called when a goal node has been reached. Recursively builds a vector of
      *          UTMCoordinates by tracing the parent pointers of AStarNodes.
      *          This function then saves that vector to m_vPathNodes.
@@ -368,14 +394,14 @@ namespace pathplanners
     void AStar::ConstructPath(const nodes::AStarNode& stEndNode)
     {
         // Base case: Check for origin node.
-        if (stEndNode.stdParentNode == nullptr)
+        if (stEndNode.pParentNode == nullptr)
         {
             // Start copying
             m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
             return;
         }
         // Recursive case: call ConstructPath on parent pointer.
-        ConstructPath(*stEndNode.stdParentNode);
+        ConstructPath(*stEndNode.pParentNode);
         // Copy node UTMCoordinate data to m_vPathNodes.
         m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
         return;
@@ -435,8 +461,7 @@ namespace pathplanners
         // Place Starting node on open list.
         vOpenList.push_back(m_stStartNode);
         // Translate start node to string and add location on open list lookup map.
-        std::string szLocationString;
-        UTMCoordinateToString(m_stStartNode.stNodeLocation, szLocationString);
+        std::string szLocationString = UTMCoordinateToString(m_stStartNode.stNodeLocation);
         umOpenListLookup.emplace(std::make_pair(szLocationString, 0.0));
 
         // While open list is not empty:
@@ -444,19 +469,19 @@ namespace pathplanners
         {
             // Retrieve node with the minimum dKf on open list (Q).
             std::pop_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
-            nodes::AStarNode nextParent = vOpenList.back();
+            nodes::AStarNode stNextParent = vOpenList.back();
             // Pop Q off open list.
             vOpenList.pop_back();
             // Put Q on closed list to allocate parent pointers of successors.
-            // Note: make_shared creates a copy of nextParent on the heap, and points to that copy.
-            vClosedList.push_back(std::make_shared<nodes::AStarNode>(nextParent));
+            // Note: make_shared creates a copy of stNextParent on the heap, and points to that copy.
+            vClosedList.push_back(std::make_shared<nodes::AStarNode>(stNextParent));
 
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
-            double dWestOffset  = nextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
-            double dEastOffset  = nextParent.stNodeLocation.dEasting + constants::ASTAR_NODE_SIZE;
-            double dSouthOffset = nextParent.stNodeLocation.dNorthing - constants::ASTAR_NODE_SIZE;
-            double dNorthOffset = nextParent.stNodeLocation.dNorthing + constants::ASTAR_NODE_SIZE;
+            double dWestOffset  = stNextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
+            double dEastOffset  = stNextParent.stNodeLocation.dEasting + constants::ASTAR_NODE_SIZE;
+            double dSouthOffset = stNextParent.stNodeLocation.dNorthing - constants::ASTAR_NODE_SIZE;
+            double dNorthOffset = stNextParent.stNodeLocation.dNorthing + constants::ASTAR_NODE_SIZE;
 
             // Counter for avoiding parent duplication.
             ushort usSuccessorTracker = 0;
@@ -480,16 +505,16 @@ namespace pathplanners
 
                     // Otherwise create the successor.
                     // Copy data from parent coordinate.
-                    geoops::UTMCoordinate successorCoordinate(nextParent.stNodeLocation);
+                    geoops::UTMCoordinate stSuccessorCoordinate(stNextParent.stNodeLocation);
 
                     // Adjust Easting and Northing offsets to create new coordinate.
-                    successorCoordinate.dEasting  = dEastingOffset;
-                    successorCoordinate.dNorthing = dNorthingOffset;
-                    RoundUTMCoordinate(successorCoordinate);
+                    stSuccessorCoordinate.dEasting  = dEastingOffset;
+                    stSuccessorCoordinate.dNorthing = dNorthingOffset;
+                    RoundUTMCoordinate(stSuccessorCoordinate);
                     // Create successor node, initialize values to 0 (done by constructor).
-                    nodes::AStarNode nextSuccessor(vClosedList.back(), successorCoordinate);
+                    nodes::AStarNode stNextSuccessor(vClosedList.back(), stSuccessorCoordinate);
                     // Copy successor node to vector.
-                    vSuccessors.emplace_back(nextSuccessor);
+                    vSuccessors.emplace_back(stNextSuccessor);
                 }
             }
 
@@ -504,14 +529,13 @@ namespace pathplanners
                 }
 
                 // Create and format lookup string.
-                std::string szSuccessorLookup;
-                UTMCoordinateToString(vSuccessors[i].stNodeLocation, szSuccessorLookup);
+                std::string szSuccessorLookup = UTMCoordinateToString(vSuccessors[i].stNodeLocation);
 
                 // Compute dKg, dKh, and dKf for successor.
                 // Calculate successor previous path cost.
-                vSuccessors[i].dKg = nextParent.dKg + constants::ASTAR_NODE_SIZE;
+                vSuccessors[i].dKg = stNextParent.dKg + constants::ASTAR_NODE_SIZE;
                 // Calculate successor future path cost through geo measurement.
-                vSuccessors[i].dKh = CalculateNodeHValue(vSuccessors[i]);
+                vSuccessors[i].dKh = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation).dDistanceMeters;
                 // f = g + h
                 vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
 
@@ -542,10 +566,9 @@ namespace pathplanners
             }    // End For (each successor).
 
             // Create and format lookup string.
-            std::string szParentLookup;
-            UTMCoordinateToString(nextParent.stNodeLocation, szParentLookup);
+            std::string szParentLookup = UTMCoordinateToString(stNextParent.stNodeLocation);
             // Push lookup string and dKf value to lookup map.
-            umClosedList.emplace(std::make_pair(szParentLookup, nextParent.dKf));
+            umClosedList.emplace(std::make_pair(szParentLookup, stNextParent.dKf));
         }    // End While(!vOpenList.empty).
 
         // Function has failed to find a valid path.
