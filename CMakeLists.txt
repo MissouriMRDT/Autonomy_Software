@@ -166,11 +166,13 @@ file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${EXE_NAME}  ${External_SRC}
-						    ${SRC}
-						    ${Examples_SRC}
-						    ${Tools_SRC}
-	)
+# add_executable(${EXE_NAME}  ${External_SRC}
+# 						    ${SRC}
+# 						    ${Examples_SRC}
+# 						    ${Tools_SRC}
+# 	)
+
+add_executable(${EXE_NAME} "temp/main.cpp")
 
 ## Set Compile Options for Autonomy Software.
 if(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.
