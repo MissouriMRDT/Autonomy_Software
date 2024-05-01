@@ -172,7 +172,7 @@ file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 # 						    ${Tools_SRC}
 # 	)
 
-add_executable(${EXE_NAME} "temp/main.cpp")
+add_executable(${EXE_NAME} "temp/main.cpp" "temp/detector.cpp")
 
 ## Set Compile Options for Autonomy Software.
 if(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.

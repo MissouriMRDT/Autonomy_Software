@@ -140,6 +140,52 @@ namespace yolomodel
     }
 
     /******************************************************************************
+     * @brief This struct is used to store the dimensions of an input tensor for a
+     *      yolo model.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-12
+     ******************************************************************************/
+    struct InputTensorDimensions
+    {
+        public:
+            /////////////////////////////////////////
+            // Define public struct attributes.
+            /////////////////////////////////////////
+
+            int nHeight;            // The height of the input image.
+            int nWidth;             // The width of the input image.
+            int nChannels;          // The number of channels of the input image.
+            int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
+            int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
+            float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
+    };
+
+    /******************************************************************************
+     * @brief This struct is used to store the dimensions of an output tensor for a
+     *      yolo model.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-12
+     ******************************************************************************/
+    struct OutputTensorDimensions
+    {
+        public:
+            /////////////////////////////////////////
+            // Define public struct attributes.
+            /////////////////////////////////////////
+
+            int nAnchors;                      // Determined from the trained image size of the model.
+            int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
+                                               // nc is the number of classes The model has.
+            int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
+            int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
+            float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
+    };
+
+    /******************************************************************************
      * @brief Namespace containing functions or objects/structs used to run inference on
      *      a YOLO model with the Tensorflow library. This namespace contains static functions
      *      for getting available hardware devices, and classes for running a .tflite model on each device.
@@ -151,52 +197,6 @@ namespace yolomodel
      ******************************************************************************/
     namespace tensorflow
     {
-        /******************************************************************************
-         * @brief This struct is used to store the dimensions of an input tensor for a
-         *      yolo model.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-11-12
-         ******************************************************************************/
-        struct InputTensorDimensions
-        {
-            public:
-                /////////////////////////////////////////
-                // Define public struct attributes.
-                /////////////////////////////////////////
-
-                int nHeight;            // The height of the input image.
-                int nWidth;             // The width of the input image.
-                int nChannels;          // The number of channels of the input image.
-                int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
-                int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
-                float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
-        };
-
-        /******************************************************************************
-         * @brief This struct is used to store the dimensions of an output tensor for a
-         *      yolo model.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2023-11-12
-         ******************************************************************************/
-        struct OutputTensorDimensions
-        {
-            public:
-                /////////////////////////////////////////
-                // Define public struct attributes.
-                /////////////////////////////////////////
-
-                int nAnchors;                      // Determined from the trained image size of the model.
-                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
-                                                   // nc is the number of classes The model has.
-                int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
-                int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
-                float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
-        };
-
         /******************************************************************************
          * @brief This class is designed to enable quick, easy, and robust inferencing of .tflite
          *      yolo model.
@@ -683,36 +683,130 @@ namespace yolomodel
 
     namespace pytorch
     {
-        struct InputTensorDimensions
+        class TorchInterpreter : public TorchModel<std::vector<std::vector<Detection>>, cv::Mat>
         {
             public:
                 /////////////////////////////////////////
-                // Define public struct attributes.
+                // Declare public enums that are specific to and used withing this class.
                 /////////////////////////////////////////
 
-                int nHeight;            // The height of the input image.
-                int nWidth;             // The width of the input image.
-                int nChannels;          // The number of channels of the input image.
-                int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
-                int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
-                float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
+                /////////////////////////////////////////
+                // Declare public methods and member variables.
+                /////////////////////////////////////////
+
+                /******************************************************************************
+                 * @brief Construct a new Torch Interpreter object.
+                 *
+                 * @param szModelPath -
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                TorchInterpreter(std::string szModelPath) : TorchModel<std::vector<std::vector<Detection>>, cv::Mat>(szModelPath) {}
+
+                /******************************************************************************
+                 * @brief Destroy the Torch Interpreter object.
+                 *
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                ~TorchInterpreter() {}
+
+                /******************************************************************************
+                 * @brief
+                 *
+                 * @param cvInputFrame -
+                 * @param fMinObjectConfidence -
+                 * @param fNMSThreshold -
+                 * @return std::vector<std::vector<Detection>> -
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                std::vector<std::vector<Detection>> Inference(const cv::Mat& cvInputFrame,
+                                                              const float fMinObjectConfidence = 0.85,
+                                                              const float fNMSThreshold        = 0.6) override
+                {}
+
+            private:
+                /////////////////////////////////////////
+                // Declare private methods.
+                /////////////////////////////////////////
+
+                /******************************************************************************
+                 * @brief
+                 *
+                 * @param nOutputIndex -
+                 * @param vClassIDs -
+                 * @param vClassConfidences -
+                 * @param vBoundingBoxes -
+                 * @param fMinObjectConfidence -
+                 * @param nOriginalFrameWidth -
+                 * @param nOriginalFrameHeight -
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                void ParseTorchOutputYOLOv5(int nOutputIndex,
+                                            std::vector<int>& vClassIDs,
+                                            std::vector<float>& vClassConfidences,
+                                            std::vector<cv::Rect>& vBoundingBoxes,
+                                            float fMinObjectConfidence,
+                                            int nOriginalFrameWidth,
+                                            int nOriginalFrameHeight)
+                {}
+
+                /******************************************************************************
+                 * @brief
+                 *
+                 * @param nOutputIndex -
+                 * @param vClassIDs -
+                 * @param vClassConfidences -
+                 * @param vBoundingBoxes -
+                 * @param fMinObjectConfidence -
+                 * @param nOriginalFrameWidth -
+                 * @param nOriginalFrameHeight -
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                void ParseTorchOutputYOLOv8(int nOutputIndex,
+                                            std::vector<int>& vClassIDs,
+                                            std::vector<float>& vClassConfidences,
+                                            std::vector<cv::Rect>& vBoundingBoxes,
+                                            float fMinObjectConfidence,
+                                            int nOriginalFrameWidth,
+                                            int nOriginalFrameHeight)
+                {}
+
+                /******************************************************************************
+                 * @brief Accessor for the Input Shape private member.
+                 *
+                 * @param nTensorIndex -
+                 * @return InputTensorDimensions -
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                InputTensorDimensions GetInputShape(const int nTensorIndex = 0) {}
+
+                /******************************************************************************
+                 * @brief Accessor for the Output Shape private member.
+                 *
+                 * @param nTensorIndex -
+                 * @return OutputTensorDimensions -
+                 *
+                 * @author Eli Byrd (edbgkk@mst.edu)
+                 * @date 2024-04-27
+                 ******************************************************************************/
+                OutputTensorDimensions GetOutputShape(const int nTensorIndex = 0) {}
+
+                /////////////////////////////////////////
+                // Declare private member variables.
+                /////////////////////////////////////////
+                cv::Mat m_cvFrame;
         };
-
-        struct OutputTensorDimensions
-        {
-            public:
-                /////////////////////////////////////////
-                // Define public struct attributes.
-                /////////////////////////////////////////
-
-                int nAnchors;                      // The length of the second dimension. Determined from the trained image size of the model.
-                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc long, where nc is the number of classes
-                                                   // The model has. The first five values are objectness_score, X_min, Y_min, width, height.
-                int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
-                int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
-                float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
-        };
-
     }    // namespace pytorch
 }    // namespace yolomodel
 

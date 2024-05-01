@@ -121,6 +121,7 @@
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
                 "cmake.options.statusBarVisibility": "visible",
+                "cmake.parallelJobs": 8,
                 // Format Files extension settings.
                 "formatFiles.excludedFolders": [
                     "node_modules",
