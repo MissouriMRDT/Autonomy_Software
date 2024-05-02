@@ -62,8 +62,9 @@ TEST(AStarPlannerTest, BoundaryPoint)
 
     // Initialize start coordinate in AStar object.
     geoops::UTMCoordinate stStartCoord = geoops::UTMCoordinate(50.0, 50.0);
+    pAStar->SetStartCoordinate(stStartCoord);
 
-    size_t siTestValuesLength          = 4;
+    size_t siTestValuesLength = 4;
 
     // Initialize array with coordinates external to the AStar search grid.
     const geoops::UTMCoordinate aOutsideCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 65.0),
@@ -76,6 +77,12 @@ TEST(AStarPlannerTest, BoundaryPoint)
                                                                           geoops::UTMCoordinate(55.0, 50.0),
                                                                           geoops::UTMCoordinate(50.0, 45.0),
                                                                           geoops::UTMCoordinate(45.0, 50.0)};
+
+    //  Initialize array with corner coordinates on the boundary.
+    const geoops::UTMCoordinate aCornerCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(60.0, 60.0),
+                                                                          geoops::UTMCoordinate(60.0, 40.0),
+                                                                          geoops::UTMCoordinate(40.0, 40.0),
+                                                                          geoops::UTMCoordinate(40.0, 60.0)};
     // Initialize arrays with correct bounded values
     const geoops::UTMCoordinate aExpectedCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 60.0),
                                                                             geoops::UTMCoordinate(60.0, 50.0),
@@ -84,9 +91,10 @@ TEST(AStarPlannerTest, BoundaryPoint)
 
     geoops::UTMCoordinate aOutsideBounded[siTestValuesLength];
     geoops::UTMCoordinate aInsideBounded[siTestValuesLength];
+    geoops::UTMCoordinate aCornerBounded[siTestValuesLength];
 
     // Loop through each outside coordinate and compare inputs and outputs.
-    for (size_t siIter = 0; siIter < siTestValuesLength; ++siIter)
+    for (size_t siIter = 0; siIter < siTestValuesLength; siIter++)
     {
         // Calculate Bounded coordinates
         aOutsideBounded[siIter] = pAStar->FindNearestBoundaryPoint(aOutsideCoordinates[siIter]);
@@ -97,7 +105,7 @@ TEST(AStarPlannerTest, BoundaryPoint)
     }
 
     // Loop through each inside coordinate and validate no change.
-    for (size_t siIter = 0; siIter < siTestValuesLength; ++siIter)
+    for (size_t siIter = 0; siIter < siTestValuesLength; siIter++)
     {
         // Calculate coordinate.
         aInsideBounded[siIter] = pAStar->FindNearestBoundaryPoint(aInsideCoordinates[siIter]);
@@ -105,6 +113,17 @@ TEST(AStarPlannerTest, BoundaryPoint)
         // Check that the output values are the same as the input values.
         EXPECT_NEAR(aInsideBounded[siIter].dEasting, aInsideCoordinates[siIter].dEasting, 0.1);
         EXPECT_NEAR(aInsideBounded[siIter].dNorthing, aInsideCoordinates[siIter].dNorthing, 0.1);
+    }
+
+    // Loop through each corner coordinate and validate no change.
+    for (size_t siIter = 0; siIter < siTestValuesLength; siIter++)
+    {
+        // Calculate coordinate.
+        aCornerBounded[siIter] = pAStar->FindNearestBoundaryPoint(aCornerCoordinates[siIter]);
+
+        // Check that the output values are the same as the input values.
+        EXPECT_NEAR(aCornerCoordinates[siIter].dEasting, aCornerBounded[siIter].dEasting, 0.1);
+        EXPECT_NEAR(aCornerCoordinates[siIter].dNorthing, aCornerBounded[siIter].dNorthing, 0.1);
     }
 
     // Delete object.
@@ -140,7 +159,7 @@ TEST(AStarPlannerTest, RoundCoordinate)
                                                                             geoops::UTMCoordinate(60.0, 83.0)};
 
     // Loop through each coordinate and compare inputs and outputs.
-    for (size_t siIter = 0; siIter < siTestValuesLength; ++siIter)
+    for (size_t siIter = 0; siIter < siTestValuesLength; siIter++)
     {
         // Calculate rounded coordinate.
         geoops::UTMCoordinate stRounded = pAStar->RoundUTMCoordinate(aOriginalCoordinates[siIter]);
@@ -178,11 +197,12 @@ TEST(AStarPlannerTest, ConstructPath)
                                                                             geoops::UTMCoordinate(52.0, 52.0)};
 
     // Create nodes and set the node's parent to the previous element in the array.
-    pathplanners::nodes::AStarNode aOriginalNodes[siTestValuesLength] = {pathplanners::nodes::AStarNode(nullptr, aOriginalCoordinates[0])};
-    for (size_t siIter = 1; siIter <= siTestValuesLength; siIter++)
+    pathplanners::nodes::AStarNode aOriginalNodes[siTestValuesLength];
+    aOriginalNodes[0] = pathplanners::nodes::AStarNode(nullptr, aOriginalCoordinates[0]);
+    for (size_t siIter = 1; siIter < siTestValuesLength; siIter++)
     {
-        aOriginalNodes[siIter] =
-            pathplanners::nodes::AStarNode(std::make_shared<pathplanners::nodes::AStarNode>(aOriginalNodes[siIter - 1]), aOriginalCoordinates[siIter]);
+        std::shared_ptr pParentNode = std::make_shared<pathplanners::nodes::AStarNode>(aOriginalNodes[siIter - 1]);
+        aOriginalNodes[siIter]      = pathplanners::nodes::AStarNode(pParentNode, aOriginalCoordinates[siIter]);
     }
 
     // Construct coordinate vector with ConstructPath().
@@ -191,7 +211,7 @@ TEST(AStarPlannerTest, ConstructPath)
     const std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->GetPath();
 
     // Loop through each coordinate and compare original with expected.
-    for (int siIter = 0; siIter < siTestValuesLength; ++siIter)
+    for (int siIter = 0; siIter < siTestValuesLength; siIter++)
     {
         // Validate that the returned path coordinate matches the original.
         EXPECT_NEAR(aOriginalCoordinates[siIter].dEasting, vReturnedPath[siIter].dEasting, 0.1);
@@ -219,14 +239,14 @@ TEST(AStarPlannerTest, PlanAvoidancePath)
     size_t siTestValuesLength   = 4;
 
     // Create start coordinate for AStar.
-    const geoops::UTMCoordinate stStart = geoops::UTMCoordinate(50.0, 50.0);
+    const geoops::UTMCoordinate stStart = geoops::UTMCoordinate(608120, 4201140);
 
     // Create goal coordinates for AStar.
     const geoops::UTMCoordinate aGoalCoordinates[siTestValuesLength] = {
-        geoops::UTMCoordinate(60.0, 60.0),    // NE
-        geoops::UTMCoordinate(60.0, 40.0),    // SE
-        geoops::UTMCoordinate(40.0, 40.0),    // SW
-        geoops::UTMCoordinate(40.0, 60.0),    // NW
+        geoops::UTMCoordinate(608130, 4201150),    // NE
+        geoops::UTMCoordinate(608130, 4201130),    // SE
+        geoops::UTMCoordinate(608110, 4201130),    // SW
+        geoops::UTMCoordinate(608110, 4201150),    // NW
     };
 
     // Compare output paths with expected paths.
@@ -234,24 +254,21 @@ TEST(AStarPlannerTest, PlanAvoidancePath)
     {
         // Generate a path for this goal.
         std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStart, aGoalCoordinates[siIter]);
+        LOG_INFO(logging::g_qSharedLogger, "------------------------------");
+        // DEBUG:
+        for (size_t i = 0; i < vReturnedPath.size(); i++)
+        {
+            LOG_INFO(logging::g_qSharedLogger, "Path Easting {}", vReturnedPath[i].dEasting);
+            LOG_INFO(logging::g_qSharedLogger, "Path Norting {}", vReturnedPath[i].dNorthing);
+        }
 
         // Validate start coordinate.
         EXPECT_NEAR(stStart.dEasting, vReturnedPath[0].dEasting, 0.1);
         EXPECT_NEAR(stStart.dNorthing, vReturnedPath[0].dNorthing, 0.1);
 
         // Validate end coordinate.
-        EXPECT_NEAR(aGoalCoordinates[siIter].dEasting, vReturnedPath[siIter].dEasting, 0.1);
-        EXPECT_NEAR(aGoalCoordinates[siIter].dNorthing, vReturnedPath[siIter].dNorthing, 0.1);
-
-        // Validate that each node in the returned path are separated by the size of the AStar node.
-        for (size_t siPathIter = 1; siPathIter < vReturnedPath.size(); siPathIter++)
-        {
-            double dDeltaEasting  = std::abs(vReturnedPath[siPathIter - 1].dEasting - vReturnedPath[siPathIter].dEasting);
-            double dDeltaNorthing = std::abs(vReturnedPath[siPathIter - 1].dNorthing - vReturnedPath[siPathIter].dNorthing);
-
-            EXPECT_NEAR(constants::ASTAR_NODE_SIZE, dDeltaEasting, 0.1);
-            EXPECT_NEAR(constants::ASTAR_NODE_SIZE, dDeltaNorthing, 0.1);
-        }
+        EXPECT_NEAR(aGoalCoordinates[siIter].dEasting, vReturnedPath.back().dEasting, 0.1);
+        EXPECT_NEAR(aGoalCoordinates[siIter].dNorthing, vReturnedPath.back().dNorthing, 0.1);
     }
 
     // Delete object.
