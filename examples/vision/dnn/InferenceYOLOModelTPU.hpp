@@ -75,9 +75,9 @@ void RunExample()
             // Convert camera frame from BGR to RGB format.
             cv::cvtColor(cvNormalFrame1, cvInferenceFrame1, cv::COLOR_BGR2RGB);
             // Run inference on YOLO model with current image.
-            std::vector<std::vector<yolomodel::Detection>> vOutputTensorObjects = ExampleEdgeTPUModel.Inference(cvInferenceFrame1, 0.40f, 0.40f);
+            std::vector<std::vector<constants::Detection>> vOutputTensorObjects = ExampleEdgeTPUModel.Inference(cvInferenceFrame1, 0.40f, 0.40f);
             // Loop through all output detection vectors for each tensor output.
-            for (std::vector<yolomodel::Detection> vObjects : vOutputTensorObjects)
+            for (std::vector<constants::Detection> vObjects : vOutputTensorObjects)
             {
                 // Draw detected objects on frame.
                 yolomodel::DrawDetections(cvNormalFrame1, vObjects);

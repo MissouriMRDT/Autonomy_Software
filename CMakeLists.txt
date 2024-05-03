@@ -159,20 +159,28 @@ endif()
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
 
-## Search Project Directories for CPP Files
-file(GLOB_RECURSE SRC			  	    CONFIGURE_DEPENDS  "src/*.cpp")
-file(GLOB_RECURSE Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
-file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
-file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
+## List all source files excluding main.cpp
+file(GLOB_RECURSE SRC_LIST CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE EXAMPLES_SRC_LIST CONFIGURE_DEPENDS "examples/*/*.cpp")
+file(GLOB_RECURSE EXTERNAL_SRC_LIST CONFIGURE_DEPENDS "external/src/*.cpp")
+file(GLOB_RECURSE TOOLS_SRC_LIST CONFIGURE_DEPENDS "tools/*.cpp")
+
+## Remove main.cpp from SRC_LIST
+list(REMOVE_ITEM SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+
+## Explicitly list all source files excluding main.cpp
+set(ALL_SOURCE_FILES
+    ${EXTERNAL_SRC_LIST}
+    ${SRC_LIST}
+    ${EXAMPLES_SRC_LIST}
+    ${TOOLS_SRC_LIST}
+)
+
+## Add main.cpp at the end
+list(APPEND ALL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 ## Create Executable File
-# add_executable(${EXE_NAME}  ${External_SRC}
-# 						    ${SRC}
-# 						    ${Examples_SRC}
-# 						    ${Tools_SRC}
-# 	)
-
-add_executable(${EXE_NAME} "temp/main.cpp" "temp/detector.cpp")
+add_executable(${EXE_NAME} ${ALL_SOURCE_FILES})
 
 ## Set Compile Options for Autonomy Software.
 if(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.

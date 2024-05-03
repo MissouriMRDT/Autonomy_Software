@@ -11,45 +11,58 @@
 #ifndef TORCH_MODEL_H
 #define TORCH_MODEL_H
 
+#include "../AutonomyConstants.h"
 #include "../AutonomyLogging.h"
 
 /// \cond
-#include <iostream>
 #include <memory>
+
 #include <torch/script.h>
 #include <torch/torch.h>
 
+#include <ATen/cuda/CUDAEvent.h>
+#include <c10/cuda/CUDAStream.h>
+
+#include <opencv2/core.hpp>
+#include <opencv2/dnn/dnn.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 /// \endcond
 
-template<typename T, typename P>
 class TorchModel
 {
     public:
-        enum DeviceType
-        {
-            eCPU,
-            eGPU
-        };
+        TorchModel(const std::string& szModelPath, const torch::DeviceType& eDeviceType);
 
-        TorchModel(const std::string& szModelPath);
+        ~TorchModel() {}
 
-        ~TorchModel();
+        torch::jit::script::Module GetModel();
 
-        void LoadModel(DeviceType eDeviceType = eGPU);
-
-        std::shared_ptr<torch::jit::script::Module> GetModel();
-
-        torch::Device GetDevice();
+        torch::DeviceType GetDevice();
 
         std::string GetPath();
 
-    protected:
-        virtual T Inference(const P& tInput, const float fMinObjectConfidence, const float fNMSThreshold) = 0;
+        bool IsHalf();
 
-    private:
-        std::shared_ptr<torch::jit::script::Module> m_ltModel;
-        torch::Device m_eDevice;
+        std::vector<float> LetterboxImage(const cv::Mat& src, cv::Mat& dst, const cv::Size& out_size);
+        void ScaleCoordinates(std::vector<constants::Detection>& data, float pad_w, float pad_h, float scale, const cv::Size& img_shape);
+
+    protected:
+        virtual std::vector<std::vector<constants::Detection>> PostProcessing(const torch::Tensor& detections,
+                                                                              float pad_w,
+                                                                              float pad_h,
+                                                                              float scale,
+                                                                              const cv::Size& img_shape,
+                                                                              float conf_thres,
+                                                                              float iou_thres)                                                                     = 0;
+
+        virtual std::vector<std::vector<constants::Detection>> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence, const float fNMSThreshold) = 0;
+
+        torch::jit::script::Module m_ltModel;
+        torch::DeviceType m_eDevice;
         std::string m_szModelPath;
+        bool m_bHalfModel;
 };
 
 #endif    // TORCH_MODEL_H

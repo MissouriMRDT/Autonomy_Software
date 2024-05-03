@@ -1,3 +1,13 @@
+/******************************************************************************
+ * @brief
+ *
+ * @file utils.h
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-05-02
+ *
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
+ ******************************************************************************/
+
 #pragma once
 
 enum Det

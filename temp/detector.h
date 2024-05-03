@@ -1,3 +1,13 @@
+/******************************************************************************
+ * @brief
+ *
+ * @file detector.h
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-05-02
+ *
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
+ ******************************************************************************/
+
 #pragma once
 
 #include <memory>
@@ -32,7 +42,7 @@ class Detector
          * @param iou_threshold - IoU threshold for nms
          * @return detection result - bounding box, score, class index
          */
-        std::vector<std::vector<Detection>> Run(const cv::Mat& img, float conf_threshold, float iou_threshold);
+        std::vector<std::vector<constants::Detection>> Run(const cv::Mat& img, float conf_threshold, float iou_threshold);
 
     private:
         /***
@@ -53,13 +63,13 @@ class Detector
          * @param iou_thres - IoU threshold for NMS algorithm
          * @return detections with shape: nx7 (batch_index, x1, y1, x2, y2, score, classification)
          */
-        static std::vector<std::vector<Detection>> PostProcessing(const torch::Tensor& detections,
-                                                                  float pad_w,
-                                                                  float pad_h,
-                                                                  float scale,
-                                                                  const cv::Size& img_shape,
-                                                                  float conf_thres = 0.4,
-                                                                  float iou_thres  = 0.6);
+        static std::vector<std::vector<constants::Detection>> PostProcessing(const torch::Tensor& detections,
+                                                                             float pad_w,
+                                                                             float pad_h,
+                                                                             float scale,
+                                                                             const cv::Size& img_shape,
+                                                                             float conf_thres = 0.4,
+                                                                             float iou_thres  = 0.6);
 
         /***
          * @brief Rescale coordinates to original input image
@@ -69,7 +79,7 @@ class Detector
          * @param scale - zoom scale
          * @param img_shape - original input image shape
          */
-        static void ScaleCoordinates(std::vector<Detection>& data, float pad_w, float pad_h, float scale, const cv::Size& img_shape);
+        static void ScaleCoordinates(std::vector<constants::Detection>& data, float pad_w, float pad_h, float scale, const cv::Size& img_shape);
 
         /***
          * @brief box (center x, center y, width, height) to (x1, y1, x2, y2)

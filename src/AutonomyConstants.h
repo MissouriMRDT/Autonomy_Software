@@ -340,6 +340,26 @@ namespace constants
     const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
     const double ASTAR_SQRT_NODE_SIZE       = M_SQRT1_2;    // Square root of m_dNodeSize
 
+    // YOLO Detection Struct.
+    /******************************************************************************
+     * @brief This struct is used to
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-14
+     ******************************************************************************/
+    struct Detection
+    {
+        public:
+            /////////////////////////////////////////
+            // Define public struct attributes.
+            /////////////////////////////////////////
+
+            int nClassID;              // The class index of the object. Dependent on class order when trained.
+            float fConfidence;         // The detection confidence of the object.
+            cv::Rect cvBoundingBox;    // An object used to access the dimensions and other properties of the objects bounding box.
+    };
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

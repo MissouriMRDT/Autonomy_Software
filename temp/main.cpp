@@ -1,3 +1,13 @@
+/******************************************************************************
+ * @brief
+ *
+ * @file main.cpp
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2024-05-02
+ *
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
+ ******************************************************************************/
+
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -27,7 +37,7 @@ std::vector<std::string> LoadNames(const std::string& path)
     return class_names;
 }
 
-void Demo(cv::Mat& img, const std::vector<std::vector<Detection>>& detections, const std::vector<std::string>& class_names, bool label = true)
+void Demo(cv::Mat& img, const std::vector<std::vector<constants::Detection>>& detections, const std::vector<std::string>& class_names, bool label = true)
 {
     if (!detections.empty())
     {
@@ -85,6 +95,7 @@ int main(int argc, const char* argv[])
     }
 
     // check if gpu flag is set
+
     bool is_gpu = opt["gpu"].as<bool>();
 
     // set device type - CPU/GPU
