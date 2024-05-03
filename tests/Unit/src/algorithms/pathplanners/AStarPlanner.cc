@@ -236,17 +236,21 @@ TEST(AStarPlannerTest, PlanAvoidancePath)
     /// Create a new AStar object.
     pathplanners::AStar* pAStar = new pathplanners::AStar();
 
-    size_t siTestValuesLength   = 4;
+    size_t siTestValuesLength   = 8;
 
     // Create start coordinate for AStar.
     const geoops::UTMCoordinate stStart = geoops::UTMCoordinate(608120, 4201140);
 
     // Create goal coordinates for AStar.
     const geoops::UTMCoordinate aGoalCoordinates[siTestValuesLength] = {
+        geoops::UTMCoordinate(608130, 4201140),    // N
         geoops::UTMCoordinate(608130, 4201150),    // NE
+        geoops::UTMCoordinate(608130, 4201140),    // E
         geoops::UTMCoordinate(608130, 4201130),    // SE
+        geoops::UTMCoordinate(608120, 4201130),    // S
         geoops::UTMCoordinate(608110, 4201130),    // SW
-        geoops::UTMCoordinate(608110, 4201150),    // NW
+        geoops::UTMCoordinate(608110, 4201140),    // W
+        geoops::UTMCoordinate(608110, 4201150)     // NW
     };
 
     // Compare output paths with expected paths.
@@ -254,12 +258,16 @@ TEST(AStarPlannerTest, PlanAvoidancePath)
     {
         // Generate a path for this goal.
         std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStart, aGoalCoordinates[siIter]);
-        LOG_INFO(logging::g_qSharedLogger, "------------------------------");
-        // DEBUG:
-        for (size_t i = 0; i < vReturnedPath.size(); i++)
+
+        // Validate that each node is separated by a valid distance
+        // (no more than a node size difference between each coordinate value.
+        for (size_t siPathIter = 1; siPathIter < vReturnedPath.size(); siPathIter++)
         {
-            LOG_INFO(logging::g_qSharedLogger, "Path Easting {}", vReturnedPath[i].dEasting);
-            LOG_INFO(logging::g_qSharedLogger, "Path Norting {}", vReturnedPath[i].dNorthing);
+            bool bValidNodeDistance = std::abs(vReturnedPath[siPathIter - 1].dEasting - vReturnedPath[siPathIter].dEasting) <= constants::ASTAR_NODE_SIZE;
+            bValidNodeDistance =
+                bValidNodeDistance && std::abs(vReturnedPath[siPathIter - 1].dNorthing - vReturnedPath[siPathIter].dNorthing) <= constants::ASTAR_NODE_SIZE;
+
+            EXPECT_TRUE(bValidNodeDistance);
         }
 
         // Validate start coordinate.
