@@ -427,6 +427,9 @@ namespace pathplanners
                                                                 const geoops::UTMCoordinate& stGoalCoordinate,
                                                                 const std::vector<sl::ObjectData>& vObstacles)
     {
+        // Clear previous path data.
+        m_vPathCoordinates.clear();
+
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.
         UpdateObstacleData(vObstacles);
@@ -476,6 +479,10 @@ namespace pathplanners
             // Note: make_shared creates a copy of stNextParent on the heap, and points to that copy.
             vClosedList.push_back(std::make_shared<nodes::AStarNode>(stNextParent));
 
+            // // DEBUG:
+            // LOG_INFO(logging::g_qSharedLogger, "Popped Node Easting {}", stNextParent.stNodeLocation.dEasting);
+            // LOG_INFO(logging::g_qSharedLogger, "Popped Node Easting {}", stNextParent.stNodeLocation.dNorthing);
+
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
             double dWestOffset  = stNextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
@@ -505,7 +512,7 @@ namespace pathplanners
 
                     // Otherwise create the successor.
                     // Copy data from parent coordinate.
-                    geoops::UTMCoordinate stSuccessorCoordinate(stNextParent.stNodeLocation);
+                    geoops::UTMCoordinate stSuccessorCoordinate = stNextParent.stNodeLocation;
 
                     // Adjust Easting and Northing offsets to create new coordinate.
                     stSuccessorCoordinate.dEasting  = dEastingOffset;
@@ -521,8 +528,31 @@ namespace pathplanners
             // For each successor:
             for (size_t i = 0; i < vSuccessors.size(); i++)
             {
+                // Vars for distance evaluation.
+                bool bAtGoal = false;
+                double dDeltaEasting;
+                double dDeltaNorthing;
+
                 // If successor distance to goal is less than the node size, stop search.
-                if (geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation).dDistanceMeters < constants::ASTAR_NODE_SIZE)
+                // Try to calculate GeoMeasurement:
+                geoops::GeoMeasurement stDistanceToGoal;    // = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
+                bool bGeoSuccess = stDistanceToGoal.dDistanceMeters > 0.01;
+
+                // If this succeeds, use the GeoMeasurement distance.
+                if (bGeoSuccess)
+                {
+                    bAtGoal = stDistanceToGoal.dDistanceMeters < constants::ASTAR_NODE_SIZE;
+                }
+                // Otherwise manually check for goal boundaries:
+                else
+                {
+                    dDeltaEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
+                    dDeltaNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
+                    bAtGoal        = dDeltaEasting < constants::ASTAR_NODE_SIZE && dDeltaNorthing < constants::ASTAR_NODE_SIZE;
+                }
+
+                // Construct and return path if we have reached the goal.
+                if (bAtGoal)
                 {
                     ConstructPath(vSuccessors[i]);
                     return m_vPathCoordinates;
@@ -534,8 +564,18 @@ namespace pathplanners
                 // Compute dKg, dKh, and dKf for successor.
                 // Calculate successor previous path cost.
                 vSuccessors[i].dKg = stNextParent.dKg + constants::ASTAR_NODE_SIZE;
-                // Calculate successor future path cost through geo measurement.
-                vSuccessors[i].dKh = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation).dDistanceMeters;
+
+                // Calculate successor future path cost through geo measurement if successful:
+                if (bGeoSuccess)
+                {
+                    vSuccessors[i].dKh = stDistanceToGoal.dDistanceMeters;
+                }
+                // Otherwise calculate euclidian distance manually.
+                else
+                {
+                    vSuccessors[i].dKh = std::sqrt(std::pow(dDeltaEasting, 2) + std::pow(dDeltaNorthing, 2));
+                }
+
                 // f = g + h
                 vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
 
