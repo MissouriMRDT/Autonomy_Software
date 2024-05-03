@@ -133,6 +133,7 @@ void RunExample()
             // Run inference on YOLO model with current image.
             std::vector<std::vector<constants::Detection>> vOutputTensorObjects = ExampleTorchModel.Inference(cvNormalFrame1, 0.40f, 0.50f);
 
+            // FIXME: It appears the issue here is that the bounding box isn't getting put in the correct place. Reference temp code to try and fix.
             if (vOutputTensorObjects.size() == 0)
             {
                 LOG_WARNING(logging::g_qSharedLogger, "No Detections");
