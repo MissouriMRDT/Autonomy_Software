@@ -58,7 +58,7 @@ void Demo(cv::Mat& img, const std::vector<std::vector<Detection>>& detections, c
 
     cv::namedWindow("Result", cv::WINDOW_AUTOSIZE);
     cv::imshow("Result", img);
-    cv::waitKey(0);
+    cv::waitKey(1);    // Changed waitKey to 1 for video playback
 }
 
 int main(int argc, const char* argv[])
@@ -109,31 +109,36 @@ int main(int argc, const char* argv[])
     std::string weights = opt["weights"].as<std::string>();
     auto detector       = Detector(weights, device_type);
 
-    // load input image
+    // load input video
     std::string source = opt["source"].as<std::string>();
-    cv::Mat img        = cv::imread(source);
-    if (img.empty())
+    cv::VideoCapture cap(source);
+    if (!cap.isOpened())
     {
-        std::cerr << "Error loading the image!\n";
+        std::cerr << "Error loading the video!\n";
         return -1;
     }
 
     // run once to warm up
     std::cout << "Run once on empty image" << std::endl;
-    auto temp_img = cv::Mat::zeros(img.rows, img.cols, CV_32FC3);
+    auto temp_img = cv::Mat::zeros(cap.get(cv::CAP_PROP_FRAME_HEIGHT), cap.get(cv::CAP_PROP_FRAME_WIDTH), CV_32FC3);
     detector.Run(temp_img, 1.0f, 1.0f);
 
     // set up threshold
     float conf_thres = opt["conf-thres"].as<float>();
     float iou_thres  = opt["iou-thres"].as<float>();
 
-    // inference
-    auto result = detector.Run(img, conf_thres, iou_thres);
-
-    // visualize detections
-    if (opt["view-img"].as<bool>())
+    // inference on video frames
+    cv::Mat frame;
+    while (cap.read(frame))
     {
-        Demo(img, result, class_names);
+        // inference
+        auto result = detector.Run(frame, conf_thres, iou_thres);
+
+        // visualize detections
+        if (opt["view-img"].as<bool>())
+        {
+            Demo(frame, result, class_names);
+        }
     }
 
     cv::destroyAllWindows();
