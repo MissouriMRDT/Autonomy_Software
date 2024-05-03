@@ -479,10 +479,6 @@ namespace pathplanners
             // Note: make_shared creates a copy of stNextParent on the heap, and points to that copy.
             vClosedList.push_back(std::make_shared<nodes::AStarNode>(stNextParent));
 
-            // // DEBUG:
-            // LOG_INFO(logging::g_qSharedLogger, "Popped Node Easting {}", stNextParent.stNodeLocation.dEasting);
-            // LOG_INFO(logging::g_qSharedLogger, "Popped Node Easting {}", stNextParent.stNodeLocation.dNorthing);
-
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
             double dWestOffset  = stNextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
@@ -535,8 +531,8 @@ namespace pathplanners
 
                 // If successor distance to goal is less than the node size, stop search.
                 // Try to calculate GeoMeasurement:
-                geoops::GeoMeasurement stDistanceToGoal;    // = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
-                bool bGeoSuccess = stDistanceToGoal.dDistanceMeters > 0.01;
+                geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
+                bool bGeoSuccess                        = stDistanceToGoal.dDistanceMeters > 0.01;
 
                 // If this succeeds, use the GeoMeasurement distance.
                 if (bGeoSuccess)
