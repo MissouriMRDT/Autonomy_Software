@@ -13,6 +13,8 @@
 #include "../../../src/util/ExampleChecker.h"
 #include "../../../src/util/vision/YOLOModel.hpp"
 #include "../../../src/vision/cameras/BasicCam.h"
+#include "../../../temp/cxxopts.hpp"
+#include "../../../temp/detector.h"
 
 #include <chrono>
 #include <iostream>
@@ -40,15 +42,15 @@ std::vector<std::string> LoadNames(const std::string& path)
     return class_names;
 }
 
-void Demo(cv::Mat& img, const std::vector<std::vector<constants::Detection>>& detections, const std::vector<std::string>& class_names, bool label = true)
+void Demo(cv::Mat& img, const std::vector<std::vector<Detection>>& detections, const std::vector<std::string>& class_names, bool label = true)
 {
     if (!detections.empty())
     {
         for (const auto& detection : detections[0])
         {
-            const auto& box = detection.cvBoundingBox;
-            float score     = detection.fConfidence;
-            int class_idx   = detection.nClassID;
+            const auto& box = detection.bbox;
+            float score     = detection.score;
+            int class_idx   = detection.class_idx;
 
             cv::rectangle(img, box, cv::Scalar(0, 0, 255), 2);
 
@@ -93,13 +95,30 @@ void Demo(cv::Mat& img, const std::vector<std::vector<constants::Detection>>& de
  ******************************************************************************/
 void RunExample()
 {
-    // Initialize and start handlers.
-    globals::g_pCameraHandler = new CameraHandler();
-
     // Get reference to camera.
-    BasicCam* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadGroundCam);
+    BasicCam* ExampleBasicCam1 = new BasicCam("/workspaces/Autonomy_Software/temp/temp.mkv",
+                                              constants::BASICCAM_GROUNDCAM_RESOLUTIONX,
+                                              constants::BASICCAM_GROUNDCAM_RESOLUTIONY,
+                                              constants::BASICCAM_GROUNDCAM_FPS,
+                                              constants::BASICCAM_GROUNDCAM_PIXELTYPE,
+                                              constants::BASICCAM_GROUNDCAM_HORIZONTAL_FOV,
+                                              constants::BASICCAM_GROUNDCAM_VERTICAL_FOV,
+                                              constants::BASICCAM_GROUNDCAM_ENABLE_RECORDING,
+                                              constants::BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS);
     // Start basic cam.
     ExampleBasicCam1->Start();
+
+    bool is_gpu = false;
+    // set device type - CPU/GPU
+    torch::DeviceType device_type;
+    if (torch::cuda::is_available() && is_gpu)
+    {
+        device_type = torch::kCUDA;
+    }
+    else
+    {
+        device_type = torch::kCPU;
+    }
 
     std::vector<std::string> class_names = LoadNames("/workspaces/Autonomy_Software/data/models/yolo_models/old/coco.names");
     if (class_names.empty())
@@ -108,9 +127,15 @@ void RunExample()
         exit(-1);
     }
 
-    // // Initialize a new YOLOModel object.
-    yolomodel::pytorch::TorchInterpreter ExampleTorchModel =
-        yolomodel::pytorch::TorchInterpreter("/workspaces/Autonomy_Software/data/models/yolo_models/old/best.torchscript", torch::kCPU);
+    // load network
+    std::string weights = "/workspaces/Autonomy_Software/data/models/yolo_models/old/best.torchscript";
+    auto detector       = Detector(weights, device_type);
+
+    auto temp_img       = cv::Mat::zeros(1920.0, 1080.0, CV_32FC3);
+    detector.Run(temp_img, 1.0f, 1.0f);
+
+    float conf_thres = 0.4;
+    float iou_thres  = 0.5;
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
@@ -130,39 +155,6 @@ void RunExample()
         {
             // Convert camera frame from BGR to RGB format.
             cv::cvtColor(cvNormalFrame1, cvInferenceFrame1, cv::COLOR_BGR2RGB);
-            // Run inference on YOLO model with current image.
-            std::vector<std::vector<constants::Detection>> vOutputTensorObjects = ExampleTorchModel.Inference(cvNormalFrame1, 0.40f, 0.50f);
-
-            // FIXME: It appears the issue here is that the bounding box isn't getting put in the correct place. Reference temp code to try and fix.
-            if (vOutputTensorObjects.size() == 0)
-            {
-                LOG_WARNING(logging::g_qSharedLogger, "No Detections");
-            }
-            else
-            {
-                LOG_WARNING(logging::g_qSharedLogger, "{} Detections", vOutputTensorObjects.size());
-            }
-
-            // Loop through all output detection vectors for each tensor output.
-            for (std::vector<constants::Detection> vObjects : vOutputTensorObjects)
-            {
-                if (vObjects.size() == 0)
-                {
-                    LOG_ERROR(logging::g_qSharedLogger, "No Detections");
-                }
-                else
-                {
-                    LOG_ERROR(logging::g_qSharedLogger, "{} Detections", vObjects.size());
-                }
-
-                for (constants::Detection vObject : vObjects)
-                {
-                    LOG_CRITICAL(logging::g_qSharedLogger, "nClassID: {}, fConfidence: {}", vObject.nClassID, vObject.fConfidence);
-                }
-
-                // Draw detected objects on frame.
-                yolomodel::DrawDetections(cvNormalFrame1, vObjects);
-            }
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
@@ -172,8 +164,9 @@ void RunExample()
                         1,
                         cv::Scalar(255, 255, 255));
 
-            // Display frame.
-            cv::imshow("BasicCamExample Frame1", cvNormalFrame1);
+            // Run inference on YOLO model with current image.
+            auto result = detector.Run(cvNormalFrame1, conf_thres, iou_thres);
+            Demo(cvNormalFrame1, result, class_names, true);
 
             // Print info.
             LOG_INFO(logging::g_qConsoleLogger,
@@ -199,10 +192,11 @@ void RunExample()
     // Cleanup.
     /////////////////////////////////////////
     // Stop camera threads.
-    globals::g_pCameraHandler->StopAllCameras();
+    ExampleBasicCam1->RequestStop();
+    ExampleBasicCam1->Join();
 
     // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
+    delete ExampleBasicCam1;
     // Set dangling pointers to null.
-    globals::g_pCameraHandler = nullptr;
+    ExampleBasicCam1 = nullptr;
 }

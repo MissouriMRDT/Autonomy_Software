@@ -37,7 +37,7 @@ std::vector<std::string> LoadNames(const std::string& path)
     return class_names;
 }
 
-void Demo(cv::Mat& img, const std::vector<std::vector<constants::Detection>>& detections, const std::vector<std::string>& class_names, bool label = true)
+void Demo(cv::Mat& img, const std::vector<std::vector<Detection>>& detections, const std::vector<std::string>& class_names, bool label = true)
 {
     if (!detections.empty())
     {

@@ -177,10 +177,13 @@ set(ALL_SOURCE_FILES
 )
 
 ## Add main.cpp at the end
+list(APPEND ALL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/temp/detector.cpp")
 list(APPEND ALL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 ## Create Executable File
 add_executable(${EXE_NAME} ${ALL_SOURCE_FILES})
+
+# add_executable(${EXE_NAME} "temp/detector.cpp" "temp/main.cpp")
 
 ## Set Compile Options for Autonomy Software.
 if(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.

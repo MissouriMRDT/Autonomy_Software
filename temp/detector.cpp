@@ -34,7 +34,7 @@ Detector::Detector(const std::string& model_path, const torch::DeviceType& devic
     module_.eval();
 }
 
-std::vector<std::vector<constants::Detection>> Detector::Run(const cv::Mat& img, float conf_threshold, float iou_threshold)
+std::vector<std::vector<Detection>> Detector::Run(const cv::Mat& img, float conf_threshold, float iou_threshold)
 {
     torch::NoGradGuard no_grad;
     std::cout << "----------New Frame----------" << std::endl;
@@ -126,13 +126,13 @@ std::vector<float> Detector::LetterboxImage(const cv::Mat& src, cv::Mat& dst, co
     return pad_info;
 }
 
-std::vector<std::vector<constants::Detection>> Detector::PostProcessing(const torch::Tensor& detections,
-                                                                        float pad_w,
-                                                                        float pad_h,
-                                                                        float scale,
-                                                                        const cv::Size& img_shape,
-                                                                        float conf_thres,
-                                                                        float iou_thres)
+std::vector<std::vector<Detection>> Detector::PostProcessing(const torch::Tensor& detections,
+                                                             float pad_w,
+                                                             float pad_h,
+                                                             float scale,
+                                                             const cv::Size& img_shape,
+                                                             float conf_thres,
+                                                             float iou_thres)
 {
     constexpr int item_attr_size = 5;
     int batch_size               = detections.size(0);
@@ -142,7 +142,7 @@ std::vector<std::vector<constants::Detection>> Detector::PostProcessing(const to
     // get candidates which object confidence > threshold
     auto conf_mask = detections.select(2, 4).ge(conf_thres).unsqueeze(2);
 
-    std::vector<std::vector<constants::Detection>> output;
+    std::vector<std::vector<Detection>> output;
     output.reserve(batch_size);
 
     // iterating all images in the batch
@@ -197,7 +197,7 @@ std::vector<std::vector<constants::Detection>> Detector::PostProcessing(const to
         std::vector<int> nms_indices;
         cv::dnn::NMSBoxes(offset_box_vec, score_vec, conf_thres, iou_thres, nms_indices);
 
-        std::vector<constants::Detection> det_vec;
+        std::vector<Detection> det_vec;
         for (int index : nms_indices)
         {
             Detection t;
@@ -217,14 +217,14 @@ std::vector<std::vector<constants::Detection>> Detector::PostProcessing(const to
     return output;
 }
 
-void Detector::ScaleCoordinates(std::vector<constants::Detection>& data, float pad_w, float pad_h, float scale, const cv::Size& img_shape)
+void Detector::ScaleCoordinates(std::vector<Detection>& data, float pad_w, float pad_h, float scale, const cv::Size& img_shape)
 {
     auto clip = [](float n, float lower, float upper)
     {
         return std::max(lower, std::min(n, upper));
     };
 
-    std::vector<constants::Detection> detections;
+    std::vector<Detection> detections;
     for (auto& i : data)
     {
         float x1 = (i.bbox.tl().x - pad_w) / scale;    // x padding
