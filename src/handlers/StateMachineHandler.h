@@ -144,10 +144,10 @@ class StateMachineHandler : private AutonomyThread<void>
             double dAverageCellVoltage = dTotalCellVoltages / nValidCellVoltageValues;
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: PMS Cell Voltages. Average voltage is: {}");
+            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: PMS Cell Voltages. Average voltage is: {}", dAverageCellVoltage);
 
             // Check if voltage is above the safe minimum for lithium ion batteries.
-            if (dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE && this->GetCurrentState() != statemachine::States::eIdle)
+            if (dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE && this->GetCurrentState() != statemachine::States::eIdle && BATTERY_CHECKS_ENABLED)
             {
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
