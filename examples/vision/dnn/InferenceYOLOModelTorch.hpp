@@ -96,17 +96,32 @@ void Demo(cv::Mat& img, const std::vector<std::vector<Detection>>& detections, c
 void RunExample()
 {
     // Get reference to camera.
-    BasicCam* ExampleBasicCam1 = new BasicCam("/workspaces/Autonomy_Software/temp/temp.mkv",
-                                              constants::BASICCAM_GROUNDCAM_RESOLUTIONX,
-                                              constants::BASICCAM_GROUNDCAM_RESOLUTIONY,
-                                              constants::BASICCAM_GROUNDCAM_FPS,
-                                              constants::BASICCAM_GROUNDCAM_PIXELTYPE,
-                                              constants::BASICCAM_GROUNDCAM_HORIZONTAL_FOV,
-                                              constants::BASICCAM_GROUNDCAM_VERTICAL_FOV,
-                                              constants::BASICCAM_GROUNDCAM_ENABLE_RECORDING,
-                                              constants::BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS);
+    // BasicCam* ExampleBasicCam1 = new BasicCam("/workspaces/Autonomy_Software/temp/temp.mkv",
+    //                                           constants::BASICCAM_GROUNDCAM_RESOLUTIONX,
+    //                                           constants::BASICCAM_GROUNDCAM_RESOLUTIONY,
+    //                                           constants::BASICCAM_GROUNDCAM_FPS,
+    //                                           constants::BASICCAM_GROUNDCAM_PIXELTYPE,
+    //                                           constants::BASICCAM_GROUNDCAM_HORIZONTAL_FOV,
+    //                                           constants::BASICCAM_GROUNDCAM_VERTICAL_FOV,
+    //                                           constants::BASICCAM_GROUNDCAM_ENABLE_RECORDING,
+    //                                           constants::BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS);
+
+    ZEDCam* ExampleZEDCam1 = new ZEDCam(constants::ZED_LEFTCAM_RESOLUTIONX,
+                                        constants::ZED_LEFTCAM_RESOLUTIONY,
+                                        constants::ZED_LEFTCAM_FPS,
+                                        constants::ZED_LEFTCAM_HORIZONTAL_FOV,
+                                        constants::ZED_LEFTCAM_VERTICAL_FOV,
+                                        constants::ZED_LEFTCAM_ENABLE_RECORDING,
+                                        constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+                                        constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+                                        false,
+                                        constants::ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH,
+                                        constants::ZED_LEFTCAM_FUSION_MASTER,
+                                        constants::ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS,
+                                        constants::ZED_LEFTCAM_SERIAL);
+
     // Start basic cam.
-    ExampleBasicCam1->Start();
+    ExampleZEDCam1->Start();
 
     bool is_gpu = false;
     // set device type - CPU/GPU
@@ -120,7 +135,7 @@ void RunExample()
         device_type = torch::kCPU;
     }
 
-    std::vector<std::string> class_names = LoadNames("/workspaces/Autonomy_Software/data/models/yolo_models/old/coco.names");
+    std::vector<std::string> class_names = LoadNames("/workspaces/Autonomy_Software/data/models/yolo_models/tag/v5n_x640_250epochs/coco.names");
     if (class_names.empty())
     {
         LOG_CRITICAL(logging::g_qSharedLogger, "No Model Coco Names");
@@ -128,7 +143,7 @@ void RunExample()
     }
 
     // load network
-    std::string weights = "/workspaces/Autonomy_Software/data/models/yolo_models/old/best.torchscript";
+    std::string weights = "/workspaces/Autonomy_Software/data/models/yolo_models/tag/v5n_x640_250epochs/best.torchscript";
     auto detector       = Detector(weights, device_type);
 
     auto temp_img       = cv::Mat::zeros(1920.0, 1080.0, CV_32FC3);
@@ -139,7 +154,13 @@ void RunExample()
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
+    cv::Mat cvDepthFrame1;
+    cv::Mat cvPointCloud1;
     cv::Mat cvInferenceFrame1;
+    cv::Mat cvPointCloudColor1;
+    cv::cuda::GpuMat cvGPUNormalFrame1;
+    cv::cuda::GpuMat cvGPUDepthFrame1;
+    cv::cuda::GpuMat cvGPUPointCloud1;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -147,18 +168,48 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
+        // Create instance variables.
+        std::future<bool> fuFrameCopyStatus;
+        std::future<bool> fuDepthCopyStatus;
+        std::future<bool> fuPointCloudCopyStatus;
+
+        // Check if the camera is setup to use CPU or GPU mats.
+        if (ExampleZEDCam1->GetUsingGPUMem())
+        {
+            // Grab frames from camera.
+            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
+            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
+        }
+        else
+        {
+            // Grab frames from camera.
+            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
+            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
+        }
+
         // Grab normal frame from camera.
-        std::future<bool> fuCopyStatus1 = ExampleBasicCam1->RequestFrameCopy(cvNormalFrame1);
+        std::future<bool> fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
 
         // Show first frame copy.
-        if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
+        if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
         {
+            // Check if the camera is setup to use CPU or GPU mats.
+            if (ExampleZEDCam1->GetUsingGPUMem())
+            {
+                // Download memory from gpu mats if necessary.
+                cvGPUNormalFrame1.download(cvNormalFrame1);
+                cvGPUDepthFrame1.download(cvDepthFrame1);
+                cvGPUPointCloud1.download(cvPointCloud1);
+            }
+
             // Convert camera frame from BGR to RGB format.
             cv::cvtColor(cvNormalFrame1, cvInferenceFrame1, cv::COLOR_BGR2RGB);
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
-                        std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
+                        std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()),
                         cv::Point(50, 50),
                         cv::FONT_HERSHEY_COMPLEX,
                         1,
@@ -171,8 +222,8 @@ void RunExample()
             // Print info.
             LOG_INFO(logging::g_qConsoleLogger,
                      "BasicCam Getter FPS: {} | 1% Low: {}",
-                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
-                     ExampleBasicCam1->GetIPS().Get1PercentLow());
+                     ExampleZEDCam1->GetIPS().GetAverageIPS(),
+                     ExampleZEDCam1->GetIPS().Get1PercentLow());
         }
 
         // Tick FPS counter.
@@ -192,11 +243,11 @@ void RunExample()
     // Cleanup.
     /////////////////////////////////////////
     // Stop camera threads.
-    ExampleBasicCam1->RequestStop();
-    ExampleBasicCam1->Join();
+    ExampleZEDCam1->RequestStop();
+    ExampleZEDCam1->Join();
 
     // Delete dynamically allocated objects.
-    delete ExampleBasicCam1;
+    delete ExampleZEDCam1;
     // Set dangling pointers to null.
-    ExampleBasicCam1 = nullptr;
+    ExampleZEDCam1 = nullptr;
 }

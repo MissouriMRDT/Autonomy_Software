@@ -165,7 +165,9 @@ tensorflowtag
 tensorflowyolo
 tflite
 threadpool
+thres
 timestep
+torchscript
 tparam
 twxs
 UART
