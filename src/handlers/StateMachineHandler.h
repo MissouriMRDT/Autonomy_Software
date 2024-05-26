@@ -23,6 +23,7 @@
 #include "../states/StuckState.h"
 #include "../states/VerifyingMarkerState.h"
 #include "../states/VerifyingObjectState.h"
+#include "../states/VerifyingPositionState.h"
 
 /// \cond
 #include <RoveComm/RoveComm.h>

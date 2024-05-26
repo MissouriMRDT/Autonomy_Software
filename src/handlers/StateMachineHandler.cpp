@@ -80,6 +80,7 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
         case statemachine::States::eSearchPattern: return std::make_shared<statemachine::SearchPatternState>();
         case statemachine::States::eApproachingMarker: return std::make_shared<statemachine::ApproachingMarkerState>();
         case statemachine::States::eApproachingObject: return std::make_shared<statemachine::ApproachingObjectState>();
+        case statemachine::States::eVerifyingPosition: return std::make_shared<statemachine::VerifyingPositionState>();
         case statemachine::States::eVerifyingMarker: return std::make_shared<statemachine::VerifyingMarkerState>();
         case statemachine::States::eVerifyingObject: return std::make_shared<statemachine::VerifyingObjectState>();
         case statemachine::States::eAvoidance: return std::make_shared<statemachine::AvoidanceState>();

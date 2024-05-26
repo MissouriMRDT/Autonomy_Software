@@ -216,14 +216,10 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-                // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
                 // Set toggle to get new waypoint.
                 m_bFetchNewWaypoint = true;
                 // Change state.
-                eNextState = States::eIdle;
+                eNextState = States::eVerifyingPosition;
                 break;
             }
             case Event::eReachedMarker:
