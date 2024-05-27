@@ -10,6 +10,7 @@
 
 #include "VerifyingPositionState.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -155,6 +156,17 @@ namespace statemachine
                 eNextState = States::eIdle;
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+
+                // Send Reached Goal state over RoveComm.
+                // Construct a RoveComm packet.
+                rovecomm::RoveCommPacket<uint8_t> stPacket;
+                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
+                stPacket.vData.emplace_back(1);
+                // Send telemetry over RoveComm to all subscribers.
+                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+
                 // Pop the next waypoint.
                 globals::g_pWaypointHandler->PopNextWaypoint();
                 // Change state.
