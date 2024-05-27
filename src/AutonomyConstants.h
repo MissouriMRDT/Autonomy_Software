@@ -42,6 +42,7 @@ namespace constants
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;    // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
+    const bool BATTERY_CHECKS_ENABLED = false;          // If autonomy should monitor PMS Currents and as a result have the ability to shutdown autonomy.
 
     // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "../logs/";    // The absolute to write output logging and video files to.
