@@ -69,10 +69,16 @@ namespace statemachine
      ******************************************************************************/
     NavigatingState::NavigatingState() : State(States::eNavigating)
     {
+        // Submit logger message.
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
-
+        // Initialize member variables.
+        m_bInitialized  = false;
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
+        // Start state.
         if (!m_bInitialized)
         {
             Start();
@@ -164,6 +170,21 @@ namespace statemachine
                 }
             }
         }
+
+        //////////////////////////////////////////
+        /* ---  Check if the rover is stuck --- */
+        //////////////////////////////////////////
+
+        // Check if stuck.
+        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
+        }
     }
 
     /******************************************************************************
@@ -195,14 +216,10 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-                // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
                 // Set toggle to get new waypoint.
                 m_bFetchNewWaypoint = true;
                 // Change state.
-                eNextState = States::eIdle;
+                eNextState = States::eVerifyingPosition;
                 break;
             }
             case Event::eReachedMarker:

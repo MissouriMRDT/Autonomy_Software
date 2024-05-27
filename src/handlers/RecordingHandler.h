@@ -11,7 +11,6 @@
 #ifndef RECORDING_HANDLER_H
 #define RECORDING_HANDLER_H
 
-#include "../interfaces/AutonomyThread.hpp"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/cameras/BasicCam.h"
 #include "../vision/cameras/ZEDCam.h"

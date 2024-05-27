@@ -34,6 +34,7 @@ cschlosser
 CUDA
 CURRENTLOG
 CURRENTSTATE
+DBUILD
 deadband
 debfile
 Deblur
@@ -49,6 +50,7 @@ DISPLAYSTATE
 dockerfiles
 dorny
 doxdocgen
+Doxyfile
 Doxygen
 driveboard
 DRIVELEFTRIGHT
@@ -115,6 +117,7 @@ OBJDETECTION
 OBJECTDETECT
 Objectness
 odometry
+opencontainers
 opencv
 OTSU
 parallelizable
@@ -165,6 +168,8 @@ timestep
 tparam
 twxs
 UART
+UBLOX
+unquantized
 unstuckith
 UNVALIDATED
 upsample
@@ -174,6 +179,7 @@ valgrind
 VERIFYINGMARKERSTATE
 VERIFYINGOBJECTSTATE
 VIDEOWRITER
+VIOGPS
 Watchpoints
 Webots
 wslg

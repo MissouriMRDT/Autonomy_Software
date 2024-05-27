@@ -3,7 +3,7 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title=""/>
-    <tab type="user" url="https://github.com/missourimrdt/autonomy_software" title="GitHub"/>
+    <tab type="user" url="javascript:void(window.open('https://github.com/missourimrdt/autonomy_software','_blank'))" title="GitHub"/>
     <tab type="user" url="@ref md_CONTRIBUTING" title="Contributing Guide"/>
     <tab type="user" url="@ref md_INSTALL" title="Installation Guide"/>
     <tab type="user" url="@ref md_DEBUG" title="Development Guide"/>

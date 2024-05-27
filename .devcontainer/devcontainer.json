@@ -29,6 +29,7 @@
     // Mount shared workspace volumes. Bind from host machine to container.
     "mounts": [
         "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
+        "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
     "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
@@ -74,7 +75,7 @@
                 "editor.insertSpaces": true,
                 "editor.detectIndentation": false,
                 "editor.rulers": [
-                    150
+                    170
                 ],
                 "search.exclude": {
                     "**/docs": true
@@ -83,7 +84,7 @@
                 // Git settings.
                 "git.autofetch": true,
                 "git.terminalAuthentication": false,
-                "git.detectSubmodules": false,
+                "git.detectSubmodules": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
                 "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
@@ -127,6 +128,7 @@
                     "dist",
                     ".chrome",
                     "build",
+                    "logs",
                     "data",
                     "docs",
                     "external",

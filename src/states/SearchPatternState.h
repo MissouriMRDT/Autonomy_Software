@@ -8,11 +8,12 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef SEARCHPATTERNSTATE_H
-#define SEARCHPATTERNSTATE_H
+#ifndef SEARCH_PATTERN_STATE_H
+#define SEARCH_PATTERN_STATE_H
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 
 /// \cond
@@ -60,8 +61,7 @@ namespace statemachine
             SearchPatternType m_eCurrentSearchPatternType;
             std::vector<std::pair<double, double>> m_vRoverPosition;
             size_t m_nMaxDataPoints;
-            std::chrono::system_clock::time_point m_tmLastStuckCheck;
-            unsigned int m_unStuckChecksOnAttempt;
+            statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
         protected:
             /////////////////////////////////////////

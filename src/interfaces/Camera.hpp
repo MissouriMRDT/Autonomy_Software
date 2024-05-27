@@ -12,6 +12,7 @@
 #define CAMERA_HPP
 
 #include "../util/vision/FetchContainers.hpp"
+#include "./AutonomyThread.hpp"
 
 /// \cond
 #include <atomic>
@@ -28,8 +29,8 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-template<typename T>
-class Camera
+template<class T>
+class Camera : public AutonomyThread<void>
 {
     public:
         // Declare public methods and member variables.

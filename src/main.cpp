@@ -38,10 +38,19 @@ volatile sig_atomic_t bMainStop = false;
 void SignalHandler(int nSignal)
 {
     // Check signal type.
-    if (nSignal == SIGINT)
+    if (nSignal == SIGINT || nSignal == SIGTERM)
     {
         // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Ctrl+C received. Cleaning up...");
+        LOG_INFO(logging::g_qSharedLogger, "Ctrl+C or SIGTERM received. Cleaning up...");
+
+        // Update stop signal.
+        bMainStop = true;
+    }
+    // The SIGQUIT signal can be sent to the terminal by pressing CNTL+\.
+    else if (nSignal == SIGQUIT)
+    {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "Quit signal key pressed. Cleaning up...");
 
         // Update stop signal.
         bMainStop = true;
@@ -88,6 +97,7 @@ int main()
         stSigBreak.sa_flags   = 0;
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
+        sigaction(SIGQUIT, &stSigBreak, nullptr);
 
         // Print warnings if running in SIM mode.
         if (constants::MODE_SIM)
@@ -137,15 +147,14 @@ int main()
         globals::g_pMultimediaBoard = new MultimediaBoard();
         globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
-        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pCameraHandler       = new CameraHandler();
+        globals::g_pWaypointHandler     = new WaypointHandler();
         globals::g_pTagDetectionHandler = new TagDetectionHandler();
         globals::g_pStateMachineHandler = new StateMachineHandler();
 
-        // Start handlers.
+        // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
-        globals::g_pStateMachineHandler->StartStateMachine();
         // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
@@ -167,10 +176,14 @@ int main()
         pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
         pMainCam->EnableSpatialMapping();
 
+        // Now that cameras and detectors are configured start state machine.
+        globals::g_pStateMachineHandler->StartStateMachine();
+
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
+        sl::Pose slTest;
         while (!bMainStop)
         {
             // Send current robot state over RoveComm.
@@ -218,6 +231,8 @@ int main()
         // Check if ZED spatial map was enabled.
         if (pMainCam->GetSpatialMappingState() == sl::SPATIAL_MAPPING_STATE::OK)
         {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Exporting ZED spatial map...");
             // Extract and save spatial map.
             std::future<sl::Mesh> fuSpatialMap;
             pMainCam->ExtractSpatialMapAsync(fuSpatialMap);
