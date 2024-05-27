@@ -1,14 +1,14 @@
 /******************************************************************************
- * @brief Verifying Object State Implementation for Autonomy State Machine.
+ * @brief Verifying Position State Implementation for Autonomy State Machine.
  *
- * @file VerifyingObjectState.cpp
+ * @file VerifyingPositionState.cpp
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2024-03-03
+ * @date 2024-05-24
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#include "VerifyingObjectState.h"
+#include "VerifyingPositionState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
 
@@ -16,7 +16,7 @@
  * @brief Namespace containing all state machine related classes.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2024-01-17
+ * @date 2024-05-24
  ******************************************************************************/
 namespace statemachine
 {
@@ -26,16 +26,14 @@ namespace statemachine
      *
      *
      * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2024-01-17
+     * @date 2024-05-24
      ******************************************************************************/
-    void VerifyingObjectState::Start()
+    void VerifyingPositionState::Start()
     {
         // Schedule the next run of the state's logic
-        LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Scheduling next run of state logic.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Scheduling next run of state logic.");
 
-        m_nMaxObjectIDs = 50;
-
-        m_vObjectIDs.reserve(m_nMaxObjectIDs);
+        m_vCheckPoints.reserve(m_nMaxDataPoints);
     }
 
     /******************************************************************************
@@ -44,29 +42,30 @@ namespace statemachine
      *
      *
      * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2024-01-17
+     * @date 2024-05-24
      ******************************************************************************/
-    void VerifyingObjectState::Exit()
+    void VerifyingPositionState::Exit()
     {
         // Clean up the state before exiting
-        LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Exiting state.");
+        LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Exiting state.");
 
-        m_vObjectIDs.clear();
+        m_vCheckPoints.clear();
     }
 
     /******************************************************************************
-     * @brief Accessor for the State private member. Returns the state as a string.
+     * @brief Construct a new State object.
      *
-     * @return std::string - The current state as a string.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2024-01-17
+     * @date 2024-05-24
      ******************************************************************************/
-    VerifyingObjectState::VerifyingObjectState() : State(States::eVerifyingObject)
+    VerifyingPositionState::VerifyingPositionState() : State(States::eVerifyingPosition)
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
+        m_nMaxDataPoints = 100;
+
+        m_bInitialized   = false;
 
         if (!m_bInitialized)
         {
@@ -79,12 +78,51 @@ namespace statemachine
      * @brief Run the state machine. Returns the next state.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2024-01-17
+     * @date 2024-05-24
      ******************************************************************************/
-    void VerifyingObjectState::Run()
+    void VerifyingPositionState::Run()
     {
-        // TODO: Implement the behavior specific to the VerifyingObject state
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
+        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
+
+        if (m_vCheckPoints.size() < m_nMaxDataPoints)
+        {
+            if (!globals::g_pNavigationBoard->IsOutOfDate())
+            {
+                m_vCheckPoints.push_back(globals::g_pNavigationBoard->GetGPSData());
+            }
+        }
+        else
+        {
+            // Create Average GPS Coordinate
+            geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();
+
+            // Calculate Sum of GPS Coordinates
+            for (geoops::GPSCoordinate& stPoint : m_vCheckPoints)
+            {
+                stAverage.dLatitude += stPoint.dLatitude;
+                stAverage.dLongitude += stPoint.dLongitude;
+            }
+
+            // Calculate Average GPS Coordinate
+            stAverage.dLatitude /= m_vCheckPoints.size();
+            stAverage.dLongitude /= m_vCheckPoints.size();
+
+            // Calculate distance and bearing from goal waypoint.
+            geoops::GeoMeasurement stGoalWaypointMeasurement =
+                geoops::CalculateGeoMeasurement(stAverage, globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate());
+
+            // Check if the rover is within the goal waypoint's tolerance.
+            if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+            {
+                // Trigger event to transition to next state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed, true);
+            }
+            else
+            {
+                // Trigger event to transition to next state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete, true);
+            }
+        }
     }
 
     /******************************************************************************
@@ -94,12 +132,12 @@ namespace statemachine
      * @return std::shared_ptr<State> - The next state.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2024-01-17
+     * @date 2024-05-24
      ******************************************************************************/
-    States VerifyingObjectState::TriggerEvent(Event eEvent)
+    States VerifyingPositionState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState       = States::eVerifyingObject;
+        States eNextState       = States::eVerifyingPosition;
         bool bCompleteStateExit = true;
 
         switch (eEvent)
@@ -107,14 +145,17 @@ namespace statemachine
             case Event::eStart:
             {
                 // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Start event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eVerifyingComplete:
             {
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Handling Verifying Complete event.");
+                eNextState = States::eIdle;
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
                 // Send Reached Goal state over RoveComm.
                 // Construct a RoveComm packet.
@@ -126,13 +167,25 @@ namespace statemachine
                 // Send telemetry over RoveComm to all subscribers.
                 network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 
+                // Pop the next waypoint.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change state.
                 eNextState = States::eIdle;
+                break;
+            }
+            case Event::eVerifyingFailed:
+            {
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Handling Verifying Failed event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Change state.
+                eNextState = States::eNavigating;
                 break;
             }
             case Event::eAbort:
             {
                 // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Abort event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Handling Abort event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
@@ -141,15 +194,15 @@ namespace statemachine
             }
             default:
             {
-                LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Handling unknown event.");
+                LOG_WARNING(logging::g_qSharedLogger, "VerifyingPositionState: Handling unknown event.");
                 eNextState = States::eIdle;
                 break;
             }
         }
 
-        if (eNextState != States::eVerifyingObject)
+        if (eNextState != States::eVerifyingPosition)
         {
-            LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Transitioning to {} State.", StateToString(eNextState));
+            LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Transitioning to {} State.", StateToString(eNextState));
 
             // Exit the current state
             if (bCompleteStateExit)
