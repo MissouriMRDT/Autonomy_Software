@@ -11,7 +11,7 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
-#include "../interfaces/AutonomyThread.hpp"
+#include "./CameraHandler.h"
 
 #include "../states/ApproachingMarkerState.h"
 #include "../states/ApproachingObjectState.h"
@@ -23,6 +23,7 @@
 #include "../states/StuckState.h"
 #include "../states/VerifyingMarkerState.h"
 #include "../states/VerifyingObjectState.h"
+#include "../states/VerifyingPositionState.h"
 
 /// \cond
 #include <RoveComm/RoveComm.h>
@@ -53,6 +54,8 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_mutex m_muStateMutex;
         std::shared_mutex m_muEventMutex;
         std::atomic_bool m_bSwitchingStates;
+        ZEDCam* m_pMainCam;
+        geoops::GPSCoordinate m_stCurrentGPSLocation;
 
         /////////////////////////////////////////
         // Declare private class methods.
@@ -62,6 +65,7 @@ class StateMachineHandler : private AutonomyThread<void>
         void SaveCurrentState();
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
+        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
 
         /******************************************************************************
          * @brief Callback function used to trigger the start of autonomy. No matter what
@@ -115,7 +119,7 @@ class StateMachineHandler : private AutonomyThread<void>
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-04-04
          ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> BMSCellVoltageCallback =
+        const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> PMSCellVoltageCallback =
             [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
         {
             // Not using this.
@@ -141,14 +145,14 @@ class StateMachineHandler : private AutonomyThread<void>
             double dAverageCellVoltage = dTotalCellVoltages / nValidCellVoltageValues;
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: BMS Cell Voltages. Average voltage is: {}");
+            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: PMS Cell Voltages. Average voltage is: {}");
 
             // Check if voltage is above the safe minimum for lithium ion batteries.
             if (dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE && this->GetCurrentState() != statemachine::States::eIdle)
             {
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
-                             "Incoming BMS Packet: Average cell voltage is {} which is below the safe minimum of {}. Entering Idle state...",
+                             "Incoming PMS Packet: Average cell voltage is {} which is below the safe minimum of {}. Entering Idle state...",
                              dAverageCellVoltage,
                              constants::BATTERY_MINIMUM_CELL_VOLTAGE);
 

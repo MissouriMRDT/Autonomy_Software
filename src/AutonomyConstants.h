@@ -70,8 +70,8 @@ namespace constants
     // Power constants.
     const float DRIVE_MAX_POWER  = 1.0;
     const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 1.0;
-    const float DRIVE_MIN_EFFORT = -1.0;
+    const float DRIVE_MAX_EFFORT = 0.5;
+    const float DRIVE_MIN_EFFORT = -0.5;
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -119,8 +119,8 @@ namespace constants
     const bool ZED_SDK_VERBOSE                   = false;                                      // Enable verbose output from the internal Camera library in the ZEDSDK.
     const bool ZED_SENSING_FILL                  = false;    // True provides a depth map with a Z value for every pixel (X, Y) in the left image. Slower and worse.
     const float ZED_DEFAULT_MINIMUM_DISTANCE     = 0.5;      // Minimum distance in ZED_MEASURE_UNITS to report from depth measurement.
-    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 30.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
-    const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.25;     // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
+    const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 20.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
+    const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.5;      // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
     const int ZED_DEPTH_STABILIZATION            = 1;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::GEN_1;    // Positional tracking accuracy.
@@ -132,11 +132,11 @@ namespace constants
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
-    const float ZED_MAPPING_RANGE_METER                                   = 40.0;    // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
-    const float ZED_MAPPING_RESOLUTION_METER                              = 0.1;     // The approx goal precision for spatial mapping in METERS. Higher = Faster.
+    const float ZED_MAPPING_RANGE_METER                                   = 20.0;    // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
+    const float ZED_MAPPING_RESOLUTION_METER                              = 0.03;    // The approx goal precision for spatial mapping in METERS. Higher = Faster.
     const int ZED_MAPPING_MAX_MEMORY                                      = 4096;    // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
     const bool ZED_MAPPING_USE_CHUNK_ONLY   = true;    // Only update chunks that have probably changed or have new data. Faster, less accurate.
-    const int ZED_MAPPING_STABILITY_COUNTER = 4;       // Number of times that a point should be seen before adding to mesh.
+    const int ZED_MAPPING_STABILITY_COUNTER = 3;       // Number of times that a point should be seen before adding to mesh.
     // ZedCam Object Detection Config.
     const bool ZED_OBJDETECTION_TRACK_OBJ                      = true;     // Whether or not to enable object tracking in the scene. Attempts to maintain OBJ UUIDs.
     const bool ZED_OBJDETECTION_SEGMENTATION                   = false;    // Use depth data to compute the segmentation for an object. (exact outline/shape)
@@ -227,34 +227,40 @@ namespace constants
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                             // Whether or not to use DNN detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
     const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_LEFTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const std::string TAGDETECT_LEFTCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
     const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_RIGHTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH      = "../data/models/yolo_models/marsrover_x640/best_edgetpu.tflite";    // The model path to use for detection.
+    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
@@ -281,20 +287,20 @@ namespace constants
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
     // Stuck State
-    const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in between consecutive checks of if the rover's rotating.
+    const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double STUCK_CHECK_ROT_THRESH      = 5.0;     // Minimum angular velocity required to consider the rover as actively rotating.
-    const double STUCK_CHECK_VEL_THRESH      = 0.3;     // Minimum velocity required to consider the rover as actively moving.
+    const double STUCK_CHECK_ROT_THRESH      = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double STUCK_CHECK_VEL_THRESH      = 0.5;     // Minimum velocity required to consider the rover as actively moving.
     const double STUCK_SAME_POINT_PROXIMITY  = 1.0;     // Points within this proximity of another point are considered the same.
     const double STUCK_HEADING_ALIGN_TIMEOUT = 5.0;     // The timeout in seconds before the rover gives up aligning to a certain heading.
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_POWER             = DRIVE_MAX_EFFORT;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                 // The distance to reverse in meters.
-    const double REVERSE_TIMEOUT_PER_METER = 5.0;                 // Reverse state timeout in seconds for each meter reversed.
-    const bool REVERSE_MAINTAIN_HEADING    = true;                // Whether or not the rover should maintain heading while reversing.
+    const double REVERSE_POWER             = DRIVE_MAX_POWER;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 3.0;                // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT_PER_METER = 5.0;                // Reverse state timeout in seconds for each meter reversed.
+    const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
     const double SEARCH_ANGULAR_STEP_DEGREES     = 57;                  // The amount the angle is incremented in each iteration of the loop (degrees).

@@ -17,6 +17,7 @@
 /// \cond
 #include <GeographicLib/Geodesic.hpp>
 #include <GeographicLib/UTMUPS.hpp>
+#include <chrono>
 
 /// \endcond
 
@@ -43,6 +44,18 @@ namespace geoops
         eWaterBottleWaypoint,
         eObjectWaypoint,    // Used to represent either Mallet or WaterBottle waypoint.
         eObstacleWaypoint,
+        eUNKNOWN
+    };
+
+    // This enum is used to store the location fix type for a UTM or GPS points, the enum indexes follow the UBLOX-F9P docs.
+    enum class PositionFixType
+    {
+        eNoFix,
+        eDeadReckoning,
+        eFix2D,
+        eFix3D,
+        eGNSSDeadReckoningCombined,
+        eTimeOnly,
         eUNKNOWN
     };
 
@@ -135,13 +148,16 @@ namespace geoops
     {
         public:
             // Declare struct public attributes
-            double dLatitude;               // The geographic latitude in degrees, typically within the range [-90, 90].
-            double dLongitude;              // The geographic longitude in degrees, typically within the range [-180, 180].
-            double dAltitude;               // The elevation above sea level in meters.
-            double d2DAccuracy;             // The horizontal accuracy of the GPS coordinates in meters.
-            double d3DAccuracy;             // The three-dimensional accuracy, including altitude, in meters.
-            double dMeridianConvergence;    // The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
-            double dScale;                  // The scale factor applied to the UTM coordinates for map projection.
+            double dLatitude;                              // The geographic latitude in degrees, typically within the range [-90, 90].
+            double dLongitude;                             // The geographic longitude in degrees, typically within the range [-180, 180].
+            double dAltitude;                              // The elevation above sea level in meters.
+            double d2DAccuracy;                            // The horizontal accuracy of the GPS coordinates in meters.
+            double d3DAccuracy;                            // The three-dimensional accuracy, including altitude, in meters.
+            double dMeridianConvergence;                   // The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
+            double dScale;                                 // The scale factor applied to the UTM coordinates for map projection.
+            PositionFixType eCoordinateAccuracyFixType;    // The type of satellite location lock the coordinate was taken under.
+            bool bIsDifferential;                          // Whether of not the coordinate was taken under a differential GPS lock.
+            std::chrono::system_clock::time_point tmTimestamp;    // The chrono time point when the GPS coordinate was created/received.
 
             /////////////////////////////////////////
             // Declare public methods.
@@ -156,26 +172,34 @@ namespace geoops
              * @param d3DAccuracy - The three-dimensional accuracy, including altitude, in meters.
              * @param dMeridianConvergence - The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
              * @param dScale - The scale factor applied to the UTM coordinates for map projection.
+             * @param eCoordinateAccuracyFixType - The overall accuracy of the point, the satellite lock type the coordinate was taken under.
+             * @param bIsDifferential - Whether of not the coordinate was taken under a differential GPS lock.
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            GPSCoordinate(double dLatitude            = 0.0,
-                          double dLongitude           = 0.0,
-                          double dAltitude            = 0.0,
-                          double d2DAccuracy          = -1.0,
-                          double d3DAccuracy          = -1.0,
-                          double dMeridianConvergence = -1.0,
-                          double dScale               = 0.0)
+            GPSCoordinate(double dLatitude                                  = 0.0,
+                          double dLongitude                                 = 0.0,
+                          double dAltitude                                  = 0.0,
+                          double d2DAccuracy                                = -1.0,
+                          double d3DAccuracy                                = -1.0,
+                          double dMeridianConvergence                       = -1.0,
+                          double dScale                                     = 0.0,
+                          PositionFixType eCoordinateAccuracyFixType        = PositionFixType::eUNKNOWN,
+                          bool bIsDifferential                              = false,
+                          std::chrono::system_clock::time_point tmTimestamp = std::chrono::system_clock::time_point().min())
             {
                 // Initialize member variables with given values.
-                this->dLatitude            = dLatitude;
-                this->dLongitude           = dLongitude;
-                this->dAltitude            = dAltitude;
-                this->d2DAccuracy          = d2DAccuracy;
-                this->d3DAccuracy          = d3DAccuracy;
-                this->dMeridianConvergence = dMeridianConvergence;
-                this->dScale               = dScale;
+                this->dLatitude                  = dLatitude;
+                this->dLongitude                 = dLongitude;
+                this->dAltitude                  = dAltitude;
+                this->d2DAccuracy                = d2DAccuracy;
+                this->d3DAccuracy                = d3DAccuracy;
+                this->dMeridianConvergence       = dMeridianConvergence;
+                this->dScale                     = dScale;
+                this->eCoordinateAccuracyFixType = eCoordinateAccuracyFixType;
+                this->bIsDifferential            = bIsDifferential;
+                this->tmTimestamp                = tmTimestamp;
             }
 
             /******************************************************************************
@@ -192,7 +216,8 @@ namespace geoops
             {
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
                 if (dLatitude == stOtherCoordinate.dLatitude && dLongitude == stOtherCoordinate.dLongitude && dAltitude == stOtherCoordinate.dAltitude &&
-                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy)
+                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy &&
+                    eCoordinateAccuracyFixType == stOtherCoordinate.eCoordinateAccuracyFixType && bIsDifferential == stOtherCoordinate.bIsDifferential)
                 {
                     // Return that the two GPSCoordinates are equal.
                     return true;
@@ -228,15 +253,18 @@ namespace geoops
     {
         public:
             // Declare struct public attributes.
-            double dEasting;                   // The eastward displacement from the UTM zone's central meridian in meters.
-            double dNorthing;                  // The northward displacement from the equator in meters.
-            int nZone;                         // The UTM zone number identifying the region on the Earth's surface.
-            bool bWithinNorthernHemisphere;    // Indicates whether the coordinate is located in the northern hemisphere.
-            double dAltitude;                  // The elevation above sea level in meters.
-            double d2DAccuracy;                // The horizontal accuracy of the UTM coordinates in meters.
-            double d3DAccuracy;                // The three-dimensional accuracy, including altitude, in meters.
-            double dMeridianConvergence;       // The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
-            double dScale;                     // The scale factor applied to the UTM coordinates for map projection.
+            double dEasting;                               // The eastward displacement from the UTM zone's central meridian in meters.
+            double dNorthing;                              // The northward displacement from the equator in meters.
+            int nZone;                                     // The UTM zone number identifying the region on the Earth's surface.
+            bool bWithinNorthernHemisphere;                // Indicates whether the coordinate is located in the northern hemisphere.
+            double dAltitude;                              // The elevation above sea level in meters.
+            double d2DAccuracy;                            // The horizontal accuracy of the UTM coordinates in meters.
+            double d3DAccuracy;                            // The three-dimensional accuracy, including altitude, in meters.
+            double dMeridianConvergence;                   // The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
+            double dScale;                                 // The scale factor applied to the UTM coordinates for map projection.
+            PositionFixType eCoordinateAccuracyFixType;    // The type of satellite location lock the coordinate was taken under.
+            bool bIsDifferential;                          // Whether of not the coordinate was taken under a differential GPS lock.
+            std::chrono::system_clock::time_point tmTimestamp;    // The chrono time point when the GPS coordinate was created/received.
 
             /////////////////////////////////////////
             // Declare public methods.
@@ -254,30 +282,38 @@ namespace geoops
              * @param d3DAccuracy - The three-dimensional accuracy, including altitude, in meters.
              * @param dMeridianConvergence - The angle between true north and grid north at the given location in degrees. Positive in eastern direction.
              * @param dScale - The scale factor applied to the UTM coordinates for map projection.
+             * @param eCoordinateAccuracyFixType - The overall accuracy of the point, the satellite lock type the coordinate was taken under.
+             * @param bIsDifferential - Whether of not the coordinate was taken under a differential GPS lock.
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            UTMCoordinate(double dEasting                = 0.0,
-                          double dNorthing               = 0.0,
-                          int nZone                      = 0,
-                          bool bWithinNorthernHemisphere = true,
-                          double dAltitude               = 0.0,
-                          double d2DAccuracy             = -1.0,
-                          double d3DAccuracy             = -1.0,
-                          double dMeridianConvergence    = -1.0,
-                          double dScale                  = 0.0)
+            UTMCoordinate(double dEasting                                   = 0.0,
+                          double dNorthing                                  = 0.0,
+                          int nZone                                         = 0,
+                          bool bWithinNorthernHemisphere                    = true,
+                          double dAltitude                                  = 0.0,
+                          double d2DAccuracy                                = -1.0,
+                          double d3DAccuracy                                = -1.0,
+                          double dMeridianConvergence                       = -1.0,
+                          double dScale                                     = 0.0,
+                          PositionFixType eCoordinateAccuracyFixType        = PositionFixType::eUNKNOWN,
+                          bool bIsDifferential                              = false,
+                          std::chrono::system_clock::time_point tmTimestamp = std::chrono::system_clock::time_point().min())
             {
                 // Initialize member variables with given values.
-                this->dEasting                  = dEasting;
-                this->dNorthing                 = dNorthing;
-                this->nZone                     = nZone;
-                this->bWithinNorthernHemisphere = bWithinNorthernHemisphere;
-                this->dAltitude                 = dAltitude;
-                this->d2DAccuracy               = d2DAccuracy;
-                this->d3DAccuracy               = d3DAccuracy;
-                this->dMeridianConvergence      = dMeridianConvergence;
-                this->dScale                    = dScale;
+                this->dEasting                   = dEasting;
+                this->dNorthing                  = dNorthing;
+                this->nZone                      = nZone;
+                this->bWithinNorthernHemisphere  = bWithinNorthernHemisphere;
+                this->dAltitude                  = dAltitude;
+                this->d2DAccuracy                = d2DAccuracy;
+                this->d3DAccuracy                = d3DAccuracy;
+                this->dMeridianConvergence       = dMeridianConvergence;
+                this->dScale                     = dScale;
+                this->eCoordinateAccuracyFixType = eCoordinateAccuracyFixType;
+                this->bIsDifferential            = bIsDifferential;
+                this->tmTimestamp                = tmTimestamp;
             }
 
             /******************************************************************************
@@ -295,7 +331,8 @@ namespace geoops
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
                 if (dEasting == stOtherCoordinate.dEasting && dNorthing == stOtherCoordinate.dNorthing && nZone == stOtherCoordinate.nZone &&
                     bWithinNorthernHemisphere == stOtherCoordinate.bWithinNorthernHemisphere && dAltitude == stOtherCoordinate.dAltitude &&
-                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy)
+                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy &&
+                    eCoordinateAccuracyFixType == stOtherCoordinate.eCoordinateAccuracyFixType && bIsDifferential == stOtherCoordinate.bIsDifferential)
                 {
                     // Return that the two UTMCoordinates are equal.
                     return true;
@@ -335,9 +372,12 @@ namespace geoops
         UTMCoordinate stConvertCoord;
 
         // Get data out of the GPS coord and repackage it into the UTM struct.
-        stConvertCoord.d2DAccuracy = stGPSCoord.d2DAccuracy;
-        stConvertCoord.d3DAccuracy = stGPSCoord.d3DAccuracy;
-        stConvertCoord.dAltitude   = stGPSCoord.dAltitude;
+        stConvertCoord.d2DAccuracy                = stGPSCoord.d2DAccuracy;
+        stConvertCoord.d3DAccuracy                = stGPSCoord.d3DAccuracy;
+        stConvertCoord.dAltitude                  = stGPSCoord.dAltitude;
+        stConvertCoord.eCoordinateAccuracyFixType = stGPSCoord.eCoordinateAccuracyFixType;
+        stConvertCoord.bIsDifferential            = stGPSCoord.bIsDifferential;
+        stConvertCoord.tmTimestamp                = stGPSCoord.tmTimestamp;
 
         // Catch errors from GeographicLib.
         try
@@ -377,9 +417,12 @@ namespace geoops
         GPSCoordinate stConvertCoord;
 
         // Get data out of the UTM coord and repackage it into the GPS struct.
-        stConvertCoord.d2DAccuracy = stUTMCoord.d2DAccuracy;
-        stConvertCoord.d3DAccuracy = stUTMCoord.d3DAccuracy;
-        stConvertCoord.dAltitude   = stUTMCoord.dAltitude;
+        stConvertCoord.d2DAccuracy                = stUTMCoord.d2DAccuracy;
+        stConvertCoord.d3DAccuracy                = stUTMCoord.d3DAccuracy;
+        stConvertCoord.dAltitude                  = stUTMCoord.dAltitude;
+        stConvertCoord.eCoordinateAccuracyFixType = stUTMCoord.eCoordinateAccuracyFixType;
+        stConvertCoord.bIsDifferential            = stUTMCoord.bIsDifferential;
+        stConvertCoord.tmTimestamp                = stUTMCoord.tmTimestamp;
 
         // Catch errors from GeographicLib.
         try
@@ -387,7 +430,7 @@ namespace geoops
             // Reverse solve for the UTM coord.
             GeographicLib::UTMUPS::Reverse(stUTMCoord.nZone,
                                            stUTMCoord.bWithinNorthernHemisphere,
-                                           stUTMCoord.dEasting,
+                                           std::fabs(stUTMCoord.dEasting),
                                            stUTMCoord.dNorthing,
                                            stConvertCoord.dLatitude,
                                            stConvertCoord.dLongitude,

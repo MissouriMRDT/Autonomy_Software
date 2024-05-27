@@ -8,8 +8,8 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef VERIFYINGMARKERSTATE_H
-#define VERIFYINGMARKERSTATE_H
+#ifndef VERIFYING_MARKER_STATE_H
+#define VERIFYING_MARKER_STATE_H
 
 #include "../interfaces/State.hpp"
 

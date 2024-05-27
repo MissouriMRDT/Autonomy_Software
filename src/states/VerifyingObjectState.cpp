@@ -10,6 +10,7 @@
 
 #include "VerifyingObjectState.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -114,6 +115,17 @@ namespace statemachine
             case Event::eVerifyingComplete:
             {
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
+
+                // Send Reached Goal state over RoveComm.
+                // Construct a RoveComm packet.
+                rovecomm::RoveCommPacket<uint8_t> stPacket;
+                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
+                stPacket.vData.emplace_back(1);
+                // Send telemetry over RoveComm to all subscribers.
+                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+
                 eNextState = States::eIdle;
                 break;
             }

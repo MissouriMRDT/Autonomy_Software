@@ -37,9 +37,6 @@ namespace statemachine
         m_nMaxDataPoints = 100;
         m_vRoverPosition.reserve(m_nMaxDataPoints);
 
-        // Update ZEDCam position if needed.
-        this->UpdateZEDPosition();
-
         // Get the start rover pose.
         m_stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
     }
@@ -59,8 +56,6 @@ namespace statemachine
 
         // Clear rover position waypoints.
         m_vRoverPosition.clear();
-        // Update ZEDCam position if needed.
-        this->UpdateZEDPosition();
     }
 
     /******************************************************************************
@@ -97,33 +92,29 @@ namespace statemachine
         // Create instance variables.
         geoops::RoverPose stCurrentRoverPose;
 
-        // Check if GPS data is up-to-date.
-        if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetGPSDataAge()).count() < constants::NAVBOARD_MAX_GPS_DATA_AGE)
-        {
-            // Get the current rover gps position.
-            stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-            // Store the Rover's position.
-            m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
+        // Get the current rover gps position.
+        stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        // Store the Rover's position.
+        m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
 
-            // Calculate distance from current position to position when idle state was entered.
-            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
-            // Check if the rover is still moving.
-            if (stMeasurement.dDistanceMeters > 0.1)
-            {
-                // Send stop drive command.
-                globals::g_pDriveBoard->SendStop();
-                // Update Idle start pose.
-                m_stStartRoverPose = stCurrentRoverPose;
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "IdleState: Stopped drive.");
-            }
+        // Calculate distance from current position to position when idle state was entered.
+        geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
+        // Check if the rover is still moving.
+        if (stMeasurement.dDistanceMeters > 0.1)
+        {
+            // Send stop drive command.
+            globals::g_pDriveBoard->SendStop();
+            // Update Idle start pose.
+            m_stStartRoverPose = stCurrentRoverPose;
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "IdleState: Stopped drive.");
         }
 
         // If the last state was searchpattern and the waypoint handler has been cleared, reset.
         if (globals::g_pStateMachineHandler->GetPreviousState() != States::eIdle && globals::g_pWaypointHandler->GetWaypointCount() <= 0)
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "IdleState: WaypointHandler queue is empty while in IdleState, deleting old saved states...");
+            LOG_WARNING(logging::g_qSharedLogger, "IdleState: WaypointHandler queue is empty while in IdleState, deleting old saved states...");
             // Reset all old states. Since waypoint handler has been cleared, there's no need to save old searchpattern state.
             globals::g_pStateMachineHandler->ClearSavedStates();
         }
@@ -219,56 +210,5 @@ namespace statemachine
         }
 
         return eNextState;
-    }
-
-    /******************************************************************************
-     * @brief This is used to realign the ZEDs forward direction with the rover's
-     *      current compass heading. Realigning GPS latlon is not necessary since
-     *      we're using the ZEDSDK's Fusion module. The heading of the camera's
-     *      GeoPose is actually automatically realigned too depending on what direction
-     *      We are headed, but this is just to be safe.
-     *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2024-04-08
-     ******************************************************************************/
-    void IdleState::UpdateZEDPosition()
-    {
-        // Get main ZEDCam.
-        ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-        // Check if main ZEDCam is opened and positional tracking is enabled.
-        if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
-        {
-            // Check GPS-based compass heading timestamp and accuracy.
-            if (std::chrono::duration_cast<std::chrono::seconds>(globals::g_pNavigationBoard->GetCompassDataAge()).count() <= constants::NAVBOARD_MAX_COMPASS_DATA_AGE &&
-                globals::g_pNavigationBoard->GetHeadingAccuracy() < 4.0)
-            {
-                // Get the most recent compass heading from the NavBoard.
-                double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
-
-                // Request for the cameras current pose.
-                sl::Pose slCurrentCameraPose;
-                std::future<bool> fuPoseReturnStatus = pMainCam->RequestPositionalPoseCopy(slCurrentCameraPose);
-                // Wait for pose to be copied.
-                if (fuPoseReturnStatus.get())
-                {
-                    // Update camera Y heading with GPSs current heading.
-                    pMainCam->SetPositionalPose(slCurrentCameraPose.getTranslation().tx,
-                                                slCurrentCameraPose.getTranslation().ty,
-                                                slCurrentCameraPose.getTranslation().tz,
-                                                slCurrentCameraPose.getEulerAngles().x,
-                                                dCurrentCompassHeading,
-                                                slCurrentCameraPose.getEulerAngles().z);
-
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "IdleState: Realigned ZED MainCam heading to {}", dCurrentCompassHeading);
-                }
-                else
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "IdleState: Failed to realign the main ZEDCam's heading with NavBoard's current compass heading.");
-                }
-            }
-        }
     }
 }    // namespace statemachine
