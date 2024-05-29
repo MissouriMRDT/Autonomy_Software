@@ -156,7 +156,7 @@ namespace statemachine
             diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_DRIVE,
                                                                                          stGoalWaypointMeasurement.dStartRelativeBearing,
                                                                                          stCurrentPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
+                                                                                         diffdrive::DifferentialControlMethod::eCurvatureDrive);
             // Send drive command to drive board.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
