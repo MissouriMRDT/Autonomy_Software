@@ -117,7 +117,7 @@ namespace statemachine
                 if (bDetectedTagTF)
                 {
                     // Save the identified tag's ID.
-                    // LEAD: Commented this out since TensorflowTag no longer has ID.
+                    // NOTE: Commented this out since TensorflowTag no longer has ID.
                     // m_nTargetTagID          = m_stTargetTagTF.nID;
                     m_bDetected             = true;
                     m_nNumDetectionAttempts = 0;
@@ -195,6 +195,12 @@ namespace statemachine
         m_dLastTargetHeading  = dTargetHeading;
         m_dLastTargetDistance = dTargetDistance;
 
+        // TODO: Change to a Debug Statement after we confirm it works.
+        LOG_INFO(logging::g_qSharedLogger,
+                 "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
+                 dTargetDistance,
+                 constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+
         // If we are close enough to the target inform the state machine we have reached the marker.
         if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
         {
@@ -206,7 +212,7 @@ namespace statemachine
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
                                                                                      dTargetHeading,
                                                                                      dCurrHeading,
-                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
+                                                                                     diffdrive::DifferentialControlMethod::eCurvatureDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return;
@@ -303,9 +309,14 @@ namespace statemachine
         stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
         stBestTag.nID                   = -1;
 
+        // Create string to store detected tags in.
+        std::string szIdentifiedTags = "";
+
         // Select the tag that is the closest to the rover's current position.
         for (const arucotag::ArucoTag& stCandidate : vDetectedTags)
         {
+            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Hits: " + std::to_string(stCandidate.nHits) + "\n";
+
             if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance)
             {
                 stBestTag = stCandidate;
@@ -315,6 +326,10 @@ namespace statemachine
         // A tag was found.
         if (stBestTag.nID >= 0)
         {
+            // TODO: Change to a Debug Statement after we confirm it works.
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Detected Tags: \n{}", szIdentifiedTags);
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Best Tag: \n\tID: {} Hits: {}", stBestTag.nID, stBestTag.nHits);
+
             // Save it to the passed in reference.
             stTarget = stBestTag;
             return true;
@@ -322,6 +337,8 @@ namespace statemachine
         // No target tag was found.
         else
         {
+            // TODO: Change to a Debug Statement after we confirm it works.
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: No Tag Detected!");
             return false;
         }
     }
