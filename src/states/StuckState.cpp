@@ -158,7 +158,7 @@ namespace statemachine
                         diffdrive::DrivePowers stTurnPowers = globals::g_pDriveBoard->CalculateMove(0.0,
                                                                                                     dGoalHeading,
                                                                                                     stCurrentRoverPose.GetCompassHeading(),
-                                                                                                    diffdrive::DifferentialControlMethod::eArcadeDrive);
+                                                                                                    diffdrive::DifferentialControlMethod::eCurvatureDrive);
                         // Send drive powers.
                         globals::g_pDriveBoard->SendDrive(stTurnPowers);
 
@@ -220,7 +220,7 @@ namespace statemachine
                         diffdrive::DrivePowers stTurnPowers = globals::g_pDriveBoard->CalculateMove(0.0,
                                                                                                     dGoalHeading,
                                                                                                     stCurrentRoverPose.GetCompassHeading(),
-                                                                                                    diffdrive::DifferentialControlMethod::eArcadeDrive);
+                                                                                                    diffdrive::DifferentialControlMethod::eCurvatureDrive);
                         // Send drive powers.
                         globals::g_pDriveBoard->SendDrive(stTurnPowers);
 
