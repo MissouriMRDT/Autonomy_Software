@@ -22,7 +22,7 @@
 /// \endcond
 
 // Declare global/file-scope enumerator.
-enum PIXEL_FORMATS
+enum class PIXEL_FORMATS
 {
     eRGB,
     eBGR,

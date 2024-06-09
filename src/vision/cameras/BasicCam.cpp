@@ -163,7 +163,7 @@ void BasicCam::ThreadedContinuousCode()
     if (!m_cvCamera.isOpened())
     {
         // If this is the first iteration of the thread the camera probably isn't present so stop thread to save resources.
-        if (this->GetThreadState() == eStarting)
+        if (this->GetThreadState() == AutonomyThreadState::eStarting)
         {
             // Shutdown threads for this BasicCam.
             this->RequestStop();

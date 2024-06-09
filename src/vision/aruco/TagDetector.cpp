@@ -167,7 +167,7 @@ void TagDetector::ThreadedContinuousCode()
             m_bCameraIsOpened = false;
 
             // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == eStarting)
+            if (this->GetThreadState() == AutonomyThreadState::eStarting)
             {
                 // Shutdown threads for this ZEDCam.
                 this->RequestStop();
@@ -193,7 +193,7 @@ void TagDetector::ThreadedContinuousCode()
             m_bCameraIsOpened = false;
 
             // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == eStarting)
+            if (this->GetThreadState() == AutonomyThreadState::eStarting)
             {
                 // Shutdown threads for this BasicCam.
                 this->RequestStop();
@@ -357,7 +357,7 @@ void TagDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
+            case PIXEL_FORMATS::eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
             default: *(stContainer.pFrame) = m_cvArucoProcFrame;
         }
 
@@ -424,7 +424,7 @@ void TagDetector::PooledLinearCode()
 std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
 {
     // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eArucoDetection);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eArucoDetection);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -705,7 +705,7 @@ bool TagDetector::GetIsReady()
     bool bDetectorIsReady = false;
 
     // Check if this detectors thread is currently running.
-    if (this->GetThreadState() == eRunning)
+    if (this->GetThreadState() == AutonomyThreadState::eRunning)
     {
         // Check if using ZEDCam or BasicCam.
         if (m_bUsingZedCamera)

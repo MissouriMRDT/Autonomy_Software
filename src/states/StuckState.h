@@ -41,7 +41,7 @@ namespace statemachine
             // Declare private enums and structs that are specific to and used withing this class.
             /////////////////////////////////////////
 
-            enum AttemptType
+            enum class AttemptType
             {
                 eReverseCurrentHeading,
                 eReverseLeft,
