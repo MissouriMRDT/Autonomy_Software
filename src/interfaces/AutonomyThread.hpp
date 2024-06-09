@@ -42,7 +42,7 @@ class AutonomyThread
         /////////////////////////////////////////
 
         // Define an enum for storing this classes state.
-        enum AutonomyThreadState
+        enum class AutonomyThreadState
         {
             eStarting,
             eRunning,
@@ -64,7 +64,7 @@ class AutonomyThread
         {
             // Initialize member variables.
             m_bStopThreads                     = false;
-            m_eThreadState                     = eStopped;
+            m_eThreadState                     = AutonomyThreadState::eStopped;
             m_nMainThreadMaxIterationPerSecond = 0;
         }
 
@@ -83,7 +83,7 @@ class AutonomyThread
             // Tell all threads to stop executing user code.
             m_bStopThreads = true;
             // Update thread state.
-            m_eThreadState = eStopping;
+            m_eThreadState = AutonomyThreadState::eStopping;
 
             // Pause and clear pool queues.
             m_thPool.pause();
@@ -95,7 +95,7 @@ class AutonomyThread
             m_thPool.wait();
             m_thMainThread.wait();
             // Update thread state.
-            m_eThreadState = eStopped;
+            m_eThreadState = AutonomyThreadState::eStopped;
         }
 
         /******************************************************************************
@@ -119,7 +119,7 @@ class AutonomyThread
             // Tell any open thread to stop.
             m_bStopThreads = true;
             // Update thread state.
-            m_eThreadState = eStopping;
+            m_eThreadState = AutonomyThreadState::eStopping;
 
             // Pause queuing of new tasks to the threads, then purge them.
             m_thPool.pause();
@@ -131,7 +131,7 @@ class AutonomyThread
             this->Join();
 
             // Update thread state.
-            m_eThreadState = eStarting;
+            m_eThreadState = AutonomyThreadState::eStarting;
             // Clear results vector.
             m_vPoolReturns.clear();
             // Reset thread stop toggle.
@@ -146,7 +146,9 @@ class AutonomyThread
 
             // Block until thread is started or currently stopping if thread start failed.
             std::unique_lock<std::mutex> lkStartLock(m_muThreadRunningConditionMutex);
-            m_cdThreadRunningCondition.wait(lkStartLock, [this] { return this->m_eThreadState == eRunning || this->m_eThreadState == eStopping; });
+            m_cdThreadRunningCondition.wait(lkStartLock,
+                                            [this]
+                                            { return this->m_eThreadState == AutonomyThreadState::eRunning || this->m_eThreadState == AutonomyThreadState::eStopping; });
         }
 
         /******************************************************************************
@@ -164,7 +166,7 @@ class AutonomyThread
             // Signal for any open threads to stop executing,
             m_bStopThreads = true;
             // Update thread state.
-            m_eThreadState = eStopping;
+            m_eThreadState = AutonomyThreadState::eStopping;
         }
 
         /******************************************************************************
@@ -183,7 +185,7 @@ class AutonomyThread
             m_thMainThread.wait();
 
             // Update thread state.
-            m_eThreadState = eStopped;
+            m_eThreadState = AutonomyThreadState::eStopped;
         }
 
         /******************************************************************************
@@ -621,10 +623,10 @@ class AutonomyThread
                 }
 
                 // Check if thread state needs to be updated.
-                if (m_eThreadState != eRunning && m_eThreadState != eStopping)
+                if (m_eThreadState != AutonomyThreadState::eRunning && m_eThreadState != AutonomyThreadState::eStopping)
                 {
                     // Update thread state to running.
-                    m_eThreadState = eRunning;
+                    m_eThreadState = AutonomyThreadState::eRunning;
                     // Notify waiting start method that thread is now running.
                     m_cdThreadRunningCondition.notify_all();
                 }

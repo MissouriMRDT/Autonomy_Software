@@ -256,7 +256,7 @@ void ZEDCam::ThreadedContinuousCode()
         lkReadCameraLock.unlock();
 
         // If this is the first iteration of the thread the camera probably isn't present so stop thread to save resources.
-        if (this->GetThreadState() == eStarting)
+        if (this->GetThreadState() == AutonomyThreadState::eStarting)
         {
             // Shutdown threads for this ZEDCam.
             this->RequestStop();
@@ -676,10 +676,10 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
-                case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case PIXEL_FORMATS::eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
                 default: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
@@ -715,10 +715,10 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case PIXEL_FORMATS::eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
                 default: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
@@ -914,7 +914,7 @@ void ZEDCam::PooledLinearCode()
 std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eBGRA);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -949,7 +949,7 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
 std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUFrame, eBGRA);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUFrame, PIXEL_FORMATS::eBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -990,7 +990,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
     PIXEL_FORMATS eFrameType;
 
     // Check if the container should be set to retrieve an image or a measure.
-    bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
+    bRetrieveMeasure ? eFrameType = PIXEL_FORMATS::eDepthMeasure : eFrameType = PIXEL_FORMATS::eDepthImage;
     // Assemble container.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvDepth, eFrameType);
 
@@ -1033,7 +1033,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
     PIXEL_FORMATS eFrameType;
 
     // Check if the container should be set to retrieve an image or a measure.
-    bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
+    bRetrieveMeasure ? eFrameType = PIXEL_FORMATS::eDepthMeasure : eFrameType = PIXEL_FORMATS::eDepthImage;
     // Assemble container.
     containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUDepth, eFrameType);
 
@@ -1078,7 +1078,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
 std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eXYZBGRA);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -1121,7 +1121,7 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, eXYZBGRA);
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, PIXEL_FORMATS::eXYZBGRA);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
