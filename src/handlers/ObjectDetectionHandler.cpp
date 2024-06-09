@@ -22,17 +22,17 @@
 ObjectDetectionHandler::ObjectDetectionHandler()
 {
     // Initialize detector for main ZEDCam.
-    m_pObjectDetectorMainCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam),
+    m_pObjectDetectorMainCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam),
                                                   constants::OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                                   constants::ZED_MAINCAM_USE_GPU_MAT);
 
     // Initialize detector for left aruco BasicCam.
-    m_pObjectDetectorLeftCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam),
+    m_pObjectDetectorLeftCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam),
                                                   constants::OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
                                                   constants::ZED_LEFTCAM_USE_GPU_MAT);
 
     // Initialize detector for right aruco BasicCam.
-    m_pObjectDetectorRightCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam),
+    m_pObjectDetectorRightCam = new ObjectDetector(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam),
                                                    constants::OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
                                                    constants::ZED_RIGHTCAM_USE_GPU_MAT);
 }
@@ -111,9 +111,9 @@ ObjectDetector* ObjectDetectionHandler::GetObjectDetector(ObjectDetectors eDetec
     // Determine which object detector should be returned.
     switch (eDetectorName)
     {
-        case eHeadMainCam: return m_pObjectDetectorMainCam;
-        case eFrameLeftCam: return m_pObjectDetectorLeftCam;
-        case eFrameRightCam: return m_pObjectDetectorRightCam;
+        case ObjectDetectors::eHeadMainCam: return m_pObjectDetectorMainCam;
+        case ObjectDetectors::eFrameLeftCam: return m_pObjectDetectorLeftCam;
+        case ObjectDetectors::eFrameRightCam: return m_pObjectDetectorRightCam;
         default: return m_pObjectDetectorMainCam;
     }
 }
