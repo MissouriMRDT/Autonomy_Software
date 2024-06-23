@@ -34,7 +34,7 @@ def parse_log_file(log_file_path):
     states = []
     states_pattern = r"Current State:\s*(.*)"
     drive_powers = []
-    drive_powers_pattern = r"Driving at: \(([\d\.]+), ([\d\.]+)\)"
+    drive_powers_pattern = r"Driving at: \(([-\d\.]+), ([-\d\.]+)\)"
 
     waypoints = []
     clear_waypoints = []
@@ -241,8 +241,9 @@ def play_log(log_file_path):
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
         new_gps = next((x for x in parsed_data_dicts["gps_position"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
         new_pose = next((x for x in parsed_data_dicts["rover_pose"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
-        new_waypoint = next((x for x in parsed_data_dicts["waypoints"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
-        cleared_waypoints = next((x for x in parsed_data_dicts["clear_waypoints"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        # Waypoints only need to be within 1 second. Might get missed if it's less.
+        new_waypoint = next((x for x in parsed_data_dicts["waypoints"] if int(x["timestamp"].timestamp()) == int(current_video_datetime.timestamp())), None)
+        cleared_waypoints = next((x for x in parsed_data_dicts["clear_waypoints"] if int(x["timestamp"].timestamp()) == int(current_video_datetime.timestamp())), None)
         # Discard first few seconds of data.
         if (delta.seconds >= 5):
             if new_gps:
@@ -252,14 +253,16 @@ def play_log(log_file_path):
                 y = [value["lon"] for value in gps_values]
                 z = [value["alt"] for value in gps_values]
 
-                # gps_pose_lines[0].set_data_3d(x, y, z)
-                gps_pose_lines[0].set_data(x, y)
-                gps_pose_lines[0].set_3d_properties(z)
+                gps_pose_lines[0].set_data_3d(x, y, z)
 
                 if (len(x) > 5 and len(y) > 5 and len(z) > 5):
                     gps_ax1.set(xlim3d=(min(x), max(x)), xlabel='X')
                     gps_ax1.set(ylim3d=(min(y), max(y)), ylabel='Y')
                     gps_ax1.set(zlim3d=(min(z), max(z)), zlabel='Z')
+                    
+                # Vertical lines for waypoints.
+                for waypoint in waypoints:
+                    gps_ax1.plot([waypoint["lat"], waypoint["lat"]], [waypoint["lon"], waypoint["lon"]], [min(z), max(z)], color='r', linestyle='--', label='waypoint')
             
             if new_pose:
                 pose_values.append(new_pose)
@@ -276,14 +279,12 @@ def play_log(log_file_path):
                     pose_ax1.set(zlim3d=(min(z), max(z)), zlabel='Z')
 
         # Add vertical lines to the graph when waypoints are added.
-        if new_waypoint:
+        if new_waypoint and new_waypoint not in waypoints:
             waypoints.append(new_waypoint)
             
-        for waypoint in waypoints:
-            gps_ax1.plot([waypoint["lat"], waypoint["lat"]], [waypoint["lon"], waypoint["lon"]], [min(z), max(z)], color='r', linestyle='--', label='waypoint')
-
-        # # The waypoints have been cleared.
-        # if cleared_waypoints:
+        # The waypoints have been cleared.
+        if cleared_waypoints:
+            waypoints.clear()
 
 
     gps_pose_ani = FuncAnimation(gps_pose_fig, animate_gps_pose, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
@@ -296,12 +297,15 @@ def play_log(log_file_path):
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
         new_state = next((x for x in parsed_data_dicts["state"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
         new_drive_powers = next((x for x in parsed_data_dicts["drive_power"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        if new_state:
+            state_text.set_text(f"Current State: {new_state['state']}")
+            drive_bars[0].set_height(0)
+            drive_bars[1].set_height(0)
+            
         if new_drive_powers:
             drive_bars[0].set_height(new_drive_powers["left_power"])
             drive_bars[1].set_height(new_drive_powers["right_power"])
 
-        if new_state:
-            state_text.set_text(f"Current State: {new_state['state']}")
 
     drive_power_ani = FuncAnimation(drive_fig, animate_drive_powers, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
 
