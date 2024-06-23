@@ -172,7 +172,7 @@ def play_log(log_file_path):
                 line.set_data(x, y_data)
             fps_ax1.relim()
             fps_ax1.autoscale_view()
-            fps_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(interval_multiples=True))
+            fps_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
             fps_ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
 
     fps_ani = FuncAnimation(fps_fig, animate_fps, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
@@ -202,7 +202,7 @@ def play_log(log_file_path):
             for ax in [acc_ax1, acc_ax2, acc_ax3]:
                 ax.relim()
                 ax.autoscale_view()
-                ax.xaxis.set_major_locator(mdates.AutoDateLocator(interval_multiples=True))
+                ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
 
     accuracy_ani = FuncAnimation(accuracy_fig, animate_accuracy, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
@@ -215,9 +215,16 @@ def play_log(log_file_path):
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
         new_compass = next((x for x in parsed_data_dicts["compass"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
         new_pose_compass = next((x for x in parsed_data_dicts["rover_pose_compass"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
-        if new_compass and new_pose_compass:
-            new_compass_values = {"timestamp": new_compass["timestamp"], "heading": new_compass["heading"], "pose_heading": new_pose_compass["heading"]}
-            compass_values.append(new_compass_values)
+        if new_compass or new_pose_compass:
+            if new_compass and new_pose_compass:
+                new_compass_values = {"timestamp": new_compass["timestamp"], "heading": new_compass["heading"], "pose_heading": new_pose_compass["heading"]}
+                compass_values.append(new_compass_values)
+            elif new_compass:
+                new_compass_values = {"timestamp": new_compass["timestamp"], "heading": new_compass["heading"], "pose_heading": 0 if not compass_values else compass_values[-1]["heading"]}
+                compass_values.append(new_compass_values)
+            elif new_pose_compass:
+                new_compass_values = {"timestamp": new_pose_compass["timestamp"], "heading": 0 if not compass_values else compass_values[-1]["heading"], "pose_heading": new_pose_compass["heading"]}
+                compass_values.append(new_compass_values)
 
             x = [value["timestamp"] for value in compass_values]
             y = [[value["heading"] for value in compass_values],
@@ -228,7 +235,7 @@ def play_log(log_file_path):
                 line.set_data(x, y_data)
             comp_ax1.relim()
             comp_ax1.autoscale_view()
-            comp_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(interval_multiples=True))
+            comp_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
             comp_ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
 
     compass_ani = FuncAnimation(compass_fig, animate_compass, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
@@ -301,7 +308,7 @@ def play_log(log_file_path):
             state_text.set_text(f"Current State: {new_state['state']}")
             drive_bars[0].set_height(0)
             drive_bars[1].set_height(0)
-            
+
         if new_drive_powers:
             drive_bars[0].set_height(new_drive_powers["left_power"])
             drive_bars[1].set_height(new_drive_powers["right_power"])
