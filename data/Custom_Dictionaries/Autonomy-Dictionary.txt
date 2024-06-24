@@ -87,6 +87,7 @@ jetpack
 jspencerpittman
 Jter
 jthread
+kbits
 keyscan
 latlng
 latlon

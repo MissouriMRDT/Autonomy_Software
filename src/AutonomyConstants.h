@@ -122,6 +122,9 @@ namespace constants
     const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 20.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.5;      // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
     const int ZED_DEPTH_STABILIZATION            = 1;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
+    // ZedCam SVO Recording Config.
+    const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION = sl::SVO_COMPRESSION_MODE::H265;    // SVO file compression. H264/H265 minimally affect performance, but need GPU.
+    const int ZED_SVO_BITRATE                          = 0;                                 // The video bitrate in kbits/s. 0 or [1000-60000]
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::GEN_1;    // Positional tracking accuracy.
     const bool ZED_POSETRACK_AREA_MEMORY                  = true;     // Enabled camera to remember its surroundings for better positioning. Uses more resources.
