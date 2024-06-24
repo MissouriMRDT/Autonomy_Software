@@ -227,6 +227,7 @@ class ZEDCam : public Camera<cv::Mat>
         std::shared_mutex m_muCameraMutex;
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
+        sl::RecordingParameters m_slRecordingParams;
         sl::Fusion m_slFusionInstance;
         std::shared_mutex m_muFusionMutex;
         sl::InitFusionParameters m_slFusionParams;
