@@ -139,3 +139,25 @@ To simplify and shorten the build time for development, we have moved the testin
     make
     ./Autonomy_Software
     ```
+
+
+# 3rd Party Libraries Used in Autonomy_Software
+
+This project relies on several third-party libraries and tools. Below is a list of these things along with links to their documentation:
+
+1. **CMake**: [CMake Documentation](https://cmake.org/documentation/)
+3. **Quill**: [Quill Documentation](https://github.com/odygrd/quill)
+4. **Google Test (GTest)**: [Google Test Documentation](https://github.com/google/googletest)
+5. **Eigen3**: [Eigen3 Documentation](https://eigen.tuxfamily.org/dox/)
+6. **OpenCV**: [OpenCV Documentation](https://docs.opencv.org/)
+7. **GeographicLib**: [GeographicLib Documentation](https://geographiclib.sourceforge.io/C++/doc/)
+8. **ZED SDK**: [ZED SDK Documentation](https://www.stereolabs.com/docs/)
+9. **CUDA Toolkit**: [CUDA Toolkit Documentation](https://docs.nvidia.com/cuda/)
+10. **PyTorch (Torch)**: [PyTorch Documentation](https://pytorch.org/docs/)
+11. **Flatbuffers**: [Flatbuffers Documentation](https://google.github.io/flatbuffers/)
+12. **Abseil (absl)**: [Abseil Documentation](https://abseil.io/docs/cpp/)
+13. **TensorFlow Lite**: [TensorFlow Lite Documentation](https://www.tensorflow.org/lite/guide)
+14. **Libedgetpu**: [Edge TPU Documentation](https://coral.ai/docs/reference/cpp/)
+15. **CPack**: [CPack Documentation](https://cmake.org/cmake/help/latest/module/CPack.html)
+16. **CTest**: [CTest Documentation](https://cmake.org/cmake/help/latest/module/CTest.html)
+17. **RoveComm**: [RoveComm GitHub](https://github.com/MissouriMRDT/RoveComm_CPP)
