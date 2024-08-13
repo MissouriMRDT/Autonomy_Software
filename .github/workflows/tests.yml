@@ -17,8 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         type: [Unit, Integration]
+        os: ['[self-hosted, linux, X64]', '[self-hosted, linux, ARM64]']
+      
 
-    runs-on: [self-hosted, linux, X64]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Setup Action Environment
