@@ -111,16 +111,21 @@ namespace statemachine
             geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
 
             // Get Current rover pose.
-            geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            geoops::RoverPose stCurrentRoverPose      = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
-             geoops::GeoMeasurement stErrorMeasurement =
-                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
+            geoops::GeoMeasurement stErrorMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
 
             // Calculate distance and bearing from goal waypoint.
             geoops::GeoMeasurement stGoalWaypointMeasurement =
                 geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-            LOG_INFO(logging::g_qSharedLogger, "Distance from target: {} and Bearing to target: {}", stGoalWaypointMeasurement.dDistanceMeters, stGoalWaypointMeasurement.dStartRelativeBearing);
-            LOG_INFO(logging::g_qSharedLogger, "Distance from Rover: {} and Bearing to Rover: {}", stErrorMeasurement.dDistanceMeters, stErrorMeasurement.dStartRelativeBearing);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Distance from target: {} and Bearing to target: {}",
+                     stGoalWaypointMeasurement.dDistanceMeters,
+                     stGoalWaypointMeasurement.dStartRelativeBearing);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Distance from Rover: {} and Bearing to Rover: {}",
+                     stErrorMeasurement.dDistanceMeters,
+                     stErrorMeasurement.dStartRelativeBearing);
 
             // Check if we are at the goal waypoint.
             if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)

@@ -35,7 +35,7 @@ NavigationBoard::NavigationBoard()
     m_dHeadingAccuracy        = 0.0;
     m_dVelocity               = 0.0;
     m_dAngularVelocity        = 0.0;
-    m_bNavBoardOutOfDate      = false; 
+    m_bNavBoardOutOfDate      = false;
 
     // Subscribe to NavBoard packets.
     rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
@@ -84,8 +84,8 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
         LOG_WARNING(logging::g_qSharedLogger, "Current GPS data is out of date! GPS timestamp is {} seconds old!", nGPSDataAge);
         // Set toggle.
         bAlreadyPrintedWarning = true;
-        // Set Out of Date. 
-        m_bNavBoardOutOfDate = true; 
+        // Set Out of Date.
+        m_bNavBoardOutOfDate = true;
     }
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
@@ -93,8 +93,8 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
         LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
-        // Reset Out of Date. 
-        m_bNavBoardOutOfDate = false; 
+        // Reset Out of Date.
+        m_bNavBoardOutOfDate = false;
     }
 
     // Return current GPS location.
@@ -328,15 +328,15 @@ std::chrono::system_clock::duration NavigationBoard::GetCompassLastUpdateTime()
 }
 
 /******************************************************************************
- * @brief 
- * 
- * @return true - 
- * @return false - 
- * 
+ * @brief
+ *
+ * @return true -
+ * @return false -
+ *
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-05-24
-******************************************************************************/
-bool NavigationBoard::IsOutOfDate() 
-{ 
-    return m_bNavBoardOutOfDate; 
-} 
+ ******************************************************************************/
+bool NavigationBoard::IsOutOfDate()
+{
+    return m_bNavBoardOutOfDate;
+}

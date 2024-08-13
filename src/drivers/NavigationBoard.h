@@ -77,7 +77,7 @@ class NavigationBoard
         std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
         std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
         std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
-        bool m_bNavBoardOutOfDate;                                          // A boolean to store whether the GPS is out of date. 
+        bool m_bNavBoardOutOfDate;                                          // A boolean to store whether the GPS is out of date.
 
         /////////////////////////////////////////
         // Declare private methods.

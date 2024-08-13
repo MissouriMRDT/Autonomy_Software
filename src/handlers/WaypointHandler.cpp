@@ -850,13 +850,19 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
               dCurrentHeading,
               bVIOGPSFused ? "true" : "false");
 
-    double temp = dCurrentHeading - dCurrentGPSHeading;
+    double temp    = dCurrentHeading - dCurrentGPSHeading;
     double tempLat = stCurrentUTMPosition.dEasting - ConvertGPSToUTM(stCurrentGPSPosition).dEasting;
     double tempLon = stCurrentUTMPosition.dNorthing - ConvertGPSToUTM(stCurrentGPSPosition).dNorthing;
 
     LOG_DEBUG(logging::g_qSharedLogger, "Compared ZED and Nav > ZED: {} Nav: {} > Diff: {}", dCurrentHeading, dCurrentGPSHeading, temp);
-    LOG_DEBUG(logging::g_qSharedLogger, "Compared ZED and Nav > ZED: {} (lat) {} (lon) Nav: {} (lat) {} (lon) > Diff: {} (lat) {} (lon)", stCurrentUTMPosition.dEasting,
-              stCurrentUTMPosition.dNorthing, ConvertGPSToUTM(stCurrentGPSPosition).dEasting, ConvertGPSToUTM(stCurrentGPSPosition).dNorthing, tempLat, tempLon);
+    LOG_DEBUG(logging::g_qSharedLogger,
+              "Compared ZED and Nav > ZED: {} (lat) {} (lon) Nav: {} (lat) {} (lon) > Diff: {} (lat) {} (lon)",
+              stCurrentUTMPosition.dEasting,
+              stCurrentUTMPosition.dNorthing,
+              ConvertGPSToUTM(stCurrentGPSPosition).dEasting,
+              ConvertGPSToUTM(stCurrentGPSPosition).dNorthing,
+              tempLat,
+              tempLon);
 
     return geoops::RoverPose(stCurrentVIOPosition, dCurrentHeading);
 }
