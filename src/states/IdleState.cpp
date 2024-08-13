@@ -99,10 +99,11 @@ namespace statemachine
 
         geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
 
-        geoops::GeoMeasurement stErrorMeasurement =
-                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
-        LOG_INFO(logging::g_qSharedLogger, "Distance from Rover: {} and Bearing to Rover: {}", stErrorMeasurement.dDistanceMeters, stErrorMeasurement.dStartRelativeBearing);
-
+        geoops::GeoMeasurement stErrorMeasurement  = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
+        LOG_INFO(logging::g_qSharedLogger,
+                 "Distance from Rover: {} and Bearing to Rover: {}",
+                 stErrorMeasurement.dDistanceMeters,
+                 stErrorMeasurement.dStartRelativeBearing);
 
         // Calculate distance from current position to position when idle state was entered.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());

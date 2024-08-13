@@ -87,7 +87,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
 
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmVerifyStartTime).count();
+        double dTimeElapsed                                 = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmVerifyStartTime).count();
 
         if (dTimeElapsed >= 30.0)
         {
@@ -101,7 +101,9 @@ namespace statemachine
             else
             {
                 // Realign the ZED
-                globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()), globals::g_pNavigationBoard->GetHeading());
+                globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::eHeadMainCam,
+                                                                    geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()),
+                                                                    globals::g_pNavigationBoard->GetHeading());
 
                 // Create Average GPS Coordinate
                 geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();

@@ -41,8 +41,8 @@ namespace constants
 #endif
 
     // Safety constants.
-    const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;    // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
-    const bool BATTERY_CHECKS_ENABLED = false;          // If autonomy should monitor PMS Currents and as a result have the ability to shutdown autonomy.
+    const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
+    const bool BATTERY_CHECKS_ENABLED         = false;    // If autonomy should monitor PMS Currents and as a result have the ability to shutdown autonomy.
 
     // Logging constants.
     const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "../logs/";    // The absolute to write output logging and video files to.
@@ -129,7 +129,7 @@ namespace constants
     const bool ZED_POSETRACK_POSE_SMOOTHING               = false;    // Smooth pose correction for small drift. Decreases overall precision for small movements.
     const bool ZED_POSETRACK_FLOOR_IS_ORIGIN              = true;     // Sets the floor plane as origin for tracking. This turns on floor plane detection temporarily.
     const bool ZED_POSETRACK_ENABLE_IMU_FUSION            = true;     // Allows ZED to use both optical odometry and IMU data for pose tracking.
-    const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.75;      // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
+    const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.75;     // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
@@ -160,16 +160,16 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int ZED_MAINCAM_RESOLUTIONX               = 1280;    // The horizontal pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_RESOLUTIONY               = 720;     // The vertical pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_FPS                       = 60;      // The FPS to use for the maincam.
-    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;     // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_MAINCAM_VERTICAL_FOV              = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_USE_GPU_MAT              = true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;    // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const int ZED_MAINCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_RESOLUTIONY               = 720;      // The vertical pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_FPS                       = 60;       // The FPS to use for the maincam.
+    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;      // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_MAINCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_MAINCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
     const bool ZED_MAINCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 0;       // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left ZED Camera.
     const int ZED_LEFTCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the leftcam images to.
