@@ -83,7 +83,7 @@ class WaypointHandler
         int GetObjectsCount();
 
         // Smart location retrieving.
-        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOTracking = true);
+        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOTracking = false);
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
 
