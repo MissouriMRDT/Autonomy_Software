@@ -34,6 +34,7 @@ namespace statemachine
         eSearchPattern,
         eApproachingMarker,
         eApproachingObject,
+        eVerifyingPosition,
         eVerifyingMarker,
         eVerifyingObject,
         eAvoidance,
@@ -94,6 +95,7 @@ namespace statemachine
             case States::eSearchPattern: return "Search Pattern";
             case States::eApproachingMarker: return "Approaching Marker";
             case States::eApproachingObject: return "Approaching Object";
+            case States::eVerifyingPosition: return "Verifying Position";
             case States::eVerifyingMarker: return "Verifying Marker";
             case States::eVerifyingObject: return "Verifying Object";
             case States::eAvoidance: return "Avoidance";
