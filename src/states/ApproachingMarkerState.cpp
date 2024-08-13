@@ -11,6 +11,7 @@
 #include "ApproachingMarkerState.h"
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -136,7 +137,7 @@ namespace statemachine
         else if (!m_bDetected)
         {
             // Abort approaching marker.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
 
@@ -212,7 +213,7 @@ namespace statemachine
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
                                                                                      dTargetHeading,
                                                                                      dCurrHeading,
-                                                                                     diffdrive::DifferentialControlMethod::eCurvatureDrive);
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return;
@@ -238,7 +239,21 @@ namespace statemachine
             case Event::eReachedMarker:
             {
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
-                eNextState = States::eVerifyingMarker;
+                
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+
+                // Send Reached Goal state over RoveComm.
+                // Construct a RoveComm packet.
+                rovecomm::RoveCommPacket<uint8_t> stPacket;
+                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
+                stPacket.vData.emplace_back(1);
+                // Send telemetry over RoveComm to all subscribers.
+                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+
+                eNextState = States::eIdle;
                 break;
             }
             case Event::eStart:

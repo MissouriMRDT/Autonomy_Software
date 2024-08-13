@@ -314,7 +314,7 @@ namespace constants
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     // Navigating State.
-    const double NAVIGATING_REACHED_GOAL_RADIUS = 0.5;    // The radius in meters that the rover should get to the goal waypoint.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
 
     ///////////////////////////////////////////////////////////////////////////
 
