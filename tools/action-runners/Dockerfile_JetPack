@@ -6,7 +6,7 @@ ARG L4T_MAJOR="36"
 ARG L4T_MINOR="2"
 ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
-ARG RUNNER_VERSION="2.314.1"
+ARG RUNNER_VERSION="2.319.0"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNNER_ALLOW_RUNASROOT=1
 
@@ -15,7 +15,7 @@ LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
-LABEL org.opencontainers.image.version="v24.3.1"
+LABEL org.opencontainers.image.version="v24.1.0"
 LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with Runner ${RUNNER_VERSION}."
 
 # update the base packages + add a non-sudo user
@@ -37,8 +37,10 @@ RUN chown -R docker ~docker && /home/docker/actions-runner/bin/installdependenci
 # Prevent SSH repo timout for an hour.
 RUN mkdir -p /root/.ssh && echo "Host *\n  ServerAliveInterval 60\n  ServerAliveCountMax 60" >> ~/.ssh/config
 
+# Remove Autonomy Software
+RUN rm -rf /opt/Autonomy_Software
+
 # Set Ownership of Autonomy Software
-RUN chown -R docker /opt/Autonomy_Software/
 RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
