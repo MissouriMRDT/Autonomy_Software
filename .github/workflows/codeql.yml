@@ -74,11 +74,6 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
 
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ github.workspace }}/../results/${{matrix.language}}.sarif
-
       - name: Cleanup Action Environment
         if: always()
         run: |
