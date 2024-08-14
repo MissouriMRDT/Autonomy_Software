@@ -134,7 +134,7 @@ namespace logging
         g_qFileLogger     = quill::create_logger("FILE_LOGGER", {qFileHandler});
         g_qConsoleLogger  = quill::create_logger("CONSOLE_LOGGER", {qConsoleHandler});
         g_qRoveCommLogger = quill::create_logger("ROVECOMM_LOGGER", {qRoveCommHandler});
-        g_qSharedLogger   = quill::create_logger("SHARED_LOGGER", {qFileHandler, qConsoleHandler, qRoveCommHandler});
+        g_qSharedLogger   = quill::create_logger("SHARED_LOGGER", {qFileHandler, qConsoleHandler /*, qRoveCommHandler*/});
 
         // Set Base Logging Levels
         g_qFileLogger->set_log_level(quill::LogLevel::TraceL3);
