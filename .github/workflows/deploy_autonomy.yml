@@ -29,6 +29,8 @@ jobs:
           - os: [self-hosted, linux, ARM64]
             architecture: AMD64
 
+    environment: deploy-autonomy
+
     runs-on: ${{ matrix.os }}
 
     steps:
