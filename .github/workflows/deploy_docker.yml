@@ -155,7 +155,11 @@ jobs:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     timeout-minutes: 1440
-    environment: rebuild-docker
+    
+    environment:
+      name: docker-packages
+      url: https://github.com/MissouriMRDT/Autonomy_Packages
+      
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -328,7 +332,11 @@ jobs:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 1440
-    environment: rebuild-docker
+    
+    environment:
+      name: docker-packages
+      url: https://github.com/MissouriMRDT/Autonomy_Packages
+    
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
