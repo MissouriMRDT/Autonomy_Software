@@ -29,7 +29,9 @@ jobs:
           - os: [self-hosted, linux, ARM64]
             architecture: AMD64
 
-    environment: deploy-autonomy
+    environment:
+      name: deploy-autonomy
+      url: https://github.com/MissouriMRDT/Autonomy_Software/releases
 
     runs-on: ${{ matrix.os }}
 
