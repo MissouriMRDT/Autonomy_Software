@@ -102,7 +102,7 @@ There are two primary run modes for our Autonomy Codebase.
     mkdir -p <Autonomy Install Location>/build
     cd <Autonomy Install Location>/build
     cmake -DBUILD_SIM_MODE=OFF ..
-    make
+    make -j8
     ./Autonomy_Software
     ```
 

@@ -10,6 +10,7 @@
 
 #include "VerifyingMarkerState.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -112,7 +113,11 @@ namespace statemachine
             }
             case Event::eVerifyingComplete:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
