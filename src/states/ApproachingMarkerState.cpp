@@ -11,6 +11,7 @@
 #include "ApproachingMarkerState.h"
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -117,7 +118,7 @@ namespace statemachine
                 if (bDetectedTagTF)
                 {
                     // Save the identified tag's ID.
-                    // LEAD: Commented this out since TensorflowTag no longer has ID.
+                    // NOTE: Commented this out since TensorflowTag no longer has ID.
                     // m_nTargetTagID          = m_stTargetTagTF.nID;
                     m_bDetected             = true;
                     m_nNumDetectionAttempts = 0;
@@ -136,7 +137,7 @@ namespace statemachine
         else if (!m_bDetected)
         {
             // Abort approaching marker.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
 
@@ -195,6 +196,24 @@ namespace statemachine
         m_dLastTargetHeading  = dTargetHeading;
         m_dLastTargetDistance = dTargetDistance;
 
+        // Only print out every so often.
+        static bool bAlreadyPrinted = false;
+        if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger,
+                     "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
+                     dTargetDistance,
+                     constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+            // Set toggle.
+            bAlreadyPrinted = true;
+        }
+        else if (bAlreadyPrinted)
+        {
+            // Reset toggle.
+            bAlreadyPrinted = false;
+        }
+
         // If we are close enough to the target inform the state machine we have reached the marker.
         if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
         {
@@ -224,14 +243,18 @@ namespace statemachine
     States ApproachingMarkerState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState       = States::eIdle;
+        States eNextState       = States::eApproachingMarker;
         bool bCompleteStateExit = true;
 
         switch (eEvent)
         {
             case Event::eReachedMarker:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Change states.
                 eNextState = States::eIdle;
                 break;
             }
@@ -267,7 +290,7 @@ namespace statemachine
             }
         }
 
-        if (eNextState != States::eIdle)
+        if (eNextState != States::eApproachingMarker)
         {
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 
@@ -303,9 +326,14 @@ namespace statemachine
         stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
         stBestTag.nID                   = -1;
 
+        // Create string to store detected tags in.
+        std::string szIdentifiedTags = "";
+
         // Select the tag that is the closest to the rover's current position.
         for (const arucotag::ArucoTag& stCandidate : vDetectedTags)
         {
+            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Hits: " + std::to_string(stCandidate.nHits) + "\n";
+
             if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance)
             {
                 stBestTag = stCandidate;
@@ -315,6 +343,10 @@ namespace statemachine
         // A tag was found.
         if (stBestTag.nID >= 0)
         {
+            // TODO: Change to a Debug Statement after we confirm it works.
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Detected Tags: \n{}", szIdentifiedTags);
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Best Tag: \n\tID: {} Hits: {}", stBestTag.nID, stBestTag.nHits);
+
             // Save it to the passed in reference.
             stTarget = stBestTag;
             return true;
@@ -322,6 +354,8 @@ namespace statemachine
         // No target tag was found.
         else
         {
+            // TODO: Change to a Debug Statement after we confirm it works.
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: No Tag Detected!");
             return false;
         }
     }
