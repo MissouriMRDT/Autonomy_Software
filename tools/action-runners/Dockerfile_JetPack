@@ -15,7 +15,7 @@ LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
-LABEL org.opencontainers.image.version="v24.1.0"
+LABEL org.opencontainers.image.version="vurc2024"
 LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with Runner ${RUNNER_VERSION}."
 
 # Uupdate the base packages + add a non-sudo user
