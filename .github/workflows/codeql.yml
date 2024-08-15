@@ -30,6 +30,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - language: cpp
+            build-mode: manual
           - language: c-cpp
             build-mode: manual
           - language: python
