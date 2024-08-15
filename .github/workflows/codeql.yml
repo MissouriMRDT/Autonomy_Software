@@ -55,6 +55,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          build-mode: ${{ matrix.build-mode }}
 
       - name: Manual Build
         if: matrix.build-mode == 'manual'
