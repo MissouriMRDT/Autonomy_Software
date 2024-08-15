@@ -3,23 +3,9 @@ name: "CodeQL"
 on:
   pull_request:
     branches: ["development"]
-    paths:
-      - examples/**
-      - external/**
-      - src/**
-      - tests/**
-      - tools/**
-      - .github/workflows/codeql.yml
 
   push:
     branches: ["development"]
-    paths:
-      - examples/**
-      - external/**
-      - src/**
-      - tests/**
-      - tools/**
-      - .github/workflows/codeql.yml
 
   workflow_dispatch:
 
@@ -43,7 +29,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["cpp", "python"]
+        include:
+          - language: c-cpp
+            build-mode: manual
+          - language: python
+            build-mode: none
 
     steps:
       - name: Setup Action Environment
@@ -65,9 +55,18 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
+          build-mode: ${{ matrix.build-mode }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Manual Build
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
+          mkdir build
+          cd build
+          cmake -DBUILD_TESTS_MODE=OFF ..
+          make
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
