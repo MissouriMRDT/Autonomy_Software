@@ -73,6 +73,12 @@ jobs:
       - name: Rename Executable
         run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
+      - name: Check Size and Attempt to Compress
+        run: |
+          ls -l /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+          gzip /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+          ls -l /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.gz
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
