@@ -17,7 +17,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  create-release:
+    runs-on: [self-hosted, linux, X64]
+
+    steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
+      - name: Determine Version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          name: "${{ steps.version.outputs.version }}"
+          tag_name: "${{ steps.version.outputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+          
   build-and-upload:
+    needs: [create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -73,60 +113,9 @@ jobs:
       - name: Rename Executable
         run: mv /opt/Autonomy_Software/build/Autonomy_Software**.sh /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
 
-      - name: Check Size and Attempt to Compress
-        run: |
-          ls -l /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-          gzip -9 /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-          ls -l /opt/Autonomy_Software/build/*.gz
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Autonomy-${{ matrix.architecture }}
-          path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-          compression-level: ${{ matrix.architecture == 'ARM64' && 6 || 0 }}
-
-      - name: Cleanup Action Environment
-        if: always()
-        run: |
-          cd /opt
-          rm -rf /opt/Autonomy_Software
-
-  create-release:
-    runs-on: [self-hosted, linux, X64]
-    needs: [build-and-upload]
-
-    steps:
-      - name: Setup Action Environment
-        if: always()
-        run: |
-          cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory /opt/Autonomy_Software
-
       - name: Determine Version
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Create Directory
-        run: mkdir -p /opt/Autonomy_Software/artifacts/
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        id: download
-        with:
-          path: /opt/Autonomy_Software/artifacts/
-
-      - name: Display Structure
-        run: ls
-        working-directory: /opt/Autonomy_Software/artifacts/
 
       - name: Create Release
         if: github.event_name == 'push'
@@ -135,10 +124,17 @@ jobs:
           draft: false
           prerelease: false
           name: "${{ steps.version.outputs.version }}"
-          files: "/opt/Autonomy_Software/artifacts/**"
+          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh"
           tag_name: "${{ steps.version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Upload Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: Autonomy-${{ matrix.architecture }}
+      #     path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+      #     compression-level: ${{ matrix.architecture == 'ARM64' && 6 || 0 }}
 
       - name: Cleanup Action Environment
         if: always()
@@ -148,7 +144,7 @@ jobs:
 
   update-versions:
     runs-on: [self-hosted, linux, X64]
-    needs: [build-and-upload, create-release]
+    needs: [create-release, build-and-upload]
 
     steps:
       - name: Setup Action Environment
@@ -224,7 +220,7 @@ jobs:
 
   create-request:
     runs-on: ubuntu-latest
-    needs: [build-and-upload, create-release, update-versions]
+    needs: [create-release, build-and-upload, update-versions]
 
     steps:
       - name: Checkout repository
