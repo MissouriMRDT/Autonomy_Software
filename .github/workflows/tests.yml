@@ -15,7 +15,7 @@ jobs:
         type: [Unit, Integration]
 
     concurrency:
-      group: "tests-arm64-${{ matrix.type }}"
+      group: "tests-x64-${{ matrix.type }}"
       cancel-in-progress: false
 
     runs-on: [self-hosted, linux, X64]
