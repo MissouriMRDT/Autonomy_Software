@@ -61,7 +61,8 @@
                 "codezombiech.gitignore",
                 "cschlosser.doxdocgen",
                 "gruntfuggly.todo-tree",
-                "streetsidesoftware.code-spell-checker"
+                "streetsidesoftware.code-spell-checker",
+                "vscode-icons-team.vscode-icons",
             ],
             "settings": {
                 // VSCode settings.
@@ -87,7 +88,7 @@
                 "git.detectSubmodules": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
-                "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++",
                 "C_Cpp.default.cppStandard": "c++20",
                 "C_Cpp.default.includePath": [
                     "./external/rovecomm/src",
