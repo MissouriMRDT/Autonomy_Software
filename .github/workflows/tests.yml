@@ -7,12 +7,12 @@ on:
     branches: ["development"]
   workflow_dispatch:
 
-concurrency:
-  group: "tests"
-  cancel-in-progress: false
-
 jobs:
   build-and-test-x64:
+    concurrency:
+      group: "tests-x64"
+      cancel-in-progress: false
+
     strategy:
       fail-fast: false
       matrix:
@@ -78,8 +78,12 @@ jobs:
         run: |
           cd /opt
           rm -rf /opt/Autonomy_Software
- 
+
   build-and-test-arm64:
+    concurrency:
+      group: "tests-arm64"
+      cancel-in-progress: false
+
     strategy:
       fail-fast: false
       matrix:
