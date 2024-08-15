@@ -76,7 +76,7 @@ jobs:
       - name: Check Size and Attempt to Compress
         run: |
           ls -l /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-          gzip /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+          gzip -9 /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
           ls -l /opt/Autonomy_Software/build/*.gz
 
       - name: Upload Artifact
