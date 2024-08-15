@@ -77,7 +77,7 @@ jobs:
         run: |
           ls -l /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
           gzip /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-          ls -l /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.gz
+          ls -l /opt/Autonomy_Software/build/*.gz
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
