@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-GTEST_VERSION="1.14.0"
+GTEST_VERSION="1.15.2"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb"
