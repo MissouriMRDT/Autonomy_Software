@@ -117,24 +117,14 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Upload to Release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: false
-          name: "${{ steps.version.outputs.version }}"
-          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh"
-          tag_name: "${{ steps.version.outputs.version }}"
+        run: |
+          gh release create ${{ steps.version.outputs.version }} \
+          /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh \
+          --title "${{ steps.version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Upload Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: Autonomy-${{ matrix.architecture }}
-      #     path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
-      #     compression-level: ${{ matrix.architecture == 'ARM64' && 6 || 0 }}
 
       - name: Cleanup Action Environment
         if: always()
