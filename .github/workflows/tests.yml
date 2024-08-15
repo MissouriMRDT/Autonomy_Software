@@ -9,14 +9,14 @@ on:
 
 jobs:
   build-and-test-x64:
-    concurrency:
-      group: "tests-x64"
-      cancel-in-progress: false
-
     strategy:
       fail-fast: false
       matrix:
         type: [Unit, Integration]
+
+    concurrency:
+      group: "tests-arm64-${{ matrix.type }}"
+      cancel-in-progress: false
 
     runs-on: [self-hosted, linux, X64]
 
@@ -80,14 +80,14 @@ jobs:
           rm -rf /opt/Autonomy_Software
 
   build-and-test-arm64:
-    concurrency:
-      group: "tests-arm64"
-      cancel-in-progress: false
-
     strategy:
       fail-fast: false
       matrix:
         type: [Unit, Integration]
+
+    concurrency:
+      group: "tests-arm64-${{ matrix.type }}"
+      cancel-in-progress: false
 
     runs-on: [self-hosted, linux, ARM64]
 
