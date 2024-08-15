@@ -14,6 +14,8 @@
 /// \cond
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
+#include <chrono>
+#include <ctime>
 #include <iostream>
 
 /// \endcond
@@ -50,12 +52,16 @@ namespace logging
     void InitializeLoggers(std::string szLoggingOutputPath)
     {
         // Retrieve the current time for the log file name
-        time_t tCurrentTime   = time(nullptr);
-        struct tm sTimeStruct = *localtime(&tCurrentTime);
-        char cCurrentTime[80];
+        std::chrono::time_point<std::chrono::system_clock> tmCurrentTime = std::chrono::system_clock::now();
+        std::time_t tCurrentTime                                         = std::chrono::system_clock::to_time_t(tmCurrentTime);
+
+        // Convert time to local time
+        std::tm* tLocalTime = std::localtime(&tCurrentTime);
 
         // Format the current time in a format that can be used as a file name
-        std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", &sTimeStruct);
+        char cCurrentTime[80];
+        std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", tLocalTime);
+
         // Store start time string in member variable.
         g_szProgramStartTimeString = cCurrentTime;
 
