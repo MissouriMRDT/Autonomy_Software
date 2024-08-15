@@ -78,6 +78,7 @@ jobs:
         with:
           name: Autonomy-${{ matrix.architecture }}
           path: /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
+          compression-level: 0
 
       - name: Cleanup Action Environment
         if: always()
