@@ -114,18 +114,11 @@ namespace statemachine
             }
             case Event::eVerifyingComplete:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
-
-                // Send Reached Goal state over RoveComm.
-                // Construct a RoveComm packet.
-                rovecomm::RoveCommPacket<uint8_t> stPacket;
-                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
-                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
-                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
-                stPacket.vData.emplace_back(1);
-                // Send telemetry over RoveComm to all subscribers.
-                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
-
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }
