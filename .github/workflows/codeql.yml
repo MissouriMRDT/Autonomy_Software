@@ -32,8 +32,6 @@ jobs:
         include:
           - language: cpp
             build-mode: manual
-          - language: c-cpp
-            build-mode: manual
           - language: python
             build-mode: none
 
