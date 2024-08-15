@@ -125,9 +125,7 @@ jobs:
       - name: Upload to Release
         if: github.event_name == 'push'
         run: |
-          gh release create ${{ steps.version.outputs.version }} \
-          /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh \
-          --title "${{ steps.version.outputs.version }}"
+          gh release upload "${{ steps.version.outputs.version }}" /opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.architecture }}.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
