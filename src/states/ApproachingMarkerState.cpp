@@ -196,11 +196,23 @@ namespace statemachine
         m_dLastTargetHeading  = dTargetHeading;
         m_dLastTargetDistance = dTargetDistance;
 
-        // TODO: Change to a Debug Statement after we confirm it works.
-        LOG_INFO(logging::g_qSharedLogger,
-                 "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
-                 dTargetDistance,
-                 constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+        // Only print out every so often.
+        static bool bAlreadyPrinted = false;
+        if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger,
+                     "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
+                     dTargetDistance,
+                     constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+            // Set toggle.
+            bAlreadyPrinted = true;
+        }
+        else if (bAlreadyPrinted)
+        {
+            // Reset toggle.
+            bAlreadyPrinted = false;
+        }
 
         // If we are close enough to the target inform the state machine we have reached the marker.
         if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
@@ -238,21 +250,11 @@ namespace statemachine
         {
             case Event::eReachedMarker:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
-
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-
-                // Send Reached Goal state over RoveComm.
-                // Construct a RoveComm packet.
-                rovecomm::RoveCommPacket<uint8_t> stPacket;
-                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
-                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
-                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
-                stPacket.vData.emplace_back(1);
-                // Send telemetry over RoveComm to all subscribers.
-                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
-
+                // Change states.
                 eNextState = States::eIdle;
                 break;
             }

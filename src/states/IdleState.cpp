@@ -97,14 +97,6 @@ namespace statemachine
         // Store the Rover's position.
         m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
 
-        geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
-
-        geoops::GeoMeasurement stErrorMeasurement  = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
-        LOG_INFO(logging::g_qSharedLogger,
-                 "Distance from Rover: {} and Bearing to Rover: {}",
-                 stErrorMeasurement.dDistanceMeters,
-                 stErrorMeasurement.dStartRelativeBearing);
-
         // Calculate distance from current position to position when idle state was entered.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
         // Check if the rover is still moving.

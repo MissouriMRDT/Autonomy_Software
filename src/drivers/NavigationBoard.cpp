@@ -126,6 +126,8 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
         LOG_WARNING(logging::g_qSharedLogger, "Current GPS data is out of date! GPS timestamp is {} seconds old!", nGPSDataAge);
         // Set toggle.
         bAlreadyPrintedWarning = true;
+        // Set Out of Date.
+        m_bNavBoardOutOfDate = true;
     }
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
@@ -133,6 +135,8 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
         LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
+        // Reset Out of Date.
+        m_bNavBoardOutOfDate = false;
     }
 
     // Convert the currently stored GPS coord to UTM and return.
@@ -163,6 +167,8 @@ double NavigationBoard::GetHeading()
         LOG_WARNING(logging::g_qSharedLogger, "Current Compass data is out of date! Compass timestamp is {} seconds old!", nCompassDataAge);
         // Set toggle.
         bAlreadyPrintedWarning = true;
+        // Set Out of Date.
+        m_bNavBoardOutOfDate = true;
     }
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
@@ -170,6 +176,8 @@ double NavigationBoard::GetHeading()
         LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
+        // Reset Out of Date.
+        m_bNavBoardOutOfDate = false;
     }
 
     // Return current Compass data.
@@ -200,6 +208,8 @@ double NavigationBoard::GetHeadingAccuracy()
         LOG_WARNING(logging::g_qSharedLogger, "Current Compass data is out of date! Compass timestamp is {} seconds old!", nCompassDataAge);
         // Set toggle.
         bAlreadyPrintedWarning = true;
+        // Set Out of Date.
+        m_bNavBoardOutOfDate = true;
     }
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
@@ -207,6 +217,8 @@ double NavigationBoard::GetHeadingAccuracy()
         LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
+        // Reset Out of Date.
+        m_bNavBoardOutOfDate = false;
     }
 
     // Return current Compass data.
@@ -238,6 +250,8 @@ double NavigationBoard::GetVelocity()
         LOG_WARNING(logging::g_qSharedLogger, "Current Velocity data is out of date! GPS timestamp is {} seconds old!", nGPSDataAge);
         // Set toggle.
         bAlreadyPrintedWarning = true;
+        // Set Out of Date.
+        m_bNavBoardOutOfDate = true;
     }
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
@@ -245,6 +259,8 @@ double NavigationBoard::GetVelocity()
         LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
+        // Reset Out of Date.
+        m_bNavBoardOutOfDate = false;
     }
 
     // Return current velocity.
@@ -276,6 +292,8 @@ double NavigationBoard::GetAngularVelocity()
         LOG_WARNING(logging::g_qSharedLogger, "Current Angular Velocity data is out of date! Compass timestamp is {} seconds old!", nCompassDataAge);
         // Set toggle.
         bAlreadyPrintedWarning = true;
+        // Set Out of Date.
+        m_bNavBoardOutOfDate = true;
     }
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
@@ -283,6 +301,8 @@ double NavigationBoard::GetAngularVelocity()
         LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
+        // Reset Out of Date.
+        m_bNavBoardOutOfDate = false;
     }
 
     // Return angular velocity.
@@ -328,10 +348,11 @@ std::chrono::system_clock::duration NavigationBoard::GetCompassLastUpdateTime()
 }
 
 /******************************************************************************
- * @brief
+ * @brief Checks if any of the navboard data is out of date. Expired data depends
+ *      on constants::NAVBOARD_MAX_COMPASS_DATA_AGE.
  *
- * @return true -
- * @return false -
+ * @return true - The data is out of date.
+ * @return false - The data is new.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2024-05-24
