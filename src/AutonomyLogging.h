@@ -319,13 +319,15 @@ namespace logging
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-08-16
              ******************************************************************************/
-            MRDTRotatingFileSink(quill::fs::path const& filename,
-                                 quill::RotatingFileSinkConfig const& config,
-                                 std::string const& format_pattern,
-                                 std::string const& time_format,
-                                 quill::Timezone timestamp_timezone           = quill::Timezone::LocalTime,
-                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{}) :
-                quill::RotatingFileSink(filename, config, file_event_notifier), _formatter(format_pattern, time_format, timestamp_timezone)
+            MRDTRotatingFileSink(quill::fs::path const& filename,                                              // File Path
+                                 quill::RotatingFileSinkConfig const& config,                                  // Rotating File Sink Config
+                                 std::string const& format_pattern,                                            // Custom Format Pattern
+                                 std::string const& time_format,                                               // Custom Time Format
+                                 quill::Timezone timestamp_timezone           = quill::Timezone::LocalTime,    // Timezone
+                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{}     //
+                                 ) :
+                quill::RotatingFileSink(filename, config, file_event_notifier),                                // Pass Parameters into quill::RotatingFileSink
+                _formatter(format_pattern, time_format, timestamp_timezone)                                    // Pass Parameters into _formatter type
             {}
 
             /******************************************************************************
