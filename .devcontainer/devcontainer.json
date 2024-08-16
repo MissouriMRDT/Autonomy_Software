@@ -32,7 +32,7 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-08-16-16-36-37",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
     //     "dockerfile": "Dockerfile_Jammy"
