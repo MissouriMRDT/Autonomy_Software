@@ -14,6 +14,7 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/states/StuckDetection.hpp"
+#include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -33,6 +34,9 @@ namespace statemachine
     class NavigatingState : public State
     {
         private:
+            /////////////////////////////////////////
+            // Declare private member variables.
+            /////////////////////////////////////////
             bool m_bFetchNewWaypoint;
             geoops::Waypoint m_stGoalWaypoint;
             int m_nMaxDataPoints;
@@ -41,13 +45,20 @@ namespace statemachine
             time_t m_tStuckCheckTime;
             double m_dStuckCheckLastPosition[2];
             bool m_bInitialized;
+            std::vector<TagDetector*> m_vTagDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
         protected:
+            /////////////////////////////////////////
+            // Declare protected class methods.
+            /////////////////////////////////////////
             void Start() override;
             void Exit() override;
 
         public:
+            /////////////////////////////////////////
+            // Declare public class methods.
+            /////////////////////////////////////////
             NavigatingState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;

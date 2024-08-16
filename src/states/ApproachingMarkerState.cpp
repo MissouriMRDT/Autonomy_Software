@@ -34,16 +34,21 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
 
+        // Initialize member variables.
         m_nNumDetectionAttempts = 0;
         m_nTargetTagID          = -1;
         m_bDetected             = false;
         m_dLastTargetHeading    = 0;
         m_dLastTargetDistance   = 0;
 
-        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
-    }    // namespace statemachine
+        // Store the state that got stuck and triggered a MarkerSeen event.
+        m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
+
+        // Get tag detectors.
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+    }
 
     /******************************************************************************
      * @brief This method is called when the state is exited. It is used to clean up
@@ -208,7 +213,7 @@ namespace statemachine
             // Set toggle.
             bAlreadyPrinted = true;
         }
-        else if (bAlreadyPrinted)
+        else if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) != 0 && bAlreadyPrinted)
         {
             // Reset toggle.
             bAlreadyPrinted = false;
@@ -254,6 +259,8 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
                 // Change states.
                 eNextState = States::eIdle;
                 break;
@@ -269,7 +276,7 @@ namespace statemachine
             case Event::eMarkerUnseen:
             {
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling MarkerUnseen event.");
-                eNextState = States::eSearchPattern;
+                eNextState = m_eTriggeringState;
                 break;
             }
             case Event::eAbort:
