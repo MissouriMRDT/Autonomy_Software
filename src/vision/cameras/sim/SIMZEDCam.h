@@ -1,15 +1,15 @@
 /******************************************************************************
- * @brief Defines the SIMBasicCam class.
+ * @brief Defines the SIMZEDCam class.
  *
- * @file SIMBasicCam.h
+ * @file SIMZEDCam.h
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  *
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef SIMBASICCAM_H
-#define SIMBASICCAM_H
+#ifndef SIMZEDCAM_H
+#define SIMZEDCAM_H
 
 #include "../../../interfaces/AutonomyThread.hpp"
 #include "../../../interfaces/Camera.hpp"
@@ -29,32 +29,34 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-class SIMBasicCam : public Camera<cv::Mat>
+class SIMZEDCam : public Camera<cv::Mat>
 {
     public:
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        SIMBasicCam(const std::string szCameraPath,
-                    const int nPropResolutionX,
-                    const int nPropResolutionY,
-                    const int nPropFramesPerSecond,
-                    const PIXEL_FORMATS ePropPixelFormat,
-                    const double dPropHorizontalFOV,
-                    const double dPropVerticalFOV,
-                    const bool bEnableRecordingFlag,
-                    const int nNumFrameRetrievalThreads = 10);
-        SIMBasicCam(const int nCameraIndex,
-                    const int nPropResolutionX,
-                    const int nPropResolutionY,
-                    const int nPropFramesPerSecond,
-                    const PIXEL_FORMATS ePropPixelFormat,
-                    const double dPropHorizontalFOV,
-                    const double dPropVerticalFOV,
-                    const bool bEnableRecordingFlag,
-                    const int nNumFrameRetrievalThreads = 10);
-        ~SIMBasicCam();
+        SIMZEDCam(const std::string szCameraPath,
+                  const int nPropResolutionX,
+                  const int nPropResolutionY,
+                  const int nPropFramesPerSecond,
+                  const PIXEL_FORMATS ePropPixelFormat,
+                  const double dPropHorizontalFOV,
+                  const double dPropVerticalFOV,
+                  const bool bEnableRecordingFlag,
+                  const int nNumFrameRetrievalThreads = 10);
+        SIMZEDCam(const int nCameraIndex,
+                  const int nPropResolutionX,
+                  const int nPropResolutionY,
+                  const int nPropFramesPerSecond,
+                  const PIXEL_FORMATS ePropPixelFormat,
+                  const double dPropHorizontalFOV,
+                  const double dPropVerticalFOV,
+                  const bool bEnableRecordingFlag,
+                  const int nNumFrameRetrievalThreads = 10);
+        ~SIMZEDCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
+        std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
+        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
 
         /////////////////////////////////////////
         // Getters.
@@ -78,6 +80,9 @@ class SIMBasicCam : public Camera<cv::Mat>
         // Mats for storing frames.
 
         cv::Mat m_cvFrame;
+        cv::Mat m_cvDepthImage;
+        cv::Mat m_cvDepthMeasure;
+        cv::Mat m_cvPointCloud;
 
         /////////////////////////////////////////
         // Declare private methods.
