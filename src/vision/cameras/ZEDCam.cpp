@@ -109,7 +109,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_slSpatialMappingParams.use_chunk_only    = constants::ZED_MAPPING_USE_CHUNK_ONLY;
     m_slSpatialMappingParams.stability_counter = constants::ZED_MAPPING_STABILITY_COUNTER;
     // Set or auto-set max depth range for mapping.
-    if (constants::ZED_MAPPING_RANGE_METER >= 0)
+    if (constants::ZED_MAPPING_RANGE_METER <= 0)
     {
         // Automatically guess the best mapping depth range.
         m_slSpatialMappingParams.range_meter = m_slSpatialMappingParams.getRecommendedRange(constants::ZED_MAPPING_RESOLUTION_METER, m_slCamera);
