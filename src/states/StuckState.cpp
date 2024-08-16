@@ -38,7 +38,7 @@ namespace statemachine
         // Initialize member variables.
         m_dOriginalHeading     = 0;
         m_bIsCurrentlyAligning = false;
-        m_eAttemptType         = eReverseCurrentHeading;
+        m_eAttemptType         = AttemptType::eReverseCurrentHeading;
 
         // Store the state that got stuck and triggered a stuck event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
@@ -120,18 +120,18 @@ namespace statemachine
             switch (m_eAttemptType)
             {
                 // On the first attempt we use the rover's original heading so alignment would already be completed.
-                case eReverseCurrentHeading:
+                case AttemptType::eReverseCurrentHeading:
                 {
                     // Submit logger message.
                     LOG_INFO(logging::g_qSharedLogger, "StuckState: Maintaining current heading and reversing...");
                     // Update stuck type enum for if we are still stuck after reversing.
-                    m_eAttemptType = eReverseLeft;
+                    m_eAttemptType = AttemptType::eReverseLeft;
                     // Handle reversing event. Save current state.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
                     break;
                 }
                     // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
-                case eReverseLeft:
+                case AttemptType::eReverseLeft:
                 {
                     // Check if we are already realigning.
                     if (!m_bIsCurrentlyAligning)
@@ -168,7 +168,7 @@ namespace statemachine
                             // Submit logger message.
                             LOG_INFO(logging::g_qSharedLogger, "StuckState: Realignment complete! Reversing...");
                             // Update stuck type enum for if we are still stuck after reversing.
-                            m_eAttemptType = eReverseRight;
+                            m_eAttemptType = AttemptType::eReverseRight;
                             // Reset currently aligning toggle.
                             m_bIsCurrentlyAligning = false;
                             // Handle reversing event.
@@ -183,7 +183,7 @@ namespace statemachine
                                         constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
                                         dTimeElapsed);
                             // Update stuck type enum for if we are still stuck after reversing.
-                            m_eAttemptType = eReverseRight;
+                            m_eAttemptType = AttemptType::eReverseRight;
                             // Reset currently aligning toggle.
                             m_bIsCurrentlyAligning = false;
                             // Handle reversing event.
@@ -193,7 +193,7 @@ namespace statemachine
                     break;
                 }
                 // For the third do it constants::STUCK_ALIGN_DEGREES degrees to the left of the original heading.
-                case eReverseRight:
+                case AttemptType::eReverseRight:
                 {
                     // Check if we are already realigning.
                     if (!m_bIsCurrentlyAligning)
@@ -230,7 +230,7 @@ namespace statemachine
                             // Submit logger message.
                             LOG_INFO(logging::g_qSharedLogger, "StuckState: Realignment complete! Reversing...");
                             // Update stuck type enum for if we are still stuck after reversing.
-                            m_eAttemptType = eGiveUp;
+                            m_eAttemptType = AttemptType::eGiveUp;
                             // Reset currently aligning toggle.
                             m_bIsCurrentlyAligning = false;
                             // Handle reversing event.
@@ -245,7 +245,7 @@ namespace statemachine
                                         constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
                                         dTimeElapsed);
                             // Update stuck type enum for if we are still stuck after reversing.
-                            m_eAttemptType = eGiveUp;
+                            m_eAttemptType = AttemptType::eGiveUp;
                             // Reset currently aligning toggle.
                             m_bIsCurrentlyAligning = false;
                             // Handle reversing event.
@@ -254,7 +254,7 @@ namespace statemachine
                     }
                     break;
                 }
-                case eGiveUp:
+                case AttemptType::eGiveUp:
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "StuckState: After multiple attempts, autonomy was unable to get the rover unstuck. Giving Up...");
