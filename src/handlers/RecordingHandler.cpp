@@ -37,9 +37,9 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
     switch (eRecordingMode)
     {
         // RecordingHandler was initialized to record feeds from the CameraHandler.
-        case eCameraHandler:
+        case RecordingMode::eCameraHandler:
             // Initialize member variables.
-            m_nTotalVideoFeeds = CameraHandler::BasicCamName::BASICCAM_END + CameraHandler::ZEDCamName::ZEDCAM_END - 2;
+            m_nTotalVideoFeeds = int(CameraHandler::BasicCamName::BASICCAM_END) + int(CameraHandler::ZEDCamName::ZEDCAM_END) - 2;
             // Resize member vectors to match number of total video feeds to record.
             m_vZEDCameras.resize(m_nTotalVideoFeeds);
             m_vBasicCameras.resize(m_nTotalVideoFeeds);
@@ -51,9 +51,9 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             break;
 
         // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
-        case eTagDetectionHandler:
+        case RecordingMode::eTagDetectionHandler:
             // Initialize member variables.
-            m_nTotalVideoFeeds = TagDetectionHandler::TagDetectors::TAGDETECTOR_END - 1;
+            m_nTotalVideoFeeds = int(TagDetectionHandler::TagDetectors::TAGDETECTOR_END) - 1;
             // Resize member vectors to match number of total video feeds to record.
             m_vTagDetectors.resize(m_nTotalVideoFeeds);
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
@@ -106,7 +106,7 @@ void RecordingHandler::ThreadedContinuousCode()
         // FIXME: Make this not slow down when a camera is unplugged while running.
 
         // Record video feeds from the CameraHandler.
-        case eCameraHandler:
+        case RecordingMode::eCameraHandler:
             // Update recordable cameras.
             this->UpdateRecordableCameras();
             // Grab and write frames to VideoWriters.
@@ -114,7 +114,7 @@ void RecordingHandler::ThreadedContinuousCode()
             break;
 
         // Record video feeds from the TagDetectionHandler.
-        case eTagDetectionHandler:
+        case RecordingMode::eTagDetectionHandler:
             // Update recordable detectors.
             this->UpdateRecordableTagDetectors();
             // Grab and write overlay frames to VideoWriters.
@@ -154,7 +154,7 @@ void RecordingHandler::PooledLinearCode() {}
 void RecordingHandler::UpdateRecordableCameras()
 {
     // Loop through all Basic cameras from the CameraHandler.
-    for (int nCamera = CameraHandler::BasicCamName::BASICCAM_START + 1; nCamera != CameraHandler::BasicCamName::BASICCAM_END; ++nCamera)
+    for (int nCamera = int(CameraHandler::BasicCamName::BASICCAM_START) + 1; nCamera != int(CameraHandler::BasicCamName::BASICCAM_END); ++nCamera)
     {
         // Get pointer to camera.
         BasicCam* pBasicCamera = globals::g_pCameraHandler->GetBasicCam(static_cast<CameraHandler::BasicCamName>(nCamera));
@@ -217,9 +217,9 @@ void RecordingHandler::UpdateRecordableCameras()
     }
 
     // Get index offset so we don't overwrite BasicCam pointers and booleans.
-    int nIndexOffset = CameraHandler::BasicCamName::BASICCAM_END - 2;
+    int nIndexOffset = int(CameraHandler::BasicCamName::BASICCAM_END) - 2;
     // Loop through all ZED cameras from the CameraHandler.
-    for (int nCamera = CameraHandler::ZEDCamName::ZEDCAM_START + 1; nCamera != CameraHandler::ZEDCamName::ZEDCAM_END; ++nCamera)
+    for (int nCamera = int(CameraHandler::ZEDCamName::ZEDCAM_START) + 1; nCamera != int(CameraHandler::ZEDCamName::ZEDCAM_END); ++nCamera)
     {
         // Get pointer to camera.
         ZEDCam* pZEDCamera = globals::g_pCameraHandler->GetZED(static_cast<CameraHandler::ZEDCamName>(nCamera));
@@ -418,7 +418,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
 void RecordingHandler::UpdateRecordableTagDetectors()
 {
     // Loop through all Basic cameras from the CameraHandler.
-    for (int nDetector = TagDetectionHandler::TagDetectors::TAGDETECTOR_START + 1; nDetector != TagDetectionHandler::TagDetectors::TAGDETECTOR_END; ++nDetector)
+    for (int nDetector = int(TagDetectionHandler::TagDetectors::TAGDETECTOR_START) + 1; nDetector != int(TagDetectionHandler::TagDetectors::TAGDETECTOR_END); ++nDetector)
     {
         // Get pointer to camera.
         TagDetector* pTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(static_cast<TagDetectionHandler::TagDetectors>(nDetector));

@@ -22,7 +22,7 @@
 TagDetectionHandler::TagDetectionHandler()
 {
     // Initialize detector for main ZEDCam.
-    m_pTagDetectorMainCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam),
+    m_pTagDetectorMainCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam),
                                             constants::TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER,
                                             constants::TAGDETECT_MAINCAM_CORNER_REFINE_METHOD,
                                             constants::TAGDETECT_MAINCAM_MARKER_BORDER_BITS,
@@ -34,7 +34,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             constants::ZED_MAINCAM_USE_GPU_MAT);
 
     // Initialize detector for left aruco ZEDCam.
-    m_pTagDetectorLeftCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam),
+    m_pTagDetectorLeftCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam),
                                             constants::TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER,
                                             constants::TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD,
                                             constants::TAGDETECT_LEFTCAM_MARKER_BORDER_BITS,
@@ -46,7 +46,7 @@ TagDetectionHandler::TagDetectionHandler()
                                             false);
 
     // Initialize detector for right aruco ZEDCam.
-    m_pTagDetectorRightCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam),
+    m_pTagDetectorRightCam = new TagDetector(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam),
                                              constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER,
                                              constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD,
                                              constants::TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS,
@@ -199,9 +199,9 @@ TagDetector* TagDetectionHandler::GetTagDetector(TagDetectors eDetectorName)
     // Determine which tag detector should be returned.
     switch (eDetectorName)
     {
-        case eHeadMainCam: return m_pTagDetectorMainCam;
-        case eFrameLeftCam: return m_pTagDetectorLeftCam;
-        case eFrameRightCam: return m_pTagDetectorRightCam;
+        case TagDetectors::eHeadMainCam: return m_pTagDetectorMainCam;
+        case TagDetectors::eFrameLeftCam: return m_pTagDetectorLeftCam;
+        case TagDetectors::eFrameRightCam: return m_pTagDetectorRightCam;
         default: return m_pTagDetectorMainCam;
     }
 }

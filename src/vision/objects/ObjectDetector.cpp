@@ -175,8 +175,8 @@ void ObjectDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case eDepthDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
-            case eTensorflowDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
+            case PIXEL_FORMATS::eDepthDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
+            case PIXEL_FORMATS::eTensorflowDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
             default: *(stContainer.pFrame) = m_cvProcFrame;
         }
 
@@ -243,7 +243,7 @@ void ObjectDetector::PooledLinearCode()
 std::future<bool> ObjectDetector::RequestDepthDetectionOverlayFrame(cv::Mat& cvFrame)
 {
     // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eDepthDetection);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eDepthDetection);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -270,7 +270,7 @@ std::future<bool> ObjectDetector::RequestDepthDetectionOverlayFrame(cv::Mat& cvF
 std::future<bool> ObjectDetector::RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame)
 {
     // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eTensorflowDetection);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eTensorflowDetection);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
