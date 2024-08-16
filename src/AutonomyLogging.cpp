@@ -67,10 +67,10 @@ namespace logging
 
         // Assemble filepath string.
         std::filesystem::path szFilePath;
-        std::filesystem::path szFilenameWithExtension;
+        std::filesystem::path szFilename;
         szFilePath = szLoggingOutputPath + "/";            // Main location for all recordings.
         szFilePath += g_szProgramStartTimeString + "/";    // Folder for each program run.
-        szFilenameWithExtension = "console_output.log";    // Turn the current time into a file name.
+        szFilename = "console_output";                     // Turn the current time into a file name.
 
         // Check if directory exists.
         if (!std::filesystem::exists(szFilePath))
@@ -89,7 +89,7 @@ namespace logging
         }
 
         // Construct the full output path.
-        std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
+        std::filesystem::path szFullOutputPath = szFilePath / szFilename;
 
         // Set Console Color Profile
         quill::ConsoleColours qColors;
@@ -105,22 +105,27 @@ namespace logging
         qColors.set_colour(quill::LogLevel::Backtrace, constants::szBacktraceColor);
 
         // Create Handlers
-        std::shared_ptr<quill::Handler> qFileHandler     = quill::rotating_file_handler(szFullOutputPath);
+        std::shared_ptr<quill::Handler> qLogFileHandler  = quill::rotating_file_handler(szFullOutputPath.replace_extension(".log"));
+        std::shared_ptr<quill::Handler> qCSVFileHandler  = quill::rotating_file_handler(szFullOutputPath.replace_extension(".csv"));
         std::shared_ptr<quill::Handler> qConsoleHandler  = quill::stdout_handler("ConsoleHandler", qColors);
         std::shared_ptr<quill::Handler> qRoveCommHandler = quill::create_handler<RoveCommHandler>("RoveCommHandler");
 
         // Configure Patterns
-        qFileHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",        // format
-                                  "%Y-%m-%d %H:%M:%S.%Qms",                                                              // timestamp format
-                                  quill::Timezone::LocalTime);                                                           // timestamp's timezone
+        qLogFileHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",                // format
+                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                                      // timestamp format
+                                     quill::Timezone::LocalTime);                                                                   // timestamp's timezone
 
-        qConsoleHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",     // format
-                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                           // timestamp format
-                                     quill::Timezone::LocalTime);                                                        // timestamp's timezone
+        qCSVFileHandler->set_pattern("%(time),\t%(log_level),\t[%(thread_id)],\t[%(file_name):%(line_number)],\t\"%(message)\"",    // format
+                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                                      // timestamp format
+                                     quill::Timezone::LocalTime);                                                                   // timestamp's timezone
 
-        qRoveCommHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",    // format
-                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                          // timestamp format
-                                      quill::Timezone::LocalTime);                                                       // timestamp's timezone
+        qConsoleHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",                // format
+                                     "%Y-%m-%d %H:%M:%S.%Qms",                                                                      // timestamp format
+                                     quill::Timezone::LocalTime);                                                                   // timestamp's timezone
+
+        qRoveCommHandler->set_pattern("%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)",               // format
+                                      "%Y-%m-%d %H:%M:%S.%Qms",                                                                     // timestamp format
+                                      quill::Timezone::LocalTime);                                                                  // timestamp's timezone
 
         // Configure Quill
         quill::Config qConfig;
@@ -132,15 +137,16 @@ namespace logging
         quill::start();
 
         // Set Handler Filters
-        qFileHandler->add_filter(std::make_unique<LoggingFilter>("FileFilter", quill::LogLevel::TraceL3));
+        qLogFileHandler->add_filter(std::make_unique<LoggingFilter>("LogFileFilter", quill::LogLevel::TraceL3));
+        qCSVFileHandler->add_filter(std::make_unique<LoggingFilter>("CSVFileFilter", quill::LogLevel::TraceL3));
         qConsoleHandler->add_filter(std::make_unique<LoggingFilter>("ConsoleFilter", quill::LogLevel::Info));
         qRoveCommHandler->add_filter(std::make_unique<LoggingFilter>("RoveCommFilter", quill::LogLevel::Info));
 
         // Create Loggers
-        g_qFileLogger     = quill::create_logger("FILE_LOGGER", {qFileHandler});
+        g_qFileLogger     = quill::create_logger("FILE_LOGGER", {qLogFileHandler, qCSVFileHandler});
         g_qConsoleLogger  = quill::create_logger("CONSOLE_LOGGER", {qConsoleHandler});
         g_qRoveCommLogger = quill::create_logger("ROVECOMM_LOGGER", {qRoveCommHandler});
-        g_qSharedLogger   = quill::create_logger("SHARED_LOGGER", {qFileHandler, qConsoleHandler /*, qRoveCommHandler*/});
+        g_qSharedLogger   = quill::create_logger("SHARED_LOGGER", {qLogFileHandler, qCSVFileHandler, qConsoleHandler /*, qRoveCommHandler*/});
 
         // Set Base Logging Levels
         g_qFileLogger->set_log_level(quill::LogLevel::TraceL3);

@@ -101,7 +101,7 @@ namespace statemachine
             else
             {
                 // Realign the ZED
-                globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::eHeadMainCam,
+                globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam,
                                                                     geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()),
                                                                     globals::g_pNavigationBoard->GetHeading());
 
