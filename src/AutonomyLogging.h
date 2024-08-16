@@ -202,11 +202,12 @@ namespace logging
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-08-16
              ******************************************************************************/
-            MRDTConsoleSink(quill::ConsoleColours const& colours,
-                            std::string const& format_pattern,
-                            std::string const& time_format,
-                            quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,
-                            std::string const& stream = "stdout") : quill::ConsoleSink(colours, stream), _formatter(format_pattern, time_format, timestamp_timezone)
+            MRDTConsoleSink(quill::ConsoleColours const& colours,                               // Custom Colors Import
+                            std::string const& format_pattern,                                  // Custom Format Pattern
+                            std::string const& time_format,                                     // Custom Time Format
+                            quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,    // Timezone
+                            std::string const& stream          = "stdout"                       // Stream
+                            ) : quill::ConsoleSink(colours, stream), _formatter(format_pattern, time_format, timestamp_timezone)
             {}
 
             /******************************************************************************
