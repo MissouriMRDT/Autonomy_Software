@@ -207,7 +207,9 @@ namespace logging
                             std::string const& time_format,                                     // Custom Time Format
                             quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,    // Timezone
                             std::string const& stream          = "stdout"                       // Stream
-                            ) : quill::ConsoleSink(colours, stream), _formatter(format_pattern, time_format, timestamp_timezone)
+                            ) :
+                quill::ConsoleSink(colours, stream),                                            // Pass Parameters into quill::ConsoleSink
+                _formatter(format_pattern, time_format, timestamp_timezone)                     // Pass Parameters into _formatter type
             {}
 
             /******************************************************************************
