@@ -6,7 +6,7 @@ ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="12"
 ARG CUDA_MINOR="2"
 ARG CUDA_PATCH="2"
-ARG RUNNER_VERSION="2.314.1"
+ARG RUNNER_VERSION="2.319.0"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNNER_ALLOW_RUNASROOT=1
 
@@ -18,35 +18,43 @@ LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.3.1"
 LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, and Runner ${RUNNER_VERSION}."
 
-# update the base packages + add a non-sudo user
+# Update the base packages + add a non-sudo user
 RUN apt-get update -y && apt-get upgrade -y && useradd -m docker
 
-# install the packages and dependencies along with jq so we can parse JSON (add additional packages as necessary)
+# Install the packages and dependencies along with jq so we can parse JSON (add additional packages as necessary)
 RUN apt-get install -y --no-install-recommends \
     curl gnutls-bin openssl nodejs wget unzip vim git jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip docker.io \
     sudo libjpeg-dev libjpeg-turbo8-dev libturbojpeg git-lfs ccache
 
-# cd into the user directory, download and unzip the github actions runner
+# Set Working Directory
+WORKDIR /home/docker
+
+# Change into the user directory, download and unzip the github actions runner
 RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
     && curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
     && tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
 
-# install some additional dependencies
+# Set Working Directory
+WORKDIR /home/docker/actions-runner
+
+# Install some additional dependencies
 RUN chown -R docker ~docker && /home/docker/actions-runner/bin/installdependencies.sh
 
 # Prevent SSH repo timout for an hour.
 RUN mkdir -p /root/.ssh && echo "Host *\n  ServerAliveInterval 60\n  ServerAliveCountMax 60" >> ~/.ssh/config
 
+# Remove Autonomy Software
+RUN rm -rf /opt/Autonomy_Software
+
 # Set Ownership of Autonomy Software
-RUN chown -R docker /opt/Autonomy_Software/
 RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
 # Add over the start.sh script
 ADD scripts/start.sh start.sh
 
-# make the script executable
+# Make the script executable
 RUN chmod +x start.sh
 
-# set the entrypoint to the start.sh script
+# Set the entrypoint to the start.sh script
 ENTRYPOINT ["./start.sh"]
