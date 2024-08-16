@@ -157,10 +157,10 @@ void SIMBasicCam::PooledLinearCode()
         // Determine which frame should be copied.
         switch (stContainer.eFrameType)
         {
-            case eBGRA: *(stContainer.pFrame) = m_cvFrame; break;
-            case eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure; break;
-            case eDepthImage: *(stContainer.pFrame) = m_cvDepthImage; break;
-            case eXYZ: *(stContainer.pFrame) = m_cvPointCloud; break;
+            case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = m_cvFrame; break;
+            case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure; break;
+            case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage; break;
+            case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud; break;
             default: *(stContainer.pFrame) = m_cvFrame; break;
         }
 
@@ -217,7 +217,7 @@ std::future<bool> SIMBasicCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRe
     PIXEL_FORMATS eFrameType;
 
     // Check if the container should be set to retrieve an image or a measure.
-    bRetrieveMeasure ? eFrameType = eDepthMeasure : eFrameType = eDepthImage;
+    bRetrieveMeasure ? eFrameType = PIXEL_FORMATS::eDepthMeasure : eFrameType = PIXEL_FORMATS::eDepthImage;
     // Assemble container.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvDepth, eFrameType);
 
@@ -250,7 +250,7 @@ std::future<bool> SIMBasicCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRe
 std::future<bool> SIMBasicCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
     // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, eXYZ);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZ);
 
     // Acquire lock on frame copy queue.
     std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);

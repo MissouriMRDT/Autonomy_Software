@@ -741,7 +741,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
 
     // Create instance variables.
-    ZEDCam* pMainCam                           = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    ZEDCam* pMainCam                           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
     double dCurrentHeading                     = dCurrentGPSHeading;
     bool bVIOGPSFused                          = false;

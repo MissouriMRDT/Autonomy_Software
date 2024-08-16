@@ -39,7 +39,7 @@ class ObjectDetectionHandler
         // Define public enumerators specific to this class.
         /////////////////////////////////////////
 
-        enum ObjectDetectors    // Enum for different cameras that detectors are being ran on.
+        enum class ObjectDetectors    // Enum for different cameras that detectors are being ran on.
         {
             eHeadMainCam,
             eFrameLeftCam,
