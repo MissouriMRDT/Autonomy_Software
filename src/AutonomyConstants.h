@@ -133,9 +133,9 @@ namespace constants
     const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
-    const float ZED_MAPPING_RANGE_METER                                   = 20.0;    // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
-    const float ZED_MAPPING_RESOLUTION_METER                              = 0.03;    // The approx goal precision for spatial mapping in METERS. Higher = Faster.
-    const int ZED_MAPPING_MAX_MEMORY                                      = 4096;    // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
+    const float ZED_MAPPING_RANGE_METER                                   = 20.0;     // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
+    const float ZED_MAPPING_RESOLUTION_METER                              = 0.03f;    // The approx goal precision for spatial mapping in METERS. Higher = Faster.
+    const int ZED_MAPPING_MAX_MEMORY                                      = 4096;     // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
     const bool ZED_MAPPING_USE_CHUNK_ONLY   = true;    // Only update chunks that have probably changed or have new data. Faster, less accurate.
     const int ZED_MAPPING_STABILITY_COUNTER = 3;       // Number of times that a point should be seen before adding to mesh.
     // ZedCam Object Detection Config.
@@ -212,7 +212,7 @@ namespace constants
 
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
-    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015;                     // Size of the white borders around the tag.
+    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag.
     const int ARUCO_VALIDATION_THRESHOLD             = 5;      // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
     const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD = 5;      // How many times can an unvalidated tag be missing from frame before being forgotten.
     const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // How many times can a validated tag be missing from frame before being forgotten.
