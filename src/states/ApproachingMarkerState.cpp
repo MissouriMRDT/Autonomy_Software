@@ -275,7 +275,9 @@ namespace statemachine
             }
             case Event::eMarkerUnseen:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling MarkerUnseen event.");
+                // Change states.
                 eNextState = m_eTriggeringState;
                 break;
             }
