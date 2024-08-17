@@ -53,6 +53,7 @@ namespace constants
     const std::string szTraceL1Color   = "\033[30m";           // Standard Grey
     const std::string szDebugColor     = "\033[36m";           // Standard Cyan
     const std::string szInfoColor      = "\033[32m";           // Standard Green
+    const std::string szNoticeColor    = "\033[97m\033[1m";    // Bright Bold White
     const std::string szWarningColor   = "\033[93m\033[1m";    // Bright Bold Yellow
     const std::string szErrorColor     = "\033[91m\033[1m";    // Bright Bold Red
     const std::string szCriticalColor  = "\033[95m\033[1m";    // Bright Bold Magenta
