@@ -109,7 +109,8 @@ class NavigationBoard
             // Acquire write lock for writing to velocity member variable.
             std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
             // Calculate rover velocity based on GPS distance traveled over time.
-            m_dVelocity = geMeasurement.dDistanceMeters / (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6);
+            m_dVelocity = geMeasurement.dDistanceMeters /
+                          static_cast<double>((std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6));
             // Unlock mutex.
             lkVelocityProcessLock.unlock();
 
