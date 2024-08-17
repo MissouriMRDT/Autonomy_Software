@@ -68,7 +68,7 @@ void SignalHandler(int nSignal)
 int main()
 {
     // Print Software Header
-    std::ifstream fHeaderText("../data/ASCII/v24.txt");
+    std::ifstream fHeaderText("../data/ASCII/v25.txt");
     std::string szHeaderText;
     if (fHeaderText)
     {
@@ -78,7 +78,7 @@ int main()
     }
 
     std::cout << szHeaderText << std::endl;
-    std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
+    std::cout << "Copyright \u00A9 2024 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
