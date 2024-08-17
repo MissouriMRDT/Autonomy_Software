@@ -22,6 +22,9 @@ project(Autonomy_Software VERSION 00.00.00 LANGUAGES CXX CUDA)
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
 
+## Allows use of "Exec_Program" function
+cmake_policy(SET CMP0153 OLD)
+
 ## Include Required CMake Packages
 if(NOT CPack_CMake_INCLUDED)
     include(CPack)                                                                  # CMake Packaging Library
