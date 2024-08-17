@@ -163,13 +163,13 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam);
-        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam);
-        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadGroundCam);
-        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
-        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameLeftCam);
-        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameRightCam);
+        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
+        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
+        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
+        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
         IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
@@ -183,7 +183,6 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        sl::Pose slTest;
         while (!bMainStop)
         {
             // Send current robot state over RoveComm.
