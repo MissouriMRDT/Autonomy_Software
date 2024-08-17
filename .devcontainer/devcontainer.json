@@ -62,7 +62,7 @@
                 "cschlosser.doxdocgen",
                 "gruntfuggly.todo-tree",
                 "streetsidesoftware.code-spell-checker",
-                "eamodio.gitlens"
+                "vscode-icons-team.vscode-icons",
             ],
             "settings": {
                 // VSCode settings.
@@ -88,7 +88,7 @@
                 "git.detectSubmodules": true,
                 // C/C++ extension settings.
                 "C_Cpp.formatting": "clangFormat",
-                "C_Cpp.default.compilerPath": "/usr/bin/g++-12",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++",
                 "C_Cpp.default.cppStandard": "c++20",
                 "C_Cpp.default.includePath": [
                     "./external/rovecomm/src",
@@ -98,8 +98,7 @@
                     "/usr/local/include/opencv4/**",
                     "/usr/local/zed/include",
                     "/usr/local/zed/include/**",
-                    "/usr/local/cuda-12.2/include",
-                    "/usr/local/cuda-12.2/include/**",
+                    "/usr/local/cuda/include",
                     "/usr/local/include/quill",
                     "/usr/local/include/quill/**",
                     "/usr/local/include/gmock",
@@ -121,7 +120,6 @@
                 // CMAKE extension settings.
                 "cmake.configureOnOpen": true,
                 "cmake.options.statusBarVisibility": "visible",
-                "cmake.parallelJobs": 8,
                 // Format Files extension settings.
                 "formatFiles.excludedFolders": [
                     "node_modules",

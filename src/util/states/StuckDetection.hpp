@@ -109,7 +109,7 @@ namespace statemachine
 
                 // Time since we last checked if the rover is stuck.
                 std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-                double dTimeSinceLastCheck = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmTimeSinceLastStuckCheck).count();
+                double dTimeSinceLastCheck = static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmTimeSinceLastStuckCheck).count());
                 if (dTimeSinceLastCheck > m_dStuckCheckIntervalSeconds)
                 {
                     // Update time since last check to now.

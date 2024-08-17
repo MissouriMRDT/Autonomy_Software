@@ -105,13 +105,13 @@ namespace tensorflowtag
         if (tfTensorflowDetector.GetDeviceIsOpened())
         {
             // Run inference on YOLO model with current image.
-            std::vector<std::vector<constants::Detection>> vOutputTensorTags = tfTensorflowDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
+            std::vector<std::vector<yolomodel::Detection>> vOutputTensorTags = tfTensorflowDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
 
             // Repackage detections into tensorflow tags.
-            for (std::vector<constants::Detection> vTagDetections : vOutputTensorTags)
+            for (std::vector<yolomodel::Detection> vTagDetections : vOutputTensorTags)
             {
                 // Loop through each detection.
-                for (constants::Detection stTagDetection : vTagDetections)
+                for (yolomodel::Detection stTagDetection : vTagDetections)
                 {
                     // Create and initialize new TensorflowTag.
                     TensorflowTag stDetectedTag;

@@ -92,7 +92,7 @@ class MultimediaBoard
         };
 
         // Enums
-        enum MultimediaBoardLightingState
+        enum class MultimediaBoardLightingState
         {
             eOff = -2,      // LED panel off.
             eCustom,        // A custom value has been set or board should go back to a previously custom set value.

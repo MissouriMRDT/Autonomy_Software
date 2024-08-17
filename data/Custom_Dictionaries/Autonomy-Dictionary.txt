@@ -54,7 +54,6 @@ Doxyfile
 Doxygen
 driveboard
 DRIVELEFTRIGHT
-eamodio
 edgetpu
 endcond
 ESPCN
@@ -165,9 +164,8 @@ tensorflowtag
 tensorflowyolo
 tflite
 threadpool
-thres
+timestamping
 timestep
-torchscript
 tparam
 twxs
 UART

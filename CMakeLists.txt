@@ -1,6 +1,6 @@
 ####################################################################################################################
 ##											Autonomy Software												   	  ##
-##											v24.03.01 Build 001												 	  ##
+##											v24.05.00 Build 001												 	  ##
 ##										  Mars Rover Design Team												  ##
 ##								   Copyright 2023 - All Rights Reserved										 	  ##
 ####################################################################################################################
@@ -17,10 +17,13 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 24.03.01 LANGUAGES CXX CUDA)
+project(Autonomy_Software VERSION 00.00.00 LANGUAGES CXX CUDA)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
+
+## Allows use of "Exec_Program" function
+cmake_policy(SET CMP0153 OLD)
 
 ## Include Required CMake Packages
 if(NOT CPack_CMake_INCLUDED)
@@ -159,31 +162,18 @@ endif()
 ## Enable to CTest and Google Test Frameworks
 enable_testing()
 
-## List all source files excluding main.cpp
-file(GLOB_RECURSE SRC_LIST CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB_RECURSE EXAMPLES_SRC_LIST CONFIGURE_DEPENDS "examples/*/*.cpp")
-file(GLOB_RECURSE EXTERNAL_SRC_LIST CONFIGURE_DEPENDS "external/src/*.cpp")
-file(GLOB_RECURSE TOOLS_SRC_LIST CONFIGURE_DEPENDS "tools/*.cpp")
-
-## Remove main.cpp from SRC_LIST
-list(REMOVE_ITEM SRC_LIST "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-
-## Explicitly list all source files excluding main.cpp
-set(ALL_SOURCE_FILES
-    ${EXTERNAL_SRC_LIST}
-    ${SRC_LIST}
-    ${EXAMPLES_SRC_LIST}
-    ${TOOLS_SRC_LIST}
-)
-
-## Add main.cpp at the end
-list(APPEND ALL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/temp/detector.cpp")
-list(APPEND ALL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+## Search Project Directories for CPP Files
+file(GLOB_RECURSE SRC			  	    CONFIGURE_DEPENDS  "src/*.cpp")
+file(GLOB_RECURSE Examples_SRC		  	CONFIGURE_DEPENDS  "examples/*/*.cpp")
+file(GLOB_RECURSE External_SRC		  	CONFIGURE_DEPENDS  "external/src/*.cpp")
+file(GLOB_RECURSE Tools_SRC			 	CONFIGURE_DEPENDS  "tools/*.cpp")
 
 ## Create Executable File
-add_executable(${EXE_NAME} ${ALL_SOURCE_FILES})
-
-# add_executable(${EXE_NAME} "temp/detector.cpp" "temp/main.cpp")
+add_executable(${EXE_NAME}  ${External_SRC}
+						    ${SRC}
+						    ${Examples_SRC}
+						    ${Tools_SRC}
+	)
 
 ## Set Compile Options for Autonomy Software.
 if(MSVC) # True when compiler is Microsoft Visual C++/simulation of Visual C++ CL.

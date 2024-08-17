@@ -15,7 +15,6 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../interfaces/TensorflowTPU.hpp"
-#include "../../interfaces/TorchModel.h"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -33,6 +32,25 @@
 namespace yolomodel
 {
     /******************************************************************************
+     * @brief This struct is used to
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-11-14
+     ******************************************************************************/
+    struct Detection
+    {
+        public:
+            /////////////////////////////////////////
+            // Define public struct attributes.
+            /////////////////////////////////////////
+
+            int nClassID;              // The class index of the object. Dependent on class order when trained.
+            float fConfidence;         // The detection confidence of the object.
+            cv::Rect cvBoundingBox;    // An object used to access the dimensions and other properties of the objects bounding box.
+    };
+
+    /******************************************************************************
      * @brief Perform non max suppression for the given predictions. This eliminates/combines
      *      predictions that overlap with each other.
      *
@@ -46,7 +64,7 @@ namespace yolomodel
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-11-15
      ******************************************************************************/
-    inline void NonMaxSuppression(std::vector<constants::Detection>& vObjects,
+    inline void NonMaxSuppression(std::vector<Detection>& vObjects,
                                   std::vector<int>& vClassIDs,
                                   std::vector<float>& vClassConfidences,
                                   std::vector<cv::Rect>& vBoundingBoxes,
@@ -63,7 +81,7 @@ namespace yolomodel
         for (int nValidIndex : vNMSValidIndices)
         {
             // Create new Detection struct.
-            constants::Detection stNewDetection;
+            Detection stNewDetection;
             // Repackage prediction data into easy-to-use struct.
             stNewDetection.nClassID      = vClassIDs[nValidIndex];
             stNewDetection.fConfidence   = vClassConfidences[nValidIndex];
@@ -84,10 +102,10 @@ namespace yolomodel
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-11-15
      ******************************************************************************/
-    inline void DrawDetections(cv::Mat& cvInputFrame, std::vector<constants::Detection>& vObjects)
+    inline void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
     {
         // Loop through each detection.
-        for (constants::Detection stObject : vObjects)
+        for (Detection stObject : vObjects)
         {
             // Calculate the hue value based on the class ID.
             int nHue = static_cast<int>(stObject.nClassID % 256);
@@ -121,52 +139,6 @@ namespace yolomodel
     }
 
     /******************************************************************************
-     * @brief This struct is used to store the dimensions of an input tensor for a
-     *      yolo model.
-     *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-11-12
-     ******************************************************************************/
-    struct InputTensorDimensions
-    {
-        public:
-            /////////////////////////////////////////
-            // Define public struct attributes.
-            /////////////////////////////////////////
-
-            int nHeight;            // The height of the input image.
-            int nWidth;             // The width of the input image.
-            int nChannels;          // The number of channels of the input image.
-            int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
-            int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
-            float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
-    };
-
-    /******************************************************************************
-     * @brief This struct is used to store the dimensions of an output tensor for a
-     *      yolo model.
-     *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-11-12
-     ******************************************************************************/
-    struct OutputTensorDimensions
-    {
-        public:
-            /////////////////////////////////////////
-            // Define public struct attributes.
-            /////////////////////////////////////////
-
-            int nAnchors;                      // Determined from the trained image size of the model.
-            int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
-                                               // nc is the number of classes The model has.
-            int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
-            int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
-            float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
-    };
-
-    /******************************************************************************
      * @brief Namespace containing functions or objects/structs used to run inference on
      *      a YOLO model with the Tensorflow library. This namespace contains static functions
      *      for getting available hardware devices, and classes for running a .tflite model on each device.
@@ -179,6 +151,52 @@ namespace yolomodel
     namespace tensorflow
     {
         /******************************************************************************
+         * @brief This struct is used to store the dimensions of an input tensor for a
+         *      yolo model.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-11-12
+         ******************************************************************************/
+        struct InputTensorDimensions
+        {
+            public:
+                /////////////////////////////////////////
+                // Define public struct attributes.
+                /////////////////////////////////////////
+
+                int nHeight;            // The height of the input image.
+                int nWidth;             // The width of the input image.
+                int nChannels;          // The number of channels of the input image.
+                int nTensorIndex;       // The index of the tensor used to retrieve it from the interpreter.
+                int nQuantZeroPoint;    // The value of the quantized input tensor that represents zero.
+                float fQuantScale;      // The multiplier of each value to scale to meaningful numbers. (quantization)
+        };
+
+        /******************************************************************************
+         * @brief This struct is used to store the dimensions of an output tensor for a
+         *      yolo model.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2023-11-12
+         ******************************************************************************/
+        struct OutputTensorDimensions
+        {
+            public:
+                /////////////////////////////////////////
+                // Define public struct attributes.
+                /////////////////////////////////////////
+
+                int nAnchors;                      // Determined from the trained image size of the model.
+                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
+                                                   // nc is the number of classes The model has.
+                int nTensorIndex;                  // The index of the tensor used to retrieve it from the interpreter.
+                int nQuantZeroPoint;               // The value of the quantized output tensor that represents zero.
+                float fQuantScale;                 // The multiplier of each value to scale to meaningful numbers. (Undo quantization)
+        };
+
+        /******************************************************************************
          * @brief This class is designed to enable quick, easy, and robust inferencing of .tflite
          *      yolo model.
          *
@@ -188,7 +206,7 @@ namespace yolomodel
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-10-24
          ******************************************************************************/
-        class TPUInterpreter : public TensorflowTPU<std::vector<std::vector<constants::Detection>>, cv::Mat>
+        class TPUInterpreter : public TensorflowTPU<std::vector<std::vector<Detection>>, cv::Mat>
         {
             public:
                 /////////////////////////////////////////
@@ -216,7 +234,7 @@ namespace yolomodel
                  * @date 2023-11-11
                  ******************************************************************************/
                 TPUInterpreter(std::string szModelPath, PerformanceModes ePowerMode = eHigh, unsigned int unMaxBulkInQueueLength = 32, bool bUSBAlwaysDFU = false) :
-                    TensorflowTPU<std::vector<std::vector<constants::Detection>>, cv::Mat>(szModelPath, ePowerMode, unMaxBulkInQueueLength, bUSBAlwaysDFU)
+                    TensorflowTPU<std::vector<std::vector<Detection>>, cv::Mat>(szModelPath, ePowerMode, unMaxBulkInQueueLength, bUSBAlwaysDFU)
 
                 {}
 
@@ -240,8 +258,8 @@ namespace yolomodel
                  * @param cvInputFrame - The RGB camera frame to run detection on.
                  * @param fMinObjectConfidence - Minimum confidence required for an object to be considered a valid detection
                  * @param fNMSThreshold - Threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
-                 * @return std::vector<std::vector<constants::Detection>> - A 2D vector of structs containing infomation about the valid object detections in the given
-                 *image. There will be an std::vector<constants::Detection> for each output tensor.
+                 * @return std::vector<std::vector<Detection>> - A 2D vector of structs containing infomation about the valid object detections in the given image.
+                 *                          There will be an std::vector<Detection> for each output tensor.
                  *
                  * @note The input image MUST BE RGB format, otherwise you will likely experience prediction accuracy problems.
                  * @note This function can automatically decode output from YOLOv5 and YOLOv8 models.
@@ -249,12 +267,12 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-13
                  ******************************************************************************/
-                std::vector<std::vector<constants::Detection>> Inference(const cv::Mat& cvInputFrame,
-                                                                         const float fMinObjectConfidence = 0.85,
-                                                                         const float fNMSThreshold        = 0.6) override
+                std::vector<std::vector<Detection>> Inference(const cv::Mat& cvInputFrame,
+                                                              const float fMinObjectConfidence = 0.85,
+                                                              const float fNMSThreshold        = 0.6) override
                 {
                     // Create instance variables.
-                    std::vector<std::vector<constants::Detection>> vTensorObjectOutputs;
+                    std::vector<std::vector<Detection>> vTensorObjectOutputs;
 
                     // Get the input tensor shape for the model.
                     InputTensorDimensions stInputDimensions = this->GetInputShape(m_pInterpreter->inputs()[0]);
@@ -313,7 +331,7 @@ namespace yolomodel
                             std::vector<float> vClassConfidences;
                             std::vector<cv::Rect> vBoundingBoxes;
                             // Create vector for storing all detections for this tensor output.
-                            std::vector<constants::Detection> vObjects;
+                            std::vector<Detection> vObjects;
 
                             // Get output indices for output tensors.
                             for (int nTensorIndex : m_pInterpreter->outputs())
@@ -661,324 +679,6 @@ namespace yolomodel
                 cv::Mat m_cvFrame;
         };
     }    // namespace tensorflow
-
-    namespace pytorch
-    {
-        enum Det
-        {
-            tl_x      = 0,
-            tl_y      = 1,
-            br_x      = 2,
-            br_y      = 3,
-            score     = 4,
-            class_idx = 5
-        };
-
-        class TorchInterpreter : public TorchModel
-        {
-            public:
-                /////////////////////////////////////////
-                // Declare public enums that are specific to and used withing this class.
-                /////////////////////////////////////////
-
-                /////////////////////////////////////////
-                // Declare public methods and member variables.
-                /////////////////////////////////////////
-
-                /******************************************************************************
-                 * @brief Construct a new Torch Interpreter object.
-                 *
-                 * @param szModelPath -
-                 *
-                 * @author Eli Byrd (edbgkk@mst.edu)
-                 * @date 2024-04-27
-                 ******************************************************************************/
-                TorchInterpreter(std::string szModelPath, torch::DeviceType eDeviceType) : TorchModel(szModelPath, eDeviceType) {}
-
-                /******************************************************************************
-                 * @brief Destroy the Torch Interpreter object.
-                 *
-                 *
-                 * @author Eli Byrd (edbgkk@mst.edu)
-                 * @date 2024-04-27
-                 ******************************************************************************/
-                ~TorchInterpreter() {}
-
-                /******************************************************************************
-                 * @brief
-                 *
-                 * @param detections -
-                 * @param pad_w -
-                 * @param pad_h -
-                 * @param scale -
-                 * @param img_shape -
-                 * @param conf_thres -
-                 * @param iou_thres -
-                 * @return std::vector<std::vector<constants::Detection>> -
-                 *
-                 * @author Eli Byrd (edbgkk@mst.edu)
-                 * @date 2024-05-02
-                 ******************************************************************************/
-                std::vector<std::vector<constants::Detection>> PostProcessing(const torch::Tensor& detections,
-                                                                              float pad_w,
-                                                                              float pad_h,
-                                                                              float scale,
-                                                                              const cv::Size& img_shape,
-                                                                              float conf_thres,
-                                                                              float iou_thres) override
-                {
-                    constexpr int item_attr_size = 5;
-                    int batch_size               = detections.size(0);
-                    // number of classes, e.g. 80 for coco dataset
-                    auto num_classes = detections.size(2) - item_attr_size;
-
-                    // get candidates which object confidence > threshold
-                    auto conf_mask = detections.select(2, 4).ge(conf_thres).unsqueeze(2);
-
-                    std::vector<std::vector<constants::Detection>> output;
-                    output.reserve(batch_size);
-
-                    // iterating all images in the batch
-                    for (int batch_i = 0; batch_i < batch_size; batch_i++)
-                    {
-                        // apply constrains to get filtered detections for current image
-                        auto det = torch::masked_select(detections[batch_i], conf_mask[batch_i]).view({-1, num_classes + item_attr_size});
-
-                        // if none detections remain then skip and start to process next image
-                        if (0 == det.size(0))
-                        {
-                            continue;
-                        }
-
-                        // compute overall score = obj_conf * cls_conf, similar to x[:, 5:] *= x[:, 4:5]
-                        det.slice(1, item_attr_size, item_attr_size + num_classes) *= det.select(1, 4).unsqueeze(1);
-
-                        // box (center x, center y, width, height) to (x1, y1, x2, y2)
-                        torch::Tensor box        = torch::zeros_like(det.slice(1, 0, 4));
-                        box.select(1, Det::tl_x) = box.select(1, 0) - box.select(1, 2).div(2);
-                        box.select(1, Det::tl_y) = box.select(1, 1) - box.select(1, 3).div(2);
-                        box.select(1, Det::br_x) = box.select(1, 0) + box.select(1, 2).div(2);
-                        box.select(1, Det::br_y) = box.select(1, 1) + box.select(1, 3).div(2);
-
-                        // [best class only] get the max classes score at each result (e.g. elements 5-84)
-                        std::tuple<torch::Tensor, torch::Tensor> max_classes = torch::max(det.slice(1, item_attr_size, item_attr_size + num_classes), 1);
-
-                        // class score
-                        auto max_conf_score = std::get<0>(max_classes);
-                        // index
-                        auto max_conf_index = std::get<1>(max_classes);
-
-                        max_conf_score      = max_conf_score.to(torch::kFloat).unsqueeze(1);
-                        max_conf_index      = max_conf_index.to(torch::kFloat).unsqueeze(1);
-
-                        // shape: n * 6, top-left x/y (0,1), bottom-right x/y (2,3), score(4), class index(5)
-                        det = torch::cat({box.slice(1, 0, 4), max_conf_score, max_conf_index}, 1);
-
-                        // for batched NMS
-                        constexpr int max_wh = 4096;
-                        auto c               = det.slice(1, item_attr_size, item_attr_size + 1) * max_wh;
-                        auto offset_box      = det.slice(1, 0, 4) + c;
-
-                        std::vector<cv::Rect> offset_box_vec;
-                        std::vector<float> score_vec;
-
-                        // copy data back to cpu
-                        auto offset_boxes_cpu     = offset_box.cpu();
-                        auto det_cpu              = det.cpu();
-                        const auto& det_cpu_array = det_cpu.accessor<float, 2>();
-
-                        // use accessor to access tensor elements efficiently
-                        for (int i = 0; i < offset_boxes_cpu.accessor<float, 2>().size(0); i++)
-                        {
-                            offset_box_vec.emplace_back(
-                                cv::Rect(cv::Point(offset_boxes_cpu.accessor<float, 2>()[i][Det::tl_x], offset_boxes_cpu.accessor<float, 2>()[i][Det::tl_y]),
-                                         cv::Point(offset_boxes_cpu.accessor<float, 2>()[i][Det::br_x], offset_boxes_cpu.accessor<float, 2>()[i][Det::br_y])));
-                            score_vec.emplace_back(det_cpu_array[i][Det::score]);
-                        }
-
-                        // run NMS
-                        std::vector<int> nms_indices;
-                        cv::dnn::NMSBoxes(offset_box_vec, score_vec, conf_thres, iou_thres, nms_indices);
-
-                        std::vector<constants::Detection> det_vec;
-                        for (int index : nms_indices)
-                        {
-                            constants::Detection t;
-                            const auto& b   = det_cpu_array[index];
-                            t.cvBoundingBox = cv::Rect(cv::Point(b[Det::tl_x], b[Det::tl_y]), cv::Point(b[Det::br_x], b[Det::br_y]));
-                            t.fConfidence   = det_cpu_array[index][Det::score];
-                            t.nClassID      = det_cpu_array[index][Det::class_idx];
-                            det_vec.emplace_back(t);
-                        }
-
-                        ScaleCoordinates(det_vec, pad_w, pad_h, scale, img_shape);
-
-                        // save final detection for the current image
-                        output.emplace_back(det_vec);
-                    }    // end of batch iterating
-
-                    return output;
-                }
-
-                /******************************************************************************
-                 * @brief
-                 *
-                 * @param cvInputFrame -
-                 * @param fMinObjectConfidence -
-                 * @param fNMSThreshold -
-                 * @return std::vector<std::vector<constants::Detection>> -
-                 *
-                 * @author Eli Byrd (edbgkk@mst.edu)
-                 * @date 2024-04-27
-                 ******************************************************************************/
-                std::vector<std::vector<constants::Detection>> Inference(const cv::Mat& cvInputFrame,
-                                                                         const float fMinObjectConfidence = 0.85,
-                                                                         const float fNMSThreshold        = 0.6) override
-                {
-                    torch::NoGradGuard no_grad;
-                    std::cout << "----------New Frame----------" << std::endl;
-
-                    // TODO: check_img_size()
-
-                    /*** Pre-process ***/
-
-                    auto start = std::chrono::high_resolution_clock::now();
-
-                    // keep the original image for visualization purpose
-                    cv::Mat img_input           = cvInputFrame.clone();
-
-                    std::vector<float> pad_info = LetterboxImage(img_input, img_input, cv::Size(640, 640));
-                    const float pad_w           = pad_info[0];
-                    const float pad_h           = pad_info[1];
-                    const float scale           = pad_info[2];
-
-                    cv::cvtColor(img_input, img_input, cv::COLOR_BGR2RGB);      // BGR -> RGB
-                    img_input.convertTo(img_input, CV_32FC3, 1.0f / 255.0f);    // normalization 1/255
-                    auto tensor_img = torch::from_blob(img_input.data, {1, img_input.rows, img_input.cols, img_input.channels()}).to(m_eDevice);
-
-                    tensor_img      = tensor_img.permute({0, 3, 1, 2}).contiguous();    // BHWC -> BCHW (Batch, Channel, Height, Width)
-
-                    if (m_bHalfModel)
-                    {
-                        tensor_img = tensor_img.to(torch::kHalf);
-                    }
-
-                    std::vector<torch::jit::IValue> inputs;
-                    inputs.emplace_back(tensor_img);
-
-                    auto end      = std::chrono::high_resolution_clock::now();
-                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-                    // It should be known that it takes longer time at first time
-                    std::cout << "pre-process takes : " << duration.count() << " ms" << std::endl;
-
-                    /*** Inference ***/
-                    // TODO: add synchronize point
-                    start = std::chrono::high_resolution_clock::now();
-
-                    // inference
-                    torch::jit::IValue output = m_ltModel.forward(inputs);
-
-                    end                       = std::chrono::high_resolution_clock::now();
-                    duration                  = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-                    // It should be known that it takes longer time at first time
-                    std::cout << "inference takes : " << duration.count() << " ms" << std::endl;
-
-                    /*** Post-process ***/
-
-                    start           = std::chrono::high_resolution_clock::now();
-                    auto detections = output.toTuple()->elements()[0].toTensor();
-
-                    // result: n * 7
-                    // batch index(0), top-left x/y (1,2), bottom-right x/y (3,4), score(5), class id(6)
-                    auto result = PostProcessing(detections, pad_w, pad_h, scale, cvInputFrame.size(), fMinObjectConfidence, fNMSThreshold);
-
-                    end         = std::chrono::high_resolution_clock::now();
-                    duration    = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-                    // It should be known that it takes longer time at first time
-                    std::cout << "post-process takes : " << duration.count() << " ms" << std::endl;
-
-                    return result;
-                }
-
-            private:
-                /////////////////////////////////////////
-                // Declare private methods.
-                /////////////////////////////////////////
-
-                // /******************************************************************************
-                //  * @brief
-                //  *
-                //  * @param nOutputIndex -
-                //  * @param vClassIDs -
-                //  * @param vClassConfidences -
-                //  * @param vBoundingBoxes -
-                //  * @param fMinObjectConfidence -
-                //  * @param nOriginalFrameWidth -
-                //  * @param nOriginalFrameHeight -
-                //  *
-                //  * @author Eli Byrd (edbgkk@mst.edu)
-                //  * @date 2024-04-27
-                //  ******************************************************************************/
-                // void ParseTorchOutputYOLOv5(int nOutputIndex,
-                //                             std::vector<int>& vClassIDs,
-                //                             std::vector<float>& vClassConfidences,
-                //                             std::vector<cv::Rect>& vBoundingBoxes,
-                //                             float fMinObjectConfidence,
-                //                             int nOriginalFrameWidth,
-                //                             int nOriginalFrameHeight)
-                // {}
-
-                // /******************************************************************************
-                //  * @brief
-                //  *
-                //  * @param nOutputIndex -
-                //  * @param vClassIDs -
-                //  * @param vClassConfidences -
-                //  * @param vBoundingBoxes -
-                //  * @param fMinObjectConfidence -
-                //  * @param nOriginalFrameWidth -
-                //  * @param nOriginalFrameHeight -
-                //  *
-                //  * @author Eli Byrd (edbgkk@mst.edu)
-                //  * @date 2024-04-27
-                //  ******************************************************************************/
-                // void ParseTorchOutputYOLOv8(int nOutputIndex,
-                //                             std::vector<int>& vClassIDs,
-                //                             std::vector<float>& vClassConfidences,
-                //                             std::vector<cv::Rect>& vBoundingBoxes,
-                //                             float fMinObjectConfidence,
-                //                             int nOriginalFrameWidth,
-                //                             int nOriginalFrameHeight)
-                // {}
-
-                // /******************************************************************************
-                //  * @brief Accessor for the Input Shape private member.
-                //  *
-                //  * @param nTensorIndex -
-                //  * @return InputTensorDimensions -
-                //  *
-                //  * @author Eli Byrd (edbgkk@mst.edu)
-                //  * @date 2024-04-27
-                //  ******************************************************************************/
-                // InputTensorDimensions GetInputShape(const int nTensorIndex = 0) {}
-
-                // /******************************************************************************
-                //  * @brief Accessor for the Output Shape private member.
-                //  *
-                //  * @param nTensorIndex -
-                //  * @return OutputTensorDimensions -
-                //  *
-                //  * @author Eli Byrd (edbgkk@mst.edu)
-                //  * @date 2024-04-27
-                //  ******************************************************************************/
-                // OutputTensorDimensions GetOutputShape(const int nTensorIndex = 0) {}
-
-                /////////////////////////////////////////
-                // Declare private member variables.
-                /////////////////////////////////////////
-                cv::Mat m_cvFrame;
-        };
-    }    // namespace pytorch
 }    // namespace yolomodel
 
 #endif

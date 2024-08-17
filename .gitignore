@@ -1,7 +1,6 @@
 ### Autonomy Specific ###
 # FileSystem
 *build*/
-*logs*/
 .vscode/
 valgrind.rpt
 
