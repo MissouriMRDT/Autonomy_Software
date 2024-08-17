@@ -104,8 +104,6 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
         case MultimediaBoardLightingState::eReachedGoal:
         {
             // Send Reached Goal state over RoveComm.
-            // Construct a RoveComm packet.
-            rovecomm::RoveCommPacket<uint8_t> stPacket;
             stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
             stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
             stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
@@ -117,6 +115,7 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
             stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
             stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
             stPacket.eDataType   = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_TYPE;
+            stPacket.vData.clear();
             // Use RoveComm to send flashing GREEN color state value.
             stPacket.vData.emplace_back(static_cast<uint8_t>(manifest::Core::DISPLAYSTATE::REACHED_GOAL));
             break;
