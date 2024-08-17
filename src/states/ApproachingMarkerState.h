@@ -14,7 +14,6 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/vision/TagDetectionUtilty.hpp"
-#include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
@@ -37,15 +36,15 @@ namespace statemachine
         private:
             bool m_bInitialized;
 
-            std::chrono::system_clock::time_point m_tmLastDetectedTag;    // When verification began.
-            int m_nTargetTagID;                                           // ID of the target tag.
-            bool m_bDetected;                                             // Has a target tag been detected and identified yet.
-            arucotag::ArucoTag m_stTargetTagAR;                           // Detected target tag from OpenCV.
-            tensorflowtag::TensorflowTag m_stTargetTagTF;                 // Detected target tag from Tensorflow.
-            double m_dLastTargetHeading;                                  // Last recorded heading of the target with respect to the rover's position.
-            double m_dLastTargetDistance;                                 // Last recorded distance of the target with respect to the rover's position.
-            std::vector<TagDetector*> m_vTagDetectors;                    // Vector of tag detectors to use for detection in order of highest to lowest priority.
-            statemachine::TimeIntervalBasedStuckDetector m_StuckDetector; // Stuck detector
+            States m_eTriggeringState;                       // The state that the rover was in before triggering the MarkerSeen event.
+            int m_nNumDetectionAttempts;                     // Number of consecutive unsuccessful attempts to detect a tag.
+            int m_nTargetTagID;                              // ID of the target tag.
+            bool m_bDetected;                                // Has a target tag been detected and identified yet.
+            arucotag::ArucoTag m_stTargetTagAR;              // Detected target tag from OpenCV.
+            tensorflowtag::TensorflowTag m_stTargetTagTF;    // Detected target tag from Tensorflow.
+            double m_dLastTargetHeading;                     // Last recorded heading of the target with respect to the rover's position.
+            double m_dLastTargetDistance;                    // Last recorded distance of the target with respect to the rover's position.
+            std::vector<TagDetector*> m_vTagDetectors;       // Vector of tag detectors to use for detection in order of highest to lowest priority.
 
             bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
             bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);

@@ -235,8 +235,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling MarkerSeen event.");
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
                 // Change states.
                 eNextState = States::eApproachingMarker;
                 break;
@@ -245,8 +243,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling ObjectSeen event.");
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
                 // Change state.
                 eNextState = States::eApproachingObject;
                 break;

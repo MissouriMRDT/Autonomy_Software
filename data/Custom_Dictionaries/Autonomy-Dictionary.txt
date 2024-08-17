@@ -164,7 +164,7 @@ tensorflowtag
 tensorflowyolo
 tflite
 threadpool
-TIMESPAN
+timestamping
 timestep
 tparam
 twxs

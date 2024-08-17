@@ -11,6 +11,7 @@
 #include "ApproachingMarkerState.h"
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -33,16 +34,21 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
 
-        m_tmLastDetectedTag   = std::chrono::system_clock::now();
-        m_nTargetTagID        = -1;
-        m_bDetected           = false;
-        m_dLastTargetHeading  = 0;
-        m_dLastTargetDistance = 0;
+        // Initialize member variables.
+        m_nNumDetectionAttempts = 0;
+        m_nTargetTagID          = -1;
+        m_bDetected             = false;
+        m_dLastTargetHeading    = 0;
+        m_dLastTargetDistance   = 0;
 
-        m_vTagDetectors       = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                                 globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
-    }    // namespace statemachine
+        // Store the state that got stuck and triggered a MarkerSeen event.
+        m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
+
+        // Get tag detectors.
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+    }
 
     /******************************************************************************
      * @brief This method is called when the state is exited. It is used to clean up
@@ -70,11 +76,7 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized  = false;
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+        m_bInitialized = false;
 
         if (!m_bInitialized)
         {
@@ -102,8 +104,7 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // If a target hasn't been identified yet attempt to find a target tag in the rover's vision.
-        double dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - std::chrono::system_clock::now()).count();
-        if (!m_bDetected && dTimeSinceLastDetectedTag < constants::APPROACH_MARKER_DETECTION_TIMESPAN)
+        if (!m_bDetected && m_nNumDetectionAttempts < constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
         {
             // Attempt to identify the target with OpenCV.
             // While OpenCV struggles to find tags, the tags it does find are much more reliable compared to TensorFlow.
@@ -111,9 +112,9 @@ namespace statemachine
             if (bDetectedTagAR)
             {
                 // Save the identified tag's ID.
-                m_nTargetTagID      = m_stTargetTagAR.nID;
-                m_bDetected         = true;
-                m_tmLastDetectedTag = std::chrono::system_clock::now();
+                m_nTargetTagID          = m_stTargetTagAR.nID;
+                m_bDetected             = true;
+                m_nNumDetectionAttempts = 0;
             }
             else
             {
@@ -124,29 +125,50 @@ namespace statemachine
                     // Save the identified tag's ID.
                     // NOTE: Commented this out since TensorflowTag no longer has ID.
                     // m_nTargetTagID          = m_stTargetTagTF.nID;
-                    m_bDetected         = true;
-                    m_tmLastDetectedTag = std::chrono::system_clock::now();
+                    m_bDetected             = true;
+                    m_nNumDetectionAttempts = 0;
                 }
             }
+
+            // Both OpenCV & TensorFlow failed to identify a target tag.
+            if (!m_bDetected)
+            {
+                ++m_nNumDetectionAttempts;
+            }
+
             return;
         }
         // A target hasn't been identified and the amount of attempts has exceeded the limit.
         else if (!m_bDetected)
         {
-            // Trigger event eMarkerUnseen.
+            // Abort approaching marker.
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
 
-        if (bDetectedTagAR || bDetectedTagTF)
+        // Attempt to find the target marker in OpenCV.
+        bDetectedTagAR = tagdetectutils::FindArucoTagByID(m_nTargetTagID, m_stTargetTagAR, m_vTagDetectors);
+        // LEAD: Commented this out since TensorflowTag no longer has ID.
+        // if (!bDetectedTagAR)
+        // {
+        //     // Attempt to find the target marker in TensorFlow.
+        //     bDetectedTagTF = tagdetectutils::FindTensorflowTagByID(m_nTargetTagID, m_stTargetTagTF, m_vTagDetectors);
+        // }
+
+        // The target marker wasn't found.
+        if (!bDetectedTagAR && !bDetectedTagTF)
         {
-            m_tmLastDetectedTag = std::chrono::system_clock::now();
+            ++m_nNumDetectionAttempts;
+        }
+        // The target marker was found.
+        else
+        {
+            m_nNumDetectionAttempts = 0;
         }
 
         // If we have made too many consecutive failed detection attempts
         // inform the statemachine the marker has been lost.
-        dTimeSinceLastDetectedTag = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastDetectedTag).count();
-        if (dTimeSinceLastDetectedTag >= constants::APPROACH_MARKER_DETECTION_TIMESPAN)
+        if (m_nNumDetectionAttempts >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
@@ -179,11 +201,23 @@ namespace statemachine
         m_dLastTargetHeading  = dTargetHeading;
         m_dLastTargetDistance = dTargetDistance;
 
-        // TODO: Change to a Debug Statement after we confirm it works.
-        LOG_INFO(logging::g_qSharedLogger,
-                 "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
-                 dTargetDistance,
-                 constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+        // Only print out every so often.
+        static bool bAlreadyPrinted = false;
+        if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger,
+                     "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
+                     dTargetDistance,
+                     constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+            // Set toggle.
+            bAlreadyPrinted = true;
+        }
+        else if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) != 0 && bAlreadyPrinted)
+        {
+            // Reset toggle.
+            bAlreadyPrinted = false;
+        }
 
         // If we are close enough to the target inform the state machine we have reached the marker.
         if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
@@ -196,19 +230,8 @@ namespace statemachine
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
                                                                                      dTargetHeading,
                                                                                      dCurrHeading,
-                                                                                     diffdrive::DifferentialControlMethod::eCurvatureDrive);
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
-
-        // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has become stuck!");
-            // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-            // Don't execute the rest of the state.
-            return;
-        }
 
         return;
     }
@@ -225,18 +248,21 @@ namespace statemachine
     States ApproachingMarkerState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState       = States::eIdle;
+        States eNextState       = States::eApproachingMarker;
         bool bCompleteStateExit = true;
 
         switch (eEvent)
         {
             case Event::eReachedMarker:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Transitions to VerifyingMarkerState when marker is reached.
-                eNextState = States::eVerifyingMarker;
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change states.
+                eNextState = States::eIdle;
                 break;
             }
             case Event::eStart:
@@ -249,8 +275,10 @@ namespace statemachine
             }
             case Event::eMarkerUnseen:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling MarkerUnseen event.");
-                eNextState = States::eSearchPattern;
+                // Change states.
+                eNextState = m_eTriggeringState;
                 break;
             }
             case Event::eAbort:
@@ -263,12 +291,6 @@ namespace statemachine
                 eNextState = States::eIdle;
                 break;
             }
-            case Event::eStuck:
-            {
-                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Stuck event.");
-                eNextState = States::eStuck;
-                break;
-            }
             default:
             {
                 LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: Handling unknown event.");
@@ -277,7 +299,7 @@ namespace statemachine
             }
         }
 
-        if (eNextState != States::eIdle)
+        if (eNextState != States::eApproachingMarker)
         {
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Transitioning to {} State.", StateToString(eNextState));
 

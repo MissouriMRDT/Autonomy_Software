@@ -36,14 +36,10 @@ StateMachineHandler::StateMachineHandler()
     // Set RoveComm Node callbacks.
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStartCallback, manifest::Autonomy::COMMANDS.find("STARTAUTONOMY")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(AutonomyStopCallback, manifest::Autonomy::COMMANDS.find("DISABLEAUTONOMY")->second.DATA_ID);
-
-    if (constants::BATTERY_CHECKS_ENABLED)
-    {
-        network::g_pRoveCommUDPNode->AddUDPCallback<float>(PMSCellVoltageCallback, manifest::PMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
-    }
+    network::g_pRoveCommUDPNode->AddUDPCallback<float>(PMSCellVoltageCallback, manifest::PMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // Initialize member variables.
-    m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
@@ -308,7 +304,7 @@ void StateMachineHandler::ThreadedContinuousCode()
                 // Get current compass heading.
                 double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
                 // Realign the main ZED cameras pose with current GPS-based position and heading.
-                this->RealignZEDPosition(CameraHandler::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
+                this->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
             }
         }
     }

@@ -34,6 +34,8 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Scheduling next run of state logic.");
 
         m_vCheckPoints.reserve(m_nMaxDataPoints);
+
+        m_tmVerifyStartTime = std::chrono::system_clock::now();
     }
 
     /******************************************************************************
@@ -84,43 +86,54 @@ namespace statemachine
     {
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
 
-        if (m_vCheckPoints.size() < m_nMaxDataPoints)
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        double dTimeElapsed                                 = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmVerifyStartTime).count();
+
+        if (dTimeElapsed >= 30.0)
         {
-            if (!globals::g_pNavigationBoard->IsOutOfDate())
+            if (int(m_vCheckPoints.size()) < m_nMaxDataPoints)
             {
-                m_vCheckPoints.push_back(globals::g_pNavigationBoard->GetGPSData());
-            }
-        }
-        else
-        {
-            // Create Average GPS Coordinate
-            geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();
-
-            // Calculate Sum of GPS Coordinates
-            for (geoops::GPSCoordinate& stPoint : m_vCheckPoints)
-            {
-                stAverage.dLatitude += stPoint.dLatitude;
-                stAverage.dLongitude += stPoint.dLongitude;
-            }
-
-            // Calculate Average GPS Coordinate
-            stAverage.dLatitude /= m_vCheckPoints.size();
-            stAverage.dLongitude /= m_vCheckPoints.size();
-
-            // Calculate distance and bearing from goal waypoint.
-            geoops::GeoMeasurement stGoalWaypointMeasurement =
-                geoops::CalculateGeoMeasurement(stAverage, globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate());
-
-            // Check if the rover is within the goal waypoint's tolerance.
-            if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
-            {
-                // Trigger event to transition to next state.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed, true);
+                if (!globals::g_pNavigationBoard->IsOutOfDate())
+                {
+                    m_vCheckPoints.push_back(globals::g_pNavigationBoard->GetGPSData());
+                }
             }
             else
             {
-                // Trigger event to transition to next state.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete, true);
+                // Realign the ZED
+                globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam,
+                                                                    geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()),
+                                                                    globals::g_pNavigationBoard->GetHeading());
+
+                // Create Average GPS Coordinate
+                geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();
+
+                // Calculate Sum of GPS Coordinates
+                for (geoops::GPSCoordinate& stPoint : m_vCheckPoints)
+                {
+                    stAverage.dLatitude += stPoint.dLatitude;
+                    stAverage.dLongitude += stPoint.dLongitude;
+                }
+
+                // Calculate Average GPS Coordinate
+                stAverage.dLatitude /= m_vCheckPoints.size();
+                stAverage.dLongitude /= m_vCheckPoints.size();
+
+                // Calculate distance and bearing from goal waypoint.
+                geoops::GeoMeasurement stGoalWaypointMeasurement =
+                    geoops::CalculateGeoMeasurement(stAverage, globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate());
+
+                // Check if the rover is within the goal waypoint's tolerance.
+                if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+                {
+                    // Trigger event to transition to next state.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed, false);
+                }
+                else
+                {
+                    // Trigger event to transition to next state.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete, false);
+                }
             }
         }
     }
@@ -153,20 +166,8 @@ namespace statemachine
             case Event::eVerifyingComplete:
             {
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Handling Verifying Complete event.");
-                eNextState = States::eIdle;
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-
-                // Send Reached Goal state over RoveComm.
-                // Construct a RoveComm packet.
-                rovecomm::RoveCommPacket<uint8_t> stPacket;
-                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
-                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
-                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
-                stPacket.vData.emplace_back(1);
-                // Send telemetry over RoveComm to all subscribers.
-                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
-
                 // Pop the next waypoint.
                 globals::g_pWaypointHandler->PopNextWaypoint();
                 // Change state.

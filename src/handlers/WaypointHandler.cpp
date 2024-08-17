@@ -741,7 +741,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
 
     // Create instance variables.
-    ZEDCam* pMainCam                           = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    ZEDCam* pMainCam                           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
     double dCurrentHeading                     = dCurrentGPSHeading;
     bool bVIOGPSFused                          = false;
@@ -849,6 +849,20 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
               stCurrentUTMPosition.dAltitude,
               dCurrentHeading,
               bVIOGPSFused ? "true" : "false");
+
+    double temp    = dCurrentHeading - dCurrentGPSHeading;
+    double tempLat = stCurrentUTMPosition.dEasting - ConvertGPSToUTM(stCurrentGPSPosition).dEasting;
+    double tempLon = stCurrentUTMPosition.dNorthing - ConvertGPSToUTM(stCurrentGPSPosition).dNorthing;
+
+    LOG_DEBUG(logging::g_qSharedLogger, "Compared ZED and Nav > ZED: {} Nav: {} > Diff: {}", dCurrentHeading, dCurrentGPSHeading, temp);
+    LOG_DEBUG(logging::g_qSharedLogger,
+              "Compared ZED and Nav > ZED: {} (lat) {} (lon) Nav: {} (lat) {} (lon) > Diff: {} (lat) {} (lon)",
+              stCurrentUTMPosition.dEasting,
+              stCurrentUTMPosition.dNorthing,
+              ConvertGPSToUTM(stCurrentGPSPosition).dEasting,
+              ConvertGPSToUTM(stCurrentGPSPosition).dNorthing,
+              tempLat,
+              tempLon);
 
     return geoops::RoverPose(stCurrentVIOPosition, dCurrentHeading);
 }

@@ -3,23 +3,9 @@ name: "CodeQL"
 on:
   pull_request:
     branches: ["development"]
-    paths:
-      - examples/**
-      - external/**
-      - src/**
-      - tests/**
-      - tools/**
-      - .github/workflows/codeql.yml
 
   push:
     branches: ["development"]
-    paths:
-      - examples/**
-      - external/**
-      - src/**
-      - tests/**
-      - tools/**
-      - .github/workflows/codeql.yml
 
   workflow_dispatch:
 
@@ -43,7 +29,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["cpp", "python"]
+        include:
+          - language: cpp
+            build-mode: manual
+          - language: python
+            build-mode: none
 
     steps:
       - name: Setup Action Environment
@@ -60,13 +50,40 @@ jobs:
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
 
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update Branch
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --force --recurse-submodules
+          branch=${{ steps.extract_branch.outputs.branch }}
+          echo $branch
+          git reset --hard origin/$branch
+          git checkout $branch
+          git pull --ff-only
+          git submodule update --force --recursive --init
+          git config --global --add safe.directory /opt/Autonomy_Software/external
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          queries: security-extended
+          build-mode: ${{ matrix.build-mode }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Manual Build
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
+          mkdir build
+          cd build
+          cmake -DBUILD_TESTS_MODE=OFF ..
+          make
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

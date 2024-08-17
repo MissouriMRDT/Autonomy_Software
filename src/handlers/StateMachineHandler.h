@@ -65,7 +65,6 @@ class StateMachineHandler : private AutonomyThread<void>
         void SaveCurrentState();
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
-        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
 
         /******************************************************************************
          * @brief Callback function used to trigger the start of autonomy. No matter what
@@ -148,8 +147,8 @@ class StateMachineHandler : private AutonomyThread<void>
             LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: PMS Cell Voltages. Average voltage is: {}", dAverageCellVoltage);
 
             // Check if voltage is above the safe minimum for lithium ion batteries.
-            if (dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE && this->GetCurrentState() != statemachine::States::eIdle &&
-                constants::BATTERY_CHECKS_ENABLED)
+            if (constants::BATTERY_CHECKS_ENABLED && dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE &&
+                this->GetCurrentState() != statemachine::States::eIdle)
             {
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
@@ -178,6 +177,7 @@ class StateMachineHandler : private AutonomyThread<void>
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
 
+        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
         using AutonomyThread::GetIPS;
 };
 

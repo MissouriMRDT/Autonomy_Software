@@ -9,8 +9,9 @@
  ******************************************************************************/
 
 #include "AvoidanceState.h"
-#include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
+#include "../algorithms/controllers/StanleyController.h"
+#include "../algorithms/planners/AStar.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -33,7 +34,6 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
-        // TODO: Determine how position data should be saved here:
         m_nMaxDataPoints = 100;
 
         m_vRoverXPath.reserve(m_nMaxDataPoints);
@@ -44,24 +44,17 @@ namespace statemachine
         m_vRoverYawPosition.reserve(m_nMaxDataPoints);
         m_vRoverVelocity.reserve(m_nMaxDataPoints);
 
-        m_nLastIDX   = 0;
-        m_nTargetIDX = 0;
+        m_nLastIDX                   = 0;
+        m_nTargetIDX                 = 0;
 
-        // TODO: Use chrono or time()?
-        m_tPathStartTime  = time(nullptr);
-        m_tStuckCheckTime = time(nullptr);
+        m_tPathStartTime             = time(nullptr);
+        m_tStuckCheckTime            = time(nullptr);
 
-        // Initialize ASTAR Pathfinder:
-        // TODO: Poll zedCam / object detector for seen obstacles to pass to AStar.
-        // Determine start and goal (peek waypoint for goal).
-        m_stStart        = globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate();
-        m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+        m_dStuckCheckLastPosition[0] = 0;
+        m_dStuckCheckLastPosition[1] = 0;
 
-        // Plan avoidance route using AStar.
-        // TODO: Add obstacles to params.
-        m_vPlannedRoute = m_stPlanner.PlanAvoidancePath(m_stStart, m_stGoalWaypoint.GetUTMCoordinate());
-        m_stGoal        = m_vPlannedRoute.back();
-        m_stController.SetPath(m_vPlannedRoute);
+        // TODO: Add ASTAR Pathfinder
+        // TODO: Add Stanley Controller
     }
 
     /******************************************************************************
@@ -87,13 +80,13 @@ namespace statemachine
         m_vRoverYawPosition.clear();
         m_vRoverVelocity.clear();
 
-        m_nTargetIDX = 0;
+        m_nTargetIDX                 = 0;
 
-        // Clear ASTAR Pathfinder
-        m_stPlanner.ClearObstacleData();
-        // Clear Stanley Controller
-        std::vector<geoops::UTMCoordinate> v_clear = {};
-        m_stController.SetPath(v_clear);
+        m_dStuckCheckLastPosition[0] = 0;
+        m_dStuckCheckLastPosition[1] = 0;
+
+        // TODO: Clear ASTAR Pathfinder
+        // TODO: Clear Stanley Controller
     }
 
     /******************************************************************************
@@ -124,49 +117,50 @@ namespace statemachine
      ******************************************************************************/
     void AvoidanceState::Run()
     {
+        // TODO: Implement the behavior specific to the Avoidance state
         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Running state-specific behavior.");
 
         // TODO: build in obstacle detection and refresh of astar path when a new object is detected
 
-        // A route has already been plotted by the planner and passed to the controller.
-        // Navigate by issuing drive commands from the controller.
-        // Check if we are at the goal waypoint.
-        geoops::RoverPose stCurrentPose                  = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-        geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+        // // A route has already been plotted by the planner and passed to the controller.
+        // // Navigate by issuing drive commands from the controller.
+        // // Check if we are at the goal waypoint.
+        // geoops::RoverPose stCurrentPose                  = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        // geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
 
-        // Check to see if rover velocity is below stuck threshold.
-        if (globals::g_pWaypointHandler->SmartRetrieveVelocity() < constants::STUCK_CHECK_VEL_THRESH)
-        {
-            // Check to see if enough time has elapsed.
-            if (difftime(time(nullptr), m_tStuckCheckTime) > constants::AVOIDANCE_STUCK_TIMER_THRESHOLD)
-            {
-                // TODO: Determine how control flows out of here: Do we return to this state after stuck state? Re-Started? etc.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, false);
-            }
-        }
+        // // Check to see if rover velocity is below stuck threshold.
+        // if (globals::g_pWaypointHandler->SmartRetrieveVelocity() < constants::STUCK_CHECK_VEL_THRESH)
+        // {
+        //     // Check to see if enough time has elapsed.
+        //     if (difftime(time(nullptr), m_tStuckCheckTime) > constants::AVOIDANCE_STUCK_TIMER_THRESHOLD)
+        //     {
+        //         // TODO: Determine how control flows out of here: Do we return to this state after stuck state? Re-Started? etc.
+        //         globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, false);
+        //     }
+        // }
 
-        // Goal has not been reached yet:
-        else if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
-        {
-            // Request objects:
-            // Check for any new objects:
-            // Re-plan route (call planPath again):
+        // // Goal has not been reached yet:
+        // else if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+        // {
+        //     // Request objects:
+        //     // Check for any new objects:
+        //     // Re-plan route (call planPath again):
 
-            // Calculate drive move/powers at the speed multiplier.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_DRIVE,
-                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
-                                                                                         stCurrentPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eCurvatureDrive);
-            // Send drive command to drive board.
-            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
-        }
+        //     // Calculate drive move/powers at the speed multiplier.
+        //     diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_DRIVE,
+        //                                                                                  stGoalWaypointMeasurement.dStartRelativeBearing,
+        //                                                                                  stCurrentPose.GetCompassHeading(),
+        //                                                                                  diffdrive::DifferentialControlMethod::eArcadeDrive);
+        //     // Send drive command to drive board.
+        //     globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+        // }
 
-        // Goal is reached, end obstacle avoidance:
-        else
-        {
-            globals::g_pDriveBoard->SendStop();
-            globals::g_pStateMachineHandler->HandleEvent(Event::eEndObstacleAvoidance, false);
-        }
+        // // Goal is reached, end obstacle avoidance:
+        // else
+        // {
+        //     globals::g_pDriveBoard->SendStop();
+        //     globals::g_pStateMachineHandler->HandleEvent(Event::eEndObstacleAvoidance, false);
+        // }
     }
 
     /******************************************************************************
