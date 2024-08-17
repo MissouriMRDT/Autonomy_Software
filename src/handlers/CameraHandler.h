@@ -48,7 +48,7 @@ class CameraHandler
         // Define public enumerators specific to this class.
         /////////////////////////////////////////
 
-        enum ZEDCamName    // Enum for different zed cameras.
+        enum class ZEDCamName    // Enum for different zed cameras.
         {
             ZEDCAM_START,
             eHeadMainCam,
@@ -57,7 +57,7 @@ class CameraHandler
             ZEDCAM_END
         };
 
-        enum BasicCamName    // Enum for different basic cameras.
+        enum class BasicCamName    // Enum for different basic cameras.
         {
             BASICCAM_START,
             eHeadGroundCam,

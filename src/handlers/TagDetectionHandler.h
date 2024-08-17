@@ -42,7 +42,7 @@ class TagDetectionHandler
         // Define public enumerators specific to this class.
         /////////////////////////////////////////
 
-        enum TagDetectors    // Enum for different cameras that detectors are being ran on.
+        enum class TagDetectors    // Enum for different cameras that detectors are being ran on.
         {
             TAGDETECTOR_START,
             eHeadMainCam,
