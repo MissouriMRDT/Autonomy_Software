@@ -216,6 +216,7 @@ void TagDetector::ThreadedContinuousCode()
     {
         // Create future for indicating when the frame has been copied.
         std::future<bool> fuPointCloudCopyStatus;
+        std::future<bool> fuRegularFrameCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (m_bUsingZedCamera)
@@ -225,14 +226,15 @@ void TagDetector::ThreadedContinuousCode()
             {
                 // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCam* so we can use ZEDCam methods.
                 fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                // Get the regular RGB image from the camera.
+                fuRegularFrameCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
 
                 // Wait for point cloud to be retrieved.
-                if (fuPointCloudCopyStatus.get())
+                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
                 {
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
-                    // Split and store colors from point cloud.
-                    imgops::SplitPointCloudColors(m_cvPointCloud, m_cvFrame);
+                    m_cvGPUFrame.download(m_cvFrame);
                 }
                 else
                 {
@@ -243,18 +245,19 @@ void TagDetector::ThreadedContinuousCode()
             else
             {
                 // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuPointCloudCopyStatus   = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
                 // Wait for point cloud to be retrieved.
-                if (fuPointCloudCopyStatus.get())
-                {
-                    // Split and store colors from point cloud.
-                    imgops::SplitPointCloudColors(m_cvPointCloud, m_cvFrame);
-                }
-                else
+                if (!fuPointCloudCopyStatus.get())
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from ZEDCam!");
+                }
+                if (!fuRegularFrameCopyStatus.get())
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
                 }
             }
         }
