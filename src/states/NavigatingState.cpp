@@ -10,6 +10,7 @@
 
 #include "NavigatingState.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -43,7 +44,9 @@ namespace statemachine
         m_vRoverXPosition.reserve(m_nMaxDataPoints);
         m_vRoverYPosition.reserve(m_nMaxDataPoints);
 
-        // TODO: Add a Clear ArUco Tags Command
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
     }
 
     /******************************************************************************
@@ -97,6 +100,19 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
+        /*
+            The overall flow of this state is as follows.
+            1. Navigate to goal waypoint.
+            1. Is there a tag -> MarkerSeen
+            2. Is there an object -> ObjectSeen
+            3. Is there an obstacle -> TBD
+            4. Is the rover stuck -> Stuck
+        */
+
+        ///////////////////////////////////////
+        /* --- Navigate to goal waypoint --- */
+        ///////////////////////////////////////
+
         // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
         {
@@ -112,6 +128,34 @@ namespace statemachine
             // Calculate distance and bearing from goal waypoint.
             geoops::GeoMeasurement stGoalWaypointMeasurement =
                 geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+
+            // Only print out every so often.
+            static bool bAlreadyPrinted = false;
+            if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
+            {
+                // Get raw Navboard GPS position.
+                geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
+                // Calculate error between pose and GPS.
+                geoops::GeoMeasurement stErrorMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
+
+                LOG_INFO(logging::g_qSharedLogger,
+                         "Distance from target: {} and Bearing to target: {}",
+                         stGoalWaypointMeasurement.dDistanceMeters,
+                         stGoalWaypointMeasurement.dStartRelativeBearing);
+                LOG_INFO(logging::g_qSharedLogger,
+                         "Distance from Rover: {} and Bearing to Rover: {}",
+                         stErrorMeasurement.dDistanceMeters,
+                         stErrorMeasurement.dStartRelativeBearing);
+
+                // Set toggle.
+                bAlreadyPrinted = true;
+            }
+            else if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) != 0 && bAlreadyPrinted)
+            {
+                // Reset toggle.
+                bAlreadyPrinted = false;
+            }
+
             // Check if we are at the goal waypoint.
             if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
             {
@@ -135,7 +179,7 @@ namespace statemachine
                     case geoops::WaypointType::eNavigationWaypoint:
                     {
                         // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, true);
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
                         break;
                     }
                     // Goal waypoint is marker.
@@ -170,6 +214,34 @@ namespace statemachine
                 }
             }
         }
+
+        /////////////////////////
+        /* --- Detect Tags --- */
+        /////////////////////////
+
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+
+        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
+        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
+
+        if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+            return;
+        }
+
+        ////////////////////////////
+        /* --- Detect Objects --- */
+        ////////////////////////////
+
+        // TODO: Add object detection to SearchPattern state
+
+        //////////////////////////////
+        /* --- Detect Obstacles --- */
+        //////////////////////////////
+
+        // TODO: Add obstacle detection to SearchPattern state
 
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */
@@ -216,14 +288,9 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-                // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
-                // Set toggle to get new waypoint.
-                m_bFetchNewWaypoint = true;
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change state.
-                eNextState = States::eIdle;
+                eNextState = States::eVerifyingPosition;
                 break;
             }
             case Event::eReachedMarker:
@@ -288,6 +355,14 @@ namespace statemachine
                 m_bFetchNewWaypoint = true;
                 // Change states.
                 eNextState = States::eIdle;
+                break;
+            }
+            case Event::eMarkerSeen:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling MarkerSeen event.");
+                // Change states.
+                eNextState = States::eApproachingMarker;
                 break;
             }
             case Event::eObstacleAvoidance:

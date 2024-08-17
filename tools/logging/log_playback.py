@@ -175,6 +175,8 @@ def play_log(log_file_path):
             fps_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
             fps_ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
 
+        return fps_lines
+
     fps_ani = FuncAnimation(fps_fig, animate_fps, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
 
     def animate_accuracy(i):
@@ -204,6 +206,8 @@ def play_log(log_file_path):
                 ax.autoscale_view()
                 ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
+
+        return acc_lines
 
     accuracy_ani = FuncAnimation(accuracy_fig, animate_accuracy, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
 
@@ -237,6 +241,8 @@ def play_log(log_file_path):
             comp_ax1.autoscale_view()
             comp_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
             comp_ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
+
+        return comp_lines
 
     compass_ani = FuncAnimation(compass_fig, animate_compass, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
 
@@ -293,6 +299,7 @@ def play_log(log_file_path):
         if cleared_waypoints:
             waypoints.clear()
 
+        return gps_pose_lines
 
     gps_pose_ani = FuncAnimation(gps_pose_fig, animate_gps_pose, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
 
@@ -313,6 +320,7 @@ def play_log(log_file_path):
             drive_bars[0].set_height(new_drive_powers["left_power"])
             drive_bars[1].set_height(new_drive_powers["right_power"])
 
+        return drive_bars
 
     drive_power_ani = FuncAnimation(drive_fig, animate_drive_powers, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
 

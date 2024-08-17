@@ -64,6 +64,7 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
     switch (eState)
     {
         case MultimediaBoardLightingState::eOff:
+        {
             // Construct a RoveComm packet with the lighting data.
             stPacket.unDataId    = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_ID;
             stPacket.unDataCount = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_COUNT;
@@ -73,13 +74,15 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
             stPacket.vData.emplace_back(0);
             stPacket.vData.emplace_back(0);
             break;
-
+        }
         case MultimediaBoardLightingState::eCustom:
+        {
             // Use RoveComm to send old custom values previously set.
             this->SendRGB(m_stCustomRGBValues);
             break;
-
+        }
         case MultimediaBoardLightingState::eTeleOp:
+        {
             // Construct a RoveComm packet with the lighting data.
             stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
             stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
@@ -87,8 +90,9 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
             // Use RoveComm to send BLUE color state value.
             stPacket.vData.emplace_back(static_cast<uint8_t>(manifest::Core::DISPLAYSTATE::TELEOP));
             break;
-
+        }
         case MultimediaBoardLightingState::eAutonomy:
+        {
             // Construct a RoveComm packet with the lighting data.
             stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
             stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
@@ -96,17 +100,28 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
             // Use RoveComm to send RED color state value.
             stPacket.vData.emplace_back(static_cast<uint8_t>(manifest::Core::DISPLAYSTATE::AUTONOMY));
             break;
-
+        }
         case MultimediaBoardLightingState::eReachedGoal:
+        {
+            // Send Reached Goal state over RoveComm.
+            stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_ID;
+            stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_COUNT;
+            stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("REACHEDGOAL")->second.DATA_TYPE;
+            stPacket.vData.emplace_back(1);
+            // Send telemetry over RoveComm to all subscribers.
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+
             // Construct a RoveComm packet with the lighting data.
             stPacket.unDataId    = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_ID;
             stPacket.unDataCount = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_COUNT;
             stPacket.eDataType   = manifest::Core::COMMANDS.find("STATEDISPLAY")->second.DATA_TYPE;
+            stPacket.vData.clear();
             // Use RoveComm to send flashing GREEN color state value.
             stPacket.vData.emplace_back(static_cast<uint8_t>(manifest::Core::DISPLAYSTATE::REACHED_GOAL));
             break;
-
+        }
         default:
+        {
             // Construct a RoveComm packet with the lighting data.
             stPacket.unDataId    = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_ID;
             stPacket.unDataCount = manifest::Core::COMMANDS.find("LEDRGB")->second.DATA_COUNT;
@@ -116,6 +131,7 @@ void MultimediaBoard::SendLightingState(MultimediaBoardLightingState eState)
             stPacket.vData.emplace_back(0);
             stPacket.vData.emplace_back(0);
             break;
+        }
     }
 
     // Check if we should send packets to the SIM or board.

@@ -59,6 +59,7 @@ class NavigationBoard
         double GetAngularVelocity();
         std::chrono::system_clock::duration GetGPSLastUpdateTime();
         std::chrono::system_clock::duration GetCompassLastUpdateTime();
+        bool IsOutOfDate();
 
     private:
         /////////////////////////////////////////
@@ -76,6 +77,7 @@ class NavigationBoard
         std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
         std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
         std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
+        bool m_bNavBoardOutOfDate;                                          // A boolean to store whether the GPS is out of date.
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -107,7 +109,8 @@ class NavigationBoard
             // Acquire write lock for writing to velocity member variable.
             std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
             // Calculate rover velocity based on GPS distance traveled over time.
-            m_dVelocity = geMeasurement.dDistanceMeters / (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6);
+            m_dVelocity = geMeasurement.dDistanceMeters /
+                          static_cast<double>((std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6));
             // Unlock mutex.
             lkVelocityProcessLock.unlock();
 
