@@ -192,9 +192,9 @@ ZEDCam* CameraHandler::GetZED(ZEDCamName eCameraName)
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case eHeadMainCam: return m_pMainCam;       // Return the ZEDCam in the autonomy head.
-        case eFrameLeftCam: return m_pLeftCam;      // Return the ZEDCam on the left side of the rover frame.
-        case eFrameRightCam: return m_pRightCam;    // Return the ZEDCam on the right side of the rover frame.
+        case ZEDCamName::eHeadMainCam: return m_pMainCam;       // Return the ZEDCam in the autonomy head.
+        case ZEDCamName::eFrameLeftCam: return m_pLeftCam;      // Return the ZEDCam on the left side of the rover frame.
+        case ZEDCamName::eFrameRightCam: return m_pRightCam;    // Return the ZEDCam on the right side of the rover frame.
         default: return m_pMainCam;
     }
 }
@@ -213,7 +213,7 @@ BasicCam* CameraHandler::GetBasicCam(BasicCamName eCameraName)
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case eHeadGroundCam: return m_pGroundCam;    // Return the ground fisheye cam in the autonomy head.
+        case BasicCamName::eHeadGroundCam: return m_pGroundCam;    // Return the ground fisheye cam in the autonomy head.
         default: return m_pGroundCam;
     }
 }

@@ -68,7 +68,7 @@ void SignalHandler(int nSignal)
 int main()
 {
     // Print Software Header
-    std::ifstream fHeaderText("../data/ASCII/v24.txt");
+    std::ifstream fHeaderText("../data/ASCII/v25.txt");
     std::string szHeaderText;
     if (fHeaderText)
     {
@@ -78,7 +78,7 @@ int main()
     }
 
     std::cout << szHeaderText << std::endl;
-    std::cout << "Copyright \u00A9 2023 - Mars Rover Design Team\n" << std::endl;
+    std::cout << "Copyright \u00A9 2024 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
@@ -163,13 +163,13 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
-        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameLeftCam);
-        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::eFrameRightCam);
-        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::eHeadGroundCam);
-        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eHeadMainCam);
-        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameLeftCam);
-        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::eFrameRightCam);
+        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
+        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
+        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
+        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
         IPS IterPerSecond           = IPS();
 
         // Camera and TagDetector config.
@@ -183,7 +183,6 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        sl::Pose slTest;
         while (!bMainStop)
         {
             // Send current robot state over RoveComm.

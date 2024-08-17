@@ -65,7 +65,7 @@ RUN apt-get install  --no-install-recommends -y \
     g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 # Install CMake
-ARG CMAKE_VERSION="3.27.9"
+ARG CMAKE_VERSION="3.30.2"
 COPY install-cmake.sh /tmp/
 RUN if [ "${CMAKE_VERSION}" != "none" ]; then \
     chmod +x /tmp/install-cmake.sh && /tmp/install-cmake.sh ${CMAKE_VERSION}; \
@@ -88,7 +88,7 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.9.0"
+ARG OPENCV_VERSION="4.10.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
@@ -118,13 +118,13 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflo
     rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="3.8.0"
+ARG QUILL_VERSION="6.1.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.14.0"
+ARG GTEST_VERSION="1.15.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
@@ -152,5 +152,5 @@ LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
-LABEL org.opencontainers.image.version="v24.3.1"
+LABEL org.opencontainers.image.version="v24.5.0"
 LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."

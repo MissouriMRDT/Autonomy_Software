@@ -167,7 +167,7 @@ void TagDetector::ThreadedContinuousCode()
             m_bCameraIsOpened = false;
 
             // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == eStarting)
+            if (this->GetThreadState() == AutonomyThreadState::eStarting)
             {
                 // Shutdown threads for this ZEDCam.
                 this->RequestStop();
@@ -193,7 +193,7 @@ void TagDetector::ThreadedContinuousCode()
             m_bCameraIsOpened = false;
 
             // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == eStarting)
+            if (this->GetThreadState() == AutonomyThreadState::eStarting)
             {
                 // Shutdown threads for this BasicCam.
                 this->RequestStop();
@@ -216,6 +216,7 @@ void TagDetector::ThreadedContinuousCode()
     {
         // Create future for indicating when the frame has been copied.
         std::future<bool> fuPointCloudCopyStatus;
+        std::future<bool> fuRegularFrameCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (m_bUsingZedCamera)
@@ -225,14 +226,15 @@ void TagDetector::ThreadedContinuousCode()
             {
                 // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCam* so we can use ZEDCam methods.
                 fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                // Get the regular RGB image from the camera.
+                fuRegularFrameCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
 
                 // Wait for point cloud to be retrieved.
-                if (fuPointCloudCopyStatus.get())
+                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
                 {
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
-                    // Split and store colors from point cloud.
-                    imgops::SplitPointCloudColors(m_cvPointCloud, m_cvFrame);
+                    m_cvGPUFrame.download(m_cvFrame);
                 }
                 else
                 {
@@ -243,18 +245,19 @@ void TagDetector::ThreadedContinuousCode()
             else
             {
                 // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuPointCloudCopyStatus   = dynamic_cast<ZEDCam*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
                 // Wait for point cloud to be retrieved.
-                if (fuPointCloudCopyStatus.get())
-                {
-                    // Split and store colors from point cloud.
-                    imgops::SplitPointCloudColors(m_cvPointCloud, m_cvFrame);
-                }
-                else
+                if (!fuPointCloudCopyStatus.get())
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from ZEDCam!");
+                }
+                if (!fuRegularFrameCopyStatus.get())
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
                 }
             }
         }
@@ -357,7 +360,7 @@ void TagDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
+            case PIXEL_FORMATS::eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
             default: *(stContainer.pFrame) = m_cvArucoProcFrame;
         }
 
@@ -424,7 +427,7 @@ void TagDetector::PooledLinearCode()
 std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
 {
     // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, eArucoDetection);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eArucoDetection);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -705,7 +708,7 @@ bool TagDetector::GetIsReady()
     bool bDetectorIsReady = false;
 
     // Check if this detectors thread is currently running.
-    if (this->GetThreadState() == eRunning)
+    if (this->GetThreadState() == AutonomyThreadState::eRunning)
     {
         // Check if using ZEDCam or BasicCam.
         if (m_bUsingZedCamera)

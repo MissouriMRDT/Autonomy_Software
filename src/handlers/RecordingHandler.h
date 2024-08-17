@@ -39,7 +39,7 @@ class RecordingHandler : public AutonomyThread<void>
         /////////////////////////////////////////
 
         // Enum used to select which mode the recorder should run in.
-        enum RecordingMode
+        enum class RecordingMode
         {
             eCameraHandler,            // Record video feeds from the CameraHandler.
             eTagDetectionHandler,      // Record video feeds from the TagDetectionHandler.

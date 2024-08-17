@@ -54,7 +54,7 @@ RUN apt-get install  --no-install-recommends -y \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 # Install CMake
-ARG CMAKE_VERSION="3.27.9"
+ARG CMAKE_VERSION="3.30.2"
 COPY install-cmake.sh /tmp/
 RUN if [ "${CMAKE_VERSION}" != "none" ]; then \
     chmod +x /tmp/install-cmake.sh && /tmp/install-cmake.sh ${CMAKE_VERSION}; \
@@ -77,7 +77,7 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.9.0"
+ARG OPENCV_VERSION="4.10.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
     rm opencv_${OPENCV_VERSION}_arm64.deb
@@ -107,13 +107,13 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflo
     rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
 
 # Install Quill
-ARG QUILL_VERSION="3.8.0"
+ARG QUILL_VERSION="6.1.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
     rm quill_${QUILL_VERSION}_arm64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.14.0"
+ARG GTEST_VERSION="1.15.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
     rm gtest_${GTEST_VERSION}_arm64.deb
@@ -132,5 +132,5 @@ LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
-LABEL org.opencontainers.image.version="v24.3.1"
+LABEL org.opencontainers.image.version="v24.5.0"
 LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."
