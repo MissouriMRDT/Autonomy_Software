@@ -100,7 +100,11 @@ namespace statemachine
         {
             case Event::eReachedObject:
             {
+                // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling ReachedObject event.");
+                // Pop old waypoint out of queue.
+                globals::g_pWaypointHandler->PopNextWaypoint();
+                // Change state.
                 eNextState = States::eIdle;
                 break;
             }

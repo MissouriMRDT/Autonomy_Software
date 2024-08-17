@@ -36,6 +36,7 @@ namespace statemachine
         private:
             bool m_bInitialized;
 
+            States m_eTriggeringState;                       // The state that the rover was in before triggering the MarkerSeen event.
             int m_nNumDetectionAttempts;                     // Number of consecutive unsuccessful attempts to detect a tag.
             int m_nTargetTagID;                              // ID of the target tag.
             bool m_bDetected;                                // Has a target tag been detected and identified yet.
