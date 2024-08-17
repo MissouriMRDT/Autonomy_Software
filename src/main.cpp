@@ -142,6 +142,8 @@ int main()
             LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
         }
 
+        // Initialize callbacks.
+        network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
         // Initialize drivers.
         globals::g_pDriveBoard      = new DriveBoard();
         globals::g_pMultimediaBoard = new MultimediaBoard();

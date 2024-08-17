@@ -1,5 +1,6 @@
 # Custom Dictionary Words
 ABGR
+accur
 ACCURACYDATA
 ADDMARKERLEG
 ADDOBJECTLEG
@@ -14,9 +15,13 @@ Aruco
 arucotag
 ASTAR
 autofetch
+AUTONOMYLOG
+AUTONOMYSTATE
 AUTONOMYTHREAD
 AVOIDANCESTATE
+Basestation
 BASICCAM
+bitmasked
 buildcache
 Buildx
 CALIB
@@ -38,6 +43,7 @@ DBUILD
 deadband
 debfile
 Deblur
+decipercent
 Denoise
 depthobject
 deque
@@ -49,6 +55,7 @@ DISABLEAUTONOMY
 DISPLAYSTATE
 dockerfiles
 dorny
+DOTA
 doxdocgen
 Doxyfile
 Doxygen
@@ -101,6 +108,7 @@ MAPANGLE
 MAPRANGE
 marsrover
 Memcheck
+MERICA
 microcontrollers
 missourimrdt
 MJPEG
@@ -111,6 +119,7 @@ multithreads
 navboard
 NAVIGATINGSTATE
 NAVIGATIONBOARD
+navpvt
 nJter
 nullptr
 OBJDETECTION
@@ -120,11 +129,13 @@ odometry
 opencontainers
 opencv
 OTSU
+Overcurrent
 parallelizable
 Parens
 pathplanners
 PIXELTYPE
 POSETRACK
+Raman
 rdparty
 reprojection
 RESOLUTIONX
@@ -137,6 +148,7 @@ rovecomm
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
+SETLOGGINGLEVELS
 SETMAXSPEED
 setpoint
 setpoints
@@ -170,6 +182,8 @@ tparam
 twxs
 UART
 UBLOX
+Undervolt
+Undervoltage
 unquantized
 unstuckith
 UNVALIDATED
