@@ -1,5 +1,5 @@
 # Base Image
-FROM ghcr.io/missourimrdt/autonomy-jetpack:2024-08-16-16-36-37
+FROM ghcr.io/missourimrdt/autonomy-jetpack:latest
 
 # Install Variables
 ARG L4T_MAJOR="36"
