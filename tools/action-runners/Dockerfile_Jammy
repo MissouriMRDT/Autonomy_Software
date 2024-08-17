@@ -1,12 +1,12 @@
 # Base Image
-FROM ghcr.io/missourimrdt/autonomy-jammy:latest
+FROM ghcr.io/missourimrdt/autonomy-jammy:2024-08-16-16-36-37
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="12"
 ARG CUDA_MINOR="2"
 ARG CUDA_PATCH="2"
-ARG RUNNER_VERSION="2.319.0"
+ARG RUNNER_VERSION="2.319.1"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNNER_ALLOW_RUNASROOT=1
 

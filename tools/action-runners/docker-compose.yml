@@ -5,10 +5,10 @@ services:
       context: .
       dockerfile: Dockerfile_Jammy
       args:
-        RUNNER_VERSION: '2.314.1'
+        RUNNER_VERSION: '2.319.1'
     command: unix-connect:/var/run/docker.sock
     deploy:
-      replicas: 2
+      replicas: 3
       resources:
         reservations:
           devices:
