@@ -21,6 +21,7 @@ AUTONOMYTHREAD
 AVOIDANCESTATE
 Basestation
 BASICCAM
+Bbuild
 bitmasked
 buildcache
 Buildx
@@ -28,6 +29,7 @@ CALIB
 CELLVOLTAGE
 clayjay
 CLEARWAYPOINTS
+Codecov
 codeql
 codezombiech
 Coeffs
@@ -36,10 +38,12 @@ COMPASSDATA
 Contoller
 cpptools
 cschlosser
+ctest
 CUDA
 CURRENTLOG
 CURRENTSTATE
 DBUILD
+DCMAKE
 deadband
 debfile
 Deblur
