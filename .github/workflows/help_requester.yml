@@ -38,18 +38,18 @@ jobs:
           git checkout "$commit"
 
           # Run the LEAD comments extraction and Discord notification script
-          chmod +x ./tools/leads-commenter/extract_comments.sh
-          chmod +x ./tools/leads-commenter/send_discord.sh
+          chmod +x ./tools/help-request/extract_comments.sh
+          chmod +x ./tools/help-request/send_discord.sh
           
           # Extract LEAD comments
-          ./tools/leads-commenter/extract_comments.sh "$commit"
+          ./tools/help-request/extract_comments.sh "$commit"
         done
 
         # Check if any comment files were created
         if [ "$(ls -A comments)" ]; then
             echo "LEAD comments have been extracted and saved in the comments directory."
             # Send Discord notification if comment files exist
-            ./tools/leads-commenter/send_discord.sh
+            ./tools/help-request/send_discord.sh
         else
             echo "No LEAD comments were found in commit $commit. No notification will be sent."
         fi
