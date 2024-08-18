@@ -64,6 +64,7 @@ jobs:
       - name: Organize Files
         run: |
           cd /opt/Autonomy_Software/
+          ls -alR build/
           coverage_file=$(find . -name "Coverage.xml" | head -n 1)
           if [ -f "$coverage_file" ]; then
             mv "$coverage_file" /opt/Autonomy_Software/build
