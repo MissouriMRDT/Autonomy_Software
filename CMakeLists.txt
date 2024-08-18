@@ -45,6 +45,19 @@ else()
     set(EXE_NAME "${PROJECT_NAME}")
 endif()
 
+## Enable or Disable Code Coverage Mode
+option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
+if (BUILD_CODE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
+endif ()
+
+## Enable or Disable Verbose Makefile
+option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
+if (BUILD_VERBOSE_MODE)
+    set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
+endif ()
+
 ## Define Project Name and Version Number for CPack
 set(CPACK_PROJECT_NAME ${EXE_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
