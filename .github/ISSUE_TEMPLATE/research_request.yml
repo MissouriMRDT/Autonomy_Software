@@ -1,0 +1,95 @@
+name: Research Request
+description: Propose a topic or area for research.
+title: "[Research] "
+labels: 
+  - research
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### **Topic Overview**
+        Provide a brief description of the research topic or area.
+
+  - type: input
+    id: topic_overview
+    attributes:
+      label: Topic Overview
+      description: Provide a brief description of the research topic or area.
+      placeholder: A brief description of the research topic.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Research Goals**
+        Describe what you aim to discover or achieve with this research.
+
+  - type: textarea
+    id: research_goals
+    attributes:
+      label: Research Goals
+      description: Describe what you aim to discover or achieve with this research.
+      placeholder: Outline the research goals.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Approach**
+        Suggest potential methods, experiments, or tools for conducting this research.
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Approach
+      description: Suggest potential methods, experiments, or tools for conducting this research.
+      placeholder: Suggest methods, experiments, or tools.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Related Work**
+        Link to or describe any prior research, papers, or related projects.
+
+  - type: textarea
+    id: related_work
+    attributes:
+      label: Related Work
+      description: Describe or link to any related work or prior research.
+      placeholder: Provide any relevant links or descriptions of related work.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Timeline**
+        Provide a rough timeline or milestones for the research (if applicable).
+
+  - type: input
+    id: timeline
+    attributes:
+      label: Timeline
+      description: Provide a rough timeline or milestones for the research (if applicable).
+      placeholder: A rough timeline or milestones.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Additional Context**
+        Add any additional context, links, or information related to this research topic.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Provide any additional context, links, or information related to this research topic.
+      placeholder: Add any additional context or links.
+    validations:
+      required: false
