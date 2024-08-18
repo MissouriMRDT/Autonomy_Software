@@ -34,7 +34,7 @@ Now that VSCode is installed, let’s power it up with some extensions!
 
 ![](data/README_Resources/images/vscode_install_extensions.png)
 
-**Note:** Once we’re in the devcontainer, the extensions you install locally will be separate from the ones inside the container. Want a particular extension to be included by default? Hit up one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software_leads).
+**Note:** Once we’re in the devcontainer, the extensions you install locally will be separate from the ones inside the container. Want a particular extension to be included by default? Hit up one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software-leads).
 
 ---
 

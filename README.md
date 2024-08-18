@@ -26,13 +26,13 @@
 
   <div>
     <a href="https://codecov.io/gh/MissouriMRDT/Autonomy_Software" > 
-        <img src="https://codecov.io/gh/MissouriMRDT/Autonomy_Software/branch/topic%2Fcode-coverage/graph/badge.svg?token=AZVPRPE5A8"/> 
+        <img src="https://codecov.io/gh/MissouriMRDT/Autonomy_Software/branch/topic%2Fcode-coverage/graph/badge.svg?token=AZVPRPE5A8" alt="codecov-ci" /> 
     </a>
     <a href="https://app.codacy.com/gh/missourimrdt/autonomy_software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
-      <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="Codacy" />
+      <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="codacy-ci" />
     </a>
     <a href="https://www.codefactor.io/repository/github/missourimrdt/autonomy_software">
-      <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="CodeFactor" />
+      <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="codefactor-ci" />
     </a>
   </div>
 
@@ -143,9 +143,7 @@ If you prefer to set up the environment manually, make sure your system has the 
   - Python 3.8 or higher (for scripting and utility purposes)
   - Doxygen (for generating documentation)
   - OpenCV 4.10.0 or higher (required for vision processing)
-  - CUDA Toolkit 12.2 or higher (
-
-for NVIDIA graphics card support)
+  - CUDA Toolkit 12.2 or higher (or NVIDIA graphics card support)
   - NVIDIA JetPack SDK (required for Jetson platforms)
   - ZED SDK 4.1 or higher (for stereolabs cameras)
   - PyTorch 2.2.2 or higher (for machine learning tasks)
@@ -248,9 +246,13 @@ This project makes use of several open-source libraries and tools that help us a
   [PyTorch GitHub](https://github.com/pytorch/pytorch)  
   License: [BSD-3-Clause License](https://github.com/pytorch/pytorch/blob/main/LICENSE)
 
-- **TensorFlow** - Open-source library for machine learning and artificial intelligence.  
-  [TensorFlow GitHub](https://github.com/tensorflow/tensorflow)  
+- **TensorFlow Lite** - Lightweight version of TensorFlow for running machine learning models on mobile and embedded devices.  
+  [TensorFlow Lite](https://www.tensorflow.org/lite/guide)  
   License: [Apache License 2.0](https://www.tensorflow.org/license)
+
+- **Libedgetpu** - Library for accessing Google’s Edge TPU for hardware-accelerated machine learning inference on embedded devices.  
+  [Libedgetpu](https://coral.ai/docs/reference/cpp/)  
+  License: [Apache License 2.0](https://github.com/google-coral/libedgetpu/blob/master/LICENSE)
 
 - **ZED SDK** - Software development kit for Stereolabs ZED cameras.  
   [Stereolabs ZED SDK](https://www.stereolabs.com/developers/)  
@@ -272,6 +274,10 @@ This project makes use of several open-source libraries and tools that help us a
   [GeographicLib GitHub](https://github.com/geographiclib/geographiclib)  
   License: [MIT License](https://github.com/geographiclib/geographiclib/blob/main/LICENSE.txt)
 
+- **Eigen** - A high-performance C++ library for linear algebra, matrix, and vector operations.  
+  [Eigen GitHub](https://gitlab.com/libeigen/eigen)  
+  License: [MPL2 License](https://gitlab.com/libeigen/eigen/-/blob/master/COPYING.MPL2)
+
 - **CMake** - Cross-platform tool for managing the build process of software.  
   [CMake GitHub](https://github.com/Kitware/CMake)  
   License: [BSD-3-Clause License](https://cmake.org/licensing/)
@@ -287,6 +293,20 @@ This project makes use of several open-source libraries and tools that help us a
 - **Doxygen** - Tool for generating documentation from annotated C++ sources.  
   [Doxygen GitHub](https://github.com/doxygen/doxygen)  
   License: [GPL-2.0 License](https://github.com/doxygen/doxygen/blob/master/LICENSE)
+
+---
+
+## 📦 Submodule Libraries
+
+This project also uses the following submodules, which are included as part of the repository:
+
+- **Thread Pool** - A lightweight and efficient C++17 thread pool implementation.  
+  [Thread Pool GitHub](https://github.com/bshoshany/thread-pool)  
+  License: [MIT License](https://github.com/bshoshany/thread-pool/blob/master/LICENSE)
+
+- **RoveComm_CPP** - A C++ implementation of the RoveComm communication protocol for MRDT systems.  
+  [RoveComm_CPP GitHub](https://github.com/MissouriMRDT/RoveComm_CPP)  
+  License: [MIT License](https://github.com/MissouriMRDT/RoveComm_CPP/blob/master/LICENSE)
 
 ---
 

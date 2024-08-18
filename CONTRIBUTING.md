@@ -81,6 +81,10 @@ Example:
 Closed #42: Fixed crash in the navigation state machine by adjusting state transitions.
 ```
 
+### Automatic Review Assignment
+
+Once a pull request is opened, it will be automatically assigned to a member of the [software review](https://github.com/orgs/MissouriMRDT/teams/software-review) team for review. This ensures that every contribution receives prompt feedback and aligns with the project guidelines.
+
 ---
 
 ## 🛑 Marking Issues in Code

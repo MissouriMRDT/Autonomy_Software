@@ -1,3 +1,5 @@
+\page md_SECURITY Security Policy
+
 # 🔒 Security Policy
 
 ## 🌟 Overview
