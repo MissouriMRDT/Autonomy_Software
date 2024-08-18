@@ -49,22 +49,19 @@ jobs:
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Install Coverage Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcovr lcov
-
       - name: Configure and Build
         run: |
           cd /opt/Autonomy_Software/
           if [ -d "build" ]; then rm -Rf build; fi
-          cmake -Bbuild -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_VERBOSE_MODE=ON
-          cmake --build build -j4
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_VERBOSE_MODE=ON
+          cmake -j8
 
       - name: Test
         run: |
           cd /opt/Autonomy_Software/build
-          ctest -T Coverage --build-config RelWithDebInfo
+          ctest -T Test -T Coverage
 
       - name: Organize Files
         run: |
