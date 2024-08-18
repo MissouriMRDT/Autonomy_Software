@@ -7,6 +7,8 @@
     <tab type="user" url="@ref md_CONTRIBUTING" title="Contributing Guide"/>
     <tab type="user" url="@ref md_INSTALL" title="Installation Guide"/>
     <tab type="user" url="@ref md_DEBUG" title="Development Guide"/>
+    <tab type="user" url="@ref md_SECURITY" title="Security Policy"/>
+    <tab type="user" url="@ref md_CODE_OF_CONDUCT" title="Code of Conduct"/>
     <tab type="pages" visible="no" title="" intro=""/>
     <tab type="modules" visible="no" title="" intro=""/>
     <tab type="namespaces" visible="yes" title="">

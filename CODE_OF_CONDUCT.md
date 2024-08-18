@@ -1,3 +1,5 @@
+\page md_CODE_OF_CONDUCT Code of Conduct
+
 # Contributor Covenant Code of Conduct
 
 ## Our Pledge
