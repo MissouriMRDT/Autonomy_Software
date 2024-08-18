@@ -36,6 +36,7 @@ Coeffs
 Colour
 COMPASSDATA
 Contoller
+CPACK
 cpptools
 cschlosser
 ctest
@@ -95,6 +96,7 @@ inferenced
 inferencing
 jbockle
 jetpack
+Jetson
 jspencerpittman
 Jter
 jthread
@@ -165,10 +167,14 @@ statechart
 STATEDISPLAY
 statemachine
 STATEMACHINEHANDLER
+stereolabs
 STOPAUTONOMY
 Struct
+structs
 STUCKSTATE
 Styleguides
+Subteam
+Subteams
 superres
 TAGDETECT
 TAGDETECTOR

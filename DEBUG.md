@@ -1,57 +1,66 @@
 \page md_DEBUG Development Guide
 
-# Debugging with CMake and Visual Studio Code
+# 🎯 Debugging with CMake and Visual Studio Code
 
-Debugging a C++ application in Visual Studio Code can be made seamless and efficient using the CMakeTools extension from Microsoft, which was automatically installed into the devcontainer from the Visual Studio Code Extensions Marketplace. This extension integrates CMake with Visual Studio Code, enabling developers to easily build and debug C++ applications directly within the VSCode environment.
+Hey there, C++ developer! Ready to dive into debugging your code like a pro? Let’s make this process smooth and (dare I say) fun with CMake and Visual Studio Code. No stress—just follow along, and you’ll be debugging in no time!
 
-## Setting up the Development Environment
+## 🚀 Quick Setup Guide
 
-1. Open this project in a devcontainer: First, install Microsoft's _Dev Containers_ extension from the marketplace. Then hit `CTRL + SHIFT + P` sequence
-to open the editor commands, and select the `Dev Container: Rebuild Container` option. 
+1. **Open Your Project in a Devcontainer**  
+   First things first: grab the _Dev Containers_ extension from the VSCode marketplace. Done? Awesome! Now hit `CTRL + SHIFT + P`, search for `Dev Container: Rebuild Container`, and voilà—you’re good to go!
 
-3. Select the CMake Kit: Once you open the project, you'll be prompted to select the CMake Kit for your project. You can do this either from the bottom status bar or during the initial setup of the development container a prompt will automatically show up. The CMake Kit represents the C++ toolchain used for building the project (compiler, architecture, etc.). Choose the appropriate kit for your project.
+2. **Pick Your CMake Kit**  
+   Don’t worry; VSCode has your back! When you first open the project, it’ll ask you to select a C++ toolchain (aka a CMake Kit).  
+   Pro tip: Choose `/usr/bin/g++` or `/usr/bin/gcc`—these are your go-to safe options!
 
-| ![](data/README_Resources/images/kit_selection_first_container_start.png) | 
-|:--:| 
-| *When the devcontainer is first started CMAKE Tools will ask you to select a kit. The compiler located at /usr/bin/g++ and /usr/bin/gcc will always be the safest choice.* |
-| ![](data/README_Resources/images/kit_selection_toolbar.png) |  
-| *During subsequent startups, you can easily change the kit using the bottom toolbar.* |
+   | ![](data/README_Resources/images/kit_selection_first_container_start.png) | 
+   |:--:| 
+   | *Kit selection? Easy. Stick to `/usr/bin/g++` or `/usr/bin/gcc`.* |
 
-4. Configure and build the project: If the CMake cache needs to be generated or updated, the extension will configure the project automatically. This process may take a few seconds, depending on your hardware.
+3. **Configure and Build Like a Pro**  
+   CMake will automatically configure things as needed. All you have to do is sit back, grab a coffee, and let it work its magic. Once that’s done, use the toolbar buttons to build and run your shiny new software.
 
-| ![](data/README_Resources/images/toolbar_build_run.png) | 
-|:--:| 
-| *Use the buttons in the toolbar to build and run the Autonomy_Software application.* |
+   | ![](data/README_Resources/images/toolbar_build_run.png) | 
+   |:--:| 
+   | *Toolbar = your best friend for building and running.* |
 
-## Debugging the C++ Application
+## 🛠️ Time to Debug!
 
-Now that you have set up the development environment, you are ready to debug your C++ application.
+Now that you’re all set up, let’s get cracking on debugging your C++ code. Ready? Let’s go!
 
-1. Set Breakpoints: Place breakpoints in your C++ source code where you want to pause the program's execution to inspect variables, analyze the flow, or 
-diagnose issues.
+1. **Set Some Breakpoints**  
+   Want to pause your program and take a peek at what’s happening under the hood? Just click next to the line number, and bam—you’ve got yourself a breakpoint!
 
-| ![](data/README_Resources/images/breakpoint_selection.png) | 
-|:--:| 
-| *To set breakpoints directly within the vscode editor, toggle on the red dot next to the line numbers.* |
+   | ![](data/README_Resources/images/breakpoint_selection.png) | 
+   |:--:| 
+   | *Look for the red dot to set breakpoints like a boss.* |
 
-2. Compile for Debugging: In order to properly debug our application, we must compile the program with special flags set. We can let CMAKE do this for us by simply selecting the debug configuration from the bottom toolbar.
+2. **Switch to Debug Mode**  
+   Debugging mode is your playground, but first, let’s compile your code with debug flags. Use the bottom toolbar to flip from Release to Debug mode. Remember: Debug is for squashing bugs, Release is for speed!
 
-| ![](data/README_Resources/images/toolbar_cmake_debug_config.png) | 
-|:--:| 
-| *Use the toolbar to change between Release and Debug configurations. Release runs faster but can't be debugged, so whenever you're done debugging switch back to the Release config.* |
+   | ![](data/README_Resources/images/toolbar_cmake_debug_config.png) | 
+   |:--:| 
+   | *Flip that switch to Debug mode when hunting bugs.* |
 
-3. Start Debugging: Click the debug icon in the toolbar to automatically build and start the program.
+3. **Start Debugging**  
+   It’s showtime! Click the debug icon in the toolbar, and watch as VSCode does all the heavy lifting—building and launching your code in debug mode.
 
-| ![](data/README_Resources/images/toolbar_debug_button.png) | 
-|:--:| 
-| *Click the debug button to enter debug mode in VSCode.* |
+   | ![](data/README_Resources/images/toolbar_debug_button.png) | 
+   |:--:| 
+   | *Hit that debug button and let's get cracking!* |
 
-4. Debugging Controls: Use the debugging controls (e.g., step into, step over, continue, etc.) in the Debug toolbar to navigate through your code while inspecting variables, stack traces, and more.
-![](data/README_Resources/images/vscode_debug_mode.png)
+4. **Master the Debugging Controls**  
+   Now the fun begins! Use the controls to step into, step over, and continue through your code. It’s like navigating through a choose-your-own-adventure book, except you get to catch bugs and optimize performance!
 
-- Inspect Variables: In the "Variables" view, you can inspect the current values of variables in your code during debugging.
-- Analyze Call Stack: The "Call Stack" view provides a stack trace, helping you understand the flow of execution and identify the function calls that led to the current point in your code.
-- Set Watchpoints: You can set watchpoints on specific variables to break execution when their values change.
-- Debug Console: Use the Debug Console to execute custom expressions and commands during debugging.
+   ![](data/README_Resources/images/vscode_debug_mode.png)
 
-With CMakeTools and Visual Studio Code, you can efficiently build and debug your C++ applications within the familiar and powerful VSCode environment. The seamless integration between CMake and Visual Studio Code makes it easier for C++ developers to focus on writing code and quickly diagnose and fix issues. Happy debugging!
+   - **Variables View**: Curious what’s going on inside your variables? Peek into the "Variables" view—it's like X-ray vision for your code.
+   - **Call Stack View**: Wondering how you got here? The "Call Stack" is your map of all the function calls that led you to this point.
+   - **Watchpoints**: Set a watchpoint and see exactly when a variable changes. It’s like having a detective on your code.
+   - **Debug Console**: Need to test something on the fly? Jump into the Debug Console and run expressions like a wizard casting spells. 🧙‍♂️
+
+## 🏁 Wrap-Up
+
+See? Debugging doesn’t have to be painful. With CMakeTools and Visual Studio Code, it’s all about making things easier so you can focus on writing great code and, of course, solving puzzles along the way.
+
+So, ready to dive back into your code? You’ve got this. Happy debugging! 🎉

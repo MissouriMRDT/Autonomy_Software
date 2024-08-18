@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  analyze-code-coverage:
     runs-on: [self-hosted, linux, X64]
 
     steps:
@@ -62,11 +62,12 @@ jobs:
         run: |
           cd /opt/Autonomy_Software/build
           ctest -T Test -T Coverage
+          ctest -T Test --output-junit Test.xml
 
-      - name: Organize Files
+      - name: Move Coverage Files
         run: |
           cd /opt/Autonomy_Software/
-          ls -alR build/
+
           coverage_file=$(find . -name "Coverage.xml" | head -n 1)
           if [ -f "$coverage_file" ]; then
             mv "$coverage_file" /opt/Autonomy_Software/build
@@ -82,3 +83,12 @@ jobs:
           verbose: true
           directory: /opt/Autonomy_Software/build
           file: Coverage.xml
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          directory: /opt/Autonomy_Software/build
+          file: Test.xml
