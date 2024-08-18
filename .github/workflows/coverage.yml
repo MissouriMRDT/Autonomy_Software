@@ -62,6 +62,7 @@ jobs:
         run: |
           cd /opt/Autonomy_Software/build
           ctest -T Test -T Coverage
+          ctest -T Test --output-junit Test.xml
 
       - name: Move Coverage Files
         run: |
@@ -74,16 +75,6 @@ jobs:
             echo "Coverage.xml not found"
             exit 1
           fi
-
-          test_file=$(find . -name "Test.xml" | head -n 1)
-          if [ -f "$test_file" ]; then
-            mv "$test_file" /opt/Autonomy_Software/build
-          else
-            echo "Test.xml not found"
-            exit 1
-          fi
-
-          ls -alR /opt/Autonomy_Software/build
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
