@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# Use the secrets passed from the GitHub Action environment
-SOFTWARE_LEADS_ROLE_ID="$SOFTWARE_LEADS_ROLE_ID"
-DISCORD_WEBHOOK_URL="$DISCORD_WEBHOOK_URL"
+# Set variables
 GITHUB_REPO="MissouriMRDT/Autonomy_Software"
 
 # Initialize the base of the JSON payload
