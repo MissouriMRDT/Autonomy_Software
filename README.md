@@ -44,6 +44,8 @@
 
 ## Introduction
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/2d0f6bc73ff1485ca687c3fc4a17043c)](https://app.codacy.com/gh/MissouriMRDT/Autonomy_Software?utm_source=github.com&utm_medium=referral&utm_content=MissouriMRDT/Autonomy_Software&utm_campaign=Badge_Grade)
+
 Welcome to the Autonomy Software repository of the [Mars Rover Design Team (MRDT)](https://marsrover.mst.edu) at [Missouri University of Science and Technology (Missouri S&T)](https://mst.edu)! This repository contains the source code, documentation, and other resources for the development of the Autonomy Software for our Mars Rover. The Autonomy Software project aims to compete in the University Rover Challenge (URC) by demonstrating advanced autonomous capabilities and robust navigation algorithms.
 
 
