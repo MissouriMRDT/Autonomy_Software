@@ -2,157 +2,224 @@
 
 # Contributing to Autonomy Software
 
-## Contributing
+## 📋 Overview
 
-### Reporting Bugs
+Thank you for considering contributing to Autonomy Software! This guide will help you report bugs, suggest enhancements, and follow our code style and conventions.
 
-#### Before Submitting a Bug Report
+---
 
-A good bug report shouldn't leave others needing to chase you down for more information. Therefore, we ask you to investigate carefully, collect information and describe the issue in detail in your report. Please complete the following steps in advance to help us fix any potential bug as fast as possible.
+## 🐛 Reporting Bugs
 
-- Make sure that you are using the latest version.
-- Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://missourimrdt.github.io/Autonomy_Software/)).
-- To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/MissouriMRDT/Autonomy_Software/issues).
-- Collect information about the bug:
-  - Backtrace
-  - OS, Platform and Version
-  - Can you reliably reproduce the issue? And can you also reproduce it with older versions?
+### 🔍 Before Submitting a Bug Report
 
-#### How Do I Submit a Good Bug Report?
+To help us fix potential bugs quickly, please ensure the following:
 
-We use GitHub issues to track bugs and errors. If you run into an issue with the project:
+- **Use the latest version** of the software.
+- **Verify** that the issue is a bug and not an error on your side (e.g., incompatible environment components/versions). Check the [documentation](https://missourimrdt.github.io/Autonomy_Software/) for guidance.
+- **Search** the [bug tracker](https://github.com/MissouriMRDT/Autonomy_Software/issues) to see if the issue has already been reported or solved.
+- **Collect relevant information** such as:
+  - Backtrace (if applicable)
+  - OS, Platform, and Version
+  - Steps to reliably reproduce the issue
 
-- Open an [Issue](https://github.com/MissouriMRDT/Autonomy_Software/issues/new).
-- Explain the behavior you would expect and the actual behavior.
-- Please provide as much context as possible and describe the _reproduction steps_ that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
-- Provide the information you collected in the previous section.
+### ✍️ Submitting a Good Bug Report
 
-### Suggesting Enhancements
+To submit a bug report:
 
-This section guides you through submitting an enhancement suggestion for Autonomy Software, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
+1. **Open a new [Issue](https://github.com/MissouriMRDT/Autonomy_Software/issues/new)** on GitHub.
+2. **Describe the expected behavior** and **the actual behavior**.
+3. **Provide detailed reproduction steps**, including code snippets where possible.
+4. **Include any gathered information** (backtrace, OS, platform, version).
 
-#### Before Submitting an Enhancement
+Good bug reports help us isolate the problem faster and improve the software more efficiently.
 
-- Make sure that you are using the latest version.
-- Read the [documentation](https://missourimrdt.github.io/Autonomy_Software/) carefully and find out if the functionality is already covered.
-- Perform a [search](https://github.com/MissouriMRDT/Autonomy_Software/issues) to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.
+---
 
-#### How Do I Submit a Good Enhancement Suggestion?
+## 💡 Suggesting Enhancements
 
-Enhancement suggestions are tracked as [GitHub issues](https://github.com/MissouriMRDT/Autonomy_Software/issues).
+### 🔍 Before Submitting an Enhancement Suggestion
 
-- Use a **clear and descriptive title** for the issue to identify the suggestion.
-- Provide a **step-by-step description of the suggested enhancement** in as many details as possible.
-- **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
+- **Ensure you are using the latest version** of the software.
+- **Check the [documentation](https://missourimrdt.github.io/Autonomy_Software/)** to see if the feature already exists.
+- **Search the [issue tracker](https://github.com/MissouriMRDT/Autonomy_Software/issues)** to see if someone has already suggested a similar enhancement.
 
-### Commit Messages
+### ✍️ Submitting a Good Enhancement Suggestion
 
-Commit names should be no more than 50 characters. They should have `#<issue num>` to link commits to the issue.
+To submit an enhancement suggestion:
 
-### Pull Requests
+1. **Open a new [Issue](https://github.com/MissouriMRDT/Autonomy_Software/issues)** on GitHub.
+2. **Use a clear, descriptive title**.
+3. **Provide a step-by-step description** of your suggested enhancement.
+4. **Explain the current behavior** and **describe the expected behavior**, including why the change is beneficial.
 
-Pull Request names should be no more than 50 characters. The description should be quite detailed in everything that was added and should have `closed #<issue num>` to mark that the pull request will fix an issue.
+---
 
-## Marking Issues in Code
+## 💾 Commit Messages
 
-### Utilizing TODO-Trees
+### Guidelines
 
-A list of action items can be built in the TODO extension tab using these keywords to highlight and mark sections of code for later review:
-- // * @todo Implement the behavior specific to the Approaching Object state
-- // @todo Implement the behavior specific to the Approaching Object state
-- // TODO: Implement the behavior specific to the Approaching Object state
-- // BUG: This breaks occasionally.
-- // HACK: This is bad, never do this.
-- // FIXME: Broken
-- // LEAD: Check this out...
-- // ISSUE NOTE: This is messed up.
-- // TEST: Make sure this works, write unit tests.
-- // [ ] This is a list item.
-- // [x] This is a checked list item.
+- Keep commit messages under **50 characters**.
+- Always include a reference to the relevant issue number in the format: `#<issue num>`.
 
-## Styleguides
+Example:
+```
+fix: Resolve crash in navigation state machine #42
+```
 
-### Variable Names
+---
 
-Variable names should be in camel case with the lower case portion being the identifier from below. The name should give a good description of what the variable is for but should not exceed 32-48 characters.
+## 🔄 Pull Requests
 
-#### Member and Global Variables
+### Guidelines
 
-- **Member Variables** should always start with `m_` and then use the following standards to set the rest of their name.
-- **Global Variables** should always start with `g_` and then use the following standards to set the rest of their name.
+- Keep pull request titles under **50 characters**.
+- Include a detailed description of the changes made.
+- Use `closed #<issue num>` in the description to link the pull request to a specific issue.
 
-Examples: `int g_nExampleGlobalInteger` or `int m_nExampleMemberInteger`
+Example:
+```
+Closed #42: Fixed crash in the navigation state machine by adjusting state transitions.
+```
+
+---
+
+## 🛑 Marking Issues in Code
+
+To mark sections of code for later review, we use keywords that can be compiled into a to-do list in the TODO extension tab. Here's a list of commonly used keywords:
+
+- `// * @todo` or `// @todo` – Marks sections of code for future implementation.
+- `// TODO:` – Generic to-do items.
+- `// BUG:` – Known issues or bugs.
+- `// HACK:` – Temporary workarounds that need improvement.
+- `// FIXME:` – Sections of code that are broken and need fixing.
+- `// LEAD:` – Important notes for review by team leads.
+- `// ISSUE NOTE:` – Problematic code that needs attention.
+- `// TEST:` – Indicates areas that require testing.
+
+You can also use checklist-style comments:
+- `// [ ]` – Unchecked to-do item.
+- `// [x]` – Checked to-do item.
+
+---
+
+---
+
+## 🎨 Style Guide
+
+### 🔢 Signed and Unsigned Types
+
+The following tables outline the naming conventions for signed and unsigned types:
 
 #### Signed Types
 
-- Signed Integer > `n` > Example: `int nExampleSignedInteger`
-- Signed Long > `l` > Example: `long lExampleSignedLong`
-- Signed Short > `s` > Example: `short sExampleSignedShort`
-- Signed Float > `f` > Example: `float fExampleSignedFloat`
-- Signed Double > `d` > Example: `double dExampleSignedDouble`
+| Type              | Prefix | Example                          |
+|-------------------|--------|----------------------------------|
+| Signed Integer    | `n`    | `int nExampleSignedInteger`      |
+| Signed Long       | `l`    | `long lExampleSignedLong`        |
+| Signed Short      | `s`    | `short sExampleSignedShort`      |
+| Signed Float      | `f`    | `float fExampleSignedFloat`      |
+| Signed Double     | `d`    | `double dExampleSignedDouble`    |
 
 #### Unsigned Types
 
-- Unsigned Char > `uc` > Example: `unsigned char ucExampleUnsignedChar`
-- Unsigned Integer > `un` > Example: `unsigned int unExampleUnsignedInteger`
-- Unsigned Long > `ul` > Example: `unsigned long ulExampleUnsignedLong`
-- Unsigned Short > `us` > Example: `unsigned short usExampleUnsignedShort`
-- Unsigned Float > `uf` > Example: `unsigned float ufExampleUnsignedFloat`
-- Unsigned Double > `ud` > Example: `unsigned double udExampleUnsignedDouble`
+| Type               | Prefix | Example                           |
+|--------------------|--------|-----------------------------------|
+| Unsigned Char      | `uc`   | `unsigned char ucExampleUnsignedChar` |
+| Unsigned Integer   | `un`   | `unsigned int unExampleUnsignedInteger` |
+| Unsigned Long      | `ul`   | `unsigned long ulExampleUnsignedLong` |
+| Unsigned Short     | `us`   | `unsigned short usExampleUnsignedShort` |
+| Unsigned Float     | `uf`   | `unsigned float ufExampleUnsignedFloat` |
+| Unsigned Double    | `ud`   | `unsigned double udExampleUnsignedDouble` |
 
-#### Other Types
+---
 
-- Boolean > `b` > Example: `bool bExampleBoolean`
-- Character > `c` > Example: `char cExampleCharacter`
-- Vector > `v` > Example: `vector<int> vExampleVector`
-- Array > `a` > Example: `int aExampleArray[4]`
-- Deque > `dq` > Example: `deque dqExampleDeque`
-- Queue > `q` > Example: `queue<int> qExampleQueue`
-- Iterator > `it` > Example: `iterator itExampleIterator`
-- String > `sz` > Example: `string szExampleString`
-- Pointer > `p` > Example: `string* pExamplePointer`
-- Enum > `e` > Example: `ExampleEnum::eExampleUseOfEnum`
-- Time > `tm` > Example: `time_t tmExampleUseOfTime`
-- Template > `t` > Example: `T tExampleUseOfTemplateType`
-- Size > `si` > Example: `size_t siExampleUseOfTime`
-- Tuple > `tp` > Example: `tuple tpExampleUseOfTuple`
-- STD Type > `std` > Example: `memory_order stdExampleUseOfMemoryOrder`
-- Thread > `th` > Example: `jthread thExampleUseOfThread`
-- Mutex > `mu` > Example: `mutex muExampleUseOfMutex`
-- Lock > `lk` > Example: `lock lkExampleUseOfLock`
-- Condition Variable > `cd` > Example: `condition_variable cdExampleUseOfConditionVariable`
-- Struct > `st` > Example: `StructName stExampleUseOfStruct`
-- Future > `fu` > Example: `future<void> fuExampleUseOfFuture`
-- Promise > `pm` > Example: `promise<void> pmExampleUseIfPromise`
-- Unordered Map > `um` > Example: `unordered_map<int, int> umExampleUseOfUnorderedMap`
+### 📚 Other Types
 
-#### External Types
+The table below lists various other common types and their corresponding prefixes:
 
-- OpenCV > `cv` > Example: `cv::Mat cvExampleMat`
-- ZEDSDK > `sl` > Example: `sl::Mat slExampleZedMat`
-- Quill > `q` > Example: `quill::Config qConfig`
-- GeographicLib > `ge` > Example: `GeographicLib::Geodesic geExampleGeographicType`
-- Tensorflow > `tf` > Example: `tflite::Interpreter tfExampleTensorflowType`
-- Libedgetpu > `tpu` > Example: `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType`
+| Type                | Prefix  | Example                                |
+|---------------------|---------|----------------------------------------|
+| Boolean             | `b`     | `bool bExampleBoolean`                 |
+| Character           | `c`     | `char cExampleCharacter`               |
+| Vector              | `v`     | `vector<int> vExampleVector`           |
+| Array               | `a`     | `int aExampleArray[4]`                 |
+| Deque               | `dq`    | `deque dqExampleDeque`                 |
+| Queue               | `q`     | `queue<int> qExampleQueue`             |
+| Iterator            | `it`    | `iterator itExampleIterator`           |
+| String              | `sz`    | `string szExampleString`               |
+| Pointer             | `p`     | `string* pExamplePointer`              |
+| Enum                | `e`     | `ExampleEnum::eExampleUseOfEnum`       |
+| Time                | `tm`    | `time_t tmExampleUseOfTime`            |
+| Template            | `t`     | `T tExampleUseOfTemplateType`          |
+| Size                | `si`    | `size_t siExampleUseOfSize`            |
+| Tuple               | `tp`    | `tuple tpExampleUseOfTuple`            |
+| STD Type            | `std`   | `memory_order stdExampleUseOfMemoryOrder` |
+| Thread              | `th`    | `jthread thExampleUseOfThread`         |
+| Mutex               | `mu`    | `mutex muExampleUseOfMutex`            |
+| Lock                | `lk`    | `lock lkExampleUseOfLock`              |
+| Condition Variable  | `cd`    | `condition_variable cdExampleUseOfConditionVariable` |
+| Struct              | `st`    | `StructName stExampleUseOfStruct`      |
+| Future              | `fu`    | `future<void> fuExampleUseOfFuture`    |
+| Promise             | `pm`    | `promise<void> pmExampleUseOfPromise`  |
+| Unordered Map       | `um`    | `unordered_map<int, int> umExampleUseOfUnorderedMap` |
 
-### Macro Names
+---
+
+### 🧩 External Types
+
+External libraries and their corresponding type prefixes are listed below:
+
+| Library        | Prefix | Example                                      |
+|----------------|--------|----------------------------------------------|
+| OpenCV         | `cv`   | `cv::Mat cvExampleMat`                       |
+| ZED SDK        | `sl`   | `sl::Mat slExampleZedMat`                    |
+| Quill          | `q`    | `quill::Config qConfig`                      |
+| GeographicLib  | `ge`   | `GeographicLib::Geodesic geExampleGeographicType` |
+| Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
+| Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
+
+---
+
+### 🔠 Macro Names
 
 Macros should be in all caps using underscores to separate words. They should be detailed enough to not require an additional comment.
 
-Example:`#define ARUCO_DEBUG_PRINTS false` or `#define AUTONOMY_MAJOR_VERSION 24`
+Example:
+```c
+#define ARUCO_DEBUG_PRINTS false
+#define AUTONOMY_MAJOR_VERSION 24
+```
 
-### Function Names
+---
 
-Functions should use Pascal Case for names. They should use detailed names but also include a doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
+### 📐 Function Names
 
-### Class Names
+Functions should use PascalCase for names. Use detailed names and include a Doxygen comment.
 
-Class should use Pascal Case for names. They should use short names but also include a Doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
+Example:
+```cpp
+/* Type: `/**` and then <enter> to start doxygen comment block */
+void InitializeSensor();
+```
 
-### Struct Names
+---
 
-Struct should use Pascal Case for names. They should use short names but also include a Doxygen comment. Doxygen comments can be created by typing `/** <enter>`.
+### 🏷️ Class and Struct Names
 
-## Join The Team
+Classes and structs should use PascalCase for names. Use short, descriptive names, and include a Doxygen comment.
 
-Do you go to the Missouri University of Science and Technology? Are you interested in contributing and being a part of our team? If so go to [design.mst.edu](https://design.mst.edu) to learn how to sign up today!
+Example for a class:
+
+```cpp
+/* Type: `/**` and then <enter> to start doxygen comment block */
+class SensorManager {
+  // class implementation
+};
+
+```
+
+---
+
+## 👥 Join the Team
+
+Do you attend Missouri University of Science and Technology? Are you interested in contributing to the Mars Rover Design Team and working on autonomy software? Head to [https://design.mst.edu](https://design.mst.edu) to learn how to join us today!
