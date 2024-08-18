@@ -59,7 +59,7 @@ jobs:
       - name: Test
         run: |
           cd /opt/Autonomy_Software/build
-          ctest --build-config RelWithDebInfo
+          ctest -T Coverage --build-config RelWithDebInfo
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

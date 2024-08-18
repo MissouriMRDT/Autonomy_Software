@@ -208,6 +208,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${ABSL_LIBRARY_DIRS}
                         ${TENSORFLOWLITE_LIBS}
                         ${LIBEDGETPU_LIBS}
+                        gcov
     )
 
 ## Link Libraries to Executable
