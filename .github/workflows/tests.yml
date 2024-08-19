@@ -52,20 +52,22 @@ jobs:
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Check if Test Directory is Empty (${matrix.type} Tests)
-        id: check_test_dir
+      - name: Check if the directory tests source exists
         run: |
-          cd /opt/Autonomy_Software
-          if [ "${{ matrix.type }}" == "Integration" ] && [ -z "$(ls -A tests/Integration/ 2>/dev/null)" ]; then
-            echo "Test directory for Integration is empty"
-            echo "skip_tests=true" >> $GITHUB_ENV
-          elif [ "${{ matrix.type }}" == "Unit" ] && [ -z "$(ls -A tests/Unit/ 2>/dev/null)" ]; then
-            echo "Test directory for Unit is empty"
-            echo "skip_tests=true" >> $GITHUB_ENV
+          DIRECTORY="test/${{ matrix.type }}/src"
+
+          # Check if the directory exists
+          if [ -d "$DIRECTORY" ]; then
+            echo "DIRECTORY_EXISTS=true" >> $GITHUB_ENV
+            echo "The directory $DIRECTORY exists."
+          else
+            echo "DIRECTORY_EXISTS=false" >> $GITHUB_ENV
+            echo "The directory $DIRECTORY does not exist. Skipping the rest of the GitHub Action."
+            exit 0
           fi
 
       - name: Build Tests
-        if: env.skip_tests != 'true'
+        if: env.TESTS_FOUND == 'true'
         run: |
           cd /opt/Autonomy_Software/
           if [ -d "build" ]; then rm -Rf build; fi
@@ -75,14 +77,14 @@ jobs:
           make
 
       - name: Check File Existence (${{ matrix.type }} Tests)
-        if: env.skip_tests != 'true'
+        if: env.TESTS_FOUND == 'true'
         id: check
         uses: andstor/file-existence-action@v3
         with:
           files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
 
       - name: Run ${{ matrix.type }} Tests
-        if: steps.check.outputs.files_exists == 'true' && env.skip_tests != 'true'
+        if: steps.check.outputs.files_exists == 'true' && env.TESTS_FOUND == 'true'
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_${{ matrix.type }}Tests"; then ./Autonomy_Software_${{ matrix.type }}Tests ; else echo "No ${{ matrix.type }} Tests Exist" ; fi
@@ -137,20 +139,22 @@ jobs:
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Check if Test Directory is Empty (${matrix.type} Tests)
-        id: check_test_dir
+      - name: Check if the directory tests source exists
         run: |
-          cd /opt/Autonomy_Software
-          if [ "${{ matrix.type }}" == "Integration" ] && [ -z "$(ls -A tests/Integration/ 2>/dev/null)" ]; then
-            echo "Test directory for Integration is empty"
-            echo "skip_tests=true" >> $GITHUB_ENV
-          elif [ "${{ matrix.type }}" == "Unit" ] && [ -z "$(ls -A tests/Unit/ 2>/dev/null)" ]; then
-            echo "Test directory for Unit is empty"
-            echo "skip_tests=true" >> $GITHUB_ENV
+          DIRECTORY="test/${{ matrix.type }}/src"
+
+          # Check if the directory exists
+          if [ -d "$DIRECTORY" ]; then
+            echo "DIRECTORY_EXISTS=true" >> $GITHUB_ENV
+            echo "The directory $DIRECTORY exists."
+          else
+            echo "DIRECTORY_EXISTS=false" >> $GITHUB_ENV
+            echo "The directory $DIRECTORY does not exist. Skipping the rest of the GitHub Action."
+            exit 0
           fi
 
       - name: Build Tests
-        if: env.skip_tests != 'true'
+        if: env.TESTS_FOUND == 'true'
         run: |
           cd /opt/Autonomy_Software/
           if [ -d "build" ]; then rm -Rf build; fi
@@ -160,14 +164,14 @@ jobs:
           make
 
       - name: Check File Existence (${{ matrix.type }} Tests)
-        if: env.skip_tests != 'true'
+        if: env.TESTS_FOUND == 'true'
         id: check
         uses: andstor/file-existence-action@v3
         with:
           files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
 
       - name: Run ${{ matrix.type }} Tests
-        if: steps.check.outputs.files_exists == 'true' && env.skip_tests != 'true'
+        if: steps.check.outputs.files_exists == 'true' && env.TESTS_FOUND == 'true'
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_${{ matrix.type }}Tests"; then ./Autonomy_Software_${{ matrix.type }}Tests ; else echo "No ${{ matrix.type }} Tests Exist" ; fi
