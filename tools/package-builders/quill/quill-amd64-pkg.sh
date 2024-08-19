@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="6.1.2"
+QUILL_VERSION="7.0.0-pre"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb"
@@ -35,7 +35,7 @@ else
     echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team." >> /tmp/pkg/quill_${QUILL_VERSION}_amd64/DEBIAN/control
 
     # Download Quill
-    git clone --depth 1 --branch v${QUILL_VERSION} http://github.com/odygrd/quill.git
+    git clone --depth 1 --branch v${QUILL_VERSION} https://github.com/byrdman32/quill.git
     mkdir quill/build
     cd quill/build
 
