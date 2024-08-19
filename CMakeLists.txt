@@ -17,7 +17,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 00.00.00 LANGUAGES CXX CUDA)
+project(Autonomy_Software VERSION 24.05.00 LANGUAGES CXX CUDA)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
