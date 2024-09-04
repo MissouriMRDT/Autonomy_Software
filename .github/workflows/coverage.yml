@@ -49,11 +49,6 @@ jobs:
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lcov
-
       - name: Configure and Build
         run: |
           cd /opt/Autonomy_Software/
@@ -68,15 +63,6 @@ jobs:
           cd /opt/Autonomy_Software/build
           ctest -T Test -T Coverage
           ctest -T Test --output-junit Test.xml
-          lcov --capture --directory . --output-file coverage.info
-
-      - name: Upload coverage to DeepSource
-        run: |
-          cd /opt/Autonomy_Software/build
-          curl https://deepsource.io/cli | sh
-          ./bin/deepsource report --analyzer test-coverage --key cxx --value-file ./coverage.info
-        env:
-          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
 
       - name: Move Coverage Files
         run: |
