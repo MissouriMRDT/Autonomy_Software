@@ -34,6 +34,9 @@
     <a href="https://www.codefactor.io/repository/github/missourimrdt/autonomy_software">
       <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="codefactor-ci" />
     </a>
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=code+coverage&show_trend=true&token=ImsCozrwCep9Ddc8iTesPkEB"/>
+    </a>
   </div>
 
   <div>
