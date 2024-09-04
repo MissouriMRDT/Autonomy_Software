@@ -10,7 +10,7 @@ def handle_core_commands(packet):
     Used to handle incoming core commands and create the next point appropriately
     """
 
-    if packet == None:
+    if packet is None:
         raise TypeError
 
     if packet.data_id == this.manifest["Core"]["Commands"]["DriveLeftRight"]["dataId"]:
@@ -22,7 +22,7 @@ def handle_autonomy_commands(packet):
     Used to handle incoming autonomy commands and help create the next point appropriately
     """
 
-    if packet == None:
+    if packet is None:
         raise TypeError
 
     if packet.data_id == this.manifest["Autonomy"]["Commands"]["StartAutonomy"]["dataId"]:
@@ -52,7 +52,7 @@ def handle_autonomy_telemetry(packet):
     Used to handle incoming autonomy telemetry and help create the next point appropriately
     """
 
-    if packet == None:
+    if packet is None:
         raise TypeError
 
     if packet.data_id == this.manifest["Autonomy"]["Telemetry"]["CurrentState"]["dataId"]:
