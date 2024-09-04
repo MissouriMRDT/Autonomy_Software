@@ -4,7 +4,8 @@ exclude_patterns = [
   ".github/**",
   "data/**",
   "docs/**",
-  "src/util/vision/ArucoSamplesUtility.hpp"
+  "src/util/vision/ArucoSamplesUtility.hpp",
+  "tests/**"
 ]
 
 [[analyzers]]
