@@ -3,11 +3,10 @@ version = 1
 exclude_patterns = [
   ".github/**",
   "data/**",
-  "docs/**"
+  "docs/**",
+  "src/util/vision/ArucoSamplesUtility.hpp",
+  "tests/**"
 ]
-
-[[analyzers]]
-name = "test-coverage"
 
 [[analyzers]]
 name = "shell"
@@ -34,21 +33,3 @@ name = "docker"
 
 [[analyzers]]
 name = "cxx"
-
-[[transformers]]
-name = "clang-format"
-
-[[transformers]]
-name = "autopep8"
-
-[[transformers]]
-name = "isort"
-
-[[transformers]]
-name = "black"
-
-[[transformers]]
-name = "yapf"
-
-[[transformers]]
-name = "ruff"
