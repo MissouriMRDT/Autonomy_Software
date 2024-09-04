@@ -92,3 +92,9 @@ jobs:
           verbose: true
           directory: /opt/Autonomy_Software/build
           file: Test.xml
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
