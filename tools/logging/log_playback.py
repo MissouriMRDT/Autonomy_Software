@@ -20,14 +20,14 @@ def parse_log_file(log_file_path):
     gps_position_pattern = r"\(([^ ]+) lat, ([^ ]+) lon, ([^ ]+) alt\)"
     gps_compass = []
     gps_compass_pattern = r"Incoming Compass Data: ([\d\.]+)"
-    
+
     rover_pose = []
     rover_pose_compass = []
     rover_pose_pattern = r"([\d\.]+) \(lat\), ([\d\.]+) \(lon\), ([\d\.]+) \(alt\), ([\d\.]+) \(degrees\), GNSS/VIO FUSED\? = (true|false)"
 
     accuracy = []
     accuracy_pattern = r"Incoming Accuracy Data: \(2D: ([\d\.]+), 3D: ([\d\.]+), Compass: ([\d\.]+), FIX_TYPE: ([\d\.]+)"
-    
+
     fps = []
     fps_pattern = r"FPS: ([\d\.]+)"
 
@@ -95,7 +95,7 @@ def parse_log_file(log_file_path):
         # Clear WaypointHandler Data.
         if "Cleared" in message:
             clear_waypoints.append({"timestamp": timestamp})
-    
+
     return {"gps_position": gps_position, "rover_pose": rover_pose, "rover_pose_compass": rover_pose_compass, "compass": gps_compass, "accuracy": accuracy, "fps": fps, "state": states, "drive_power": drive_powers, "waypoints": waypoints, "clear_waypoints": clear_waypoints}
 
 def play_log(log_file_path):
@@ -130,7 +130,7 @@ def play_log(log_file_path):
     drive_ax1.set_ylim(-1, 1)
     drive_bars = drive_ax1.bar(["Left Power", "Right Power"], [0, 0])
     state_text = drive_fig.text(0.05, 1.0, "", verticalalignment='top', horizontalalignment='left')
-    
+
 
     # Initialize plot lines
     fps_lines = [fps_ax1.plot([], [], label=label)[0] for label in [
@@ -272,11 +272,11 @@ def play_log(log_file_path):
                     gps_ax1.set(xlim3d=(min(x), max(x)), xlabel='X')
                     gps_ax1.set(ylim3d=(min(y), max(y)), ylabel='Y')
                     gps_ax1.set(zlim3d=(min(z), max(z)), zlabel='Z')
-                    
+
                 # Vertical lines for waypoints.
                 for waypoint in waypoints:
                     gps_ax1.plot([waypoint["lat"], waypoint["lat"]], [waypoint["lon"], waypoint["lon"]], [min(z), max(z)], color='r', linestyle='--', label='waypoint')
-            
+
             if new_pose:
                 pose_values.append(new_pose)
 
@@ -294,7 +294,7 @@ def play_log(log_file_path):
         # Add vertical lines to the graph when waypoints are added.
         if new_waypoint and new_waypoint not in waypoints:
             waypoints.append(new_waypoint)
-            
+
         # The waypoints have been cleared.
         if cleared_waypoints:
             waypoints.clear()
@@ -345,10 +345,10 @@ def play_log(log_file_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Animated log data visualization.")
     parser.add_argument("--log_file", type=str, required=True, help="Path to the log file.")
-    
+
     args = parser.parse_args()
 
     print(args.log_file)
-    
+
     play_log(args.log_file)
 

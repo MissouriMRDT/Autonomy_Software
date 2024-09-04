@@ -88,13 +88,13 @@ PitchYawRole = [0.0, 0.0, 0.0]
 Bearing = 0
 
 while True:
-    
+
     #Send RoveComm Nav Packets
     packet = RoveCommPacket(manifest["Nav"]["Telemetry"]["GPSLatLon"]["dataId"], "f", (LatLon[0], LatLon[1]))
     nav_node.write(packet, False)
-    
+
     packet = RoveCommPacket(manifest["Nav"]["Telemetry"]["IMUData"]["dataId"], "f", (PitchYawRole[0], PitchYawRole[1], PitchYawRole[2]))
     nav_node.write(packet, False)
-    
+
     packet = RoveCommPacket(manifest["Nav"]["Telemetry"]["CompassData"]["dataId"], "f", (Bearing,))
     nav_node.write(packet, False)
