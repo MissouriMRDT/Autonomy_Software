@@ -7,19 +7,10 @@ exclude_patterns = [
 ]
 
 [[analyzers]]
-name = "test-coverage"
-
-[[analyzers]]
 name = "shell"
 
 [[analyzers]]
 name = "secrets"
-
-[[analyzers]]
-name = "python"
-
-  [analyzers.meta]
-  runtime_version = "3.x.x"
 
 [[analyzers]]
 name = "docker"
@@ -31,24 +22,4 @@ name = "docker"
     "tools/action-runners/Dockerfile_Jammy",
     "tools/action-runners/Dockerfile_JetPack"
   ]
-
-[[analyzers]]
-name = "cxx"
-
-[[transformers]]
-name = "clang-format"
-
-[[transformers]]
-name = "autopep8"
-
-[[transformers]]
-name = "isort"
-
-[[transformers]]
-name = "black"
-
-[[transformers]]
-name = "yapf"
-
-[[transformers]]
-name = "ruff"
+  
