@@ -6,9 +6,7 @@ import logging
 manifest = get_manifest()
 
 def handle_core_commands(packet):
-    """
-    Used to handle incoming core commands and create the next point appropriately
-    """
+    """Used to handle incoming core commands and create the next point appropriately"""
 
     if packet == None:
         raise TypeError
