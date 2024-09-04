@@ -68,6 +68,7 @@ jobs:
           cd /opt/Autonomy_Software/build
           ctest -T Test -T Coverage
           ctest -T Test --output-junit Test.xml
+          lcov --capture --directory . --output-file coverage.info
 
       - name: Upload coverage to DeepSource
         run: |
