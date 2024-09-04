@@ -1,17 +1,23 @@
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.animation import FuncAnimation
 import argparse
 import csv
 import re
 from datetime import datetime
 
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from mpl_toolkits.mplot3d import Axes3D
+
+
 def parse_log_file(log_file_path):
     log_data = []
     # Read the log file into a pandas DataFrame
-    with open(log_file_path, mode='r') as file:
-        csvFile = csv.DictReader(file, delimiter='\t', fieldnames=["timestamp", "level", "thread", "trace", "message"])
+    with open(log_file_path, mode="r") as file:
+        csvFile = csv.DictReader(
+            file,
+            delimiter="\t",
+            fieldnames=["timestamp", "level", "thread", "trace", "message"],
+        )
         for line in csvFile:
             log_data.append(line)
 
@@ -43,39 +49,82 @@ def parse_log_file(log_file_path):
     # Loop through the log data and package it into readable arrays.
     for line_entry in log_data:
         # Get timestamp and message.
-        timestamp = datetime.strptime(line_entry["timestamp"].strip(","), "%Y-%m-%d %H:%M:%S.%f")
+        timestamp = datetime.strptime(
+            line_entry["timestamp"].strip(","), "%Y-%m-%d %H:%M:%S.%f"
+        )
         message = line_entry["message"]
 
         # GPS Data line.
         if "GPS Data" in message:
             match = re.search(gps_position_pattern, message)
             if match:
-                gps_position.append({"timestamp": timestamp, "lat": float(match.group(1)), "lon": float(match.group(2)), "alt": float(match.group(3))})
+                gps_position.append(
+                    {
+                        "timestamp": timestamp,
+                        "lat": float(match.group(1)),
+                        "lon": float(match.group(2)),
+                        "alt": float(match.group(3)),
+                    }
+                )
 
         # Rover Pose.
         if "Rover Pose" in message:
             match = re.search(rover_pose_pattern, message)
             if match:
-                rover_pose.append({"timestamp": timestamp, "lat": float(match.group(1)), "lon": float(match.group(2)), "alt": float(match.group(3))})
-                rover_pose_compass.append({"timestamp": timestamp, "heading": float(match.group(4))})
+                rover_pose.append(
+                    {
+                        "timestamp": timestamp,
+                        "lat": float(match.group(1)),
+                        "lon": float(match.group(2)),
+                        "alt": float(match.group(3)),
+                    }
+                )
+                rover_pose_compass.append(
+                    {"timestamp": timestamp, "heading": float(match.group(4))}
+                )
 
         # Compass Data.
         if "Compass Data" in message:
             match = re.search(gps_compass_pattern, message)
             if match:
-                gps_compass.append({"timestamp": timestamp, "heading": float(match.group(1))})
+                gps_compass.append(
+                    {"timestamp": timestamp, "heading": float(match.group(1))}
+                )
 
         # Accuracy Data.
         if "Accuracy Data" in message:
             match = re.search(accuracy_pattern, message)
             if match:
-                accuracy.append({"timestamp": timestamp, "2D": float(match.group(1)), "3D": float(match.group(2)), "compass": float(match.group(3)), "fix_type": int(match.group(4))})
+                accuracy.append(
+                    {
+                        "timestamp": timestamp,
+                        "2D": float(match.group(1)),
+                        "3D": float(match.group(2)),
+                        "compass": float(match.group(3)),
+                        "fix_type": int(match.group(4)),
+                    }
+                )
 
         # FPS Data.
         if "Threads FPS" in message:
             match = re.findall(fps_pattern, message)
             if match:
-                fps.append({"timestamp": timestamp, "main_process_fps": float(match[0]), "main_cam_fps": float(match[1]), "left_cam_fps": float(match[2]), "right_cam_fps": float(match[3]), "ground_cam_fps": float(match[4]), "main_detector_fps": float(match[5]), "left_detector_fps": float(match[6]), "right_detector_fps": float(match[7]), "state_machine_fps": float(match[8]), "rovecomm_udp_fps": float(match[9]), "rovecomm_tcp_fps": float(match[10])})
+                fps.append(
+                    {
+                        "timestamp": timestamp,
+                        "main_process_fps": float(match[0]),
+                        "main_cam_fps": float(match[1]),
+                        "left_cam_fps": float(match[2]),
+                        "right_cam_fps": float(match[3]),
+                        "ground_cam_fps": float(match[4]),
+                        "main_detector_fps": float(match[5]),
+                        "left_detector_fps": float(match[6]),
+                        "right_detector_fps": float(match[7]),
+                        "state_machine_fps": float(match[8]),
+                        "rovecomm_udp_fps": float(match[9]),
+                        "rovecomm_tcp_fps": float(match[10]),
+                    }
+                )
             match = re.findall(states_pattern, message)
             if match:
                 states.append({"timestamp": timestamp, "state": match[0]})
@@ -84,19 +133,43 @@ def parse_log_file(log_file_path):
         if "Driving at:" in message:
             match = re.search(drive_powers_pattern, message)
             if match:
-                drive_powers.append({"timestamp": timestamp, "left_power": float(match.group(1)), "right_power": float(match.group(2))})
+                drive_powers.append(
+                    {
+                        "timestamp": timestamp,
+                        "left_power": float(match.group(1)),
+                        "right_power": float(match.group(2)),
+                    }
+                )
 
         # Waypoints Data.
         if "Waypoint" in message:
             match = re.search(waypoints_pattern, message)
             if match:
-                waypoints.append({"timestamp": timestamp, "lat": float(match.group(1)), "lon": float(match.group(2))})
+                waypoints.append(
+                    {
+                        "timestamp": timestamp,
+                        "lat": float(match.group(1)),
+                        "lon": float(match.group(2)),
+                    }
+                )
 
         # Clear WaypointHandler Data.
         if "Cleared" in message:
             clear_waypoints.append({"timestamp": timestamp})
 
-    return {"gps_position": gps_position, "rover_pose": rover_pose, "rover_pose_compass": rover_pose_compass, "compass": gps_compass, "accuracy": accuracy, "fps": fps, "state": states, "drive_power": drive_powers, "waypoints": waypoints, "clear_waypoints": clear_waypoints}
+    return {
+        "gps_position": gps_position,
+        "rover_pose": rover_pose,
+        "rover_pose_compass": rover_pose_compass,
+        "compass": gps_compass,
+        "accuracy": accuracy,
+        "fps": fps,
+        "state": states,
+        "drive_power": drive_powers,
+        "waypoints": waypoints,
+        "clear_waypoints": clear_waypoints,
+    }
+
 
 def play_log(log_file_path):
     # Parse the log file
@@ -109,8 +182,11 @@ def play_log(log_file_path):
     current_start_time = datetime.now()
 
     # Graph and graph data lists.
-    plot_delay_fps = 333     # Millisecond interval to update plots in. Does not affect speed of log playback.
-    plot_total_frames = int(plot_delay_fps * (end_datetime - start_datetime).total_seconds())
+    # Millisecond interval to update plots in. Does not affect speed of log playback.
+    plot_delay_fps = 333
+    plot_total_frames = int(
+        plot_delay_fps * (end_datetime - start_datetime).total_seconds()
+    )
     fps_fig, fps_ax1 = plt.subplots()
     fps_values = []
     accuracy_fig, (acc_ax1, acc_ax2, acc_ax3) = plt.subplots(3, 1)
@@ -129,17 +205,40 @@ def play_log(log_file_path):
     drive_fig, drive_ax1 = plt.subplots()
     drive_ax1.set_ylim(-1, 1)
     drive_bars = drive_ax1.bar(["Left Power", "Right Power"], [0, 0])
-    state_text = drive_fig.text(0.05, 1.0, "", verticalalignment='top', horizontalalignment='left')
-
+    state_text = drive_fig.text(
+        0.05, 1.0, "", verticalalignment="top", horizontalalignment="left"
+    )
 
     # Initialize plot lines
-    fps_lines = [fps_ax1.plot([], [], label=label)[0] for label in [
-        "main_process_fps", "main_cam_fps", "left_cam_fps", "right_cam_fps", "ground_cam_fps",
-        "main_detector_fps", "left_detector_fps", "right_detector_fps", "statemachine_fps", "rovecomm_udp_fps", "rovecomm_tcp_fps"
-    ]]
-    acc_lines = [acc_ax1.plot([], [], label="2D")[0], acc_ax2.plot([], [], label="3D")[0], acc_ax3.plot([], [], label="compass")[0]]
-    comp_lines = [comp_ax1.plot([], [], label=label)[0] for label in ["gps_compass", "pose_compass"]]
-    gps_pose_lines = [gps_ax1.plot([], [], [], "b.", label="gps")[0], pose_ax1.plot([], [], [], label="pose")[0]]
+    fps_lines = [
+        fps_ax1.plot([], [], label=label)[0]
+        for label in [
+            "main_process_fps",
+            "main_cam_fps",
+            "left_cam_fps",
+            "right_cam_fps",
+            "ground_cam_fps",
+            "main_detector_fps",
+            "left_detector_fps",
+            "right_detector_fps",
+            "statemachine_fps",
+            "rovecomm_udp_fps",
+            "rovecomm_tcp_fps",
+        ]
+    ]
+    acc_lines = [
+        acc_ax1.plot([], [], label="2D")[0],
+        acc_ax2.plot([], [], label="3D")[0],
+        acc_ax3.plot([], [], label="compass")[0],
+    ]
+    comp_lines = [
+        comp_ax1.plot([], [], label=label)[0]
+        for label in ["gps_compass", "pose_compass"]
+    ]
+    gps_pose_lines = [
+        gps_ax1.plot([], [], [], "b.", label="gps")[0],
+        pose_ax1.plot([], [], [], label="pose")[0],
+    ]
 
     def animate_fps(i):
         # Get the time elapsed in the video in ms and add that onto the start datetime.
@@ -147,11 +246,19 @@ def play_log(log_file_path):
         delta = current_time - current_start_time
         current_video_datetime = start_datetime + delta
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
-        new_fps = next((x for x in parsed_data_dicts["fps"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        new_fps = next(
+            (
+                x
+                for x in parsed_data_dicts["fps"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
         if new_fps:
             fps_values.append(new_fps)
             # Only keep the last 100 accuracy values.
-            if (len(fps_values) > 100):
+            if len(fps_values) > 100:
                 fps_values.pop(0)
 
             x = [value["timestamp"] for value in fps_values]
@@ -166,18 +273,26 @@ def play_log(log_file_path):
                 [value["right_detector_fps"] for value in fps_values],
                 [value["state_machine_fps"] for value in fps_values],
                 [value["rovecomm_udp_fps"] for value in fps_values],
-                [value["rovecomm_tcp_fps"] for value in fps_values]
+                [value["rovecomm_tcp_fps"] for value in fps_values],
             ]
             for line, y_data in zip(fps_lines, y):
                 line.set_data(x, y_data)
             fps_ax1.relim()
             fps_ax1.autoscale_view()
             fps_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
-            fps_ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
+            fps_ax1.xaxis.set_major_formatter(
+                mdates.DateFormatter("%b %d, %Y %H:%M:%S")
+            )
 
         return fps_lines
 
-    fps_ani = FuncAnimation(fps_fig, animate_fps, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
+    fps_ani = FuncAnimation(
+        fps_fig,
+        animate_fps,
+        interval=plot_delay_fps,
+        frames=plot_total_frames,
+        blit=True,
+    )
 
     def animate_accuracy(i):
         # Get the time elapsed in the video in ms and add that onto the start datetime.
@@ -185,11 +300,19 @@ def play_log(log_file_path):
         delta = current_time - current_start_time
         current_video_datetime = start_datetime + delta
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
-        new_accuracy = next((x for x in parsed_data_dicts["accuracy"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        new_accuracy = next(
+            (
+                x
+                for x in parsed_data_dicts["accuracy"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
         if new_accuracy:
             accuracy_values.append(new_accuracy)
             # Only keep the last 50 accuracy values.
-            if (len(accuracy_values) > 50):
+            if len(accuracy_values) > 50:
                 accuracy_values.pop(0)
 
             x = [value["timestamp"] for value in accuracy_values]
@@ -205,11 +328,17 @@ def play_log(log_file_path):
                 ax.relim()
                 ax.autoscale_view()
                 ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
-                ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d, %Y %H:%M:%S"))
 
         return acc_lines
 
-    accuracy_ani = FuncAnimation(accuracy_fig, animate_accuracy, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
+    accuracy_ani = FuncAnimation(
+        accuracy_fig,
+        animate_accuracy,
+        interval=plot_delay_fps,
+        frames=plot_total_frames,
+        blit=True,
+    )
 
     def animate_compass(i):
         # Get the time elapsed in the video in ms and add that onto the start datetime.
@@ -217,22 +346,55 @@ def play_log(log_file_path):
         delta = current_time - current_start_time
         current_video_datetime = start_datetime + delta
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
-        new_compass = next((x for x in parsed_data_dicts["compass"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
-        new_pose_compass = next((x for x in parsed_data_dicts["rover_pose_compass"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        new_compass = next(
+            (
+                x
+                for x in parsed_data_dicts["compass"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
+        new_pose_compass = next(
+            (
+                x
+                for x in parsed_data_dicts["rover_pose_compass"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
         if new_compass or new_pose_compass:
             if new_compass and new_pose_compass:
-                new_compass_values = {"timestamp": new_compass["timestamp"], "heading": new_compass["heading"], "pose_heading": new_pose_compass["heading"]}
+                new_compass_values = {
+                    "timestamp": new_compass["timestamp"],
+                    "heading": new_compass["heading"],
+                    "pose_heading": new_pose_compass["heading"],
+                }
                 compass_values.append(new_compass_values)
             elif new_compass:
-                new_compass_values = {"timestamp": new_compass["timestamp"], "heading": new_compass["heading"], "pose_heading": 0 if not compass_values else compass_values[-1]["heading"]}
+                new_compass_values = {
+                    "timestamp": new_compass["timestamp"],
+                    "heading": new_compass["heading"],
+                    "pose_heading": (
+                        0 if not compass_values else compass_values[-1]["heading"]
+                    ),
+                }
                 compass_values.append(new_compass_values)
             elif new_pose_compass:
-                new_compass_values = {"timestamp": new_pose_compass["timestamp"], "heading": 0 if not compass_values else compass_values[-1]["heading"], "pose_heading": new_pose_compass["heading"]}
+                new_compass_values = {
+                    "timestamp": new_pose_compass["timestamp"],
+                    "heading": (
+                        0 if not compass_values else compass_values[-1]["heading"]
+                    ),
+                    "pose_heading": new_pose_compass["heading"],
+                }
                 compass_values.append(new_compass_values)
 
             x = [value["timestamp"] for value in compass_values]
-            y = [[value["heading"] for value in compass_values],
-                 [value["pose_heading"] for value in compass_values]
+            y = [
+                [value["heading"] for value in compass_values],
+                [value["pose_heading"] for value in compass_values],
             ]
 
             for line, y_data in zip(comp_lines, y):
@@ -240,11 +402,19 @@ def play_log(log_file_path):
             comp_ax1.relim()
             comp_ax1.autoscale_view()
             comp_ax1.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=3))
-            comp_ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d, %Y %H:%M:%S'))
+            comp_ax1.xaxis.set_major_formatter(
+                mdates.DateFormatter("%b %d, %Y %H:%M:%S")
+            )
 
         return comp_lines
 
-    compass_ani = FuncAnimation(compass_fig, animate_compass, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
+    compass_ani = FuncAnimation(
+        compass_fig,
+        animate_compass,
+        interval=plot_delay_fps,
+        frames=plot_total_frames,
+        blit=True,
+    )
 
     def animate_gps_pose(i):
         # Get the time elapsed in the video in ms and add that onto the start datetime.
@@ -252,13 +422,45 @@ def play_log(log_file_path):
         delta = current_time - current_start_time
         current_video_datetime = start_datetime + delta
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
-        new_gps = next((x for x in parsed_data_dicts["gps_position"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
-        new_pose = next((x for x in parsed_data_dicts["rover_pose"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        new_gps = next(
+            (
+                x
+                for x in parsed_data_dicts["gps_position"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
+        new_pose = next(
+            (
+                x
+                for x in parsed_data_dicts["rover_pose"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
         # Waypoints only need to be within 1 second. Might get missed if it's less.
-        new_waypoint = next((x for x in parsed_data_dicts["waypoints"] if int(x["timestamp"].timestamp()) == int(current_video_datetime.timestamp())), None)
-        cleared_waypoints = next((x for x in parsed_data_dicts["clear_waypoints"] if int(x["timestamp"].timestamp()) == int(current_video_datetime.timestamp())), None)
+        new_waypoint = next(
+            (
+                x
+                for x in parsed_data_dicts["waypoints"]
+                if int(x["timestamp"].timestamp())
+                == int(current_video_datetime.timestamp())
+            ),
+            None,
+        )
+        cleared_waypoints = next(
+            (
+                x
+                for x in parsed_data_dicts["clear_waypoints"]
+                if int(x["timestamp"].timestamp())
+                == int(current_video_datetime.timestamp())
+            ),
+            None,
+        )
         # Discard first few seconds of data.
-        if (delta.seconds >= 5):
+        if delta.seconds >= 5:
             if new_gps:
                 gps_values.append(new_gps)
 
@@ -268,14 +470,21 @@ def play_log(log_file_path):
 
                 gps_pose_lines[0].set_data_3d(x, y, z)
 
-                if (len(x) > 5 and len(y) > 5 and len(z) > 5):
-                    gps_ax1.set(xlim3d=(min(x), max(x)), xlabel='X')
-                    gps_ax1.set(ylim3d=(min(y), max(y)), ylabel='Y')
-                    gps_ax1.set(zlim3d=(min(z), max(z)), zlabel='Z')
+                if len(x) > 5 and len(y) > 5 and len(z) > 5:
+                    gps_ax1.set(xlim3d=(min(x), max(x)), xlabel="X")
+                    gps_ax1.set(ylim3d=(min(y), max(y)), ylabel="Y")
+                    gps_ax1.set(zlim3d=(min(z), max(z)), zlabel="Z")
 
                 # Vertical lines for waypoints.
                 for waypoint in waypoints:
-                    gps_ax1.plot([waypoint["lat"], waypoint["lat"]], [waypoint["lon"], waypoint["lon"]], [min(z), max(z)], color='r', linestyle='--', label='waypoint')
+                    gps_ax1.plot(
+                        [waypoint["lat"], waypoint["lat"]],
+                        [waypoint["lon"], waypoint["lon"]],
+                        [min(z), max(z)],
+                        color="r",
+                        linestyle="--",
+                        label="waypoint",
+                    )
 
             if new_pose:
                 pose_values.append(new_pose)
@@ -286,10 +495,10 @@ def play_log(log_file_path):
 
                 gps_pose_lines[1].set_data_3d(x, y, z)
 
-                if (len(x) > 5 and len(y) > 5 and len(z) > 5):
-                    pose_ax1.set(xlim3d=(min(x), max(x)), xlabel='X')
-                    pose_ax1.set(ylim3d=(min(y), max(y)), ylabel='Y')
-                    pose_ax1.set(zlim3d=(min(z), max(z)), zlabel='Z')
+                if len(x) > 5 and len(y) > 5 and len(z) > 5:
+                    pose_ax1.set(xlim3d=(min(x), max(x)), xlabel="X")
+                    pose_ax1.set(ylim3d=(min(y), max(y)), ylabel="Y")
+                    pose_ax1.set(zlim3d=(min(z), max(z)), zlabel="Z")
 
         # Add vertical lines to the graph when waypoints are added.
         if new_waypoint and new_waypoint not in waypoints:
@@ -301,7 +510,13 @@ def play_log(log_file_path):
 
         return gps_pose_lines
 
-    gps_pose_ani = FuncAnimation(gps_pose_fig, animate_gps_pose, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
+    gps_pose_ani = FuncAnimation(
+        gps_pose_fig,
+        animate_gps_pose,
+        interval=plot_delay_fps,
+        frames=plot_total_frames,
+        blit=True,
+    )
 
     def animate_drive_powers(i):
         # Get the time elapsed in the video in ms and add that onto the start datetime.
@@ -309,8 +524,24 @@ def play_log(log_file_path):
         delta = current_time - current_start_time
         current_video_datetime = start_datetime + delta
         # Get the first element of the same timestamp for all log data only accurate to the 0.01 second.
-        new_state = next((x for x in parsed_data_dicts["state"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
-        new_drive_powers = next((x for x in parsed_data_dicts["drive_power"] if int(x["timestamp"].timestamp() * 10) == int(current_video_datetime.timestamp() * 10)), None)
+        new_state = next(
+            (
+                x
+                for x in parsed_data_dicts["state"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
+        new_drive_powers = next(
+            (
+                x
+                for x in parsed_data_dicts["drive_power"]
+                if int(x["timestamp"].timestamp() * 10)
+                == int(current_video_datetime.timestamp() * 10)
+            ),
+            None,
+        )
         if new_state:
             state_text.set_text(f"Current State: {new_state['state']}")
             drive_bars[0].set_height(0)
@@ -322,7 +553,13 @@ def play_log(log_file_path):
 
         return drive_bars
 
-    drive_power_ani = FuncAnimation(drive_fig, animate_drive_powers, interval=plot_delay_fps, frames=plot_total_frames, blit=True)
+    drive_power_ani = FuncAnimation(
+        drive_fig,
+        animate_drive_powers,
+        interval=plot_delay_fps,
+        frames=plot_total_frames,
+        blit=True,
+    )
 
     # Adjust layout and show the plots
     fps_ax1.set_title("Threading Performance")
@@ -342,13 +579,15 @@ def play_log(log_file_path):
     # Plot and show graphs.
     plt.show()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Animated log data visualization.")
-    parser.add_argument("--log_file", type=str, required=True, help="Path to the log file.")
+    parser.add_argument(
+        "--log_file", type=str, required=True, help="Path to the log file."
+    )
 
     args = parser.parse_args()
 
     print(args.log_file)
 
     play_log(args.log_file)
-
