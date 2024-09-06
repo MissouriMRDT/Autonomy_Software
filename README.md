@@ -164,6 +164,27 @@ Now that your system is set up, you can proceed with the installation and build 
 
 The Autonomy Software project includes various build modes to cater to different development, testing, and deployment needs.
 
+### VSCode Run Buttons (Parallel Jobs Customization)
+
+When using VSCode's CMake integration, you can customize the number of parallel jobs used during the build process through the `devcontainer.json` file. This allows you to control how many jobs run concurrently during the build, optimizing performance.
+
+We recommend setting the number of parallel jobs to no more than **half the number of cores** available on your system to avoid overloading resources. 
+
+To configure this, edit the `devcontainer.json` file as follows:
+
+```
+{
+  ...
+  // CMAKE extension settings.
+  "cmake.configureOnOpen": true,
+  "cmake.options.statusBarVisibility": "visible",
+  "cmake.parallelJobs": 8,                          // EDIT THIS LINE
+  ...
+}
+```
+
+In this example, the `"cmake.parallelJobs"` setting is set to 8, which is suitable for a system with 16 cores. Adjust this value based on your hardware, ensuring that you stay within half your system’s core count for optimal performance.
+
 ### Simulation Mode
 
 Simulation mode enables the software to be compiled with simulation-specific features. This mode is disabled by default and is currently configured for integration in the Webots Robot Simulator.
