@@ -116,7 +116,7 @@ The easiest way to get started is by using our Docker environment. This environm
 - **PyTorch 2.2.2**
 - **TensorFlow 2.15.0**
 - **ZED SDK 4.1**
-- **Quill 7.0.0-pre**
+- **Quill 7.1.0**
 - **Google Test 1.15.2**
 - **Abseil 20230802.1**
 - **GeographicLib 2.3**
@@ -130,11 +130,13 @@ This Docker environment is designed to work seamlessly with NVIDIA GPUs and supp
 If you prefer to set up the environment manually, make sure your system has the following hardware and software dependencies installed:
 
 - **Hardware Requirements**:
+
   - NVIDIA Graphics Card with CUDA support (required for running GPU-accelerated vision processing)
   - Minimum CUDA version: 12.2 (compatible with the NVIDIA graphics card for GPU computation)
   - NVIDIA Jetson Devices (JetPack SDK required for ARM64 platforms)
 
 - **Operating Systems**:
+
   - Ubuntu 22.04 or higher (for AMD64 platforms)
   - NVIDIA Jetson Devices with JetPack SDK (required for ARM64 platforms)
 
@@ -168,7 +170,7 @@ The Autonomy Software project includes various build modes to cater to different
 
 When using VSCode's CMake integration, you can customize the number of parallel jobs used during the build process through the `devcontainer.json` file. This allows you to control how many jobs run concurrently during the build, optimizing performance.
 
-We recommend setting the number of parallel jobs to no more than **half the number of cores** available on your system to avoid overloading resources. 
+We recommend setting the number of parallel jobs to no more than **half the number of cores** available on your system to avoid overloading resources.
 
 To configure this, edit the `devcontainer.json` file as follows:
 
