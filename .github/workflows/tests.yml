@@ -54,7 +54,8 @@ jobs:
 
       - name: Check if the directory tests source exists
         run: |
-          DIRECTORY="test/${{ matrix.type }}/src"
+          BASE_DIR="/opt/Autonomy_Software"
+          DIRECTORY="$BASE_DIR/tests/${{ matrix.type }}/src"
 
           # Check if the directory exists
           if [ -d "$DIRECTORY" ]; then
