@@ -247,14 +247,14 @@ namespace logging
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-08-16
              ******************************************************************************/
-            MRDTConsoleSink(quill::ConsoleColours const& colours,                               // Custom Colors Import
-                            std::string const& format_pattern,                                  // Custom Format Pattern
-                            std::string const& time_format,                                     // Custom Time Format
-                            quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,    // Timezone
-                            std::string const& stream          = "stdout"                       // Stream
+            MRDTConsoleSink(quill::ConsoleColours const& colours,                                              // Custom Colors Import
+                            std::string const& format_pattern,                                                 // Custom Format Pattern
+                            std::string const& time_format,                                                    // Custom Time Format
+                            quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,                   // Timezone
+                            std::string const& stream          = "stdout"                                      // Stream
                             ) :
-                quill::ConsoleSink(colours, stream),                                            // Pass Parameters into quill::ConsoleSink
-                _formatter(format_pattern, time_format, timestamp_timezone)                     // Pass Parameters into _formatter type
+                quill::ConsoleSink(colours, stream),                                                           // Pass Parameters into quill::ConsoleSink
+                _formatter(quill::PatternFormatterOptions(format_pattern, time_format, timestamp_timezone))    // Pass Parameters into _formatter type
             {}
 
             void write_log(quill::MacroMetadata const* log_metadata,
@@ -335,10 +335,10 @@ namespace logging
                                  std::string const& format_pattern,                                            // Custom Format Pattern
                                  std::string const& time_format,                                               // Custom Time Format
                                  quill::Timezone timestamp_timezone           = quill::Timezone::LocalTime,    // Timezone
-                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{}     //
+                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{}     // Event Notifier (Default: None)
                                  ) :
                 quill::RotatingFileSink(filename, config, file_event_notifier),                                // Pass Parameters into quill::RotatingFileSink
-                _formatter(format_pattern, time_format, timestamp_timezone)                                    // Pass Parameters into _formatter type
+                _formatter(quill::PatternFormatterOptions(format_pattern, time_format, timestamp_timezone))    // Pass Parameters into _formatter type
             {}
 
             void write_log(quill::MacroMetadata const* log_metadata,
@@ -439,7 +439,7 @@ namespace logging
              * @date 2024-03-17
              ******************************************************************************/
             MRDTRoveCommSink(std::string const& format_pattern, std::string const& time_format, quill::Timezone timestamp_timezone) :
-                _formatter(format_pattern, time_format, timestamp_timezone)
+                _formatter(quill::PatternFormatterOptions(format_pattern, time_format, timestamp_timezone))
             {}
 
             /******************************************************************************
