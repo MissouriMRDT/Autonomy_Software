@@ -52,42 +52,35 @@ jobs:
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Check if the directory tests source exists
+      - name: Build and Run Tests if they exist
         run: |
           DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
-
+          
           # Check if the directory exists
           if [ -d "$DIRECTORY" ]; then
-            echo "DIRECTORY_EXISTS=true" >> $GITHUB_ENV
             echo "The directory $DIRECTORY exists."
+            
+            # Build Tests
+            cd /opt/Autonomy_Software/
+            if [ -d "build" ]; then rm -Rf build; fi
+            mkdir build
+            cd build
+            cmake -DBUILD_TESTS_MODE=ON ..
+            make
+      
+            # Check if the built test file exists
+            TEST_BINARY="/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
+            if [ -f "$TEST_BINARY" ]; then
+              cd /opt/Autonomy_Software/build
+              ./Autonomy_Software_${{ matrix.type }}Tests
+            else
+              echo "No ${{ matrix.type }} Tests Exist."
+            fi
+      
           else
-            echo "DIRECTORY_EXISTS=false" >> $GITHUB_ENV
             echo "The directory $DIRECTORY does not exist. Skipping the rest of the GitHub Action."
             exit 0
           fi
-
-      - name: Build Tests
-        if: env.TESTS_FOUND == 'true'
-        run: |
-          cd /opt/Autonomy_Software/
-          if [ -d "build" ]; then rm -Rf build; fi
-          mkdir build
-          cd build
-          cmake -DBUILD_TESTS_MODE=ON ..
-          make
-
-      - name: Check File Existence (${{ matrix.type }} Tests)
-        if: env.TESTS_FOUND == 'true'
-        id: check
-        uses: andstor/file-existence-action@v3
-        with:
-          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
-
-      - name: Run ${{ matrix.type }} Tests
-        if: steps.check.outputs.files_exists == 'true' && env.TESTS_FOUND == 'true'
-        run: |
-          cd /opt/Autonomy_Software/build
-          if test -f "Autonomy_Software_${{ matrix.type }}Tests"; then ./Autonomy_Software_${{ matrix.type }}Tests ; else echo "No ${{ matrix.type }} Tests Exist" ; fi
 
       - name: Cleanup Action Environment
         if: always()
@@ -139,42 +132,35 @@ jobs:
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Check if the directory tests source exists
+      - name: Build and Run Tests if they exist
         run: |
-          DIRECTORY="test/${{ matrix.type }}/src"
-
+          DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
+          
           # Check if the directory exists
           if [ -d "$DIRECTORY" ]; then
-            echo "DIRECTORY_EXISTS=true" >> $GITHUB_ENV
             echo "The directory $DIRECTORY exists."
+            
+            # Build Tests
+            cd /opt/Autonomy_Software/
+            if [ -d "build" ]; then rm -Rf build; fi
+            mkdir build
+            cd build
+            cmake -DBUILD_TESTS_MODE=ON ..
+            make
+      
+            # Check if the built test file exists
+            TEST_BINARY="/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
+            if [ -f "$TEST_BINARY" ]; then
+              cd /opt/Autonomy_Software/build
+              ./Autonomy_Software_${{ matrix.type }}Tests
+            else
+              echo "No ${{ matrix.type }} Tests Exist."
+            fi
+      
           else
-            echo "DIRECTORY_EXISTS=false" >> $GITHUB_ENV
             echo "The directory $DIRECTORY does not exist. Skipping the rest of the GitHub Action."
             exit 0
           fi
-
-      - name: Build Tests
-        if: env.TESTS_FOUND == 'true'
-        run: |
-          cd /opt/Autonomy_Software/
-          if [ -d "build" ]; then rm -Rf build; fi
-          mkdir build
-          cd build
-          cmake -DBUILD_TESTS_MODE=ON ..
-          make
-
-      - name: Check File Existence (${{ matrix.type }} Tests)
-        if: env.TESTS_FOUND == 'true'
-        id: check
-        uses: andstor/file-existence-action@v3
-        with:
-          files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
-
-      - name: Run ${{ matrix.type }} Tests
-        if: steps.check.outputs.files_exists == 'true' && env.TESTS_FOUND == 'true'
-        run: |
-          cd /opt/Autonomy_Software/build
-          if test -f "Autonomy_Software_${{ matrix.type }}Tests"; then ./Autonomy_Software_${{ matrix.type }}Tests ; else echo "No ${{ matrix.type }} Tests Exist" ; fi
 
       - name: Cleanup Action Environment
         if: always()
