@@ -154,7 +154,7 @@ jobs:
           fi
 
       - name: Build Tests
-        if: env.TESTS_FOUND == 'true'
+        if: env.DIRECTORY_EXISTS == 'true'
         run: |
           cd /opt/Autonomy_Software/
           if [ -d "build" ]; then rm -Rf build; fi
@@ -164,14 +164,14 @@ jobs:
           make
 
       - name: Check File Existence (${{ matrix.type }} Tests)
-        if: env.TESTS_FOUND == 'true'
+        if: env.DIRECTORY_EXISTS == 'true'
         id: check
         uses: andstor/file-existence-action@v3
         with:
           files: "/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
 
       - name: Run ${{ matrix.type }} Tests
-        if: steps.check.outputs.files_exists == 'true' && env.TESTS_FOUND == 'true'
+        if: steps.check.outputs.files_exists == 'true' && env.DIRECTORY_EXISTS == 'true'
         run: |
           cd /opt/Autonomy_Software/build
           if test -f "Autonomy_Software_${{ matrix.type }}Tests"; then ./Autonomy_Software_${{ matrix.type }}Tests ; else echo "No ${{ matrix.type }} Tests Exist" ; fi
