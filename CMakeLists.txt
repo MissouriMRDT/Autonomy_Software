@@ -17,7 +17,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Software Version Number
-project(Autonomy_Software VERSION 00.00.00 LANGUAGES CXX CUDA)
+project(Autonomy_Software VERSION 24.05.00 LANGUAGES CXX CUDA)
 
 ## Allows use of "FindCUDA" function
 cmake_policy(SET CMP0146 OLD)
@@ -44,6 +44,19 @@ else()
     add_compile_definitions(__AUTONOMY_SIM_MODE__=0)
     set(EXE_NAME "${PROJECT_NAME}")
 endif()
+
+## Enable or Disable Code Coverage Mode
+option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
+if (BUILD_CODE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage --coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage --coverage")
+endif ()
+
+## Enable or Disable Verbose Makefile
+option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
+if (BUILD_VERBOSE_MODE)
+    set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
+endif ()
 
 ## Define Project Name and Version Number for CPack
 set(CPACK_PROJECT_NAME ${EXE_NAME})
@@ -195,6 +208,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${ABSL_LIBRARY_DIRS}
                         ${TENSORFLOWLITE_LIBS}
                         ${LIBEDGETPU_LIBS}
+                        gcov
     )
 
 ## Link Libraries to Executable
