@@ -21,6 +21,7 @@ ignore:
   - "**/*.yml"       
   - "**/build/*"  
   - "/usr/include/*"
+  - "examples/opencv/TagGenerator.hpp"
 
 flags:
   unit_tests:
