@@ -69,8 +69,11 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          root_dir: /opt/Autonomy_Software
+          working-directory: /opt/Autonomy_Software/build
           verbose: true
-          directory: /opt/Autonomy_Software/build/
+          plugin: gcov
+          directory: /opt/Autonomy_Software/build
           file: Coverage.xml
 
       - name: Upload test results to Codecov
@@ -78,6 +81,8 @@ jobs:
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          root_dir: /opt/Autonomy_Software
+          working-directory: /opt/Autonomy_Software/build
           verbose: true
           directory: /opt/Autonomy_Software/build/
           file: Test.xml
