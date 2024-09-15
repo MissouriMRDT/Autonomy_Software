@@ -75,6 +75,7 @@ jobs:
           plugin: gcov
           directory: /opt/Autonomy_Software/build
           file: Coverage.xml
+          exclude: "**/examples/**"
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
