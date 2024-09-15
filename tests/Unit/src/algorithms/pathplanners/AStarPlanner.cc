@@ -324,8 +324,8 @@ TEST(AStarPlannerTest, ObstacleInitialization)
     pAStar->UpdateObstacleData(vObstacles, true);
 
     // Validate obstacles exist within AStar.
-    std::vector<pathplanners::AStar::Obstacle> vReturnVector = pAStar->GetObstacleData();
-    size_t siVectorSize                                      = vReturnVector.size();
+    vReturnVector       = pAStar->GetObstacleData();
+    size_t siVectorSize = vReturnVector.size();
     for (size_t siCounter = 0; siCounter < siVectorSize; siCounter++)
     {
         EXPECT_NEAR(vObstacles[siCounter].stCenterPoint.dEasting, vReturnVector[siCounter].stCenterPoint.dEasting, 0.1);
