@@ -65,24 +65,12 @@ jobs:
           ctest --output-on-failure --output-junit Test.xml
           gcovr --root . --xml-pretty --output Coverage.xml
 
-      - name: Move Coverage Files
-        run: |
-          cd /opt/Autonomy_Software/
-
-          coverage_file=$(find . -name "Coverage.xml" | head -n 1)
-          if [ -f "$coverage_file" ]; then
-            mv "$coverage_file" /opt/Autonomy_Software/build
-          else
-            echo "Coverage.xml not found"
-            exit 1
-          fi
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
-          directory: /opt/Autonomy_Software/build
+          directory: /opt/Autonomy_Software/build/
           file: Coverage.xml
 
       - name: Upload test results to Codecov
@@ -91,7 +79,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
-          directory: /opt/Autonomy_Software/build
+          directory: /opt/Autonomy_Software/build/
           file: Test.xml
 
       - name: Cleanup Action Environment
