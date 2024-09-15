@@ -41,6 +41,9 @@ option(BUILD_INSTALL_MODE "Enable Install Mode" OFF)
 ## Enable or Disable Tests Mode
 option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
 
+## Enable or Disable Examples Mode
+option(BUILD_EXAMPLES_MODE "Enable Examples Mode" OFF)
+
 ## Enable or Disable ZED SDK Shared Linking Mode
 option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 
@@ -100,6 +103,13 @@ if (BUILD_TESTS_MODE)
     enable_testing()
 else()
     message("--   [ ]: Build Unit and Integration Tests: Disabled")
+endif()
+
+## Build Examples
+if (BUILD_EXAMPLES_MODE)
+    message("--   [x]: Build Examples: Enabled")
+else()
+    message("--   [ ]: Build Examples: Disabled")
 endif()
 
 ## ZED SDK Shared Linking
@@ -257,8 +267,11 @@ file(GLOB_RECURSE Examples_SRC  CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB_RECURSE External_SRC  CONFIGURE_DEPENDS  "external/src/*.cpp")
 file(GLOB_RECURSE Tools_SRC     CONFIGURE_DEPENDS  "tools/*.cpp")
 
-## Create Executable
-add_executable(${EXE_NAME} ${External_SRC} ${SRC} ${Examples_SRC} ${Tools_SRC})
+if (BUILD_EXAMPLES_MODE)
+    add_executable(${EXE_NAME} ${External_SRC} ${SRC} ${Examples_SRC} ${Tools_SRC})
+else()
+    add_executable(${EXE_NAME} ${External_SRC} ${SRC} ${Tools_SRC})
+endif()
 
 ## Compile Options
 if (MSVC)
@@ -330,6 +343,7 @@ message("--   Executable Name: ${EXE_NAME}")
 message("--   Simulation Mode: ${BUILD_SIM_MODE}")
 message("--   Tests Mode: ${BUILD_TESTS_MODE}")
 message("--   Install Mode: ${BUILD_INSTALL_MODE}")
+message("--   Examples Mode: ${BUILD_EXAMPLES_MODE}")
 message("--   Code Coverage Mode: ${BUILD_CODE_COVERAGE}")
 message("--   Verbose Makefile: ${BUILD_VERBOSE_MODE}")
 message("--   ZED SDK Shared Linking Mode: ${LINK_SHARED_ZED}")

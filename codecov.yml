@@ -26,31 +26,10 @@ ignore:
 flags:
   unit_tests:
     paths:
-      - "tests/Unit/"
+      - "tests/Unit/**"
   integration_tests:
     paths:
-      - "tests/Integration/"
-  algorithms:
-    paths:
-      - "src/algorithms"
-  drivers:
-    paths:
-      - "src/drivers"
-  handlers:
-    paths:
-      - "src/handlers"
-  interfaces:
-    paths:
-      - "src/interfaces"
-  states:
-    paths:
-      - "src/states"
-  util:
-    paths:
-      - "src/util"
-  vision:
-    paths:
-      - "src/vision"
+      - "tests/Integration/**"
 
 parsers:
   gcov:
