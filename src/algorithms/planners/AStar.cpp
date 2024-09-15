@@ -466,17 +466,15 @@ namespace pathplanners
 
             // Generate Q's 8 successors (neighbors), setting parent to Q.
             std::vector<nodes::AStarNode> vSuccessors;
-            double dWestOffset  = stNextParent.stNodeLocation.dEasting - constants::ASTAR_NODE_SIZE;
-            double dEastOffset  = stNextParent.stNodeLocation.dEasting + constants::ASTAR_NODE_SIZE;
-            double dSouthOffset = stNextParent.stNodeLocation.dNorthing - constants::ASTAR_NODE_SIZE;
-            double dNorthOffset = stNextParent.stNodeLocation.dNorthing + constants::ASTAR_NODE_SIZE;
 
             // Counter for avoiding parent duplication.
             ushort usSuccessorTracker = 0;
-            for (double dEastingOffset = dWestOffset; dEastingOffset <= dEastOffset; dEastingOffset += constants::ASTAR_NODE_SIZE)
+            for (int nEastingDirection = -1; nEastingDirection <= 1; nEastingDirection += 1)
             {
-                for (double dNorthingOffset = dSouthOffset; dNorthingOffset <= dNorthOffset; dNorthingOffset += constants::ASTAR_NODE_SIZE)
+                for (int nNorthingDirection = -1; nNorthingDirection <= 1; nNorthingDirection += 1)
                 {
+                    double dSuccessorEasting  = stNextParent.stNodeLocation.dEasting + (nEastingDirection * constants::ASTAR_NODE_SIZE);
+                    double dSuccessorNorthing = stNextParent.stNodeLocation.dNorthing + (nNorthingDirection * constants::ASTAR_NODE_SIZE);
                     // Skip duplicating the parent node.
                     // Implemented with a counter to avoid evaluating coordinates.
                     usSuccessorTracker++;
@@ -486,7 +484,7 @@ namespace pathplanners
                     }
 
                     // Check for valid coordinate (check for boundary and obstacles).
-                    if (!ValidCoordinate(dEastingOffset, dNorthingOffset))
+                    if (!ValidCoordinate(dSuccessorEasting, dSuccessorNorthing))
                     {
                         continue;
                     }
@@ -496,8 +494,8 @@ namespace pathplanners
                     geoops::UTMCoordinate stSuccessorCoordinate = stNextParent.stNodeLocation;
 
                     // Adjust Easting and Northing offsets to create new coordinate.
-                    stSuccessorCoordinate.dEasting  = dEastingOffset;
-                    stSuccessorCoordinate.dNorthing = dNorthingOffset;
+                    stSuccessorCoordinate.dEasting  = dSuccessorEasting;
+                    stSuccessorCoordinate.dNorthing = dSuccessorNorthing;
                     RoundUTMCoordinate(stSuccessorCoordinate);
                     // Create successor node, initialize values to 0 (done by constructor).
                     nodes::AStarNode stNextSuccessor(vClosedList.back(), stSuccessorCoordinate);
