@@ -93,7 +93,7 @@ namespace pathplanners
             stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
             // Extract size data from ObjectData and calculate size of obstacle.
             // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-            stObstacleToAdd.fRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
+            stObstacleToAdd.dRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
             // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
             m_vObstacles.emplace_back(stObstacleToAdd);
         }
@@ -144,7 +144,7 @@ namespace pathplanners
         stObstacleToAdd.stCenterPoint.dNorthing = stObstacle.position.y;
         // Extract size data from ObjectData and calculate size of obstacle.
         // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-        stObstacleToAdd.fRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
+        stObstacleToAdd.dRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
         // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
         m_vObstacles.emplace_back(stObstacleToAdd);
     }
@@ -244,7 +244,7 @@ namespace pathplanners
         for (size_t i = 0; i < m_vObstacles.size(); i++)
         {
             // Multiplier for avoidance radius.
-            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].fRadius;
+            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
             // Create obstacle borders.
             double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
             double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
@@ -323,7 +323,7 @@ namespace pathplanners
         for (size_t i = 0; i < m_vObstacles.size(); i++)
         {
             // Multiplier for avoidance radius.
-            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].fRadius;
+            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
             // Create obstacle borders.
             double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
             double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
