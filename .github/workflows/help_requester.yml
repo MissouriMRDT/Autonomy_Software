@@ -1,0 +1,62 @@
+name: Notify Software Leads on Help Request
+
+on:
+  push:
+    branches-ignore:
+      - 'development'
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Fetch all branches and commits
+      run: git fetch --all
+
+    - name: Extract LEAD comments for each commit
+      run: |
+        # Get the list of commits included in this push from the event JSON file
+        commits=$(jq -r '.commits[].id' "$GITHUB_EVENT_PATH")
+
+        # Print out the list of commits
+        echo "Commits to process:"
+        for commit in $commits; do
+          echo " - $commit"
+        done
+
+        # Process each commit
+        for commit in $commits; do
+          echo "Processing commit: $commit"
+          
+          # Checkout the specific commit
+          git checkout "$commit"
+
+          # Run the LEAD comments extraction and Discord notification script
+          chmod +x ./tools/help-request/extract_comments.sh
+          chmod +x ./tools/help-request/send_discord.sh
+          
+          # Extract LEAD comments
+          ./tools/help-request/extract_comments.sh "$commit"
+        done
+
+        # Check if any comment files were created
+        if [ "$(ls -A comments)" ]; then
+            echo "LEAD comments have been extracted and saved in the comments directory."
+            # Send Discord notification if comment files exist
+            ./tools/help-request/send_discord.sh
+        else
+            echo "No LEAD comments were found in commit $commit. No notification will be sent."
+        fi
+        
+        # Clean up the comments directory for the next commit
+        rm -rf comments/*
+      shell: bash
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        SOFTWARE_LEADS_ROLE_ID: ${{ secrets.SOFTWARE_LEADS_ROLE_ID }}

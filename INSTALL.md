@@ -1,52 +1,95 @@
 \page md_INSTALL Installation Guide
 
-# Installing Autonomy Software
+# 🛠️ Installing Autonomy Software
 
-### 1. Download and Install Required Software:
-    
-- Download and install Visual Studio Code from [here](https://code.visualstudio.com/download)
-- Download and install git-scm from [here](https://git-scm.com/downloads)
-- Download and install Docker from [here](https://docs.docker.com/engine/install/) (NOTE: Only install Docker Desktop if you are on Windows! Only install Docker Engine for other OSs)
+Welcome aboard, developer! Ready to get your Autonomy Software environment set up? Follow along, and we’ll get everything installed in no time! Let’s jump in. 🚀
 
-(Optional) Needed for container GPU support.
-    - Download and install NVIDIA Container Toolkit from [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) This is only applicable if your machine has a GPU with CUDA. Windows users should integrate WSL (Windows Subsystem for Linux) into their Docker install. [Medium](https://medium.com/htc-research-engineering-blog/nvidia-docker-on-wsl2-f891dfe34ab) has an okay guide.
+---
 
-NOTE: For all installs, select the ADD TO PATH options whenever available.
-   
+### 1. 📥 Download and Install the Essentials
 
-### 2. Open VSCode and Install Extensions:
+Before we start coding, let’s grab some tools to set up our environment. You’ll need:
 
-- Open VSCode and goto the extensions tab on the left toolbar.
-- Use the searchbar to find the `Dev Containers` extension and click the install button.
-- Feel free to install any other useful extensions that might help you develop your code.
+- 🖥️ **Visual Studio Code** – Download it [here](https://code.visualstudio.com/download).  
+- 🧰 **Git SCM** – Download it [here](https://git-scm.com/downloads).  
+- 🐋 **Docker** – Download it [here](https://docs.docker.com/engine/install/).  
+  _Important_: If you're on Windows, install **Docker Desktop**. For other OSs, go with **Docker Engine**.
+
+_Optional_ but highly recommended for those with NVIDIA GPUs:
+
+- 🖼️ **NVIDIA Container Toolkit** – Download it [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).  
+
+_Windows users_, you’ll want to integrate **WSL** (Windows Subsystem for Linux) into your Docker install. [Check this guide](https://medium.com/htc-research-engineering-blog/nvidia-docker-on-wsl2-f891dfe34ab) for some tips.
+
+🎯 **Pro Tip:** For all installs, select the _Add to PATH_ options whenever available. It’ll save you headaches later!
+
+---
+
+### 2. 🧩 Open VSCode and Install Extensions
+
+Now that VSCode is installed, let’s power it up with some extensions!
+
+- Go to the extensions tab (the little square icon on the left toolbar) and search for `Dev Containers`.
+- Click the install button to add it to your toolkit.
 
 ![](data/README_Resources/images/vscode_install_extensions.png)
 
-NOTE: In the later steps when we start the devcontainer, It's extensions will be separate from the extensions locally installed on your computer. You can still install extensions to the devcontainer, but the extensions and their settings won't be persistent between container rebuild. If you would like an extension to come packaged in with the container, ask one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software_leads).
+**Note:** Once we’re in the devcontainer, the extensions you install locally will be separate from the ones inside the container. Want a particular extension to be included by default? Hit up one of our [software leads](https://github.com/orgs/MissouriMRDT/teams/software-leads).
 
-### 3. Clone the Autonomy_Software repo:
+---
+
+### 3. 🧑‍💻 Clone the Autonomy_Software Repo
+
+Let’s grab the code!
+
+1. Hit `CTRL + SHIFT + P` to open the command palette.
+2. Start typing `git clone`, then select `Git: Clone (Recursive)` from the list.
+3. Paste in this URL:  
+   ```https://github.com/MissouriMRDT/Autonomy_Software.git```
+4. Choose where to save the repo on your local machine—organize it so it’s easy to find later!
+5. Once the cloning is done, VSCode will ask if you want to open the new workspace. Click _Open_.
+
+---
+
+### 4. 🐳 Open the Repo Inside the Devcontainer
+
+Now comes the fun part: working inside our devcontainer, which is basically a fully-loaded environment ready to go. All the packages, libraries, and tools you need are baked right into the image!
+
+- When you first open the repo, VSCode should prompt you to open it in a devcontainer. Go ahead and click _Open_.
+- If that prompt doesn’t appear, no worries! Hit `CTRL + SHIFT + P` again, type `Dev Containers: Rebuild Container`, and select that option.
+
+Now give it some time to spin up the container—when the logs in the OUTPUT window stop printing, you’re good to go!
+
+---
+
+### 5. 🚦 First Build and Run
+
+You’re so close now! Let’s get your first build running:
+
+1. Once the devcontainer is up, a box will pop up asking which CMake Kit you want to use. Choose the one pointing to `/usr/bin/g++` and `/usr/bin/gcc`.
    
-- Type the sequence `CTRL + SHIFT + P` to open the editor commands. 
-- Then, start typing: 'git clone' and an option called `Git: Clone (Recursive)` will show up. Select that option and enter this URL when prompted: ```https://github.com/MissouriMRDT/Autonomy_Software.git```.
-- Next, it will ask you where you want to store the repo files on your local machine. It's smart to store them in a organized folder structure located somewhere you won't forget and is that easily accessible.
-- Finally, when the repo is done cloning, VSCode will ask you if you want to open the newly cloned workspace. Click 'open'.
+   ![](data/README_Resources/images/kit_selection_first_container_start.png)
+   
+2. CMake will auto-configure the project if needed. This might take a few seconds depending on your machine. When it’s ready, use the toolbar buttons to build, run, or debug your code with ease!
 
-### 4. Open the repo inside of our devcontainer:
+   ![](data/README_Resources/images/toolbar_build_run.png)
+   
+3. You can also perform standard `make` commands by navigating to the `build/` directory with `cd build/`, and running your desired commands.
 
-All development for Autonomy_Software should be done using our custom made docker image. This image is specifically built so that it is compatible with our codebase. All linux packages, libraries, environment settings, and other configurations are baked into the image. So when you spin up a docker container from our image, it's guaranteed to work perfect and compile easy. This prevents everyone from spending hours trying to setup their environment on widely varying machines with different software and drivers.
+---
 
-- When the cloned folder is first opened, VSCode should detect that this repo is setup for a devcontainer and show a prompt. Click 'open'.
-- If VSCode doesn't automatically ask to open the devcontainer, you can manually open it by typing `CTRL + SHIFT + P` and then finding and selecting the `Dev Containers: Rebuild Container` option.
-    
-    Give the container some time to install and setup extensions, you'll know it's done when the OUTPUT at the bottom stops printing.
+### 6. 🔍 Explore the Codebase
 
-### 5. First build and run:
-- Once the devcontainer has been opened and extensions have been automatically setup, a box will appear asking you what CMAKE kit you want to compile with. Select the one that points to `/usr/bin/g++` and `/usr/bin/gcc`.
-    ![](data/README_Resources/images/kit_selection_first_container_start.png)
-- If the CMake cache needs to be generated or updated, the extension will configure the project automatically. This process may take a few seconds, depending on your hardware. Use the build, run, and debug buttons to easily perform those actions.
-    ![](data/README_Resources/images/toolbar_build_run.png)
-- Normal make commands (such as `make clean`) can be performed by navigating into the `build/` directory with `cd build/` and running the desired commands.
+Now that everything’s set up, feel free to roam around the directories. Get a feel for the structure and what’s inside each folder.
 
-### 6. Explore the different directories to understand the structure and purpose of each.
-### 7. Refer to the specific README files within each directory for detailed information and guidelines on organizing files and using the functionalities.
-### 8. Start developing!
+---
+
+### 7. 📖 Check the README Files
+
+Inside each directory, you’ll find README files with detailed guidelines. These are your go-to docs for understanding how to organize files and use the functionalities.
+
+---
+
+### 8. 🛠️ Start Developing!
+
+That’s it! You’re ready to start coding, debugging, and making the Autonomy Software even better. Happy coding! 🎉
