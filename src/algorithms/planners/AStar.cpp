@@ -203,7 +203,7 @@ namespace pathplanners
                 stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
                 // Determine +/- value of minor component for boundary distance vector.
                 // Edge case of dDeltaY = 0, set sDirection to 0.
-                (dDeltaY) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
+                (dDeltaY) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0.0;
                 // Calculate goal node Y axis with scale ratio.
                 stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * dVectorRatio * dDeltaY;
             }
@@ -218,7 +218,7 @@ namespace pathplanners
                 stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
                 // Determine +/- value of minor component for boundary distance vector.
                 // Edge case of dDeltaX = 0, set sDirection to 0.
-                (dDeltaX) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
+                (dDeltaX) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0.0;
                 // Calculate goal node X axis with scale ratio.
                 stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * dVectorRatio * dDeltaX;
             }
