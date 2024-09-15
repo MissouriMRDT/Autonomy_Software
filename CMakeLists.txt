@@ -1,8 +1,8 @@
 ####################################################################################################################
-##                                            Autonomy Software                                                   ##
-##                                          v24.05.00 Build 001                                                   ##
-##                                      Mars Rover Design Team                                                    ##
-##                                Copyright 2023 - All Rights Reserved                                            ##
+##                                               Autonomy Software                                                ##
+##                                              24.05.00 - Build 001                                              ##
+##                                             Mars Rover Design Team                                             ##
+##                                      Copyright 2024 - All Rights Reserved                                      ##
 ####################################################################################################################
 
 ## Set CMake Minimum Version
@@ -23,7 +23,7 @@ cmake_policy(SET CMP0146 OLD)    # Allows use of "FindCUDA" function
 cmake_policy(SET CMP0153 OLD)    # Allows use of "Exec_Program" function
 
 ####################################################################################################################
-##                                              Options                                                           ##
+##                                                    Options                                                     ##
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
@@ -51,7 +51,7 @@ option(RC_CROSS_COMPILE "Cross-Compile RoveComm for Windows and Linux" OFF)
 option(LIST_ALL_VARS "Print all CMake Variables" OFF)
 
 ####################################################################################################################
-##                                       Configuration Based on Options                                           ##
+##                                         Configuration Based on Options                                         ##
 ####################################################################################################################
 
 message("-- Autonomy System Options:")
@@ -128,7 +128,7 @@ else()
 endif()
 
 ####################################################################################################################
-##                                              CPack Setup                                                       ##
+##                                                 CPack Setup                                                    ##
 ####################################################################################################################
 
 ## Define CPack Project Info
@@ -141,7 +141,7 @@ set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CP
 set(CPACK_GENERATOR "STGZ")
 
 ####################################################################################################################
-##                                       Dependencies and Libraries                                               ##
+##                                           Dependencies and Libraries                                           ##
 ####################################################################################################################
 
 # Configure BSThreadPool
@@ -246,7 +246,7 @@ if (LIST_ALL_VARS)
 endif()
 
 ####################################################################################################################
-##                                       Build Executable                                                         ##
+##                                                Build Executable                                                ##
 ####################################################################################################################
 
 ## Search Project Directories for CPP Files
@@ -283,7 +283,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 
 ####################################################################################################################
-##                                       Installation and Tests                                                   ##
+##                                             Installation and Tests                                             ##
 ####################################################################################################################
 
 ## Install Mode
@@ -320,7 +320,7 @@ if (BUILD_TESTS_MODE)
 endif()
 
 ####################################################################################################################
-##                                       Final Build Configuration                                                ##
+##                                           Final Build Configuration                                            ##
 ####################################################################################################################
 
 message("-- Final Autonomy Software Configuration Summary")
@@ -330,3 +330,4 @@ message("--   Tests Mode: ${BUILD_TESTS_MODE}")
 message("--   Install Mode: ${BUILD_INSTALL_MODE}")
 message("--   Code Coverage Mode: ${BUILD_CODE_COVERAGE}")
 message("--   Verbose Makefile: ${BUILD_VERBOSE_MODE}")
+message("--   ZED SDK Shared Linking Mode: ${LINK_SHARED_ZED}")
