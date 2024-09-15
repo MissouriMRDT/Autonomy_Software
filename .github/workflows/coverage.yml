@@ -61,8 +61,9 @@ jobs:
       - name: Test
         run: |
           cd /opt/Autonomy_Software/build
-          ctest -T Test -T Coverage
-          ctest -T Test --output-junit Test.xml
+          ctest --output-on-failure -T Test -T Coverage
+          ctest --output-on-failure --output-junit Test.xml
+          gcovr --root . --xml-pretty --output Coverage.xml
 
       - name: Move Coverage Files
         run: |
