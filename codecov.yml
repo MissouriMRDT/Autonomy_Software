@@ -11,7 +11,7 @@ coverage:
         target: auto
     changes: false
 
-exclude:
+ignore:
   - "examples/*"     
   - "external/*"     
   - "tests/*"        
@@ -19,7 +19,9 @@ exclude:
   - "**/CMakeFiles/*"
   - "**/*.md"        
   - "**/*.yml"       
-  - "**/build/*"     
+  - "**/build/*"  
+  - "/usr/include/*"
+
 flags:
   unit_tests:
     paths:
@@ -49,9 +51,6 @@ flags:
     paths:
       - "src/vision"
 
-ignore:
-  - "/usr/include/*"
-
 parsers:
   gcov:
     branch_detection:
@@ -59,22 +58,6 @@ parsers:
       loop: yes
       method: no
       macro: no
-    exclude: 
-    - "examples/*"     
-    - "external/*"     
-    - "tests/*"        
-    - "tools/*"        
-    - "**/CMakeFiles/*"
-    - "**/*.md"        
-    - "**/*.yml"       
-    - "**/build/*"     
-    search:
-      - "*.gcno"
-      - "*.gcda"
-
-report:
-  type: diff
-  threshold: 1.0
 
 comment:
   layout: "diff, flags, files"
