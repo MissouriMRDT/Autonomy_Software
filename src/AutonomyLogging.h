@@ -27,6 +27,12 @@
 
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/RotatingFileSink.h"
+
+#include <RoveComm/RoveComm.h>
+#include <RoveComm/RoveCommManifest.h>
+#include <atomic>
+#include <shared_mutex>
+
 /// \endcond
 
 #include "./AutonomyConstants.h"
@@ -69,6 +75,11 @@ namespace logging
     extern quill::Logger* g_qConsoleLogger;
     extern quill::Logger* g_qSharedLogger;
     extern quill::Logger* g_qRoveCommLogger;
+
+    extern quill::LogLevel g_eConsoleLogLevel;
+    extern quill::LogLevel g_eFileLogLevel;
+    extern quill::LogLevel g_eRoveCommLogLevel;
+
     extern std::string g_szProgramStartTimeString;
 
     /////////////////////////////////////////
@@ -76,6 +87,40 @@ namespace logging
     /////////////////////////////////////////
 
     void InitializeLoggers(std::string szLoggingOutputPath);
+
+    /////////////////////////////////////////
+    // Declare namespace callbacks.
+    /////////////////////////////////////////
+
+    const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> SetLoggingLevelsCallback =
+        [](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+    {
+        // Not using this.
+        (void) stdAddr;
+
+        // Convert Minimum Permitted Console Level to Integer Value
+        const int nMinConsoleLevel  = static_cast<int>(constants::CONSOLE_MIN_LEVEL);
+        const int nMinFileLevel     = static_cast<int>(constants::FILE_MIN_LEVEL);
+        const int nMinRoveCommLevel = static_cast<int>(constants::ROVECOMM_MIN_LEVEL);
+
+        // Convert Requested Console Level to Integer Value
+        const int nRequestedConsoleLevel  = stPacket.vData[0];
+        const int nRequestedFileLevel     = stPacket.vData[1];
+        const int nRequestedRoveCommLevel = stPacket.vData[2];
+
+        // Determine if change is allowed
+        bool bConsoleLevelChangePermitted  = nRequestedConsoleLevel >= nMinConsoleLevel;
+        bool bFileLevelChangePermitted     = nRequestedFileLevel >= nMinFileLevel;
+        bool bRoveCommLevelChangePermitted = nRequestedRoveCommLevel >= nMinRoveCommLevel;
+
+        // Convert RoveComm Enumeration to Quill Enumeration and store to logging globals if permitted
+        logging::g_eConsoleLogLevel  = bConsoleLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[0]) : logging::g_eConsoleLogLevel;
+        logging::g_eFileLogLevel     = bFileLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[1]) : logging::g_eFileLogLevel;
+        logging::g_eRoveCommLogLevel = bRoveCommLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[2]) : logging::g_eRoveCommLogLevel;
+
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "Incoming SETLOGGINGLEVELS: [Console: {}, File: {}, RoveComm: {}]", stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]);
+    };
 
     /////////////////////////////////////////
     // Define namespace file filters.
@@ -144,7 +189,7 @@ namespace logging
     };
 
     /////////////////////////////////////////
-    // Define namespace custom sink
+    // Define namespace custom sinks
     /////////////////////////////////////////
 
     /******************************************************************************
@@ -202,50 +247,16 @@ namespace logging
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-08-16
              ******************************************************************************/
-            MRDTConsoleSink(quill::ConsoleColours const& colours,                               // Custom Colors Import
-                            std::string const& format_pattern,                                  // Custom Format Pattern
-                            std::string const& time_format,                                     // Custom Time Format
-                            quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,    // Timezone
-                            std::string const& stream          = "stdout"                       // Stream
+            MRDTConsoleSink(quill::ConsoleColours const& colours,                                              // Custom Colors Import
+                            std::string const& format_pattern,                                                 // Custom Format Pattern
+                            std::string const& time_format,                                                    // Custom Time Format
+                            quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,                   // Timezone
+                            std::string const& stream          = "stdout"                                      // Stream
                             ) :
-                quill::ConsoleSink(colours, stream),                                            // Pass Parameters into quill::ConsoleSink
-                _formatter(format_pattern, time_format, timestamp_timezone)                     // Pass Parameters into _formatter type
+                quill::ConsoleSink(colours, stream),                                                           // Pass Parameters into quill::ConsoleSink
+                _formatter(quill::PatternFormatterOptions(format_pattern, time_format, timestamp_timezone))    // Pass Parameters into _formatter type
             {}
 
-            /******************************************************************************
-             * @brief Writes a log message to the MRDT console sink, formats the message
-             * using the provided formatter, and then passes the formatted log message
-             * along with the original data to the parent class (ConsoleSink) for handling.
-             *
-             * @param log_metadata - Metadata about the log statement (e.g., file, line number).
-             * @param log_timestamp - The timestamp of the log statement.
-             * @param thread_id - The ID of the thread that generated the log.
-             * @param thread_name - The name of the thread that generated the log.
-             * @param process_id - The ID of the process that generated the log.
-             * @param logger_name - The name of the logger that generated the log.
-             * @param log_level - The level/severity of the log statement.
-             * @param log_level_description - A description of the log level.
-             * @param log_level_short_code - A short code representing the log level.
-             * @param named_args - Optional named arguments passed with the log statement.
-             * @param log_message - The actual log message content.
-             *
-             * @note This method calls the base class's `write_log` function to actually
-             * handle the log output, after formatting the message with custom formatting logic.
-             *
-             * @note This method should not be called directly. It is meant to be invoked
-             * by the logging framework as part of the log handling process.
-             *
-             * @see quill::ConsoleSink
-             *
-             * @warning Ensure that the formatter is correctly configured before using this
-             * method, as improper formatting may lead to incorrect log outputs.
-             *
-             * @attention This method overrides the base class's write_log function to
-             * inject custom formatting logic while preserving the core file logging functionality.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-08-16
-             ******************************************************************************/
             void write_log(quill::MacroMetadata const* log_metadata,
                            uint64_t log_timestamp,
                            std::string_view thread_id,
@@ -324,49 +335,12 @@ namespace logging
                                  std::string const& format_pattern,                                            // Custom Format Pattern
                                  std::string const& time_format,                                               // Custom Time Format
                                  quill::Timezone timestamp_timezone           = quill::Timezone::LocalTime,    // Timezone
-                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{}     //
+                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{}     // Event Notifier (Default: None)
                                  ) :
                 quill::RotatingFileSink(filename, config, file_event_notifier),                                // Pass Parameters into quill::RotatingFileSink
-                _formatter(format_pattern, time_format, timestamp_timezone)                                    // Pass Parameters into _formatter type
+                _formatter(quill::PatternFormatterOptions(format_pattern, time_format, timestamp_timezone))    // Pass Parameters into _formatter type
             {}
 
-            /******************************************************************************
-             * @brief Writes a log message to the MRDT rotating file sink. The log message
-             * is first formatted using a custom formatter, and then the formatted message
-             * along with the original log details are passed to the base class
-             * (RotatingFileSink) for further handling (such as writing to a rotating log file).
-             *
-             * @param log_metadata - Metadata about the log statement (e.g., file, line number).
-             * @param log_timestamp - The timestamp of the log statement.
-             * @param thread_id - The ID of the thread that generated the log.
-             * @param thread_name - The name of the thread that generated the log.
-             * @param process_id - The ID of the process that generated the log.
-             * @param logger_name - The name of the logger that generated the log.
-             * @param log_level - The level/severity of the log statement.
-             * @param log_level_description - A description of the log level.
-             * @param log_level_short_code - A short code representing the log level.
-             * @param named_args - Optional named arguments passed with the log statement.
-             * @param log_message - The actual log message content.
-             *
-             * @note This method formats the log message using the provided formatter,
-             * ensuring that the final output adheres to the defined format pattern. The
-             * formatted message is then handled by the rotating file sink for writing to
-             * a file that rotates based on file size or time interval.
-             *
-             * @note This method should not be called directly. It is meant to be invoked
-             * by the logging framework as part of the log handling process.
-             *
-             * @see quill::RotatingFileSink
-             *
-             * @warning Ensure that the formatter is correctly configured and that the
-             * rotating file sink is properly set up to avoid loss of log data.
-             *
-             * @attention This method overrides the base class's write_log function to
-             * inject custom formatting logic while preserving the core file logging functionality.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-08-16
-             ******************************************************************************/
             void write_log(quill::MacroMetadata const* log_metadata,
                            uint64_t log_timestamp,
                            std::string_view thread_id,
@@ -465,7 +439,7 @@ namespace logging
              * @date 2024-03-17
              ******************************************************************************/
             MRDTRoveCommSink(std::string const& format_pattern, std::string const& time_format, quill::Timezone timestamp_timezone) :
-                _formatter(format_pattern, time_format, timestamp_timezone)
+                _formatter(quill::PatternFormatterOptions(format_pattern, time_format, timestamp_timezone))
             {}
 
             /******************************************************************************
@@ -476,50 +450,6 @@ namespace logging
              ******************************************************************************/
             ~MRDTRoveCommSink() override = default;
 
-            /******************************************************************************
-             * @brief Formats a log message and sends it as a RoveComm packet to the
-             * BaseStation. The log message is formatted using the provided metadata,
-             * thread, and process information, then packed and transmitted via RoveComm
-             * protocol to a specified IP address and port.
-             *
-             * This function utilizes a custom formatter to combine metadata and log
-             * message content into a single formatted string, which is then converted
-             * into a `RoveCommPacket` and sent to the BaseStation over UDP.
-             *
-             * @param log_metadata - Metadata about the log statement (e.g., file, line number).
-             * @param log_timestamp - The timestamp of the log statement.
-             * @param thread_id - The ID of the thread that generated the log.
-             * @param thread_name - The name of the thread that generated the log.
-             * @param process_id - The ID of the process that generated the log.
-             * @param logger_name - The name of the logger that generated the log.
-             * @param log_level - The level/severity of the log statement (currently unused).
-             * @param log_level_description - A description of the log level.
-             * @param log_level_short_code - A short code representing the log level.
-             * @param named_args - Optional named arguments passed with the log statement.
-             * @param log_message - The actual log message content.
-             * @param log_statement - The full log statement (currently unused).
-             *
-             * @note This method formats the log message and sends it as a RoveComm packet
-             * to the BaseStation if both UDP and TCP statuses are active. The log level
-             * and log statement parameters are not currently used in the packet creation.
-             *
-             * @note This method should not be called directly. It is meant to be invoked
-             * by the logging framework as part of the log handling process.
-             *
-             * @see quill::MacroMetadata
-             * @see rovecomm::RoveCommPacket
-             * @see network::SendUDPPacket
-             *
-             * @warning Ensure that the RoveComm protocol is correctly configured and that
-             * both UDP and TCP statuses are active before calling this method to avoid
-             * packet transmission failure.
-             *
-             * @attention The formatter must be properly configured to ensure the correct
-             * format of the log message before it is sent as a RoveComm packet.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-08-16
-             ******************************************************************************/
             void write_log(quill::MacroMetadata const* log_metadata,
                            uint64_t log_timestamp,
                            std::string_view thread_id,
