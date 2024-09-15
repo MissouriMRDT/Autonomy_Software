@@ -34,14 +34,6 @@ flags:
     paths:
       - "tests/Integration/**"
 
-parsers:
-  gcov:
-    branch_detection:
-      conditional: yes
-      loop: yes
-      method: no
-      macro: no
-
 comment:
   layout: "diff, flags, files"
   behavior: default

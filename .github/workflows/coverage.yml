@@ -70,12 +70,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           root_dir: /opt/Autonomy_Software
-          working-directory: /opt/Autonomy_Software/build
+          working-directory: /opt/Autonomy_Software
           verbose: true
           plugin: gcov
           directory: /opt/Autonomy_Software/build
           file: Coverage.xml
-          exclude: "**/examples/**"
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
