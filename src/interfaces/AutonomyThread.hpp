@@ -199,18 +199,8 @@ class AutonomyThread
          * @date 2023-07-22
          ******************************************************************************/
         bool Joinable() const
-        {
-            // Check current number of running and queued tasks.
-            if (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() <= 0)
-            {
-                // Threads are joinable.
-                return true;
-            }
-            else
-            {
-                // Threads are still running.
-                return false;
-            }
+        {    // Check current number of running and queued tasks.
+            return (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() <= 0);
         }
 
         /******************************************************************************
@@ -461,16 +451,7 @@ class AutonomyThread
         bool PoolJoinable() const
         {
             // Check current number of running and queued tasks.
-            if (m_thPool.get_tasks_total() <= 0)
-            {
-                // Threads are joinable.
-                return true;
-            }
-            else
-            {
-                // Threads are still running.
-                return false;
-            }
+            return (m_thPool.get_tasks_total() <= 0);
         }
 
         /******************************************************************************
