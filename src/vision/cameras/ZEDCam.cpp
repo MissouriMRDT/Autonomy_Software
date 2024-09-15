@@ -1803,16 +1803,7 @@ bool ZEDCam::GetCameraIsOpen()
 bool ZEDCam::GetUsingGPUMem() const
 {
     // Check if we are using GPU memory.
-    if (m_slMemoryType == sl::MEM::GPU)
-    {
-        // Using GPU memory.
-        return true;
-    }
-    else
-    {
-        // Not using GPU memory.
-        return false;
-    }
+    return m_slMemoryType == sl::MEM::GPU;
 }
 
 /******************************************************************************
