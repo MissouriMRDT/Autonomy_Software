@@ -93,9 +93,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Setup camera runtime params.
     m_slRuntimeParams.enable_fill_mode = constants::ZED_SENSING_FILL;
     // Setup SVO recording parameters.
-    std::string szSVOFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/cameras/" + this->GetCameraModel() + "_" +
-                                std::to_string(this->GetCameraSerial()) + ".svo";
-    m_slRecordingParams.video_filename   = szSVOFilePath.c_str();
     m_slRecordingParams.compression_mode = constants::ZED_SVO_COMPRESSION;
     m_slRecordingParams.bitrate          = constants::ZED_SVO_BITRATE;
 
@@ -150,6 +147,10 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         // Check if the camera should record and output an SVO file.
         if (m_bEnableRecordingFlag)
         {
+            // Now that camera is opened get camera name and construct path.
+            std::string szSVOFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/" + this->GetCameraModel() + "_" +
+                                        std::to_string(this->GetCameraSerial());
+            m_slRecordingParams.video_filename = szSVOFilePath.c_str();
             // Enable recording.
             sl::ERROR_CODE slReturnCode = m_slCamera.enableRecording(m_slRecordingParams);
             // Check if recording was enabled successfully.
