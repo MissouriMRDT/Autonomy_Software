@@ -64,7 +64,7 @@ namespace constants
     const std::string szWarningColor   = "\033[93m\033[1m";    // Bright Bold Yellow
     const std::string szErrorColor     = "\033[91m\033[1m";    // Bright Bold Red
     const std::string szCriticalColor  = "\033[95m\033[1m";    // Bright Bold Magenta
-    const std::string szBacktraceColor = "\033[34m";           // Standard Blue
+    const std::string szBacktraceColor = "\033[30m";           // Standard Grey
 
     // RoveComm constants.
     const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.

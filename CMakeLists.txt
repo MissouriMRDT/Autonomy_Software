@@ -73,6 +73,7 @@ add_compile_definitions(BS_THREAD_POOL_ENABLE_PRIORITY=1)
 add_compile_definitions(BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK=1)
 
 ## Find RoveComm
+set(BUILD_WIN OFF CACHE BOOL "Disable Windows Cross-Compile Mode for Autonomy Software" FORCE)
 include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
 add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
