@@ -1,0 +1,123 @@
+name: Bug Report
+description: Report a bug or issue in the project.
+title: "[Bug] "
+labels: 
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### **Description**
+        A clear and concise description of the bug or issue.
+
+  - type: input
+    id: description
+    attributes:
+      label: Description
+      description: Provide a clear and concise description of the bug or issue.
+      placeholder: A clear and concise description of the bug or issue.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Steps to Reproduce**
+        Steps to reproduce the behavior.
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Provide a step-by-step guide to reproduce the bug.
+      placeholder: "1. Go to '...'\n2. Click on '...'\n3. Scroll to '...'\n4. See error"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Expected Behavior**
+        A clear description of what you expected to happen.
+
+  - type: input
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: Describe the expected behavior.
+      placeholder: A clear description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Actual Behavior**
+        A description of what actually happened.
+
+  - type: input
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: Describe what actually happened.
+      placeholder: A description of what actually happened.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Logs**
+        If applicable, add logs to help explain your problem.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Add any relevant logs.
+      placeholder: Add logs here.
+      render: shell
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Environment**
+        Specify the environment where the issue occurred.
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Select your environment.
+      multiple: true
+      options:
+        - Jammy
+        - JetPack
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Enter the version where the bug occurred.
+      placeholder: e.g., v1.0.0
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### **Additional Context**
+        Add any other context or information about the issue here.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Provide any additional context or information about the issue.
+      placeholder: Add any other relevant information here.
+    validations:
+      required: false

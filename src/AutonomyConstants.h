@@ -15,6 +15,7 @@
 
 /// \cond
 #include <opencv2/opencv.hpp>
+#include <quill/core/LogLevel.h>
 #include <sl/Camera.hpp>
 
 /// \endcond
@@ -45,7 +46,13 @@ namespace constants
     const bool BATTERY_CHECKS_ENABLED         = false;    // If autonomy should monitor PMS Currents and as a result have the ability to shutdown autonomy.
 
     // Logging constants.
-    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "../logs/";    // The absolute to write output logging and video files to.
+    const std::string LOGGING_OUTPUT_PATH_ABSOLUTE = "../logs/";                  // The absolute to write output logging and video files to.
+    const quill::LogLevel CONSOLE_MIN_LEVEL        = quill::LogLevel::TraceL3;    // The minimum logging level that is allowed to send to the console log stream.
+    const quill::LogLevel FILE_MIN_LEVEL           = quill::LogLevel::TraceL3;    // The minimum logging level that is allowed to send to the file log streams.
+    const quill::LogLevel ROVECOMM_MIN_LEVEL       = quill::LogLevel::Info;       // The minimum logging level that is allowed to send to the RoveComm log stream.
+    const quill::LogLevel CONSOLE_DEFAULT_LEVEL    = quill::LogLevel::Info;       // The default logging level for console stream.
+    const quill::LogLevel FILE_DEFAULT_LEVEL       = quill::LogLevel::TraceL3;    // The default logging level for file streams.
+    const quill::LogLevel ROVECOMM_DEFAULT_LEVEL   = quill::LogLevel::Info;       // The default logging level for RoveComm stream.
 
     // Logging color constants.
     const std::string szTraceL3Color   = "\033[30m";           // Standard Grey
@@ -53,6 +60,7 @@ namespace constants
     const std::string szTraceL1Color   = "\033[30m";           // Standard Grey
     const std::string szDebugColor     = "\033[36m";           // Standard Cyan
     const std::string szInfoColor      = "\033[32m";           // Standard Green
+    const std::string szNoticeColor    = "\033[97m\033[1m";    // Bright Bold White
     const std::string szWarningColor   = "\033[93m\033[1m";    // Bright Bold Yellow
     const std::string szErrorColor     = "\033[91m\033[1m";    // Bright Bold Red
     const std::string szCriticalColor  = "\033[95m\033[1m";    // Bright Bold Magenta

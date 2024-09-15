@@ -1,0 +1,100 @@
+name: Code Coverage
+
+on:
+  pull_request:
+    branches: ["development"]
+
+  push:
+    branches: ["development"]
+
+  workflow_dispatch:
+
+concurrency:
+  group: "coverage"
+  cancel-in-progress: false
+
+jobs:
+  analyze-code-coverage:
+    runs-on: [self-hosted, linux, X64]
+
+    steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fix Dubious Ownership
+        run: git config --global --add safe.directory /opt/Autonomy_Software
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Update Branch
+        run: |
+          cd /opt/Autonomy_Software/
+          git fetch --force --recurse-submodules
+          branch=${{ steps.extract_branch.outputs.branch }}
+          echo $branch
+          git reset --hard origin/$branch
+          git checkout $branch
+          git pull --ff-only
+          git submodule update --force --recursive --init
+          git config --global --add safe.directory /opt/Autonomy_Software/external
+
+      - name: Configure and Build
+        run: |
+          cd /opt/Autonomy_Software/
+          if [ -d "build" ]; then rm -Rf build; fi
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_VERBOSE_MODE=ON
+          make -j8
+
+      - name: Test
+        run: |
+          cd /opt/Autonomy_Software/build
+          ctest -T Test -T Coverage
+          ctest -T Test --output-junit Test.xml
+
+      - name: Move Coverage Files
+        run: |
+          cd /opt/Autonomy_Software/
+
+          coverage_file=$(find . -name "Coverage.xml" | head -n 1)
+          if [ -f "$coverage_file" ]; then
+            mv "$coverage_file" /opt/Autonomy_Software/build
+          else
+            echo "Coverage.xml not found"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          directory: /opt/Autonomy_Software/build
+          file: Coverage.xml
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          directory: /opt/Autonomy_Software/build
+          file: Test.xml
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
