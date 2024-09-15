@@ -53,21 +53,6 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Struct to represent the obstacles that need to be avoided by the
-     *      PlanAvoidanceRoute method. fRadius is meant to represent the estimated size
-     *      of the obstacle in meters.
-     *
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-06
-     ******************************************************************************/
-    struct AStar::Obstacle
-    {
-            geoops::UTMCoordinate stCenterPoint;
-            float fRadius;
-    };
-
-    /******************************************************************************
      * @brief Helper function to destroy objects from m_vObstacles.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)

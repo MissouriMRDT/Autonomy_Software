@@ -70,6 +70,8 @@ namespace pathplanners
             void UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool& bClearObstacles = true);
             void ClearObstacleData();
 
+            const std::vector<Obstacle> GetObstacleData() { return m_vObstacles; };
+
             void SetStartCoordinate(const geoops::UTMCoordinate& stStart) { m_stStartNode = nodes::AStarNode(nullptr, stStart); }
 
             /////////////////////////////////////////
@@ -94,6 +96,21 @@ namespace pathplanners
             /////////////////////////////////////////
             std::string UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
+    };
+
+    /******************************************************************************
+     * @brief Struct to represent the obstacles that need to be avoided by the
+     *      PlanAvoidanceRoute method. dRadius is meant to represent the estimated size
+     *      of the obstacle in meters.
+     *
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-06
+     ******************************************************************************/
+    struct AStar::Obstacle
+    {
+            geoops::UTMCoordinate stCenterPoint;
+            double dRadius;
     };
 }    // namespace pathplanners
 
