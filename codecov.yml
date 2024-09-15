@@ -10,18 +10,21 @@ coverage:
       default:
         target: auto
     changes: false
+  project:
+    default:
+      paths:
+        - "src"
 
 ignore:
-  - "examples/*"     
-  - "external/*"     
-  - "tests/*"        
-  - "tools/*"        
+  - "examples/*"
+  - "external/*"
+  - "tests/*"
+  - "tools/*"
   - "**/CMakeFiles/*"
-  - "**/*.md"        
-  - "**/*.yml"       
-  - "**/build/*"  
+  - "**/*.md"
+  - "**/*.yml"
+  - "**/build/*"
   - "/usr/include/*"
-  - "examples/opencv/TagGenerator.hpp"
 
 flags:
   unit_tests:
@@ -42,7 +45,7 @@ parsers:
 comment:
   layout: "diff, flags, files"
   behavior: default
-  require_changes: false 
+  require_changes: false
   require_base: false
   require_head: true
   hide_project_coverage: false
