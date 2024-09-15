@@ -10,10 +10,6 @@ coverage:
       default:
         target: auto
     changes: false
-  project:
-    default:
-      paths:
-        - "src"
 
 ignore:
   - "examples/*"
