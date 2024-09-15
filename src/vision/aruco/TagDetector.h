@@ -78,7 +78,7 @@ class TagDetector : public AutonomyThread<void>
         // Mutators.
         /////////////////////////////////////////
 
-        void EnableTensorflowDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
+        void EnableTensorflowDetection(const float fMinObjectConfidence = 0.4F, const float fNMSThreshold = 0.6F);
         void DisableTensorflowDetection();
         void SetDetectorFPS(const int nRecordingFPS);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);

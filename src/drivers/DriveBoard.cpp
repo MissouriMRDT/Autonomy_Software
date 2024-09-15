@@ -121,8 +121,8 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
 
     // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-    float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
-    float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
+    float fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0F, 1.0F, m_fMinDriveEffort, m_fMaxDriveEffort);
+    float fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0F, 1.0F, m_fMinDriveEffort, m_fMaxDriveEffort);
     // Limit the power to max and min effort defined in constants.
     fDriveBoardLeftPower  = std::clamp(float(fDriveBoardLeftPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
     fDriveBoardRightPower = std::clamp(float(fDriveBoardRightPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
