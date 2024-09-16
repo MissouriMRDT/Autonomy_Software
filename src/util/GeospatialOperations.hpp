@@ -215,18 +215,9 @@ namespace geoops
             bool operator==(const GPSCoordinate& stOtherCoordinate) const
             {
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
-                if (dLatitude == stOtherCoordinate.dLatitude && dLongitude == stOtherCoordinate.dLongitude && dAltitude == stOtherCoordinate.dAltitude &&
-                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy &&
-                    eCoordinateAccuracyFixType == stOtherCoordinate.eCoordinateAccuracyFixType && bIsDifferential == stOtherCoordinate.bIsDifferential)
-                {
-                    // Return that the two GPSCoordinates are equal.
-                    return true;
-                }
-                else
-                {
-                    // Return that the two GPSCoordinates are not equal.
-                    return false;
-                }
+                return (dLatitude == stOtherCoordinate.dLatitude && dLongitude == stOtherCoordinate.dLongitude && dAltitude == stOtherCoordinate.dAltitude &&
+                        d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy &&
+                        eCoordinateAccuracyFixType == stOtherCoordinate.eCoordinateAccuracyFixType && bIsDifferential == stOtherCoordinate.bIsDifferential);
             }
 
             /******************************************************************************
@@ -329,19 +320,10 @@ namespace geoops
             bool operator==(const UTMCoordinate& stOtherCoordinate) const
             {
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
-                if (dEasting == stOtherCoordinate.dEasting && dNorthing == stOtherCoordinate.dNorthing && nZone == stOtherCoordinate.nZone &&
-                    bWithinNorthernHemisphere == stOtherCoordinate.bWithinNorthernHemisphere && dAltitude == stOtherCoordinate.dAltitude &&
-                    d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy &&
-                    eCoordinateAccuracyFixType == stOtherCoordinate.eCoordinateAccuracyFixType && bIsDifferential == stOtherCoordinate.bIsDifferential)
-                {
-                    // Return that the two UTMCoordinates are equal.
-                    return true;
-                }
-                else
-                {
-                    // Return that the two UTMCoordinates are not equal.
-                    return false;
-                }
+                return (dEasting == stOtherCoordinate.dEasting && dNorthing == stOtherCoordinate.dNorthing && nZone == stOtherCoordinate.nZone &&
+                        bWithinNorthernHemisphere == stOtherCoordinate.bWithinNorthernHemisphere && dAltitude == stOtherCoordinate.dAltitude &&
+                        d2DAccuracy == stOtherCoordinate.d2DAccuracy && d3DAccuracy == stOtherCoordinate.d3DAccuracy &&
+                        eCoordinateAccuracyFixType == stOtherCoordinate.eCoordinateAccuracyFixType && bIsDifferential == stOtherCoordinate.bIsDifferential);
             }
 
             /******************************************************************************
@@ -658,17 +640,8 @@ namespace geoops
             bool operator==(const Waypoint& stOtherWaypoint) const
             {
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
-                if (stGPSLocation == stOtherWaypoint.stGPSLocation && stUTMLocation == stOtherWaypoint.stUTMLocation && eType == stOtherWaypoint.eType &&
-                    dRadius == stOtherWaypoint.dRadius)
-                {
-                    // Return that the two Waypoints are equal.
-                    return true;
-                }
-                else
-                {
-                    // Return that the two Waypoints are not equal.
-                    return false;
-                }
+                return (stGPSLocation == stOtherWaypoint.stGPSLocation && stUTMLocation == stOtherWaypoint.stUTMLocation && eType == stOtherWaypoint.eType &&
+                        dRadius == stOtherWaypoint.dRadius);
             }
 
             /******************************************************************************
@@ -776,17 +749,8 @@ namespace geoops
             bool operator==(const RoverPose& stOtherRoverPose) const
             {
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
-                if (stRoverPosition == stOtherRoverPose.GetGPSCoordinate() && stRoverPosition == stOtherRoverPose.GetUTMCoordinate() &&
-                    dRoverHeading == stOtherRoverPose.dRoverHeading)
-                {
-                    // Return that the two Waypoints are equal.
-                    return true;
-                }
-                else
-                {
-                    // Return that the two Waypoints are not equal.
-                    return false;
-                }
+                return (stRoverPosition == stOtherRoverPose.GetGPSCoordinate() && stRoverPosition == stOtherRoverPose.GetUTMCoordinate() &&
+                        dRoverHeading == stOtherRoverPose.dRoverHeading);
             }
 
             /******************************************************************************
