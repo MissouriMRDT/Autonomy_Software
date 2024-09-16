@@ -46,7 +46,7 @@ jobs:
           echo ${{ github.event.pull_request.head.sha }}
           git reset --hard ${{ github.event.pull_request.head.sha }}
           git checkout ${{ github.event.pull_request.head.sha }}
-          git pull --ff-only
+          # git pull --ff-only
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
