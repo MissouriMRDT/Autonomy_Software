@@ -27,6 +27,17 @@
 namespace controllers
 {
     /******************************************************************************
+     * @brief Default constructor for Stanley Controller.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-04-28
+     *******************************************************************************/
+    StanleyController::StanleyController()
+    {
+        // Nothing to do.
+    }
+
+    /******************************************************************************
      * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
      *
      * @param dKp - Steering control gain.
@@ -377,6 +388,12 @@ namespace controllers
     std::vector<geoops::GPSCoordinate> StanleyController::GetPathGPS() const
     {
         return m_vGPSPath;
+    }
+
+    void StanleyController::ClearPath()
+    {
+        m_vUTMPath.clear();
+        m_vGPSPath.clear();
     }
 
     /******************************************************************************

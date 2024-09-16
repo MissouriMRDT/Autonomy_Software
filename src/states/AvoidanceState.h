@@ -11,7 +11,11 @@
 #ifndef AVOIDANCE_STATE_H
 #define AVOIDANCE_STATE_H
 
+#include "../algorithms/controllers/StanleyController.h"
+#include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+#include "../util/states/StuckDetection.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,21 +35,15 @@ namespace statemachine
     class AvoidanceState : public State
     {
         private:
-            std::vector<double> m_vRoverXPath;
-            std::vector<double> m_vRoverYPath;
-            std::vector<double> m_vRoverYawPath;
-            std::vector<double> m_vRoverXPosition;
-            std::vector<double> m_vRoverYPosition;
-            std::vector<double> m_vRoverYawPosition;
-            std::vector<double> m_vRoverVelocity;
-            double m_nLastIDX;
-            double m_nTargetIDX;
-            double m_nMaxDataPoints;
-            time_t m_tPathStartTime;
-            time_t m_tStuckCheckTime;
-            double m_dStuckCheckLastPosition[2];
-            // TODO: Add ASTAR Pathfinder
-            // TODO: Add Stanley Controller
+            statemachine::TimeIntervalBasedStuckDetector m_stStuckChecker;
+            pathplanners::AStar m_stPlanner;
+            controllers::StanleyController m_stController;
+            geoops::RoverPose m_stPose;
+            geoops::UTMCoordinate m_stStart;
+            geoops::UTMCoordinate m_stGoal;
+            geoops::Waypoint m_stGoalWaypoint;
+            std::vector<geoops::UTMCoordinate> m_vPlannedRoute;
+            States m_eTriggeringState;
             bool m_bInitialized;
 
         protected:

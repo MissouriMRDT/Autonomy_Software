@@ -229,6 +229,8 @@ namespace constants
     const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // How many times can a validated tag be missing from frame before being forgotten.
     const double ARUCO_PIXEL_THRESHOLD               = 175;    // Pixel value threshold for pre-process threshold mask
     const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE     = 255;    // Pixel value to set to if pixel is within threshold
+    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST          = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
+    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA         = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -309,7 +311,7 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_POWER             = DRIVE_MAX_POWER;    // The speed to drive backwards at.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_POWER;    // The speed to drive backwards at.
     const double REVERSE_DISTANCE          = 3.0;                // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
@@ -321,11 +323,15 @@ namespace constants
     const double SEARCH_SPACING                  = 2;                   // The spacing between successive points in the spiral (meters).
     const double SEARCH_WAYPOINT_PROXIMITY       = 1;                   // How close a rover must be to a point to have it count as visited.
     const double SEARCH_MOTOR_POWER              = DRIVE_MAX_EFFORT;    // The amount of power the motors use when approaching the marker.
+
     // Handler.
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+
+    // Avoidance State.
+    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_POWER;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 
