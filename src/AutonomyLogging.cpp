@@ -66,8 +66,12 @@ namespace logging
 
         // Format the current time in a format that can be used as a file name
         char cCurrentTime[80];
-        std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", tLocalTime);
-
+        size_t siTimeCharacters;
+        siTimeCharacters = std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", tLocalTime);
+        if (siTimeCharacters == 0)
+        {
+            std::cerr << "Unable to format calender date & time (exceeds string length)" << std::endl;
+        }
         // Store start time string in member variable.
         g_szProgramStartTimeString = cCurrentTime;
 

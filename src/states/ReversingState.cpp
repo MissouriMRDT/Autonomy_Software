@@ -146,7 +146,7 @@ namespace statemachine
         if (constants::REVERSE_MAINTAIN_HEADING)
         {
             // Reverse straight backwards.
-            diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_POWER),
+            diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_MOTOR_POWER),
                                                                                      m_stStartRoverPose.GetCompassHeading(),
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
@@ -156,7 +156,7 @@ namespace statemachine
         else
         {
             // Just set reverse drive powers manually.
-            diffdrive::DrivePowers stMotorPowers{-std::fabs(constants::REVERSE_POWER), -std::fabs(constants::REVERSE_POWER)};
+            diffdrive::DrivePowers stMotorPowers{-std::fabs(constants::REVERSE_MOTOR_POWER), -std::fabs(constants::REVERSE_MOTOR_POWER)};
             // Send drive powers.
             globals::g_pDriveBoard->SendDrive(stMotorPowers);
         }
