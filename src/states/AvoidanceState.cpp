@@ -9,9 +9,8 @@
  ******************************************************************************/
 
 #include "AvoidanceState.h"
+#include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
-#include "../algorithms/controllers/StanleyController.h"
-#include "../algorithms/planners/AStar.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -34,27 +33,34 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Scheduling next run of state logic.");
 
-        m_nMaxDataPoints = 100;
+        // Store the state that got stuck and triggered a stuck event.
+        m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
-        m_vRoverXPath.reserve(m_nMaxDataPoints);
-        m_vRoverYPath.reserve(m_nMaxDataPoints);
-        m_vRoverYawPath.reserve(m_nMaxDataPoints);
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYawPosition.reserve(m_nMaxDataPoints);
-        m_vRoverVelocity.reserve(m_nMaxDataPoints);
+        // Initialize Stanley Controller:
+        m_stController = controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
 
-        m_nLastIDX                   = 0;
-        m_nTargetIDX                 = 0;
+        // Initialize ASTAR Pathfinder:
+        // TODO: Poll zedCam / object detector for seen obstacles to pass to AStar.
+        // Determine start and goal (peek waypoint for goal).
+        m_stPose         = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        m_stStart        = m_stPose.GetUTMCoordinate();
+        m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
 
-        m_tPathStartTime             = time(nullptr);
-        m_tStuckCheckTime            = time(nullptr);
+        // Plan avoidance route using AStar.
+        // TODO: Add obstacles to params.
+        m_vPlannedRoute = m_stPlanner.PlanAvoidancePath(m_stStart, m_stGoalWaypoint.GetUTMCoordinate());
 
-        m_dStuckCheckLastPosition[0] = 0;
-        m_dStuckCheckLastPosition[1] = 0;
-
-        // TODO: Add ASTAR Pathfinder
-        // TODO: Add Stanley Controller
+        // Check for AStar failure.
+        if (!m_vPlannedRoute.empty())
+        {
+            m_stGoal = m_vPlannedRoute.back();
+            m_stController.SetPath(m_vPlannedRoute);
+        }
+        // Exit Obstacle Avoidance if AStar fails to generate a path.
+        else
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eEndObstacleAvoidance, false);
+        }
     }
 
     /******************************************************************************
@@ -70,23 +76,11 @@ namespace statemachine
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Exiting state.");
 
-        m_nMaxDataPoints = 100;
+        // Clear ASTAR Pathfinder
+        m_stPlanner.ClearObstacleData();
 
-        m_vRoverXPath.clear();
-        m_vRoverYPath.clear();
-        m_vRoverYawPath.clear();
-        m_vRoverXPosition.clear();
-        m_vRoverYPosition.clear();
-        m_vRoverYawPosition.clear();
-        m_vRoverVelocity.clear();
-
-        m_nTargetIDX                 = 0;
-
-        m_dStuckCheckLastPosition[0] = 0;
-        m_dStuckCheckLastPosition[1] = 0;
-
-        // TODO: Clear ASTAR Pathfinder
-        // TODO: Clear Stanley Controller
+        // Clear Stanley Controller
+        m_stController.ClearPath();
     }
 
     /******************************************************************************
@@ -100,7 +94,11 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
+        m_bInitialized   = false;
+        m_stStuckChecker = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                        constants::STUCK_CHECK_INTERVAL,
+                                                                        constants::STUCK_CHECK_VEL_THRESH,
+                                                                        constants::STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
@@ -117,50 +115,50 @@ namespace statemachine
      ******************************************************************************/
     void AvoidanceState::Run()
     {
-        // TODO: Implement the behavior specific to the Avoidance state
         LOG_DEBUG(logging::g_qSharedLogger, "AvoidanceState: Running state-specific behavior.");
 
         // TODO: build in obstacle detection and refresh of astar path when a new object is detected
+        // This can be done by calling PlanAvoidanceRoute() with an updated obstacle vector.
 
-        // // A route has already been plotted by the planner and passed to the controller.
-        // // Navigate by issuing drive commands from the controller.
-        // // Check if we are at the goal waypoint.
-        // geoops::RoverPose stCurrentPose                  = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-        // geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+        // A route has already been plotted by the planner and passed to the controller.
+        // Navigate by issuing drive commands from the controller.
+        // Check if we are at the goal waypoint.
+        geoops::RoverPose stCurrentPose                  = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
 
-        // // Check to see if rover velocity is below stuck threshold.
-        // if (globals::g_pWaypointHandler->SmartRetrieveVelocity() < constants::STUCK_CHECK_VEL_THRESH)
-        // {
-        //     // Check to see if enough time has elapsed.
-        //     if (difftime(time(nullptr), m_tStuckCheckTime) > constants::AVOIDANCE_STUCK_TIMER_THRESHOLD)
-        //     {
-        //         // TODO: Determine how control flows out of here: Do we return to this state after stuck state? Re-Started? etc.
-        //         globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, false);
-        //     }
-        // }
+        // Check to see if rover velocity is below stuck threshold (scaled to avoidance speed).
+        if (m_stStuckChecker.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Rover has become stuck");
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+        }
 
-        // // Goal has not been reached yet:
-        // else if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
-        // {
-        //     // Request objects:
-        //     // Check for any new objects:
-        //     // Re-plan route (call planPath again):
+        // Goal has not been reached yet:
+        else if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+        {
+            // Request objects:
+            // Check for any new objects:
+            // Re-plan route (call planPath again):
 
-        //     // Calculate drive move/powers at the speed multiplier.
-        //     diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_DRIVE,
-        //                                                                                  stGoalWaypointMeasurement.dStartRelativeBearing,
-        //                                                                                  stCurrentPose.GetCompassHeading(),
-        //                                                                                  diffdrive::DifferentialControlMethod::eArcadeDrive);
-        //     // Send drive command to drive board.
-        //     globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
-        // }
+            // Update pose for drive calculation.
+            m_stPose               = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            const double dVelocity = globals::g_pWaypointHandler->SmartRetrieveVelocity();
+            // Calculate drive move/powers at the speed multiplier.
+            diffdrive::DrivePowers stDriveSpeeds =
+                globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_MOTOR_POWER,
+                                                      m_stController.Calculate(m_stPose.GetUTMCoordinate(), dVelocity, m_stPose.GetCompassHeading()),
+                                                      stCurrentPose.GetCompassHeading(),
+                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
+            // Send drive command to drive board.
+            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+        }
 
-        // // Goal is reached, end obstacle avoidance:
-        // else
-        // {
-        //     globals::g_pDriveBoard->SendStop();
-        //     globals::g_pStateMachineHandler->HandleEvent(Event::eEndObstacleAvoidance, false);
-        // }
+        // Local goal is reached, end obstacle avoidance:
+        else
+        {
+            globals::g_pDriveBoard->SendStop();
+            globals::g_pStateMachineHandler->HandleEvent(Event::eEndObstacleAvoidance, false);
+        }
     }
 
     /******************************************************************************
@@ -201,7 +199,7 @@ namespace statemachine
             case Event::eEndObstacleAvoidance:
             {
                 LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Handling EndObstacleAvoidance event.");
-                eNextState = States::NUM_STATES;    // Replace with `get_prev_state()`
+                eNextState = m_eTriggeringState;
                 break;
             }
             case Event::eStuck:
