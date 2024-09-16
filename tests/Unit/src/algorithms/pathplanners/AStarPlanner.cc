@@ -5,7 +5,7 @@
  * @author Kai Shafe (kasq5m@umsystem.edu)
  * @date 2024-4-28
  *
- * @copyright Copyright MRDT 2024 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/planners/AStar.h"
