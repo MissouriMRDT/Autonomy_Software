@@ -9,6 +9,9 @@ exclude_patterns = [
 ]
 
 [[analyzers]]
+name = "test-coverage"
+
+[[analyzers]]
 name = "shell"
 
 [[analyzers]]
