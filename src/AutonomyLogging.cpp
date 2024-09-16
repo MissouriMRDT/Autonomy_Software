@@ -117,7 +117,7 @@ namespace logging
         // Create Patterns
         std::string szLogFilePattern   = "%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
         std::string szCSVFilePattern   = "%(time),\t%(log_level),\t[%(thread_id)],\t[%(file_name):%(line_number)],\t\"%(message)\"";
-        std::string szConsolePattern   = "%(time) %(log_level:8) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
+        std::string szConsolePattern   = "%(time) %(log_level:9) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
         std::string szRoveCommPattern  = "%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
         std::string szTimestampPattern = "%Y-%m-%d %H:%M:%S.%Qms";
 
@@ -186,10 +186,10 @@ namespace logging
         g_qSharedLogger->set_log_level(quill::LogLevel::TraceL3);
 
         // Enable Backtrace
-        g_qFileLogger->init_backtrace(2, quill::LogLevel::Critical);
-        g_qConsoleLogger->init_backtrace(2, quill::LogLevel::Critical);
-        g_qRoveCommLogger->init_backtrace(2, quill::LogLevel::Critical);
-        g_qSharedLogger->init_backtrace(2, quill::LogLevel::Critical);
+        g_qFileLogger->init_backtrace(10, quill::LogLevel::Critical);
+        g_qConsoleLogger->init_backtrace(10, quill::LogLevel::Critical);
+        g_qRoveCommLogger->init_backtrace(10, quill::LogLevel::Critical);
+        g_qSharedLogger->init_backtrace(10, quill::LogLevel::Critical);
     }
 
     /******************************************************************************
