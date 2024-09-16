@@ -64,6 +64,15 @@ jobs:
           ctest --output-on-failure -T Test -T Coverage
           ctest --output-on-failure --output-junit Test.xml
           gcovr --root . --xml-pretty --output Coverage.xml
+          lcov -c -d . -o coverage.info
+
+      - name: Upload coverage to deepsource
+        run: |
+          cd /opt/Autonomy_Software/build
+          curl https://deepsource.io/cli | sh
+          ./bin/deepsource report --analyzer test-coverage --key cxx --value-file ./coverage.info
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
