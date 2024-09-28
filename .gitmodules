@@ -4,3 +4,6 @@
 [submodule "external/rovecomm"]
 	path = external/rovecomm
 	url = https://github.com/MissouriMRDT/RoveComm_CPP.git
+[submodule "data/USGS_Data"]
+	path = data/USGS_Data
+	url = https://github.com/MissouriMRDT/USGS_Data.git
