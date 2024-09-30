@@ -102,6 +102,7 @@ Jter
 jthread
 kbits
 keyscan
+LASF
 latlng
 latlon
 LEDRGB

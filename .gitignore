@@ -4,6 +4,10 @@
 .vscode/
 valgrind.rpt
 
+# LiDAR Maps
+*.las
+!data/USGS_Data/*.las
+
 # Docker Compose. This is a special rule that prevents Personal Access Tokens from being committed.
 tools/action-runners/compose.yml
 !tools/package-builders/
