@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -42,10 +43,10 @@ jobs:
           cd /opt/Autonomy_Software/
           git fetch --force --recurse-submodules
           branch=${{ steps.extract_branch.outputs.branch }}
-          echo $branch
-          git reset --hard origin/$branch
-          git checkout $branch
-          git pull --ff-only
+          echo ${{ github.event.pull_request.head.sha }}
+          git reset --hard ${{ github.event.pull_request.head.sha }}
+          git checkout ${{ github.event.pull_request.head.sha }}
+          # git pull --ff-only
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
@@ -64,6 +65,15 @@ jobs:
           ctest --output-on-failure -T Test -T Coverage
           ctest --output-on-failure --output-junit Test.xml
           gcovr --root . --xml-pretty --output Coverage.xml
+          lcov -c -d . -o coverage.info
+
+      - name: Upload coverage to deepsource
+        run: |
+          cd /opt/Autonomy_Software/build
+          curl https://deepsource.io/cli | sh
+          ./bin/deepsource report --analyzer test-coverage --key cxx --value-file ./coverage.info
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
