@@ -139,7 +139,7 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8  
 
 # Enable Cowsay.
-RUN echo '/usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f' >> /root/.bashrc
+RUN echo 'if [ $(( RANDOM % 5 )) -eq 0 ]; then /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else /usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f; fi' >> /root/.bashrc
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
