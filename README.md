@@ -26,16 +26,13 @@
 
   <div>
     <a href="https://codecov.io/gh/MissouriMRDT/Autonomy_Software" > 
-        <img src="https://codecov.io/gh/MissouriMRDT/Autonomy_Software/branch/topic%2Fcode-coverage/graph/badge.svg?token=AZVPRPE5A8" alt="codecov-ci" /> 
+        <img src="https://codecov.io/gh/MissouriMRDT/Autonomy_Software/branch/development/graph/badge.svg?token=AZVPRPE5A8" alt="codecov-ci" /> 
     </a>
     <a href="https://app.codacy.com/gh/missourimrdt/autonomy_software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
       <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="codacy-ci" />
     </a>
     <a href="https://www.codefactor.io/repository/github/missourimrdt/autonomy_software">
       <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="codefactor-ci" />
-    </a>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=code+coverage&show_trend=true&token=ImsCozrwCep9Ddc8iTesPkEB"/>
     </a>
   </div>
 
