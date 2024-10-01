@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev tzdata \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
-    libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay locales usbutils \
+    libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
     vim-common gasket-dkms
@@ -139,7 +139,7 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8  
 
 # Enable Cowsay.
-RUN echo '/usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1`' >> /root/.bashrc
+RUN echo 'if [ $(( RANDOM % 5 )) -eq 0 ]; then /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else /usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f; fi' >> /root/.bashrc
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
