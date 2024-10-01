@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="7.1.0"
+QUILL_VERSION="7.3.0"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb"
