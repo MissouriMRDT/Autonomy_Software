@@ -116,7 +116,7 @@ The easiest way to get started is by using our Docker environment. This environm
 - **PyTorch 2.2.2**
 - **TensorFlow 2.15.0**
 - **ZED SDK 4.1**
-- **Quill 7.1.0**
+- **Quill 7.3.0**
 - **Google Test 1.15.2**
 - **Abseil 20230802.1**
 - **GeographicLib 2.3**
