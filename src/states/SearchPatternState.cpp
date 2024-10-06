@@ -250,7 +250,7 @@ namespace statemachine
             case Event::eStart:
             {
                 // Submit logger message
-                LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
+                LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Handling Start event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
@@ -269,7 +269,7 @@ namespace statemachine
                     case eSpiral:
                     {
                         // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
+                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
                         // Generate vertical zigzag pattern.
                         m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
                                                                                        constants::SEARCH_MAX_RADIUS,
@@ -285,7 +285,7 @@ namespace statemachine
                     case eZigZag:
                     {
                         // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
+                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
                         // Generate vertical zigzag pattern.
                         m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
                                                                                        constants::SEARCH_MAX_RADIUS,

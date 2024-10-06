@@ -272,8 +272,8 @@ void StateMachineHandler::ThreadedContinuousCode()
             if (bAlreadyPrintedDiffGPSWarning)
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
 
                 // Rest toggle.
                 bAlreadyPrintedDiffGPSWarning = false;
@@ -283,9 +283,9 @@ void StateMachineHandler::ThreadedContinuousCode()
         else if (!bAlreadyPrintedDiffGPSWarning)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger,
-                        "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
-                        "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
+                       "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
 
             // Set already printed toggle.
             bAlreadyPrintedDiffGPSWarning = true;
