@@ -1198,7 +1198,7 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
     // Submit logger message.
-    LOG_WARNING(logging::g_qSharedLogger, "Resetting positional tracking for camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
+    LOG_NOTICE(logging::g_qSharedLogger, "Resetting positional tracking for camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
 
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);

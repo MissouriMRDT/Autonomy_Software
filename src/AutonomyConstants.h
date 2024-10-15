@@ -141,7 +141,7 @@ namespace constants
     const bool ZED_POSETRACK_FLOOR_IS_ORIGIN              = true;     // Sets the floor plane as origin for tracking. This turns on floor plane detection temporarily.
     const bool ZED_POSETRACK_ENABLE_IMU_FUSION            = true;     // Allows ZED to use both optical odometry and IMU data for pose tracking.
     const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.75;     // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
-    const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
+    const bool ZED_POSETRACK_USE_GRAVITY_ORIGIN           = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
     const float ZED_MAPPING_RANGE_METER                                   = 20.0;     // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
