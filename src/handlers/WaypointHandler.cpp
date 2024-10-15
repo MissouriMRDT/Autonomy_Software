@@ -792,7 +792,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
                 if (bAlreadyPrinted)
                 {
                     // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "GNSS Fusion has now converged! Using GNSS Fusion for rover pose...");
+                    LOG_NOTICE(logging::g_qSharedLogger, "GNSS Fusion has now converged! Using GNSS Fusion for rover pose...");
                     // Set toggle.
                     bAlreadyPrinted = false;
                 }
@@ -832,7 +832,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
                 if (!bAlreadyPrinted)
                 {
                     // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "GNSS Fusion is still calibrating. Using VIO tracking for rover pose...");
+                    LOG_NOTICE(logging::g_qSharedLogger, "GNSS Fusion is still calibrating. Using VIO tracking for rover pose...");
                     // Set toggle.
                     bAlreadyPrinted = true;
                 }

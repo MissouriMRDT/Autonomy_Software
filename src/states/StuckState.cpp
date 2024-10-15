@@ -108,9 +108,9 @@ namespace statemachine
         if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger,
-                        "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
-                        std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
+                       std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
             // Handing unstuck event. Destroy this unstuck state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
         }
@@ -178,10 +178,10 @@ namespace statemachine
                         else if (dTimeElapsed >= constants::STUCK_HEADING_ALIGN_TIMEOUT)
                         {
                             // Submit logger message.
-                            LOG_WARNING(logging::g_qSharedLogger,
-                                        "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
-                                        constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
-                                        dTimeElapsed);
+                            LOG_NOTICE(logging::g_qSharedLogger,
+                                       "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
+                                       constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
+                                       dTimeElapsed);
                             // Update stuck type enum for if we are still stuck after reversing.
                             m_eAttemptType = AttemptType::eReverseRight;
                             // Reset currently aligning toggle.
@@ -240,10 +240,10 @@ namespace statemachine
                         else if (dTimeElapsed >= constants::STUCK_HEADING_ALIGN_TIMEOUT)
                         {
                             // Submit logger message.
-                            LOG_WARNING(logging::g_qSharedLogger,
-                                        "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
-                                        constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
-                                        dTimeElapsed);
+                            LOG_NOTICE(logging::g_qSharedLogger,
+                                       "StuckState: Rotated/Realigned {} degrees in {} seconds before timeout was reached. Rover is still stuck...",
+                                       constants::STUCK_ALIGN_DEGREES - dRealignmentDegrees,
+                                       dTimeElapsed);
                             // Update stuck type enum for if we are still stuck after reversing.
                             m_eAttemptType = AttemptType::eGiveUp;
                             // Reset currently aligning toggle.
