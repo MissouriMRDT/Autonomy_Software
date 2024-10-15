@@ -49,6 +49,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
     vim-common gasket-dkms
 
+# Nice to have
+RUN apt-get update && apt-get install --no-install-recommends -y bat \
+    bash-completion fish git-lfs
+
 # Install Required Python Packages and link python3 executable to python.
 RUN ln -s /usr/bin/python3 /usr/bin/python && \
     python -m pip install numpy opencv-python pyopengl
