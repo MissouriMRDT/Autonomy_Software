@@ -39,6 +39,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
     vim-common libedgetpu1-std gasket-dkms ca-certificates
 
+# Nice to have
+RUN apt-get update && apt-get install --no-install-recommends -y bat \
+    bash-completion fish git-lfs
+
 # This symbolic link is needed to use the streaming features on Jetson inside a container
 RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so
 
