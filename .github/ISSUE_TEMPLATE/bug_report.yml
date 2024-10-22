@@ -1,6 +1,8 @@
 name: Bug Report
 description: Report a bug or issue in the project.
 title: "[Bug] "
+projects:
+  - URC 2025
 labels: 
   - bug
 body:
@@ -10,7 +12,7 @@ body:
         ### **Description**
         A clear and concise description of the bug or issue.
 
-  - type: input
+  - type: textarea
     id: description
     attributes:
       label: Description

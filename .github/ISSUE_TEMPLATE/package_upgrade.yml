@@ -1,6 +1,8 @@
 name: Package Upgrade
 description: Request to upgrade a dependency or package.
 title: "[Upgrade] "
+projects:
+  - URC 2025
 labels: 
   - upgrade
 body:
