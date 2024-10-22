@@ -1,6 +1,8 @@
 name: Enhancement Request
 description: Suggest an enhancement or improvement for the project.
 title: "[Enhancement] "
+projects:
+  - URC 2025
 labels: 
   - enhancement
 body:
