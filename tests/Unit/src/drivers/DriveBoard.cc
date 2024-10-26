@@ -17,7 +17,8 @@
 #include "../../../../../src/AutonomyGlobals.h"
 #include "../../../../../src/AutonomyLogging.h"
 #include "../../../../../src/AutonomyNetworking.h"
-#include <RoveComm/RoveCommManifest.h>
+#include "../../../../../external/rovecomm/src/RoveComm/RoveComm.h
+#include "../../../../../external/rovecomm/src/RoveComm/RoveCommManifest.h
 
 /// \endcond
 
