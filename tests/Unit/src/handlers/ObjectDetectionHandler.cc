@@ -11,15 +11,15 @@
 #include "../../../../../src/handlers/ObjectDetectionHandler.h"
 #include "../../../../../src/vision/objects/ObjectDetector.h"
 
-using ::testing::_;
-using ::testing::Return;
-using ::testing::NiceMock;
-
 /// \cond
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 /// \endcond
+
+using ::testing::_;
+using ::testing::Return;
+using ::testing::NiceMock;
 
 /******************************************************************************
  * @brief Test for memory leaks
