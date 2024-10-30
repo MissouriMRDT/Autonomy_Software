@@ -98,6 +98,14 @@ namespace tensorflowtag
                                              const float fMinObjectConfidence = 0.40f,
                                              const float fNMSThreshold        = 0.60f)
     {
+        // Check if the input frame is in RGB format.
+        if (cvFrame.channels() != 3)
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "Detect() requires a RGB image.");
+            return {};
+        }
+
         // Declare instance variables.
         std::vector<TensorflowTag> vDetectedTags;
 
