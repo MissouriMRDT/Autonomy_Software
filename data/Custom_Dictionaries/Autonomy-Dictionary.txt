@@ -106,6 +106,7 @@ latlng
 latlon
 LEDRGB
 LEFTCAM
+libdatachannel
 libedgetpu
 localtime
 MAINCAM
