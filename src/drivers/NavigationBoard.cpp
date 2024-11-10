@@ -90,7 +90,7 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
+        LOG_NOTICE(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
         // Reset Out of Date.
@@ -132,7 +132,7 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
+        LOG_NOTICE(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
         // Reset Out of Date.
@@ -173,7 +173,7 @@ double NavigationBoard::GetHeading()
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
+        LOG_NOTICE(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
         // Reset Out of Date.
@@ -214,7 +214,7 @@ double NavigationBoard::GetHeadingAccuracy()
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
+        LOG_NOTICE(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
         // Reset Out of Date.
@@ -256,7 +256,7 @@ double NavigationBoard::GetVelocity()
     else if (nGPSDataAge < constants::NAVBOARD_MAX_GPS_DATA_AGE && bAlreadyPrintedWarning)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "GPS data recovered!");
+        LOG_NOTICE(logging::g_qSharedLogger, "GPS data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
         // Reset Out of Date.
@@ -298,7 +298,7 @@ double NavigationBoard::GetAngularVelocity()
     else if (nCompassDataAge < constants::NAVBOARD_MAX_COMPASS_DATA_AGE && bAlreadyPrintedWarning)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Compass data recovered!");
+        LOG_NOTICE(logging::g_qSharedLogger, "Compass data recovered!");
         // Reset toggle.
         bAlreadyPrintedWarning = false;
         // Reset Out of Date.

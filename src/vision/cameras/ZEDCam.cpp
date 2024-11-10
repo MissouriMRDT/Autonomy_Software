@@ -92,6 +92,9 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
 
     // Setup camera runtime params.
     m_slRuntimeParams.enable_fill_mode = constants::ZED_SENSING_FILL;
+    // Setup SVO recording parameters.
+    m_slRecordingParams.compression_mode = constants::ZED_SVO_COMPRESSION;
+    m_slRecordingParams.bitrate          = constants::ZED_SVO_BITRATE;
 
     // Setup positional tracking parameters.
     m_slPoseTrackingParams.mode                  = constants::ZED_POSETRACK_MODE;
@@ -141,6 +144,34 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         m_unCameraSerialNumber = m_slCamera.getCameraInformation().serial_number;
         // Update camera model.
         m_slCameraModel = m_slCamera.getCameraInformation().camera_model;
+        // Check if the camera should record and output an SVO file.
+        if (m_bEnableRecordingFlag)
+        {
+            // Now that camera is opened get camera name and construct path.
+            std::string szSVOFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/" + this->GetCameraModel() + "_" +
+                                        std::to_string(this->GetCameraSerial());
+            m_slRecordingParams.video_filename = szSVOFilePath.c_str();
+            // Enable recording.
+            sl::ERROR_CODE slReturnCode = m_slCamera.enableRecording(m_slRecordingParams);
+            // Check if recording was enabled successfully.
+            if (slReturnCode == sl::ERROR_CODE::SUCCESS)
+            {
+                // Submit logger message.
+                LOG_DEBUG(logging::g_qSharedLogger,
+                          "Successfully enabled SVO recording for {} ZED stereo camera with serial number {}.",
+                          this->GetCameraModel(),
+                          m_unCameraSerialNumber);
+            }
+            else
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger,
+                          "Failed to enable SVO recording for {} ZED stereo camera with serial number {}. sl::ERROR_CODE is {}",
+                          this->GetCameraModel(),
+                          m_unCameraSerialNumber,
+                          sl::toString(slReturnCode).c_str());
+            }
+        }
 
         // Submit logger message.
         LOG_INFO(logging::g_qSharedLogger, "{} ZED stereo camera with serial number {} has been successfully opened.", this->GetCameraModel(), m_unCameraSerialNumber);
@@ -1167,7 +1198,7 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     sl::Transform slZeroTransform(slZeroRotation, slZeroTranslation);
 
     // Submit logger message.
-    LOG_WARNING(logging::g_qSharedLogger, "Resetting positional tracking for camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
+    LOG_NOTICE(logging::g_qSharedLogger, "Resetting positional tracking for camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
 
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
@@ -1803,16 +1834,7 @@ bool ZEDCam::GetCameraIsOpen()
 bool ZEDCam::GetUsingGPUMem() const
 {
     // Check if we are using GPU memory.
-    if (m_slMemoryType == sl::MEM::GPU)
-    {
-        // Using GPU memory.
-        return true;
-    }
-    else
-    {
-        // Not using GPU memory.
-        return false;
-    }
+    return m_slMemoryType == sl::MEM::GPU;
 }
 
 /******************************************************************************

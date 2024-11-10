@@ -104,7 +104,7 @@ namespace statemachine
         if (stMeasurement.dDistanceMeters >= constants::REVERSE_DISTANCE)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "ReversingState: Successfully reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTotalTimeElapsed);
+            LOG_NOTICE(logging::g_qSharedLogger, "ReversingState: Successfully reversed {} meters in {} seconds.", stMeasurement.dDistanceMeters, dTotalTimeElapsed);
             // Stop reversing.
             globals::g_pDriveBoard->SendStop();
             // Handle reversing complete event.
@@ -116,11 +116,11 @@ namespace statemachine
         else if (dTimeElapsedSinceLastMeter >= constants::REVERSE_TIMEOUT_PER_METER)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger,
-                        "ReversingState: Reversed {} meters in {} seconds before timeout was reached. Goal was {} meters, so rover must be running into something...",
-                        stMeasurement.dDistanceMeters,
-                        dTotalTimeElapsed,
-                        constants::REVERSE_DISTANCE);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "ReversingState: Reversed {} meters in {} seconds before timeout was reached. Goal was {} meters, so rover must be running into something...",
+                       stMeasurement.dDistanceMeters,
+                       dTotalTimeElapsed,
+                       constants::REVERSE_DISTANCE);
             // Stop reversing.
             globals::g_pDriveBoard->SendStop();
             // Handle reversing complete event.
@@ -146,7 +146,7 @@ namespace statemachine
         if (constants::REVERSE_MAINTAIN_HEADING)
         {
             // Reverse straight backwards.
-            diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_POWER),
+            diffdrive::DrivePowers stReverse = globals::g_pDriveBoard->CalculateMove(-std::fabs(constants::REVERSE_MOTOR_POWER),
                                                                                      m_stStartRoverPose.GetCompassHeading(),
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
@@ -156,7 +156,7 @@ namespace statemachine
         else
         {
             // Just set reverse drive powers manually.
-            diffdrive::DrivePowers stMotorPowers{-std::fabs(constants::REVERSE_POWER), -std::fabs(constants::REVERSE_POWER)};
+            diffdrive::DrivePowers stMotorPowers{-std::fabs(constants::REVERSE_MOTOR_POWER), -std::fabs(constants::REVERSE_MOTOR_POWER)};
             // Send drive powers.
             globals::g_pDriveBoard->SendDrive(stMotorPowers);
         }

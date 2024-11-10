@@ -64,7 +64,7 @@ namespace constants
     const std::string szWarningColor   = "\033[93m\033[1m";    // Bright Bold Yellow
     const std::string szErrorColor     = "\033[91m\033[1m";    // Bright Bold Red
     const std::string szCriticalColor  = "\033[95m\033[1m";    // Bright Bold Magenta
-    const std::string szBacktraceColor = "\033[34m";           // Standard Blue
+    const std::string szBacktraceColor = "\033[30m";           // Standard Grey
 
     // RoveComm constants.
     const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
@@ -131,6 +131,9 @@ namespace constants
     const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 40.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.5;      // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
     const int ZED_DEPTH_STABILIZATION            = 1;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
+    // ZedCam SVO Recording Config.
+    const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION = sl::SVO_COMPRESSION_MODE::H265;    // SVO file compression. H264/H265 minimally affect performance, but need GPU.
+    const int ZED_SVO_BITRATE                          = 0;                                 // The video bitrate in kbits/s. 0 or [1000-60000]
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::GEN_1;    // Positional tracking accuracy.
     const bool ZED_POSETRACK_AREA_MEMORY                  = true;     // Enabled camera to remember its surroundings for better positioning. Uses more resources.
@@ -138,7 +141,7 @@ namespace constants
     const bool ZED_POSETRACK_FLOOR_IS_ORIGIN              = true;     // Sets the floor plane as origin for tracking. This turns on floor plane detection temporarily.
     const bool ZED_POSETRACK_ENABLE_IMU_FUSION            = true;     // Allows ZED to use both optical odometry and IMU data for pose tracking.
     const float ZED_POSETRACK_USABLE_DEPTH_MIN            = 0.75;     // Minimum depth used for pose tracking, useful if a static object is partial in view of the camera.
-    const float ZED_POSETRACK_USE_GRAVITY_ORIGIN          = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
+    const bool ZED_POSETRACK_USE_GRAVITY_ORIGIN           = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
     const float ZED_MAPPING_RANGE_METER                                   = 20.0;     // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
@@ -168,16 +171,16 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int ZED_MAINCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_RESOLUTIONY               = 720;      // The vertical pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_FPS                       = 60;       // The FPS to use for the maincam.
-    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;      // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_MAINCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_MAINCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_FPS                       = 60;          // The FPS to use for the maincam.
+    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;         // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_MAINCAM_VERTICAL_FOV              = 70;          // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_MAINCAM_USE_GPU_MAT              = true;        // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;        // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_MAINCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left ZED Camera.
     const int ZED_LEFTCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the leftcam images to.
@@ -226,6 +229,8 @@ namespace constants
     const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // How many times can a validated tag be missing from frame before being forgotten.
     const double ARUCO_PIXEL_THRESHOLD               = 175;    // Pixel value threshold for pre-process threshold mask
     const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE     = 255;    // Pixel value to set to if pixel is within threshold
+    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST          = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
+    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA         = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -306,7 +311,7 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_POWER             = DRIVE_MAX_POWER;    // The speed to drive backwards at.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_POWER;    // The speed to drive backwards at.
     const double REVERSE_DISTANCE          = 3.0;                // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
@@ -318,11 +323,15 @@ namespace constants
     const double SEARCH_SPACING                  = 2;                   // The spacing between successive points in the spiral (meters).
     const double SEARCH_WAYPOINT_PROXIMITY       = 1;                   // How close a rover must be to a point to have it count as visited.
     const double SEARCH_MOTOR_POWER              = DRIVE_MAX_EFFORT;    // The amount of power the motors use when approaching the marker.
+
     // Handler.
     const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
 
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+
+    // Avoidance State.
+    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_POWER;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 
