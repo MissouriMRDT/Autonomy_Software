@@ -34,20 +34,20 @@ else
     echo "Homepage: https://github.com/paullouisageneau/libdatachannel" >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
     echo "Description: A prebuilt version of libdatachannel for WebRTC and websocket connections. Made by the Mars Rover Design Team." >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
 
-    # Download GeographicLib
+    # Download LibDataChannel
     git clone --recurse-submodules --depth 1 --branch v${LIBDATACHANNEL_VERSION} https://github.com/paullouisageneau/libdatachannel.git libdatachannel
     mkdir libdatachannel/build
     cd libdatachannel/build
 
-    # Build GeographicLib
+    # Build LibDataChannel
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/usr/local \
     -D USE_GNUTLS=0 -D USE_NICE=0 \
     -D CMAKE_BUILD_TYPE=Release ..
 
-    # Install GeographicLib
-    make
-    make install
+    # Install LibDataChannel
+    make datachannel-static
+    make install datachannel-static
 
     # Cleanup Install
     cd ../..

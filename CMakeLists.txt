@@ -177,6 +177,9 @@ find_package(Threads REQUIRED)
 ## Find Quill
 find_package(quill REQUIRED)
 
+## Find LibDataChannel
+find_package(LibDataChannel REQUIRED)
+
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
 include(GoogleTest)
@@ -193,6 +196,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 ## Find Geographic Lib.
 find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
+
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED 4 REQUIRED)
@@ -285,6 +289,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
+                        LibDataChannel::LibDataChannel
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
