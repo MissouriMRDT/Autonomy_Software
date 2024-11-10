@@ -288,7 +288,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
-                        LibDataChannel::LibDataChannelStatic
+                        LibDataChannel::LibDataChannel
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}

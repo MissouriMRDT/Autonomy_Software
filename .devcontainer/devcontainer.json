@@ -101,6 +101,8 @@
                     "/usr/local/cuda/include",
                     "/usr/local/include/quill",
                     "/usr/local/include/quill/**",
+                    "/usr/local/include/rtc",
+                    "/usr/local/include/rtc/**",
                     "/usr/local/include/gmock",
                     "/usr/local/include/gmock/**",
                     "/usr/local/include/gtest",
