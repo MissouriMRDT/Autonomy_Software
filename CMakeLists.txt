@@ -197,7 +197,6 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
 
-
 ## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED 4 REQUIRED)
 include_directories(SYSTEM ${ZED_INCLUDE_DIRS})
@@ -289,7 +288,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
-                        LibDataChannel::LibDataChannel
+                        LibDataChannel::LibDataChannelStatic
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
