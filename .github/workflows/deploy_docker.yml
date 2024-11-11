@@ -204,7 +204,7 @@ jobs:
             apt install -y libx264-dev
             git clone --depth 1 --branch n7.1 https://git.ffmpeg.org/ffmpeg.git
             cd ffmpeg
-            ./configure --prefix=/tmp/pkg/ffmpeg_7.1_amd64/usr/local --enable-gpl --enable-libx264
+            ./configure --enable-gpl --enable-libx264
             make -j$(nproc)
             make install
             ldconfig
