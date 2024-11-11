@@ -23,6 +23,7 @@ on:
       - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
+      - "tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh"
 
   # Or, run this workflow every time a push/merge is made to the development branch and there is a change to
   # the dockerfiles or any of the package build scripts.
@@ -46,6 +47,7 @@ on:
       - "tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh"
       - "tools/package-builders/quill/quill-arm64-pkg.sh"
       - "tools/package-builders/quill/quill-amd64-pkg.sh"
+      - "tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh"
 
   # Or, run this manually from the Actions tab in GitHub. This will run the workflow on the development branch.
   workflow_dispatch:
@@ -100,6 +102,7 @@ jobs:
       abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
       tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
+      ffmpeg-amd64: ${{ steps.changes.outputs.ffmpeg-amd64 }}
 
     steps:
       - name: Setup Action Environment
@@ -138,6 +141,8 @@ jobs:
               - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
+            ffmpeg-amd64:
+              - 'tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh'
 
       - name: Cleanup Action Environment
         if: always()
@@ -155,11 +160,11 @@ jobs:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     timeout-minutes: 1440
-    
+
     environment:
       name: docker-packages
       url: https://github.com/MissouriMRDT/Autonomy_Packages
-      
+
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -172,11 +177,11 @@ jobs:
         package:
           - geolib
           - gtest
-          - opencv
           - pytorch
           - abseil
           - tensorflow
           - quill
+          - ffmpeg
 
     steps:
       - name: Setup Action Environment
@@ -199,6 +204,110 @@ jobs:
         id: rebuild_pkg
         if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
         run: |
+          cd tools/package-builders/${{ matrix.package }}
+
+          chmod +x ${{ matrix.package }}-amd64-pkg.sh
+          ./${{ matrix.package }}-amd64-pkg.sh
+
+      # This step is used to push the updated package to the package repository. It clones the package
+      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
+      # the changes.
+      - name: Push Packages
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+        run: |
+          # Find Debian Package
+          debfile=$(find /tmp/pkg/deb/ -name "*.deb" -type f -print -quit)
+
+          # Set up Git configuration
+          git config --global user.email "mrdt.autonomy@gmail.com"
+          git config --global user.name "MRDT-Software"
+
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Clone the destination repository using SSH
+          git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
+          cd Autonomy_Packages
+
+          # Copy the new AMD64 packages into the repository
+          mkdir -p ${{ matrix.package }}/amd64/
+          cp -r /tmp/pkg/deb/*amd64*.deb ${{ matrix.package }}/amd64/
+
+          # Set up Git LFS
+          git lfs install
+
+          # Commit and push changes
+          git lfs track '*.deb'
+          git add .gitattributes
+          git add .
+          git commit -m "Upgrade ${{ matrix.package }} Package for AMD64"
+          git push origin main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # This step is used to remove the package from the temporary directory. It gets the list of packages that
+      # need to be rebuilt from the previous job. It removes the package from the temporary directory. This is
+      # done so that the next package can be built without having to worry about the previous package causing
+      # conflicts.
+      - name: Remove ${{ matrix.package }} Package
+        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+        run: rm -rf /tmp/pkg/*
+
+      - name: Cleanup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          rm -rf /opt/Autonomy_Software
+
+  build-updated-amd64-packages-secondary:
+    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
+    runs-on: [self-hosted, linux, X64]
+    timeout-minutes: 1440
+
+    environment:
+      name: docker-packages
+      url: https://github.com/MissouriMRDT/Autonomy_Packages
+
+    if: github.event_name == 'pull_request'
+
+    # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
+    # packages to be rebuilt at the same time. The job will fail if any of the packages fail to build. But the
+    # other packages will continue to build. This is so that the packages can be rebuilt in parallel, if
+    # there are enough action runners in service.
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - opencv
+
+    steps:
+      - name: Setup Action Environment
+        if: always()
+        run: |
+          cd /opt
+          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+
+      # This step is used to checkout the repository. It is needed so that the package build scripts can be
+      # checked for changes.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      # This step is used to rebuild the updated package. It gets the list of packages that need to be rebuilt
+      # from the previous job. It runs the package build script for the package that is being built.
+      - name: Rebuild ${{ matrix.package }} Package
+        id: rebuild_pkg
+        if: needs.check-amd64-packages.outputs.${{ matrix.package }}-amd64 == 'true'
+        run: |
+          wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_7.1_amd64.deb && \
+          dpkg -i ffmpeg_7.1_amd64.deb && \
+          rm ffmpeg_7.1_amd64.deb
+
           cd tools/package-builders/${{ matrix.package }}
 
           chmod +x ${{ matrix.package }}-amd64-pkg.sh
@@ -332,11 +441,11 @@ jobs:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 1440
-    
+
     environment:
       name: docker-packages
       url: https://github.com/MissouriMRDT/Autonomy_Packages
-    
+
     if: github.event_name == 'pull_request'
 
     # This strategy is used to run the job for each package that needs to be rebuilt. This allows multiple
@@ -440,7 +549,13 @@ jobs:
   # even if the previous job was skipped. This is because the previous job is only run on pull requests, but this
   # job is run on pushes and pull requests.
   build-and-push-jammy:
-    needs: [time-and-date, check-amd64-packages, build-updated-amd64-packages]
+    needs:
+      [
+        time-and-date,
+        check-amd64-packages,
+        build-updated-amd64-packages,
+        build-updated-amd64-packages-secondary,
+      ]
     runs-on: [self-hosted, linux, X64]
     timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}

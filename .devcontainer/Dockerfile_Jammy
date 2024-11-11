@@ -91,6 +91,12 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     mkdir -p /root/Documents/ZED/ && \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
 
+# Install FFmpeg
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
+
 # Install OpenCV
 ARG OPENCV_VERSION="4.10.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
