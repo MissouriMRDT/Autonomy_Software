@@ -93,9 +93,13 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
 
 # Install FFmpeg
 ARG FFMPEG_VERSION="7.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
-    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
-    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
+RUN git clone --depth 1 --branch n${FFMPEG_VERSION} https://git.ffmpeg.org/ffmpeg.git && \
+    cd ffmpeg && \
+    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local --enable-gpl --enable-libx264 && \
+    make -j$(nproc) && \
+    make install && \
+    cd ../.. && \
+    rm -rf ffmpeg
 
 # Install OpenCV
 ARG OPENCV_VERSION="4.10.0"
