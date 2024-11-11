@@ -208,7 +208,7 @@ jobs:
             make -j$(nproc)
             make install
             ldconfig
-            cd ../..
+            cd ..
             rm -rf ffmpeg
           fi
 
