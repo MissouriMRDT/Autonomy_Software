@@ -67,7 +67,7 @@ else
     -D HAVE_opencv_python3=ON ..
 
     # Install OpenCV
-    cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j
+    make -j4
     make install
     ldconfig
 
