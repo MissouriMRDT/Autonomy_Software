@@ -180,6 +180,9 @@ find_package(quill REQUIRED)
 ## Find LibDataChannel
 find_package(LibDataChannel REQUIRED)
 
+## Fine nlohmann JSON.
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
 include(GoogleTest)
@@ -239,8 +242,6 @@ include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
 find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
 include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
 
-## F
-
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
     set(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
@@ -290,7 +291,8 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
-                        LibDataChannel::LibDataChannel
+                        LibDataChannel::LibDataChannelStatic
+                        nlohmann_json::nlohmann_json
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
