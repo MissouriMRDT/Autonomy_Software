@@ -182,6 +182,7 @@ External libraries and their corresponding type prefixes are listed below:
 | Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
 | Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
 | WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
+| JSON         | `jsn`  | `nlohmann::json jsnExampleJSONType` |
 
 ---
 

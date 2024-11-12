@@ -14,6 +14,7 @@
 #include "../../../AutonomyLogging.h"
 
 /// \cond
+#include <nlohmann/json.hpp>
 
 /// \endcond
 
@@ -54,6 +55,9 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_pWebSocket      = std::make_shared<rtc::WebSocket>(rtcWebSocketConfig);
     m_pPeerConnection = std::make_shared<rtc::PeerConnection>(rtcPeerConnectionConfig);
     m_pDataChannel    = m_pPeerConnection->createDataChannel("data_channel", rtc::DataChannelInit());
+
+    // Attempt to connect to the signalling server.
+    this->ConnectToSignallingServer(m_szCameraPath);
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
@@ -189,7 +193,58 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
         });
 
     // Handling signalling server messages. (offer/answer/ICE candidate)
-    // m_pWebSocket->onMessage([this](const std::string& szMessage) { auto szJSONMessage = nlohmann::json::parse(szMessage); });
+    m_pWebSocket->onMessage(
+        [this](std::variant<rtc::binary, rtc::string> szMessage)
+        {
+            // Check if data is of type rtc::string
+            if (std::holds_alternative<rtc::string>(szMessage))
+            {
+                // Retrieve the string message
+                std::string message = std::get<rtc::string>(szMessage);
+
+                // Parse the JSON message from the signaling server
+                nlohmann::json jsonMessage = nlohmann::json::parse(message);
+
+                if (jsonMessage.contains("type") && jsonMessage["type"] == "offer")
+                {
+                    // Get the SDP offer and set it as the remote description
+                    std::string sdp = jsonMessage["sdp"];
+                    m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "offer"));
+                }
+                else if (jsonMessage.contains("candidate"))
+                {
+                    // Handle ICE candidate
+                    std::string candidateStr = jsonMessage["candidate"];
+                    rtc::Candidate candidate(candidateStr);
+                    m_pPeerConnection->addRemoteCandidate(candidate);
+                }
+            }
+            else
+            {
+                std::cerr << "Received unexpected non-string message on WebSocket." << std::endl;
+            }
+        });
+
+    m_pWebSocket->onError(
+        [this](const std::string& szError)
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "Error occurred on WebSocket: {}", szError);
+        });
+
+    m_pPeerConnection->onTrack(
+        [this](std::shared_ptr<rtc::Track> pTrack)
+        {
+            // test
+            pTrack->onMessage(
+                [this](std::variant<rtc::binary, rtc::string> message)
+                {
+                    if (std::holds_alternative<rtc::string>(message))
+                    {
+                        std::cout << "Received: " << get<rtc::string>(message) << std::endl;
+                    }
+                });
+        });
 
     return true;
 }

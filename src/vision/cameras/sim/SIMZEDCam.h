@@ -92,5 +92,6 @@ class SIMZEDCam : public Camera<cv::Mat>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
+        void HandleIncomingStream(const rtc::binary& rtcMessage);
 };
 #endif

@@ -114,7 +114,9 @@
                     "/usr/local/include/edgetpu",
                     "/usr/local/include/edgetpu/**",
                     "/usr/include/torch",
-                    "/usr/include/torch/**"
+                    "/usr/include/torch/**",
+                    "/usr/include/nlohmann",
+                    "/usr/include/nlohmann/**"
                 ],
                 "C_Cpp.default.defines": [
                     "__ROVECOMM_LIBRARY_MODE__=1"

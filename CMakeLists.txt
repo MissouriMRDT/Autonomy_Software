@@ -291,7 +291,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
-                        LibDataChannel::LibDataChannelStatic
+                        LibDataChannel::LibDataChannel
                         nlohmann_json::nlohmann_json
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
