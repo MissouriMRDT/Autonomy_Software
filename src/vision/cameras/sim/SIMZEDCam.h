@@ -16,6 +16,7 @@
 
 /// \cond
 #include <opencv2/opencv.hpp>
+#include <rtc/rtc.hpp>
 
 /// \endcond
 
@@ -71,23 +72,25 @@ class SIMZEDCam : public Camera<cv::Mat>
         /////////////////////////////////////////
         // Basic Camera specific.
 
-        cv::VideoCapture m_cvCamera;
         std::string m_szCameraPath;
-        bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nCameraIndex;
         int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
-
         cv::Mat m_cvFrame;
         cv::Mat m_cvDepthImage;
         cv::Mat m_cvDepthMeasure;
         cv::Mat m_cvPointCloud;
+
+        // WebRTC connection to RoveSoSimulator Pixel Streamer.
+        std::shared_ptr<rtc::WebSocket> m_pWebSocket;
+        std::shared_ptr<rtc::PeerConnection> m_pPeerConnection;
+        std::shared_ptr<rtc::DataChannel> m_pDataChannel;
 
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
+        bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
 };
 #endif

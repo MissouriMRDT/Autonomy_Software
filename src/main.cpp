@@ -11,6 +11,7 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
+#include "vision/cameras/sim/SIMZEDCam.h"
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag

@@ -43,6 +43,7 @@ else
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64/usr/local \
     -D USE_GNUTLS=0 -D USE_NICE=0 \
+    -D BUILD_SHARED_LIBS=OFF \
     -D CMAKE_BUILD_TYPE=Release ..
 
     # Install LibDataChannel

@@ -13,6 +13,10 @@
 #include "../../../AutonomyConstants.h"
 #include "../../../AutonomyLogging.h"
 
+/// \cond
+
+/// \endcond
+
 /******************************************************************************
  * @brief Construct a new SIM Cam:: SIM Cam object.
  *
@@ -42,23 +46,14 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
 {
     // Assign member variables.
     m_szCameraPath              = szCameraPath;
-    m_nCameraIndex              = -1;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
-    // Set flag specifying that the camera is located at a dev/video index.
-    m_bCameraIsConnectedOnVideoIndex = false;
-
-    // Attempt to open camera with OpenCV's VideoCapture and print if successfully opened or not.
-    if (m_cvCamera.open(szCameraPath))
-    {
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "SIMZEDCamera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Unable to open SIMZEDCamera at path/URL {}", m_szCameraPath);
-    }
+    // Construct the WebRTC peer connection and data channel for receiving data from the simulator.
+    rtc::WebSocket::Configuration rtcWebSocketConfig;
+    rtc::Configuration rtcPeerConnectionConfig;
+    m_pWebSocket      = std::make_shared<rtc::WebSocket>(rtcWebSocketConfig);
+    m_pPeerConnection = std::make_shared<rtc::PeerConnection>(rtcPeerConnectionConfig);
+    m_pDataChannel    = m_pPeerConnection->createDataChannel("data_channel", rtc::DataChannelInit());
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
@@ -76,9 +71,6 @@ SIMZEDCam::~SIMZEDCam()
     // Stop threaded code.
     this->RequestStop();
     this->Join();
-
-    // Release camera capture object.
-    m_cvCamera.release();
 }
 
 /******************************************************************************
@@ -96,21 +88,21 @@ SIMZEDCam::~SIMZEDCam()
 void SIMZEDCam::ThreadedContinuousCode()
 {
     // Check if camera is NOT open.
-    if (!m_cvCamera.isOpened())
-    {
-        // Shutdown threads for this SIMZEDCam.
-        this->RequestStop();
+    // if (!m_cvCamera.isOpened())
+    // {
+    //     // Shutdown threads for this SIMZEDCam.
+    //     this->RequestStop();
 
-        // Submit logger message.
-        LOG_CRITICAL(logging::g_qSharedLogger,
-                     "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
-                     m_nCameraIndex,
-                     m_szCameraPath);
-    }
-    else
-    {
-        // TODO: PUT CODE HERE FOR GETTING FRAMES AND DATA FROM SIMULATOR.
-    }
+    //     // Submit logger message.
+    //     LOG_CRITICAL(logging::g_qSharedLogger,
+    //                  "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
+    //                  m_nCameraIndex,
+    //                  m_szCameraPath);
+    // }
+    // else
+    // {
+    //     // TODO: PUT CODE HERE FOR GETTING FRAMES AND DATA FROM SIMULATOR.
+    // }
 
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -167,6 +159,39 @@ void SIMZEDCam::PooledLinearCode()
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedFrameStatus->set_value(true);
     }
+}
+
+/******************************************************************************
+ * @brief Connected to the Unreal Engine 5 hosted Signalling Server for WebRTC negotiation.
+ *
+ * @param szSignallingServerURL - The full URL of the signalling server. Should be in the format of "ws://<IP>:<PORT>"
+ * @return true - Successfully connected to the signalling server.
+ * @return false - Failed to connect to the signalling server.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-11-11
+ ******************************************************************************/
+bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerURL)
+{
+    // Connect to the signalling server via a websocket to handle WebRTC negotiation and signalling.
+    m_pWebSocket->open(szSignallingServerURL);
+
+    /////////////////////////////////////////////////////////////////////
+    // Set some callbacks on important events for the websocket.
+    /////////////////////////////////////////////////////////////////////
+
+    // WebSocket has been opened.
+    m_pWebSocket->onOpen(
+        [this]()
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Connected to the signalling server via {}", m_szCameraPath);
+        });
+
+    // Handling signalling server messages. (offer/answer/ICE candidate)
+    // m_pWebSocket->onMessage([this](const std::string& szMessage) { auto szJSONMessage = nlohmann::json::parse(szMessage); });
+
+    return true;
 }
 
 /******************************************************************************
@@ -275,7 +300,9 @@ std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 bool SIMZEDCam::GetCameraIsOpen()
 {
     // Get camera status from OpenCV.
-    return m_cvCamera.isOpened();
+    // return m_cvCamera.isOpened();
+    // TODO: Put code here for determining if the stream is open.
+    return true;
 }
 
 /******************************************************************************
@@ -288,15 +315,17 @@ bool SIMZEDCam::GetCameraIsOpen()
  ******************************************************************************/
 std::string SIMZEDCam::GetCameraLocation() const
 {
-    // Check if camera location is a hardware path or video index.
-    if (m_bCameraIsConnectedOnVideoIndex)
-    {
-        // If video index, return index integer.
-        return std::to_string(m_nCameraIndex);
-    }
-    else
-    {
-        // If video path, return path string.
-        return m_szCameraPath;
-    }
+    // TODO: Put code here for determining the stream name from WebRTC connection.
+    return "PLACEHOLDER";
+    // // Check if camera location is a hardware path or video index.
+    // if (m_bCameraIsConnectedOnVideoIndex)
+    // {
+    //     // If video index, return index integer.
+    //     return std::to_string(m_nCameraIndex);
+    // }
+    // else
+    // {
+    //     // If video path, return path string.
+    //     return m_szCameraPath;
+    // }
 }

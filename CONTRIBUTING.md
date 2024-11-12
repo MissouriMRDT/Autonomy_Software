@@ -181,6 +181,7 @@ External libraries and their corresponding type prefixes are listed below:
 | GeographicLib  | `ge`   | `GeographicLib::Geodesic geExampleGeographicType` |
 | Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
 | Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
+| WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
 
 ---
 

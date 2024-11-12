@@ -163,6 +163,7 @@ setpoints
 Shafe
 SIMBASICCAM
 SIMCAM
+SIMZED
 softprops
 STARTAUTONOMY
 statechart
