@@ -85,6 +85,8 @@ class SIMZEDCam : public Camera<cv::Mat>
         std::shared_ptr<rtc::WebSocket> m_pWebSocket;
         std::shared_ptr<rtc::PeerConnection> m_pPeerConnection;
         std::shared_ptr<rtc::DataChannel> m_pDataChannel;
+        std::shared_ptr<rtc::Track> rtcVideoTrack1;
+        std::shared_ptr<rtc::Track> rtcVideoTrack2;
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -92,6 +94,5 @@ class SIMZEDCam : public Camera<cv::Mat>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
-        void HandleIncomingStream(const rtc::binary& rtcMessage);
 };
 #endif

@@ -15,6 +15,12 @@
 #include "../../../util/TranscodeOperations.hpp"
 
 /// \cond
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+}
 #include <nlohmann/json.hpp>
 
 /// \endcond
@@ -192,13 +198,9 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Connected to the signalling server via {}. Sending local description to signalling server...", m_szCameraPath);
 
-            // Get local description.
-            std::optional<rtc::Description> rtcTest = m_pPeerConnection->localDescription();
-            // Send local description to signalling server.
-            nlohmann::json jsnMessage;
-            jsnMessage["type"] = rtcTest->typeString();
-            jsnMessage["sdp"]  = rtcTest->generateSdp();
-            m_pWebSocket->send(jsnMessage.dump());
+            // Send local config to signalling server.
+            std::string szLocalConfig = "{\"type\":\"config\",\"peerConnectionOptions\":{\"iceServers\":[]}}";
+            m_pWebSocket->send(nlohmann::json::parse(szLocalConfig).dump());
         });
 
     // WebSocket has been closed.
@@ -211,65 +213,79 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
 
     // Handling signalling server messages. (offer/answer/ICE candidate)
     m_pWebSocket->onMessage(
-        [this](std::variant<rtc::binary, rtc::string> szMessage)
+        [this](std::variant<rtc::binary, rtc::string> rtcMessage)
         {
-            // Create instance variables.
-            nlohmann::json jsnMessage;
-
-            // Check if data is of type rtc::string.
-            if (std::holds_alternative<rtc::string>(szMessage))
+            try
             {
-                // Retrieve the string message
-                std::string message = std::get<rtc::string>(szMessage);
+                // Create instance variables.
+                nlohmann::json jsnMessage;
 
-                // Parse the JSON message from the signaling server.
-                jsnMessage = nlohmann::json::parse(message);
-                LOG_INFO(logging::g_qSharedLogger, "Received message from signalling server: {}", message);
-            }
-            else if (std::holds_alternative<rtc::binary>(szMessage))
-            {
-                // Retrieve the binary message.
-                rtc::binary rtcBinaryData = std::get<rtc::binary>(szMessage);
-                // Print length of binary data.
-                LOG_INFO(logging::g_qSharedLogger, "Received binary data of length: {}", rtcBinaryData.size());
-
-                // Convert the binary data to a string.
-                std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
-                // Print the binary data as a string.
-                LOG_INFO(logging::g_qSharedLogger, "Received binary data: {}", szBinaryDataStr);
-                // Parse the binary data as JSON.
-                jsnMessage = nlohmann::json::parse(szBinaryDataStr);
-
-                // Process the binary data (e.g., decode video frame)
-                // Example: Decode the binary data as a video frame
-                // decodeVideoFrame(rtcBinaryData);
-            }
-            else
-            {
-                LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from signalling server");
-            }
-
-            if (jsnMessage.contains("type"))
-            {
-                std::string type = jsnMessage["type"];
-                if (type == "answer")
+                // Check if data is of type rtc::string.
+                if (std::holds_alternative<rtc::string>(rtcMessage))
                 {
-                    // Get the SDP offer and set it as the remote description
-                    std::string sdp = jsnMessage["sdp"];
-                    m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "answer"));
+                    // Retrieve the string message
+                    std::string szMessage = std::get<rtc::string>(rtcMessage);
+
+                    // Parse the JSON message from the signaling server.
+                    jsnMessage = nlohmann::json::parse(szMessage);
+                    LOG_INFO(logging::g_qSharedLogger, "Received message from signalling server: {}", szMessage);
                 }
-                else if (type == "iceCandidate")
+                else if (std::holds_alternative<rtc::binary>(rtcMessage))
                 {
-                    // Handle ICE candidate
-                    nlohmann::json jsnCandidate = jsnMessage["candidate"];
-                    std::string szCandidateStr  = jsnCandidate["candidate"];
-                    rtc::Candidate rtcCandidate = rtc::Candidate(szCandidateStr);
-                    m_pPeerConnection->addRemoteCandidate(rtcCandidate);
+                    // Retrieve the binary message.
+                    rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
+                    // Print length of binary data.
+                    LOG_INFO(logging::g_qSharedLogger, "Received binary data of length: {}", rtcBinaryData.size());
+
+                    // Convert the binary data to a string.
+                    std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
+                    // Print the binary data as a string.
+                    LOG_INFO(logging::g_qSharedLogger, "Received binary data: {}", szBinaryDataStr);
+                    // Parse the binary data as JSON.
+                    jsnMessage = nlohmann::json::parse(szBinaryDataStr);
                 }
-                else if (type == "config")
+                else
                 {
-                    // Do nothing for config.
+                    LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from signalling server");
                 }
+
+                // Check if the message contains a type.
+                if (jsnMessage.contains("type"))
+                {
+                    std::string szType = jsnMessage["type"];
+                    // If the message from the server is an offer, set the remote description offer.
+                    if (szType == "offer")
+                    {
+                        // Get the SDP offer and set it as the remote description.
+                        std::string sdp = jsnMessage["sdp"];
+                        m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "offer"));
+                    }
+                    // If the message from the server is an answer, set the remote description answer.
+                    else if (szType == "answer")
+                    {
+                        // Get the SDP answer and set it as the remote description.
+                        std::string sdp = jsnMessage["sdp"];
+                        // m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "answer"));
+                    }
+                    // If the message from the server is advertising an ICE candidate, add it to the peer connection.
+                    else if (szType == "iceCandidate")
+                    {
+                        // Handle ICE candidate
+                        nlohmann::json jsnCandidate = jsnMessage["candidate"];
+                        std::string szCandidateStr  = jsnCandidate["candidate"];
+                        rtc::Candidate rtcCandidate = rtc::Candidate(szCandidateStr);
+                        m_pPeerConnection->addRemoteCandidate(rtcCandidate);
+                    }
+                    else if (szType == "config")
+                    {
+                        // Do nothing for config.
+                    }
+                }
+            }
+            catch (const std::exception& e)
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "Error occurred while negotiating with the Signalling Server: {}", e.what());
             }
         });
 
@@ -279,6 +295,10 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger, "Error occurred on WebSocket: {}", szError);
         });
+
+    /////////////////////////////////////////////////////////////////////
+    // Set some callbacks on important events for the peer connection.
+    /////////////////////////////////////////////////////////////////////
 
     m_pPeerConnection->onLocalDescription(
         [this](rtc::Description rtcDescription)
@@ -291,34 +311,186 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
             LOG_WARNING(logging::g_qSharedLogger, "Sending local description to signalling server");
         });
 
-    m_pDataChannel->onOpen([this]() { LOG_INFO(logging::g_qSharedLogger, "Data channel opened."); });
+    m_pPeerConnection->onGatheringStateChange(
+        [this](rtc::PeerConnection::GatheringState eGatheringState)
+        {
+            // Switch to translate the state to a string.
+            switch (eGatheringState)
+            {
+                case rtc::PeerConnection::GatheringState::Complete: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE gathering state changed to: Complete"); break;
+
+                case rtc::PeerConnection::GatheringState::InProgress:
+                    LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE gathering state changed to: InProgress");
+                    break;
+                case rtc::PeerConnection::GatheringState::New: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE gathering state changed to: New"); break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Peer connection ICE gathering state changed to: Unknown"); break;
+            }
+        });
+
+    m_pPeerConnection->onIceStateChange(
+        [this](rtc::PeerConnection::IceState eIceState)
+        {
+            // Switch to translate the state to a string.
+            switch (eIceState)
+            {
+                case rtc::PeerConnection::IceState::Checking: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Checking"); break;
+                case rtc::PeerConnection::IceState::Closed: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Closed"); break;
+                case rtc::PeerConnection::IceState::Completed: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Completed"); break;
+                case rtc::PeerConnection::IceState::Connected: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Connected"); break;
+                case rtc::PeerConnection::IceState::Disconnected: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Disconnected"); break;
+                case rtc::PeerConnection::IceState::Failed: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Failed"); break;
+                case rtc::PeerConnection::IceState::New: LOG_INFO(logging::g_qSharedLogger, "PeerConnection ICE state changed to: New"); break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Peer connection ICE state changed to: Unknown"); break;
+            }
+        });
+    m_pPeerConnection->onSignalingStateChange(
+        [this](rtc::PeerConnection::SignalingState eSignalingState)
+        {
+            // Switch to translate the state to a string.
+            switch (eSignalingState)
+            {
+                case rtc::PeerConnection::SignalingState::HaveLocalOffer:
+                {
+                    // Get the local description.
+                    std::optional<rtc::Description> rtcDescription = m_pPeerConnection->localDescription();
+                    // Send the local description to the signalling server
+                    nlohmann::json jsnMessage;
+                    jsnMessage["type"] = rtcDescription->typeString();
+                    jsnMessage["sdp"]  = rtcDescription->generateSdp();
+                    m_pWebSocket->send(jsnMessage.dump());
+                    LOG_WARNING(logging::g_qSharedLogger, "Sending local description to signalling server");
+                    LOG_INFO(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveLocalOffer");
+                    break;
+                }
+                case rtc::PeerConnection::SignalingState::HaveLocalPranswer:
+                    LOG_INFO(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveLocalPranswer");
+                    break;
+                case rtc::PeerConnection::SignalingState::HaveRemoteOffer:
+                    LOG_INFO(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveRemoteOffer");
+                    break;
+                case rtc::PeerConnection::SignalingState::HaveRemotePranswer:
+                    LOG_INFO(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveRemotePrAnswer");
+                    break;
+                case rtc::PeerConnection::SignalingState::Stable: LOG_INFO(logging::g_qSharedLogger, "PeerConnection signaling state changed to: Stable"); break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Peer connection signaling state changed to: Unknown"); break;
+            }
+        });
+
+    m_pPeerConnection->onStateChange(
+        [this](rtc::PeerConnection::State eState)
+        {
+            // Switch to translate the state to a string.
+            switch (eState)
+            {
+                case rtc::PeerConnection::State::Closed: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: Closed"); break;
+                case rtc::PeerConnection::State::Connected: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: Connected"); break;
+                case rtc::PeerConnection::State::Connecting: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: Connecting"); break;
+                case rtc::PeerConnection::State::Disconnected: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: Disconnected"); break;
+                case rtc::PeerConnection::State::Failed: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: Failed"); break;
+                case rtc::PeerConnection::State::New: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: New"); break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Peer connection state changed to: Unknown"); break;
+            }
+        });
+
+    /////////////////////////////////////////////////////////////////////
+    // Set some callbacks on important events for the data channel.
+    /////////////////////////////////////////////////////////////////////
+
+    m_pDataChannel->onOpen(
+        [this]()
+        {
+            // Add peer connection track callback. It's only safe to add this callback after the data channel is opened.
+            m_pPeerConnection->onTrack(
+                [this](std::shared_ptr<rtc::Track> rtcTrack)
+                {
+                    // Submit logger message.
+                    rtc::Description::Media rtcMediaDescription = rtcTrack->description();
+                    // Get some information about the track.
+                    std::string szMediaType = rtcMediaDescription.type();
+
+                    // Check if the track is a video track.
+                    if (szMediaType != "video")
+                    {
+                        return;
+                    }
+
+                    // Set member variable to the video track.
+                    rtcVideoTrack1 = rtcTrack;
+
+                    // Set the onMessage callback for the video track.
+                    rtcVideoTrack1->onMessage(
+                        [this](std::variant<rtc::binary, rtc::string> rtcMessage)
+                        {
+                            // Call the display frame for debugging.
+                            if (std::holds_alternative<rtc::binary>(rtcMessage))
+                            {
+                                // Check the type of message.
+                                if (rtcVideoTrack1->description().type() == "video")
+                                {
+                                    // Retrieve the binary message.
+                                    rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
+                                    LOG_WARNING(logging::g_qSharedLogger, "Received binary data from peer connection.");
+                                    LOG_INFO(logging::g_qSharedLogger, "Binary data size: {}", rtcBinaryData.size());
+                                    // Print the binary data as a string.
+                                    std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
+                                    LOG_INFO(logging::g_qSharedLogger, "Received binary data: {}", szBinaryDataStr);
+                                }
+                            }
+                        });
+                });
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Data channel opened.");
+        });
 
     m_pDataChannel->onMessage(
-        [this](std::variant<rtc::binary, rtc::string> szMessage)
+        [this](std::variant<rtc::binary, rtc::string> rtcMessage)
         {
+            // Create instance variables.
+            nlohmann::json jsnMessage;
+
             // Check if the message is a string.
-            if (std::holds_alternative<rtc::string>(szMessage))
+            if (std::holds_alternative<rtc::string>(rtcMessage))
             {
                 // Retrieve the string message.
-                std::string message = std::get<rtc::string>(szMessage);
+                std::string szMessage = std::get<rtc::string>(rtcMessage);
                 // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "Received message from data channel: {}", message);
+                LOG_INFO(logging::g_qSharedLogger, "Received message from data channel: {}", szMessage);
             }
-            else if (std::holds_alternative<rtc::binary>(szMessage))
+            else if (std::holds_alternative<rtc::binary>(rtcMessage))
             {
                 // Retrieve the binary message.
-                rtc::binary rtcBinaryData = std::get<rtc::binary>(szMessage);
+                rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
                 // Print length of binary data.
                 LOG_INFO(logging::g_qSharedLogger, "Received binary data of length: {}", rtcBinaryData.size());
 
                 // Convert the binary data to a string.
                 std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
-                // Print the binary data as a string.
-                LOG_INFO(logging::g_qSharedLogger, "Received binary data: {}", transops::DecodeUTF8EncodedString(szBinaryDataStr));
+                // Print the UTF-8 string
+                // std::cout << szBinaryDataStr << std::endl;
+                // Just for fun, print out if the peer connection had media available.
+                LOG_INFO(logging::g_qSharedLogger, "PeerConnection has media available: {}", m_pPeerConnection->hasMedia());
+
+                // Parse the binary data as JSON.
+                jsnMessage = nlohmann::json::parse(szBinaryDataStr);
             }
             else
             {
                 LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from data channel");
+            }
+
+            // Check if the message is a PixelStreaming message that contains information about the WebRTC configuration.
+            if (jsnMessage.contains("PixelStreaming") && jsnMessage.contains("WebRTC"))
+            {
+                // Get the WebRTC configuration from the message.
+                std::string szDegradationPreference = jsnMessage["WebRTC"]["DegradationPref"];
+                int nFramerate                      = jsnMessage["WebRTC"]["FPS"];
+                int nMinBitrate                     = jsnMessage["WebRTC"]["MinBitrate"];
+                int nMaxBitrate                     = jsnMessage["WebRTC"]["MaxBitrate"];
+                int nLowQP                          = jsnMessage["WebRTC"]["LowQP"];
+                int nHighQP                         = jsnMessage["WebRTC"]["HighQP"];
+
+                // Don't know what to do with this information yet.
             }
         });
 

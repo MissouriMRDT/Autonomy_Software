@@ -33,9 +33,22 @@ void RunExample()
 {
     // Create a new SIMZEDCam object.
     SIMZEDCam* pZEDCam = new SIMZEDCam("ws://localhost:8080", 1280, 720, 30, PIXEL_FORMATS::eRGB, 90.0, 60.0, true);
+    pZEDCam->Start();
+
+    // Create a cv::Mat to store the frame.
+    cv::Mat m_cvFrame;
 
     while (true)
     {
+        std::future<bool> fuFrame = pZEDCam->RequestFrameCopy(m_cvFrame);
+
+        // Wait for the frame to be copied.
+        if (fuFrame.get() && !m_cvFrame.empty())
+        {
+            // Display the frame.
+            cv::imshow("Frame", m_cvFrame);
+        }
+
         // OpenCV display pause and check if while loop should exit.
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit
