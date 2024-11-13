@@ -122,6 +122,7 @@ missourimrdt
 MJPEG
 MRDT
 mrdtavoidance
+msgpack
 MULTIMEDIABOARD
 multithreads
 navboard
@@ -193,6 +194,7 @@ threadpool
 timestamping
 timestep
 tparam
+transops
 twxs
 UART
 UBLOX
