@@ -417,6 +417,21 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                     // Set member variable to the video track.
                     rtcVideoTrack1 = rtcTrack;
 
+                    // Create a H264 depacketization handler and rtcp receiving session.
+                    rtcH264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>();
+                    // rtcRTCPReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
+                    // rtcRTPDepacketizer = std::make_shared<rtc::RtpDepacketizer>();
+                    // rtcRTCPSrReporter             = std::make_shared<rtc::RtcpSrReporter>(
+                    // std::make_shared<rtc::RtpPacketizationConfig>(rtc::SSRC(0), "ZEDFrontRGBAndDepth", 96, rtc::H264RtpPacketizer::defaultClockRate));
+                    // rtcRTCPNackResponder = std::make_shared<rtc::RtcpNackResponder>();
+                    // For the receiving size of the media track, the pipeline is run from first to last for sending and from last to first for
+                    // receiving, which allows you to setup a bidirectional track. Set the media handler for the video track.
+                    // rtcH264DepacketizationHandler->addToChain(rtcRTCPSrReporter);
+                    // rtcH264DepacketizationHandler->addToChain(rtcRTCPNackResponder);
+                    // rtcH264DepacketizationHandler->addToChain(rtcRTPDepacketizer);
+                    // rtcH264DepacketizationHandler->addToChain(rtcRTCPReceivingSession);
+                    rtcVideoTrack1->setMediaHandler(rtcH264DepacketizationHandler);
+
                     // Set the onMessage callback for the video track.
                     rtcVideoTrack1->onMessage(
                         [this](std::variant<rtc::binary, rtc::string> rtcMessage)
@@ -429,13 +444,14 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                                 {
                                     // Retrieve the binary message.
                                     rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
-                                    LOG_WARNING(logging::g_qSharedLogger, "Received binary data from peer connection.");
                                     LOG_INFO(logging::g_qSharedLogger, "Binary data size: {}", rtcBinaryData.size());
                                     // Print the binary data as a string.
                                     std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
+                                    // std::cout << szBinaryDataStr << std::endl;
                                     LOG_INFO(logging::g_qSharedLogger, "Received binary data: {}", szBinaryDataStr);
                                 }
                             }
+                            LOG_WARNING(logging::g_qSharedLogger, "Received data from peer connection.");
                         });
                 });
 
@@ -467,12 +483,12 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                 // Convert the binary data to a string.
                 std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
                 // Print the UTF-8 string
-                // std::cout << szBinaryDataStr << std::endl;
+                std::cout << szBinaryDataStr << std::endl;
                 // Just for fun, print out if the peer connection had media available.
                 LOG_INFO(logging::g_qSharedLogger, "PeerConnection has media available: {}", m_pPeerConnection->hasMedia());
 
                 // Parse the binary data as JSON.
-                jsnMessage = nlohmann::json::parse(szBinaryDataStr);
+                // jsnMessage = nlohmann::json::parse(szBinaryDataStr);
             }
             else
             {

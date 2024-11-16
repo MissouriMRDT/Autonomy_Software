@@ -86,6 +86,11 @@ class SIMZEDCam : public Camera<cv::Mat>
         std::shared_ptr<rtc::PeerConnection> m_pPeerConnection;
         std::shared_ptr<rtc::DataChannel> m_pDataChannel;
         std::shared_ptr<rtc::Track> rtcVideoTrack1;
+        std::shared_ptr<rtc::H264RtpDepacketizer> rtcH264DepacketizationHandler;
+        std::shared_ptr<rtc::RtcpReceivingSession> rtcRTCPReceivingSession;
+        std::shared_ptr<rtc::RtpDepacketizer> rtcRTPDepacketizer;
+        std::shared_ptr<rtc::RtcpSrReporter> rtcRTCPSrReporter;
+        std::shared_ptr<rtc::RtcpNackResponder> rtcRTCPNackResponder;
         std::shared_ptr<rtc::Track> rtcVideoTrack2;
 
         /////////////////////////////////////////

@@ -50,6 +50,7 @@ debfile
 Deblur
 decipercent
 Denoise
+Depacketization
 Depacketizer
 depthobject
 deque
@@ -141,6 +142,7 @@ opencontainers
 opencv
 OTSU
 Overcurrent
+Packetizer
 parallelizable
 Parens
 pathplanners
@@ -157,6 +159,7 @@ RGBE
 RIGHTCAM
 Rolla
 rovecomm
+RTCP
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
