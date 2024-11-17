@@ -80,6 +80,9 @@ class SIMZEDCam : public Camera<cv::Mat>
         cv::Mat m_cvDepthMeasure;
         cv::Mat m_cvPointCloud;
 
+        // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
+        std::shared_mutex m_muWebRTCCopyMutex;
+
         // WebRTC connection to RoveSoSimulator Pixel Streamer.
         std::shared_ptr<rtc::WebSocket> m_pWebSocket;
         std::shared_ptr<rtc::PeerConnection> m_pPeerConnection;
@@ -95,6 +98,6 @@ class SIMZEDCam : public Camera<cv::Mat>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
-        bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const char* aHardwareDevice = "cuda");
+        bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame);
 };
 #endif

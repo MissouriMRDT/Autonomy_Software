@@ -121,6 +121,9 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Check if the frame copy queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
+        // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
+        std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
         // Wait for thread pool to finish.
@@ -438,7 +441,18 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                         [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                         {
                             // Print frame info timestamp and payload type.
-                            LOG_INFO(logging::g_qSharedLogger, "FrameInfo timestamp: {}, payload type: {}", rtcFrameInfo.timestamp, rtcFrameInfo.payloadType);
+                            // LOG_INFO(logging::g_qSharedLogger, "FrameInfo timestamp: {}, payload type: {}", rtcFrameInfo.timestamp, rtcFrameInfo.payloadType);
+                            // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
+                            std::vector<uint8_t> vH264EncodedBytes;
+                            vH264EncodedBytes.reserve(rtcBinaryMessage.size());
+                            for (std::byte stdByte : rtcBinaryMessage)
+                            {
+                                vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
+                            }
+                            // Acquire lock on the WebRTC copy mutex.
+                            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+                            // Decode the H264 encoded bytes to a cv::Mat.
+                            this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame);
                         });
                 });
 
@@ -505,99 +519,109 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
  *
  * @param vH264EncodedBytes - The H264 encoded bytes.
  * @param cvDecodedFrame - The decoded frame.
- * @param aHardwareDevice - The hardware device to use for decoding. Can be "cuda", "videotoolbox", "vaapi", etc.
- * @return true -
- * @return false -
+ * @return true - Frame was successfully decoded.
+ * @return false - Frame was not successfully decoded.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-16
  ******************************************************************************/
-bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const char* aHardwareDevice)
+bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame)
 {
-    // Initialize FFmpeg libraries
-    av_register_all();
-    avformat_network_init();
-
-    // Create the hardware device context (e.g., VAAPI, CUDA, VideoToolbox)
-    AVBufferRef* hw_device_ctx = nullptr;
-
-    // Open hardware device (VAAPI, CUDA, etc.)
-    if (av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_VAAPI, aHardwareDevice, nullptr, 0) < 0)
-    {
-        std::cerr << "Failed to create hardware device context" << std::endl;
-        return -1;
-    }
-
-    // Find H264 decoder
-    AVCodec* decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (!decoder)
+    // Find the H264 decoder
+    const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+    if (!codec)
     {
         std::cerr << "H264 codec not found!" << std::endl;
-        return -1;
+        return false;
     }
 
-    // Create a codec context for decoding
-    AVCodecContext* codec_ctx = avcodec_alloc_context3(decoder);
-    if (!codec_ctx)
+    // Create codec context
+    AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
+    if (!codecCtx)
     {
-        std::cerr << "Could not allocate codec context" << std::endl;
-        return -1;
+        std::cerr << "Failed to allocate codec context!" << std::endl;
+        return false;
     }
 
     // Open the codec
-    if (avcodec_open2(codec_ctx, decoder, nullptr) < 0)
+    if (avcodec_open2(codecCtx, codec, nullptr) < 0)
     {
-        std::cerr << "Could not open codec" << std::endl;
-        return -1;
+        std::cerr << "Failed to open codec!" << std::endl;
+        avcodec_free_context(&codecCtx);
+        return false;
     }
 
-    // Prepare packet and frame
-    AVPacket packet;
-    av_init_packet(&packet);
-    packet.data = const_cast<uint8_t*>(vH264EncodedBytes.data());    // Pointer to byte vector
-    packet.size = vH264EncodedBytes.size();
+    // Allocate the AVPacket
+    AVPacket* packet = av_packet_alloc();
+    if (!packet)
+    {
+        std::cerr << "Failed to allocate packet!" << std::endl;
+        avcodec_free_context(&codecCtx);
+        return false;
+    }
+
+    // Allocate the AVFrame
+    AVFrame* frame = av_frame_alloc();
+    if (!frame)
+    {
+        std::cerr << "Failed to allocate frame!" << std::endl;
+        av_packet_free(&packet);
+        avcodec_free_context(&codecCtx);
+        return false;
+    }
+
+    // Fill the packet with input data
+    packet->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
+    packet->size = static_cast<int>(vH264EncodedBytes.size());
 
     // Send the packet to the decoder
-    if (avcodec_send_packet(codec_ctx, &packet) < 0)
+    if (avcodec_send_packet(codecCtx, packet) < 0)
     {
-        std::cerr << "Error sending packet to decoder" << std::endl;
-        return -1;
+        std::cerr << "Failed to send packet to decoder!" << std::endl;
+        av_frame_free(&frame);
+        av_packet_free(&packet);
+        avcodec_free_context(&codecCtx);
+        return false;
     }
 
-    // Get the decoded frame
-    AVFrame* frame = av_frame_alloc();
-    if (avcodec_receive_frame(codec_ctx, frame) < 0)
+    // Receive the decoded frame
+    if (avcodec_receive_frame(codecCtx, frame) < 0)
     {
-        std::cerr << "Error receiving decoded frame" << std::endl;
-        return -1;
+        std::cerr << "Failed to receive frame from decoder!" << std::endl;
+        av_frame_free(&frame);
+        av_packet_free(&packet);
+        avcodec_free_context(&codecCtx);
+        return false;
     }
 
-    // Convert the decoded frame to OpenCV Mat (BGR format)
-    SwsContext* sws_ctx =
-        sws_getContext(frame->width, frame->height, (AVPixelFormat) frame->format, frame->width, frame->height, AV_PIX_FMT_BGR24, SWS_BICUBIC, nullptr, nullptr, nullptr);
-
-    uint8_t* data[4] = {nullptr};
-    int linesize[4]  = {0};
-    if (av_image_alloc(data, linesize, frame->width, frame->height, AV_PIX_FMT_BGR24, 32) < 0)
+    // Check if the format is BGRA
+    if (frame->format != AV_PIX_FMT_BGRA)
     {
-        std::cerr << "Could not allocate buffer for frame" << std::endl;
-        return -1;
+        std::cerr << "Unexpected pixel format: " << frame->format << std::endl;
+        av_frame_free(&frame);
+        av_packet_free(&packet);
+        avcodec_free_context(&codecCtx);
+        return false;
     }
 
-    // Convert the frame to BGR format for OpenCV
-    sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, data, linesize);
+    // Create OpenCV Mat (preserving alpha channel), but only if the frame isn't already the correct size and format.
+    if (cvDecodedFrame.empty() || cvDecodedFrame.cols != frame->width || cvDecodedFrame.rows != frame->height || cvDecodedFrame.type() != CV_8UC4)
+    {
+        cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_8UC4);
+    }
 
-    // Create an OpenCV Mat from the BGR data
-    cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_8UC3, data[0], linesize[0]);
+    // Copy data directly to OpenCV Mat
+    for (int y = 0; y < frame->height; ++y)
+    {
+        std::memcpy(cvDecodedFrame.ptr(y), frame->data[0] + y * frame->linesize[0], frame->width * 4);
+    }
 
-    // Clean up
-    sws_freeContext(sws_ctx);
-    av_freep(&data[0]);
+    // Cleanup
     av_frame_free(&frame);
-    avcodec_free_context(&codec_ctx);
-    av_buffer_unref(&hw_device_ctx);
+    av_packet_free(&packet);
+    avcodec_free_context(&codecCtx);
 
-    return true;    // Success
+    return true;
 }
 
 /******************************************************************************
