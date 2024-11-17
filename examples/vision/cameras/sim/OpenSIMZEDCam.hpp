@@ -37,10 +37,14 @@ void RunExample()
 
     // Create a cv::Mat to store the frame.
     cv::Mat m_cvFrame;
+    cv::Mat white_image(400, 400, CV_8UC3, cv::Scalar(255, 255, 255));
 
     while (true)
     {
         std::future<bool> fuFrame = pZEDCam->RequestFrameCopy(m_cvFrame);
+
+        // Display the white image.
+        // cv::imshow("White Image", white_image);
 
         // Wait for the frame to be copied.
         if (fuFrame.get() && !m_cvFrame.empty())

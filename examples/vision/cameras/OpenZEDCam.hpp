@@ -52,7 +52,7 @@ void RunExample()
     globals::g_pCameraHandler = new CameraHandler();
 
     // Get pointer to camera.
-    ZEDCam* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    ZEDCam* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Start ZED cam.
     ExampleZEDCam1->Start();
 

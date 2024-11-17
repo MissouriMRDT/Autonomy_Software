@@ -446,8 +446,11 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                             }
                             // Acquire lock on the WebRTC copy mutex.
                             std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+                            // Copy the H264 image to the cv::Mat. Image dims are 1280x720 and 4 channels.
+                            m_cvFrame = cv::Mat(720, 1280, CV_8UC4, vH264EncodedBytes.data());
+
                             // Decode the H264 encoded bytes to a cv::Mat.
-                            this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame);
+                            // this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame);
                         });
                 });
 
