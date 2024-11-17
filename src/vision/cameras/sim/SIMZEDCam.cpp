@@ -15,12 +15,13 @@
 #include "../../../util/TranscodeOperations.hpp"
 
 /// \cond
-extern "C"
-{
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/mem.h>
+#include <libavutil/opt.h>
 #include <libswscale/swscale.h>
-}
 #include <nlohmann/json.hpp>
 
 /// \endcond
@@ -418,7 +419,7 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                     rtcVideoTrack1 = rtcTrack;
 
                     // Create a H264 depacketization handler and rtcp receiving session.
-                    rtcH264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>();
+                    rtcTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>();
                     // rtcRTCPReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
                     // rtcRTPDepacketizer = std::make_shared<rtc::RtpDepacketizer>();
                     // rtcRTCPSrReporter             = std::make_shared<rtc::RtcpSrReporter>(
@@ -430,28 +431,14 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                     // rtcH264DepacketizationHandler->addToChain(rtcRTCPNackResponder);
                     // rtcH264DepacketizationHandler->addToChain(rtcRTPDepacketizer);
                     // rtcH264DepacketizationHandler->addToChain(rtcRTCPReceivingSession);
-                    rtcVideoTrack1->setMediaHandler(rtcH264DepacketizationHandler);
+                    rtcVideoTrack1->setMediaHandler(rtcTrack1H264DepacketizationHandler);
 
                     // Set the onMessage callback for the video track.
-                    rtcVideoTrack1->onMessage(
-                        [this](std::variant<rtc::binary, rtc::string> rtcMessage)
+                    rtcVideoTrack1->onFrame(
+                        [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                         {
-                            // Call the display frame for debugging.
-                            if (std::holds_alternative<rtc::binary>(rtcMessage))
-                            {
-                                // Check the type of message.
-                                if (rtcVideoTrack1->description().type() == "video")
-                                {
-                                    // Retrieve the binary message.
-                                    rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
-                                    LOG_INFO(logging::g_qSharedLogger, "Binary data size: {}", rtcBinaryData.size());
-                                    // Print the binary data as a string.
-                                    std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
-                                    // std::cout << szBinaryDataStr << std::endl;
-                                    LOG_INFO(logging::g_qSharedLogger, "Received binary data: {}", szBinaryDataStr);
-                                }
-                            }
-                            LOG_WARNING(logging::g_qSharedLogger, "Received data from peer connection.");
+                            // Print frame info timestamp and payload type.
+                            LOG_INFO(logging::g_qSharedLogger, "FrameInfo timestamp: {}, payload type: {}", rtcFrameInfo.timestamp, rtcFrameInfo.payloadType);
                         });
                 });
 
@@ -511,6 +498,106 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
         });
 
     return true;
+}
+
+/******************************************************************************
+ * @brief Decodes H264 encoded bytes to a cv::Mat using FFmpeg.
+ *
+ * @param vH264EncodedBytes - The H264 encoded bytes.
+ * @param cvDecodedFrame - The decoded frame.
+ * @param aHardwareDevice - The hardware device to use for decoding. Can be "cuda", "videotoolbox", "vaapi", etc.
+ * @return true -
+ * @return false -
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-11-16
+ ******************************************************************************/
+bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const char* aHardwareDevice)
+{
+    // Initialize FFmpeg libraries
+    av_register_all();
+    avformat_network_init();
+
+    // Create the hardware device context (e.g., VAAPI, CUDA, VideoToolbox)
+    AVBufferRef* hw_device_ctx = nullptr;
+
+    // Open hardware device (VAAPI, CUDA, etc.)
+    if (av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_VAAPI, aHardwareDevice, nullptr, 0) < 0)
+    {
+        std::cerr << "Failed to create hardware device context" << std::endl;
+        return -1;
+    }
+
+    // Find H264 decoder
+    AVCodec* decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
+    if (!decoder)
+    {
+        std::cerr << "H264 codec not found!" << std::endl;
+        return -1;
+    }
+
+    // Create a codec context for decoding
+    AVCodecContext* codec_ctx = avcodec_alloc_context3(decoder);
+    if (!codec_ctx)
+    {
+        std::cerr << "Could not allocate codec context" << std::endl;
+        return -1;
+    }
+
+    // Open the codec
+    if (avcodec_open2(codec_ctx, decoder, nullptr) < 0)
+    {
+        std::cerr << "Could not open codec" << std::endl;
+        return -1;
+    }
+
+    // Prepare packet and frame
+    AVPacket packet;
+    av_init_packet(&packet);
+    packet.data = const_cast<uint8_t*>(vH264EncodedBytes.data());    // Pointer to byte vector
+    packet.size = vH264EncodedBytes.size();
+
+    // Send the packet to the decoder
+    if (avcodec_send_packet(codec_ctx, &packet) < 0)
+    {
+        std::cerr << "Error sending packet to decoder" << std::endl;
+        return -1;
+    }
+
+    // Get the decoded frame
+    AVFrame* frame = av_frame_alloc();
+    if (avcodec_receive_frame(codec_ctx, frame) < 0)
+    {
+        std::cerr << "Error receiving decoded frame" << std::endl;
+        return -1;
+    }
+
+    // Convert the decoded frame to OpenCV Mat (BGR format)
+    SwsContext* sws_ctx =
+        sws_getContext(frame->width, frame->height, (AVPixelFormat) frame->format, frame->width, frame->height, AV_PIX_FMT_BGR24, SWS_BICUBIC, nullptr, nullptr, nullptr);
+
+    uint8_t* data[4] = {nullptr};
+    int linesize[4]  = {0};
+    if (av_image_alloc(data, linesize, frame->width, frame->height, AV_PIX_FMT_BGR24, 32) < 0)
+    {
+        std::cerr << "Could not allocate buffer for frame" << std::endl;
+        return -1;
+    }
+
+    // Convert the frame to BGR format for OpenCV
+    sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, data, linesize);
+
+    // Create an OpenCV Mat from the BGR data
+    cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_8UC3, data[0], linesize[0]);
+
+    // Clean up
+    sws_freeContext(sws_ctx);
+    av_freep(&data[0]);
+    av_frame_free(&frame);
+    avcodec_free_context(&codec_ctx);
+    av_buffer_unref(&hw_device_ctx);
+
+    return true;    // Success
 }
 
 /******************************************************************************

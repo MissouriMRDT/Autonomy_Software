@@ -89,6 +89,7 @@ GPSSDELC
 GROUNDCAM
 gruntfuggly
 gtest
+HWDEVICE
 hyperthreaded
 IDLESTATE
 imgops
@@ -211,9 +212,11 @@ UNVALIDATED
 upsample
 UTMMDRS
 UTMUPS
+vaapi
 valgrind
 VERIFYINGMARKERSTATE
 VERIFYINGOBJECTSTATE
+videotoolbox
 VIDEOWRITER
 VIOGPS
 Watchpoints
