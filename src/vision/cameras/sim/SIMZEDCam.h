@@ -89,8 +89,9 @@ class SIMZEDCam : public Camera<cv::Mat>
         std::shared_ptr<rtc::DataChannel> m_pDataChannel;
         std::shared_ptr<rtc::Track> rtcVideoTrack1;
         std::shared_ptr<rtc::H264RtpDepacketizer> rtcTrack1H264DepacketizationHandler;
-        std::shared_ptr<rtc::Track> rtcVideoTrack2;
-        std::shared_ptr<rtc::H264RtpDepacketizer> rtcTrack2H264DepacketizationHandler;
+        std::shared_ptr<rtc::RtcpReceivingSession> rtcRTCPReceivingSession;
+        // std::shared_ptr<rtc::Track> rtcVideoTrack2;
+        // std::shared_ptr<rtc::H264RtpDepacketizer> rtcTrack2H264DepacketizationHandler;
 
         /////////////////////////////////////////
         // Declare private methods.

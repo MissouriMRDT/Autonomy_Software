@@ -15,6 +15,9 @@
 #include "../../../util/TranscodeOperations.hpp"
 
 /// \cond
+// FFMPEG is a C library, so we need to wrap it in an extern "C" block to prevent name mangling.
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/frame.h>
@@ -22,6 +25,7 @@
 #include <libavutil/mem.h>
 #include <libavutil/opt.h>
 #include <libswscale/swscale.h>
+}
 #include <nlohmann/json.hpp>
 
 /// \endcond
@@ -423,17 +427,8 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
 
                     // Create a H264 depacketization handler and rtcp receiving session.
                     rtcTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>();
-                    // rtcRTCPReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
-                    // rtcRTPDepacketizer = std::make_shared<rtc::RtpDepacketizer>();
-                    // rtcRTCPSrReporter             = std::make_shared<rtc::RtcpSrReporter>(
-                    // std::make_shared<rtc::RtpPacketizationConfig>(rtc::SSRC(0), "ZEDFrontRGBAndDepth", 96, rtc::H264RtpPacketizer::defaultClockRate));
-                    // rtcRTCPNackResponder = std::make_shared<rtc::RtcpNackResponder>();
-                    // For the receiving size of the media track, the pipeline is run from first to last for sending and from last to first for
-                    // receiving, which allows you to setup a bidirectional track. Set the media handler for the video track.
-                    // rtcH264DepacketizationHandler->addToChain(rtcRTCPSrReporter);
-                    // rtcH264DepacketizationHandler->addToChain(rtcRTCPNackResponder);
-                    // rtcH264DepacketizationHandler->addToChain(rtcRTPDepacketizer);
-                    // rtcH264DepacketizationHandler->addToChain(rtcRTCPReceivingSession);
+                    rtcRTCPReceivingSession             = std::make_shared<rtc::RtcpReceivingSession>();
+                    rtcTrack1H264DepacketizationHandler->addToChain(rtcRTCPReceivingSession);
                     rtcVideoTrack1->setMediaHandler(rtcTrack1H264DepacketizationHandler);
 
                     // Set the onMessage callback for the video track.

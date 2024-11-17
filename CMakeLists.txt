@@ -189,7 +189,7 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 ## Find FFMPEG
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libavutil)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
 include_directories(${FFMPEG_INCLUDE_DIRS})
 
 ## Find Google Test

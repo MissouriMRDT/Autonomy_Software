@@ -7,7 +7,7 @@ cd /tmp
 FFMPEG_VERSION="7.1"
 
 # Define Package URL
-FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb"
+FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.debasdf"
 
 # Check if the file exists
 if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
@@ -39,7 +39,7 @@ else
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local
+    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local --enable-static --disable-shared --disable-doc --enable-gpl --enable-libx264 --enable-pic
 
     # Install FFMPEG
     make

@@ -39,7 +39,7 @@ else
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local
+    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local --enable-static --disable-shared --disable-doc --enable-gpl --enable-libx264 --enable-pic
 
     # Install FFMPEG
     make
