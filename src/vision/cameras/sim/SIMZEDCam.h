@@ -18,6 +18,19 @@
 #include <opencv2/opencv.hpp>
 #include <rtc/rtc.hpp>
 
+extern "C"
+{
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libavutil/error.h>
+#include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/mem.h>
+#include <libavutil/opt.h>
+#include <libswscale/swscale.h>
+}
+
 /// \endcond
 
 /******************************************************************************
@@ -89,9 +102,16 @@ class SIMZEDCam : public Camera<cv::Mat>
         std::shared_ptr<rtc::DataChannel> m_pDataChannel;
         std::shared_ptr<rtc::Track> rtcVideoTrack1;
         std::shared_ptr<rtc::H264RtpDepacketizer> rtcTrack1H264DepacketizationHandler;
-        std::shared_ptr<rtc::RtcpReceivingSession> rtcRTCPReceivingSession;
+        std::shared_ptr<rtc::RtcpReceivingSession> rtcTrack1RTCPReceivingSession;
+
         // std::shared_ptr<rtc::Track> rtcVideoTrack2;
         // std::shared_ptr<rtc::H264RtpDepacketizer> rtcTrack2H264DepacketizationHandler;
+
+        // Stores the SPS and PPS received from the first frame.
+        std::vector<uint8_t> m_vSPS;
+        std::vector<uint8_t> m_vPPS;
+        // AV codec context for decoding H264.
+        AVCodecContext* m_pAVCodecContext;
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -100,5 +120,6 @@ class SIMZEDCam : public Camera<cv::Mat>
         void PooledLinearCode() override;
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
         bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame);
+        bool ContainsSPSPPS(const std::vector<uint8_t>& vH264EncodedBytes);
 };
 #endif

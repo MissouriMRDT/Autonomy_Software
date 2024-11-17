@@ -38,6 +38,8 @@ void RunExample()
     // Create a cv::Mat to store the frame.
     cv::Mat m_cvFrame;
     cv::Mat white_image(400, 400, CV_8UC3, cv::Scalar(255, 255, 255));
+    // Create a video writer object.
+    cv::VideoWriter video("outcpp.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, cv::Size(1280, 720));
 
     while (true)
     {
@@ -51,6 +53,10 @@ void RunExample()
         {
             // Display the frame.
             cv::imshow("Frame", m_cvFrame);
+            // Write the frame to a video file.
+            video.write(m_cvFrame);
+            // Print
+            std::cout << "Frame copied." << std::endl;
         }
 
         // OpenCV display pause and check if while loop should exit.
@@ -58,4 +64,7 @@ void RunExample()
         if (chKey == 27)    // Press 'Esc' key to exit
             break;
     }
+
+    // Release the video writer.
+    video.release();
 }

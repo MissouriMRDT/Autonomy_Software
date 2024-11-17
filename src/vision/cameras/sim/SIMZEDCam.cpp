@@ -16,16 +16,6 @@
 
 /// \cond
 // FFMPEG is a C library, so we need to wrap it in an extern "C" block to prevent name mangling.
-extern "C"
-{
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/frame.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/mem.h>
-#include <libavutil/opt.h>
-#include <libswscale/swscale.h>
-}
 #include <nlohmann/json.hpp>
 
 /// \endcond
@@ -61,6 +51,25 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_szCameraPath              = szCameraPath;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
+    // Find the H264 decoder
+    const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+    if (!codec)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "H264 codec not found!");
+    }
+    // Create codec context
+    m_pAVCodecContext = avcodec_alloc_context3(codec);
+    if (!m_pAVCodecContext)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate codec context!");
+    }
+    // Open the codec
+    if (avcodec_open2(m_pAVCodecContext, codec, nullptr) < 0)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to open codec!");
+        avcodec_free_context(&m_pAVCodecContext);
+    }
+
     // Construct the WebRTC peer connection and data channel for receiving data from the simulator.
     rtc::WebSocket::Configuration rtcWebSocketConfig;
     rtc::Configuration rtcPeerConnectionConfig;
@@ -87,6 +96,10 @@ SIMZEDCam::~SIMZEDCam()
     // Stop threaded code.
     this->RequestStop();
     this->Join();
+
+    // Free the codec context.
+    avcodec_free_context(&m_pAVCodecContext);
+    m_pAVCodecContext = nullptr;
 }
 
 /******************************************************************************
@@ -426,9 +439,9 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                     rtcVideoTrack1 = rtcTrack;
 
                     // Create a H264 depacketization handler and rtcp receiving session.
-                    rtcTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>();
-                    rtcRTCPReceivingSession             = std::make_shared<rtc::RtcpReceivingSession>();
-                    rtcTrack1H264DepacketizationHandler->addToChain(rtcRTCPReceivingSession);
+                    rtcTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::LongStartSequence);
+                    rtcTrack1RTCPReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
+                    rtcTrack1H264DepacketizationHandler->addToChain(rtcTrack1RTCPReceivingSession);
                     rtcVideoTrack1->setMediaHandler(rtcTrack1H264DepacketizationHandler);
 
                     // Set the onMessage callback for the video track.
@@ -436,18 +449,115 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                         [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                         {
                             // Print frame info timestamp and payload type.
-                            // LOG_INFO(logging::g_qSharedLogger, "FrameInfo timestamp: {}, payload type: {}", rtcFrameInfo.timestamp, rtcFrameInfo.payloadType);
-                            // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
-                            std::vector<uint8_t> vH264EncodedBytes;
-                            vH264EncodedBytes.reserve(rtcBinaryMessage.size());
-                            for (std::byte stdByte : rtcBinaryMessage)
+                            LOG_INFO(logging::g_qSharedLogger, "FrameInfo timestamp: {}, payload type: {}", rtcFrameInfo.timestamp, rtcFrameInfo.payloadType);
+                            // Print the size of the binary message.
+                            LOG_INFO(logging::g_qSharedLogger, "Received binary message of size: {}", rtcBinaryMessage.size());
+                            // // Assemble hex bytes into a string.
+                            // std::string szH264EncodedBytes;
+                            // for (uint8_t uByte : vH264EncodedBytes)
+                            // {
+                            //     std::stringstream ss;
+                            //     ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(uByte) << " ";
+                            //     szH264EncodedBytes += ss.str();
+                            // }
+                            // // Print the hex bytes.
+                            // LOG_INFO(logging::g_qSharedLogger, "Received H264 encoded bytes: {}", szH264EncodedBytes);
+
+                            if (rtcFrameInfo.payloadType == 96)
                             {
-                                vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
+                                // Assuming 96 is the H264 payload type.
+                                // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
+                                std::vector<uint8_t> vH264EncodedBytes;
+                                vH264EncodedBytes.reserve(rtcBinaryMessage.size());
+                                for (std::byte stdByte : rtcBinaryMessage)
+                                {
+                                    vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
+                                }
+
+                                // Check for NAL start code (0x00 0x00 0x00 0x01) and process the data
+                                if (vH264EncodedBytes.size() > 4 && vH264EncodedBytes[0] == 0x00 && vH264EncodedBytes[1] == 0x00 && vH264EncodedBytes[2] == 0x00 &&
+                                    vH264EncodedBytes[3] == 0x01)
+                                {
+                                    size_t offset = 0;
+                                    bool spsFound = false;
+                                    bool ppsFound = false;
+
+                                    // Loop through the frame data to extract multiple NAL units
+                                    while (offset + 4 < vH264EncodedBytes.size())
+                                    {
+                                        // Find the start of the next NAL unit
+                                        size_t nextNalStart = vH264EncodedBytes.size();
+                                        for (size_t i = offset + 4; i + 4 <= vH264EncodedBytes.size(); ++i)
+                                        {
+                                            if (vH264EncodedBytes[i] == 0x00 && vH264EncodedBytes[i + 1] == 0x00 && vH264EncodedBytes[i + 2] == 0x00 &&
+                                                vH264EncodedBytes[i + 3] == 0x01)
+                                            {
+                                                nextNalStart = i;
+                                                break;
+                                            }
+                                        }
+
+                                        // Extract the current NAL unit
+                                        std::vector<uint8_t> nalUnit(vH264EncodedBytes.begin() + offset, vH264EncodedBytes.begin() + nextNalStart);
+                                        offset = nextNalStart;
+
+                                        if (nalUnit.size() > 4)
+                                        {
+                                            uint8_t nalType = nalUnit[4] & 0x1F;
+
+                                            if (nalType == 7)
+                                            {
+                                                // SPS
+                                                m_vSPS   = nalUnit;
+                                                spsFound = true;
+                                            }
+                                            else if (nalType == 8)
+                                            {
+                                                // PPS
+                                                m_vPPS   = nalUnit;
+                                                ppsFound = true;
+                                            }
+                                            else if (nalType == 5 || nalType == 1)
+                                            {
+                                                // IDR or non-IDR frame
+                                                // Prepend SPS and PPS if available and frame is not the first
+                                                std::vector<uint8_t> completeFrame;
+                                                if (!m_vSPS.empty() && !m_vPPS.empty())
+                                                {
+                                                    completeFrame.insert(completeFrame.end(), m_vSPS.begin(), m_vSPS.end());
+                                                    completeFrame.insert(completeFrame.end(), m_vPPS.begin(), m_vPPS.end());
+                                                }
+                                                completeFrame.insert(completeFrame.end(), nalUnit.begin(), nalUnit.end());
+
+                                                // // Construct a string from the H264 encoded bytes.
+                                                // std::string szH264EncodedBytes;
+                                                // for (uint8_t uByte : completeFrame)
+                                                // {
+                                                //     std::stringstream ss;
+                                                //     ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(uByte) << " ";
+                                                //     szH264EncodedBytes += ss.str();
+                                                // }
+                                                // // Print the hex bytes.
+                                                // LOG_INFO(logging::g_qSharedLogger, "Received H264 encoded bytes: {}", szH264EncodedBytes);
+
+                                                // Acquire lock on the WebRTC copy mutex.
+                                                std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+                                                // Pass to FFmpeg decoder
+                                                std::cout << this->DecodeH264BytesToCVMat(completeFrame, m_cvFrame) << std::endl;
+                                            }
+                                        }
+                                    }
+
+                                    // Handle the case where SPS and PPS were found in the first frame
+                                    if (spsFound && ppsFound)
+                                    {
+                                        std::cout << "SPS and PPS cached from the first frame." << std::endl;
+                                    }
+                                }
                             }
-                            // Acquire lock on the WebRTC copy mutex.
-                            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+
                             // Copy the H264 image to the cv::Mat. Image dims are 1280x720 and 4 channels.
-                            m_cvFrame = cv::Mat(720, 1280, CV_8UC4, vH264EncodedBytes.data());
+                            // m_cvFrame = cv::Mat(720, 1280, CV_8UC4, vH264EncodedBytes.data());
 
                             // Decode the H264 encoded bytes to a cv::Mat.
                             // this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame);
@@ -456,57 +566,6 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
 
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Data channel opened.");
-        });
-
-    m_pDataChannel->onMessage(
-        [this](std::variant<rtc::binary, rtc::string> rtcMessage)
-        {
-            // Create instance variables.
-            nlohmann::json jsnMessage;
-
-            // Check if the message is a string.
-            if (std::holds_alternative<rtc::string>(rtcMessage))
-            {
-                // Retrieve the string message.
-                std::string szMessage = std::get<rtc::string>(rtcMessage);
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "Received message from data channel: {}", szMessage);
-            }
-            else if (std::holds_alternative<rtc::binary>(rtcMessage))
-            {
-                // Retrieve the binary message.
-                rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
-                // Print length of binary data.
-                LOG_INFO(logging::g_qSharedLogger, "Received binary data of length: {}", rtcBinaryData.size());
-
-                // Convert the binary data to a string.
-                std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
-                // Print the UTF-8 string
-                std::cout << szBinaryDataStr << std::endl;
-                // Just for fun, print out if the peer connection had media available.
-                LOG_INFO(logging::g_qSharedLogger, "PeerConnection has media available: {}", m_pPeerConnection->hasMedia());
-
-                // Parse the binary data as JSON.
-                // jsnMessage = nlohmann::json::parse(szBinaryDataStr);
-            }
-            else
-            {
-                LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from data channel");
-            }
-
-            // Check if the message is a PixelStreaming message that contains information about the WebRTC configuration.
-            if (jsnMessage.contains("PixelStreaming") && jsnMessage.contains("WebRTC"))
-            {
-                // Get the WebRTC configuration from the message.
-                std::string szDegradationPreference = jsnMessage["WebRTC"]["DegradationPref"];
-                int nFramerate                      = jsnMessage["WebRTC"]["FPS"];
-                int nMinBitrate                     = jsnMessage["WebRTC"]["MinBitrate"];
-                int nMaxBitrate                     = jsnMessage["WebRTC"]["MaxBitrate"];
-                int nLowQP                          = jsnMessage["WebRTC"]["LowQP"];
-                int nHighQP                         = jsnMessage["WebRTC"]["HighQP"];
-
-                // Don't know what to do with this information yet.
-            }
         });
 
     return true;
@@ -525,36 +584,11 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
  ******************************************************************************/
 bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame)
 {
-    // Find the H264 decoder
-    const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (!codec)
-    {
-        std::cerr << "H264 codec not found!" << std::endl;
-        return false;
-    }
-
-    // Create codec context
-    AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
-    if (!codecCtx)
-    {
-        std::cerr << "Failed to allocate codec context!" << std::endl;
-        return false;
-    }
-
-    // Open the codec
-    if (avcodec_open2(codecCtx, codec, nullptr) < 0)
-    {
-        std::cerr << "Failed to open codec!" << std::endl;
-        avcodec_free_context(&codecCtx);
-        return false;
-    }
-
     // Allocate the AVPacket
     AVPacket* packet = av_packet_alloc();
     if (!packet)
     {
         std::cerr << "Failed to allocate packet!" << std::endl;
-        avcodec_free_context(&codecCtx);
         return false;
     }
 
@@ -564,60 +598,70 @@ bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedB
     {
         std::cerr << "Failed to allocate frame!" << std::endl;
         av_packet_free(&packet);
-        avcodec_free_context(&codecCtx);
         return false;
     }
 
-    // Fill the packet with input data
+    // Initialize packet data
     packet->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
-    packet->size = static_cast<int>(vH264EncodedBytes.size());
+    packet->size = vH264EncodedBytes.size();
 
     // Send the packet to the decoder
-    if (avcodec_send_packet(codecCtx, packet) < 0)
+    int ret = avcodec_send_packet(m_pAVCodecContext, packet);
+    if (ret < 0)
     {
-        std::cerr << "Failed to send packet to decoder!" << std::endl;
+        std::cerr << "Failed to send packet to decoder! Error code: " << ret << std::endl;
+        char errBuf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, errBuf, AV_ERROR_MAX_STRING_SIZE);
+        std::cerr << "Error: " << errBuf << std::endl;
         av_frame_free(&frame);
         av_packet_free(&packet);
-        avcodec_free_context(&codecCtx);
         return false;
     }
 
-    // Receive the decoded frame
-    if (avcodec_receive_frame(codecCtx, frame) < 0)
+    // Receive decoded frames in a loop
+    while (ret >= 0)
     {
-        std::cerr << "Failed to receive frame from decoder!" << std::endl;
-        av_frame_free(&frame);
-        av_packet_free(&packet);
-        avcodec_free_context(&codecCtx);
-        return false;
-    }
+        ret = avcodec_receive_frame(m_pAVCodecContext, frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+        {
+            break;    // No more frames available
+        }
+        else if (ret < 0)
+        {
+            std::cerr << "Failed to receive frame from decoder! Error code: " << ret << std::endl;
+            char errBuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, errBuf, AV_ERROR_MAX_STRING_SIZE);
+            std::cerr << "Error: " << errBuf << std::endl;
+            av_frame_free(&frame);
+            av_packet_free(&packet);
+            return false;
+        }
 
-    // Check if the format is BGRA
-    if (frame->format != AV_PIX_FMT_BGRA)
-    {
-        std::cerr << "Unexpected pixel format: " << frame->format << std::endl;
-        av_frame_free(&frame);
-        av_packet_free(&packet);
-        avcodec_free_context(&codecCtx);
-        return false;
-    }
+        // // Check if the format is BGRA
+        // if (frame->format != AV_PIX_FMT_BGRA)
+        // {
+        //     std::cerr << "Unexpected pixel format: " << frame->format << std::endl;
+        //     av_frame_free(&frame);
+        //     av_packet_free(&packet);
+        //     return false;
+        // }
 
-    // Create OpenCV Mat (preserving alpha channel), but only if the frame isn't already the correct size and format.
-    if (cvDecodedFrame.empty() || cvDecodedFrame.cols != frame->width || cvDecodedFrame.rows != frame->height || cvDecodedFrame.type() != CV_8UC4)
-    {
-        cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_8UC4);
-    }
+        // Create OpenCV Mat (preserving alpha channel), but only if the frame isn't already the correct size and format.
+        if (cvDecodedFrame.empty() || cvDecodedFrame.cols != frame->width || cvDecodedFrame.rows != frame->height || cvDecodedFrame.type() != CV_8UC4)
+        {
+            cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_8UC4);
+        }
 
-    // Copy data directly to OpenCV Mat
-    for (int y = 0; y < frame->height; ++y)
-    {
-        std::memcpy(cvDecodedFrame.ptr(y), frame->data[0] + y * frame->linesize[0], frame->width * 4);
+        // Copy data directly to OpenCV Mat
+        for (int y = 0; y < frame->height; ++y)
+        {
+            std::memcpy(cvDecodedFrame.ptr(y), frame->data[0] + y * frame->linesize[0], frame->width * 4);
+        }
     }
 
     // Cleanup
     av_frame_free(&frame);
     av_packet_free(&packet);
-    avcodec_free_context(&codecCtx);
 
     return true;
 }
