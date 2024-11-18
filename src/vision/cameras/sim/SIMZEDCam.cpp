@@ -448,21 +448,6 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                     rtcVideoTrack1->onFrame(
                         [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                         {
-                            // Print frame info timestamp and payload type.
-                            LOG_INFO(logging::g_qSharedLogger, "FrameInfo timestamp: {}, payload type: {}", rtcFrameInfo.timestamp, rtcFrameInfo.payloadType);
-                            // Print the size of the binary message.
-                            LOG_INFO(logging::g_qSharedLogger, "Received binary message of size: {}", rtcBinaryMessage.size());
-                            // // Assemble hex bytes into a string.
-                            // std::string szH264EncodedBytes;
-                            // for (uint8_t uByte : vH264EncodedBytes)
-                            // {
-                            //     std::stringstream ss;
-                            //     ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(uByte) << " ";
-                            //     szH264EncodedBytes += ss.str();
-                            // }
-                            // // Print the hex bytes.
-                            // LOG_INFO(logging::g_qSharedLogger, "Received H264 encoded bytes: {}", szH264EncodedBytes);
-
                             if (rtcFrameInfo.payloadType == 96)
                             {
                                 // Assuming 96 is the H264 payload type.
@@ -529,21 +514,10 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                                                 }
                                                 completeFrame.insert(completeFrame.end(), nalUnit.begin(), nalUnit.end());
 
-                                                // // Construct a string from the H264 encoded bytes.
-                                                // std::string szH264EncodedBytes;
-                                                // for (uint8_t uByte : completeFrame)
-                                                // {
-                                                //     std::stringstream ss;
-                                                //     ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << static_cast<int>(uByte) << " ";
-                                                //     szH264EncodedBytes += ss.str();
-                                                // }
-                                                // // Print the hex bytes.
-                                                // LOG_INFO(logging::g_qSharedLogger, "Received H264 encoded bytes: {}", szH264EncodedBytes);
-
                                                 // Acquire lock on the WebRTC copy mutex.
                                                 std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
                                                 // Pass to FFmpeg decoder
-                                                std::cout << this->DecodeH264BytesToCVMat(completeFrame, m_cvFrame) << std::endl;
+                                                this->DecodeH264BytesToCVMat(completeFrame, m_cvFrame);
                                             }
                                         }
                                     }
@@ -551,16 +525,11 @@ bool SIMZEDCam::ConnectToSignallingServer(const std::string& szSignallingServerU
                                     // Handle the case where SPS and PPS were found in the first frame
                                     if (spsFound && ppsFound)
                                     {
-                                        std::cout << "SPS and PPS cached from the first frame." << std::endl;
+                                        // Submit logger message.
+                                        LOG_INFO(logging::g_qSharedLogger, "SPS and PPS found in first frame");
                                     }
                                 }
                             }
-
-                            // Copy the H264 image to the cv::Mat. Image dims are 1280x720 and 4 channels.
-                            // m_cvFrame = cv::Mat(720, 1280, CV_8UC4, vH264EncodedBytes.data());
-
-                            // Decode the H264 encoded bytes to a cv::Mat.
-                            // this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame);
                         });
                 });
 
@@ -588,7 +557,7 @@ bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedB
     AVPacket* packet = av_packet_alloc();
     if (!packet)
     {
-        std::cerr << "Failed to allocate packet!" << std::endl;
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate packet!");
         return false;
     }
 
@@ -596,7 +565,7 @@ bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedB
     AVFrame* frame = av_frame_alloc();
     if (!frame)
     {
-        std::cerr << "Failed to allocate frame!" << std::endl;
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate frame!");
         av_packet_free(&packet);
         return false;
     }
@@ -609,10 +578,10 @@ bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedB
     int ret = avcodec_send_packet(m_pAVCodecContext, packet);
     if (ret < 0)
     {
-        std::cerr << "Failed to send packet to decoder! Error code: " << ret << std::endl;
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {}", ret);
         char errBuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errBuf, AV_ERROR_MAX_STRING_SIZE);
-        std::cerr << "Error: " << errBuf << std::endl;
+        LOG_ERROR(logging::g_qSharedLogger, "Error: {}", errBuf);
         av_frame_free(&frame);
         av_packet_free(&packet);
         return false;
@@ -628,23 +597,23 @@ bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedB
         }
         else if (ret < 0)
         {
-            std::cerr << "Failed to receive frame from decoder! Error code: " << ret << std::endl;
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to receive frame from decoder! Error code: {}", ret);
             char errBuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(ret, errBuf, AV_ERROR_MAX_STRING_SIZE);
-            std::cerr << "Error: " << errBuf << std::endl;
+            LOG_ERROR(logging::g_qSharedLogger, "Error: {}", errBuf);
             av_frame_free(&frame);
             av_packet_free(&packet);
             return false;
         }
 
-        // // Check if the format is BGRA
-        // if (frame->format != AV_PIX_FMT_BGRA)
-        // {
-        //     std::cerr << "Unexpected pixel format: " << frame->format << std::endl;
-        //     av_frame_free(&frame);
-        //     av_packet_free(&packet);
-        //     return false;
-        // }
+        // Check if the format is BGRA
+        if (frame->format != AV_PIX_FMT_BGRA)
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Unexpected pixel format: {}", frame->format);
+            av_frame_free(&frame);
+            av_packet_free(&packet);
+            return false;
+        }
 
         // Create OpenCV Mat (preserving alpha channel), but only if the frame isn't already the correct size and format.
         if (cvDecodedFrame.empty() || cvDecodedFrame.cols != frame->width || cvDecodedFrame.rows != frame->height || cvDecodedFrame.type() != CV_8UC4)
