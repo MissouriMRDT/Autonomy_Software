@@ -17,6 +17,8 @@
 
 /// \endcond
 
+const geoops::UTMCoordinate stStartCoordinate(607344.14, 4201167.33, 15, true);
+
 /******************************************************************************
  * @brief Check that AStar doesn't leak any memory.
  *
@@ -429,22 +431,20 @@ TEST(AStarPlannerTest, AvoidObstaclesWhilePathing2)
     // Create a new AStar object
     pathplanners::AStar* pAStar = new pathplanners::AStar();
 
-    // Create start coordinate for AStar
-    const double dEastingStart          = 1608120.0;
-    const double dNorthingStart         = 2201140.0;
-    const geoops::UTMCoordinate stStart = geoops::UTMCoordinate(dEastingStart, dNorthingStart);
-
     // Create goal coordinates for AStar
-    const geoops::UTMCoordinate goal = {dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart};    // E
+
+    const geoops::UTMCoordinate goal{stStartCoordinate.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID, stStartCoordinate.dNorthing, 15, true};    // E
 
     // Create obstacle coordinates for AStar
-    const pathplanners::AStar::Obstacle obstacle = {geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart),
-                                                    2 * constants::ASTAR_NODE_SIZE};    // E
+    const pathplanners::AStar::Obstacle obstacle =
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stStartCoordinate.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, stStartCoordinate.dNorthing, 15),
+                                      2 * constants::ASTAR_NODE_SIZE);    // E
+
     // Add obstacle to AStar
     pAStar->AddObstacle(obstacle);
 
     // Get AStar path
-    std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStart, goal);
+    std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, goal);
 
     // Check for pathing through obstacles
     for (size_t siJ = 0; siJ < vReturnedPath.size(); siJ++)
@@ -460,13 +460,7 @@ TEST(AStarPlannerTest, AvoidObstaclesWhilePathing2)
         bool withinXBounds = posX >= obstacleX - obstacleRad && posX <= obstacleX + obstacleRad;
         bool withinYBounds = posY >= obstacleY - obstacleRad && posY <= obstacleY + obstacleRad;
 
-        // LOG_INFO(logging::g_qConsoleLogger, "string {}{}", 1, 2);
-        std::cout << "PATH ELEMENT " << siJ << "\nPosition: (" << std::fixed << std::setprecision(1) << posX << ", " << posY << ")"
-                  << "\nObstacle: (" << obstacleX << ", " << obstacleY << ")"
-                  << "\nGoal: (" << goal.dEasting << ", " << goal.dNorthing << ")"
-                  << "\nObstacle Radius: " << obstacleRad    //
-                  << "\nWithinXBounds? " << withinXBounds    //
-                  << "\nWithinYBounds? " << withinYBounds << "\n\n";
+        // LOG_INFO(logging::g_qSharedLogger, "Goal {}, {}", posX, posY);
 
         // Check to see if current coordinate is within obstacle bounds
         EXPECT_FALSE(withinXBounds && withinYBounds);

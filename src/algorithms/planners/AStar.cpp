@@ -32,12 +32,14 @@ namespace pathplanners
      * @brief Construct a new AStar::AStar object.
      *
      *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2024-02-01
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2024-11-18
      ******************************************************************************/
     AStar::AStar()
     {
-        // Nothing to do yet.
+        // Initialize Member
+        m_vPathCoordinates = std::vector<geoops::UTMCoordinate>();
+        m_vObstacles       = std::vector<Obstacle>();
     }
 
     /******************************************************************************
@@ -417,7 +419,14 @@ namespace pathplanners
 
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.
-        UpdateObstacleData(vObstacles);
+        if (vObstacles.size() == 0)
+        {
+            UpdateObstacleData(vObstacles, false);
+        }
+        else
+        {
+            UpdateObstacleData(vObstacles);
+        }
 
         // Create start node.
         m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
