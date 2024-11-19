@@ -331,7 +331,7 @@ namespace pathplanners
             double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
 
             // Return false if node is within obstacle borders.
-            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder < dNorthing && dNorthing > dSouthObstacleBorder)
+            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder > dNorthing && dNorthing > dSouthObstacleBorder)
             {
                 return false;
             }
