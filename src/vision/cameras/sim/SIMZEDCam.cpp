@@ -52,19 +52,24 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Find the H264 decoder
-    const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (!codec)
+    const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
+    if (!avCodec)
     {
         LOG_ERROR(logging::g_qSharedLogger, "H264 codec not found!");
     }
     // Create codec context
-    m_pAVCodecContext = avcodec_alloc_context3(codec);
+    m_pAVCodecContext = avcodec_alloc_context3(avCodec);
     if (!m_pAVCodecContext)
     {
         LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate codec context!");
     }
+    else
+    {
+        // Set the format of the codec context.
+        m_pAVCodecContext->pix_fmt = AV_PIX_FMT_RGBA64;
+    }
     // Open the codec
-    if (avcodec_open2(m_pAVCodecContext, codec, nullptr) < 0)
+    if (avcodec_open2(m_pAVCodecContext, avCodec, nullptr) < 0)
     {
         LOG_ERROR(logging::g_qSharedLogger, "Failed to open codec!");
         avcodec_free_context(&m_pAVCodecContext);
@@ -615,10 +620,12 @@ bool SIMZEDCam::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedB
             return false;
         }
 
+        // Print the frame size.
+        LOG_INFO(logging::g_qSharedLogger, "Frame size: {}x{}", frame->width, frame->height);
         // Create OpenCV Mat (preserving alpha channel), but only if the frame isn't already the correct size and format.
-        if (cvDecodedFrame.empty() || cvDecodedFrame.cols != frame->width || cvDecodedFrame.rows != frame->height || cvDecodedFrame.type() != CV_8UC4)
+        if (cvDecodedFrame.empty() || cvDecodedFrame.cols != frame->width || cvDecodedFrame.rows != frame->height || cvDecodedFrame.type() != CV_16UC4)
         {
-            cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_8UC4);
+            cvDecodedFrame = cv::Mat(frame->height, frame->width, CV_16FC4);
         }
 
         // Copy data directly to OpenCV Mat

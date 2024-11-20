@@ -37,6 +37,7 @@ void RunExample()
 
     // Create a cv::Mat to store the frame.
     cv::Mat m_cvFrame;
+    cv::Mat m_cvFrameDisplay;
 
     while (true)
     {
@@ -45,8 +46,9 @@ void RunExample()
         // Wait for the frame to be copied.
         if (fuFrame.get() && !m_cvFrame.empty())
         {
-            // Display the frame.
-            cv::imshow("Frame", m_cvFrame);
+            // Convert the frame to a supported type and display it.
+            m_cvFrame.convertTo(m_cvFrameDisplay, CV_8UC4);
+            cv::imshow("Frame", m_cvFrameDisplay);
         }
 
         // OpenCV display pause and check if while loop should exit.
