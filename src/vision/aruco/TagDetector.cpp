@@ -235,6 +235,8 @@ void TagDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
+                    // Drop the Alpha channel from the image copy to preproc frame.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
                 }
                 else
                 {
@@ -259,6 +261,11 @@ void TagDetector::ThreadedContinuousCode()
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
                 }
+                else
+                {
+                    // Drop the Alpha channel from the image copy to preproc frame.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+                }
             }
         }
         else
@@ -272,23 +279,34 @@ void TagDetector::ThreadedContinuousCode()
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from BasicCam!");
             }
+            else
+            {
+                // Check if the camera image is a >3 channel image.
+                if (m_cvFrame.channels() > 3)
+                {
+                    // Drop the Alpha channel from the image copy to preproc frame.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+                }
+            }
         }
 
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Drop the Alpha channel from the image copy to preproc frame.
-        cv::cvtColor(m_cvFrame, m_cvArucoProcFrame, cv::COLOR_BGRA2BGR);
         // Run image through some pre-processing step to improve detection.
-        arucotag::PreprocessFrame(m_cvArucoProcFrame, m_cvArucoProcFrame);
+        arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
         // Detect tags in the image
         std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
 
-        // Estimate the positions of the tags using the point cloud
-        for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+        // Only estimate the pose of the tags if the point cloud is available and we are using a ZED camera.
+        if (m_bUsingZedCamera && !m_cvPointCloud.empty())
         {
-            // Use the point cloud to get the location of the tag.
-            arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+            // Estimate the positions of the tags using the point cloud
+            for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
+            {
+                // Use the point cloud to get the location of the tag.
+                arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+            }
         }
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedTags(vNewlyDetectedTags);

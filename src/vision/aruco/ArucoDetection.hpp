@@ -86,7 +86,7 @@ namespace arucotag
      *      to not alter the original in case it's used after the call to this function
      *      completes.
      *
-     * @param cvInputFrame - cv::Mat of the image to pre-process.
+     * @param cvInputFrame - cv::Mat of the image to pre-process. This image should be in BGR format.
      * @param cvOutputFrame - cv::Mat to write the pre-processed image to.
      *
      * @todo Determine optimal order for speed
@@ -95,9 +95,17 @@ namespace arucotag
      ******************************************************************************/
     inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame)
     {
+        // Check if the input frame is in BGR format.
+        if (cvInputFrame.channels() != 3)
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "PreprocessFrame() requires a BGR image.");
+            return;
+        }
+
         // Grayscale.
-        cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGRA2GRAY);
-        cv::filter2D(cvOutputFrame, cvInputFrame, -1, constants::ARUCO_SHARPEN_KERNEL_EXTRA);
+        cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGR2GRAY);
+        cv::filter2D(cvOutputFrame, cvOutputFrame, -1, constants::ARUCO_SHARPEN_KERNEL_EXTRA);
         // Reduce number of colors/gradients in the image.
         // imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
@@ -120,7 +128,7 @@ namespace arucotag
     /******************************************************************************
      * @brief Detect ArUco tags in the provided image.
      *
-     * @param cvFrame - The camera frame to run ArUco detection on. Should be BGR format.
+     * @param cvFrame - The camera frame to run ArUco detection on. Should be BGR format or grayscale.
      * @param cvArucoDetector - The configured aruco detector to use for detection.
      * @return std::vector<ArucoTag> - The resultant vector containing the detected tags in the frame.
      *

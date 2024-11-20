@@ -34,7 +34,6 @@ class TagDetectionHandler
         TagDetector* m_pTagDetectorMainCam;
         TagDetector* m_pTagDetectorLeftCam;
         TagDetector* m_pTagDetectorRightCam;
-        TagDetector* m_pTagDetectorGroundCam;
         RecordingHandler* m_pRecordingHandler;
 
     public:
