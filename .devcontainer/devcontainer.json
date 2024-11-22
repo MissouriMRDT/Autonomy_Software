@@ -1,283 +1,289 @@
 {
-  "name": "MRDT Autonomy C++",
-  "runArgs": [
-    // Name container.
-    // "--name",
-    // "Autonomy_Software_devcontainer",
-    // Configure container to use the same network stack as the host machine.
-    "--network",
-    "host",
-    // Add all available GPUs
-    // "--gpus",
-    // "all",
-    // "--runtime=nvidia",
-    // Grants permission to the container to access USBs.
-    "--privileged",
-    "-v",
-    "/dev/bus/usb:/dev/bus/usb",
-    "-v",
-    "/tmp/.X11-unix:/tmp/.X11-unix",
-    "-v",
-    "/mnt/wslg:/mnt/wslg",
-    "-e",
-    "$DISPLAY",
-    "-e",
-    "WAYLAND_DISPLAY",
-    "-e",
-    "XDG_RUNTIME_DIR"
-  ],
-  // Mount shared workspace volumes. Bind from host machine to container.
-  "mounts": [
-    "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
-    "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
-    "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
-  ],
-  "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
-  // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-  // "build": {
-  //     "dockerfile": "Dockerfile_Jammy"
-  //     // "dockerfile": "Dockerfile_JetPack"
-  // },
-  // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postStartCommand": "git config --global --add safe.directory \"*\"",
-  "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
-  // Configure tool-specific properties.
-  "customizations": {
-    // Configure properties specific to VS Code.
-    "vscode": {
-      // Add the IDs of extensions you want installed when the container is created.
-      "extensions": [
-        "ms-vscode.cpptools",
-        "twxs.cmake",
-        "ms-vscode.cmake-tools",
-        "ms-vscode.cpptools-extension-pack",
-        "ZainChen.json",
-        "redhat.vscode-yaml",
-        "jbockle.jbockle-format-files",
-        "codezombiech.gitignore",
-        "cschlosser.doxdocgen",
-        "gruntfuggly.todo-tree",
-        "streetsidesoftware.code-spell-checker",
-        "vscode-icons-team.vscode-icons"
-      ],
-      "settings": {
-        // VSCode settings.
-        "editor.acceptSuggestionOnEnter": "off",
-        "editor.formatOnPaste": true,
-        "editor.formatOnSave": true,
-        "editor.formatOnSaveMode": "file",
-        "editor.formatOnType": true,
-        "editor.tabCompletion": "on",
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.detectIndentation": false,
-        "editor.rulers": [170],
-        "search.exclude": {
-          "**/docs": true
-        },
-        "extensions.ignoreRecommendations": true,
-        // Git settings.
-        "git.autofetch": true,
-        "git.terminalAuthentication": false,
-        "git.detectSubmodules": true,
-        // C/C++ extension settings.
-        "C_Cpp.formatting": "clangFormat",
-        "C_Cpp.default.compilerPath": "/usr/bin/g++",
-        "C_Cpp.default.cppStandard": "c++20",
-        "C_Cpp.default.includePath": [
-          "./external/rovecomm/src",
-          "./external/rovecomm/src/**",
-          "./external/threadpool/include/**",
-          "/usr/local/include/opencv4",
-          "/usr/local/include/opencv4/**",
-          "/usr/local/zed/include",
-          "/usr/local/zed/include/**",
-          "/usr/local/cuda/include",
-          "/usr/local/include/quill",
-          "/usr/local/include/quill/**",
-          "/usr/local/include/gmock",
-          "/usr/local/include/gmock/**",
-          "/usr/local/include/gtest",
-          "/usr/local/include/gtest/**",
-          "/usr/local/include/GeographicLib",
-          "/usr/local/include/GeographicLib/**",
-          "/usr/local/include/tensorflow/lite",
-          "/usr/local/include/tensorflow/lite/**",
-          "/usr/local/include/edgetpu",
-          "/usr/local/include/edgetpu/**",
-          "/usr/include/torch",
-          "/usr/include/torch/**"
-        ],
-        "C_Cpp.default.defines": ["__ROVECOMM_LIBRARY_MODE__=1"],
-        // CMAKE extension settings.
-        "cmake.configureOnOpen": true,
-        "cmake.options.statusBarVisibility": "visible",
-        "cmake.parallelJobs": 8,
-        // Format Files extension settings.
-        "formatFiles.excludedFolders": [
-          "node_modules",
-          ".vscode",
-          ".git",
-          "dist",
-          ".chrome",
-          "build",
-          "logs",
-          "data",
-          "docs",
-          "external",
-          ".devcontainer",
-          "README.md",
-          "src/util/OpenCV/ArucoSamplesUtility.hpp"
-        ],
-        // Doxygen Document Generator extension settings.
-        "doxdocgen.c.firstLine": "/******************************************************************************",
-        "doxdocgen.c.lastLine": "******************************************************************************/",
-        "doxdocgen.c.triggerSequence": "/**",
-        "doxdocgen.c.getterText": "Accessor for the {name} private member.",
-        "doxdocgen.c.setterText": "Mutator for the {name} private member",
-        "doxdocgen.cpp.ctorText": "Construct a new {name} object.",
-        "doxdocgen.cpp.dtorText": "Destroy the {name} object.",
-        "doxdocgen.cpp.tparamTemplate": "@tparam {param} - ",
-        "doxdocgen.file.fileTemplate": "@file {name}",
-        "doxdocgen.generic.paramTemplate": "@param {param} - ",
-        "doxdocgen.generic.returnTemplate": "@return {type} - ",
-        "doxdocgen.generic.authorEmail": "",
-        "doxdocgen.generic.authorName": "",
-        "doxdocgen.generic.briefTemplate": "@brief {text}",
-        "doxdocgen.generic.dateFormat": "YYYY-MM-DD",
-        "doxdocgen.generic.dateTemplate": "@date {date}",
-        "doxdocgen.file.copyrightTag": [
-          "@copyright Copyright Mars Rover Design Team {year} - All Rights Reserved"
-        ],
-        // The order to use for the file comment.
-        "doxdocgen.file.fileOrder": [
-          "brief",
-          "empty",
-          "file",
-          "author",
-          "date",
-          "empty",
-          "copyright"
-        ],
-        // The order to use for the comment generation.
-        "doxdocgen.generic.order": [
-          "brief",
-          "empty",
-          "tparam",
-          "param",
-          "return",
-          "empty",
-          "author",
-          "date"
-        ],
-        // Additional file documentation.
-        "doxdocgen.file.customTag": [],
-        "doxdocgen.generic.useGitUserEmail": true,
-        "doxdocgen.generic.useGitUserName": true,
-        // Todo Tree Extention Settings
-        "todo-tree.filtering.excludeGlobs": ["**/CONTRIBUTING.md"],
-        "todo-tree.general.tags": [
-          "* @todo",
-          "@todo",
-          "TODO:",
-          "BUG:",
-          "HACK:",
-          "FIXME:",
-          "LEAD:",
-          "ISSUE NOTE:",
-          "TEST:",
-          "[ ]",
-          "[x]"
-        ],
-        "todo-tree.highlights.defaultHighlight": {
-          "icon": "alert",
-          "type": "text",
-          "foreground": "#00ff00",
-          "background": "#ffffff",
-          "opacity": 50,
-          "iconColour": "#00ff00"
-        },
-        "todo-tree.highlights.customHighlight": {
-          "* @todo": {
-            "icon": "bookmark",
-            "type": "line",
-            "iconColour": "#d000ff",
-            "foreground": "#ffffff",
-            "background": "#d000ff"
-          },
-          "@todo": {
-            "icon": "bookmark",
-            "type": "line",
-            "iconColour": "#d000ff",
-            "foreground": "#ffffff",
-            "background": "#d000ff"
-          },
-          "TODO:": {
-            "icon": "bookmark",
-            "type": "line",
-            "iconColour": "#d000ff",
-            "foreground": "#ffffff",
-            "background": "#d000ff"
-          },
-          "BUG:": {
-            "icon": "bug",
-            "type": "line",
-            "iconColour": "#ff8c00",
-            "foreground": "#ffffff",
-            "background": "#ff8c00"
-          },
-          "HACK:": {
-            "icon": "circle-slash",
-            "type": "line",
-            "iconColour": "#ff1e00",
-            "foreground": "#ffffff",
-            "background": "#ff1e00"
-          },
-          "FIXME:": {
-            "icon": "alert-fill",
-            "type": "line",
-            "iconColour": "#ff0000",
-            "foreground": "#ffffff",
-            "background": "#ff0000"
-          },
-          "LEAD:": {
-            "icon": "person",
-            "type": "line",
-            "iconColour": "#0700d8",
-            "foreground": "#ffffff",
-            "background": "#0700d8"
-          },
-          "ISSUE NOTE:": {
-            "icon": "book",
-            "type": "line",
-            "iconColour": "#808080",
-            "foreground": "#ffffff",
-            "background": "#808080"
-          },
-          "TEST:": {
-            "icon": "beaker",
-            "type": "line",
-            "iconColour": "#c5cb04",
-            "foreground": "#ffffff",
-            "background": "#ccd514"
-          }
-        },
-        // Spell Checker Extension Settings.
-        "cSpell.customDictionaries": {
-          "project-words": {
-            "name": "Autonomy-Project-Words",
-            "path": "${workspaceRoot}/data/Custom_Dictionaries/Autonomy-Dictionary.txt",
-            "description": "Words used in the Autonomy_Software project",
-            "addWords": true
-          },
-          "custom": true, // Enable the `custom` dictionary
-          "internal-terms": false // Disable the `internal-terms` dictionary
+    "name": "MRDT Autonomy C++",
+    "runArgs": [
+        // Name container.
+        // "--name",
+        // "Autonomy_Software_devcontainer",
+        // Configure container to use the same network stack as the host machine.
+        "--network",
+        "host",
+        // Add all available GPUs
+        "--gpus",
+        "all",
+        // "--runtime=nvidia",
+        // Grants permission to the container to access USBs.
+        "--privileged",
+        "-v",
+        "/dev/bus/usb:/dev/bus/usb",
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        "-v",
+        "/mnt/wslg:/mnt/wslg",
+        "-e",
+        "$DISPLAY",
+        "-e",
+        "WAYLAND_DISPLAY",
+        "-e",
+        "XDG_RUNTIME_DIR"
+    ],
+    // Mount shared workspace volumes. Bind from host machine to container.
+    "mounts": [
+        "source=${localWorkspaceFolder}/data/models/zed,target=/usr/local/zed/resources,type=bind,consistency=delegated",
+        "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
+        "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
+    ],
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
+    // "build": {
+    //     "dockerfile": "Dockerfile_Jammy"
+    //     // "dockerfile": "Dockerfile_JetPack"
+    // },
+    // Features to add to the dev container. More info: https://containers.dev/features.
+    // "features": {},
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // "forwardPorts": [],
+    // Use 'postCreateCommand' to run commands after the container is created.
+    "postStartCommand": "git config --global --add safe.directory \"*\"",
+    "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
+    // Configure tool-specific properties.
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            // Add the IDs of extensions you want installed when the container is created.
+            "extensions": [
+                "ms-vscode.cpptools",
+                "twxs.cmake",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools-extension-pack",
+                "ZainChen.json",
+                "redhat.vscode-yaml",
+                "jbockle.jbockle-format-files",
+                "codezombiech.gitignore",
+                "cschlosser.doxdocgen",
+                "gruntfuggly.todo-tree",
+                "streetsidesoftware.code-spell-checker",
+                "vscode-icons-team.vscode-icons"
+            ],
+            "settings": {
+                // VSCode settings.
+                "editor.acceptSuggestionOnEnter": "off",
+                "editor.formatOnPaste": true,
+                "editor.formatOnSave": true,
+                "editor.formatOnSaveMode": "file",
+                "editor.formatOnType": true,
+                "editor.tabCompletion": "on",
+                "editor.tabSize": 4,
+                "editor.insertSpaces": true,
+                "editor.detectIndentation": false,
+                "editor.rulers": [
+                    170
+                ],
+                "search.exclude": {
+                    "**/docs": true
+                },
+                "extensions.ignoreRecommendations": true,
+                // Git settings.
+                "git.autofetch": true,
+                "git.terminalAuthentication": false,
+                "git.detectSubmodules": true,
+                // C/C++ extension settings.
+                "C_Cpp.formatting": "clangFormat",
+                "C_Cpp.default.compilerPath": "/usr/bin/g++",
+                "C_Cpp.default.cppStandard": "c++20",
+                "C_Cpp.default.includePath": [
+                    "./external/rovecomm/src",
+                    "./external/rovecomm/src/**",
+                    "./external/threadpool/include/**",
+                    "/usr/local/include/opencv4",
+                    "/usr/local/include/opencv4/**",
+                    "/usr/local/zed/include",
+                    "/usr/local/zed/include/**",
+                    "/usr/local/cuda/include",
+                    "/usr/local/include/quill",
+                    "/usr/local/include/quill/**",
+                    "/usr/local/include/gmock",
+                    "/usr/local/include/gmock/**",
+                    "/usr/local/include/gtest",
+                    "/usr/local/include/gtest/**",
+                    "/usr/local/include/GeographicLib",
+                    "/usr/local/include/GeographicLib/**",
+                    "/usr/local/include/tensorflow/lite",
+                    "/usr/local/include/tensorflow/lite/**",
+                    "/usr/local/include/edgetpu",
+                    "/usr/local/include/edgetpu/**",
+                    "/usr/include/torch",
+                    "/usr/include/torch/**"
+                ],
+                "C_Cpp.default.defines": [
+                    "__ROVECOMM_LIBRARY_MODE__=1"
+                ],
+                // CMAKE extension settings.
+                "cmake.configureOnOpen": true,
+                "cmake.options.statusBarVisibility": "visible",
+                "cmake.parallelJobs": 8,
+                // Format Files extension settings.
+                "formatFiles.excludedFolders": [
+                    "node_modules",
+                    ".vscode",
+                    ".git",
+                    "dist",
+                    ".chrome",
+                    "build",
+                    "logs",
+                    "data",
+                    "docs",
+                    "external",
+                    ".devcontainer",
+                    "README.md",
+                    "src/util/OpenCV/ArucoSamplesUtility.hpp"
+                ],
+                // Doxygen Document Generator extension settings.
+                "doxdocgen.c.firstLine": "/******************************************************************************",
+                "doxdocgen.c.lastLine": "******************************************************************************/",
+                "doxdocgen.c.triggerSequence": "/**",
+                "doxdocgen.c.getterText": "Accessor for the {name} private member.",
+                "doxdocgen.c.setterText": "Mutator for the {name} private member",
+                "doxdocgen.cpp.ctorText": "Construct a new {name} object.",
+                "doxdocgen.cpp.dtorText": "Destroy the {name} object.",
+                "doxdocgen.cpp.tparamTemplate": "@tparam {param} - ",
+                "doxdocgen.file.fileTemplate": "@file {name}",
+                "doxdocgen.generic.paramTemplate": "@param {param} - ",
+                "doxdocgen.generic.returnTemplate": "@return {type} - ",
+                "doxdocgen.generic.authorEmail": "",
+                "doxdocgen.generic.authorName": "",
+                "doxdocgen.generic.briefTemplate": "@brief {text}",
+                "doxdocgen.generic.dateFormat": "YYYY-MM-DD",
+                "doxdocgen.generic.dateTemplate": "@date {date}",
+                "doxdocgen.file.copyrightTag": [
+                    "@copyright Copyright Mars Rover Design Team {year} - All Rights Reserved"
+                ],
+                // The order to use for the file comment.
+                "doxdocgen.file.fileOrder": [
+                    "brief",
+                    "empty",
+                    "file",
+                    "author",
+                    "date",
+                    "empty",
+                    "copyright"
+                ],
+                // The order to use for the comment generation.
+                "doxdocgen.generic.order": [
+                    "brief",
+                    "empty",
+                    "tparam",
+                    "param",
+                    "return",
+                    "empty",
+                    "author",
+                    "date"
+                ],
+                // Additional file documentation.
+                "doxdocgen.file.customTag": [],
+                "doxdocgen.generic.useGitUserEmail": true,
+                "doxdocgen.generic.useGitUserName": true,
+                // Todo Tree Extention Settings
+                "todo-tree.filtering.excludeGlobs": [
+                    "**/CONTRIBUTING.md"
+                ],
+                "todo-tree.general.tags": [
+                    "* @todo",
+                    "@todo",
+                    "TODO:",
+                    "BUG:",
+                    "HACK:",
+                    "FIXME:",
+                    "LEAD:",
+                    "ISSUE NOTE:",
+                    "TEST:",
+                    "[ ]",
+                    "[x]"
+                ],
+                "todo-tree.highlights.defaultHighlight": {
+                    "icon": "alert",
+                    "type": "text",
+                    "foreground": "#00ff00",
+                    "background": "#ffffff",
+                    "opacity": 50,
+                    "iconColour": "#00ff00"
+                },
+                "todo-tree.highlights.customHighlight": {
+                    "* @todo": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "@todo": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "TODO:": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#d000ff",
+                        "foreground": "#ffffff",
+                        "background": "#d000ff"
+                    },
+                    "BUG:": {
+                        "icon": "bug",
+                        "type": "line",
+                        "iconColour": "#ff8c00",
+                        "foreground": "#ffffff",
+                        "background": "#ff8c00"
+                    },
+                    "HACK:": {
+                        "icon": "circle-slash",
+                        "type": "line",
+                        "iconColour": "#ff1e00",
+                        "foreground": "#ffffff",
+                        "background": "#ff1e00"
+                    },
+                    "FIXME:": {
+                        "icon": "alert-fill",
+                        "type": "line",
+                        "iconColour": "#ff0000",
+                        "foreground": "#ffffff",
+                        "background": "#ff0000"
+                    },
+                    "LEAD:": {
+                        "icon": "person",
+                        "type": "line",
+                        "iconColour": "#0700d8",
+                        "foreground": "#ffffff",
+                        "background": "#0700d8"
+                    },
+                    "ISSUE NOTE:": {
+                        "icon": "book",
+                        "type": "line",
+                        "iconColour": "#808080",
+                        "foreground": "#ffffff",
+                        "background": "#808080"
+                    },
+                    "TEST:": {
+                        "icon": "beaker",
+                        "type": "line",
+                        "iconColour": "#c5cb04",
+                        "foreground": "#ffffff",
+                        "background": "#ccd514"
+                    }
+                },
+                // Spell Checker Extension Settings.
+                "cSpell.customDictionaries": {
+                    "project-words": {
+                        "name": "Autonomy-Project-Words",
+                        "path": "${workspaceRoot}/data/Custom_Dictionaries/Autonomy-Dictionary.txt",
+                        "description": "Words used in the Autonomy_Software project",
+                        "addWords": true
+                    },
+                    "custom": true, // Enable the `custom` dictionary
+                    "internal-terms": false // Disable the `internal-terms` dictionary
+                }
+            }
         }
-      }
     }
-  }
 }

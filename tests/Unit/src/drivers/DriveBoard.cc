@@ -11,15 +11,15 @@
 #include "../../../../src/drivers/DriveBoard.h"
 
 /// \cond
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include "../../../../external/rovecomm/src/RoveComm/RoveComm.h"
+#include "../../../../external/rovecomm/src/RoveComm/RoveCommManifest.h"
+#include "../../../../external/rovecomm/src/RoveComm/RoveCommUDP.h"
 #include "../../../../src/AutonomyConstants.h"
 #include "../../../../src/AutonomyGlobals.h"
 #include "../../../../src/AutonomyLogging.h"
 #include "../../../../src/AutonomyNetworking.h"
-#include "../../../../external/rovecomm/src/RoveComm/RoveComm.h"
-#include "../../../../external/rovecomm/src/RoveComm/RoveCommManifest.h"
-#include "../../../../external/rovecomm/src/RoveComm/RoveCommUDP.h"
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 /// \endcond
 
@@ -29,8 +29,9 @@
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
-******************************************************************************/
-TEST(DriveBoardTest, DoesNotLeak) {
+ ******************************************************************************/
+TEST(DriveBoardTest, DoesNotLeak)
+{
     DriveBoard* driveBoard = new DriveBoard();
     ASSERT_NE(driveBoard, nullptr);
     delete driveBoard;
@@ -44,7 +45,8 @@ TEST(DriveBoardTest, DoesNotLeak) {
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(DriveBoardTest, Leaks) {
+TEST(DriveBoardTest, Leaks)
+{
     DriveBoard* driveBoard = new DriveBoard();
     EXPECT_TRUE(driveBoard != nullptr);
 }
