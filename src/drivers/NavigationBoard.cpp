@@ -43,7 +43,8 @@ NavigationBoard::NavigationBoard()
     stSubscribePacket.unDataCount = 0;
     stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
     stSubscribePacket.vData       = std::vector<uint8_t>{};
-    if(network::g_pRoveCommUDPNode){
+    if (network::g_pRoveCommUDPNode)
+    {
         network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::Nav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
 
         // Set RoveComm callbacks.

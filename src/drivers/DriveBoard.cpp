@@ -51,7 +51,7 @@ DriveBoard::DriveBoard()
     m_pPID->EnableContinuousInput(0, 360);
 
     // Set RoveComm callbacks.
-    if(network::g_pRoveCommUDPNode)
+    if (network::g_pRoveCommUDPNode)
     {
         network::g_pRoveCommUDPNode->AddUDPCallback<float>(SetMaxSpeedCallback, manifest::Autonomy::COMMANDS.find("SETMAXSPEED")->second.DATA_ID);
     }
@@ -144,7 +144,7 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     // Check if we should send packets to the SIM or board.
     const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
-    if(network::g_pRoveCommUDPNode)
+    if (network::g_pRoveCommUDPNode)
     {
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
@@ -175,7 +175,7 @@ void DriveBoard::SendStop()
     // Check if we should send packets to the SIM or board.
     const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
-    if(network::g_pRoveCommUDPNode)
+    if (network::g_pRoveCommUDPNode)
     {
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }

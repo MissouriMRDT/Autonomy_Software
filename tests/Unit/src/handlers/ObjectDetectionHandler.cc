@@ -12,14 +12,15 @@
 #include "../../../../src/vision/objects/ObjectDetector.h"
 
 /// \cond
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 /// \endcond
 
+// FIXME: Do not use "using" for namespaces, it's bad practice.
 using ::testing::_;
-using ::testing::Return;
 using ::testing::NiceMock;
+using ::testing::Return;
 
 // /******************************************************************************
 //  * @brief Test for memory leaks

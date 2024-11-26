@@ -11,8 +11,8 @@
 #include "../../../../src/drivers/MultimediaBoard.h"
 
 /// \cond
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 /// \endcond
 
@@ -22,8 +22,9 @@
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
-******************************************************************************/
-TEST(MultimediaBoardTest, DoesNotLeak) {
+ ******************************************************************************/
+TEST(MultimediaBoardTest, DoesNotLeak)
+{
     MultimediaBoard* multimediaBoard = new MultimediaBoard();
     ASSERT_NE(multimediaBoard, nullptr);
     delete multimediaBoard;
@@ -37,7 +38,8 @@ TEST(MultimediaBoardTest, DoesNotLeak) {
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(MultimediaBoardTest, Leaks) {
+TEST(MultimediaBoardTest, Leaks)
+{
     MultimediaBoard* multimediaBoard = new MultimediaBoard();
     EXPECT_TRUE(multimediaBoard != nullptr);
 }
@@ -48,7 +50,7 @@ TEST(MultimediaBoardTest, Leaks) {
 //  *
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
-// ******************************************************************************/ 
+// ******************************************************************************/
 // class MultimediaBoardTest : public ::testing::Test {
 // protected:
 //     MultimediaBoard* multimediaBoard;

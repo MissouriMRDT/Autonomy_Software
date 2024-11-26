@@ -11,9 +11,9 @@
 #include "../../../../src/drivers/NavigationBoard.h"
 
 /// \cond
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <chrono>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <shared_mutex>
 
 /// \endcond
@@ -24,8 +24,9 @@
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
-******************************************************************************/
-TEST(NavigationBoardTest, DoesNotLeak) {
+ ******************************************************************************/
+TEST(NavigationBoardTest, DoesNotLeak)
+{
     NavigationBoard* navBoard = new NavigationBoard();
     ASSERT_NE(navBoard, nullptr);
     delete navBoard;
@@ -39,7 +40,8 @@ TEST(NavigationBoardTest, DoesNotLeak) {
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(NavigationBoardTest, Leaks) {
+TEST(NavigationBoardTest, Leaks)
+{
     NavigationBoard* navBoard = new NavigationBoard();
     EXPECT_TRUE(navBoard != nullptr);
 }
