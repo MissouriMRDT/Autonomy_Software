@@ -62,7 +62,8 @@
                 "cschlosser.doxdocgen",
                 "gruntfuggly.todo-tree",
                 "streetsidesoftware.code-spell-checker",
-                "vscode-icons-team.vscode-icons"
+                "vscode-icons-team.vscode-icons",
+                "ryanluker.vscode-coverage-gutters"
             ],
             "settings": {
                 // VSCode settings.
@@ -282,7 +283,25 @@
                     },
                     "custom": true, // Enable the `custom` dictionary
                     "internal-terms": false // Disable the `internal-terms` dictionary
-                }
+                },
+                // Coverage Gutters Extension Settings.
+                "coverage-gutters.manualCoverageFilePaths": [
+                    "workspaces/Autonomy_Software/build/*",
+                    "workspaces/Autonomy_Software/build/**"
+                ],
+                "coverage-gutters.coverageFileNames": [
+                    "lcov.info",
+                    "cov.xml",
+                    "coverage.xml",
+                    "cobertura.xml",
+                    "jacoco.xml",
+                    "coverage.cobertura.xml",
+                    "Coverage.xml",
+                    "coverage.info"
+                ],
+                "coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": false,
+                "coverage-gutters.showLineCoverage": true,
+                "coverage-gutters.showRulerCoverage": true
             }
         }
     }

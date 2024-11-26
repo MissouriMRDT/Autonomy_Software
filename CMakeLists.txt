@@ -77,6 +77,17 @@ if (BUILD_CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage --coverage")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
+
+    # Add a custom target to run tests and generate coverage reports
+    add_custom_target(run_coverage ALL
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -T Coverage
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --output-junit Test.xml
+        COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
+        COMMAND lcov -c -d . -o coverage.info
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running tests and generating coverage reports..."
+        VERBATIM
+    )
 else()
     message("--   [ ]: Code Coverage: Disabled")
 endif()
