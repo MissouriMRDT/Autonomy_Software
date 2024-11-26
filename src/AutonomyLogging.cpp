@@ -64,16 +64,16 @@ namespace logging
         // Convert time to local time
         std::tm* tLocalTime = std::localtime(&tCurrentTime);
 
-        // Format the current time in a format that can be used as a file name
-        char cCurrentTime[80];
+        // Format the current time in a format that can be used as a file name.
+        std::array<char, 80> cCurrentTime;
         size_t siTimeCharacters;
-        siTimeCharacters = std::strftime(cCurrentTime, sizeof(cCurrentTime), "%Y%m%d-%H%M%S", tLocalTime);
+        siTimeCharacters = std::strftime(cCurrentTime.data(), cCurrentTime.size(), "%Y%m%d-%H%M%S", tLocalTime);
         if (siTimeCharacters == 0)
         {
-            std::cerr << "Unable to format calender date & time (exceeds string length)" << std::endl;
+            std::cerr << "Unable to format calendar date & time (exceeds string length)" << std::endl;
         }
         // Store start time string in member variable.
-        g_szProgramStartTimeString = cCurrentTime;
+        g_szProgramStartTimeString = cCurrentTime.data();
 
         // Assemble filepath string.
         std::filesystem::path szFilePath;
