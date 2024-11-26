@@ -27,7 +27,7 @@ cmake_policy(SET CMP0153 OLD)    # Allows use of "Exec_Program" function
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
+option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -188,6 +188,21 @@ find_package(Threads REQUIRED)
 ## Find Quill
 find_package(quill REQUIRED)
 
+## Find LibDataChannel
+find_package(LibDataChannel REQUIRED)
+
+## Fine nlohmann JSON.
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
+## Find OpenSSL
+find_package(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
+
+## Find FFMPEG
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+include_directories(${FFMPEG_INCLUDE_DIRS})
+
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
 include(GoogleTest)
@@ -296,6 +311,10 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
+                        ${FFMPEG_LIBRARIES}
+                        ${OPENSSL_LIBRARIES}
+                        LibDataChannel::LibDataChannel
+                        nlohmann_json::nlohmann_json
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}

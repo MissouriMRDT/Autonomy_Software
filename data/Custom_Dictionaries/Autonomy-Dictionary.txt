@@ -22,6 +22,8 @@ autofetch
 AUTONOMYLOG
 AUTONOMYSTATE
 AUTONOMYTHREAD
+avcodec
+AVERROR
 AVOIDANCESTATE
 Basestation
 BASICCAM
@@ -75,6 +77,8 @@ decipercent
 declval
 deleter
 Denoise
+Depacketization
+Depacketizer
 depthobject
 deque
 Desaturate
@@ -202,6 +206,7 @@ GROUNDCAM
 gruntfuggly
 gtest
 gthr
+HWDEVICE
 hyperthreaded
 IDLESTATE
 IJEE
@@ -255,6 +260,7 @@ libavcodec
 libavformat
 libavutil
 libboost
+libdatachannel
 libedgetpu
 libeigen
 libglew
@@ -285,6 +291,7 @@ MJPEG
 MRDT
 mrdtavoidance
 MSVC
+msgpack
 MULTIMEDIABOARD
 multithreads
 navboard
@@ -310,6 +317,7 @@ ostream
 OTSU
 Overcurrent
 Panini
+Packetizer
 parallelizable
 Parens
 PARTSES
@@ -321,6 +329,7 @@ PNSD
 POSETRACK
 pthread
 pyopengl
+Pranswer
 Raman
 rdparty
 Rdtsc
@@ -329,6 +338,7 @@ reprojection
 RESOLUTIONX
 RESOLUTIONY
 REVERSINGSTATE
+RGBAF
 RGBE
 RGBENS
 RIGHTCAM
@@ -344,6 +354,7 @@ Rolla
 rovecomm
 rval
 ryanluker
+RTCP
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
@@ -359,6 +370,7 @@ shuf
 SIMBASICCAM
 SIMCAM
 sockaddr
+SIMZED
 softprops
 SPSC
 STARTAUTONOMY
@@ -394,6 +406,7 @@ threadpool
 timestamping
 timestep
 tparam
+transops
 twxs
 typeinfo
 tzdata
@@ -413,9 +426,11 @@ Utilty
 UTMERKNS
 UTMMDRS
 UTMUPS
+vaapi
 valgrind
 VERIFYINGMARKERSTATE
 VERIFYINGOBJECTSTATE
+videotoolbox
 VIDEOWRITER
 VIOGPS
 Watchpoints

@@ -22,6 +22,8 @@ ENV LOGNAME root
 # Set L4T Version
 RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}.${L4T_PATCH}" > /etc/nv_tegra_release
 
+# Clean APT Cache
+RUN rm /var/lib/dpkg/info/libc-bin.*
 # Add APT Repo for PCIe drivers and Bazel.
 RUN apt update && apt install -y curl && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
@@ -30,14 +32,14 @@ RUN apt update && apt install -y curl && \
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential gfortran cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
-    libavcodec-dev libavformat-dev libswresample-dev libcanberra-gtk3-module zstd wget less \
+    libswresample-dev libcanberra-gtk3-module zstd wget less libx264-dev libdrm-dev \
     libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools \
     libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev tzdata \
     libpostproc-dev libswscale-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
     v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
-    vim-common libedgetpu1-std gasket-dkms ca-certificates
+    vim-common libedgetpu1-std gasket-dkms ca-certificates nlohmann-json3-dev libavformat-dev 
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
@@ -103,6 +105,18 @@ ARG GEOLIB_VERSION="2.3"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
     rm geolib_${GEOLIB_VERSION}_arm64.deb
+
+# Install FFMPEG
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/arm64/ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
+
+# Install Libdatachannel
+ARG LIBDATACHANNEL_VERSION="0.22.2"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
+    dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
+    rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
 
 # Install Tensorflow.
 ARG TENSORFLOW_VERSION="2.15.0"
