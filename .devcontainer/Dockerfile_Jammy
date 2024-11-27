@@ -122,7 +122,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/am
     rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22.2"
+ARG LIBDATACHANNEL_VERSION="0.22"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
