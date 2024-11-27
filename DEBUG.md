@@ -59,8 +59,65 @@ Now that you’re all set up, let’s get cracking on debugging your C++ code. R
    - **Watchpoints**: Set a watchpoint and see exactly when a variable changes. It’s like having a detective on your code.
    - **Debug Console**: Need to test something on the fly? Jump into the Debug Console and run expressions like a wizard casting spells. 🧙‍♂️
 
-## 🏁 Wrap-Up
+## ✅ Writing, Running, and Viewing Tests  
 
-See? Debugging doesn’t have to be painful. With CMakeTools and Visual Studio Code, it’s all about making things easier so you can focus on writing great code and, of course, solving puzzles along the way.
+Testing is a crucial part of development. In this section, you'll use **CTest**, **lcov**, and **gcovr** to ensure your code works perfectly. With the **Coverage Gutters** extension in VSCode, you can even visualize code coverage right in your editor!
 
-So, ready to dive back into your code? You’ve got this. Happy debugging! 🎉
+1. **Enable Test and Coverage Modes**  
+    Update your CMake configuration to include the following options:
+
+    ```cmake
+    # Enable or Disable Code Coverage Mode
+    option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" ON)
+
+    # Enable or Disable Tests Mode
+    option(BUILD_TESTS_MODE "Enable Tests Mode" ON)
+    ```
+
+    These flags ensure your project builds with test and coverage instrumentation.
+
+2. **Write and Configure Your Tests**  
+    Add test cases using the Google Test framework. Any new tests added should automatically be picked up by CMake.
+
+3. **Build and Run Your Tests**  
+    Click the **Build** button in VSCode to configure and build the project. This process will also build and run all tests if `BUILD_TESTS_MODE` is enabled. To run tests manually, execute:
+
+    ```bash
+    cd build
+    ./Autonomy_Software_UnitTests
+    ./Autonomy_Software_IntegrationTests
+    ```
+    Or run tests through the bottom toolbar:
+
+    | ![](data/README_Resources/images/toolbar_change_run_target.png) | 
+    |:--:| 
+    | *Click to change the run target.* |
+
+    | ![](data/README_Resources/images/select_run_target.png) | 
+    |:--:| 
+    | *Select your run target. (Unit or Integration tests)* |
+
+    | ![](data/README_Resources/images/select_run_program.png) | 
+    |:--:| 
+    | *Run your tests with the play button in the bottom toolbar.* |
+
+4. **Generate Code Coverage Reports**  
+    If `BUILD_CODE_COVERAGE` is enabled, **lcov** and **gcovr** will be used to collect and visualize coverage data. The Autonomy_Software project can run the necessary commands to do this for you:
+
+    ```bash
+    cd build
+    make run_coverage
+    ```
+
+    Then, you can display test coverage of files from directly within the VSCode editor. Hit `CNTL+SHIFT+P`, and select the `Coverage Gutters: Display Coverage`:
+    ![](data/README_Resources/images/display_coverage_gutters.png)
+    
+    When you open files that should be covered by a test, you will see **<span style="color:green">GREEN</span>** highlights for lines that are executed during a test, and **<span style="color:red">RED</span>** highlights for lines that are currently untested:
+    ![](data/README_Resources/images/display_coverage_example.png)
+---
+
+## 🏁 Wrap-Up  
+
+Debugging, testing, and ensuring code coverage doesn’t have to be painful. With CMake, CTest, lcov, and gcovr (plus the power of VSCode), you’ve got everything you need to catch bugs and write rock-solid code.
+
+Happy debugging and testing! 🎉
