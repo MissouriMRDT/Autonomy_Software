@@ -14,7 +14,6 @@ coverage:
 ignore:
   - "examples/*"
   - "external/*"
-  - "tests/*"
   - "tools/*"
   - "**/CMakeFiles/*"
   - "**/*.md"
@@ -30,8 +29,45 @@ flags:
     paths:
       - "tests/Integration/**"
 
+component_management:
+  individual_components:
+    - component_id: algorithms
+      name: algorithms
+      paths:
+        - src/algorithms/**
+    - component_id: drivers
+      name: drivers
+      paths:
+        - src/drivers/**
+    - component_id: handlers
+      name: handlers
+      paths:
+        - src/handlers/**
+    - component_id: interfaces
+      name: interfaces
+      paths:
+        - src/interfaces/**
+    - component_id: states
+      name: states
+      paths:
+        - src/states/**
+    - component_id: util
+      name: util
+      paths:
+        - src/util/**
+    - component_id: vision
+      name: vision
+      paths:
+        - src/vision/**
+    - component_id: src
+      name: src
+      paths:
+        - src/*.h
+        - src/*.hpp
+        - src/*.cpp
+
 comment:
-  layout: "diff, flags, files"
+  layout: "header, diff, flags, files, components"
   behavior: default
   require_changes: false
   require_base: false
