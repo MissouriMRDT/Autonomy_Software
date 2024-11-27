@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-FFMPEG_VERSION="n7.1"
+FFMPEG_VERSION="7.1"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/arm64/ffmpeg_${FFMPEG_VERSION}_arm64.deb"
@@ -35,7 +35,7 @@ else
     echo "Description: A prebuilt version of ffmpeg. Made by the Mars Rover Design Team." >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/DEBIAN/control
 
     # Download FFMPEG
-    git clone --recurse-submodules --depth 1 --branch ${FFMPEG_VERSION} https://github.com/FFmpeg/FFmpeg.git ffmpeg
+    git clone --recurse-submodules --depth 1 --branch n${FFMPEG_VERSION} https://github.com/FFmpeg/FFmpeg.git ffmpeg
     cd ffmpeg
 
     # Configure FFMPEG
