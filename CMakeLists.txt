@@ -27,7 +27,7 @@ cmake_policy(SET CMP0153 OLD)    # Allows use of "Exec_Program" function
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -78,16 +78,17 @@ if (BUILD_CODE_COVERAGE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
 
-    # Add a custom target to run tests and generate coverage reports
     add_custom_target(run_coverage ALL
-        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -T Coverage
-        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --output-junit Test.xml
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
         COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
         COMMAND lcov -c -d . -o coverage.info
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Running tests and generating coverage reports..."
         VERBATIM
     )
+
+    # Ensure dependencies for the run_coverage target. Tests must be built first.
+    add_dependencies(run_coverage ${EXE_NAME}_UnitTests ${EXE_NAME}_IntegrationTests)
 else()
     message("--   [ ]: Code Coverage: Disabled")
 endif()

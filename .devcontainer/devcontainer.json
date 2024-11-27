@@ -289,10 +289,6 @@
                     "internal-terms": false // Disable the `internal-terms` dictionary
                 },
                 // Coverage Gutters Extension Settings.
-                "coverage-gutters.manualCoverageFilePaths": [
-                    "workspaces/Autonomy_Software/build/*",
-                    "workspaces/Autonomy_Software/build/**"
-                ],
                 "coverage-gutters.coverageFileNames": [
                     "lcov.info",
                     "cov.xml",
@@ -303,7 +299,7 @@
                     "Coverage.xml",
                     "coverage.info"
                 ],
-                "coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": false,
+                "coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": true,
                 "coverage-gutters.showLineCoverage": true,
                 "coverage-gutters.showRulerCoverage": true
             }
