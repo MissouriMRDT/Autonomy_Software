@@ -35,7 +35,7 @@ else
     echo "Description: A prebuilt version of libdatachannel for WebRTC and websocket connections. Made by the Mars Rover Design Team." >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
 
     # Download LibDataChannel
-    git clone --recurse-submodules --depth 1 --branch cmake-add-install-deps-export https://github.com/paullouisageneau/libdatachannel.git libdatachannel
+    git clone --recurse-submodules --depth 1 --branch v${LIBDATACHANNEL_VERSION} https://github.com/paullouisageneau/libdatachannel.git libdatachannel
     mkdir libdatachannel/build
     cd libdatachannel/build
 
