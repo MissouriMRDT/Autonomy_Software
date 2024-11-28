@@ -289,6 +289,18 @@ This project makes use of several open-source libraries and tools that help us a
   [Google Test GitHub](https://github.com/google/googletest)  
   License: [BSD-3-Clause License](https://github.com/google/googletest/blob/main/LICENSE)
 
+- **LibDataChannel** - Lightweight C++ library implementing basic WebRTC functions.  
+    [LibDataChannel GitHub](https://github.com/paullouisageneau/libdatachannel)  
+    License: [MIT License](https://github.com/paullouisageneau/libdatachannel/blob/master/LICENSE)
+
+- **FFMPEG** - A comprehensive multimedia framework for handling video, audio, and other multimedia files and streams.  
+    [FFMPEG GitHub](https://github.com/FFmpeg/FFmpeg)  
+    License: [LGPL-2.1 License](https://github.com/FFmpeg/FFmpeg/blob/master/LICENSE.md)
+
+- **nlohmann JSON** - A modern C++ library for JSON parsing and serialization.  
+    [nlohmann JSON GitHub](https://github.com/nlohmann/json)  
+    License: [MIT License](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
+
 - **Abseil** - Collection of C++ libraries designed for performance and ease of use.  
   [Abseil GitHub](https://github.com/abseil/abseil-cpp)  
   License: [Apache License 2.0](https://github.com/abseil/abseil-cpp/blob/master/LICENSE)

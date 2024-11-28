@@ -32,10 +32,10 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:latest",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-11-27-23-04-01",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
     // "build": {
-    //     "dockerfile": "Dockerfile_Jammy"
+    //     // "dockerfile": "Dockerfile_Jammy"
     //     // "dockerfile": "Dockerfile_JetPack"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
@@ -43,7 +43,7 @@
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postStartCommand": "git config --global --add safe.directory \"*\"",
+    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
@@ -63,6 +63,7 @@
                 "gruntfuggly.todo-tree",
                 "streetsidesoftware.code-spell-checker",
                 "vscode-icons-team.vscode-icons",
+                "ryanluker.vscode-coverage-gutters"
             ],
             "settings": {
                 // VSCode settings.
@@ -101,6 +102,22 @@
                     "/usr/local/cuda/include",
                     "/usr/local/include/quill",
                     "/usr/local/include/quill/**",
+                    "/usr/local/include/rtc",
+                    "/usr/local/include/rtc/**",
+                    "/usr/local/include/libavcodec",
+                    "/usr/local/include/libavcodec/**",
+                    "/usr/local/include/libavformat",
+                    "/usr/local/include/libavformat/**",
+                    "/usr/local/include/libavutil",
+                    "/usr/local/include/libavutil/**",
+                    "/usr/local/include/libswscale",
+                    "/usr/local/include/libswscale/**",
+                    "/usr/local/include/libswresample",
+                    "/usr/local/include/libswresample/**",
+                    "/usr/local/include/libavfilter",
+                    "/usr/local/include/libavfilter/**",
+                    "/usr/local/include/libavdevice",
+                    "/usr/local/include/libavdevice/**",
                     "/usr/local/include/gmock",
                     "/usr/local/include/gmock/**",
                     "/usr/local/include/gtest",
@@ -112,7 +129,9 @@
                     "/usr/local/include/edgetpu",
                     "/usr/local/include/edgetpu/**",
                     "/usr/include/torch",
-                    "/usr/include/torch/**"
+                    "/usr/include/torch/**",
+                    "/usr/include/nlohmann",
+                    "/usr/include/nlohmann/**"
                 ],
                 "C_Cpp.default.defines": [
                     "__ROVECOMM_LIBRARY_MODE__=1"
@@ -282,7 +301,21 @@
                     },
                     "custom": true, // Enable the `custom` dictionary
                     "internal-terms": false // Disable the `internal-terms` dictionary
-                }
+                },
+                // Coverage Gutters Extension Settings.
+                "coverage-gutters.coverageFileNames": [
+                    "lcov.info",
+                    "cov.xml",
+                    "coverage.xml",
+                    "cobertura.xml",
+                    "jacoco.xml",
+                    "coverage.cobertura.xml",
+                    "Coverage.xml",
+                    "coverage.info"
+                ],
+                "coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": true,
+                "coverage-gutters.showLineCoverage": true,
+                "coverage-gutters.showRulerCoverage": true
             }
         }
     }

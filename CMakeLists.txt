@@ -77,6 +77,18 @@ if (BUILD_CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage --coverage")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
+
+    add_custom_target(run_coverage ALL
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
+        COMMAND lcov -c -d . -o coverage.info
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running tests and generating coverage reports..."
+        VERBATIM
+    )
+
+    # Ensure dependencies for the run_coverage target. Tests must be built first.
+    add_dependencies(run_coverage ${EXE_NAME}_UnitTests ${EXE_NAME}_IntegrationTests)
 else()
     message("--   [ ]: Code Coverage: Disabled")
 endif()
@@ -176,6 +188,21 @@ find_package(Threads REQUIRED)
 
 ## Find Quill
 find_package(quill REQUIRED)
+
+## Find LibDataChannel
+find_package(LibDataChannel REQUIRED)
+
+## Fine nlohmann JSON.
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
+## Find OpenSSL
+find_package(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
+
+## Find FFMPEG
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+include_directories(${FFMPEG_INCLUDE_DIRS})
 
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
@@ -285,6 +312,10 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
+                        ${FFMPEG_LIBRARIES}
+                        ${OPENSSL_LIBRARIES}
+                        LibDataChannel::LibDataChannel
+                        nlohmann_json::nlohmann_json
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
@@ -311,6 +342,8 @@ if (BUILD_TESTS_MODE)
     file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
     file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
     file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+    file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
+    # file(GLOB_RECURSE Handlers_SRC          CONFIGURE_DEPENDS  "src/handlers/*.cpp")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
 
@@ -318,7 +351,7 @@ if (BUILD_TESTS_MODE)
     list(LENGTH IntegrationTests_SRC IntegrationTests_LEN)
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Network_SRC} ${Logging_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
         add_test(Unit_Tests ${EXE_NAME}_UnitTests)
     else()
@@ -326,7 +359,7 @@ if (BUILD_TESTS_MODE)
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Network_SRC} ${Logging_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
         add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
     else()

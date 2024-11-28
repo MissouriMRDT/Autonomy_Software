@@ -41,13 +41,13 @@ RUN apt update && apt install -y curl && \
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     build-essential gdb wget less udev zstd sudo libgomp1 libswscale-dev \
-    cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev tzdata \
+    cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
-    yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
+    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
-    libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
-    vim-common gasket-dkms
+    valgrind doxygen graphviz htop nano fortune fortunes \
+    vim-common gasket-dkms nlohmann-json3-dev gcovr lcov
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
@@ -115,6 +115,18 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/am
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
+# Install FFMPEG
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
+
+# Install Libdatachannel
+ARG LIBDATACHANNEL_VERSION="0.22"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
+    dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
+    rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
+
 # Install Tensorflow.
 ARG TENSORFLOW_VERSION="2.15.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
@@ -143,7 +155,7 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8  
 
 # Enable Cowsay.
-RUN echo 'if [ $(( RANDOM % 5 )) -eq 0 ]; then /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else /usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f; fi' >> /root/.bashrc
+RUN echo 'if [ $(( RANDOM % 10000 )) -eq 0 ]; then /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else /usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f; fi' >> /root/.bashrc
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git

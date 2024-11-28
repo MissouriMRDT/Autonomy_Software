@@ -67,27 +67,27 @@ TEST(AStarPlannerTest, BoundaryPoint)
     size_t siTestValuesLength = 4;
 
     // Initialize array with coordinates external to the AStar search grid.
-    const geoops::UTMCoordinate aOutsideCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 65.0),
-                                                                           geoops::UTMCoordinate(65.0, 50.0),
-                                                                           geoops::UTMCoordinate(50.0, 35.0),
-                                                                           geoops::UTMCoordinate(35.0, 50.0)};
+    const geoops::UTMCoordinate aOutsideCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 65.0, 15),
+                                                                           geoops::UTMCoordinate(65.0, 50.0, 15),
+                                                                           geoops::UTMCoordinate(50.0, 35.0, 15),
+                                                                           geoops::UTMCoordinate(35.0, 50.0, 15)};
 
     // Initialize array with coordinates internal to the AStar search grid.
-    const geoops::UTMCoordinate aInsideCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 55.0),
-                                                                          geoops::UTMCoordinate(55.0, 50.0),
-                                                                          geoops::UTMCoordinate(50.0, 45.0),
-                                                                          geoops::UTMCoordinate(45.0, 50.0)};
+    const geoops::UTMCoordinate aInsideCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 55.0, 15),
+                                                                          geoops::UTMCoordinate(55.0, 50.0, 15),
+                                                                          geoops::UTMCoordinate(50.0, 45.0, 15),
+                                                                          geoops::UTMCoordinate(45.0, 50.0, 15)};
 
     //  Initialize array with corner coordinates on the boundary.
-    const geoops::UTMCoordinate aCornerCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(60.0, 60.0),
-                                                                          geoops::UTMCoordinate(60.0, 40.0),
-                                                                          geoops::UTMCoordinate(40.0, 40.0),
-                                                                          geoops::UTMCoordinate(40.0, 60.0)};
+    const geoops::UTMCoordinate aCornerCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(60.0, 60.0, 15),
+                                                                          geoops::UTMCoordinate(60.0, 40.0, 15),
+                                                                          geoops::UTMCoordinate(40.0, 40.0, 15),
+                                                                          geoops::UTMCoordinate(40.0, 60.0, 15)};
     // Initialize arrays with correct bounded values
-    const geoops::UTMCoordinate aExpectedCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 60.0),
-                                                                            geoops::UTMCoordinate(60.0, 50.0),
-                                                                            geoops::UTMCoordinate(50.0, 40.0),
-                                                                            geoops::UTMCoordinate(40.0, 50.0)};
+    const geoops::UTMCoordinate aExpectedCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 60.0, 15),
+                                                                            geoops::UTMCoordinate(60.0, 50.0, 15),
+                                                                            geoops::UTMCoordinate(50.0, 40.0, 15),
+                                                                            geoops::UTMCoordinate(40.0, 50.0, 15)};
 
     geoops::UTMCoordinate aOutsideBounded[siTestValuesLength];
     geoops::UTMCoordinate aInsideBounded[siTestValuesLength];
@@ -147,16 +147,16 @@ TEST(AStarPlannerTest, RoundCoordinate)
     size_t siTestValuesLength   = 4;
 
     // Initialize array with coordinates to round.
-    const geoops::UTMCoordinate aOriginalCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.23, 68.16),
-                                                                            geoops::UTMCoordinate(13.24, 13.26),
-                                                                            geoops::UTMCoordinate(99.76, 99.74),
-                                                                            geoops::UTMCoordinate(60.11, 83.23)};
+    const geoops::UTMCoordinate aOriginalCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.23, 68.16, 15),
+                                                                            geoops::UTMCoordinate(13.24, 13.26, 15),
+                                                                            geoops::UTMCoordinate(99.76, 99.74, 15),
+                                                                            geoops::UTMCoordinate(60.11, 83.23, 15)};
 
     // Initialize arrays with correct rounded values.
-    const geoops::UTMCoordinate aExpectedCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 68.0),
-                                                                            geoops::UTMCoordinate(13.0, 13.5),
-                                                                            geoops::UTMCoordinate(100.0, 99.5),
-                                                                            geoops::UTMCoordinate(60.0, 83.0)};
+    const geoops::UTMCoordinate aExpectedCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 68.0, 15),
+                                                                            geoops::UTMCoordinate(13.0, 13.5, 15),
+                                                                            geoops::UTMCoordinate(100.0, 99.5, 15),
+                                                                            geoops::UTMCoordinate(60.0, 83.0, 15)};
 
     // Loop through each coordinate and compare inputs and outputs.
     for (size_t siIter = 0; siIter < siTestValuesLength; siIter++)
@@ -190,11 +190,11 @@ TEST(AStarPlannerTest, ConstructPath)
     size_t siTestValuesLength   = 5;
 
     // Create coordinates for AStarNode objects.
-    const geoops::UTMCoordinate aOriginalCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 50.0),
-                                                                            geoops::UTMCoordinate(50.5, 50.5),
-                                                                            geoops::UTMCoordinate(51.0, 51.0),
-                                                                            geoops::UTMCoordinate(51.5, 51.5),
-                                                                            geoops::UTMCoordinate(52.0, 52.0)};
+    const geoops::UTMCoordinate aOriginalCoordinates[siTestValuesLength] = {geoops::UTMCoordinate(50.0, 50.0, 15),
+                                                                            geoops::UTMCoordinate(50.5, 50.5, 15),
+                                                                            geoops::UTMCoordinate(51.0, 51.0, 15),
+                                                                            geoops::UTMCoordinate(51.5, 51.5, 15),
+                                                                            geoops::UTMCoordinate(52.0, 52.0, 15)};
 
     // Create nodes and set the node's parent to the previous element in the array.
     pathplanners::nodes::AStarNode aOriginalNodes[siTestValuesLength];
@@ -241,18 +241,18 @@ TEST(AStarPlannerTest, PlanAvoidancePath)
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
     const double dNorthingStart         = 4201140.0;
-    const geoops::UTMCoordinate stStart = geoops::UTMCoordinate(dEastingStart, dNorthingStart);
+    const geoops::UTMCoordinate stStart = geoops::UTMCoordinate(dEastingStart, dNorthingStart, 15);
 
     // Create goal coordinates for AStar.
     const geoops::UTMCoordinate aGoalCoordinates[siTestValuesLength] = {
-        geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID),                                           // N
-        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart),                                           // E
-        geoops::UTMCoordinate(dEastingStart, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID),                                           // S
-        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart),                                           // W
-        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID),    // NE
-        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID),    // SE
-        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID),    // SW
-        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID)     // NW
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),                                           // N
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart, 15),                                           // E
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),                                           // S
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart, 15),                                           // W
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),    // NE
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),    // SE
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),    // SW
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15)     // NW
     };
 
     // Compare output paths with expected paths.
@@ -299,7 +299,7 @@ TEST(AStarPlannerTest, ObstacleInitialization)
     pathplanners::AStar* pAStar = new pathplanners::AStar();
 
     // Create obstacle for AStar initialization.
-    const geoops::UTMCoordinate stObstacleCenter   = geoops::UTMCoordinate(608120, 4201140);
+    const geoops::UTMCoordinate stObstacleCenter   = geoops::UTMCoordinate(608120, 4201140, 15);
     const double dObstacleSize                     = 3 * constants::ASTAR_NODE_SIZE;
     const pathplanners::AStar::Obstacle stObstacle = {stObstacleCenter, dObstacleSize};
 
@@ -314,7 +314,7 @@ TEST(AStarPlannerTest, ObstacleInitialization)
 
     // Create obstacle vector for AStar re-initialization.
     std::vector<pathplanners::AStar::Obstacle> vObstacles;
-    const geoops::UTMCoordinate stObstacle2Center   = geoops::UTMCoordinate(608100, 4201100);
+    const geoops::UTMCoordinate stObstacle2Center   = geoops::UTMCoordinate(608100, 4201100, 15);
     const double dObstacle2Size                     = 2 * constants::ASTAR_NODE_SIZE;
     const pathplanners::AStar::Obstacle stObstacle2 = {stObstacle2Center, dObstacle2Size};
     vObstacles.emplace_back(stObstacle);
