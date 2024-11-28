@@ -258,6 +258,8 @@ LEDRGB
 LEFTCAM
 libatlas
 libavcodec
+libavdevice
+libavfilter
 libavformat
 libavutil
 libboost
