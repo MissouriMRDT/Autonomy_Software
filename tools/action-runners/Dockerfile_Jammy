@@ -53,7 +53,7 @@ RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
 # Add over the start.sh script
-ADD scripts/start.sh start.sh
+COPY scripts/start.sh start.sh
 
 # Make the script executable
 RUN chmod +x start.sh
