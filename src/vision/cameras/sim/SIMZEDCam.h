@@ -112,6 +112,7 @@ class SIMZEDCam : public Camera<cv::Mat>
         std::vector<uint8_t> m_vPPS;
         // AV codec context for decoding H264.
         AVCodecContext* m_pAVCodecContext;
+        SwsContext* m_avSWSContext;
 
         /////////////////////////////////////////
         // Declare private methods.
