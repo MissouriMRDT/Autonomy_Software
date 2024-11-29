@@ -48,14 +48,16 @@ else
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN
 
-    # Create Control File for Tensorflow.
-    echo "Package: tensorflow-mrdt" > /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${TENSORFLOW_VERSION}" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: google" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://www.tensorflow.org/api_docs/cc" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of Tensorflow. Made by the Mars Rover Design Team." >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
+    # Create Control File
+    {
+        echo "Package: tensorflow-mrdt"
+        echo "Version: ${TENSORFLOW_VERSION}"
+        echo "Maintainer: google"
+        echo "Depends:"
+        echo "Architecture: arm64"
+        echo "Homepage: https://www.tensorflow.org/api_docs/cc"
+        echo "Description: A prebuilt version of Tensorflow. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
 
     # Download Tensorflow
     git clone --depth 1 --recurse-submodules --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow

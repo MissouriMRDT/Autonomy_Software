@@ -27,13 +27,15 @@ else
     mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: pytorch-mrdt" > /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${TORCH_VERSION}" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: pytorch" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://pytorch.org/cppdocs/" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team." >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: pytorch-mrdt"
+        echo "Version: ${TORCH_VERSION}"
+        echo "Maintainer: pytorch"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://pytorch.org/cppdocs/"
+        echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
 
     # Download Torch
     wget -O torch.zip https://download.pytorch.org/libtorch/${TORCH_CUDA_VERSION}/libtorch-cxx11-abi-shared-with-deps-${TORCH_VERSION}%2B${TORCH_CUDA_VERSION}.zip
