@@ -26,13 +26,15 @@ else
     mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN
 
     # Create Control File
-    echo "Package: googletest-mrdt" > /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${GTEST_VERSION}" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: Google" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://google.github.io/googletest/" >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of Google Test. Made by the Mars Rover Design Team." >> /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+    {
+        echo "Package: googletest-mrdt"
+        echo "Version: ${GTEST_VERSION}"
+        echo "Maintainer: Google"
+        echo "Depends:"
+        echo "Architecture: arm64"
+        echo "Homepage: https://google.github.io/googletest/"
+        echo "Description: A prebuilt version of Google Test. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
 
     # Download Google Test
     git clone --depth 1 --branch v${GTEST_VERSION} https://github.com/google/googletest.git

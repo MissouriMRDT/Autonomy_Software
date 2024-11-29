@@ -26,13 +26,15 @@ else
     mkdir -p /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: ffmpeg-mrdt" > /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${FFMPEG_VERSION}" >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: ffmpeg" >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://github.com/FFmpeg/FFmpeg" >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of ffmpeg. Made by the Mars Rover Design Team." >> /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: ffmpeg-mrdt"
+        echo "Version: ${FFMPEG_VERSION}"
+        echo "Maintainer: ffmpeg"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://github.com/FFmpeg/FFmpeg"
+        echo "Description: A prebuilt version of ffmpeg. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
 
     # Download FFMPEG
     git clone --recurse-submodules --depth 1 --branch n${FFMPEG_VERSION} https://github.com/FFmpeg/FFmpeg.git ffmpeg
