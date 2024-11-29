@@ -27,13 +27,15 @@ else
     mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: opencv-mrdt" > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${OPENCV_VERSION}" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: OpenCV" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://opencv.org/" >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team." >> /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: opencv-mrdt"
+        echo "Version: ${OPENCV_VERSION}"
+        echo "Maintainer: OpenCV"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://opencv.org/"
+        echo "Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
 
 
     # Download OpenCV

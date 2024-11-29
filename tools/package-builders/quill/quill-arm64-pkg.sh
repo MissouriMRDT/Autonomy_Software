@@ -26,13 +26,15 @@ else
     mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN
 
     # Create Control File
-    echo "Package: quill-mrdt" > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${QUILL_VERSION}" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: odygrd" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://quillcpp.readthedocs.io/en/latest/" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team." >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
+    {
+        echo "Package: quill-mrdt"
+        echo "Version: ${QUILL_VERSION}"
+        echo "Maintainer: odygrd"
+        echo "Depends:"
+        echo "Architecture: arm64"
+        echo "Homepage: https://quillcpp.readthedocs.io/en/latest/"
+        echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
 
     # Download Quill
     git clone --depth 1 --branch v${QUILL_VERSION} https://github.com/odygrd/quill.git
