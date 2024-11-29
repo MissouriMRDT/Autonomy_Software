@@ -26,13 +26,15 @@ else
     mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: abseil-mrdt" > /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${ABSEIL_VERSION}" >> /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: abseil" >> /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://abseil.io/docs/cpp/guides/" >> /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of Abseil. Made by the Mars Rover Design Team." >> /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: abseil-mrdt"
+        echo "Version: ${ABSEIL_VERSION}"
+        echo "Maintainer: abseil"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://abseil.io/docs/cpp/guides/"
+        echo "Description: A prebuilt version of Abseil. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/DEBIAN/control
 
     # Download Abseil
     git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git
