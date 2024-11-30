@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-LIBDATACHANNEL_VERSION="0.22.2"
+LIBDATACHANNEL_VERSION="0.22"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb"
@@ -26,16 +26,18 @@ else
     mkdir -p /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: libdatachannel-mrdt" > /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${LIBDATACHANNEL_VERSION}" >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: paullouisageneau" >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://github.com/paullouisageneau/libdatachannel" >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of libdatachannel for WebRTC and websocket connections. Made by the Mars Rover Design Team." >> /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: libdatachannel-mrdt"
+        echo "Version: ${LIBDATACHANNEL_VERSION}"
+        echo "Maintainer: paullouisageneau"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://github.com/paullouisageneau/libdatachannel"
+        echo "Description: A prebuilt version of libdatachannel for WebRTC and websocket connections. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64/DEBIAN/control
 
     # Download LibDataChannel
-    git clone --recurse-submodules --depth 1 --branch cmake-add-install-deps-export https://github.com/paullouisageneau/libdatachannel.git libdatachannel
+    git clone --recurse-submodules --depth 1 --branch v${LIBDATACHANNEL_VERSION} https://github.com/paullouisageneau/libdatachannel.git libdatachannel
     mkdir libdatachannel/build
     cd libdatachannel/build
 

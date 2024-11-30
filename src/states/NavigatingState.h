@@ -43,7 +43,7 @@ namespace statemachine
             std::vector<double> m_vRoverXPosition;
             std::vector<double> m_vRoverYPosition;
             time_t m_tStuckCheckTime;
-            double m_dStuckCheckLastPosition[2];
+            std::array<double, 2> m_dStuckCheckLastPosition;
             bool m_bInitialized;
             std::vector<TagDetector*> m_vTagDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;

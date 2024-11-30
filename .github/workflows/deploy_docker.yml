@@ -13,6 +13,8 @@ on:
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
       - "tools/package-builders/libdatachannel/libdatachannel-arm64-pkg.sh"
       - "tools/package-builders/libdatachannel/libdatachannel-amd64-pkg.sh"
+      - "tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh"
+      - "tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh"
       - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
@@ -38,6 +40,8 @@ on:
       - "tools/package-builders/geolib/geolib-amd64-pkg.sh"
       - "tools/package-builders/libdatachannel/libdatachannel-arm64-pkg.sh"
       - "tools/package-builders/libdatachannel/libdatachannel-amd64-pkg.sh"
+      - "tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh"
+      - "tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh"
       - "tools/package-builders/gtest/gtest-arm64-pkg.sh"
       - "tools/package-builders/gtest/gtest-amd64-pkg.sh"
       - "tools/package-builders/opencv/opencv-arm64-pkg.sh"
@@ -98,7 +102,8 @@ jobs:
     # used to determine if the docker images need to be rebuilt.
     outputs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
-      libdatachannel-amd64: ${{ steps.changes.outputs.libdatachannel }}
+      libdatachannel-amd64: ${{ steps.changes.outputs.libdatachannel-amd64 }}
+      ffmpeg-amd64: ${{ steps.changes.outputs.ffmpeg-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
       pytorch-amd64: ${{ steps.changes.outputs.pytorch-amd64 }}
@@ -133,6 +138,8 @@ jobs:
               - 'tools/package-builders/geolib/geolib-amd64-pkg.sh'
             libdatachannel-amd64:
               - 'tools/package-builders/libdatachannel/libdatachannel-amd64-pkg.sh'
+            ffmpeg-amd64:
+              - 'tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh'
             gtest-amd64:
               - 'tools/package-builders/gtest/gtest-amd64-pkg.sh'
             opencv-amd64:
@@ -179,6 +186,7 @@ jobs:
         package:
           - geolib
           - libdatachannel
+          - ffmpeg
           - gtest
           - opencv
           - pytorch
@@ -280,6 +288,7 @@ jobs:
     outputs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       libdatachannel-arm64: ${{ steps.changes.outputs.libdatachannel-arm64 }}
+      ffmpeg-arm64: ${{ steps.changes.outputs.ffmpeg-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
       pytorch-arm64: ${{ steps.changes.outputs.pytorch-arm64 }}
@@ -314,6 +323,8 @@ jobs:
               - 'tools/package-builders/geolib/geolib-arm64-pkg.sh'
             libdatachannel-arm64:
               - 'tools/package-builders/libdatachannel/libdatachannel-arm64-pkg.sh'
+            ffmpeg-arm64:
+              - 'tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh'
             gtest-arm64:
               - 'tools/package-builders/gtest/gtest-arm64-pkg.sh'
             opencv-arm64:
@@ -359,6 +370,7 @@ jobs:
         package:
           - geolib
           - libdatachannel
+          - ffmpeg
           - gtest
           - opencv
           - pytorch
