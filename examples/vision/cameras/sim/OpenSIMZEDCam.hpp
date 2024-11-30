@@ -32,7 +32,7 @@
 void RunExample()
 {
     // Create a new SIMZEDCam object.
-    SIMZEDCam* pZEDCam = new SIMZEDCam("ws://localhost:8080", 1280, 720, 30, PIXEL_FORMATS::eRGB, 90.0, 60.0, true);
+    SIMZEDCam* pZEDCam = new SIMZEDCam("ws://192.168.69.56:8080", 1280, 720, 30, PIXEL_FORMATS::eRGB, 90.0, 60.0, true);
     pZEDCam->Start();
 
     // Create a cv::Mat to store the frame.
@@ -56,4 +56,13 @@ void RunExample()
         if (chKey == 27)    // Press 'Esc' key to exit
             break;
     }
+
+    // Stop the camera.
+    pZEDCam->RequestStop();
+    pZEDCam->Join();
+
+    // Delete the camera object.
+    delete pZEDCam;
+    // Set dangling pointer to nullptr.
+    pZEDCam = nullptr;
 }
