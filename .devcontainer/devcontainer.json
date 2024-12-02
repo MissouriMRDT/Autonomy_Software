@@ -15,16 +15,24 @@
         "--privileged",
         "-v",
         "/dev/bus/usb:/dev/bus/usb",
+        // X11 socket for XWayland
         "-v",
         "/tmp/.X11-unix:/tmp/.X11-unix",
+        // Wayland socket for native Wayland apps
+        "-v",
+        "/run/user/1000/wayland:/run/user/1000/wayland",
+        // WSLg support (if on WSL)
         "-v",
         "/mnt/wslg:/mnt/wslg",
+        // Environment variables
         "-e",
-        "$DISPLAY",
+        "DISPLAY", // XWayland display
         "-e",
-        "WAYLAND_DISPLAY",
+        "WAYLAND_DISPLAY", // Wayland display, you may need to run 'xhost +local:docker' to allow the container to connect to the X server.
         "-e",
-        "XDG_RUNTIME_DIR"
+        "XDG_RUNTIME_DIR", // Runtime directory for Wayland
+        "-e",
+        "GDK_BACKEND=x11,wayland" // Allow GTK to work with both backends
     ],
     // Mount shared workspace volumes. Bind from host machine to container.
     "mounts": [
@@ -32,12 +40,12 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-11-27-23-04-01",
+    // "image": "ghcr.io/missourimrdt/autonomy-jammy:2024-11-27-23-04-01",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:latest",
-    // "build": {
-    //     // "dockerfile": "Dockerfile_Jammy"
-    //     // "dockerfile": "Dockerfile_JetPack"
-    // },
+    "build": {
+        "dockerfile": "Dockerfile_Jammy"
+        // "dockerfile": "Dockerfile_JetPack"
+    },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
