@@ -28,7 +28,7 @@
         "-e",
         "DISPLAY", // XWayland display
         "-e",
-        "WAYLAND_DISPLAY", // Wayland display
+        "WAYLAND_DISPLAY", // Wayland display, you may need to run 'xhost +local:docker' to allow the container to connect to the X server.
         "-e",
         "XDG_RUNTIME_DIR", // Runtime directory for Wayland
         "-e",
