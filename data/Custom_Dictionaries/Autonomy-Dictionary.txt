@@ -386,6 +386,7 @@ shuf
 SIMBASICCAM
 SIMCAM
 SIMZED
+SIMZEDCAM
 sockaddr
 softprops
 SPSC
@@ -452,6 +453,7 @@ VIDEOWRITER
 VIOGPS
 Watchpoints
 Webots
+WEBRTC
 Wextra
 Wpedantic
 wslg

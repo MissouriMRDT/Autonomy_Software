@@ -13,23 +13,10 @@
 
 #include "../../../interfaces/AutonomyThread.hpp"
 #include "../../../interfaces/Camera.hpp"
+#include "WebRTC.h"
 
 /// \cond
 #include <opencv2/opencv.hpp>
-#include <rtc/rtc.hpp>
-
-extern "C"
-{
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-#include <libavutil/error.h>
-#include <libavutil/frame.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/mem.h>
-#include <libavutil/opt.h>
-#include <libswscale/swscale.h>
-}
 
 /// \endcond
 
@@ -81,6 +68,12 @@ class SIMZEDCam : public Camera<cv::Mat>
 
     private:
         /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
+
+        /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
         // Basic Camera specific.
@@ -96,29 +89,9 @@ class SIMZEDCam : public Camera<cv::Mat>
         // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
         std::shared_mutex m_muWebRTCCopyMutex;
 
-        // WebRTC connection to RoveSoSimulator Pixel Streamer.
-        std::shared_ptr<rtc::WebSocket> m_pWebSocket;
-        std::shared_ptr<rtc::PeerConnection> m_pPeerConnection;
-        std::shared_ptr<rtc::DataChannel> m_pDataChannel;
-        std::shared_ptr<rtc::Track> m_pVideoTrack1;
-        std::shared_ptr<rtc::H264RtpDepacketizer> m_pTrack1H264DepacketizationHandler;
-        std::shared_ptr<rtc::RtcpReceivingSession> m_pTrack1RTCPReceivingSession;
-        std::chrono::system_clock::time_point m_tmLastKeyFrameRequestTime;
-
-        // std::shared_ptr<rtc::Track> rtcVideoTrack2;
-        // std::shared_ptr<rtc::H264RtpDepacketizer> rtcTrack2H264DepacketizationHandler;
-
-        // AV codec context for decoding H264.
-        AVCodecContext* m_pAVCodecContext;
-        SwsContext* m_avSWSContext;
-
-        /////////////////////////////////////////
-        // Declare private methods.
-        /////////////////////////////////////////
-        void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;
-        bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
-        bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame);
-        bool RequestKeyFrame(std::shared_ptr<rtc::Track> pVideoTrack);
+        // WebRTC connections for each camera stream from the RoveSoSimulator.
+        std::unique_ptr<WebRTC> m_pRGBStream;
+        std::unique_ptr<WebRTC> m_pDepthStream;
+        std::unique_ptr<WebRTC> m_pPointCloudStream;
 };
 #endif

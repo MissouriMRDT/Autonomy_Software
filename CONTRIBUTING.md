@@ -166,6 +166,7 @@ The table below lists various other common types and their corresponding prefixe
 | Future              | `fu`    | `future<void> fuExampleUseOfFuture`    |
 | Promise             | `pm`    | `promise<void> pmExampleUseOfPromise`  |
 | Unordered Map       | `um`    | `unordered_map<int, int> umExampleUseOfUnorderedMap` |
+| Functions           | `fn`    | `function<void> fnExampleUseOfFunction`   |
 
 ---
 
