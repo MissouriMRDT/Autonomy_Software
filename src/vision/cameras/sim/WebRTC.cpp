@@ -15,14 +15,16 @@
  * @brief Construct a new Web RTC::WebRTC object.
  *
  * @param szSignallingServerURL -  The URL of the signalling server.
+ * @param szStreamerID - The ID of the streamer.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-WebRTC::WebRTC(const std::string& szSignallingServerURL)
+WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szStreamerID)
 {
     // Set member variables.
     m_szSignallingServerURL     = szSignallingServerURL;
+    m_szStreamerID              = szStreamerID;
     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
 
     // Configure logging level from FFMPEG library.
@@ -124,9 +126,10 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Connected to the signalling server via {}. Sending local description to signalling server...", m_szSignallingServerURL);
 
-            // Send local config to signalling server.
-            std::string szLocalConfig = "{\"type\":\"config\",\"peerConnectionOptions\":{\"iceServers\":[]}}";
-            m_pWebSocket->send(nlohmann::json::parse(szLocalConfig).dump());
+            // Request the streamer list from the server. This also kicks off the negotiation process.
+            nlohmann::json jsnStreamList;
+            jsnStreamList["type"] = "listStreamers";
+            m_pWebSocket->send(jsnStreamList.dump());
         });
 
     // WebSocket has been closed.
@@ -202,9 +205,32 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         rtc::Candidate rtcCandidate = rtc::Candidate(szCandidateStr);
                         m_pPeerConnection->addRemoteCandidate(rtcCandidate);
                     }
-                    else if (szType == "config")
+                    else if (szType == "streamerList")
                     {
-                        // Do nothing for config.
+                        // Print the streamer list.
+                        LOG_DEBUG(logging::g_qSharedLogger, "Streamer List: {}", jsnMessage.dump());
+
+                        // Check that the streamer ID given by the user is in the streamer list.
+                        if (jsnMessage.contains("ids"))
+                        {
+                            std::vector<std::string> streamerList = jsnMessage["ids"].get<std::vector<std::string>>();
+                            if (std::find(streamerList.begin(), streamerList.end(), m_szStreamerID) != streamerList.end())
+                            {
+                                // Send what stream we want to the server.
+                                nlohmann::json jsnStream;
+                                jsnStream["type"]       = "subscribe";
+                                jsnStream["streamerId"] = m_szStreamerID;
+                                m_pWebSocket->send(jsnStream.dump());
+                            }
+                            else
+                            {
+                                LOG_ERROR(logging::g_qSharedLogger, "Streamer ID {} not found in the streamer list!", m_szStreamerID);
+                            }
+                        }
+                        else
+                        {
+                            LOG_ERROR(logging::g_qSharedLogger, "Streamer list does not contain 'ids' field!");
+                        }
                     }
                 }
             }
@@ -234,6 +260,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             jsnMessage["type"] = rtcDescription.typeString();
             jsnMessage["sdp"]  = rtcDescription.generateSdp();
             m_pWebSocket->send(jsnMessage.dump());
+
+            // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "Sending local description to signalling server");
         });
 
@@ -373,6 +401,11 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                                     // Call the user's callback function.
                                     m_fnOnFrameReceivedCallback(m_cvFrame);
                                 }
+                            }
+                            else
+                            {
+                                // Submit logger message.
+                                LOG_WARNING(logging::g_qSharedLogger, "Received frame with unknown payload type: {}", rtcFrameInfo.payloadType);
                             }
                         });
                 });

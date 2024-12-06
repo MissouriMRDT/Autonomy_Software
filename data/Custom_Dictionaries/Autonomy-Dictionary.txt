@@ -290,6 +290,7 @@ libxine
 libxvidcore
 localtime
 LOGNAME
+m_muWebRTCRGBImageCopyMutex
 MAINCAM
 MAINCAN
 mainpage

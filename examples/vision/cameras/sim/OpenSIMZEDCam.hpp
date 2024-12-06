@@ -36,19 +36,26 @@ void RunExample()
     pZEDCam->Start();
 
     // Create a cv::Mat to store the frame.
-    cv::Mat m_cvFrame;
-    cv::Mat m_cvFrameDisplay;
+    cv::Mat cvFrame;
+    cv::Mat cvDepthImage;
 
     while (true)
     {
-        std::future<bool> fuFrame = pZEDCam->RequestFrameCopy(m_cvFrame);
+        std::future<bool> fuFrame      = pZEDCam->RequestFrameCopy(cvFrame);
+        std::future<bool> fuDepthImage = pZEDCam->RequestDepthCopy(cvDepthImage, false);
 
         // Wait for the frame to be copied.
-        if (fuFrame.get() && !m_cvFrame.empty())
+        if (fuFrame.get() && !cvFrame.empty())
         {
             // Convert the frame to a supported type and display it.
-            m_cvFrame.convertTo(m_cvFrameDisplay, CV_8UC4);
-            cv::imshow("Frame", m_cvFrameDisplay);
+            cv::imshow("Frame", cvFrame);
+        }
+
+        // Wait for the depth image to be copied.
+        if (fuDepthImage.get() && !cvDepthImage.empty())
+        {
+            // Convert the frame to a supported type and display it.
+            cv::imshow("Depth Image", cvDepthImage);
         }
 
         // OpenCV display pause and check if while loop should exit.

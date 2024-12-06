@@ -87,11 +87,15 @@ class SIMZEDCam : public Camera<cv::Mat>
         cv::Mat m_cvPointCloud;
 
         // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
-        std::shared_mutex m_muWebRTCCopyMutex;
+        std::shared_mutex m_muWebRTCRGBImageCopyMutex;
+        std::shared_mutex m_muWebRTCDepthImageCopyMutex;
+        std::shared_mutex m_muWebRTCDepthMeasureCopyMutex;
+        std::shared_mutex m_muWebRTCPointCloudCopyMutex;
 
         // WebRTC connections for each camera stream from the RoveSoSimulator.
         std::unique_ptr<WebRTC> m_pRGBStream;
-        std::unique_ptr<WebRTC> m_pDepthStream;
+        std::unique_ptr<WebRTC> m_pDepthImageStream;
+        std::unique_ptr<WebRTC> m_pDepthMeasureStream;
         std::unique_ptr<WebRTC> m_pPointCloudStream;
 };
 #endif

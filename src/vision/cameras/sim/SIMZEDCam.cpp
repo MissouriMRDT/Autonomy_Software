@@ -49,17 +49,26 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_szCameraPath              = szCameraPath;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
-    // Construct camera stream objects.
-    m_pRGBStream = std::make_unique<WebRTC>(szCameraPath);
+    // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
+    m_pRGBStream        = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
+    m_pDepthImageStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
 
     // Set the frame callbacks.
     m_pRGBStream->SetOnFrameReceivedCallback(
         [this](cv::Mat& cvFrame)
         {
             // Acquire a lock on the webRTC copy mutex.
-            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
             // Deep copy the frame.
             m_cvFrame = cvFrame.clone();
+        });
+    m_pDepthImageStream->SetOnFrameReceivedCallback(
+        [this](cv::Mat& cvFrame)
+        {
+            // Acquire a lock on the webRTC copy mutex.
+            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
+            // Deep copy the frame.
+            m_cvDepthImage = cvFrame.clone();
         });
 
     // Set max FPS of the ThreadedContinuousCode method.
@@ -117,7 +126,8 @@ void SIMZEDCam::ThreadedContinuousCode()
     if (!m_qFrameCopySchedule.empty())
     {
         // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
-        std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCCopyMutex);
+        std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
+        // std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthMeasureCopyMutex);
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);

@@ -45,7 +45,7 @@ class WebRTC
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        WebRTC(const std::string& szSignallingServerURL);
+        WebRTC(const std::string& szSignallingServerURL, const std::string& szStreamerID);
         ~WebRTC();
 
         // Setter for the frame received callback.
@@ -65,6 +65,7 @@ class WebRTC
 
         // Normal member variables.
         std::string m_szSignallingServerURL;
+        std::string m_szStreamerID;
 
         // WebRTC connection to RoveSoSimulator Pixel Streamer.
         std::shared_ptr<rtc::WebSocket> m_pWebSocket;
