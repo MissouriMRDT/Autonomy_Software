@@ -124,7 +124,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         [this]()
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Connected to the signalling server via {}. Sending local description to signalling server...", m_szSignallingServerURL);
+            LOG_INFO(logging::g_qSharedLogger, "Connected to the signalling server via {}. Checking if stream {} exists...", m_szSignallingServerURL, m_szStreamerID);
 
             // Request the streamer list from the server. This also kicks off the negotiation process.
             nlohmann::json jsnStreamList;
@@ -137,7 +137,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         [this]()
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Disconnected from the signalling server.");
+            LOG_INFO(logging::g_qSharedLogger, "Closed {} stream and disconnected from the signalling server.", m_szStreamerID);
         });
 
     // Handling signalling server messages. (offer/answer/ICE candidate)
@@ -593,7 +593,8 @@ bool WebRTC::RequestKeyFrame(std::shared_ptr<rtc::Track> pVideoTrack)
         return false;
     }
 
-    LOG_INFO(logging::g_qSharedLogger, "Requested key frame from video track. Success?: {}", pVideoTrack->requestKeyframe());
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Requested key frame from video track. Success?: {}", pVideoTrack->requestKeyframe());
 
     // Request a key frame from the video track.
     return true;

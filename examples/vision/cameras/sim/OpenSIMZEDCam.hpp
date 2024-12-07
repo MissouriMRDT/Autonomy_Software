@@ -32,17 +32,19 @@
 void RunExample()
 {
     // Create a new SIMZEDCam object.
-    SIMZEDCam* pZEDCam = new SIMZEDCam("ws://127.0.0.1:8080", 1280, 720, 30, PIXEL_FORMATS::eRGB, 90.0, 60.0, true);
+    SIMZEDCam* pZEDCam = new SIMZEDCam("ws://127.0.0.1:8080", 1280, 720, 60, PIXEL_FORMATS::eRGB, 90.0, 60.0, true);
     pZEDCam->Start();
 
     // Create a cv::Mat to store the frame.
     cv::Mat cvFrame;
     cv::Mat cvDepthImage;
+    cv::Mat cvDepthMeasure;
 
     while (true)
     {
-        std::future<bool> fuFrame      = pZEDCam->RequestFrameCopy(cvFrame);
-        std::future<bool> fuDepthImage = pZEDCam->RequestDepthCopy(cvDepthImage, false);
+        std::future<bool> fuFrame        = pZEDCam->RequestFrameCopy(cvFrame);
+        std::future<bool> fuDepthImage   = pZEDCam->RequestDepthCopy(cvDepthImage, false);
+        std::future<bool> fuDepthMeasure = pZEDCam->RequestDepthCopy(cvDepthMeasure, true);
 
         // Wait for the frame to be copied.
         if (fuFrame.get() && !cvFrame.empty())
@@ -57,6 +59,16 @@ void RunExample()
             // Convert the frame to a supported type and display it.
             cv::imshow("Depth Image", cvDepthImage);
         }
+
+        // Wait for the depth measure to be copied.
+        if (fuDepthMeasure.get() && !cvDepthMeasure.empty())
+        {
+            // Convert the frame to a supported type and display it.
+            cv::imshow("Depth Measure", cvDepthMeasure);
+        }
+
+        // Print camera FPS stat.
+        LOG_INFO(logging::g_qSharedLogger, "Camera FPS: {}", pZEDCam->GetIPS().GetExactIPS());
 
         // OpenCV display pause and check if while loop should exit.
         char chKey = cv::waitKey(1);

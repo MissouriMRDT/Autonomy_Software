@@ -50,8 +50,9 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream        = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
-    m_pDepthImageStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
+    m_pRGBStream          = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
+    m_pDepthImageStream   = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
+    m_pDepthMeasureStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthMeasure");
 
     // Set the frame callbacks.
     m_pRGBStream->SetOnFrameReceivedCallback(
@@ -69,6 +70,14 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
             std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
             // Deep copy the frame.
             m_cvDepthImage = cvFrame.clone();
+        });
+    m_pDepthMeasureStream->SetOnFrameReceivedCallback(
+        [this](cv::Mat& cvFrame)
+        {
+            // Acquire a lock on the webRTC copy mutex.
+            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
+            // Deep copy the frame.
+            m_cvDepthMeasure = cvFrame.clone();
         });
 
     // Set max FPS of the ThreadedContinuousCode method.
@@ -127,7 +136,8 @@ void SIMZEDCam::ThreadedContinuousCode()
     {
         // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
         std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
-        // std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthMeasureCopyMutex);
+        std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
+        std::shared_lock<std::shared_mutex> lkWebRTC3(m_muWebRTCDepthMeasureCopyMutex);
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
