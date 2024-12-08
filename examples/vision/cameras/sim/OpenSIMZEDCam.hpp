@@ -63,12 +63,31 @@ void RunExample()
         // Wait for the depth measure to be copied.
         if (fuDepthMeasure.get() && !cvDepthMeasure.empty())
         {
-            // Convert the frame to a supported type and display it.
+            // Display the depth measure.
+            // cv::imshow("Depth Measure", cvDepthMeasure);
+
+            // Convert to a gray scale image.
+            cv::cvtColor(cvDepthMeasure, cvDepthMeasure, cv::COLOR_BGR2GRAY);
+
+            // This image is a grayscale image with the depth values in the pixel values. But the depth values are ranging from 0-255.
+            // To get the actual depth values, we will divide the pixel values by 255 and multiply by the max depth value of the camera.
+            // In this case, the max depth value of the camera is 20000 cm (20 meters).
+            // The final image only needs to store uint16_t values, so we will convert the image to a 16 bit unsigned integer.
+
+            // Convert the image to a 16 bit unsigned integer.
+            cvDepthMeasure.convertTo(cvDepthMeasure, CV_16U);
+            // Convert the pixel values to depth values.
+            cvDepthMeasure = cvDepthMeasure * 20000 / 255;
+
+            // Display the depth measure.
             cv::imshow("Depth Measure", cvDepthMeasure);
+
+            // Print the depth value at the center of the image.
+            LOG_INFO(logging::g_qSharedLogger, "Depth at center: {}", cvDepthMeasure.at<uint16_t>(cvDepthMeasure.rows / 2, cvDepthMeasure.cols / 2));
         }
 
         // Print camera FPS stat.
-        LOG_INFO(logging::g_qSharedLogger, "Camera FPS: {}", pZEDCam->GetIPS().GetExactIPS());
+        // LOG_INFO(logging::g_qSharedLogger, "Camera FPS: {}", pZEDCam->GetIPS().GetExactIPS());
 
         // OpenCV display pause and check if while loop should exit.
         char chKey = cv::waitKey(1);

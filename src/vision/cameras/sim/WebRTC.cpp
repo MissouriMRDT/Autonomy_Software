@@ -28,7 +28,7 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
 
     // Configure logging level from FFMPEG library.
-    // av_log_set_level(AV_LOG_FATAL);
+    av_log_set_level(AV_LOG_FATAL);
 
     // Find the H264 decoder
     const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -76,6 +76,11 @@ WebRTC::~WebRTC()
     m_pPeerConnection->close();
     m_pDataChannel->close();
     m_pWebSocket->close();
+
+    // Manually destroy the smart pointers.
+    m_pPeerConnection.reset();
+    m_pDataChannel.reset();
+    m_pWebSocket.reset();
 
     // Free the codec context.
     avcodec_free_context(&m_pAVCodecContext);
@@ -451,6 +456,12 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
     avPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
     avPacket->size = vH264EncodedBytes.size();
 
+    // Do a final check to ensure that the codec and packet are valid pointers.
+    if (!m_pAVCodecContext || !avPacket)
+    {
+        return false;
+    }
+
     // Send the packet to the decoder.
     int nReturnCode = avcodec_send_packet(m_pAVCodecContext, avPacket);
     if (nReturnCode < 0)
@@ -459,7 +470,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
+        LOG_DEBUG(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
         // Free the frame and packet.
         av_frame_free(&avFrame);
         av_packet_free(&avPacket);
@@ -495,7 +506,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         }
 
         // Check if the format is correct.
-        if (avFrame->format != AV_PIX_FMT_YUV420P)
+        if (avFrame->format != AV_PIX_FMT_YUV420P && avFrame->format != AV_PIX_FMT_YUVJ420P)
         {
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger, "Unexpected pixel format: {}", avFrame->format);
@@ -522,7 +533,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
                                                 m_pAVCodecContext->width,
                                                 m_pAVCodecContext->height,
                                                 AV_PIX_FMT_BGR24,
-                                                SWS_BILINEAR,
+                                                SWS_FAST_BILINEAR,
                                                 nullptr,
                                                 nullptr,
                                                 nullptr);
