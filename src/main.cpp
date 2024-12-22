@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../examples/vision/cameras/sim/OpenSIMZEDCam.hpp"
+// #include "../examples/vision/cameras/sim/EncodeDecodeTest.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"

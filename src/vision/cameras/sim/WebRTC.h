@@ -49,14 +49,14 @@ class WebRTC
         ~WebRTC();
 
         // Setter for the frame received callback.
-        void SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameReceivedCallback);
+        void SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameReceivedCallback, const AVPixelFormat eOutputPixelFormat = AV_PIX_FMT_BGR24);
 
     private:
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
-        bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame);
+        bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat);
         bool RequestKeyFrame(std::shared_ptr<rtc::Track> pVideoTrack);
 
         /////////////////////////////////////////
@@ -79,6 +79,7 @@ class WebRTC
         // AV codec context for decoding H264.
         AVCodecContext* m_pAVCodecContext;
         SwsContext* m_avSWSContext;
+        AVPixelFormat m_eOutputPixelFormat;
 
         // OpenCV Mat for storing the frame.
         cv::Mat m_cvFrame;

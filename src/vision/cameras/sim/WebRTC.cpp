@@ -96,13 +96,17 @@ WebRTC::~WebRTC()
  * @brief Set the callback function for when a new frame is received.
  *
  * @param fnOnFrameReceivedCallback - The callback function to set.
+ * @param eOutputPixelFormat - The output pixel format to use.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-void WebRTC::SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameReceivedCallback)
+void WebRTC::SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameReceivedCallback, const AVPixelFormat eOutputPixelFormat)
 {
+    // Set the callback function.
     m_fnOnFrameReceivedCallback = fnOnFrameReceivedCallback;
+    // Set the output pixel format.
+    m_eOutputPixelFormat = eOutputPixelFormat;
 }
 
 /******************************************************************************
@@ -398,7 +402,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                                 }
 
                                 // Pass to FFmpeg decoder
-                                this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame);
+                                this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
 
                                 // Check if the callback function is set before calling it.
                                 if (m_fnOnFrameReceivedCallback)
@@ -427,13 +431,14 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
  *
  * @param vH264EncodedBytes - The H264 encoded bytes.
  * @param cvDecodedFrame - The decoded frame.
+ * @param eOutputPixelFormat - The output pixel format.
  * @return true - Frame was successfully decoded.
  * @return false - Frame was not successfully decoded.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-16
  ******************************************************************************/
-bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame)
+bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat)
 {
     // Allocate the AVPacket.
     AVPacket* avPacket = av_packet_alloc();
@@ -519,28 +524,62 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             return false;
         }
 
-        // Convert the decoded frame to cv::Mat using sws_scale.
-        cvDecodedFrame       = cv::Mat(avFrame->height, avFrame->width, CV_8UC3);
-        uint8_t* dest[4]     = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
-        int dest_linesize[4] = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
-        if (!m_avSWSContext)
+        // Check if the user want to keep the YUV420P data un-altered.
+        if (eOutputPixelFormat == AV_PIX_FMT_YUV420P)
         {
-            if (avFrame->width > 0 && avFrame->height > 0 && avFrame->format != -1)
+            // The frame received from the FFMPEG H264 decoder is already in YUV420P format.
+            // We want to keep the raw YUV420P byte data un-altered, but store that data in a RGB 3 channel Mat.
+            // Absolutely no colorspace conversion or the binary data will be corrupted.
+
+            // Extract the Y, U, and V planes.
+            cv::Mat cvYPlane(avFrame->height, avFrame->width, CV_8UC1, avFrame->data[0]);
+            cv::Mat cvUPlane(avFrame->height / 2, avFrame->width / 2, CV_8UC1, avFrame->data[1]);
+            cv::Mat cvVPlane(avFrame->height / 2, avFrame->width / 2, CV_8UC1, avFrame->data[2]);
+            // Upsample the U and V planes to match the Y plane.
+            cv::Mat cvUPlaneUpsampled, cvVPlaneUpsampled;
+            cv::resize(cvUPlane, cvUPlaneUpsampled, cv::Size(avFrame->width, avFrame->height), 0, 0, cv::INTER_NEAREST);
+            cv::resize(cvVPlane, cvVPlaneUpsampled, cv::Size(avFrame->width, avFrame->height), 0, 0, cv::INTER_NEAREST);
+            // Merge the Y, U, and V planes into a single 3 channel Mat.
+            std::vector<cv::Mat> vYUVPlanes = {cvYPlane, cvUPlaneUpsampled, cvVPlaneUpsampled};
+            cv::merge(vYUVPlanes, cvDecodedFrame);
+        }
+        else
+        {
+            // Convert the decoded frame to cv::Mat using sws_scale.
+            cvDecodedFrame       = cv::Mat(avFrame->height, avFrame->width, CV_8UC3);
+            uint8_t* dest[4]     = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
+            int dest_linesize[4] = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
+            if (!m_avSWSContext)
             {
-                m_avSWSContext = sws_getContext(m_pAVCodecContext->width,
-                                                m_pAVCodecContext->height,
-                                                m_pAVCodecContext->pix_fmt,
-                                                m_pAVCodecContext->width,
-                                                m_pAVCodecContext->height,
-                                                AV_PIX_FMT_BGR24,
-                                                SWS_FAST_BILINEAR,
-                                                nullptr,
-                                                nullptr,
-                                                nullptr);
-                if (!m_avSWSContext)
+                if (avFrame->width > 0 && avFrame->height > 0 && avFrame->format != -1)
+                {
+                    m_avSWSContext = sws_getContext(m_pAVCodecContext->width,
+                                                    m_pAVCodecContext->height,
+                                                    m_pAVCodecContext->pix_fmt,
+                                                    m_pAVCodecContext->width,
+                                                    m_pAVCodecContext->height,
+                                                    eOutputPixelFormat,
+                                                    SWS_FAST_BILINEAR,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr);
+                    if (!m_avSWSContext)
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
+                        // Free the frame and packet.
+                        av_frame_free(&avFrame);
+                        av_packet_free(&avPacket);
+                        // Request a new keyframe from the video track.
+                        this->RequestKeyFrame(m_pVideoTrack1);
+
+                        return false;
+                    }
+                }
+                else
                 {
                     // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
+                    LOG_ERROR(logging::g_qSharedLogger, "Invalid frame dimensions or format!");
                     // Free the frame and packet.
                     av_frame_free(&avFrame);
                     av_packet_free(&avPacket);
@@ -550,20 +589,8 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
                     return false;
                 }
             }
-            else
-            {
-                // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Invalid frame dimensions or format!");
-                // Free the frame and packet.
-                av_frame_free(&avFrame);
-                av_packet_free(&avPacket);
-                // Request a new keyframe from the video track.
-                this->RequestKeyFrame(m_pVideoTrack1);
-
-                return false;
-            }
+            sws_scale(m_avSWSContext, avFrame->data, avFrame->linesize, 0, avFrame->height, dest, dest_linesize);
         }
-        sws_scale(m_avSWSContext, avFrame->data, avFrame->linesize, 0, avFrame->height, dest, dest_linesize);
 
         // Calculate the time since the last key frame request.
         std::chrono::duration<double> tmTimeSinceLastKeyFrameRequest = std::chrono::system_clock::now() - m_tmLastKeyFrameRequestTime;

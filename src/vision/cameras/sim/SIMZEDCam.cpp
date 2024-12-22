@@ -76,7 +76,6 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
         {
             // Acquire a lock on the webRTC copy mutex.
             std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
-
             // Deep copy the frame.
             m_cvDepthMeasure = cvFrame.clone();
         });
