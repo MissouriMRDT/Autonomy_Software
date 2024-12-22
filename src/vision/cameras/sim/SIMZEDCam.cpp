@@ -76,8 +76,57 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
         {
             // Acquire a lock on the webRTC copy mutex.
             std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
+
             // Deep copy the frame.
-            m_cvDepthMeasure = cvFrame.clone();
+            m_cvDepthBuffer = cvFrame.clone();
+            // Check if m_cvDepthMeasure is the correct size and type.
+            if (m_cvDepthMeasure.empty() || m_cvDepthMeasure.size() != m_cvDepthBuffer.size() || m_cvDepthMeasure.type() != CV_16UC1)
+            {
+                m_cvDepthMeasure = cv::Mat(m_cvDepthBuffer.size(), CV_16UC1);
+            }
+            // The Simulator uses this a special method of packing the depth measure data as defined in this paper.
+            // http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
+            // Here we will decode it.
+            float w  = 65536.0;
+            float np = 512.0;
+
+            // Iterate over each pixel in the cvDepthMeasure image
+            for (int y = 0; y < m_cvDepthBuffer.rows; ++y)
+            {
+                for (int x = 0; x < m_cvDepthBuffer.cols; ++x)
+                {
+                    // Extract the encoded depth values
+                    cv::Vec3b cvEncodedDepth = m_cvDepthBuffer.at<cv::Vec3b>(y, x);
+
+                    // Extract encoded values
+                    float L  = cvEncodedDepth[2] / 255.0;
+                    float Ha = cvEncodedDepth[1] / 255.0;
+                    float Hb = cvEncodedDepth[0] / 255.0;
+
+                    // Period for triangle waves
+                    float p = np / w;
+
+                    // Determine offset and fine-grain correction
+                    int m    = fmod((4.0 * (L / p)) - 0.5, 4.0);
+                    float L0 = L - fmod(L - (p / 8.0), p) + ((p / 4.0) * m) - (p / 8.0);
+
+                    float delta;
+                    if (m == 0)
+                        delta = (p / 2.0) * Ha;
+                    else if (m == 1)
+                        delta = (p / 2.0) * Hb;
+                    else if (m == 2)
+                        delta = (p / 2.0) * (1.0 - Ha);
+                    else if (m == 3)
+                        delta = (p / 2.0) * (1.0 - Hb);
+
+                    // Combine to compute the original depth
+                    float depth = w * (L0 + delta);
+
+                    // Store the decoded depth in the new cv::Mat
+                    m_cvDepthMeasure.at<uint16_t>(y, x) = static_cast<uint16_t>(depth);
+                }
+            }
         });
 
     // Set max FPS of the ThreadedContinuousCode method.
@@ -112,23 +161,6 @@ SIMZEDCam::~SIMZEDCam()
  ******************************************************************************/
 void SIMZEDCam::ThreadedContinuousCode()
 {
-    // Check if camera is NOT open.
-    // if (!m_cvCamera.isOpened())
-    // {
-    //     // Shutdown threads for this SIMZEDCam.
-    //     this->RequestStop();
-
-    //     // Submit logger message.
-    //     LOG_CRITICAL(logging::g_qSharedLogger,
-    //                  "Camera start was attempted for camera at {}/{}, but camera never properly opened or it has become disconnected!",
-    //                  m_nCameraIndex,
-    //                  m_szCameraPath);
-    // }
-    // else
-    // {
-    //     // TODO: PUT CODE HERE FOR GETTING FRAMES AND DATA FROM SIMULATOR.
-    // }
-
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.

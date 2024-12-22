@@ -83,6 +83,7 @@ class SIMZEDCam : public Camera<cv::Mat>
         // Mats for storing frames.
         cv::Mat m_cvFrame;
         cv::Mat m_cvDepthImage;
+        cv::Mat m_cvDepthBuffer;
         cv::Mat m_cvDepthMeasure;
         cv::Mat m_cvPointCloud;
 
