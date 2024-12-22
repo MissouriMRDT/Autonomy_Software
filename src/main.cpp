@@ -8,8 +8,7 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../examples/vision/cameras/sim/OpenSIMZEDCam.hpp"
-// #include "../examples/vision/cameras/sim/EncodeDecodeTest.hpp"
+// #include "../examples/vision/cameras/sim/OpenSIMZEDCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"

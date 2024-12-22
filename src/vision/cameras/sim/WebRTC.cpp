@@ -267,7 +267,9 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Send the local description to the signalling server
             nlohmann::json jsnMessage;
             jsnMessage["type"] = rtcDescription.typeString();
-            jsnMessage["sdp"]  = rtcDescription.generateSdp();
+            std::string sdp    = rtcDescription.generateSdp();
+            jsnMessage["sdp"]  = sdp;
+
             m_pWebSocket->send(jsnMessage.dump());
 
             // Submit logger message.
@@ -314,14 +316,6 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             {
                 case rtc::PeerConnection::SignalingState::HaveLocalOffer:
                 {
-                    // Get the local description.
-                    std::optional<rtc::Description> rtcDescription = m_pPeerConnection->localDescription();
-                    // Send the local description to the signalling server
-                    nlohmann::json jsnMessage;
-                    jsnMessage["type"] = rtcDescription->typeString();
-                    jsnMessage["sdp"]  = rtcDescription->generateSdp();
-                    m_pWebSocket->send(jsnMessage.dump());
-                    LOG_WARNING(logging::g_qSharedLogger, "Sending local description to signalling server");
                     LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveLocalOffer");
                     break;
                 }
@@ -391,30 +385,28 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                         {
                             // Assuming 96 is the H264 payload type.
-                            if (rtcFrameInfo.payloadType == 96)
-                            {
-                                // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
-                                std::vector<uint8_t> vH264EncodedBytes;
-                                vH264EncodedBytes.reserve(rtcBinaryMessage.size());
-                                for (std::byte stdByte : rtcBinaryMessage)
-                                {
-                                    vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
-                                }
-
-                                // Pass to FFmpeg decoder
-                                this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
-
-                                // Check if the callback function is set before calling it.
-                                if (m_fnOnFrameReceivedCallback)
-                                {
-                                    // Call the user's callback function.
-                                    m_fnOnFrameReceivedCallback(m_cvFrame);
-                                }
-                            }
-                            else
+                            if (rtcFrameInfo.payloadType != 96)
                             {
                                 // Submit logger message.
                                 LOG_WARNING(logging::g_qSharedLogger, "Received frame with unknown payload type: {}", rtcFrameInfo.payloadType);
+                            }
+
+                            // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
+                            std::vector<uint8_t> vH264EncodedBytes;
+                            vH264EncodedBytes.reserve(rtcBinaryMessage.size());
+                            for (std::byte stdByte : rtcBinaryMessage)
+                            {
+                                vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
+                            }
+
+                            // Pass to FFmpeg decoder
+                            this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
+
+                            // Check if the callback function is set before calling it.
+                            if (m_fnOnFrameReceivedCallback)
+                            {
+                                // Call the user's callback function.
+                                m_fnOnFrameReceivedCallback(m_cvFrame);
                             }
                         });
                 });
@@ -592,16 +584,16 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             sws_scale(m_avSWSContext, avFrame->data, avFrame->linesize, 0, avFrame->height, dest, dest_linesize);
         }
 
-        // Calculate the time since the last key frame request.
-        std::chrono::duration<double> tmTimeSinceLastKeyFrameRequest = std::chrono::system_clock::now() - m_tmLastKeyFrameRequestTime;
-        // Check if the time since the last key frame request is greater than the key frame request interval.
-        if (tmTimeSinceLastKeyFrameRequest.count() > 1)
-        {
-            // Request a new key frame from the video track.
-            this->RequestKeyFrame(m_pVideoTrack1);
-            // Update the time of the last key frame request.
-            m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
-        }
+        // // Calculate the time since the last key frame request.
+        // std::chrono::duration<double> tmTimeSinceLastKeyFrameRequest = std::chrono::system_clock::now() - m_tmLastKeyFrameRequestTime;
+        // // Check if the time since the last key frame request is greater than the key frame request interval.
+        // if (tmTimeSinceLastKeyFrameRequest.count() > 1)
+        // {
+        //     // Request a new key frame from the video track.
+        //     this->RequestKeyFrame(m_pVideoTrack1);
+        //     // Update the time of the last key frame request.
+        //     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
+        // }
     }
 
     // Clean up.
