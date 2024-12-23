@@ -103,8 +103,6 @@ void RecordingHandler::ThreadedContinuousCode()
     // Check what mode recorder was initialized with.
     switch (m_eRecordingMode)
     {
-        // FIXME: Make this not slow down when a camera is unplugged while running.
-
         // Record video feeds from the CameraHandler.
         case RecordingMode::eCameraHandler:
             // Update recordable cameras.
@@ -157,7 +155,7 @@ void RecordingHandler::UpdateRecordableCameras()
     for (int nCamera = int(CameraHandler::BasicCamName::BASICCAM_START) + 1; nCamera != int(CameraHandler::BasicCamName::BASICCAM_END); ++nCamera)
     {
         // Get pointer to camera.
-        BasicCam* pBasicCamera = globals::g_pCameraHandler->GetBasicCam(static_cast<CameraHandler::BasicCamName>(nCamera));
+        BasicCamera* pBasicCamera = globals::g_pCameraHandler->GetBasicCam(static_cast<CameraHandler::BasicCamName>(nCamera));
         // Store camera pointer in vector so we can get images later.
         m_vBasicCameras[nCamera - 1] = pBasicCamera;
 

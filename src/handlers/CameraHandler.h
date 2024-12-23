@@ -11,7 +11,7 @@
 #ifndef CAMERA_HANDLER_H
 #define CAMERA_HANDLER_H
 
-#include "../vision/cameras/BasicCam.h"
+#include "../interfaces/BasicCamera.hpp"
 #include "../vision/cameras/ZEDCam.h"
 #include "RecordingHandler.h"
 
@@ -40,7 +40,7 @@ class CameraHandler
         ZEDCam* m_pMainCam;
         ZEDCam* m_pLeftCam;
         ZEDCam* m_pRightCam;
-        BasicCam* m_pGroundCam;
+        BasicCamera* m_pGroundCam;
         RecordingHandler* m_pRecordingHandler;
 
     public:
@@ -80,7 +80,7 @@ class CameraHandler
         /////////////////////////////////////////
 
         ZEDCam* GetZED(ZEDCamName eCameraName);
-        BasicCam* GetBasicCam(BasicCamName eCameraName);
+        BasicCamera* GetBasicCam(BasicCamName eCameraName);
 };
 
 #endif

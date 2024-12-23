@@ -54,16 +54,18 @@ class Camera : public AutonomyThread<void>
                const PIXEL_FORMATS ePropPixelFormat,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
-               const bool bEnableRecordingFlag)
+               const bool bEnableRecordingFlag,
+               const int nNumFrameRetrievalThreads = 5)
         {
             // Initialize member variables.
-            m_nPropResolutionX     = nPropResolutionX;
-            m_nPropResolutionY     = nPropResolutionY;
-            m_nPropFramesPerSecond = nPropFramesPerSecond;
-            m_ePropPixelFormat     = ePropPixelFormat;
-            m_dPropHorizontalFOV   = dPropHorizontalFOV;
-            m_dPropVerticalFOV     = dPropVerticalFOV;
-            m_bEnableRecordingFlag = bEnableRecordingFlag;
+            m_nPropResolutionX          = nPropResolutionX;
+            m_nPropResolutionY          = nPropResolutionY;
+            m_nPropFramesPerSecond      = nPropFramesPerSecond;
+            m_ePropPixelFormat          = ePropPixelFormat;
+            m_dPropHorizontalFOV        = dPropHorizontalFOV;
+            m_dPropVerticalFOV          = dPropVerticalFOV;
+            m_bEnableRecordingFlag      = bEnableRecordingFlag;
+            m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
         }
 
         /******************************************************************************
@@ -152,6 +154,7 @@ class Camera : public AutonomyThread<void>
         int m_nPropResolutionX;
         int m_nPropResolutionY;
         int m_nPropFramesPerSecond;
+        int m_nNumFrameRetrievalThreads;
         PIXEL_FORMATS m_ePropPixelFormat;
         double m_dPropHorizontalFOV;
         double m_dPropVerticalFOV;

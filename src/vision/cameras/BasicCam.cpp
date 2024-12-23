@@ -37,13 +37,16 @@ BasicCam::BasicCam(const std::string szCameraPath,
                    const double dPropVerticalFOV,
                    const bool bEnableRecordingFlag,
                    const int nNumFrameRetrievalThreads) :
-    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
+    BasicCamera(szCameraPath,
+                nPropResolutionX,
+                nPropResolutionY,
+                nPropFramesPerSecond,
+                ePropPixelFormat,
+                dPropHorizontalFOV,
+                dPropVerticalFOV,
+                bEnableRecordingFlag,
+                nNumFrameRetrievalThreads)
 {
-    // Assign member variables.
-    m_szCameraPath              = szCameraPath;
-    m_nCameraIndex              = -1;
-    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
-
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
 
@@ -89,13 +92,16 @@ BasicCam::BasicCam(const int nCameraIndex,
                    const double dPropVerticalFOV,
                    const bool bEnableRecordingFlag,
                    const int nNumFrameRetrievalThreads) :
-    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
+    BasicCamera(nCameraIndex,
+                nPropResolutionX,
+                nPropResolutionY,
+                nPropFramesPerSecond,
+                ePropPixelFormat,
+                dPropHorizontalFOV,
+                dPropVerticalFOV,
+                bEnableRecordingFlag,
+                nNumFrameRetrievalThreads)
 {
-    // Assign member variables.
-    m_nCameraIndex              = nCameraIndex;
-    m_szCameraPath              = "";
-    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
-
     // Limit this classes FPS to the given camera FPS.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 

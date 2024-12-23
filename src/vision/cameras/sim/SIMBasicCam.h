@@ -12,7 +12,7 @@
 #define SIMBASICCAM_H
 
 #include "../../../interfaces/AutonomyThread.hpp"
-#include "../../../interfaces/Camera.hpp"
+#include "../../../interfaces/BasicCamera.hpp"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -29,7 +29,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-class SIMBasicCam : public Camera<cv::Mat>
+class SIMBasicCam : public BasicCamera
 {
     public:
         /////////////////////////////////////////

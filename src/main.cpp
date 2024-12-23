@@ -169,7 +169,7 @@ int main()
         ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
         ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
         ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
-        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        BasicCamera* pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);

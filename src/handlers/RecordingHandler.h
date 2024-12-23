@@ -11,8 +11,8 @@
 #ifndef RECORDING_HANDLER_H
 #define RECORDING_HANDLER_H
 
+#include "../interfaces/BasicCamera.hpp"
 #include "../vision/aruco/TagDetector.h"
-#include "../vision/cameras/BasicCam.h"
 #include "../vision/cameras/ZEDCam.h"
 
 /// \cond
@@ -84,7 +84,7 @@ class RecordingHandler : public AutonomyThread<void>
         int m_nTotalVideoFeeds;
         RecordingMode m_eRecordingMode;
         std::vector<ZEDCam*> m_vZEDCameras;
-        std::vector<BasicCam*> m_vBasicCameras;
+        std::vector<BasicCamera*> m_vBasicCameras;
         std::vector<TagDetector*> m_vTagDetectors;
         std::vector<cv::VideoWriter> m_vCameraWriters;
         std::vector<bool> m_vRecordingToggles;

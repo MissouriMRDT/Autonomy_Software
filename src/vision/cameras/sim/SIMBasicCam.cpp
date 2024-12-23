@@ -38,13 +38,16 @@ SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
                          const double dPropVerticalFOV,
                          const bool bEnableRecordingFlag,
                          const int nNumFrameRetrievalThreads) :
-    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, ePropPixelFormat, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
+    BasicCamera(szCameraPath,
+                nPropResolutionX,
+                nPropResolutionY,
+                nPropFramesPerSecond,
+                ePropPixelFormat,
+                dPropHorizontalFOV,
+                dPropVerticalFOV,
+                bEnableRecordingFlag,
+                nNumFrameRetrievalThreads)
 {
-    // Assign member variables.
-    m_szCameraPath              = szCameraPath;
-    m_nCameraIndex              = -1;
-    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
-
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
 

@@ -203,12 +203,12 @@ ZEDCam* CameraHandler::GetZED(ZEDCamName eCameraName)
  * @brief Accessor for Basic cameras.
  *
  * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
- * @return BasicCam* - A pointer to the basic camera pertaining to the given name.
+ * @return BasicCamera* - A pointer to the basic camera pertaining to the given name.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-BasicCam* CameraHandler::GetBasicCam(BasicCamName eCameraName)
+BasicCamera* CameraHandler::GetBasicCam(BasicCamName eCameraName)
 {
     // Determine which camera should be returned.
     switch (eCameraName)
