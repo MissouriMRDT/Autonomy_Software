@@ -12,7 +12,7 @@
 #define CAMERA_HANDLER_H
 
 #include "../interfaces/BasicCamera.hpp"
-#include "../vision/cameras/ZEDCam.h"
+#include "../interfaces/ZEDCamera.hpp"
 #include "RecordingHandler.h"
 
 /// \cond
@@ -37,9 +37,9 @@ class CameraHandler
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        ZEDCam* m_pMainCam;
-        ZEDCam* m_pLeftCam;
-        ZEDCam* m_pRightCam;
+        ZEDCamera* m_pMainCam;
+        ZEDCamera* m_pLeftCam;
+        ZEDCamera* m_pRightCam;
         BasicCamera* m_pGroundCam;
         RecordingHandler* m_pRecordingHandler;
 
@@ -79,7 +79,7 @@ class CameraHandler
         // Accessors.
         /////////////////////////////////////////
 
-        ZEDCam* GetZED(ZEDCamName eCameraName);
+        ZEDCamera* GetZED(ZEDCamName eCameraName);
         BasicCamera* GetBasicCam(BasicCamName eCameraName);
 };
 

@@ -51,6 +51,9 @@ SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
 
+    // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
+    m_cvFrame = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
+
     // Attempt to open camera with OpenCV's VideoCapture and print if successfully opened or not.
     if (m_cvCamera.open(szCameraPath))
     {

@@ -80,7 +80,8 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     rm -rf ZED_SDK_Linux.run && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /root/Documents/ZED/ && \
-    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
+    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp && \
+    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
 # Install OpenCV
 ARG OPENCV_VERSION="4.10.0"

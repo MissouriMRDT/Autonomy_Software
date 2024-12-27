@@ -10,6 +10,10 @@
 
 #include "CameraHandler.h"
 #include "../AutonomyConstants.h"
+#include "../vision/cameras/BasicCam.h"
+#include "../vision/cameras/ZEDCam.h"
+#include "../vision/cameras/sim/SIMBasicCam.h"
+#include "../vision/cameras/sim/SIMZEDCam.h"
 
 /******************************************************************************
  * @brief Construct a new Camera Handler Thread:: Camera Handler Thread object.
@@ -20,20 +24,36 @@
  ******************************************************************************/
 CameraHandler::CameraHandler()
 {
-    // Initialize main ZED camera.
-    m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
-                            constants::ZED_MAINCAM_RESOLUTIONY,
-                            constants::ZED_MAINCAM_FPS,
-                            constants::ZED_MAINCAM_HORIZONTAL_FOV,
-                            constants::ZED_MAINCAM_VERTICAL_FOV,
-                            constants::ZED_MAINCAM_ENABLE_RECORDING,
-                            constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-                            constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-                            constants::ZED_MAINCAM_USE_GPU_MAT,
-                            constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
-                            constants::ZED_MAINCAM_FUSION_MASTER,
-                            constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
-                            constants::ZED_MAINCAM_SERIAL);
+    // Check if we are in simulation mode.
+    if (!constants::MODE_SIM)
+    {
+        // Initialize main ZED camera.
+        m_pMainCam = new ZEDCam(constants::ZED_MAINCAM_RESOLUTIONX,
+                                constants::ZED_MAINCAM_RESOLUTIONY,
+                                constants::ZED_MAINCAM_FPS,
+                                constants::ZED_MAINCAM_HORIZONTAL_FOV,
+                                constants::ZED_MAINCAM_VERTICAL_FOV,
+                                constants::ZED_MAINCAM_ENABLE_RECORDING,
+                                constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+                                constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+                                constants::ZED_MAINCAM_USE_GPU_MAT,
+                                constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
+                                constants::ZED_MAINCAM_FUSION_MASTER,
+                                constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
+                                constants::ZED_MAINCAM_SERIAL);
+    }
+    else
+    {
+        m_pMainCam = new SIMZEDCam("ws://" + constants::SIM_IP_ADDRESS + ":80",
+                                   constants::ZED_MAINCAM_RESOLUTIONX,
+                                   constants::ZED_MAINCAM_RESOLUTIONY,
+                                   constants::ZED_MAINCAM_FPS,
+                                   constants::ZED_MAINCAM_HORIZONTAL_FOV,
+                                   constants::ZED_MAINCAM_VERTICAL_FOV,
+                                   constants::ZED_MAINCAM_ENABLE_RECORDING,
+                                   constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
+                                   constants::ZED_MAINCAM_SERIAL);
+    }
 
     // Initialize left ZED camera.
     m_pLeftCam = new ZEDCam(constants::ZED_LEFTCAM_RESOLUTIONX,
@@ -182,12 +202,12 @@ void CameraHandler::StopRecording()
  * @brief Accessor for ZED cameras.
  *
  * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
- * @return ZEDCam* - A pointer to the zed camera pertaining to the given name.
+ * @return ZEDCamera* - A pointer to the zed camera pertaining to the given name.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
-ZEDCam* CameraHandler::GetZED(ZEDCamName eCameraName)
+ZEDCamera* CameraHandler::GetZED(ZEDCamName eCameraName)
 {
     // Determine which camera should be returned.
     switch (eCameraName)

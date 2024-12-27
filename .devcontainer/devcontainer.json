@@ -310,6 +310,7 @@
                     "custom": true, // Enable the `custom` dictionary
                     "internal-terms": false // Disable the `internal-terms` dictionary
                 },
+                "cSpell.spellCheckOnlyWorkspaceFiles": true,
                 // Coverage Gutters Extension Settings.
                 "coverage-gutters.coverageFileNames": [
                     "lcov.info",

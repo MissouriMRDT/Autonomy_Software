@@ -220,7 +220,7 @@ void RecordingHandler::UpdateRecordableCameras()
     for (int nCamera = int(CameraHandler::ZEDCamName::ZEDCAM_START) + 1; nCamera != int(CameraHandler::ZEDCamName::ZEDCAM_END); ++nCamera)
     {
         // Get pointer to camera.
-        ZEDCam* pZEDCamera = globals::g_pCameraHandler->GetZED(static_cast<CameraHandler::ZEDCamName>(nCamera));
+        ZEDCamera* pZEDCamera = globals::g_pCameraHandler->GetZED(static_cast<CameraHandler::ZEDCamName>(nCamera));
         // Store camera pointer in vector so we can get images later.
         m_vZEDCameras[nCamera + nIndexOffset] = pZEDCamera;
 

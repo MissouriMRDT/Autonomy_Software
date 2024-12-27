@@ -8,7 +8,6 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-// #include "../examples/vision/cameras/sim/OpenSIMZEDCam.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
@@ -84,6 +83,40 @@ int main()
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
 
+    /////////////////////////////////////////
+    // Setup global objects.
+    /////////////////////////////////////////
+    // Initialize RoveComm.
+    network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+    network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+    // Start RoveComm instances bound on ports.
+    network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+    network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+    // Check if RoveComm was successfully initialized.
+    if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
+    {
+        // Submit logger message.
+        LOG_CRITICAL(logging::g_qSharedLogger,
+                     "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
+                     network::g_bRoveCommUDPStatus,
+                     network::g_bRoveCommTCPStatus);
+
+        // Since RoveComm is crucial, stop code.
+        bMainStop = true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
+    }
+    // Initialize callbacks.
+    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
+
+    // Initialize drivers.
+    globals::g_pDriveBoard      = new DriveBoard();
+    globals::g_pMultimediaBoard = new MultimediaBoard();
+    globals::g_pNavigationBoard = new NavigationBoard();
+
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
     {
@@ -116,39 +149,6 @@ int main()
             std::this_thread::sleep_for(std::chrono::seconds(3));
         }
 
-        /////////////////////////////////////////
-        // Setup global objects.
-        /////////////////////////////////////////
-        // Initialize RoveComm.
-        network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
-        network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
-        // Start RoveComm instances bound on ports.
-        network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
-        network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
-        // Check if RoveComm was successfully initialized.
-        if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
-        {
-            // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger,
-                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                         network::g_bRoveCommUDPStatus,
-                         network::g_bRoveCommTCPStatus);
-
-            // Since RoveComm is crucial, stop code.
-            bMainStop = true;
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
-        }
-
-        // Initialize callbacks.
-        network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
-        // Initialize drivers.
-        globals::g_pDriveBoard      = new DriveBoard();
-        globals::g_pMultimediaBoard = new MultimediaBoard();
-        globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pWaypointHandler     = new WaypointHandler();
@@ -166,9 +166,9 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
-        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
+        ZEDCamera* pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        ZEDCamera* pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
+        ZEDCamera* pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
         BasicCamera* pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
@@ -186,45 +186,45 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        while (!bMainStop)
-        {
-            // Send current robot state over RoveComm.
-            // Construct a RoveComm packet with the drive data.
-            rovecomm::RoveCommPacket<uint8_t> stPacket;
-            stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
-            stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
-            stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
-            stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
-            // Send drive command over RoveComm to drive board to all subscribers.
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+        // while (!bMainStop)
+        // {
+        // Send current robot state over RoveComm.
+        // Construct a RoveComm packet with the drive data.
+        rovecomm::RoveCommPacket<uint8_t> stPacket;
+        stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
+        stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
+        stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
+        stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
+        // Send drive command over RoveComm to drive board to all subscribers.
+        network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 
-            // Create a string to append FPS values to.
-            std::string szMainInfo = "";
-            // Get FPS of all cameras and detectors and construct the info into a string.
-            szMainInfo += "\n--------[ Threads FPS ]--------\n";
-            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\n--------[ State Machine Info ]--------\n";
-            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
+        // Create a string to append FPS values to.
+        std::string szMainInfo = "";
+        // Get FPS of all cameras and detectors and construct the info into a string.
+        szMainInfo += "\n--------[ Threads FPS ]--------\n";
+        szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
+        szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "\n--------[ State Machine Info ]--------\n";
+        szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
 
-            // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
 
-            // Update IPS tick.
-            IterPerSecond.Tick();
+        // Update IPS tick.
+        IterPerSecond.Tick();
 
-            // No need to loop as fast as possible. Sleep...
-            std::this_thread::sleep_for(std::chrono::milliseconds(60));
-        }
+        // No need to loop as fast as possible. Sleep...
+        std::this_thread::sleep_for(std::chrono::milliseconds(60000));
+        // }
 
         /////////////////////////////////////////
         // Cleanup.

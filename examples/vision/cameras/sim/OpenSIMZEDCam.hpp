@@ -32,7 +32,7 @@
 void RunExample()
 {
     // Create a new SIMZEDCam object.
-    SIMZEDCam* pZEDCam = new SIMZEDCam("ws://192.168.69.48:80", 1280, 720, 60, PIXEL_FORMATS::eRGB, 90.0, 60.0, true);
+    SIMZEDCam* pZEDCam = new SIMZEDCam("ws://192.168.69.48:80", 1280, 720, 60, 90.0, 60.0, true);
     pZEDCam->Start();
 
     // Create a cv::Mat to store the frame.

@@ -50,6 +50,7 @@ class WebRTC
 
         // Setter for the frame received callback.
         void SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameReceivedCallback, const AVPixelFormat eOutputPixelFormat = AV_PIX_FMT_BGR24);
+        bool GetIsConnected() const;
 
     private:
         /////////////////////////////////////////
@@ -73,7 +74,6 @@ class WebRTC
         std::shared_ptr<rtc::DataChannel> m_pDataChannel;
         std::shared_ptr<rtc::Track> m_pVideoTrack1;
         std::shared_ptr<rtc::H264RtpDepacketizer> m_pTrack1H264DepacketizationHandler;
-        std::shared_ptr<rtc::RtcpReceivingSession> m_pTrack1RTCPReceivingSession;
         std::chrono::system_clock::time_point m_tmLastKeyFrameRequestTime;
 
         // AV codec context for decoding H264.

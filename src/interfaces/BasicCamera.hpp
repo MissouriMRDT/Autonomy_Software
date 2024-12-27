@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Defines the BasicCamera class.
+ * @brief Defines and implements the BasicCamera interface class.
  *
  * @file BasicCamera.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -12,9 +12,10 @@
 #define BASICCAMERA_HPP
 
 #include "Camera.hpp"
-#include <future>
-#include <opencv2/opencv.hpp>
-#include <string>
+
+/// \cond
+
+/// \endcond
 
 /******************************************************************************
  * @brief This class serves as a middle inheritor between the Camera interface
@@ -124,13 +125,6 @@ class BasicCamera : public Camera<cv::Mat>
          *      the ThreadedLinearCode() method. It copies the data from the different
          *      data objects to references of the same type stored in a vector queued up by the
          *      Grab methods.
-         ******************************************************************************/
-
-        /******************************************************************************
-         * @brief This method holds the code that is ran in the thread pool started by
-         *      the ThreadedLinearCode() method. It copies the data from the different
-         *      data objects to references of the same type stored in a vector queued up by the
-         *      Grab methods.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
@@ -148,18 +142,7 @@ class BasicCamera : public Camera<cv::Mat>
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
          ******************************************************************************/
-        virtual std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) = 0;
-
-        /******************************************************************************
-         * @brief Accessor for the camera open status.
-         *
-         * @return true - The camera has been successfully opened.
-         * @return false - The camera has not been successfully opened.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        virtual bool GetCameraIsOpen() { return false; }
+        virtual std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
 
         /******************************************************************************
          * @brief Accessor for the cameras path or video index.

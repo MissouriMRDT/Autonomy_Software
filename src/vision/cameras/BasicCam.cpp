@@ -102,8 +102,8 @@ BasicCam::BasicCam(const int nCameraIndex,
                 bEnableRecordingFlag,
                 nNumFrameRetrievalThreads)
 {
-    // Limit this classes FPS to the given camera FPS.
-    this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+    // Initialize the OpenCV mat to a black/empty image the size of the camera resolution.
+    m_cvFrame = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
 
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = true;

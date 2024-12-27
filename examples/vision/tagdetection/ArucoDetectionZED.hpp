@@ -30,7 +30,7 @@ void RunExample()
     globals::g_pTagDetectionHandler = new TagDetectionHandler();
 
     // Get pointer to camera.
-    ZEDCam* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
+    ZEDCamera* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::eHeadMainCam);
     // Start basic cam.
     ExampleZEDCam1->Start();
 

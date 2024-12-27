@@ -12,8 +12,8 @@
 #ifndef TAG_DETECTOR_H
 #define TAG_DETECTOR_H
 
-#include "../../vision/cameras/BasicCam.h"
-#include "../../vision/cameras/ZEDCam.h"
+#include "../../interfaces/BasicCamera.hpp"
+#include "../../interfaces/ZEDCamera.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TensorflowTagDetection.hpp"
 
@@ -47,7 +47,7 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        TagDetector(BasicCam* pBasicCam,
+        TagDetector(BasicCamera* pBasicCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
                     const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
                     const int nArucoMarkerBorderBits              = 1,
@@ -57,7 +57,7 @@ class TagDetector : public AutonomyThread<void>
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
-        TagDetector(ZEDCam* pZEDCam,
+        TagDetector(ZEDCamera* pZEDCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
                     const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
                     const int nArucoMarkerBorderBits              = 1,

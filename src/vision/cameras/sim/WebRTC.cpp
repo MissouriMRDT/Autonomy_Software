@@ -28,7 +28,7 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
 
     // Configure logging level from FFMPEG library.
-    av_log_set_level(AV_LOG_FATAL);
+    av_log_set_level(AV_LOG_DEBUG);
 
     // Find the H264 decoder
     const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -51,6 +51,9 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     // Set codec context options.
     m_pAVCodecContext->flags |= AV_CODEC_FLAG2_FAST;
     m_pAVCodecContext->err_recognition = AV_EF_COMPLIANT | AV_EF_CAREFUL;
+    av_opt_set_int(m_pAVCodecContext, "refcounted_frames", 1, 0);
+    av_opt_set_int(m_pAVCodecContext, "error_concealment", FF_EC_GUESS_MVS | FF_EC_DEBLOCK, 0);
+    av_opt_set_int(m_pAVCodecContext, "threads", 4, 0);
 
     // Construct the WebRTC peer connection and data channel for receiving data from the simulator.
     rtc::WebSocket::Configuration rtcWebSocketConfig;
@@ -73,19 +76,25 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
 WebRTC::~WebRTC()
 {
     // Close the video track, peer connection, data channel, and websocket.
+    m_pVideoTrack1->close();
     m_pPeerConnection->close();
     m_pDataChannel->close();
     m_pWebSocket->close();
 
+    // Wait for all connections to close.
+    while (!m_pVideoTrack1->isClosed() || !m_pDataChannel->isClosed() || !m_pWebSocket->isClosed())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
     // Manually destroy the smart pointers.
+    m_pVideoTrack1.reset();
     m_pPeerConnection.reset();
     m_pDataChannel.reset();
     m_pWebSocket.reset();
 
     // Free the codec context.
     avcodec_free_context(&m_pAVCodecContext);
-    // Free the SwsContext.
-    sws_freeContext(m_avSWSContext);
 
     // Set dangling pointers to nullptr.
     m_pAVCodecContext = nullptr;
@@ -107,6 +116,20 @@ void WebRTC::SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameR
     m_fnOnFrameReceivedCallback = fnOnFrameReceivedCallback;
     // Set the output pixel format.
     m_eOutputPixelFormat = eOutputPixelFormat;
+}
+
+/******************************************************************************
+ * @brief Get the connection status of the WebRTC object.
+ *
+ * @return true - The WebRTC object is connected.
+ * @return false - The WebRTC object is not connected.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-12-26
+ ******************************************************************************/
+bool WebRTC::GetIsConnected() const
+{
+    return m_pWebSocket->isOpen();
 }
 
 /******************************************************************************
@@ -376,8 +399,6 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                     // Create a H264 depacketization handler and rtcp receiving session.
                     m_pTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::LongStartSequence);
-                    m_pTrack1RTCPReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
-                    m_pTrack1H264DepacketizationHandler->addToChain(m_pTrack1RTCPReceivingSession);
                     m_pVideoTrack1->setMediaHandler(m_pTrack1H264DepacketizationHandler);
 
                     // Set the onMessage callback for the video track.
@@ -385,28 +406,25 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                         {
                             // Assuming 96 is the H264 payload type.
-                            if (rtcFrameInfo.payloadType != 96)
+                            if (rtcFrameInfo.payloadType == 96)
                             {
-                                // Submit logger message.
-                                LOG_WARNING(logging::g_qSharedLogger, "Received frame with unknown payload type: {}", rtcFrameInfo.payloadType);
-                            }
+                                // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
+                                std::vector<uint8_t> vH264EncodedBytes;
+                                vH264EncodedBytes.reserve(rtcBinaryMessage.size());
+                                for (std::byte stdByte : rtcBinaryMessage)
+                                {
+                                    vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
+                                }
 
-                            // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
-                            std::vector<uint8_t> vH264EncodedBytes;
-                            vH264EncodedBytes.reserve(rtcBinaryMessage.size());
-                            for (std::byte stdByte : rtcBinaryMessage)
-                            {
-                                vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
-                            }
+                                // Pass to FFmpeg decoder
+                                this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
 
-                            // Pass to FFmpeg decoder
-                            this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
-
-                            // Check if the callback function is set before calling it.
-                            if (m_fnOnFrameReceivedCallback)
-                            {
-                                // Call the user's callback function.
-                                m_fnOnFrameReceivedCallback(m_cvFrame);
+                                // Check if the callback function is set before calling it.
+                                if (m_fnOnFrameReceivedCallback)
+                                {
+                                    // Call the user's callback function.
+                                    m_fnOnFrameReceivedCallback(m_cvFrame);
+                                }
                             }
                         });
                 });

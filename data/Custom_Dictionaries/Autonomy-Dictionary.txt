@@ -461,6 +461,7 @@ Wextra
 Wpedantic
 wslg
 xauth
+xhost
 XNNPACK
 XYZBGRA
 XYZRGBA
@@ -471,5 +472,6 @@ YUVJ
 YUYV
 Zain
 ZEDCAM
+ZEDCAMERA
 ZEDSDK
 zstd

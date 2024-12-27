@@ -44,15 +44,6 @@ class SIMBasicCam : public BasicCamera
                     const double dPropVerticalFOV,
                     const bool bEnableRecordingFlag,
                     const int nNumFrameRetrievalThreads = 10);
-        SIMBasicCam(const int nCameraIndex,
-                    const int nPropResolutionX,
-                    const int nPropResolutionY,
-                    const int nPropFramesPerSecond,
-                    const PIXEL_FORMATS ePropPixelFormat,
-                    const double dPropHorizontalFOV,
-                    const double dPropVerticalFOV,
-                    const bool bEnableRecordingFlag,
-                    const int nNumFrameRetrievalThreads = 10);
         ~SIMBasicCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
 

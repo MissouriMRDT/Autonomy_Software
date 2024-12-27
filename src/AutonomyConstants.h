@@ -36,11 +36,11 @@ namespace constants
 
     // Sim mode constants.
 #if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
-    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the SIM.
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "192.168.69.48";    // The IP address to use for simulation mode.
+    const std::string SIM_IP_ADDRESS = "10.8.0.101";    // The IP address to use for simulation mode.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.

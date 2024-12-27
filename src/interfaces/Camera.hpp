@@ -149,6 +149,17 @@ class Camera : public AutonomyThread<void>
          ******************************************************************************/
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag) { m_bEnableRecordingFlag = bEnableRecordingFlag; }
 
+        /******************************************************************************
+         * @brief Accessor for the Camera Is Open private member.
+         *
+         * @return true - The camera is currently open.
+         * @return false - The camera is not currently open.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-12-25
+         ******************************************************************************/
+        virtual bool GetCameraIsOpen() = 0;    // This is where the code to check if the camera is currently open goes.
+
     protected:
         // Declare protected methods and member variables.
         int m_nPropResolutionX;
@@ -167,7 +178,6 @@ class Camera : public AutonomyThread<void>
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
-        virtual bool GetCameraIsOpen()                        = 0;    // This is where the code to check if the camera is current open goes.
 
     private:
         // Declare private methods and member variables.
