@@ -135,16 +135,29 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
+        // Get a list of the currently detected tags, and their stats.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-
         tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
         tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
 
+        // Check if we have detected any tags.
         if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
-            return;
+            // Check if any of the tags have a detection counter or confidence greater than the threshold.
+            if (std::any_of(vDetectedArucoTags.begin(),
+                            vDetectedArucoTags.end(),
+                            [](arucotag::ArucoTag& stTag) { return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT; }) ||
+                std::any_of(vDetectedTensorflowTags.begin(),
+                            vDetectedTensorflowTags.end(),
+                            [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))
+            {
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
+                // Handle state transition.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+                return;
+            }
         }
 
         ////////////////////////////

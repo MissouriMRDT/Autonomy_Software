@@ -73,6 +73,7 @@ DCMAKE
 deadband
 dearmor
 debfile
+DEBLOCK
 Deblur
 decipercent
 declval

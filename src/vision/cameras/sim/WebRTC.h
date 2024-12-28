@@ -57,6 +57,7 @@ class WebRTC
         // Declare private methods.
         /////////////////////////////////////////
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
+        bool InitializeH264Decoder();
         bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat);
         bool RequestKeyFrame(std::shared_ptr<rtc::Track> pVideoTrack);
 
@@ -78,8 +79,11 @@ class WebRTC
 
         // AV codec context for decoding H264.
         AVCodecContext* m_pAVCodecContext;
-        SwsContext* m_avSWSContext;
+        AVFrame* m_pFrame;
+        AVPacket* m_pPacket;
+        SwsContext* m_pSWSContext;
         AVPixelFormat m_eOutputPixelFormat;
+        std::mutex m_muDecoderMutex;
 
         // OpenCV Mat for storing the frame.
         cv::Mat m_cvFrame;

@@ -418,16 +418,29 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
         // Wait for pose to be copied.
         if (fuPoseReturnStatus.get())
         {
-            // Update camera Y heading with GPSs current heading.
-            pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
-                                        stNewCameraPosition.dAltitude,
-                                        stNewCameraPosition.dNorthing,
-                                        stCurrentCameraPose.stEulerAngles.dXO,
-                                        dNewCameraHeading,
-                                        stCurrentCameraPose.stEulerAngles.dZO);
+            // Pack the current camera pose into UTM coordinate.
+            geoops::UTMCoordinate stCurrentCameraUTM = geoops::UTMCoordinate(stCurrentCameraPose.stTranslation.dX,
+                                                                             stCurrentCameraPose.stTranslation.dY,
+                                                                             stNewCameraPosition.nZone,
+                                                                             stNewCameraPosition.bWithinNorthernHemisphere,
+                                                                             stCurrentCameraPose.stTranslation.dZ);
+            // Calculate the distance between the current and new camera position.
+            geoops::GeoMeasurement stError = geoops::CalculateGeoMeasurement(stCurrentCameraUTM, stNewCameraPosition);
 
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position.");
+            // Check if the camera's current pose is close to the new position.
+            if (stError.dDistanceMeters >= constants::STATEMACHINE_ZED_REALIGN_THRESHOLD)
+            {
+                // Update camera Y heading with GPSs current heading.
+                pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
+                                            stNewCameraPosition.dAltitude,
+                                            stNewCameraPosition.dNorthing,
+                                            stCurrentCameraPose.stEulerAngles.dXO,
+                                            dNewCameraHeading,
+                                            stCurrentCameraPose.stEulerAngles.dZO);
+
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position. Error was: {} meters.", stError.dDistanceMeters);
+            }
         }
         else
         {

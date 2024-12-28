@@ -40,7 +40,7 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "10.8.0.101";    // The IP address to use for simulation mode.
+    const std::string SIM_IP_ADDRESS = "192.168.69.48";    // The IP address to use for simulation mode.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
@@ -298,7 +298,7 @@ namespace constants
     // Approaching Marker State
     const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
     const double APPROACH_MARKER_MOTOR_POWER             = 0.5;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 5;      // How close the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
     // Stuck State
@@ -318,15 +318,16 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;                  // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_MAX_RADIUS               = 25;                  //  The maximum radius to cover in the search (meters).
-    const double SEARCH_STARTING_HEADING_DEGREES = 0;                   // The angle the rover is facing at the start of the search(degrees).
-    const double SEARCH_SPACING                  = 2;                   // The spacing between successive points in the spiral (meters).
-    const double SEARCH_WAYPOINT_PROXIMITY       = 1;                   // How close a rover must be to a point to have it count as visited.
-    const double SEARCH_MOTOR_POWER              = DRIVE_MAX_EFFORT;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;     // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_MAX_RADIUS               = 25;     //  The maximum radius to cover in the search (meters).
+    const double SEARCH_STARTING_HEADING_DEGREES = 0;      // The angle the rover is facing at the start of the search(degrees).
+    const double SEARCH_SPACING                  = 2;      // The spacing between successive points in the spiral (meters).
+    const double SEARCH_WAYPOINT_PROXIMITY       = 1;      // How close a rover must be to a point to have it count as visited.
+    const double SEARCH_MOTOR_POWER              = 0.3;    // The amount of power the motors use when approaching the marker.
 
     // Handler.
-    const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
+    const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
+    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Navigating State.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.

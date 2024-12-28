@@ -326,8 +326,8 @@ void SIMZEDCam::PooledLinearCode()
         double dNewYO = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
         // Repack values into pose.
         Pose stPose(m_stCurrentRoverPose.GetUTMCoordinate().dEasting + m_dPoseOffsetX,
-                    m_stCurrentRoverPose.GetUTMCoordinate().dNorthing + m_dPoseOffsetY,
-                    m_stCurrentRoverPose.GetUTMCoordinate().dAltitude + m_dPoseOffsetZ,
+                    m_stCurrentRoverPose.GetUTMCoordinate().dNorthing + m_dPoseOffsetZ,
+                    m_stCurrentRoverPose.GetUTMCoordinate().dAltitude + m_dPoseOffsetY,
                     m_dPoseOffsetXO,
                     dNewYO,
                     m_dPoseOffsetZO);
@@ -379,9 +379,9 @@ void SIMZEDCam::PooledLinearCode()
         // Create new GeoPose.
         sl::GeoPose slGeoPose;
         slGeoPose.heading = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
-        slGeoPose.latlng_coordinates.setCoordinates(m_stCurrentRoverPose.GetGPSCoordinate().dLatitude + m_dPoseOffsetY,
+        slGeoPose.latlng_coordinates.setCoordinates(m_stCurrentRoverPose.GetGPSCoordinate().dLatitude + m_dPoseOffsetZ,
                                                     m_stCurrentRoverPose.GetGPSCoordinate().dLongitude + m_dPoseOffsetX,
-                                                    m_stCurrentRoverPose.GetGPSCoordinate().dAltitude + m_dPoseOffsetZ,
+                                                    m_stCurrentRoverPose.GetGPSCoordinate().dAltitude + m_dPoseOffsetY,
                                                     false);
 
         // Copy pose.
@@ -642,8 +642,8 @@ void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double
 
     // Update offset member variables.
     m_dPoseOffsetX  = dX - m_stCurrentRoverPose.GetUTMCoordinate().dEasting;
-    m_dPoseOffsetY  = dY - m_stCurrentRoverPose.GetUTMCoordinate().dNorthing;
-    m_dPoseOffsetZ  = dZ - m_stCurrentRoverPose.GetUTMCoordinate().dAltitude;
+    m_dPoseOffsetY  = dY - m_stCurrentRoverPose.GetUTMCoordinate().dAltitude;
+    m_dPoseOffsetZ  = dZ - m_stCurrentRoverPose.GetUTMCoordinate().dNorthing;
     m_dPoseOffsetXO = dXO;
     m_dPoseOffsetYO = dYO - m_stCurrentRoverPose.GetCompassHeading();
     m_dPoseOffsetZO = dZO;

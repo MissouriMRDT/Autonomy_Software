@@ -27,33 +27,8 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     m_szStreamerID              = szStreamerID;
     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
 
-    // Configure logging level from FFMPEG library.
-    av_log_set_level(AV_LOG_DEBUG);
-
-    // Find the H264 decoder
-    const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (!avCodec)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "H264 codec not found!");
-    }
-    // Create codec context
-    m_pAVCodecContext = avcodec_alloc_context3(avCodec);
-    if (!m_pAVCodecContext)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate codec context!");
-    }
-    // Open the codec
-    if (avcodec_open2(m_pAVCodecContext, avCodec, nullptr) < 0)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to open codec!");
-        avcodec_free_context(&m_pAVCodecContext);
-    }
-    // Set codec context options.
-    m_pAVCodecContext->flags |= AV_CODEC_FLAG2_FAST;
-    m_pAVCodecContext->err_recognition = AV_EF_COMPLIANT | AV_EF_CAREFUL;
-    av_opt_set_int(m_pAVCodecContext, "refcounted_frames", 1, 0);
-    av_opt_set_int(m_pAVCodecContext, "error_concealment", FF_EC_GUESS_MVS | FF_EC_DEBLOCK, 0);
-    av_opt_set_int(m_pAVCodecContext, "threads", 4, 0);
+    // Setup the FFMPEG H264 decoder.
+    this->InitializeH264Decoder();
 
     // Construct the WebRTC peer connection and data channel for receiving data from the simulator.
     rtc::WebSocket::Configuration rtcWebSocketConfig;
@@ -94,11 +69,26 @@ WebRTC::~WebRTC()
     m_pWebSocket.reset();
 
     // Free the codec context.
-    avcodec_free_context(&m_pAVCodecContext);
+    if (m_pSWSContext)
+    {
+        sws_freeContext(m_pSWSContext);
+    }
+    if (m_pFrame)
+    {
+        av_frame_free(&m_pFrame);
+    }
+    if (m_pPacket)
+    {
+        av_packet_free(&m_pPacket);
+    }
+    if (m_pAVCodecContext)
+    {
+        avcodec_free_context(&m_pAVCodecContext);
+    }
 
     // Set dangling pointers to nullptr.
     m_pAVCodecContext = nullptr;
-    m_avSWSContext    = nullptr;
+    m_pSWSContext     = nullptr;
 }
 
 /******************************************************************************
@@ -234,6 +224,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         // Handle ICE candidate
                         nlohmann::json jsnCandidate = jsnMessage["candidate"];
                         std::string szCandidateStr  = jsnCandidate["candidate"];
+
                         rtc::Candidate rtcCandidate = rtc::Candidate(szCandidateStr);
                         m_pPeerConnection->addRemoteCandidate(rtcCandidate);
                     }
@@ -437,6 +428,62 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 }
 
 /******************************************************************************
+ * @brief Initialize the H264 decoder. Creates the AVCodecContext, AVFrame, and AVPacket.
+ *
+ * @return true - Successfully initialized the H264 decoder.
+ * @return false - Failed to initialize the H264 decoder.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-12-27
+ ******************************************************************************/
+bool WebRTC::InitializeH264Decoder()
+{
+    // Configure logging level from FFMPEG library.
+    av_log_set_level(AV_LOG_DEBUG);
+
+    // Find the H264 decoder
+    const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
+    if (!avCodec)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "H264 codec not found!");
+        return false;
+    }
+    // Create codec context
+    m_pAVCodecContext = avcodec_alloc_context3(avCodec);
+    if (!m_pAVCodecContext)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate codec context!");
+        return false;
+    }
+    // Set codec context options.
+    m_pAVCodecContext->flags |= AV_CODEC_FLAG2_FAST;
+    m_pAVCodecContext->err_recognition = AV_EF_COMPLIANT | AV_EF_CAREFUL;
+    m_pAVCodecContext->rc_buffer_size  = 50 * 1024 * 1024;    // 50 MB buffer size.
+    av_opt_set_int(m_pAVCodecContext, "refcounted_frames", 1, 0);
+    av_opt_set_int(m_pAVCodecContext, "error_concealment", FF_EC_GUESS_MVS | FF_EC_DEBLOCK, 0);
+    av_opt_set_int(m_pAVCodecContext, "threads", 4, 0);
+
+    // Open the codec
+    if (avcodec_open2(m_pAVCodecContext, avCodec, nullptr) < 0)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to open codec!");
+        return false;
+    }
+
+    // Allocate the AVPacket.
+    m_pPacket = av_packet_alloc();
+    // Allocate the AVFrame.
+    m_pFrame = av_frame_alloc();
+    if (!m_pPacket || !m_pFrame)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate packet or frame!");
+        return false;
+    }
+
+    return true;
+}
+
+/******************************************************************************
  * @brief Decodes H264 encoded bytes to a cv::Mat using FFmpeg.
  *
  * @param vH264EncodedBytes - The H264 encoded bytes.
@@ -450,45 +497,22 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
  ******************************************************************************/
 bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat)
 {
-    // Allocate the AVPacket.
-    AVPacket* avPacket = av_packet_alloc();
-    if (!avPacket)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate packet!");
-        return false;
-    }
-
-    // Allocate the AVFrame.
-    AVFrame* avFrame = av_frame_alloc();
-    if (!avFrame)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to allocate frame!");
-        av_packet_free(&avPacket);
-        return false;
-    }
+    // Acquire the lock to prevent multiple threads from accessing the decoder at the same time.
+    std::lock_guard<std::mutex> lkDecoder(m_muDecoderMutex);
 
     // Initialize packet data.
-    avPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
-    avPacket->size = vH264EncodedBytes.size();
-
-    // Do a final check to ensure that the codec and packet are valid pointers.
-    if (!m_pAVCodecContext || !avPacket)
-    {
-        return false;
-    }
+    m_pPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
+    m_pPacket->size = static_cast<int>(vH264EncodedBytes.size());
 
     // Send the packet to the decoder.
-    int nReturnCode = avcodec_send_packet(m_pAVCodecContext, avPacket);
+    int nReturnCode = avcodec_send_packet(m_pAVCodecContext, m_pPacket);
     if (nReturnCode < 0)
     {
         // Get the error message.
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
-        // Free the frame and packet.
-        av_frame_free(&avFrame);
-        av_packet_free(&avPacket);
+        LOG_WARNING(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
         // Request a new keyframe from the video track.
         this->RequestKeyFrame(m_pVideoTrack1);
 
@@ -496,9 +520,9 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
     }
 
     // Receive decoded frames in a loop
-    while (nReturnCode >= 0)
+    while (true)
     {
-        nReturnCode = avcodec_receive_frame(m_pAVCodecContext, avFrame);
+        nReturnCode = avcodec_receive_frame(m_pAVCodecContext, m_pFrame);
         if (nReturnCode == AVERROR(EAGAIN) || nReturnCode == AVERROR_EOF)
         {
             // No more frames available in stream.
@@ -510,24 +534,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
             // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Failed to receive frame from decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
-            // Free the frame and packet.
-            av_frame_free(&avFrame);
-            av_packet_free(&avPacket);
-            // Request a new keyframe from the video track.
-            this->RequestKeyFrame(m_pVideoTrack1);
-
-            return false;
-        }
-
-        // Check if the format is correct.
-        if (avFrame->format != AV_PIX_FMT_YUV420P && avFrame->format != AV_PIX_FMT_YUVJ420P)
-        {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Unexpected pixel format: {}", avFrame->format);
-            // Free the frame and packet.
-            av_frame_free(&avFrame);
-            av_packet_free(&avPacket);
+            LOG_WARNING(logging::g_qSharedLogger, "Failed to receive frame from decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
             // Request a new keyframe from the video track.
             this->RequestKeyFrame(m_pVideoTrack1);
 
@@ -542,13 +549,13 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // Absolutely no colorspace conversion or the binary data will be corrupted.
 
             // Extract the Y, U, and V planes.
-            cv::Mat cvYPlane(avFrame->height, avFrame->width, CV_8UC1, avFrame->data[0]);
-            cv::Mat cvUPlane(avFrame->height / 2, avFrame->width / 2, CV_8UC1, avFrame->data[1]);
-            cv::Mat cvVPlane(avFrame->height / 2, avFrame->width / 2, CV_8UC1, avFrame->data[2]);
+            cv::Mat cvYPlane(m_pFrame->height, m_pFrame->width, CV_8UC1, m_pFrame->data[0]);
+            cv::Mat cvUPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[1]);
+            cv::Mat cvVPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[2]);
             // Upsample the U and V planes to match the Y plane.
             cv::Mat cvUPlaneUpsampled, cvVPlaneUpsampled;
-            cv::resize(cvUPlane, cvUPlaneUpsampled, cv::Size(avFrame->width, avFrame->height), 0, 0, cv::INTER_NEAREST);
-            cv::resize(cvVPlane, cvVPlaneUpsampled, cv::Size(avFrame->width, avFrame->height), 0, 0, cv::INTER_NEAREST);
+            cv::resize(cvUPlane, cvUPlaneUpsampled, cv::Size(m_pFrame->width, m_pFrame->height), 0, 0, cv::INTER_NEAREST);
+            cv::resize(cvVPlane, cvVPlaneUpsampled, cv::Size(m_pFrame->width, m_pFrame->height), 0, 0, cv::INTER_NEAREST);
             // Merge the Y, U, and V planes into a single 3 channel Mat.
             std::vector<cv::Mat> vYUVPlanes = {cvYPlane, cvUPlaneUpsampled, cvVPlaneUpsampled};
             cv::merge(vYUVPlanes, cvDecodedFrame);
@@ -556,67 +563,47 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         else
         {
             // Convert the decoded frame to cv::Mat using sws_scale.
-            cvDecodedFrame       = cv::Mat(avFrame->height, avFrame->width, CV_8UC3);
-            uint8_t* dest[4]     = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
-            int dest_linesize[4] = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
-            if (!m_avSWSContext)
+            if (!m_pSWSContext)
             {
-                if (avFrame->width > 0 && avFrame->height > 0 && avFrame->format != -1)
-                {
-                    m_avSWSContext = sws_getContext(m_pAVCodecContext->width,
-                                                    m_pAVCodecContext->height,
-                                                    m_pAVCodecContext->pix_fmt,
-                                                    m_pAVCodecContext->width,
-                                                    m_pAVCodecContext->height,
-                                                    eOutputPixelFormat,
-                                                    SWS_FAST_BILINEAR,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr);
-                    if (!m_avSWSContext)
-                    {
-                        // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
-                        // Free the frame and packet.
-                        av_frame_free(&avFrame);
-                        av_packet_free(&avPacket);
-                        // Request a new keyframe from the video track.
-                        this->RequestKeyFrame(m_pVideoTrack1);
-
-                        return false;
-                    }
-                }
-                else
+                m_pSWSContext = sws_getContext(m_pFrame->width,
+                                               m_pFrame->height,
+                                               static_cast<AVPixelFormat>(m_pFrame->format),
+                                               m_pFrame->width,
+                                               m_pFrame->height,
+                                               eOutputPixelFormat,
+                                               SWS_FAST_BILINEAR,
+                                               nullptr,
+                                               nullptr,
+                                               nullptr);
+                if (!m_pSWSContext)
                 {
                     // Submit logger message.
-                    LOG_ERROR(logging::g_qSharedLogger, "Invalid frame dimensions or format!");
-                    // Free the frame and packet.
-                    av_frame_free(&avFrame);
-                    av_packet_free(&avPacket);
+                    LOG_WARNING(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
                     // Request a new keyframe from the video track.
                     this->RequestKeyFrame(m_pVideoTrack1);
 
                     return false;
                 }
             }
-            sws_scale(m_avSWSContext, avFrame->data, avFrame->linesize, 0, avFrame->height, dest, dest_linesize);
+
+            // Create new mat for the decoded frame.
+            cvDecodedFrame.create(m_pFrame->height, m_pFrame->width, CV_8UC3);
+            uint8_t* aDest[4]    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
+            int aDestLinesize[4] = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
+            sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pAVCodecContext->height, aDest, aDestLinesize);
         }
 
-        // // Calculate the time since the last key frame request.
-        // std::chrono::duration<double> tmTimeSinceLastKeyFrameRequest = std::chrono::system_clock::now() - m_tmLastKeyFrameRequestTime;
-        // // Check if the time since the last key frame request is greater than the key frame request interval.
-        // if (tmTimeSinceLastKeyFrameRequest.count() > 1)
-        // {
-        //     // Request a new key frame from the video track.
-        //     this->RequestKeyFrame(m_pVideoTrack1);
-        //     // Update the time of the last key frame request.
-        //     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
-        // }
+        // Calculate the time since the last key frame request.
+        std::chrono::duration<double> tmTimeSinceLastKeyFrameRequest = std::chrono::system_clock::now() - m_tmLastKeyFrameRequestTime;
+        // Check if the time since the last key frame request is greater than the key frame request interval.
+        if (tmTimeSinceLastKeyFrameRequest.count() > 1.0)
+        {
+            // Request a new key frame from the video track.
+            this->RequestKeyFrame(m_pVideoTrack1);
+            // Update the time of the last key frame request.
+            m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
+        }
     }
-
-    // Clean up.
-    av_frame_free(&avFrame);
-    av_packet_free(&avPacket);
 
     return true;
 }
