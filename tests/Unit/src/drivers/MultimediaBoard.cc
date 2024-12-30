@@ -51,17 +51,15 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// class MultimediaBoardTest : public ::testing::Test {
-// protected:
-//     MultimediaBoard* multimediaBoard;
+// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
+// class MultimediaBoardTest : public ::testing::Test
+// {
+//     protected:
+//         MultimediaBoard* multimediaBoard;
 
-//     void SetUp() override {
-//         multimediaBoard = new MultimediaBoard();
-//     }
+//         void SetUp() override { multimediaBoard = new MultimediaBoard(); }
 
-//     void TearDown() override {
-//         delete multimediaBoard;
-//     }
+//         void TearDown() override { delete multimediaBoard; }
 // };
 
 // /******************************************************************************
@@ -71,13 +69,18 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, ConstructorInitializesCorrectly) {
-//     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eOff);
-//     MultimediaBoard::RGB defaultRGB;
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, defaultRGB.dRed);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, defaultRGB.dGreen);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, defaultRGB.dBlue);
-// }
+TEST(MultimediaBoardTest, ConstructorInitializesCorrectly)
+{
+    MultimediaBoard* multimediaBoard = new MultimediaBoard();
+
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eOff);
+    MultimediaBoard::RGB defaultRGB;
+    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, defaultRGB.dRed);
+    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, defaultRGB.dGreen);
+    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, defaultRGB.dBlue);
+
+    delete multimediaBoard;
+}
 
 // /******************************************************************************
 //  * @brief Test that the lighting state is set correctly
@@ -86,13 +89,21 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, SendLightingStateSetsStateCorrectly) {
-//     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
-//     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
+TEST(MultimediaBoardTest, SendLightingStateSetsStateCorrectly)
+{
+    MultimediaBoard* multimediaBoard = new MultimediaBoard();
 
-//     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-//     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-// }
+    multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
+
+    multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+
+    multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+
+    delete multimediaBoard;
+}
 
 // /******************************************************************************
 //  * @brief Test that the RGB values are set correctly
@@ -101,37 +112,15 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, SendRGBSetsRGBValuesCorrectly) {
-//     MultimediaBoard::RGB rgbValues(255, 128, 64);
-//     multimediaBoard->SendRGB(rgbValues);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, rgbValues.dRed);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, rgbValues.dGreen);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, rgbValues.dBlue);
-// }
+TEST(MultimediaBoardTest, SendRGBSetsRGBValuesCorrectly)
+{
+    MultimediaBoard* multimediaBoard = new MultimediaBoard();
 
-// /******************************************************************************
-//  * @brief Test that the lighting state is set to custom when RGB values are sent
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-// ******************************************************************************/
-// TEST_F(MultimediaBoardTest, GetCurrentLightingStateReturnsCorrectState) {
-//     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-//     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-// }
+    MultimediaBoard::RGB rgbValues(255, 128, 64);
+    multimediaBoard->SendRGB(rgbValues);
+    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, rgbValues.dRed);
+    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, rgbValues.dGreen);
+    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, rgbValues.dBlue);
 
-// /******************************************************************************
-//  * @brief Test that the RGB values are returned correctly
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-// ******************************************************************************/
-// TEST_F(MultimediaBoardTest, GetCustomLightingValuesReturnsCorrectRGB) {
-//     MultimediaBoard::RGB rgbValues(100, 150, 200);
-//     multimediaBoard->SendRGB(rgbValues);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, rgbValues.dRed);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, rgbValues.dGreen);
-//     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, rgbValues.dBlue);
-// }
+    delete multimediaBoard;
+}
