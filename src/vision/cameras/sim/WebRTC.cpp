@@ -30,6 +30,9 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     // Setup the FFMPEG H264 decoder.
     this->InitializeH264Decoder();
 
+    // Enable logging from the WebRTC LibDataChannel library for debugging.
+    // rtc::InitLogger(rtc::LogLevel::Verbose);
+
     // Construct the WebRTC peer connection and data channel for receiving data from the simulator.
     rtc::WebSocket::Configuration rtcWebSocketConfig;
     rtc::Configuration rtcPeerConnectionConfig;
@@ -255,6 +258,10 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                             LOG_ERROR(logging::g_qSharedLogger, "Streamer list does not contain 'ids' field!");
                         }
                     }
+                    else
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "Unknown message type received from signalling server: {}", szType);
+                    }
                 }
             }
             catch (const std::exception& e)
@@ -278,12 +285,22 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
     m_pPeerConnection->onLocalDescription(
         [this](rtc::Description rtcDescription)
         {
+            // First lets send some preconfig stuff.
+            nlohmann::json jsnConfigMessage;
+            jsnConfigMessage["type"]          = "layerPreference";
+            jsnConfigMessage["spatialLayer"]  = 0;
+            jsnConfigMessage["temporalLayer"] = 0;
+            jsnConfigMessage["playerId"]      = "";
+            m_pWebSocket->send(jsnConfigMessage.dump());
+
             // Send the local description to the signalling server
             nlohmann::json jsnMessage;
             jsnMessage["type"] = rtcDescription.typeString();
             std::string sdp    = rtcDescription.generateSdp();
             jsnMessage["sdp"]  = sdp;
-
+            // This next bit is specific to the Unreal Engine 5 Signalling Server, we must append the min/max bitrate to the message.
+            jsnMessage["minBitrateBps"] = 0;
+            jsnMessage["maxBitrateBps"] = 0;
             m_pWebSocket->send(jsnMessage.dump());
 
             // Submit logger message.
@@ -390,6 +407,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                     // Create a H264 depacketization handler and rtcp receiving session.
                     m_pTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::LongStartSequence);
+                    m_pTrack1RtcpReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
+                    m_pTrack1H264DepacketizationHandler->addToChain(m_pTrack1RtcpReceivingSession);
                     m_pVideoTrack1->setMediaHandler(m_pTrack1H264DepacketizationHandler);
 
                     // Set the onMessage callback for the video track.
@@ -422,6 +441,56 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Data channel opened.");
+        });
+
+    m_pDataChannel->onMessage(
+        [this](std::variant<rtc::binary, rtc::string> rtcMessage)
+        {
+            try
+            {
+                // Create instance variables.
+                nlohmann::json jsnMessage;
+
+                // Check if data is of type rtc::string.
+                if (std::holds_alternative<rtc::string>(rtcMessage))
+                {
+                    // Retrieve the string message
+                    std::string szMessage = std::get<rtc::string>(rtcMessage);
+
+                    // Parse the JSON message from the signaling server.
+                    jsnMessage = nlohmann::json::parse(szMessage);
+                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received message from peer: {}", szMessage);
+                }
+                else if (std::holds_alternative<rtc::binary>(rtcMessage))
+                {
+                    // Retrieve the binary message.
+                    rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
+                    // Print length of binary data.
+                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received binary data of length: {}", rtcBinaryData.size());
+
+                    // Convert the binary data to a string, ignoring non-printable characters.
+                    std::string szBinaryDataStr;
+                    for (auto byte : rtcBinaryData)
+                    {
+                        if (std::isprint(static_cast<unsigned char>(byte)))
+                        {
+                            szBinaryDataStr += static_cast<char>(byte);
+                        }
+                    }
+
+                    // Print the binary data as a string.
+                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received binary data: {}", szBinaryDataStr);
+                }
+                else
+                {
+                    LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from peer");
+                }
+            }
+            catch (const std::exception& e)
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "Error occurred while negotiating with the peer: {}", e.what());
+            }
         });
 
     return true;
@@ -600,6 +669,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         {
             // Request a new key frame from the video track.
             this->RequestKeyFrame(m_pVideoTrack1);
+
             // Update the time of the last key frame request.
             m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
         }

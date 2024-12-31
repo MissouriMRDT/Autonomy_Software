@@ -70,9 +70,9 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream          = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
-    m_pDepthImageStream   = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
-    m_pDepthMeasureStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthMeasure");
+    m_pRGBStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
+    // m_pDepthImageStream   = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
+    // m_pDepthMeasureStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthMeasure");
 
     // Set callbacks for the WebRTC connections.
     this->SetCallbacks();
@@ -118,22 +118,22 @@ void SIMZEDCam::SetCallbacks()
             // Deep copy the frame.
             m_cvFrame = cvFrame.clone();
         });
-    m_pDepthImageStream->SetOnFrameReceivedCallback(
-        [this](cv::Mat& cvFrame)
-        {
-            // Acquire a lock on the webRTC copy mutex.
-            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
-            // Deep copy the frame.
-            m_cvDepthImage = cvFrame.clone();
-        });
-    m_pDepthMeasureStream->SetOnFrameReceivedCallback(
-        [this](cv::Mat& cvFrame)
-        {
-            // Acquire a lock on the webRTC copy mutex.
-            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
-            // Deep copy the frame.
-            m_cvDepthBuffer = cvFrame.clone();
-        });
+    // m_pDepthImageStream->SetOnFrameReceivedCallback(
+    //     [this](cv::Mat& cvFrame)
+    //     {
+    //         // Acquire a lock on the webRTC copy mutex.
+    //         std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
+    //         // Deep copy the frame.
+    //         m_cvDepthImage = cvFrame.clone();
+    //     });
+    // m_pDepthMeasureStream->SetOnFrameReceivedCallback(
+    //     [this](cv::Mat& cvFrame)
+    //     {
+    //         // Acquire a lock on the webRTC copy mutex.
+    //         std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
+    //         // Deep copy the frame.
+    //         m_cvDepthBuffer = cvFrame.clone();
+    //     });
 }
 
 /******************************************************************************
@@ -660,7 +660,7 @@ void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double
  ******************************************************************************/
 bool SIMZEDCam::GetCameraIsOpen()
 {
-    return m_pRGBStream->GetIsConnected() && m_pDepthImageStream->GetIsConnected() && m_pDepthMeasureStream->GetIsConnected();
+    return m_pRGBStream->GetIsConnected();    //&& m_pDepthImageStream->GetIsConnected() && m_pDepthMeasureStream->GetIsConnected();
 }
 
 /******************************************************************************
