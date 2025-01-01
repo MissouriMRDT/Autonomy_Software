@@ -134,14 +134,15 @@ namespace statemachine
             // Calculate error between pose and GPS.
             geoops::GeoMeasurement stErrorMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
 
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Distance from target: {} and Bearing to target: {}",
-                     stGoalWaypointMeasurement.dDistanceMeters,
-                     stGoalWaypointMeasurement.dStartRelativeBearing);
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Distance from Rover: {} and Bearing to Rover: {}",
-                     stErrorMeasurement.dDistanceMeters,
-                     stErrorMeasurement.dStartRelativeBearing);
+            // Assemble the error metrics into a single string. We are going to include the distance and bearing to the goal waypoint and
+            // the error between the rover pose and the GPS position. The rover pose could be from VIO or GNSS fusion, or just GPS.
+            std::string szErrorMetrics =
+                "--------[ Navigating Error Report ]--------\nDistance to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dDistanceMeters) + " meters\n" +
+                "Bearing to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dStartRelativeBearing) + " degrees\n" +
+                "GPS Position Error (UTM for easy reading):\n" + std::to_string(stErrorMeasurement.dDistanceMeters) + " (distance) " +
+                std::to_string(stErrorMeasurement.dStartRelativeBearing) + " (bearing)";
+            // Submit the error metrics to the logger.
+            LOG_INFO(logging::g_qSharedLogger, "{}", szErrorMetrics);
 
             // Set toggle.
             bAlreadyPrinted = true;
