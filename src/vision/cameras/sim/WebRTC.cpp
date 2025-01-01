@@ -11,6 +11,8 @@
 #include "WebRTC.h"
 #include "../../../AutonomyLogging.h"
 
+#include <regex>
+
 /******************************************************************************
  * @brief Construct a new Web RTC::WebRTC object.
  *
@@ -36,9 +38,11 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     // Construct the WebRTC peer connection and data channel for receiving data from the simulator.
     rtc::WebSocket::Configuration rtcWebSocketConfig;
     rtc::Configuration rtcPeerConnectionConfig;
-    m_pWebSocket      = std::make_shared<rtc::WebSocket>(rtcWebSocketConfig);
-    m_pPeerConnection = std::make_shared<rtc::PeerConnection>(rtcPeerConnectionConfig);
-    m_pDataChannel    = m_pPeerConnection->createDataChannel("data_channel");
+    rtcPeerConnectionConfig.forceMediaTransport = true;
+    rtcPeerConnectionConfig.maxMessageSize      = 100000000;
+    m_pWebSocket                                = std::make_shared<rtc::WebSocket>(rtcWebSocketConfig);
+    m_pPeerConnection                           = std::make_shared<rtc::PeerConnection>(rtcPeerConnectionConfig);
+    m_pDataChannel                              = m_pPeerConnection->createDataChannel("webrtc-datachannel");
 
     // Attempt to connect to the signalling server.
     this->ConnectToSignallingServer(szSignallingServerURL);
@@ -207,19 +211,27 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                 if (jsnMessage.contains("type"))
                 {
                     std::string szType = jsnMessage["type"];
+                    // If the message from the server is a config message, do nothing.
+                    if (szType == "config")
+                    {
+                        // Submit logger message.
+                        LOG_DEBUG(logging::g_qSharedLogger, "Received config message from signalling server: {}", jsnMessage.dump());
+                    }
                     // If the message from the server is an offer, set the remote description offer.
                     if (szType == "offer")
                     {
                         // Get the SDP offer and set it as the remote description.
                         std::string sdp = jsnMessage["sdp"];
                         m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "offer"));
+                        LOG_DEBUG(logging::g_qSharedLogger, "Processing SDP offer from signalling server: {}", sdp);
                     }
                     // If the message from the server is an answer, set the remote description answer.
                     else if (szType == "answer")
                     {
                         // Get the SDP answer and set it as the remote description.
                         std::string sdp = jsnMessage["sdp"];
-                        // m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "answer"));
+                        m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "answer"));
+                        LOG_DEBUG(logging::g_qSharedLogger, "Processing SDP answer from signalling server: {}", sdp);
                     }
                     // If the message from the server is advertising an ICE candidate, add it to the peer connection.
                     else if (szType == "iceCandidate")
@@ -230,6 +242,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                         rtc::Candidate rtcCandidate = rtc::Candidate(szCandidateStr);
                         m_pPeerConnection->addRemoteCandidate(rtcCandidate);
+                        LOG_DEBUG(logging::g_qSharedLogger, "Added ICE candidate to peer connection: {}", szCandidateStr);
                     }
                     else if (szType == "streamerList")
                     {
@@ -247,6 +260,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                                 jsnStream["type"]       = "subscribe";
                                 jsnStream["streamerId"] = m_szStreamerID;
                                 m_pWebSocket->send(jsnStream.dump());
+                                // Submit logger message.
+                                LOG_DEBUG(logging::g_qSharedLogger, "Streamer ID {} found in the streamer list. Subscribing to stream...", m_szStreamerID);
                             }
                             else
                             {
@@ -285,6 +300,12 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
     m_pPeerConnection->onLocalDescription(
         [this](rtc::Description rtcDescription)
         {
+            // Check the type of the description.
+            if (rtcDescription.typeString() == "offer")
+            {
+                return;
+            }
+
             // First lets send some preconfig stuff.
             nlohmann::json jsnConfigMessage;
             jsnConfigMessage["type"]          = "layerPreference";
@@ -296,15 +317,71 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Send the local description to the signalling server
             nlohmann::json jsnMessage;
             jsnMessage["type"] = rtcDescription.typeString();
-            std::string sdp    = rtcDescription.generateSdp();
-            jsnMessage["sdp"]  = sdp;
             // This next bit is specific to the Unreal Engine 5 Signalling Server, we must append the min/max bitrate to the message.
             jsnMessage["minBitrateBps"] = 0;
             jsnMessage["maxBitrateBps"] = 0;
+            // Here's our actual SDP.
+            std::string szSDP = rtcDescription.generateSdp();
+            // Munger the SDP to add the bitrate.
+            std::string szMungedSDP =
+                std::regex_replace(szSDP, std::regex("(a=fmtp:\\d+ level-asymmetry-allowed=.*)\r\n"), "$1;x-google-start-bitrate=10000;x-google-max-bitrate=100000\r\n");
+            jsnMessage["sdp"] = szMungedSDP;
+            // Send the message.
             m_pWebSocket->send(jsnMessage.dump());
 
             // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "Sending local description to signalling server");
+            LOG_DEBUG(logging::g_qSharedLogger, "Sending local description to signalling server: {}", jsnMessage.dump());
+        });
+
+    m_pPeerConnection->onTrack(
+        [this](std::shared_ptr<rtc::Track> rtcTrack)
+        {
+            // Submit logger message.
+            rtc::Description::Media rtcMediaDescription = rtcTrack->description();
+            // Get some information about the track.
+            std::string szMediaType = rtcMediaDescription.type();
+
+            // Check if the track is a video track.
+            if (szMediaType != "video")
+            {
+                return;
+            }
+
+            // Set member variable to the video track.
+            m_pVideoTrack1 = rtcTrack;
+
+            // Create a H264 depacketization handler and rtcp receiving session.
+            m_pTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::LongStartSequence);
+            m_pTrack1RtcpReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
+            m_pTrack1H264DepacketizationHandler->addToChain(m_pTrack1RtcpReceivingSession);
+            m_pVideoTrack1->setMediaHandler(m_pTrack1H264DepacketizationHandler);
+
+            // Set the onMessage callback for the video track.
+            m_pVideoTrack1->onFrame(
+                [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
+                {
+                    // Assuming 96 is the H264 payload type.
+                    if (rtcFrameInfo.payloadType == 96)
+                    {
+                        // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
+                        std::vector<uint8_t> vH264EncodedBytes;
+                        vH264EncodedBytes.reserve(rtcBinaryMessage.size());
+                        for (std::byte stdByte : rtcBinaryMessage)
+                        {
+                            vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
+                        }
+
+                        // Pass to FFmpeg decoder
+                        this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
+
+                        // Check if the callback function is set before calling it.
+                        if (m_fnOnFrameReceivedCallback)
+                        {
+                            // Call the user's callback function.
+                            m_fnOnFrameReceivedCallback(m_cvFrame);
+                        }
+                    }
+                });
         });
 
     m_pPeerConnection->onGatheringStateChange(
@@ -387,58 +464,6 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
     m_pDataChannel->onOpen(
         [this]()
         {
-            // Add peer connection track callback. It's only safe to add this callback after the data channel is opened.
-            m_pPeerConnection->onTrack(
-                [this](std::shared_ptr<rtc::Track> rtcTrack)
-                {
-                    // Submit logger message.
-                    rtc::Description::Media rtcMediaDescription = rtcTrack->description();
-                    // Get some information about the track.
-                    std::string szMediaType = rtcMediaDescription.type();
-
-                    // Check if the track is a video track.
-                    if (szMediaType != "video")
-                    {
-                        return;
-                    }
-
-                    // Set member variable to the video track.
-                    m_pVideoTrack1 = rtcTrack;
-
-                    // Create a H264 depacketization handler and rtcp receiving session.
-                    m_pTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::LongStartSequence);
-                    m_pTrack1RtcpReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
-                    m_pTrack1H264DepacketizationHandler->addToChain(m_pTrack1RtcpReceivingSession);
-                    m_pVideoTrack1->setMediaHandler(m_pTrack1H264DepacketizationHandler);
-
-                    // Set the onMessage callback for the video track.
-                    m_pVideoTrack1->onFrame(
-                        [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
-                        {
-                            // Assuming 96 is the H264 payload type.
-                            if (rtcFrameInfo.payloadType == 96)
-                            {
-                                // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
-                                std::vector<uint8_t> vH264EncodedBytes;
-                                vH264EncodedBytes.reserve(rtcBinaryMessage.size());
-                                for (std::byte stdByte : rtcBinaryMessage)
-                                {
-                                    vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
-                                }
-
-                                // Pass to FFmpeg decoder
-                                this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
-
-                                // Check if the callback function is set before calling it.
-                                if (m_fnOnFrameReceivedCallback)
-                                {
-                                    // Call the user's callback function.
-                                    m_fnOnFrameReceivedCallback(m_cvFrame);
-                                }
-                            }
-                        });
-                });
-
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Data channel opened.");
         });
@@ -489,7 +514,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             catch (const std::exception& e)
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Error occurred while negotiating with the peer: {}", e.what());
+                LOG_ERROR(logging::g_qSharedLogger, "Error occurred while negotiating with the datachannel: {}", e.what());
             }
         });
 
@@ -668,8 +693,9 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         if (tmTimeSinceLastKeyFrameRequest.count() > 1.0)
         {
             // Request a new key frame from the video track.
-            this->RequestKeyFrame(m_pVideoTrack1);
-
+            // this->RequestKeyFrame(m_pVideoTrack1);
+            // Send [2] to the data channel to request the current FPS.
+            m_pDataChannel->send("[2]");
             // Update the time of the last key frame request.
             m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
         }
