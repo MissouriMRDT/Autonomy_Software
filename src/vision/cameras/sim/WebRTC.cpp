@@ -466,6 +466,9 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         {
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Data channel opened.");
+
+            // Request quality control of the stream.
+            m_pDataChannel->send(std::string(1, static_cast<char>(1)));
         });
 
     m_pDataChannel->onMessage(
@@ -484,14 +487,12 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                     // Parse the JSON message from the signaling server.
                     jsnMessage = nlohmann::json::parse(szMessage);
-                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received message from peer: {}", szMessage);
+                    LOG_NOTICE(logging::g_qSharedLogger, "DATA_CHANNEL Received message from peer: {}", szMessage);
                 }
                 else if (std::holds_alternative<rtc::binary>(rtcMessage))
                 {
                     // Retrieve the binary message.
                     rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
-                    // Print length of binary data.
-                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received binary data of length: {}", rtcBinaryData.size());
 
                     // Convert the binary data to a string, ignoring non-printable characters.
                     std::string szBinaryDataStr;
@@ -504,7 +505,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     }
 
                     // Print the binary data as a string.
-                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received binary data: {}", szBinaryDataStr);
+                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received binary data ({} bytes): {}", rtcBinaryData.size(), szBinaryDataStr);
                 }
                 else
                 {
@@ -608,7 +609,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
         // Request a new keyframe from the video track.
-        this->RequestKeyFrame(m_pVideoTrack1);
+        this->RequestKeyFrame();
 
         return false;
     }
@@ -630,7 +631,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger, "Failed to receive frame from decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
             // Request a new keyframe from the video track.
-            this->RequestKeyFrame(m_pVideoTrack1);
+            this->RequestKeyFrame();
 
             return false;
         }
@@ -674,7 +675,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
                     // Request a new keyframe from the video track.
-                    this->RequestKeyFrame(m_pVideoTrack1);
+                    this->RequestKeyFrame();
 
                     return false;
                 }
@@ -693,9 +694,19 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         if (tmTimeSinceLastKeyFrameRequest.count() > 1.0)
         {
             // Request a new key frame from the video track.
-            // this->RequestKeyFrame(m_pVideoTrack1);
-            // Send [2] to the data channel to request the current FPS.
-            m_pDataChannel->send("[2]");
+            // this->RequestKeyFrame();
+
+            // Set the QP factor to 0. (Max quality)
+            this->SendCommandToStreamer(R"({"Encoder.MaxQP":15})");
+            // Set the bitrate limits.
+            this->SendCommandToStreamer(R"({"WebRTC.MinBitrate":99999})");
+            this->SendCommandToStreamer(R"({"WebRTC.MaxBitrate":99999999})");
+            // Set FPS to 30.
+            this->SendCommandToStreamer(R"({"WebRTC.Fps":30})");
+            this->SendCommandToStreamer(R"({"WebRTC.MaxFps":30})");
+            // Here's the magic, this might work. Target bitrate is what has been causing the issues.
+            this->SendCommandToStreamer(R"({"Encoder.TargetBitrate":99999999})");
+
             // Update the time of the last key frame request.
             m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
         }
@@ -708,25 +719,79 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
  * @brief Requests a key frame from the given video track. This is useful for when the
  *      video track is out of sync or has lost frames.
  *
- * @param pVideoTrack - The video track to request a key frame from.
  * @return true - Key frame was successfully requested.
  * @return false - Key frame was not successfully requested.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-30
  ******************************************************************************/
-bool WebRTC::RequestKeyFrame(std::shared_ptr<rtc::Track> pVideoTrack)
+bool WebRTC::RequestKeyFrame()
 {
     // Check if the video track is valid.
-    if (!pVideoTrack)
+    if (!m_pVideoTrack1)
     {
         LOG_ERROR(logging::g_qSharedLogger, "Invalid video track!");
         return false;
     }
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Requested key frame from video track. Success?: {}", pVideoTrack->requestKeyframe());
+    LOG_DEBUG(logging::g_qSharedLogger, "Requested key frame from video track. Success?: {}", m_pVideoTrack1->requestKeyframe());
 
     // Request a key frame from the video track.
     return true;
+}
+
+/******************************************************************************
+ * @brief This method sends a command to the streamer via the data channel.
+ *      The command is a JSON string that is sent as a binary message.
+ *      The PixelStreaming plugin handles the command very weirdly, so we have to
+ *      sort of encode the command in a specific way. This handles that encoding.
+ *
+ * @param szCommand - The command to send to the streamer.
+ * @return true - Command was successfully sent.
+ * @return false - Command was not successfully sent.
+ *
+ * @note This will only work for valid COMMANDS with ID of type 51. Check the
+ *      PixelStreamingInfrastructure repo for more information.
+ *      https://github.com/EpicGamesExt/PixelStreamingInfrastructure/blob/13ce022d3a09d315d4ca85c05b61a8d3fe92741c/Extras/JSStreamer/src/protocol.ts#L196
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-01
+ ******************************************************************************/
+bool WebRTC::SendCommandToStreamer(const std::string& szCommand)
+{
+    // Check if the data channel is valid.
+    if (!m_pDataChannel)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Invalid data channel!");
+        return false;
+    }
+
+    // Check if the command is empty.
+    if (szCommand.empty())
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Empty command!");
+        return false;
+    }
+
+    // Set the max QP to 0.
+    std::string szID(1, static_cast<char>(51));    // This is the ID for COMMAND.
+    std::string szSize(1, static_cast<char>(szCommand.size()));
+    std::string szFinal = szID + szSize + szCommand;
+    // Loop through the string and build a binary message.
+    rtc::binary rtcBinaryMessage;
+    // First byte is the ID.
+    rtcBinaryMessage.push_back(static_cast<std::byte>(szID[0]));
+    // Next two bytes are the size.
+    rtcBinaryMessage.push_back(static_cast<std::byte>(szSize[0]));
+    rtcBinaryMessage.push_back(static_cast<std::byte>(szSize[1]));
+    // The rest of the bytes are the command, but this is utf16 so we need to add a null byte before each character.
+    for (char cLetter : szCommand)
+    {
+        rtcBinaryMessage.push_back(static_cast<std::byte>(cLetter));
+        rtcBinaryMessage.push_back(static_cast<std::byte>(0));
+    }
+
+    // Send the binary message.
+    return m_pDataChannel->send(rtcBinaryMessage);
 }

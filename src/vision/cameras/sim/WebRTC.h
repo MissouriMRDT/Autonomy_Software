@@ -59,7 +59,8 @@ class WebRTC
         bool ConnectToSignallingServer(const std::string& szSignallingServerURL);
         bool InitializeH264Decoder();
         bool DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat);
-        bool RequestKeyFrame(std::shared_ptr<rtc::Track> pVideoTrack);
+        bool RequestKeyFrame();
+        bool SendCommandToStreamer(const std::string& szCommand);
 
         /////////////////////////////////////////
         // Declare private member variables.
