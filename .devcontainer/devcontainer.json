@@ -148,6 +148,7 @@
                 "cmake.configureOnOpen": true,
                 "cmake.options.statusBarVisibility": "visible",
                 "cmake.parallelJobs": 8,
+                "cmake.launchBehavior": "breakAndReuseTerminal",
                 // Format Files extension settings.
                 "formatFiles.excludedFolders": [
                     "node_modules",

@@ -351,6 +351,7 @@ POSETRACK
 Pranswer
 pthread
 pyopengl
+QPID
 Raman
 rdparty
 Rdtsc
