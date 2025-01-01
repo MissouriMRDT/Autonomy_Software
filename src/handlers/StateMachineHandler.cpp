@@ -420,10 +420,10 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
         {
             // Pack the current camera pose into UTM coordinate.
             geoops::UTMCoordinate stCurrentCameraUTM = geoops::UTMCoordinate(stCurrentCameraPose.stTranslation.dX,
-                                                                             stCurrentCameraPose.stTranslation.dY,
+                                                                             stCurrentCameraPose.stTranslation.dZ,
                                                                              stNewCameraPosition.nZone,
                                                                              stNewCameraPosition.bWithinNorthernHemisphere,
-                                                                             stCurrentCameraPose.stTranslation.dZ);
+                                                                             stCurrentCameraPose.stTranslation.dY);
             // Calculate the distance between the current and new camera position.
             geoops::GeoMeasurement stError = geoops::CalculateGeoMeasurement(stCurrentCameraUTM, stNewCameraPosition);
 

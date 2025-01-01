@@ -153,7 +153,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Acquire a lock on the rover pose mutex.
     std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
     // Check if the NavBoard pointer is valid.
-    if (globals::g_pNavigationBoard == nullptr)
+    if (globals::g_pNavigationBoard)
     {
         // Get the current rover pose from the NavBoard.
         m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
@@ -326,8 +326,8 @@ void SIMZEDCam::PooledLinearCode()
         double dNewYO = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
         // Repack values into pose.
         Pose stPose(m_stCurrentRoverPose.GetUTMCoordinate().dEasting + m_dPoseOffsetX,
-                    m_stCurrentRoverPose.GetUTMCoordinate().dNorthing + m_dPoseOffsetZ,
                     m_stCurrentRoverPose.GetUTMCoordinate().dAltitude + m_dPoseOffsetY,
+                    m_stCurrentRoverPose.GetUTMCoordinate().dNorthing + m_dPoseOffsetZ,
                     m_dPoseOffsetXO,
                     dNewYO,
                     m_dPoseOffsetZO);
@@ -376,13 +376,19 @@ void SIMZEDCam::PooledLinearCode()
         // Release lock.
         lkGeoPoseQueue.unlock();
 
+        // Get rover's current UTM position.
+        geoops::UTMCoordinate stCurrentUTM = m_stCurrentRoverPose.GetUTMCoordinate();
+        // Add offsets to the current UTM position.
+        stCurrentUTM.dEasting += m_dPoseOffsetX;
+        stCurrentUTM.dAltitude += m_dPoseOffsetY;
+        stCurrentUTM.dNorthing += m_dPoseOffsetZ;
+        // Create a GPS coordinate from the UTM position.
+        geoops::GPSCoordinate stCurrentGPS = geoops::ConvertUTMToGPS(stCurrentUTM);
+
         // Create new GeoPose.
         sl::GeoPose slGeoPose;
         slGeoPose.heading = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
-        slGeoPose.latlng_coordinates.setCoordinates(m_stCurrentRoverPose.GetGPSCoordinate().dLatitude + m_dPoseOffsetZ,
-                                                    m_stCurrentRoverPose.GetGPSCoordinate().dLongitude + m_dPoseOffsetX,
-                                                    m_stCurrentRoverPose.GetGPSCoordinate().dAltitude + m_dPoseOffsetY,
-                                                    false);
+        slGeoPose.latlng_coordinates.setCoordinates(stCurrentGPS.dLatitude, stCurrentGPS.dLongitude, stCurrentGPS.dAltitude, false);
 
         // Copy pose.
         *(stContainer.pData) = slGeoPose;
