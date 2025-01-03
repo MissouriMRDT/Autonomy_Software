@@ -139,7 +139,7 @@ namespace statemachine
             std::string szErrorMetrics =
                 "--------[ Navigating Error Report ]--------\nDistance to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dDistanceMeters) + " meters\n" +
                 "Bearing to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dStartRelativeBearing) + " degrees\n" +
-                "GPS Position Error (UTM for easy reading):\n" + std::to_string(stErrorMeasurement.dDistanceMeters) + " (distance) " +
+                "GPS/VIO Position Error (UTM for easy reading):\n" + std::to_string(stErrorMeasurement.dDistanceMeters) + " (distance) " +
                 std::to_string(stErrorMeasurement.dStartRelativeBearing) + " (bearing)";
             // Submit the error metrics to the logger.
             LOG_INFO(logging::g_qSharedLogger, "{}", szErrorMetrics);

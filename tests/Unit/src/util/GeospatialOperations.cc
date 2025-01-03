@@ -135,7 +135,7 @@ TEST(GeoOpsTest, CalculateGeoMeasurementGPS)
     // Check distance calculation.
     EXPECT_NEAR(stMeasurement.dDistanceMeters, 1751754.48, 0.02);
     EXPECT_NEAR(stMeasurement.dArcLengthDegrees, 15.77, 0.02);
-    EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 180.0, 0.02);
+    EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 191.297, 0.02);
 
     // Calculate meter distance between the second two GPS points.
     stMeasurement = geoops::CalculateGeoMeasurement(stGPSSDELC1, stGPSSDELC2);

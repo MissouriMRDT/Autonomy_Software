@@ -857,7 +857,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
 
     // Assemble the error metrics into a single string. We are going to include the original GPS positions of the NavBoard and the Camera and then include the error. Same
     // thing for the heading data.
-    std::string szErrorMetrics = "--------[ ZED MainCam Pose Tracking Error ]--------\nGPS Position Error (UTM for easy reading):\n" +
+    std::string szErrorMetrics = "--------[ ZED MainCam Pose Tracking Error ]--------\nGPS/VIO Position Error (UTM for easy reading):\n" +
                                  std::to_string(ConvertGPSToUTM(stCurrentGPSPosition).dEasting) + " (NavBoard) vs. " + std::to_string(stCurrentUTMPosition.dEasting) +
                                  " (Camera) = " + std::to_string(dEastingError) + " (error)\n" + std::to_string(ConvertGPSToUTM(stCurrentGPSPosition).dNorthing) +
                                  " (NavBoard) vs. " + std::to_string(stCurrentUTMPosition.dNorthing) + " (Camera) = " + std::to_string(dNorthingError) + " (error)\n" +

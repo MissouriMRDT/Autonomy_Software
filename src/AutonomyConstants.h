@@ -225,7 +225,7 @@ namespace constants
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
     const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag.
-    const int ARUCO_VALIDATION_THRESHOLD             = 5;      // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
+    const int ARUCO_VALIDATION_THRESHOLD             = 20;     // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
     const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD = 5;      // How many times can an unvalidated tag be missing from frame before being forgotten.
     const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // How many times can a validated tag be missing from frame before being forgotten.
     const double ARUCO_PIXEL_THRESHOLD               = 175;    // Pixel value threshold for pre-process threshold mask
@@ -296,8 +296,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Approaching Marker State
-    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
-    const double APPROACH_MARKER_MOTOR_POWER             = 0.5;    // The amount of power the motors use when approaching the marker.
+    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 60;     // How many consecutive failed attempts at detecting a tag before giving up on marker.
+    const double APPROACH_MARKER_MOTOR_POWER             = 0.3;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
@@ -318,12 +318,12 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;     // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_MAX_RADIUS               = 25;     //  The maximum radius to cover in the search (meters).
-    const double SEARCH_STARTING_HEADING_DEGREES = 0;      // The angle the rover is facing at the start of the search(degrees).
-    const double SEARCH_SPACING                  = 2;      // The spacing between successive points in the spiral (meters).
-    const double SEARCH_WAYPOINT_PROXIMITY       = 1;      // How close a rover must be to a point to have it count as visited.
-    const double SEARCH_MOTOR_POWER              = 0.3;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_MAX_RADIUS           = 21.0;    //  The maximum radius to cover in the search (meters).
+    const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
+    const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
+    const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
+    const double SEARCH_MOTOR_POWER          = 0.5;     // The amount of power the motors use when approaching the marker.
 
     // Handler.
     const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
