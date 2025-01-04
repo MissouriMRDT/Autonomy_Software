@@ -19,18 +19,39 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Mock class for NavigationBoard
+ *
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2024-10-26
+ ******************************************************************************/
+// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
+class NavigationBoardTest : public ::testing::Test {
+protected:
+    NavigationBoard* navBoard;
+
+    void SetUp() override {
+        navBoard = new NavigationBoard();
+    }
+
+    void TearDown() override {
+        delete navBoard;
+    }
+};
+
+/******************************************************************************
  * @brief Test for memory leaks
  *
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(NavigationBoardTest, DoesNotLeak)
+TEST_F(NavigationBoardTest, DoesNotLeak)
 {
-    NavigationBoard* navBoard = new NavigationBoard();
-    ASSERT_NE(navBoard, nullptr);
-    delete navBoard;
-    navBoard = nullptr;
+    NavigationBoard* testBoard = new NavigationBoard();
+    ASSERT_NE(testBoard, nullptr);
+    delete testBoard;
+    testBoard = nullptr;
 }
 
 /******************************************************************************
@@ -40,32 +61,12 @@ TEST(NavigationBoardTest, DoesNotLeak)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(NavigationBoardTest, Leaks)
+TEST_F(NavigationBoardTest, Leaks)
 {
-    NavigationBoard* navBoard = new NavigationBoard();
-    EXPECT_TRUE(navBoard != nullptr);
+    NavigationBoard* testBoard = new NavigationBoard();
+    EXPECT_NE(testBoard, nullptr);
+    // Intentionally not deleting to test leak detection
 }
-
-/******************************************************************************
- * @brief Mock class for NavigationBoard
- *
- *
- * @author Targed (ltklionel@gmail.com)
- * @date 2024-10-26
- ******************************************************************************/
-// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
-// class NavigationBoardTest : public ::testing::Test {
-// protected:
-//     NavigationBoard* navBoard;
-
-//     void SetUp() override {
-//         navBoard = new NavigationBoard();
-//     }
-
-//     void TearDown() override {
-//         delete navBoard;
-//     }
-// };
 
 /******************************************************************************
  * @brief Test that the constructor initializes the members correctly
@@ -74,24 +75,21 @@ TEST(NavigationBoardTest, Leaks)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST(NavigationBoardTest, ConstructorInitializesMembers) {
-    // Initialize the NavigationBoard
-    NavigationBoard* navBoard = new NavigationBoard();
-
+TEST_F(NavigationBoardTest, ConstructorInitializesMembers) 
+{
+    // The latitude, longitude, and altitude are set to the location of Missouri S&T
     EXPECT_EQ(navBoard->GetGPSData().dLatitude, 37.951771);
     EXPECT_EQ(navBoard->GetGPSData().dLongitude, -91.778114);
     EXPECT_EQ(navBoard->GetGPSData().dAltitude, 315.0);
     EXPECT_EQ(navBoard->GetHeading(), 0);
     EXPECT_EQ(navBoard->GetHeadingAccuracy(), 0);
+    // Not moving or rotating
     EXPECT_EQ(navBoard->GetVelocity(), 0);
     EXPECT_EQ(navBoard->GetAngularVelocity(), 0);
     // Allow for small time difference due to construction
     EXPECT_LE(navBoard->GetGPSLastUpdateTime(), std::chrono::seconds(1));
     EXPECT_LE(navBoard->GetCompassLastUpdateTime(), std::chrono::seconds(1));
     EXPECT_FALSE(navBoard->IsOutOfDate());
-
-    // Destroy the NavigationBoard
-    delete navBoard;
 }
 
 /******************************************************************************
@@ -101,10 +99,8 @@ TEST(NavigationBoardTest, ConstructorInitializesMembers) {
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST(NavigationBoardTest, GetGPSDataReturnsCorrectData) {
-    // Initialize the NavigationBoard
-    NavigationBoard* navBoard = new NavigationBoard();
-
+TEST_F(NavigationBoardTest, GetGPSDataReturnsCorrectData) 
+{
     geoops::GPSCoordinate gpsData = navBoard->GetGPSData();
     EXPECT_EQ(gpsData.dLatitude, 37.951771);
     EXPECT_EQ(gpsData.dLongitude, -91.778114);
@@ -115,9 +111,6 @@ TEST(NavigationBoardTest, GetGPSDataReturnsCorrectData) {
     EXPECT_EQ(gpsData.dScale, 0);
     EXPECT_EQ(gpsData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
     EXPECT_EQ(gpsData.bIsDifferential, false);
-
-    // Destroy the NavigationBoard
-    delete navBoard;
 }
 
 /******************************************************************************
@@ -127,9 +120,7 @@ TEST(NavigationBoardTest, GetGPSDataReturnsCorrectData) {
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST(NavigationBoardTest, GetUTMDataReturnsCorrectData) {
-    // Initialize the NavigationBoard
-    NavigationBoard* navBoard = new NavigationBoard();
+TEST_F(NavigationBoardTest, GetUTMDataReturnsCorrectData) {
 
     geoops::UTMCoordinate utmData = navBoard->GetUTMData();
 
@@ -141,11 +132,9 @@ TEST(NavigationBoardTest, GetUTMDataReturnsCorrectData) {
     EXPECT_EQ(utmData.bWithinNorthernHemisphere, true);
     EXPECT_EQ(utmData.d2DAccuracy, -1);
     EXPECT_EQ(utmData.d3DAccuracy, -1);
+    // IDK why these are what they are
     EXPECT_EQ(utmData.dMeridianConvergence, 0.75152911093843622);
     EXPECT_EQ(utmData.dScale, 0.99974193500083242);
     EXPECT_EQ(utmData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
     EXPECT_EQ(utmData.bIsDifferential, false);
-
-    // Destroy the NavigationBoard
-    delete navBoard;
 }

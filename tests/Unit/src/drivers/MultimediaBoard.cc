@@ -16,6 +16,27 @@
 
 /// \endcond
 
+// /******************************************************************************
+//  * @brief Mock class for MultimediaBoard
+//  *
+//  *
+//  * @author Targed (ltklionel@gmail.com)
+//  * @date 2024-10-26
+// ******************************************************************************/
+// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
+class MultimediaBoardTest : public ::testing::Test {
+protected:
+    MultimediaBoard* multimediaBoard;
+
+    void SetUp() override {
+        multimediaBoard = new MultimediaBoard();
+    }
+
+    void TearDown() override {
+        delete multimediaBoard;
+    }
+};
+
 /******************************************************************************
  * @brief Test for memory leaks
  *
@@ -23,12 +44,12 @@
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(MultimediaBoardTest, DoesNotLeak)
+TEST_F(MultimediaBoardTest, DoesNotLeak)
 {
-    MultimediaBoard* multimediaBoard = new MultimediaBoard();
-    ASSERT_NE(multimediaBoard, nullptr);
-    delete multimediaBoard;
-    multimediaBoard = nullptr;
+    MultimediaBoard* testBoard = new MultimediaBoard();
+    ASSERT_NE(testBoard, nullptr);
+    delete testBoard;
+    testBoard = nullptr;
 }
 
 /******************************************************************************
@@ -38,29 +59,13 @@ TEST(MultimediaBoardTest, DoesNotLeak)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(MultimediaBoardTest, Leaks)
+TEST_F(MultimediaBoardTest, Leaks)
 {
-    MultimediaBoard* multimediaBoard = new MultimediaBoard();
-    EXPECT_TRUE(multimediaBoard != nullptr);
+    MultimediaBoard* testBoard = new MultimediaBoard();
+    EXPECT_NE(testBoard, nullptr);
+    // Intentionally not deleting to test leak detection
 }
 
-// /******************************************************************************
-//  * @brief Mock class for MultimediaBoard
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-// ******************************************************************************/
-// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
-// class MultimediaBoardTest : public ::testing::Test
-// {
-//     protected:
-//         MultimediaBoard* multimediaBoard;
-
-//         void SetUp() override { multimediaBoard = new MultimediaBoard(); }
-
-//         void TearDown() override { delete multimediaBoard; }
-// };
 
 // /******************************************************************************
 //  * @brief Test that the constructor initializes the lighting state and RGB values correctly
@@ -69,17 +74,15 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-TEST(MultimediaBoardTest, ConstructorInitializesCorrectly)
+TEST_F(MultimediaBoardTest, ConstructorInitializesCorrectly) 
 {
-    MultimediaBoard* multimediaBoard = new MultimediaBoard();
-
-    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eOff);
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), 
+              MultimediaBoard::MultimediaBoardLightingState::eOff);
+    
     MultimediaBoard::RGB defaultRGB;
     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, defaultRGB.dRed);
     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, defaultRGB.dGreen);
     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, defaultRGB.dBlue);
-
-    delete multimediaBoard;
 }
 
 // /******************************************************************************
@@ -89,20 +92,19 @@ TEST(MultimediaBoardTest, ConstructorInitializesCorrectly)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-TEST(MultimediaBoardTest, SendLightingStateSetsStateCorrectly)
+TEST_F(MultimediaBoardTest, SendLightingStateSetsStateCorrectly)
 {
-    MultimediaBoard* multimediaBoard = new MultimediaBoard();
-
     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
-    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), 
+              MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
 
     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(),
+              MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
 
     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-
-    delete multimediaBoard;
+    EXPECT_EQ(multimediaBoard->GetCurrentLightingState(),
+              MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 }
 
 // /******************************************************************************
@@ -112,15 +114,13 @@ TEST(MultimediaBoardTest, SendLightingStateSetsStateCorrectly)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-TEST(MultimediaBoardTest, SendRGBSetsRGBValuesCorrectly)
+TEST_F(MultimediaBoardTest, SendRGBSetsRGBValuesCorrectly)
 {
-    MultimediaBoard* multimediaBoard = new MultimediaBoard();
-
     MultimediaBoard::RGB rgbValues(255, 128, 64);
     multimediaBoard->SendRGB(rgbValues);
-    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, rgbValues.dRed);
-    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dGreen, rgbValues.dGreen);
-    EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dBlue, rgbValues.dBlue);
-
-    delete multimediaBoard;
+    
+    auto values = multimediaBoard->GetCustomLightingValues();
+    EXPECT_EQ(values.dRed, rgbValues.dRed);
+    EXPECT_EQ(values.dGreen, rgbValues.dGreen);
+    EXPECT_EQ(values.dBlue, rgbValues.dBlue);
 }

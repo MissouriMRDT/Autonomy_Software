@@ -9,15 +9,15 @@
  ******************************************************************************/
 
 #include "../../../../src/drivers/DriveBoard.h"
+#include "../../../../src/AutonomyConstants.h"
+#include "../../../../src/AutonomyGlobals.h"
+#include "../../../../src/AutonomyLogging.h"
+#include "../../../../src/AutonomyNetworking.h"
 
 /// \cond
 #include "../../../../external/rovecomm/src/RoveComm/RoveComm.h"
 #include "../../../../external/rovecomm/src/RoveComm/RoveCommManifest.h"
 #include "../../../../external/rovecomm/src/RoveComm/RoveCommUDP.h"
-#include "../../../../src/AutonomyConstants.h"
-#include "../../../../src/AutonomyGlobals.h"
-#include "../../../../src/AutonomyLogging.h"
-#include "../../../../src/AutonomyNetworking.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
