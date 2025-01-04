@@ -65,7 +65,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
     m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
-    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_16UC1);
+    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
     m_cvDepthBuffer  = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
@@ -161,6 +161,94 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Release lock.
     lkRoverPoseLock.unlock();
 
+    // Acquire a lock on the WebRTC mutex.
+    std::shared_lock<std::shared_mutex> lkWebRTC3(m_muWebRTCDepthMeasureCopyMutex);
+    // The Simulator uses this a special method of packing the depth measure data as defined in this paper.
+    // http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
+    // Here we will decode it.
+    float fW  = 65536.0;
+    float fNP = 512.0;
+
+    // Iterate over each pixel in the cvDepthMeasure image
+    for (int nY = 0; nY < m_cvDepthBuffer.rows; ++nY)
+    {
+        for (int nX = 0; nX < m_cvDepthBuffer.cols; ++nX)
+        {
+            // Extract the encoded depth values
+            cv::Vec3b cvEncodedDepth = m_cvDepthBuffer.at<cv::Vec3b>(nY, nX);
+
+            // Extract encoded values
+            float fL  = cvEncodedDepth[2] / 255.0;
+            float fHa = cvEncodedDepth[1] / 255.0;
+            float fHb = cvEncodedDepth[0] / 255.0;
+
+            // Period for triangle waves
+            float fP = fNP / fW;
+
+            // Determine offset and fine-grain correction
+            int fM       = fmod((4.0 * (fL / fP)) - 0.5, 4.0);
+            float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
+
+            float fDelta = 0.0f;
+            if (fM == 0)
+                fDelta = (fP / 2.0) * fHa;
+            else if (fM == 1)
+                fDelta = (fP / 2.0) * fHb;
+            else if (fM == 2)
+                fDelta = (fP / 2.0) * (1.0 - fHa);
+            else if (fM == 3)
+                fDelta = (fP / 2.0) * (1.0 - fHb);
+
+            // Combine to compute the original depth
+            float fDepth = fW * (fL0 + fDelta);
+
+            // Check if the depth is within the bounds of the depth image
+            if (fDepth < 0.0)
+                fDepth = 0.0;
+            else if (fDepth > 65535.0)
+                fDepth = 65535.0;
+
+            // Check if nY and nX are within the bounds of the depth image
+            if (nY < m_cvDepthMeasure.rows && nX < m_cvDepthMeasure.cols)
+            {
+                // Store the decoded depth in the new cv::Mat. Convert cm to m.
+                m_cvDepthMeasure.at<float>(nY, nX) = static_cast<float>(fDepth / 100.0);
+            }
+        }
+    }
+    // Release lock.
+    lkWebRTC3.unlock();
+
+    // Use the decoded depth measure to create a point cloud. No need to lock since WebRTC only uses the depth buffer, and we will only read the measure.
+    for (int nY = 0; nY < m_cvDepthMeasure.rows; ++nY)
+    {
+        for (int nX = 0; nX < m_cvDepthMeasure.cols; ++nX)
+        {
+            // Get the depth value.
+            float fDepth = m_cvDepthMeasure.at<float>(nY, nX);
+
+            // Get the horizontal and vertical FOV.
+            double dHorizontalFOV = m_dPropHorizontalFOV;
+            double dVerticalFOV   = m_dPropVerticalFOV;
+
+            // Get the horizontal and vertical angles.
+            double dHorizontalAngle = (nX - m_cvDepthMeasure.cols / 2.0) * dHorizontalFOV / m_cvDepthMeasure.cols;
+            double dVerticalAngle   = (nY - m_cvDepthMeasure.rows / 2.0) * dVerticalFOV / m_cvDepthMeasure.rows;
+
+            // Convert angles to radians.
+            double dHorizontalAngleRad = dHorizontalAngle * M_PI / 180.0;
+            double dVerticalAngleRad   = dVerticalAngle * M_PI / 180.0;
+
+            // Calculate the Cartesian coordinates.
+            float fX = fDepth * sin(dHorizontalAngleRad);
+            float fY = fDepth * sin(dVerticalAngleRad);
+            float fZ = fDepth * cos(dHorizontalAngleRad) * cos(dVerticalAngleRad);
+
+            // Store the decoded depth in the new cv::Mat
+            m_cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 1.0);
+        }
+    }
+
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
@@ -239,66 +327,7 @@ void SIMZEDCam::PooledLinearCode()
         {
             case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = m_cvFrame.clone(); break;
             case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage.clone(); break;
-            case PIXEL_FORMATS::eDepthMeasure:
-            {
-                // Copy depth buffer.
-
-                // The Simulator uses this a special method of packing the depth measure data as defined in this paper.
-                // http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
-                // Here we will decode it.
-                float fW  = 65536.0;
-                float fNP = 512.0;
-
-                // Iterate over each pixel in the cvDepthMeasure image
-                for (int nY = 0; nY < m_cvDepthBuffer.rows; ++nY)
-                {
-                    for (int nX = 0; nX < m_cvDepthBuffer.cols; ++nX)
-                    {
-                        // Extract the encoded depth values
-                        cv::Vec3b cvEncodedDepth = m_cvDepthBuffer.at<cv::Vec3b>(nY, nX);
-
-                        // Extract encoded values
-                        float fL  = cvEncodedDepth[2] / 255.0;
-                        float fHa = cvEncodedDepth[1] / 255.0;
-                        float fHb = cvEncodedDepth[0] / 255.0;
-
-                        // Period for triangle waves
-                        float fP = fNP / fW;
-
-                        // Determine offset and fine-grain correction
-                        int fM       = fmod((4.0 * (fL / fP)) - 0.5, 4.0);
-                        float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
-
-                        float fDelta = 0.0f;
-                        if (fM == 0)
-                            fDelta = (fP / 2.0) * fHa;
-                        else if (fM == 1)
-                            fDelta = (fP / 2.0) * fHb;
-                        else if (fM == 2)
-                            fDelta = (fP / 2.0) * (1.0 - fHa);
-                        else if (fM == 3)
-                            fDelta = (fP / 2.0) * (1.0 - fHb);
-
-                        // Combine to compute the original depth
-                        float fDepth = fW * (fL0 + fDelta);
-
-                        // Check if the depth is within the bounds of the depth image
-                        if (fDepth < 0.0)
-                            fDepth = 0.0;
-                        else if (fDepth > 65535.0)
-                            fDepth = 65535.0;
-
-                        // Check if nY and nX are within the bounds of the depth image
-                        if (nY < m_cvDepthMeasure.rows && nX < m_cvDepthMeasure.cols)
-                        {
-                            // Store the decoded depth in the new cv::Mat
-                            m_cvDepthMeasure.at<uint16_t>(nY, nX) = static_cast<uint16_t>(fDepth);
-                        }
-                    }
-                }
-                *(stContainer.pFrame) = m_cvDepthMeasure.clone();
-                break;
-            }
+            case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure.clone(); break;
             case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud.clone(); break;
             default: *(stContainer.pFrame) = m_cvFrame.clone(); break;
         }
