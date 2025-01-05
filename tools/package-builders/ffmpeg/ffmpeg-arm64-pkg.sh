@@ -21,30 +21,6 @@ else
     rm -rf /tmp/pkg
     rm -rf /tmp/ffmpeg
 
-    # Install Dependencies
-    apt update
-    apt install -y \
-        libaom-dev \
-        libass-dev \
-        libfdk-aac-dev \
-        libdav1d-dev \
-        libmp3lame-dev \
-        libopus-dev \
-        libvorbis-dev \
-        libvpx-dev \
-        libx264-dev \
-        libx265-dev
-
-    # This is a workaround for the libsvtav1-dev package not being available in the repository. The package is installed manually.
-    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
-    cd SVT-AV1
-    cd Build
-    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
-    make -j 8
-    make install
-    cd ../..
-    rm -rf SVT-AV1
-
     # Create Package Directory
     mkdir -p /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/usr/local
     mkdir -p /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/DEBIAN
@@ -60,12 +36,22 @@ else
         echo "Description: A prebuilt version of ffmpeg. Made by the Mars Rover Design Team."
     } > /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/DEBIAN/control
 
+    # This is a workaround for the libsvtav1-dev package not being available in the repository. The package is installed manually.
+    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    cd SVT-AV1
+    cd Build
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/usr/local
+    make -j 8
+    make install
+    cd ../..
+    rm -rf SVT-AV1
+
     # Download FFMPEG
     git clone --recurse-submodules --depth 1 --branch n${FFMPEG_VERSION} https://github.com/FFmpeg/FFmpeg.git ffmpeg
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local \
+    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/usr/local \
     --enable-static \
     --disable-shared \
     --disable-doc \
