@@ -38,7 +38,7 @@ void RunExample()
     globals::g_pCameraHandler = new CameraHandler();
 
     // Get reference to camera.
-    ZEDCamera* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+    BasicCamera* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
     // Start basic cam.
     ExampleBasicCam1->Start();
 

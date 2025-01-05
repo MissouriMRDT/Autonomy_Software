@@ -216,7 +216,7 @@ class ZEDCamera : public Camera<cv::Mat>
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
          ******************************************************************************/
-        virtual std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
+        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
 
         /******************************************************************************
          * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.

@@ -70,8 +70,8 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
-    // m_pDepthImageStream   = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
+    m_pRGBStream        = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
+    m_pDepthImageStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
     // m_pDepthMeasureStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthMeasure");
 
     // Set callbacks for the WebRTC connections.
@@ -118,14 +118,14 @@ void SIMZEDCam::SetCallbacks()
             // Deep copy the frame.
             m_cvFrame = cvFrame.clone();
         });
-    // m_pDepthImageStream->SetOnFrameReceivedCallback(
-    //     [this](cv::Mat& cvFrame)
-    //     {
-    //         // Acquire a lock on the webRTC copy mutex.
-    //         std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
-    //         // Deep copy the frame.
-    //         m_cvDepthImage = cvFrame.clone();
-    //     });
+    m_pDepthImageStream->SetOnFrameReceivedCallback(
+        [this](cv::Mat& cvFrame)
+        {
+            // Acquire a lock on the webRTC copy mutex.
+            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
+            // Deep copy the frame.
+            m_cvDepthImage = cvFrame.clone();
+        });
     // m_pDepthMeasureStream->SetOnFrameReceivedCallback(
     //     [this](cv::Mat& cvFrame)
     //     {
@@ -137,45 +137,32 @@ void SIMZEDCam::SetCallbacks()
 }
 
 /******************************************************************************
- * @brief The code inside this private method runs in a separate thread, but still
- *      has access to this*. This method continuously get new frames from the OpenCV
- *      VideoCapture object and stores it in a member variable. Then a thread pool is
- *      started and joined once per iteration to mass copy the frames and/or measure
- *      to any other thread waiting in the queues.
+ * @brief This method decodes the encoded depth measure data from the simulator.
+ *      We receive the depth measure from an H264 stream so it has to be encoded
+ *      and packed in a special way to ensure things like compression and
+ *      transmission are efficient.
  *
+ * @param cvDepthBuffer - The encoded depth buffer.
+ * @param cvDepthMeasure - The decoded depth measure that will be written to.
  *
+ * @note http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-09-30
+ * @date 2025-01-04
  ******************************************************************************/
-void SIMZEDCam::ThreadedContinuousCode()
+void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDepthMeasure)
 {
-    // Acquire a lock on the rover pose mutex.
-    std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
-    // Check if the NavBoard pointer is valid.
-    if (globals::g_pNavigationBoard)
-    {
-        // Get the current rover pose from the NavBoard.
-        m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
-    }
-    // Release lock.
-    lkRoverPoseLock.unlock();
-
-    // Acquire a lock on the WebRTC mutex.
-    std::shared_lock<std::shared_mutex> lkWebRTC3(m_muWebRTCDepthMeasureCopyMutex);
-    // The Simulator uses this a special method of packing the depth measure data as defined in this paper.
-    // http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
-    // Here we will decode it.
+    // Declare instance variables.
     float fW  = 65536.0;
     float fNP = 512.0;
 
     // Iterate over each pixel in the cvDepthMeasure image
-    for (int nY = 0; nY < m_cvDepthBuffer.rows; ++nY)
+    for (int nY = 0; nY < cvDepthBuffer.rows; ++nY)
     {
-        for (int nX = 0; nX < m_cvDepthBuffer.cols; ++nX)
+        for (int nX = 0; nX < cvDepthBuffer.cols; ++nX)
         {
             // Extract the encoded depth values
-            cv::Vec3b cvEncodedDepth = m_cvDepthBuffer.at<cv::Vec3b>(nY, nX);
+            cv::Vec3b cvEncodedDepth = cvDepthBuffer.at<cv::Vec3b>(nY, nX);
 
             // Extract encoded values
             float fL  = cvEncodedDepth[2] / 255.0;
@@ -209,31 +196,38 @@ void SIMZEDCam::ThreadedContinuousCode()
                 fDepth = 65535.0;
 
             // Check if nY and nX are within the bounds of the depth image
-            if (nY < m_cvDepthMeasure.rows && nX < m_cvDepthMeasure.cols)
+            if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
             {
                 // Store the decoded depth in the new cv::Mat. Convert cm to m.
-                m_cvDepthMeasure.at<float>(nY, nX) = static_cast<float>(fDepth / 100.0);
+                cvDepthMeasure.at<float>(nY, nX) = static_cast<float>(fDepth / 100.0);
             }
         }
     }
-    // Release lock.
-    lkWebRTC3.unlock();
+}
 
-    // Use the decoded depth measure to create a point cloud. No need to lock since WebRTC only uses the depth buffer, and we will only read the measure.
-    for (int nY = 0; nY < m_cvDepthMeasure.rows; ++nY)
+/******************************************************************************
+ * @brief This method calculates a point cloud from the decoded depth measure
+ *      use some simple trig and the camera FOV.
+ *
+ * @param cvDepthMeasure - The decoded depth measure.
+ * @param cvPointCloud - The point cloud that will be written to.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-04
+ ******************************************************************************/
+void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
+{
+    // Use the decoded depth measure to create a point cloud.
+    for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
     {
-        for (int nX = 0; nX < m_cvDepthMeasure.cols; ++nX)
+        for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
         {
             // Get the depth value.
-            float fDepth = m_cvDepthMeasure.at<float>(nY, nX);
-
-            // Get the horizontal and vertical FOV.
-            double dHorizontalFOV = m_dPropHorizontalFOV;
-            double dVerticalFOV   = m_dPropVerticalFOV;
+            float fDepth = cvDepthMeasure.at<float>(nY, nX);
 
             // Get the horizontal and vertical angles.
-            double dHorizontalAngle = (nX - m_cvDepthMeasure.cols / 2.0) * dHorizontalFOV / m_cvDepthMeasure.cols;
-            double dVerticalAngle   = (nY - m_cvDepthMeasure.rows / 2.0) * dVerticalFOV / m_cvDepthMeasure.rows;
+            double dHorizontalAngle = (nX - cvDepthMeasure.cols / 2.0) * m_dPropHorizontalFOV / cvDepthMeasure.cols;
+            double dVerticalAngle   = (nY - cvDepthMeasure.rows / 2.0) * m_dPropVerticalFOV / cvDepthMeasure.rows;
 
             // Convert angles to radians.
             double dHorizontalAngleRad = dHorizontalAngle * M_PI / 180.0;
@@ -248,6 +242,46 @@ void SIMZEDCam::ThreadedContinuousCode()
             m_cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 1.0);
         }
     }
+}
+
+/******************************************************************************
+ * @brief The code inside this private method runs in a separate thread, but still
+ *      has access to this*. This method continuously get new frames from the OpenCV
+ *      VideoCapture object and stores it in a member variable. Then a thread pool is
+ *      started and joined once per iteration to mass copy the frames and/or measure
+ *      to any other thread waiting in the queues.
+ *
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-09-30
+ ******************************************************************************/
+void SIMZEDCam::ThreadedContinuousCode()
+{
+    // Acquire a lock on the rover pose mutex.
+    std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
+    // Check if the NavBoard pointer is valid.
+    if (globals::g_pNavigationBoard != nullptr)
+    {
+        // Get the current rover pose from the NavBoard.
+        m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
+    }
+    {
+        // Get the current rover pose from the NavBoard.
+        m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
+    }
+    // Release lock.
+    lkRoverPoseLock.unlock();
+
+    // Acquire a lock on the WebRTC mutex.
+    std::shared_lock<std::shared_mutex> lkWebRTC3(m_muWebRTCDepthMeasureCopyMutex);
+    // Decode the depth measure.
+    this->DecodeDepthMeasure(m_cvDepthBuffer, m_cvDepthMeasure);
+    // Release lock.
+    lkWebRTC3.unlock();
+
+    // Calculate the point cloud from the decoded depth measure.
+    this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
 
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);

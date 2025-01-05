@@ -81,8 +81,9 @@ class SIMZEDCam : public ZEDCamera
 
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
-
         void SetCallbacks();
+        void DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDepthMeasure);
+        void CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud);
 
         /////////////////////////////////////////
         // Declare private member variables.

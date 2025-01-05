@@ -840,10 +840,10 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
         }
     }
 
-    // Submit a debug print for the current rover pose. The pose stores both the
+    // Submit a debug print for the current rover pose.
     geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentVIOPosition);
     LOG_DEBUG(logging::g_qSharedLogger,
-              "Camera VIO Pose is currently: {} (northing), {} (easting), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}",
+              "Camera VIO Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}",
               stCurrentUTMPosition.dEasting,
               stCurrentUTMPosition.dNorthing,
               stCurrentUTMPosition.dAltitude,

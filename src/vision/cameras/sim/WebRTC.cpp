@@ -592,9 +592,6 @@ bool WebRTC::InitializeH264Decoder()
  ******************************************************************************/
 bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat)
 {
-    // Acquire the lock to prevent multiple threads from accessing the decoder at the same time.
-    std::lock_guard<std::mutex> lkDecoder(m_muDecoderMutex);
-
     // Initialize packet data.
     m_pPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
     m_pPacket->size = static_cast<int>(vH264EncodedBytes.size());
@@ -679,13 +676,24 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
                     return false;
                 }
+
+                // Allocate buffer for the frame's data
+                int nRetCode = av_image_alloc(m_pFrame->data, m_pFrame->linesize, m_pFrame->width, m_pFrame->height, static_cast<AVPixelFormat>(m_pFrame->format), 32);
+                if (nRetCode < 0)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "Failed to allocate image buffer!");
+                    return false;
+                }
             }
 
+            // Lock the mutex before calling sws_scale.
+            std::lock_guard<std::mutex> lock(m_muDecoderMutex);
             // Create new mat for the decoded frame.
             cvDecodedFrame.create(m_pFrame->height, m_pFrame->width, CV_8UC3);
-            uint8_t* aDest[4]    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
-            int aDestLinesize[4] = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
-            sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pAVCodecContext->height, aDest, aDestLinesize);
+            std::array<uint8_t*, 4> aDest    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
+            std::array<int, 4> aDestLinesize = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
+            sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pFrame->height, aDest.data(), aDestLinesize.data());
         }
 
         // Calculate the time since the last key frame request.

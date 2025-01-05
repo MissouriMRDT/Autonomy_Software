@@ -48,7 +48,7 @@ namespace statemachine
         m_stSearchPatternCenter = globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate();
         m_vSearchPath           = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter,
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                       constants::SEARCH_MAX_RADIUS * 2,
+                                                                       constants::SEARCH_MAX_RADIUS,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
 

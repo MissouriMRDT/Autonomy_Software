@@ -263,7 +263,7 @@ void TagDetector::ThreadedContinuousCode()
                 }
                 else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
                 {
-                    // Drop the Alpha channel from the image copy to preproc frame.
+                    // Drop the Alpha channel from the image. This is necessary for the Aruco detection.
                     cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
                 }
             }

@@ -142,7 +142,7 @@ class BasicCamera : public Camera<cv::Mat>
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
          ******************************************************************************/
-        virtual std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
+        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
 
         /******************************************************************************
          * @brief Accessor for the cameras path or video index.
