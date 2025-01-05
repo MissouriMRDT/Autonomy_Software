@@ -54,6 +54,10 @@ else
     git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
     cd SVT-AV1
     cd Build
+    # We need to install to system first. Then we can install to the package directory.
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+    make -j 8
+    make install
     cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local
     make -j 8
     make install
