@@ -59,8 +59,9 @@ class BasicCamera : public Camera<cv::Mat>
                    nNumFrameRetrievalThreads)
         {
             // Initialize member variables.
-            m_nCameraIndex = -1;
-            m_szCameraPath = szCameraPath;
+            m_nCameraIndex                   = -1;
+            m_szCameraPath                   = szCameraPath;
+            m_bCameraIsConnectedOnVideoIndex = false;
         }
 
         /******************************************************************************
@@ -95,8 +96,9 @@ class BasicCamera : public Camera<cv::Mat>
                    nNumFrameRetrievalThreads)
         {
             // Initialize member variables.
-            m_nCameraIndex = nCameraIndex;
-            m_szCameraPath = "";
+            m_nCameraIndex                   = nCameraIndex;
+            m_szCameraPath                   = "";
+            m_bCameraIsConnectedOnVideoIndex = true;
         }
 
         /******************************************************************************
@@ -142,7 +144,7 @@ class BasicCamera : public Camera<cv::Mat>
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
          ******************************************************************************/
-        virtual std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
+        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
 
         /******************************************************************************
          * @brief Accessor for the cameras path or video index.
@@ -158,6 +160,7 @@ class BasicCamera : public Camera<cv::Mat>
         // Declare protected methods and member variables.
         int m_nCameraIndex;
         std::string m_szCameraPath;
+        bool m_bCameraIsConnectedOnVideoIndex;
 
     private:
         // Declare private methods and member variables.

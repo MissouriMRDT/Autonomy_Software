@@ -17,6 +17,7 @@
 /// \cond
 #include "../../../util/NumberOperations.hpp"
 #include <nlohmann/json.hpp>
+#include <omp.h>
 
 /// \endcond
 
@@ -65,14 +66,14 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
     m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
-    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_16UC1);
+    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
     m_cvDepthBuffer  = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
-    // m_pDepthImageStream   = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
-    // m_pDepthMeasureStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthMeasure");
+    m_pRGBStream          = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
+    m_pDepthImageStream   = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
+    m_pDepthMeasureStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthMeasure");
 
     // Set callbacks for the WebRTC connections.
     this->SetCallbacks();
@@ -118,22 +119,138 @@ void SIMZEDCam::SetCallbacks()
             // Deep copy the frame.
             m_cvFrame = cvFrame.clone();
         });
-    // m_pDepthImageStream->SetOnFrameReceivedCallback(
-    //     [this](cv::Mat& cvFrame)
-    //     {
-    //         // Acquire a lock on the webRTC copy mutex.
-    //         std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
-    //         // Deep copy the frame.
-    //         m_cvDepthImage = cvFrame.clone();
-    //     });
-    // m_pDepthMeasureStream->SetOnFrameReceivedCallback(
-    //     [this](cv::Mat& cvFrame)
-    //     {
-    //         // Acquire a lock on the webRTC copy mutex.
-    //         std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
-    //         // Deep copy the frame.
-    //         m_cvDepthBuffer = cvFrame.clone();
-    //     });
+    m_pDepthImageStream->SetOnFrameReceivedCallback(
+        [this](cv::Mat& cvFrame)
+        {
+            // Acquire a lock on the webRTC copy mutex.
+            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
+            // Deep copy the frame.
+            m_cvDepthImage = cvFrame.clone();
+        });
+    m_pDepthMeasureStream->SetOnFrameReceivedCallback(
+        [this](cv::Mat& cvFrame)
+        {
+            // Acquire a lock on the webRTC copy mutex.
+            std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthMeasureCopyMutex);
+            // Deep copy the frame.
+            m_cvDepthBuffer = cvFrame.clone();
+        });
+}
+
+/******************************************************************************
+ * @brief This method decodes the encoded depth measure data from the simulator.
+ *      We receive the depth measure from an H264 stream so it has to be encoded
+ *      and packed in a special way to ensure things like compression and
+ *      transmission are efficient.
+ *
+ * @param cvDepthBuffer - The encoded depth buffer.
+ * @param cvDepthMeasure - The decoded depth measure that will be written to.
+ *
+ * @note http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-04
+ ******************************************************************************/
+void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDepthMeasure)
+{
+    // Declare instance variables.
+    float fW  = 65536.0;
+    float fNP = 512.0;
+
+// TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
+// This is a parallel for loop that decodes the depth measure from the encoded depth buffer.
+#pragma omp parallel for collapse(2)
+
+    // Iterate over each pixel in the cvDepthMeasure image
+    for (int nY = 0; nY < cvDepthBuffer.rows; ++nY)
+    {
+        for (int nX = 0; nX < cvDepthBuffer.cols; ++nX)
+        {
+            // Extract the encoded depth values
+            cv::Vec3b cvEncodedDepth = cvDepthBuffer.at<cv::Vec3b>(nY, nX);
+
+            // Extract encoded values
+            float fL  = cvEncodedDepth[2] / 255.0;
+            float fHa = cvEncodedDepth[1] / 255.0;
+            float fHb = cvEncodedDepth[0] / 255.0;
+
+            // Period for triangle waves
+            float fP = fNP / fW;
+
+            // Determine offset and fine-grain correction
+            int fM       = fmod((4.0 * (fL / fP)) - 0.5, 4.0);
+            float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
+
+            float fDelta = 0.0f;
+            if (fM == 0)
+                fDelta = (fP / 2.0) * fHa;
+            else if (fM == 1)
+                fDelta = (fP / 2.0) * fHb;
+            else if (fM == 2)
+                fDelta = (fP / 2.0) * (1.0 - fHa);
+            else if (fM == 3)
+                fDelta = (fP / 2.0) * (1.0 - fHb);
+
+            // Combine to compute the original depth
+            float fDepth = fW * (fL0 + fDelta);
+
+            // Check if the depth is within the bounds of the depth image
+            if (fDepth < 0.0)
+                fDepth = 0.0;
+            else if (fDepth > 65535.0)
+                fDepth = 65535.0;
+
+            // Check if nY and nX are within the bounds of the depth image
+            if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
+            {
+                // Store the decoded depth in the new cv::Mat. Convert cm to m.
+                cvDepthMeasure.at<float>(nY, nX) = static_cast<float>(fDepth / 100.0);
+            }
+        }
+    }
+}
+
+/******************************************************************************
+ * @brief This method calculates a point cloud from the decoded depth measure
+ *      use some simple trig and the camera FOV.
+ *
+ * @param cvDepthMeasure - The decoded depth measure.
+ * @param cvPointCloud - The point cloud that will be written to.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-04
+ ******************************************************************************/
+void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
+{
+// TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
+// This is a parallel for loop that calculates the point cloud from the decoded depth measure.
+#pragma omp parallel for collapse(2)
+
+    // Use the decoded depth measure to create a point cloud.
+    for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+    {
+        for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
+        {
+            // Get the depth value.
+            float fDepth = cvDepthMeasure.at<float>(nY, nX);
+
+            // Get the horizontal and vertical angles.
+            double dHorizontalAngle = (nX - cvDepthMeasure.cols / 2.0) * m_dPropHorizontalFOV / cvDepthMeasure.cols;
+            double dVerticalAngle   = (nY - cvDepthMeasure.rows / 2.0) * m_dPropVerticalFOV / cvDepthMeasure.rows;
+
+            // Convert angles to radians.
+            double dHorizontalAngleRad = dHorizontalAngle * M_PI / 180.0;
+            double dVerticalAngleRad   = dVerticalAngle * M_PI / 180.0;
+
+            // Calculate the Cartesian coordinates.
+            float fX = fDepth * sin(dHorizontalAngleRad);
+            float fY = fDepth * sin(dVerticalAngleRad);
+            float fZ = fDepth * cos(dHorizontalAngleRad) * cos(dVerticalAngleRad);
+
+            // Store the decoded depth in the new cv::Mat
+            cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 1.0);
+        }
+    }
 }
 
 /******************************************************************************
@@ -153,13 +270,27 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Acquire a lock on the rover pose mutex.
     std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
     // Check if the NavBoard pointer is valid.
-    if (globals::g_pNavigationBoard)
+    if (globals::g_pNavigationBoard != nullptr)
     {
         // Get the current rover pose from the NavBoard.
         m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
     }
     // Release lock.
     lkRoverPoseLock.unlock();
+
+    // Check if the depth measure WebRTC connection is open.
+    if (m_pDepthMeasureStream != nullptr && m_pDepthMeasureStream->GetIsConnected())
+    {
+        // Acquire a lock on the WebRTC mutex.
+        std::shared_lock<std::shared_mutex> lkWebRTC3(m_muWebRTCDepthMeasureCopyMutex);
+        // Decode the depth measure.
+        this->DecodeDepthMeasure(m_cvDepthBuffer, m_cvDepthMeasure);
+        // Release lock.
+        lkWebRTC3.unlock();
+
+        // Calculate the point cloud from the decoded depth measure.
+        this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
+    }
 
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
@@ -200,6 +331,11 @@ void SIMZEDCam::ThreadedContinuousCode()
 
         // Wait for thread pool to finish.
         this->JoinPool();
+
+        // Release lock on WebRTC mutex.
+        lkWebRTC.unlock();
+        lkWebRTC2.unlock();
+        lkWebRTC3.unlock();
     }
 
     // Release lock on frame copy queue.
@@ -239,66 +375,7 @@ void SIMZEDCam::PooledLinearCode()
         {
             case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = m_cvFrame.clone(); break;
             case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage.clone(); break;
-            case PIXEL_FORMATS::eDepthMeasure:
-            {
-                // Copy depth buffer.
-
-                // The Simulator uses this a special method of packing the depth measure data as defined in this paper.
-                // http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
-                // Here we will decode it.
-                float fW  = 65536.0;
-                float fNP = 512.0;
-
-                // Iterate over each pixel in the cvDepthMeasure image
-                for (int nY = 0; nY < m_cvDepthBuffer.rows; ++nY)
-                {
-                    for (int nX = 0; nX < m_cvDepthBuffer.cols; ++nX)
-                    {
-                        // Extract the encoded depth values
-                        cv::Vec3b cvEncodedDepth = m_cvDepthBuffer.at<cv::Vec3b>(nY, nX);
-
-                        // Extract encoded values
-                        float fL  = cvEncodedDepth[2] / 255.0;
-                        float fHa = cvEncodedDepth[1] / 255.0;
-                        float fHb = cvEncodedDepth[0] / 255.0;
-
-                        // Period for triangle waves
-                        float fP = fNP / fW;
-
-                        // Determine offset and fine-grain correction
-                        int fM       = fmod((4.0 * (fL / fP)) - 0.5, 4.0);
-                        float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
-
-                        float fDelta = 0.0f;
-                        if (fM == 0)
-                            fDelta = (fP / 2.0) * fHa;
-                        else if (fM == 1)
-                            fDelta = (fP / 2.0) * fHb;
-                        else if (fM == 2)
-                            fDelta = (fP / 2.0) * (1.0 - fHa);
-                        else if (fM == 3)
-                            fDelta = (fP / 2.0) * (1.0 - fHb);
-
-                        // Combine to compute the original depth
-                        float fDepth = fW * (fL0 + fDelta);
-
-                        // Check if the depth is within the bounds of the depth image
-                        if (fDepth < 0.0)
-                            fDepth = 0.0;
-                        else if (fDepth > 65535.0)
-                            fDepth = 65535.0;
-
-                        // Check if nY and nX are within the bounds of the depth image
-                        if (nY < m_cvDepthMeasure.rows && nX < m_cvDepthMeasure.cols)
-                        {
-                            // Store the decoded depth in the new cv::Mat
-                            m_cvDepthMeasure.at<uint16_t>(nY, nX) = static_cast<uint16_t>(fDepth);
-                        }
-                    }
-                }
-                *(stContainer.pFrame) = m_cvDepthMeasure.clone();
-                break;
-            }
+            case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure.clone(); break;
             case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud.clone(); break;
             default: *(stContainer.pFrame) = m_cvFrame.clone(); break;
         }
@@ -666,7 +743,7 @@ void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double
  ******************************************************************************/
 bool SIMZEDCam::GetCameraIsOpen()
 {
-    return m_pRGBStream->GetIsConnected();    //&& m_pDepthImageStream->GetIsConnected() && m_pDepthMeasureStream->GetIsConnected();
+    return m_pRGBStream->GetIsConnected() && m_pDepthImageStream->GetIsConnected() && m_pDepthMeasureStream->GetIsConnected();
 }
 
 /******************************************************************************

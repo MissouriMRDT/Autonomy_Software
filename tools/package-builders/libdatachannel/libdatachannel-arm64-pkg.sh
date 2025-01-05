@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-LIBDATACHANNEL_VERSION="0.22"
+LIBDATACHANNEL_VERSION="0.22.3"
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb"

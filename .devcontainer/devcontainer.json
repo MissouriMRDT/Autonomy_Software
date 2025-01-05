@@ -71,7 +71,8 @@
                 "gruntfuggly.todo-tree",
                 "streetsidesoftware.code-spell-checker",
                 "vscode-icons-team.vscode-icons",
-                "ryanluker.vscode-coverage-gutters"
+                "ryanluker.vscode-coverage-gutters",
+                "GitHub.vscode-pull-request-github"
             ],
             "settings": {
                 // VSCode settings.

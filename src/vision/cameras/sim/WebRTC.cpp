@@ -11,7 +11,10 @@
 #include "WebRTC.h"
 #include "../../../AutonomyLogging.h"
 
+/// \cond
 #include <regex>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Construct a new Web RTC::WebRTC object.
@@ -57,14 +60,26 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
  ******************************************************************************/
 WebRTC::~WebRTC()
 {
-    // Close the video track, peer connection, data channel, and websocket.
-    m_pVideoTrack1->close();
-    m_pPeerConnection->close();
-    m_pDataChannel->close();
-    m_pWebSocket->close();
+    // Check if the smart pointers are valid before calling any methods.
+    if (m_pVideoTrack1)
+    {
+        m_pVideoTrack1->close();
+    }
+    if (m_pPeerConnection)
+    {
+        m_pPeerConnection->close();
+    }
+    if (m_pDataChannel)
+    {
+        m_pDataChannel->close();
+    }
+    if (m_pWebSocket)
+    {
+        m_pWebSocket->close();
+    }
 
     // Wait for all connections to close.
-    while (!m_pVideoTrack1->isClosed() || !m_pDataChannel->isClosed() || !m_pWebSocket->isClosed())
+    while ((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed()))
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -95,6 +110,8 @@ WebRTC::~WebRTC()
 
     // Set dangling pointers to nullptr.
     m_pAVCodecContext = nullptr;
+    m_pFrame          = nullptr;
+    m_pPacket         = nullptr;
     m_pSWSContext     = nullptr;
 }
 
@@ -126,7 +143,15 @@ void WebRTC::SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameR
  ******************************************************************************/
 bool WebRTC::GetIsConnected() const
 {
-    return m_pWebSocket->isOpen();
+    // Check if the datachannel shared pointer is valid.
+    if (m_pWebSocket != nullptr)
+    {
+        // Check if the datachannel is open.
+        return m_pWebSocket->isOpen();
+    }
+
+    // Return false if the datachannel is not valid.
+    return false;
 }
 
 /******************************************************************************
@@ -218,7 +243,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         LOG_DEBUG(logging::g_qSharedLogger, "Received config message from signalling server: {}", jsnMessage.dump());
                     }
                     // If the message from the server is an offer, set the remote description offer.
-                    if (szType == "offer")
+                    else if (szType == "offer")
                     {
                         // Get the SDP offer and set it as the remote description.
                         std::string sdp = jsnMessage["sdp"];
@@ -371,6 +396,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                             vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
                         }
 
+                        // Acquire a mutex lock on the shared_mutex before calling sws_scale.
+                        std::unique_lock<std::shared_mutex> lkDecoderLock(m_muDecoderMutex);
                         // Pass to FFmpeg decoder
                         this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
 
@@ -380,6 +407,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                             // Call the user's callback function.
                             m_fnOnFrameReceivedCallback(m_cvFrame);
                         }
+                        // Release the lock on the shared_mutex.
+                        lkDecoderLock.unlock();
                     }
                 });
         });
@@ -575,6 +604,9 @@ bool WebRTC::InitializeH264Decoder()
         return false;
     }
 
+    // Set the SWSScale context to nullptr.
+    m_pSWSContext = nullptr;
+
     return true;
 }
 
@@ -592,9 +624,6 @@ bool WebRTC::InitializeH264Decoder()
  ******************************************************************************/
 bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat)
 {
-    // Acquire the lock to prevent multiple threads from accessing the decoder at the same time.
-    std::lock_guard<std::mutex> lkDecoder(m_muDecoderMutex);
-
     // Initialize packet data.
     m_pPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
     m_pPacket->size = static_cast<int>(vH264EncodedBytes.size());
@@ -607,7 +636,11 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "Failed to send packet to decoder! Error code: {} {}. This is not a serious problem and is likely just because some of the UDP RTP packets didn't "
+                   "make it to us.",
+                   nReturnCode,
+                   aErrorBuffer);
         // Request a new keyframe from the video track.
         this->RequestKeyFrame();
 
@@ -658,7 +691,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         else
         {
             // Convert the decoded frame to cv::Mat using sws_scale.
-            if (!m_pSWSContext)
+            if (m_pSWSContext == nullptr)
             {
                 m_pSWSContext = sws_getContext(m_pFrame->width,
                                                m_pFrame->height,
@@ -670,7 +703,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
                                                nullptr,
                                                nullptr,
                                                nullptr);
-                if (!m_pSWSContext)
+                if (m_pSWSContext == nullptr)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
@@ -679,13 +712,24 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
                     return false;
                 }
+
+                // Allocate buffer for the frame's data
+                int nRetCode = av_image_alloc(m_pFrame->data, m_pFrame->linesize, m_pFrame->width, m_pFrame->height, static_cast<AVPixelFormat>(m_pFrame->format), 32);
+                if (nRetCode < 0)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "Failed to allocate image buffer!");
+                    return false;
+                }
             }
 
             // Create new mat for the decoded frame.
             cvDecodedFrame.create(m_pFrame->height, m_pFrame->width, CV_8UC3);
-            uint8_t* aDest[4]    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
-            int aDestLinesize[4] = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
-            sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pAVCodecContext->height, aDest, aDestLinesize);
+            std::array<uint8_t*, 4> aDest    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
+            std::array<int, 4> aDestLinesize = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
+
+            // Convert the frame to the output pixel format.
+            sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pFrame->height, aDest.data(), aDestLinesize.data());
         }
 
         // Calculate the time since the last key frame request.
@@ -697,7 +741,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // this->RequestKeyFrame();
 
             // Set the QP factor to 0. (Max quality)
-            this->SendCommandToStreamer(R"({"Encoder.MaxQP":15})");
+            this->SendCommandToStreamer("{\"Encoder.MaxQP\":" + std::to_string(constants::SIM_WEBRTC_QP) + "}");
             // Set the bitrate limits.
             this->SendCommandToStreamer(R"({"WebRTC.MinBitrate":99999})");
             this->SendCommandToStreamer(R"({"WebRTC.MaxBitrate":99999999})");

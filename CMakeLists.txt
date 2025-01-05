@@ -27,7 +27,7 @@ cmake_policy(SET CMP0153 OLD)    # Allows use of "Exec_Program" function
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -186,6 +186,9 @@ endif()
 ## Find Threads
 find_package(Threads REQUIRED)
 
+## Find OpenMP
+find_package(OpenMP REQUIRED)
+
 ## Find Quill
 find_package(quill REQUIRED)
 
@@ -309,6 +312,7 @@ endif()
 
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
+                        OpenMP::OpenMP_CXX
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
@@ -343,15 +347,16 @@ if (BUILD_TESTS_MODE)
     file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
     file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
     file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
-    # file(GLOB_RECURSE Handlers_SRC          CONFIGURE_DEPENDS  "src/handlers/*.cpp")
+    file(GLOB_RECURSE Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
+    file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")   
 
     list(LENGTH UnitTests_SRC UnitTests_LEN)
     list(LENGTH IntegrationTests_SRC IntegrationTests_LEN)
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Network_SRC} ${Logging_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
         add_test(Unit_Tests ${EXE_NAME}_UnitTests)
     else()
@@ -359,7 +364,7 @@ if (BUILD_TESTS_MODE)
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Network_SRC} ${Logging_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
         add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
     else()
