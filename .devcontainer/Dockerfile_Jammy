@@ -31,16 +31,16 @@ RUN echo "${TZ}" > /etc/localtime && \
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
 # Add APT Repo for PCIe drivers.
-RUN apt update && apt install -y curl && \
+RUN apt update && apt install -y wget gnupg && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-    curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg && \
+    wget -qO - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    wget -qO - https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel-archive-keyring.gpg && \
     mv bazel-archive-keyring.gpg /usr/share/keyrings && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
-    build-essential gdb wget less udev zstd sudo libgomp1 \
+    build-essential gdb less udev zstd sudo libgomp1 \
     cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
