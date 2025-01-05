@@ -17,6 +17,20 @@ else
     echo "Package version ${FFMPEG_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
     
+    # Install Dependencies
+    apt update
+    apt install -y \
+        libaom-dev \
+        libass-dev \
+        libfdk-aac-dev \
+        libdav1d-dev \
+        libmp3lame-dev \
+        libopus-dev \
+        libvorbis-dev \
+        libvpx-dev \
+        libx264-dev \
+        libx265-dev
+
     # Delete Old Packages
     rm -rf /tmp/pkg
     rm -rf /tmp/ffmpeg
