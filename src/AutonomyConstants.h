@@ -331,7 +331,7 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Navigating State.
-    const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;    // The radius in meters that the rover should get to the goal waypoint.
 
     // Avoidance State.
     const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_POWER;    // Drive speed of avoidance state
