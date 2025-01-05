@@ -342,7 +342,7 @@ void TagDetector::ThreadedContinuousCode()
     // Check if the detected tag copy queue is empty.
     if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty() || !m_qDetectedTagDrawnOverlayFrames.empty())
     {
-        size_t siQueueLength = std::max({m_qDetectedArucoTagCopySchedule.size(), m_qDetectedTensorflowTagCopySchedule.size(), m_qDetectedTagDrawnOverlayFrames.size()});
+        size_t siQueueLength = m_qDetectedArucoTagCopySchedule.size() + m_qDetectedTensorflowTagCopySchedule.size() + m_qDetectedTagDrawnOverlayFrames.size();
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
         // Wait for thread pool to finish.

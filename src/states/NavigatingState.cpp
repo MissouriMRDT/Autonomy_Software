@@ -221,8 +221,7 @@ namespace statemachine
             // Get a list of the currently detected tags, and their stats.
             std::vector<arucotag::ArucoTag> vDetectedArucoTags;
             std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-            tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
-            tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
+            tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
 
             // Check if we have detected any tags.
             if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())

@@ -328,8 +328,9 @@ namespace statemachine
     bool ApproachingMarkerState::IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget)
     {
         // Load all detected tags in the rover's vision.
-        std::vector<arucotag::ArucoTag> vDetectedTags;
-        tagdetectutils::LoadDetectedArucoTags(vDetectedTags, m_vTagDetectors, true);
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors);
 
         arucotag::ArucoTag stBestTag;
         stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
@@ -339,7 +340,7 @@ namespace statemachine
         std::string szIdentifiedTags = "";
 
         // Select the tag that is the closest to the rover's current position.
-        for (const arucotag::ArucoTag& stCandidate : vDetectedTags)
+        for (const arucotag::ArucoTag& stCandidate : vDetectedArucoTags)
         {
             szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Hits: " + std::to_string(stCandidate.nHits) + "\n";
 
@@ -385,8 +386,9 @@ namespace statemachine
     bool ApproachingMarkerState::IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget)
     {
         // Load all detected tags in the rover's vision.
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTags;
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTags, m_vTagDetectors);
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors);
 
         tensorflowtag::TensorflowTag stBestTag;
         stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
@@ -394,7 +396,7 @@ namespace statemachine
         // stBestTag.nID                   = -1;
 
         // Select the tag that is the closest to the rover's current position and above the confidence threshold.
-        for (const tensorflowtag::TensorflowTag& stCandidate : vDetectedTags)
+        for (const tensorflowtag::TensorflowTag& stCandidate : vDetectedTensorflowTags)
         {
             if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance && stCandidate.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD)
             {
@@ -413,19 +415,5 @@ namespace statemachine
         }
 
         return bTagIdentified;
-
-        // LEAD: Since TensorflowTag no longer has ID, commented out.
-        // // A tag was found.
-        // if (stBestTag.nID >= 0)
-        // {
-        //     // Save it to the passed in reference.
-        //     stTarget = stBestTag;
-        //     return true;
-        // }
-        // // No target tag was found.
-        // else
-        // {
-        //     return false;
-        // }
     }
 }    // namespace statemachine

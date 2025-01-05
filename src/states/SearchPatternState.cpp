@@ -36,8 +36,6 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nMaxDataPoints = 100;
-        m_vRoverPosition.reserve(m_nMaxDataPoints);
         m_eCurrentSearchPatternType = eSpiral;
         m_nSearchPathIdx            = 0;
 
@@ -124,16 +122,6 @@ namespace statemachine
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
-        //////////////////////////
-        /* --- Log Position --- */
-        //////////////////////////
-
-        if (m_vRoverPosition.size() == m_nMaxDataPoints)
-        {
-            m_vRoverPosition.erase(m_vRoverPosition.begin());
-        }
-        m_vRoverPosition.emplace_back(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing);
-
         /*
             The overall flow of this state is as follows.
             1. Is there a tag -> MarkerSeen
@@ -151,8 +139,7 @@ namespace statemachine
         // Get a list of the currently detected tags, and their stats.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
+        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
 
         // Check if we have detected any tags.
         if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
