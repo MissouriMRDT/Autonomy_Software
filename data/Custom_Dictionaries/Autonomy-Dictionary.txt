@@ -360,6 +360,7 @@ MAKEFLAGS
 MAPANGLE
 MAPRANGE
 marsrover
+matplotlib
 matx
 Memcheck
 MERICA

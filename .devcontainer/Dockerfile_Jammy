@@ -55,7 +55,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y bat \
 
 # Install Required Python Packages and link python3 executable to python.
 RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install numpy opencv-python pyopengl
+    python -m pip install numpy opencv-python pyopengl matplotlib
 
 # Set Timezone
 RUN echo "${TZ}" > /etc/localtime && \
