@@ -48,9 +48,6 @@ SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
                 bEnableRecordingFlag,
                 nNumFrameRetrievalThreads)
 {
-    // Set flag specifying that the camera is located at a dev/video index.
-    m_bCameraIsConnectedOnVideoIndex = false;
-
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
 
@@ -58,12 +55,12 @@ SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
     if (m_cvCamera.open(szCameraPath))
     {
         // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "SIMCamera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
+        LOG_DEBUG(logging::g_qSharedLogger, "SIMCamera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), szCameraPath);
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Unable to open SIMCamera at path/URL {}", m_szCameraPath);
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open SIMCamera at path/URL {}", szCameraPath);
     }
 
     // Set max FPS of the ThreadedContinuousCode method.

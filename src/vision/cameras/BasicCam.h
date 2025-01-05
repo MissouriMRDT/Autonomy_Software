@@ -62,7 +62,7 @@ class BasicCam : public BasicCamera
         /////////////////////////////////////////
 
         bool GetCameraIsOpen() override;
-        std::string GetCameraLocation() const;
+        std::string GetCameraLocation() const override;
 
     private:
         /////////////////////////////////////////
@@ -70,9 +70,6 @@ class BasicCam : public BasicCamera
         /////////////////////////////////////////
         // Basic Camera specific.
         cv::VideoCapture m_cvCamera;
-        std::string m_szCameraPath;
-        bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
         cv::Mat m_cvFrame;

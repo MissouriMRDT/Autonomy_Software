@@ -50,9 +50,6 @@ BasicCam::BasicCam(const std::string szCameraPath,
     // Initialize the OpenCV mat to a black/empty image the size of the camera resolution.
     m_cvFrame = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
 
-    // Set flag specifying that the camera is located at a dev/video index.
-    m_bCameraIsConnectedOnVideoIndex = false;
-
     // Set video cap properties.
     m_cvCamera.set(cv::CAP_PROP_FRAME_WIDTH, nPropResolutionX);
     m_cvCamera.set(cv::CAP_PROP_FRAME_HEIGHT, nPropResolutionY);
@@ -62,12 +59,12 @@ BasicCam::BasicCam(const std::string szCameraPath,
     if (m_cvCamera.open(szCameraPath))
     {
         // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), m_szCameraPath);
+        LOG_INFO(logging::g_qSharedLogger, "Camera {} at path/URL {} has been successfully opened.", m_cvCamera.getBackendName(), szCameraPath);
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", m_szCameraPath);
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", szCameraPath);
     }
 
     // Set max FPS of the ThreadedContinuousCode method.
@@ -113,9 +110,6 @@ BasicCam::BasicCam(const int nCameraIndex,
     // Initialize the OpenCV mat to a black/empty image the size of the camera resolution.
     m_cvFrame = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
 
-    // Set flag specifying that the camera is located at a dev/video index.
-    m_bCameraIsConnectedOnVideoIndex = true;
-
     // Set video cap properties.
     m_cvCamera.set(cv::CAP_PROP_FRAME_WIDTH, nPropResolutionX);
     m_cvCamera.set(cv::CAP_PROP_FRAME_HEIGHT, nPropResolutionY);
@@ -155,8 +149,17 @@ BasicCam::~BasicCam()
     // Release camera capture object.
     m_cvCamera.release();
 
-    // Submit logger message.
-    LOG_INFO(logging::g_qSharedLogger, "Basic camera at video index {} has been successfully closed.", m_nCameraIndex);
+    // Check if camera was connected on a video index.
+    if (m_bCameraIsConnectedOnVideoIndex)
+    {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "Basic camera at video index {} has been successfully closed.", m_nCameraIndex);
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "Basic camera at path/URL {} has been successfully closed.", m_szCameraPath);
+    }
 }
 
 /******************************************************************************

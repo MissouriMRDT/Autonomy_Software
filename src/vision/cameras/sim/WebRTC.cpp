@@ -60,14 +60,26 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
  ******************************************************************************/
 WebRTC::~WebRTC()
 {
-    // Close the video track, peer connection, data channel, and websocket.
-    m_pVideoTrack1->close();
-    m_pPeerConnection->close();
-    m_pDataChannel->close();
-    m_pWebSocket->close();
+    // Check if the smart pointers are valid before calling any methods.
+    if (m_pVideoTrack1)
+    {
+        m_pVideoTrack1->close();
+    }
+    if (m_pPeerConnection)
+    {
+        m_pPeerConnection->close();
+    }
+    if (m_pDataChannel)
+    {
+        m_pDataChannel->close();
+    }
+    if (m_pWebSocket)
+    {
+        m_pWebSocket->close();
+    }
 
     // Wait for all connections to close.
-    while (!m_pVideoTrack1->isClosed() || !m_pDataChannel->isClosed() || !m_pWebSocket->isClosed())
+    while ((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed()))
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -624,7 +636,11 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Failed to send packet to decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "Failed to send packet to decoder! Error code: {} {}. This is not a serious problem and is likely just because some of the UDP RTP packets didn't "
+                   "make it to us.",
+                   nReturnCode,
+                   aErrorBuffer);
         // Request a new keyframe from the video track.
         this->RequestKeyFrame();
 

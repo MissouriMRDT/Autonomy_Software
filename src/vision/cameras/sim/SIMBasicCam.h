@@ -51,8 +51,8 @@ class SIMBasicCam : public BasicCamera
         // Getters.
         /////////////////////////////////////////
 
-        std::string GetCameraLocation() const;
         bool GetCameraIsOpen() override;
+        std::string GetCameraLocation() const override;
 
     private:
         /////////////////////////////////////////
@@ -61,10 +61,6 @@ class SIMBasicCam : public BasicCamera
         // Basic Camera specific.
 
         cv::VideoCapture m_cvCamera;
-        std::string m_szCameraPath;
-        bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nCameraIndex;
-        int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
 

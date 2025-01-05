@@ -157,6 +157,7 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
     float fW  = 65536.0;
     float fNP = 512.0;
 
+// TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
 // This is a parallel for loop that decodes the depth measure from the encoded depth buffer.
 #pragma omp parallel for collapse(2)
 
@@ -221,6 +222,7 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
  ******************************************************************************/
 void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
 {
+// TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
 // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
 #pragma omp parallel for collapse(2)
 
@@ -269,10 +271,6 @@ void SIMZEDCam::ThreadedContinuousCode()
     std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
     // Check if the NavBoard pointer is valid.
     if (globals::g_pNavigationBoard != nullptr)
-    {
-        // Get the current rover pose from the NavBoard.
-        m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
-    }
     {
         // Get the current rover pose from the NavBoard.
         m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
