@@ -108,7 +108,7 @@ TEST(DriveBoardTest, Leaks)
 //             EXPECT_EQ(packet.eDataType, manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE);
 //             EXPECT_EQ(packet.vData[0], 0.5);
 //             EXPECT_EQ(packet.vData[1], -0.5);
-//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str());
+//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str());
 //             EXPECT_EQ(port, constants::ROVECOMM_OUTGOING_UDP_PORT);
 //         });
 
@@ -132,7 +132,7 @@ TEST(DriveBoardTest, Leaks)
 //             EXPECT_EQ(packet.eDataType, manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE);
 //             EXPECT_EQ(packet.vData[0], 1.0);
 //             EXPECT_EQ(packet.vData[1], -1.0);
-//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str());
+//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str());
 //             EXPECT_EQ(port, constants::ROVECOMM_OUTGOING_UDP_PORT);
 //         });
 
@@ -156,7 +156,7 @@ TEST(DriveBoardTest, Leaks)
 //             EXPECT_EQ(packet.eDataType, manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE);
 //             EXPECT_EQ(packet.vData[0], -1.0);
 //             EXPECT_EQ(packet.vData[1], -1.0);
-//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str());
+//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str());
 //             EXPECT_EQ(port, constants::ROVECOMM_OUTGOING_UDP_PORT);
 //         });
 
@@ -180,7 +180,7 @@ TEST(DriveBoardTest, Leaks)
 //             EXPECT_EQ(packet.eDataType, manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE);
 //             EXPECT_EQ(packet.vData[0], 1.0);
 //             EXPECT_EQ(packet.vData[1], 1.0);
-//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str());
+//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str());
 //             EXPECT_EQ(port, constants::ROVECOMM_OUTGOING_UDP_PORT);
 //         });
 
@@ -202,7 +202,7 @@ TEST(DriveBoardTest, Leaks)
 //             EXPECT_EQ(packet.eDataType, manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE);
 //             EXPECT_EQ(packet.vData[0], 0.0);
 //             EXPECT_EQ(packet.vData[1], 0.0);
-//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str());
+//             EXPECT_STREQ(ipAddress, constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str());
 //             EXPECT_EQ(port, constants::ROVECOMM_OUTGOING_UDP_PORT);
 //         });
 

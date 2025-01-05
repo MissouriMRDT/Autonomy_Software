@@ -17,6 +17,20 @@ else
     echo "Package version ${FFMPEG_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
     
+    # Install Dependencies
+    apt update
+    apt install -y \
+        libaom-dev \
+        libass-dev \
+        libfdk-aac-dev \
+        libdav1d-dev \
+        libmp3lame-dev \
+        libopus-dev \
+        libvorbis-dev \
+        libvpx-dev \
+        libx264-dev \
+        libx265-dev
+
     # Delete Old Packages
     rm -rf /tmp/pkg
     rm -rf /tmp/ffmpeg
@@ -36,12 +50,46 @@ else
         echo "Description: A prebuilt version of ffmpeg. Made by the Mars Rover Design Team."
     } > /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/DEBIAN/control
 
+    # This is a workaround for the libsvtav1-dev package not being available in the repository. The package is installed manually.
+    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    cd SVT-AV1
+    cd Build
+    # We need to install to system first. Then we can install to the package directory.
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+    make -j 8
+    make install
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/usr/local
+    make -j 8
+    make install
+    cd ../..
+    rm -rf SVT-AV1
+
     # Download FFMPEG
     git clone --recurse-submodules --depth 1 --branch n${FFMPEG_VERSION} https://github.com/FFmpeg/FFmpeg.git ffmpeg
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local --enable-static --disable-shared --disable-doc --enable-gpl --enable-libx264 --enable-pic
+    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/usr/local \
+    --enable-static \
+    --disable-shared \
+    --disable-doc \
+    --enable-pic \
+    --extra-libs="-lpthread -lm" \
+    --ld="g++" \
+    --enable-gpl \
+    --enable-libaom \
+    --enable-libass \
+    --enable-libfdk-aac \
+    --enable-libfreetype \
+    --enable-libmp3lame \
+    --enable-libopus \
+    --enable-libsvtav1 \
+    --enable-libdav1d \
+    --enable-libvorbis \
+    --enable-libvpx \
+    --enable-libx264 \
+    --enable-libx265 \
+    --enable-nonfree
 
     # Install FFMPEG
     make

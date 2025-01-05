@@ -54,7 +54,7 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_mutex m_muStateMutex;
         std::shared_mutex m_muEventMutex;
         std::atomic_bool m_bSwitchingStates;
-        ZEDCam* m_pMainCam;
+        ZEDCamera* m_pMainCam;
         geoops::GPSCoordinate m_stCurrentGPSLocation;
 
         /////////////////////////////////////////

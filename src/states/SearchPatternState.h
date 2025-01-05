@@ -59,8 +59,6 @@ namespace statemachine
             std::vector<geoops::Waypoint> m_vSearchPath;
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;
-            std::vector<std::pair<double, double>> m_vRoverPosition;
-            size_t m_nMaxDataPoints;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
         protected:

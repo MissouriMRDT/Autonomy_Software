@@ -11,8 +11,8 @@
 #ifndef OBJECT_DETECTOR_H
 #define OBJECT_DETECTOR_H
 
-#include "../../vision/cameras/BasicCam.h"
-#include "../../vision/cameras/ZEDCam.h"
+#include "../../interfaces/BasicCamera.hpp"
+#include "../../interfaces/ZEDCamera.hpp"
 #include "./DepthDetection.hpp"
 #include "./TensorflowObjectDetection.hpp"
 
@@ -39,8 +39,8 @@ class ObjectDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        ObjectDetector(BasicCam* pBasicCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        ObjectDetector(ZEDCam* pZEDCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        ObjectDetector(BasicCamera* pBasicCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        ObjectDetector(ZEDCamera* pZEDCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
         std::future<bool> RequestDepthDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedDepthObjects(std::vector<depthobject::DepthObject>& vDepthObjects);

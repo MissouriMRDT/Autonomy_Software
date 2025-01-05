@@ -36,22 +36,33 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nMaxDataPoints = 100;
-        m_vRoverPosition.reserve(m_nMaxDataPoints);
         m_eCurrentSearchPatternType = eSpiral;
         m_nSearchPathIdx            = 0;
+
+        // Get the current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
         m_stSearchPatternCenter = globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate();
         m_vSearchPath           = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter,
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
                                                                        constants::SEARCH_MAX_RADIUS,
-                                                                       constants::SEARCH_STARTING_HEADING_DEGREES,
-                                                                       constants::SEARCH_SPACING);
+                                                                       stCurrentRoverPose.GetCompassHeading(),
+                                                                       constants::SEARCH_SPIRAL_SPACING);
 
-        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        // Write the search pattern points to the logger, just store the GPS lat/long.
+        std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
+        for (geoops::Waypoint& stWaypoint : m_vSearchPath)
+        {
+            szSearchPatternPoints +=
+                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+        }
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
+
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
     }
 
     /******************************************************************************
@@ -111,16 +122,6 @@ namespace statemachine
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
-        //////////////////////////
-        /* --- Log Position --- */
-        //////////////////////////
-
-        if (m_vRoverPosition.size() == m_nMaxDataPoints)
-        {
-            m_vRoverPosition.erase(m_vRoverPosition.begin());
-        }
-        m_vRoverPosition.emplace_back(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing);
-
         /*
             The overall flow of this state is as follows.
             1. Is there a tag -> MarkerSeen
@@ -135,16 +136,28 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
+        // Get a list of the currently detected tags, and their stats.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
 
-        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
-
+        // Check if we have detected any tags.
         if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
-            return;
+            // Check if any of the tags have a detection counter or confidence greater than the threshold.
+            if (std::any_of(vDetectedArucoTags.begin(),
+                            vDetectedArucoTags.end(),
+                            [](arucotag::ArucoTag& stTag) { return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT; }) ||
+                std::any_of(vDetectedTensorflowTags.begin(),
+                            vDetectedTensorflowTags.end(),
+                            [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))
+            {
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
+                // Handle state transition.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+                return;
+            }
         }
 
         ////////////////////////////
@@ -184,6 +197,16 @@ namespace statemachine
         ///////////////////////////////////
         /* --- Follow Search Pattern --- */
         ///////////////////////////////////
+
+        // Check if the search path is empty.
+        if (m_vSearchPath.empty())
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Search path is empty, aborting search.");
+            // Handle state transition.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+            return;
+        }
 
         // Have we reached the current waypoint?
         geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
@@ -272,14 +295,24 @@ namespace statemachine
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
                         // Generate vertical zigzag pattern.
                         m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_SPACING,
+                                                                                       constants::SEARCH_MAX_RADIUS * 2,
+                                                                                       constants::SEARCH_MAX_RADIUS * 2,
+                                                                                       constants::SEARCH_ZIGZAG_SPACING,
                                                                                        true);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = eZigZag;
+
+                        // Write the search pattern points to the logger, just store the GPS lat/long.
+                        std::string szSearchPatternPoints = "Search Pattern Points (Vertical ZigZag): ";
+                        for (geoops::Waypoint& stWaypoint : m_vSearchPath)
+                        {
+                            szSearchPatternPoints +=
+                                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+                        }
+                        // Submit logger message.
+                        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
                         break;
                     }
                     case eZigZag:
@@ -288,14 +321,24 @@ namespace statemachine
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
                         // Generate vertical zigzag pattern.
                         m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_SPACING,
+                                                                                       constants::SEARCH_MAX_RADIUS * 2,
+                                                                                       constants::SEARCH_MAX_RADIUS * 2,
+                                                                                       constants::SEARCH_ZIGZAG_SPACING,
                                                                                        false);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = END;
+
+                        // Write the search pattern points to the logger, just store the GPS lat/long.
+                        std::string szSearchPatternPoints = "Search Pattern Points (Horizontal ZigZag): ";
+                        for (geoops::Waypoint& stWaypoint : m_vSearchPath)
+                        {
+                            szSearchPatternPoints +=
+                                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+                        }
+                        // Submit logger message.
+                        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
                         break;
                     }
                     case END:

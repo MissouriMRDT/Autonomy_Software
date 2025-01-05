@@ -142,7 +142,7 @@ void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
     stPacket.vData.emplace_back(fDriveBoardLeftPower);
     stPacket.vData.emplace_back(fDriveBoardRightPower);
     // Check if we should send packets to the SIM or board.
-    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+    const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
@@ -173,7 +173,7 @@ void DriveBoard::SendStop()
     stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
     stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
     // Check if we should send packets to the SIM or board.
-    const char* cIPAddress = constants::MODE_SIM ? "127.0.0.1" : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+    const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {

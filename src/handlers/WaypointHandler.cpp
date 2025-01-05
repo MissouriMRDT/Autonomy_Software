@@ -741,7 +741,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
 
     // Create instance variables.
-    ZEDCam* pMainCam                           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    ZEDCamera* pMainCam                        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
     double dCurrentHeading                     = dCurrentGPSHeading;
     bool bVIOGPSFused                          = false;
@@ -840,29 +840,31 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOTracking)
         }
     }
 
-    // Submit logger message.
+    // Submit a debug print for the current rover pose.
     geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentVIOPosition);
     LOG_DEBUG(logging::g_qSharedLogger,
-              "Rover Pose is currently: {} (lat), {} (lon), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}",
+              "Camera VIO Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}",
               stCurrentUTMPosition.dEasting,
               stCurrentUTMPosition.dNorthing,
               stCurrentUTMPosition.dAltitude,
               dCurrentHeading,
               bVIOGPSFused ? "true" : "false");
 
-    double temp    = dCurrentHeading - dCurrentGPSHeading;
-    double tempLat = stCurrentUTMPosition.dEasting - ConvertGPSToUTM(stCurrentGPSPosition).dEasting;
-    double tempLon = stCurrentUTMPosition.dNorthing - ConvertGPSToUTM(stCurrentGPSPosition).dNorthing;
+    // Submit a debug print for some error metrics pertaining to the ZED camera and NavBoard locations and headings.
+    double dHeadingError  = dCurrentHeading - dCurrentGPSHeading;
+    double dEastingError  = ConvertGPSToUTM(stCurrentGPSPosition).dEasting - stCurrentUTMPosition.dEasting;
+    double dNorthingError = ConvertGPSToUTM(stCurrentGPSPosition).dNorthing - stCurrentUTMPosition.dNorthing;
 
-    LOG_DEBUG(logging::g_qSharedLogger, "Compared ZED and Nav > ZED: {} Nav: {} > Diff: {}", dCurrentHeading, dCurrentGPSHeading, temp);
-    LOG_DEBUG(logging::g_qSharedLogger,
-              "Compared ZED and Nav > ZED: {} (lat) {} (lon) Nav: {} (lat) {} (lon) > Diff: {} (lat) {} (lon)",
-              stCurrentUTMPosition.dEasting,
-              stCurrentUTMPosition.dNorthing,
-              ConvertGPSToUTM(stCurrentGPSPosition).dEasting,
-              ConvertGPSToUTM(stCurrentGPSPosition).dNorthing,
-              tempLat,
-              tempLon);
+    // Assemble the error metrics into a single string. We are going to include the original GPS positions of the NavBoard and the Camera and then include the error. Same
+    // thing for the heading data.
+    std::string szErrorMetrics = "--------[ ZED MainCam Pose Tracking Error ]--------\nGPS/VIO Position Error (UTM for easy reading):\n" +
+                                 std::to_string(ConvertGPSToUTM(stCurrentGPSPosition).dEasting) + " (NavBoard) vs. " + std::to_string(stCurrentUTMPosition.dEasting) +
+                                 " (Camera) = " + std::to_string(dEastingError) + " (error)\n" + std::to_string(ConvertGPSToUTM(stCurrentGPSPosition).dNorthing) +
+                                 " (NavBoard) vs. " + std::to_string(stCurrentUTMPosition.dNorthing) + " (Camera) = " + std::to_string(dNorthingError) + " (error)\n" +
+                                 "Heading Error:\n" + std::to_string(dCurrentGPSHeading) + " (NavBoard) vs. " + std::to_string(dCurrentHeading) +
+                                 " (Camera) = " + std::to_string(dHeadingError) + " (error)";
+    // Submit the error metrics to the logger.
+    LOG_DEBUG(logging::g_qSharedLogger, "{}", szErrorMetrics);
 
     return geoops::RoverPose(stCurrentVIOPosition, dCurrentHeading);
 }

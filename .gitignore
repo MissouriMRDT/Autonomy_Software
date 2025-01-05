@@ -8,6 +8,9 @@ valgrind.rpt
 tools/action-runners/compose.yml
 !tools/package-builders/
 
+# Logging tools.
+tools/logging/*.png
+
 # Compiled Program
 Autonomy_Software
 
