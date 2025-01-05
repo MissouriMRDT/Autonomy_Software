@@ -47,8 +47,16 @@ BasicCam::BasicCam(const std::string szCameraPath,
                 bEnableRecordingFlag,
                 nNumFrameRetrievalThreads)
 {
+    // Initialize the OpenCV mat to a black/empty image the size of the camera resolution.
+    m_cvFrame = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
+
     // Set flag specifying that the camera is located at a dev/video index.
     m_bCameraIsConnectedOnVideoIndex = false;
+
+    // Set video cap properties.
+    m_cvCamera.set(cv::CAP_PROP_FRAME_WIDTH, nPropResolutionX);
+    m_cvCamera.set(cv::CAP_PROP_FRAME_HEIGHT, nPropResolutionY);
+    m_cvCamera.set(cv::CAP_PROP_FPS, nPropFramesPerSecond);
 
     // Attempt to open camera with OpenCV's VideoCapture and print if successfully opened or not.
     if (m_cvCamera.open(szCameraPath))

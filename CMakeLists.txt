@@ -186,6 +186,9 @@ endif()
 ## Find Threads
 find_package(Threads REQUIRED)
 
+## Find OpenMP
+find_package(OpenMP REQUIRED)
+
 ## Find Quill
 find_package(quill REQUIRED)
 
@@ -309,6 +312,7 @@ endif()
 
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
+                        OpenMP::OpenMP_CXX
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill

@@ -15,6 +15,7 @@
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
 #include <rtc/rtc.hpp>
+#include <shared_mutex>
 
 extern "C"
 {
@@ -85,7 +86,7 @@ class WebRTC
         AVPacket* m_pPacket;
         SwsContext* m_pSWSContext;
         AVPixelFormat m_eOutputPixelFormat;
-        std::mutex m_muDecoderMutex;
+        std::shared_mutex m_muDecoderMutex;
 
         // OpenCV Mat for storing the frame.
         cv::Mat m_cvFrame;

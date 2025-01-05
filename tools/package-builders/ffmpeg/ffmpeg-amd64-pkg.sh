@@ -24,17 +24,16 @@ else
     # Install Dependencies
     apt update
     apt install -y \
-    libgnutls*-dev \
-    libaom-dev \
-    libass-dev \
-    libfdk-aac-dev \
-    libdav1d-dev \
-    libmp3lame-dev \
-    libopus-dev \
-    libvorbis-dev \
-    libvpx-dev \
-    libx264-dev \
-    libx265-dev 
+        libaom-dev \
+        libass-dev \
+        libfdk-aac-dev \
+        libdav1d-dev \
+        libmp3lame-dev \
+        libopus-dev \
+        libvorbis-dev \
+        libvpx-dev \
+        libx264-dev \
+        libx265-dev
 
     # This is a workaround for the libsvtav1-dev package not being available in the repository. The package is installed manually.
     git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
@@ -74,7 +73,6 @@ else
     --extra-libs="-lpthread -lm" \
     --ld="g++" \
     --enable-gpl \
-    --enable-gnutls \
     --enable-libaom \
     --enable-libass \
     --enable-libfdk-aac \

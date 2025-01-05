@@ -72,7 +72,6 @@ class BasicCam : public BasicCamera
         cv::VideoCapture m_cvCamera;
         std::string m_szCameraPath;
         bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nCameraIndex;
         int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
