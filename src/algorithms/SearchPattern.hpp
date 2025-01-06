@@ -61,6 +61,14 @@ namespace searchpattern
         double dStartingY            = stStartingPoint.dNorthing;
         double dCurrentRadius        = 0.0;
 
+        // Check if the MaxRadius is less than 1 meter. If so return an empty vector.
+        if (dMaxRadius < 1)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "MaxRadius is less than 1 meter. Cannot create spiral pattern.");
+            return vWaypoints;
+        }
+
         // Calculate each waypoint. Stop when the radius exceeds the maximum.
         while (dCurrentRadius <= dMaxRadius)
         {
@@ -205,21 +213,27 @@ namespace searchpattern
         double bCalcSpacing = dSpacing;
 
         // Check if the width or height is less than 1 meter. If so return an empty vector.
-        if (dWidth < 1 || dHeight < 1)
+        if (dWidth < 1 || dHeight < 1 || dSpacing < 1)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Width or height is less than 1 meter. Cannot create zigzag pattern.");
+            LOG_WARNING(logging::g_qSharedLogger, "Width or height or spacing is less than 1 meter. Cannot create zigzag pattern.");
             return vWaypoints;
         }
 
         // Limit spacing to the width or height.
-        if (bCalcSpacing > dWidth)
+        if (bCalcSpacing > dWidth / 2.0)
         {
-            bCalcSpacing = dWidth;
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Spacing is greater than width. Setting spacing to width / 2.");
+            // Set spacing to half the width.
+            bCalcSpacing = dWidth / 2.0 - 1.0;
         }
-        if (bCalcSpacing > dHeight)
+        if (bCalcSpacing > dHeight / 2.0)
         {
-            bCalcSpacing = dHeight;
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Spacing is greater than height. Setting spacing to height / 2.");
+            // Set spacing to half the height.
+            bCalcSpacing = dHeight / 2.0 - 1.0;
         }
 
         // Loop until covered entire space of width and height.
@@ -365,21 +379,27 @@ namespace searchpattern
         double bCalcSpacing                    = dSpacing;
 
         // Check if the width or height is less than 1 meter. If so return an empty vector.
-        if (dWidth < 1 || dHeight < 1)
+        if (dWidth < 1 || dHeight < 1 || dSpacing < 1)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Width or height is less than 1 meter. Cannot create zigzag pattern.");
+            LOG_WARNING(logging::g_qSharedLogger, "Width or height or spacing is less than 1 meter. Cannot create zigzag pattern.");
             return vWaypoints;
         }
 
         // Limit spacing to the width or height.
-        if (bCalcSpacing > dWidth)
+        if (bCalcSpacing > dWidth / 2.0)
         {
-            bCalcSpacing = dWidth;
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Spacing is greater than width. Setting spacing to width / 2.");
+            // Set spacing to half the width.
+            bCalcSpacing = dWidth / 2.0 - 1.0;
         }
-        if (bCalcSpacing > dHeight)
+        if (bCalcSpacing > dHeight / 2.0)
         {
-            bCalcSpacing = dHeight;
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Spacing is greater than height. Setting spacing to height / 2.");
+            // Set spacing to half the height.
+            bCalcSpacing = dHeight / 2.0 - 1.0;
         }
 
         // Loop until covered entire space of width and height.

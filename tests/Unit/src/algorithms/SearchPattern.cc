@@ -202,6 +202,25 @@ TEST(SearchPatternTest, ZigZagPatternShapeGPS)
  * @brief Test SearchPattern algorithm functionality.
  *
  *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+TEST(SearchPatternTest, ZigZagPatternShapeGPSHorizontal)
+{
+    // Create a new GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateZigZagPatternWaypoints(stGPSRollaCoordinate, 20.0, 20.0, 1.0, false);
+
+    // Check if the returned path resembles an outward spiral pattern.
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2024-04-01
  ******************************************************************************/
@@ -215,4 +234,101 @@ TEST(SearchPatternTest, ZigZagPatternShapeUTM)
 
     // Check if the returned path resembles an outward spiral pattern.
     EXPECT_TRUE(IsZigZag(vSearchPatternPath));
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+TEST(SearchPatternTest, ZigZagPatternShapeUTMHorizontal)
+{
+    // Create a new GPS coordinate.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 1.0, false);
+
+    // Check if the returned path resembles an outward spiral pattern.
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+TEST(SearchPatternTest, SpiralPatternRadiusTooSmall)
+{
+    // Create a new GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stGPSRollaCoordinate, 57, 0);
+
+    // Create a new UTm coordinate.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPathUTM = searchpattern::CalculateSpiralPatternWaypoints(stUTMRollaCoordinate, 57, 0);
+
+    // Check if the returned path resembles an outward spiral pattern.
+    EXPECT_TRUE(vSearchPatternPath.empty());
+    EXPECT_TRUE(vSearchPatternPathUTM.empty());
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+TEST(SearchPatternTest, ZigZagPatternRadiusTooSmall)
+{
+    // Create a new GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateZigZagPatternWaypoints(stGPSRollaCoordinate, 20.0, 20.0, 0);
+
+    // Create a new UTm coordinate.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPathUTM = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 0);
+
+    // Check if the returned path resembles an outward spiral pattern.
+    EXPECT_TRUE(vSearchPatternPath.empty());
+    EXPECT_TRUE(vSearchPatternPathUTM.empty());
+}
+
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+TEST(SearchPatternTest, ZigZagPatternLimitSpacing)
+{
+    // Create a new GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateZigZagPatternWaypoints(stGPSRollaCoordinate, 20.0, 20.0, 30.0);
+    // Create a new UTm coordinate.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPathUTM = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 30.0);
+
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath2 = searchpattern::CalculateZigZagPatternWaypoints(stGPSRollaCoordinate, 60.0, 20.0, 30.0);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPathUTM2 = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 60.0, 20.0, 30.0);
+
+    // Both paths should be zigzags.
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
+    EXPECT_TRUE(IsZigZag(vSearchPatternPathUTM));
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath2));
+    EXPECT_TRUE(IsZigZag(vSearchPatternPathUTM2));
 }
