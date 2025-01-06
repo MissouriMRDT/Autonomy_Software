@@ -368,6 +368,22 @@ void StateMachineHandler::ClearSavedStates()
 }
 
 /******************************************************************************
+ * @brief Clear a saved state based on the given state.
+ *
+ * @param eState - The state to clear from the saved states.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+void StateMachineHandler::ClearSavedState(statemachine::States eState)
+{
+    // Acquire write lock for clearing saved states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    // Remove all states that match the given state.
+    m_umSavedStates.erase(eState);
+}
+
+/******************************************************************************
  * @brief Accessor for the Current State private member.
  *
  * @return States - The current state of the state machine.

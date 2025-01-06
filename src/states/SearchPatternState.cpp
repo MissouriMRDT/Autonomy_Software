@@ -44,21 +44,11 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
-        m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+        m_vSearchPath   = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
                                                                        m_stSearchPatternCenter.dRadius,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
-
-        // Write the search pattern points to the logger, just store the GPS lat/long.
-        std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
-        for (geoops::Waypoint& stWaypoint : m_vSearchPath)
-        {
-            szSearchPatternPoints +=
-                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
-        }
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
 
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
@@ -166,7 +156,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
                 // Handle state transition.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 return;
             }
         }
@@ -314,16 +304,6 @@ namespace statemachine
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = eZigZag;
-
-                        // Write the search pattern points to the logger, just store the GPS lat/long.
-                        std::string szSearchPatternPoints = "Search Pattern Points (Vertical ZigZag): ";
-                        for (geoops::Waypoint& stWaypoint : m_vSearchPath)
-                        {
-                            szSearchPatternPoints +=
-                                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
-                        }
-                        // Submit logger message.
-                        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
                         break;
                     }
                     case eZigZag:
@@ -340,16 +320,6 @@ namespace statemachine
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = END;
-
-                        // Write the search pattern points to the logger, just store the GPS lat/long.
-                        std::string szSearchPatternPoints = "Search Pattern Points (Horizontal ZigZag): ";
-                        for (geoops::Waypoint& stWaypoint : m_vSearchPath)
-                        {
-                            szSearchPatternPoints +=
-                                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
-                        }
-                        // Submit logger message.
-                        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
                         break;
                     }
                     case END:

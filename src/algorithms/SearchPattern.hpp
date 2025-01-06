@@ -83,6 +83,16 @@ namespace searchpattern
             dCurrentRadius = geoops::CalculateGeoMeasurement(stStartingPoint, stCurrentCoordinate).dDistanceMeters;
         }
 
+        // Write the search pattern points to the logger, just store the GPS lat/long.
+        std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
+        for (geoops::Waypoint& stWaypoint : vWaypoints)
+        {
+            szSearchPatternPoints +=
+                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+        }
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
+
         return vWaypoints;
     }
 
@@ -119,6 +129,14 @@ namespace searchpattern
         double dStartingY                        = stStartingPointUTM.dNorthing;
         double dCurrentRadius                    = 0.0;
 
+        // Check if the MaxRadius is less than 1 meter. If so return an empty vector.
+        if (dMaxRadius < 1)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "MaxRadius is less than 1 meter. Cannot create spiral pattern.");
+            return vWaypoints;
+        }
+
         // Calculate each waypoint. Stop when the radius exceeds the maximum.
         while (dCurrentRadius <= dMaxRadius)
         {
@@ -140,6 +158,16 @@ namespace searchpattern
             // Calculate the current distance from the starting point. This is our radius.
             dCurrentRadius = geoops::CalculateGeoMeasurement(stStartingPointUTM, stCurrentCoordinate).dDistanceMeters;
         }
+
+        // Write the search pattern points to the logger, just store the GPS lat/long.
+        std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
+        for (geoops::Waypoint& stWaypoint : vWaypoints)
+        {
+            szSearchPatternPoints +=
+                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+        }
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
 
         return vWaypoints;
     }
@@ -175,6 +203,14 @@ namespace searchpattern
         double dCurrentY    = dStartingY;
         bool bZigNotZag     = true;
         double bCalcSpacing = dSpacing;
+
+        // Check if the width or height is less than 1 meter. If so return an empty vector.
+        if (dWidth < 1 || dHeight < 1)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Width or height is less than 1 meter. Cannot create zigzag pattern.");
+            return vWaypoints;
+        }
 
         // Limit spacing to the width or height.
         if (bCalcSpacing > dWidth)
@@ -281,6 +317,16 @@ namespace searchpattern
             }
         }
 
+        // Write the search pattern points to the logger, just store the GPS lat/long.
+        std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
+        for (geoops::Waypoint& stWaypoint : vWaypoints)
+        {
+            szSearchPatternPoints +=
+                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+        }
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
+
         // Return the final path.
         return vFilterWaypoints;
     }
@@ -317,6 +363,14 @@ namespace searchpattern
         double dCurrentY                       = dStartingY;
         bool bZigNotZag                        = true;
         double bCalcSpacing                    = dSpacing;
+
+        // Check if the width or height is less than 1 meter. If so return an empty vector.
+        if (dWidth < 1 || dHeight < 1)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Width or height is less than 1 meter. Cannot create zigzag pattern.");
+            return vWaypoints;
+        }
 
         // Limit spacing to the width or height.
         if (bCalcSpacing > dWidth)
@@ -422,6 +476,16 @@ namespace searchpattern
                 vFilterWaypoints.push_back(vWaypoints[i + 1]);
             }
         }
+
+        // Write the search pattern points to the logger, just store the GPS lat/long.
+        std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
+        for (geoops::Waypoint& stWaypoint : vWaypoints)
+        {
+            szSearchPatternPoints +=
+                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+        }
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
 
         // Return the final path.
         return vFilterWaypoints;

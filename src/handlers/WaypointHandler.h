@@ -146,11 +146,26 @@ class WaypointHandler
             // Not using this.
             (void) stdAddr;
 
+            // Create instance variables.
+            int nMarkerID  = stPacket.vData[2];
+            double dRadius = stPacket.vData[3];
+
+            // Limit the radius to 0-40.
+            if (dRadius < 0)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Radius is less than 0, setting to 0.");
+                dRadius = 0;
+            }
+            else if (dRadius > 40)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Radius is greater than 40, setting to 40.");
+                dRadius = 40;
+            }
+
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]),
-                                              geoops::WaypointType::eTagWaypoint,
-                                              stPacket.vData[3],
-                                              stPacket.vData[2]);
+            geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eTagWaypoint, dRadius, nMarkerID);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -164,8 +179,8 @@ class WaypointHandler
                      "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
                      stPacket.vData[0],
                      stPacket.vData[1],
-                     stPacket.vData[2],
-                     stPacket.vData[3]);
+                     nMarkerID,
+                     dRadius);
         };
 
         /******************************************************************************
@@ -181,8 +196,25 @@ class WaypointHandler
             // Not using this.
             (void) stdAddr;
 
+            // Create instance variables.
+            double dRadius = stPacket.vData[2];
+
+            // Limit the radius to 0-40.
+            if (dRadius < 0)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Radius is less than 0, setting to 0.");
+                dRadius = 0;
+            }
+            else if (dRadius > 40)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Radius is greater than 40, setting to 40.");
+                dRadius = 40;
+            }
+
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint, stPacket.vData[2]);
+            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint, dRadius);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -196,7 +228,7 @@ class WaypointHandler
                      "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
                      stPacket.vData[0],
                      stPacket.vData[1],
-                     stPacket.vData[2]);
+                     dRadius);
         };
 
         /******************************************************************************
@@ -212,8 +244,25 @@ class WaypointHandler
             // Not using this.
             (void) stdAddr;
 
+            // Create instance variables.
+            double dRadius = stPacket.vData[2];
+
+            // Limit the radius to 0-40.
+            if (dRadius < 0)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Obstacle Waypoint Data: Radius is less than 0, setting to 0.");
+                dRadius = 0;
+            }
+            else if (dRadius > 40)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Obstacle Waypoint Data: Radius is greater than 40, setting to 40.");
+                dRadius = 40;
+            }
+
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stObstacleWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObstacleWaypoint, stPacket.vData[2]);
+            geoops::Waypoint stObstacleWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObstacleWaypoint, dRadius);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -227,7 +276,7 @@ class WaypointHandler
                      "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
                      stPacket.vData[0],
                      stPacket.vData[1],
-                     stPacket.vData[2]);
+                     dRadius);
         };
 
         /******************************************************************************
