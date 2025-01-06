@@ -679,6 +679,19 @@ namespace yolomodel
                 cv::Mat m_cvFrame;
         };
     }    // namespace tensorflow
+
+    /******************************************************************************
+     * @brief Namespace containing functions or objects/structs used to run inference on
+     *      a YOLO model with the PyTorch library. This namespace contains static functions
+     *      for getting available hardware devices, and classes for running a .pt model on each device.
+     *      This namespace was built to work with YOLO models only!
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-01-06
+     ******************************************************************************/
+    namespace pytorch
+    {}
 }    // namespace yolomodel
 
 #endif
