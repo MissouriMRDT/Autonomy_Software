@@ -147,7 +147,10 @@ class WaypointHandler
             (void) stdAddr;
 
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eTagWaypoint);
+            geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]),
+                                              geoops::WaypointType::eTagWaypoint,
+                                              stPacket.vData[3],
+                                              stPacket.vData[2]);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -157,7 +160,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1],
+                     stPacket.vData[2],
+                     stPacket.vData[3]);
         };
 
         /******************************************************************************
@@ -174,7 +182,7 @@ class WaypointHandler
             (void) stdAddr;
 
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint);
+            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint, stPacket.vData[2]);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -184,7 +192,42 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1],
+                     stPacket.vData[2]);
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new ADDOBSTACLE packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-01-06
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> AddObstacleCallback =
+            [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Create new waypoint struct with data from the RoveComm packet.
+            geoops::Waypoint stObstacleWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObstacleWaypoint, stPacket.vData[2]);
+
+            // Acquire write lock for writing to waypoints vector.
+            std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+            // Queue waypoint.
+            m_vWaypointList.emplace_back(stObstacleWaypoint);
+            // Unlock mutex.
+            lkWaypointsLock.unlock();
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1],
+                     stPacket.vData[2]);
         };
 
         /******************************************************************************

@@ -40,7 +40,7 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "192.168.69.48";    // The IP address to use for simulation mode.
+    const std::string SIM_IP_ADDRESS = "192.168.69.29";    // The IP address to use for simulation mode.
     const uint SIM_WEBRTC_QP         = 25;    // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
 
     // Safety constants.
@@ -320,7 +320,6 @@ namespace constants
 
     // Search Pattern State
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_MAX_RADIUS           = 21.0;    //  The maximum radius to cover in the search (meters).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.

@@ -215,8 +215,8 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
-        // In order to even care about any tags we see, we need to be within the search radius of the goal waypoint.
-        if (stGoalWaypointMeasurement.dDistanceMeters <= constants::SEARCH_MAX_RADIUS)
+        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
+        if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
             // Get a list of the currently detected tags, and their stats.
             std::vector<arucotag::ArucoTag> vDetectedArucoTags;
@@ -229,7 +229,18 @@ namespace statemachine
                 // Check if any of the tags have a detection counter or confidence greater than the threshold.
                 if (std::any_of(vDetectedArucoTags.begin(),
                                 vDetectedArucoTags.end(),
-                                [](arucotag::ArucoTag& stTag) { return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT; }) ||
+                                [this](arucotag::ArucoTag& stTag)
+                                {
+                                    // If the Tag ID given by the user in the waypoint is less than 0, then we don't care about the ID.
+                                    if (m_stGoalWaypoint.nID < 0)
+                                    {
+                                        return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT;
+                                    }
+                                    else
+                                    {
+                                        return (stTag.nID == m_stGoalWaypoint.nID && stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT);
+                                    }
+                                }) ||
                     std::any_of(vDetectedTensorflowTags.begin(),
                                 vDetectedTensorflowTags.end(),
                                 [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))

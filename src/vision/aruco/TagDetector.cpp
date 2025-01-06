@@ -330,10 +330,6 @@ void TagDetector::ThreadedContinuousCode()
             tensorflowtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTensorTags);
         }
 
-        // Display the processed image.
-        cv::imshow("TEST", m_cvArucoProcFrame);
-        cv::waitKey(1);
-
         /////////////////////////////////////////////////////////////////////////////////////
     }
 

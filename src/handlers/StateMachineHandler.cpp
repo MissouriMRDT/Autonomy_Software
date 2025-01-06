@@ -339,11 +339,15 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
     // Acquire write lock for handling events.
     std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
 
-    // Trigger the event on the current state
-    statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
+    // Check if the current state is not null and the state machine is running.
+    if (m_pCurrentState != nullptr && this->GetThreadState() == AutonomyThreadState::eRunning)
+    {
+        // Trigger the event on the current state
+        statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
 
-    // Transition to the next state
-    ChangeState(eNextState, bSaveCurrentState);
+        // Transition to the next state
+        ChangeState(eNextState, bSaveCurrentState);
+    }
 }
 
 /******************************************************************************
