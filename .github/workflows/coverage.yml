@@ -67,7 +67,7 @@ jobs:
                   ctest --output-on-failure -T Test -T Coverage -R ITest --output-junit ITests.xml
                   gcovr --root .. --xml-pretty --output AllCoverage.xml
 
-            - name: Upload Unit Test Coverage to Codecov
+            - name: Upload Test Coverage to Codecov
               uses: codecov/codecov-action@v5
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
@@ -77,21 +77,8 @@ jobs:
                   plugins: gcov
                   directory: /opt/Autonomy_Software/build
                   files: /opt/Autonomy_Software/build/AllCoverage.xml
-                  flags: unit_tests
-
-            - name: Upload Integration Test Coverage to Codecov
-              uses: codecov/codecov-action@v5
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  root_dir: /opt/Autonomy_Software
-                  working-directory: /opt/Autonomy_Software
-                  verbose: true
-                  plugins: gcov
-                  directory: /opt/Autonomy_Software/build
-                  files: /opt/Autonomy_Software/build/AllCoverage.xml
-                  flags: integration_tests
-
-            - name: Upload Unit Test Results to Codecov
+            
+            - name: Upload Test Results to Codecov
               if: ${{ !cancelled() }}
               uses: codecov/test-results-action@v1
               with:
@@ -100,20 +87,7 @@ jobs:
                   working-directory: /opt/Autonomy_Software/build
                   verbose: true
                   directory: /opt/Autonomy_Software/build/
-                  file: UTests.xml
-                  flags: unit_tests
-
-            - name: Upload Integration Test Results to Codecov
-              if: ${{ !cancelled() }}
-              uses: codecov/test-results-action@v1
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  root_dir: /opt/Autonomy_Software
-                  working-directory: /opt/Autonomy_Software/build
-                  verbose: true
-                  directory: /opt/Autonomy_Software/build/
-                  file: ITests.xml
-                  flags: integration_tests
+                  files: UTests.xml, ITests.xml
 
             - name: Cleanup Action Environment
               if: always()
