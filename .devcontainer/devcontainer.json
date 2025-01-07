@@ -140,7 +140,9 @@
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",
-                    "/usr/include/nlohmann/**"
+                    "/usr/include/nlohmann/**",
+                    "/usr/include/python*",
+                    "/usr/include/python*/**"
                 ],
                 "C_Cpp.default.defines": [
                     "__ROVECOMM_LIBRARY_MODE__=1"

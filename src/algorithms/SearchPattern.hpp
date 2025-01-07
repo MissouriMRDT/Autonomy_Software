@@ -12,6 +12,7 @@
 #ifndef SEARCH_PATTERN_HPP
 #define SEARCH_PATTERN_HPP
 
+#include "../../external/matplotlib-cpp/matplotlibcpp.h"
 #include "../util/GeospatialOperations.hpp"
 
 /// \cond
@@ -101,6 +102,19 @@ namespace searchpattern
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
 
+        // Use matplotlib-cpp to plot the spiral search pattern vWaypoints.
+        std::vector<double> vEasting, vNorthing;
+        for (const geoops::Waypoint& stWaypoint : vWaypoints)
+        {
+            vEasting.push_back(stWaypoint.GetUTMCoordinate().dEasting);
+            vNorthing.push_back(stWaypoint.GetUTMCoordinate().dNorthing);
+        }
+        matplotlibcpp::plot(vEasting, vNorthing, "r-");
+        matplotlibcpp::title("Spiral Search Pattern");
+        matplotlibcpp::xlabel("Easting");
+        matplotlibcpp::ylabel("Northing");
+        matplotlibcpp::save("./spiral_search_pattern.png");
+
         return vWaypoints;
     }
 
@@ -176,6 +190,19 @@ namespace searchpattern
         }
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
+
+        // Use matplotlib-cpp to plot the spiral search pattern vWaypoints.
+        std::vector<double> vEasting, vNorthing;
+        for (const geoops::Waypoint& stWaypoint : vWaypoints)
+        {
+            vEasting.push_back(stWaypoint.GetUTMCoordinate().dEasting);
+            vNorthing.push_back(stWaypoint.GetUTMCoordinate().dNorthing);
+        }
+        matplotlibcpp::plot(vEasting, vNorthing, "r-");
+        matplotlibcpp::title("Spiral Search Pattern");
+        matplotlibcpp::xlabel("Easting");
+        matplotlibcpp::ylabel("Northing");
+        matplotlibcpp::save("./spiral_search_pattern.png");
 
         return vWaypoints;
     }

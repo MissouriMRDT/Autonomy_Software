@@ -11,6 +11,7 @@
 #ifndef SEARCH_PATTERN_STATE_H
 #define SEARCH_PATTERN_STATE_H
 
+#include "../algorithms/controllers/StanleyController.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/states/StuckDetection.hpp"
@@ -60,6 +61,7 @@ namespace statemachine
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            controllers::StanleyController m_StanleyController;
 
         protected:
             /////////////////////////////////////////

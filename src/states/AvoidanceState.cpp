@@ -36,9 +36,6 @@ namespace statemachine
         // Store the state that got stuck and triggered a stuck event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
-        // Initialize Stanley Controller:
-        m_stController = controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
-
         // Initialize ASTAR Pathfinder:
         // TODO: Poll zedCam / object detector for seen obstacles to pass to AStar.
         // Determine start and goal (peek waypoint for goal).
@@ -48,13 +45,13 @@ namespace statemachine
 
         // Plan avoidance route using AStar.
         // TODO: Add obstacles to params.
-        m_vPlannedRoute = m_stPlanner.PlanAvoidancePath(m_stStart, m_stGoalWaypoint.GetUTMCoordinate());
+        m_vPlannedRoute = m_AStarPlanner.PlanAvoidancePath(m_stStart, m_stGoalWaypoint.GetUTMCoordinate());
 
         // Check for AStar failure.
         if (!m_vPlannedRoute.empty())
         {
             m_stGoal = m_vPlannedRoute.back();
-            m_stController.SetPath(m_vPlannedRoute);
+            m_StanleyController.SetPath(m_vPlannedRoute);
         }
         // Exit Obstacle Avoidance if AStar fails to generate a path.
         else
@@ -77,10 +74,10 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Exiting state.");
 
         // Clear ASTAR Pathfinder
-        m_stPlanner.ClearObstacleData();
+        m_AStarPlanner.ClearObstacleData();
 
         // Clear Stanley Controller
-        m_stController.ClearPath();
+        m_StanleyController.ClearPath();
     }
 
     /******************************************************************************
@@ -99,6 +96,8 @@ namespace statemachine
                                                                         constants::STUCK_CHECK_INTERVAL,
                                                                         constants::STUCK_CHECK_VEL_THRESH,
                                                                         constants::STUCK_CHECK_ROT_THRESH);
+        m_StanleyController =
+            controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
 
         if (!m_bInitialized)
         {
@@ -146,7 +145,7 @@ namespace statemachine
             // Calculate drive move/powers at the speed multiplier.
             diffdrive::DrivePowers stDriveSpeeds =
                 globals::g_pDriveBoard->CalculateMove(constants::AVOIDANCE_STATE_MOTOR_POWER,
-                                                      m_stController.Calculate(m_stPose.GetUTMCoordinate(), dVelocity, m_stPose.GetCompassHeading()),
+                                                      m_StanleyController.Calculate(m_stPose.GetUTMCoordinate(), dVelocity, m_stPose.GetCompassHeading()),
                                                       stCurrentPose.GetCompassHeading(),
                                                       diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive command to drive board.

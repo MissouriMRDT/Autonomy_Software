@@ -52,14 +52,13 @@ namespace controllers
             /////////////////////////////////////////
             // Declare public methods and member variables.
             /////////////////////////////////////////
-            StanleyController();
-            StanleyController(const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
+            StanleyController(const double dKp = 1.0, const double dDistToFrontAxle = 1.0, const double dYawTolerance = 1.0);
             StanleyController(const std::vector<geoops::UTMCoordinate>& vUTMPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
             StanleyController(const std::vector<geoops::GPSCoordinate>& vGPSPath, const double dKp, const double dDistToFrontAxle, const double dYawTolerance);
             ~StanleyController();
 
-            double Calculate(const geoops::UTMCoordinate& stUTMCurrPos, const double dVelocity, const double dBearing);
-            double Calculate(const geoops::GPSCoordinate& stGPSCurrPos, const double dVelocity, const double dBearing);
+            double Calculate(const geoops::UTMCoordinate& stUTMCurrPos, const double dVelocity, const double dCurrentHeading);
+            double Calculate(const geoops::GPSCoordinate& stGPSCurrPos, const double dVelocity, const double dCurrentHeading);
             void ResetProgress();
 
             /////////////////////////////////////////
@@ -72,6 +71,7 @@ namespace controllers
 
             void SetPath(std::vector<geoops::UTMCoordinate>& vUTMPath);
             void SetPath(std::vector<geoops::GPSCoordinate>& vGPSPath);
+            void SetPath(std::vector<geoops::Waypoint>& vWaypointsPath);
 
             void ClearPath();
 
@@ -91,10 +91,10 @@ namespace controllers
             // Declare private methods.
             /////////////////////////////////////////
 
-            geoops::UTMCoordinate CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stUTMCurrPos, const double dBearing) const;
+            geoops::UTMCoordinate CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stUTMCurrPos, const double dCurrentHeading) const;
             unsigned int IdentifyTargetIdx(const geoops::UTMCoordinate& stUTMFrontAxlePos) const;
             double CalculateTargetBearing(const unsigned int unTargetIdx) const;
-            double CalculateCrossTrackError(const geoops::UTMCoordinate& stUTMFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const;
+            double CalculateCrossTrackError(const geoops::UTMCoordinate& stUTMFrontAxlePos, const unsigned int unTargetIdx, const double dCurrentHeading) const;
 
             /////////////////////////////////////////
             // Declare private member variables.

@@ -178,6 +178,9 @@ include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
 add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
+## Find Python3
+find_package(Python3 COMPONENTS Development NumPy REQUIRED)
+
 ## Determine if shared or static libraries will be used.
 if (NOT LINK_SHARED_ZED AND MSVC)
     message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
@@ -315,6 +318,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
                         Eigen3::Eigen
                         RoveComm_CPP
+                        Python3::Python
                         quill::quill
                         ${FFMPEG_LIBRARIES}
                         ${OPENSSL_LIBRARIES}

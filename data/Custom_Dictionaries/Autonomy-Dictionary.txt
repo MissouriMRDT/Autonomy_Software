@@ -362,6 +362,7 @@ MAPANGLE
 MAPRANGE
 marsrover
 matplotlib
+matplotlibcpp
 matx
 Memcheck
 MERICA
@@ -532,10 +533,12 @@ Wpedantic
 wslg
 xauth
 xhost
+xlabel
 XNNPACK
 XYZBGRA
 XYZRGBA
 yasm
+ylabel
 YOLO
 yolomodel
 YUVJ
