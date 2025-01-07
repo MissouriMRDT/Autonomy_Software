@@ -6,12 +6,18 @@ coverage:
     project:
       default:
         target: auto
+        informational: true
         threshold: 5%
+        flags:
+          - unit_tests
+          - integration_tests
     patch:
       default:
         target: auto
-        informational: true
         threshold: 5%
+        flags:
+          - unit_tests
+          - integration_tests
     changes: false
 
 ignore:
@@ -23,6 +29,14 @@ ignore:
   - "**/*.yml"
   - "**/build/*"
   - "/usr/include/*"
+
+flags:
+  unit_tests:
+    paths:
+      - "tests/Unit/**"
+  integration_tests:
+    paths:
+      - "tests/Integration/**"
 
 component_management:
   individual_components:
@@ -62,7 +76,7 @@ component_management:
         - src/*.cpp
 
 comment:
-  layout: "header, diff, files, components"
+  layout: "header, diff, files, flags, components"
   behavior: default
   require_changes: false
   require_base: false
