@@ -32,6 +32,9 @@ option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
 
+## Enable or Disable Coverage Watch Mode
+option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
+
 ## Enable or Disable Verbose Makefile
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 
@@ -371,7 +374,7 @@ if (BUILD_TESTS_MODE)
         message("No Integration Tests!")
     endif()
 
-    if (BUILD_CODE_COVERAGE)
+    if (BUILD_CODE_COVERAGE AND BUILD_COVERAGE_WATCH)
         add_custom_target(run_coverage ALL
             COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
             COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
