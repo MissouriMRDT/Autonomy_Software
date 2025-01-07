@@ -26,20 +26,24 @@
  ******************************************************************************/
 int main(int argc, char** argv)
 {
-    bool skipLogging = false;
+    bool bSkipLogging                                 = false;
+    std::vector<std::string> vConditionsToSkipLogging = {"--gtest_filter=AutonomyLoggingTest"};
 
-    // Check if the test being run is "AutonomyLogging"
+    // Check if the test being run is in the list of tests to skip setting up logging.
     for (int i = 1; i < argc; ++i)
     {
-        if (std::string(argv[i]).find("--gtest_filter=AutonomyLoggingTest") != std::string::npos)
+        for (const std::string& szCondition : vConditionsToSkipLogging)
         {
-            skipLogging = true;
-            break;
+            if (std::string(argv[i]).find(szCondition) != std::string::npos)
+            {
+                bSkipLogging = true;
+                break;
+            }
         }
     }
 
     // Setup logging if not skipped.
-    if (!skipLogging)
+    if (!bSkipLogging)
     {
         logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
     }

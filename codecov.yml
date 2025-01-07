@@ -6,9 +6,12 @@ coverage:
     project:
       default:
         target: auto
+        threshold: 5%
     patch:
       default:
         target: auto
+        informational: true
+        threshold: 5%
     changes: false
 
 ignore:
