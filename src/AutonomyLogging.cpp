@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
+#include "./util/TimeOperations.hpp"
 #include "AutonomyNetworking.h"
 
 /// \cond
@@ -57,23 +58,8 @@ namespace logging
      ******************************************************************************/
     void InitializeLoggers(std::string szLoggingOutputPath)
     {
-        // Retrieve the current time for the log file name
-        std::chrono::time_point<std::chrono::system_clock> tmCurrentTime = std::chrono::system_clock::now();
-        std::time_t tCurrentTime                                         = std::chrono::system_clock::to_time_t(tmCurrentTime);
-
-        // Convert time to local time
-        std::tm* tLocalTime = std::localtime(&tCurrentTime);
-
-        // Format the current time in a format that can be used as a file name.
-        std::array<char, 80> cCurrentTime;
-        size_t siTimeCharacters;
-        siTimeCharacters = std::strftime(cCurrentTime.data(), cCurrentTime.size(), "%Y%m%d-%H%M%S", tLocalTime);
-        if (siTimeCharacters == 0)
-        {
-            std::cerr << "Unable to format calendar date & time (exceeds string length)" << std::endl;
-        }
         // Store start time string in member variable.
-        g_szProgramStartTimeString = cCurrentTime.data();
+        g_szProgramStartTimeString = timeops::GetTimestamp();
 
         // Assemble filepath string.
         std::filesystem::path szFilePath;
