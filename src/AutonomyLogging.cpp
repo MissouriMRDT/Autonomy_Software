@@ -44,6 +44,7 @@ namespace logging
     quill::LogLevel g_eRoveCommLogLevel;
 
     std::string g_szProgramStartTimeString;
+    std::string g_szLoggingOutputPath;
 
     /******************************************************************************
      * @brief Logger Initializer - Sets Up all the logging handlers required for
@@ -59,10 +60,10 @@ namespace logging
     {
         // Retrieve the current time for the log file name
         std::chrono::time_point<std::chrono::system_clock> tmCurrentTime = std::chrono::system_clock::now();
-        std::time_t tCurrentTime                                         = std::chrono::system_clock::to_time_t(tmCurrentTime);
+        time_t tCurrentTime                                              = std::chrono::system_clock::to_time_t(tmCurrentTime);
 
         // Convert time to local time
-        std::tm* tLocalTime = std::localtime(&tCurrentTime);
+        tm* tLocalTime = std::localtime(&tCurrentTime);
 
         // Format the current time in a format that can be used as a file name.
         std::array<char, 80> cCurrentTime;
@@ -81,6 +82,9 @@ namespace logging
         szFilePath = szLoggingOutputPath + "/";            // Main location for all recordings.
         szFilePath += g_szProgramStartTimeString + "/";    // Folder for each program run.
         szFilename = "console_output";                     // Base file name.
+
+        // Store the logging output path.
+        g_szLoggingOutputPath = szFilePath;
 
         // Check if directory exists.
         if (!std::filesystem::exists(szFilePath))

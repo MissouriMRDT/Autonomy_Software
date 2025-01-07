@@ -81,6 +81,7 @@ namespace logging
     extern quill::LogLevel g_eRoveCommLogLevel;
 
     extern std::string g_szProgramStartTimeString;
+    extern std::string g_szLoggingOutputPath;
 
     /////////////////////////////////////////
     // Declare namespace methods.

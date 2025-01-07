@@ -233,20 +233,20 @@ namespace statemachine
             stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         }
 
-        // // Drive to target waypoint.
-        // diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
-        //                                                                              stCurrRelToTarget.dStartRelativeBearing,
-        //                                                                              stCurrentRoverPose.GetCompassHeading(),
-        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
+        // Drive to target waypoint.
+        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
+                                                                                     stCurrRelToTarget.dStartRelativeBearing,
+                                                                                     stCurrentRoverPose.GetCompassHeading(),
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
 
         // TEST Stanley CONTROLLER.
         // Calculate drive move/powers at the speed multiplier.
-        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
-                                                                                     m_StanleyController.Calculate(stCurrentRoverPose.GetUTMCoordinate(),
-                                                                                                                   globals::g_pWaypointHandler->SmartRetrieveVelocity(),
-                                                                                                                   stCurrentRoverPose.GetCompassHeading()),
-                                                                                     stCurrentRoverPose.GetCompassHeading(),
-                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
+        // diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
+        //                                                                              m_StanleyController.Calculate(stCurrentRoverPose.GetUTMCoordinate(),
+        //                                                                                                            globals::g_pWaypointHandler->SmartRetrieveVelocity(),
+        //                                                                                                            stCurrentRoverPose.GetCompassHeading()),
+        //                                                                              stCurrentRoverPose.GetCompassHeading(),
+        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
 
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
