@@ -91,7 +91,7 @@ jobs:
                   file: ITests.xml
                   flags: integration_tests
 
-            - name: Upload Integration Test Coverage to Codecov
+            - name: Upload All Test Coverage to Codecov
               uses: codecov/codecov-action@v4
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
