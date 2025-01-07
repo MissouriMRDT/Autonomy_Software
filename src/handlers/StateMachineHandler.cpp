@@ -339,11 +339,15 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
     // Acquire write lock for handling events.
     std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
 
-    // Trigger the event on the current state
-    statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
+    // Check if the current state is not null and the state machine is running.
+    if (m_pCurrentState != nullptr && this->GetThreadState() == AutonomyThreadState::eRunning)
+    {
+        // Trigger the event on the current state
+        statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
 
-    // Transition to the next state
-    ChangeState(eNextState, bSaveCurrentState);
+        // Transition to the next state
+        ChangeState(eNextState, bSaveCurrentState);
+    }
 }
 
 /******************************************************************************
@@ -361,6 +365,22 @@ void StateMachineHandler::ClearSavedStates()
     m_umSavedStates.clear();
     // Reset previous state to nullptr;
     m_pPreviousState = std::make_shared<statemachine::IdleState>();
+}
+
+/******************************************************************************
+ * @brief Clear a saved state based on the given state.
+ *
+ * @param eState - The state to clear from the saved states.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+void StateMachineHandler::ClearSavedState(statemachine::States eState)
+{
+    // Acquire write lock for clearing saved states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    // Remove all states that match the given state.
+    m_umSavedStates.erase(eState);
 }
 
 /******************************************************************************

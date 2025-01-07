@@ -40,7 +40,7 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "192.168.69.48";    // The IP address to use for simulation mode.
+    const std::string SIM_IP_ADDRESS = "192.168.69.29";    // The IP address to use for simulation mode.
     const uint SIM_WEBRTC_QP         = 25;    // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
 
     // Safety constants.
@@ -247,7 +247,7 @@ namespace constants
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                             // Whether or not to use DNN detection on top of ArUco.
+    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
     const std::string TAGDETECT_MAINCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
     const float TAGDETECT_MAINCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
@@ -320,7 +320,6 @@ namespace constants
 
     // Search Pattern State
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_MAX_RADIUS           = 21.0;    //  The maximum radius to cover in the search (meters).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
