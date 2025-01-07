@@ -261,6 +261,10 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
+                // Clear saved search pattern state.
+                globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Cleared old search pattern state from saved states.");
                 // Change states.
                 eNextState = States::eIdle;
                 break;
