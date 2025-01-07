@@ -39,7 +39,7 @@ option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 option(BUILD_INSTALL_MODE "Enable Install Mode" OFF)
 
 ## Enable or Disable Tests Mode
-option(BUILD_TESTS_MODE "Enable Tests Mode" ON)
+option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
 
 ## Enable or Disable Examples Mode
 option(BUILD_EXAMPLES_MODE "Enable Examples Mode" OFF)
@@ -331,35 +331,42 @@ endif()
 
 ## Tests Mode
 if (BUILD_TESTS_MODE)
-    file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/src/*.cc")
-    file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/src/*.cc")
+    ## Find Unit and Integration Tests
+    file(GLOB_RECURSE UTests_SRC            CONFIGURE_DEPENDS  "tests/Unit/src/*.cc")
+    file(GLOB_RECURSE ITests_SRC            CONFIGURE_DEPENDS  "tests/Integration/src/*.cc")
+    file(GLOB         Runner_SRC            CONFIGURE_DEPENDS  "tests/main.cc")
+
+    ## Find Source Files Required for Tests
     file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
     file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
     file(GLOB_RECURSE Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
-    file(GLOB         Runner_SRC            CONFIGURE_DEPENDS  "src/tests/main.cc")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
     file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")   
 
-    list(LENGTH UnitTests_SRC UnitTests_LEN)
-    list(LENGTH IntegrationTests_SRC IntegrationTests_LEN)
+    list(LENGTH UTests_SRC UnitTests_LEN)
+    list(LENGTH ITests_SRC IntegrationTests_LEN)
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Runner_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
-        foreach(test_file ${UnitTests_SRC})
+        foreach(test_file ${UTests_SRC})
             get_filename_component(test_name ${test_file} NAME_WE)
-            add_test(NAME ${test_name}_UnitTest COMMAND ${EXE_NAME}_UnitTests --gtest_filter=${test_name}Test.*)
+            add_test(NAME UTest_${test_name} COMMAND ${EXE_NAME}_UnitTests --gtest_filter=${test_name}Test.*)
         endforeach()
     else()
         message("No Unit Tests!")
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-        add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
+
+        foreach(test_file ${ITests_SRC})
+            get_filename_component(test_name ${test_file} NAME_WE)
+            add_test(NAME ITest_${test_name} COMMAND ${EXE_NAME}_IntegrationTests --gtest_filter=${test_name}Test.*)
+        endforeach()
     else()
         message("No Integration Tests!")
     endif()
