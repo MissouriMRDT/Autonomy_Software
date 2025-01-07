@@ -39,6 +39,7 @@ bytem
 byteswap
 CAFFE
 CALIB
+carryforward
 CELLVOLTAGE
 charconv
 chromaprint
