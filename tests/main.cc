@@ -28,10 +28,16 @@ int main(int argc, char** argv)
 {
     bool bSkipLogging                                 = false;
     std::vector<std::string> vConditionsToSkipLogging = {"--gtest_filter=AutonomyLoggingTest"};
+    std::string szTimestamp                           = timeops::GetTimestamp();
 
     // Check if the test being run is in the list of tests to skip setting up logging.
     for (int i = 1; i < argc; ++i)
     {
+        if (std::string(argv[i]).find("--timestamp=") != std::string::npos)
+        {
+            szTimestamp = std::string(argv[i]).substr(std::string(argv[i]).find("=") + 1);
+        }
+
         for (const std::string& szCondition : vConditionsToSkipLogging)
         {
             if (std::string(argv[i]).find(szCondition) != std::string::npos)
@@ -45,7 +51,7 @@ int main(int argc, char** argv)
     // Setup logging if not skipped.
     if (!bSkipLogging)
     {
-        logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
+        logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE, szTimestamp);
     }
 
     // Initialize tests.

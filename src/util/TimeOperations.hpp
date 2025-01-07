@@ -52,15 +52,7 @@ namespace timeops
         siTimeCharacters = std::strftime(cCurrentTime.data(), cCurrentTime.size(), szFormat.c_str(), tLocalTime);
         if (siTimeCharacters == 0)
         {
-            // Check if Quill has been initialized. If so, log the error. Otherwise, print to stderr.
-            if (logging::g_qSharedLogger != nullptr)
-            {
-                LOG_CRITICAL(logging::g_qSharedLogger, "Unable to format calendar date & time (exceeds string length)");
-            }
-            else
-            {
-                std::cerr << "Unable to format calendar date & time (exceeds string length)" << std::endl;
-            }
+            std::cerr << "Unable to format calendar date & time (exceeds string length)" << std::endl;
         }
 
         return cCurrentTime.data();
