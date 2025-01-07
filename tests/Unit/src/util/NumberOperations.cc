@@ -189,3 +189,33 @@ TEST(NumOpsTest, CoordinateFrameRotate3D)
         EXPECT_NEAR(vPointCloud[0].tZ, aExpectedZ[nIter], 0.01);
     }
 }
+
+/******************************************************************************
+ * @brief Write a test for the CoordinatePoint type.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-07
+ ******************************************************************************/
+TEST(NumOpsTest, CoordinatePoint)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                = 8;
+    const double aX[nTestValuesLength]         = {607350.5439843171, 15.0, 1.0, 1.0, 1.0, 5.0, 10.0, 420000.0};
+    const double aY[nTestValuesLength]         = {314.26934576034546, 10.0, 0.0, 0.0, 0.0, 5.0, 10.0, 315.0};
+    const double aZ[nTestValuesLength]         = {4201167.977962418, 40.0, 0.0, 0.0, 0.0, 5.0, 10.0, -65780.0};
+    const double aExpectedX[nTestValuesLength] = {607350.5439843171, 15.0, 1.0, 1.0, 1.0, 5.0, 10.0, 420000.0};
+    const double aExpectedY[nTestValuesLength] = {314.26934576034546, 10.0, 0.0, 0.0, 0.0, 5.0, 10.0, 315.0};
+    const double aExpectedZ[nTestValuesLength] = {4201167.977962418, 40.0, 0.0, 0.0, 0.0, 5.0, 10.0, -65780.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Create a CoordinatePoint object.
+        numops::CoordinatePoint<double> stPoint(aX[nIter], aY[nIter], aZ[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_EQ(stPoint.tX, aExpectedX[nIter]);
+        EXPECT_EQ(stPoint.tY, aExpectedY[nIter]);
+        EXPECT_EQ(stPoint.tZ, aExpectedZ[nIter]);
+    }
+}
