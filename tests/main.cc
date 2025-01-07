@@ -26,8 +26,23 @@
  ******************************************************************************/
 int main(int argc, char** argv)
 {
-    // Setup logging.
-    logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
+    bool skipLogging = false;
+
+    // Check if the test being run is "AutonomyLogging"
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::string(argv[i]).find("--gtest_filter=AutonomyLoggingTest") != std::string::npos)
+        {
+            skipLogging = true;
+            break;
+        }
+    }
+
+    // Setup logging if not skipped.
+    if (!skipLogging)
+    {
+        logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
+    }
 
     // Initialize tests.
     testing::InitGoogleTest(&argc, argv);
