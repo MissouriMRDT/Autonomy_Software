@@ -362,6 +362,8 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Stop drive.
+                globals::g_pDriveBoard->SendStop();
                 // Change state.
                 eNextState = States::eIdle;
                 break;

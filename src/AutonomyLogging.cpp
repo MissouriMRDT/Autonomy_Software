@@ -79,7 +79,7 @@ namespace logging
         // Assemble filepath string.
         std::filesystem::path szFilePath;
         std::filesystem::path szFilename;
-        szFilePath = szLoggingOutputPath + "/";            // Main location for all recordings.
+        szFilePath = szLoggingOutputPath;                  // Main location for all recordings.
         szFilePath += g_szProgramStartTimeString + "/";    // Folder for each program run.
         szFilename = "console_output";                     // Base file name.
 

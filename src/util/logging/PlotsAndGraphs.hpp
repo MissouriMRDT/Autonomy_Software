@@ -54,6 +54,14 @@ namespace logging
             // Create instance variables.
             std::string szPlotTitle = szTitle;
 
+            // Check if the coordinates vector is empty.
+            if (vCoordinates.empty())
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Coordinates vector is empty. Cannot plot.");
+                return;
+            }
+
             // Check if the plot title is empty.
             if (szPlotTitle.empty())
             {
@@ -93,7 +101,12 @@ namespace logging
                 ++nFileNum;
             }
 
-            // Save the plot to a file.
+            // Check if the final directory exists. If not then create it.
+            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+            {
+                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+            }
+            // Save the plot
             matplotlibcpp::save(logging::g_szLoggingOutputPath + "/path_plots/" + szFileName + ".png");
         }
 
@@ -110,6 +123,14 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle = szTitle;
+
+            // Check if the coordinates vector is empty.
+            if (vCoordinates.empty())
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Coordinates vector is empty. Cannot plot.");
+                return;
+            }
 
             // Check if the plot title is empty.
             if (szPlotTitle.empty())
@@ -149,7 +170,12 @@ namespace logging
                 ++nFileNum;
             }
 
-            // Save the plot to a file.
+            // Check if the final directory exists. If not then create it.
+            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+            {
+                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+            }
+            // Save the plot
             matplotlibcpp::save(logging::g_szLoggingOutputPath + "/path_plots/" + szFileName + ".png");
         }
 
@@ -167,6 +193,14 @@ namespace logging
             // Create instance variables.
             std::string szPlotTitle = szTitle;
 
+            // Check if the coordinates vector is empty.
+            if (vWaypoints.empty())
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Waypoints vector is empty. Cannot plot.");
+                return;
+            }
+
             // Check if the plot title is empty.
             if (szPlotTitle.empty())
             {
@@ -179,20 +213,20 @@ namespace logging
             std::vector<double> vEasting, vNorthing;
             for (const geoops::Waypoint& stWaypoint : vWaypoints)
             {
-                vEasting.push_back(stWaypoint.GetGPSCoordinate().dLatitude);
-                vNorthing.push_back(stWaypoint.GetGPSCoordinate().dLongitude);
+                vEasting.push_back(stWaypoint.GetUTMCoordinate().dEasting);
+                vNorthing.push_back(stWaypoint.GetUTMCoordinate().dNorthing);
             }
             matplotlibcpp::plot(vEasting, vNorthing, "bo-");    // blue lines with red dots
             matplotlibcpp::title(szPlotTitle);
-            matplotlibcpp::xlabel("Latitude");
-            matplotlibcpp::ylabel("Longitude");
+            matplotlibcpp::xlabel("Easting");
+            matplotlibcpp::ylabel("Northing");
 
             // Calculate and annotate distances between points
             for (size_t i = 1; i < vWaypoints.size(); ++i)
             {
-                double dDistance     = geoops::CalculateGeoMeasurement(vWaypoints[i - 1].GetGPSCoordinate(), vWaypoints[i].GetGPSCoordinate()).dDistanceMeters;
-                double dMidLatitude  = (vWaypoints[i].GetGPSCoordinate().dLatitude + vWaypoints[i - 1].GetGPSCoordinate().dLatitude) / 2;
-                double dMidLongitude = (vWaypoints[i].GetGPSCoordinate().dLongitude + vWaypoints[i - 1].GetGPSCoordinate().dLongitude) / 2;
+                double dDistance     = geoops::CalculateGeoMeasurement(vWaypoints[i - 1].GetUTMCoordinate(), vWaypoints[i].GetUTMCoordinate()).dDistanceMeters;
+                double dMidLatitude  = (vWaypoints[i].GetUTMCoordinate().dEasting + vWaypoints[i - 1].GetUTMCoordinate().dEasting) / 2;
+                double dMidLongitude = (vWaypoints[i].GetUTMCoordinate().dNorthing + vWaypoints[i - 1].GetUTMCoordinate().dNorthing) / 2;
                 matplotlibcpp::annotate(std::to_string(dDistance) + " m", dMidLatitude, dMidLongitude);
             }
 
@@ -205,6 +239,11 @@ namespace logging
                 ++nFileNum;
             }
 
+            // Check if the final directory exists. If not then create it.
+            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+            {
+                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+            }
             // Save the plot
             matplotlibcpp::save(logging::g_szLoggingOutputPath + "/path_plots/" + szFileName + ".png");
         }

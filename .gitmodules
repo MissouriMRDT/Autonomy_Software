@@ -4,6 +4,3 @@
 [submodule "external/rovecomm"]
 	path = external/rovecomm
 	url = https://github.com/MissouriMRDT/RoveComm_CPP.git
-[submodule "external/matplotlib-cpp"]
-	path = external/matplotlib-cpp
-	url = git@github.com:lava/matplotlib-cpp.git
