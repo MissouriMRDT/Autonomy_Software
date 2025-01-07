@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
+#include "./util/logging/PlotsAndGraphs.hpp"
 #include "AutonomyNetworking.h"
 
 /// \cond

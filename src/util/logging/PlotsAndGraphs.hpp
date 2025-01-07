@@ -12,7 +12,6 @@
 #ifndef PLOTS_AND_GRAPHS_HPP
 #define PLOTS_AND_GRAPHS_HPP
 
-#include "../../../external/matplotlib-cpp/matplotlibcpp.h"
 #include "../GeospatialOperations.hpp"
 
 /// \cond
