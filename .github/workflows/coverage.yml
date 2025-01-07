@@ -56,7 +56,7 @@ jobs:
                   if [ -d "build" ]; then rm -Rf build; fi
                   mkdir build
                   cd build
-                  cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_VERBOSE_MODE=ON
+                  cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_COVERAGE_WATCH=OFF -DBUILD_VERBOSE_MODE=ON
                   make -j8
 
             - name: Run Tests
@@ -66,6 +66,30 @@ jobs:
                   ctest --output-on-failure -T Test -T Coverage -R UTest --output-junit UTests.xml
                   ctest --output-on-failure -T Test -T Coverage -R ITest --output-junit ITests.xml
                   gcovr --root .. --xml-pretty --output AllCoverage.xml
+
+            - name: Upload Unit Test Coverage to Codecov
+              uses: codecov/codecov-action@v5
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  root_dir: /opt/Autonomy_Software
+                  working-directory: /opt/Autonomy_Software
+                  verbose: true
+                  plugins: gcov
+                  directory: /opt/Autonomy_Software/build
+                  files: /opt/Autonomy_Software/build/AllCoverage.xml
+                  flags: unit_tests
+
+            - name: Upload Integration Test Coverage to Codecov
+              uses: codecov/codecov-action@v5
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  root_dir: /opt/Autonomy_Software
+                  working-directory: /opt/Autonomy_Software
+                  verbose: true
+                  plugins: gcov
+                  directory: /opt/Autonomy_Software/build
+                  files: /opt/Autonomy_Software/build/AllCoverage.xml
+                  flags: integration_tests
 
             - name: Upload Unit Test Results to Codecov
               if: ${{ !cancelled() }}
@@ -90,18 +114,6 @@ jobs:
                   directory: /opt/Autonomy_Software/build/
                   file: ITests.xml
                   flags: integration_tests
-
-            - name: Upload All Test Coverage to Codecov
-              uses: codecov/codecov-action@v4
-              with:
-                  token: ${{ secrets.CODECOV_TOKEN }}
-                  root_dir: /opt/Autonomy_Software
-                  working-directory: /opt/Autonomy_Software
-                  verbose: true
-                  plugin: gcov
-                  directory: /opt/Autonomy_Software/build
-                  file: /opt/Autonomy_Software/build/AllCoverage.xml
-                  flags: unit_tests, integration_tests
 
             - name: Cleanup Action Environment
               if: always()
