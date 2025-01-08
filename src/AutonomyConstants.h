@@ -34,12 +34,14 @@ namespace constants
     //// General Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Program mode constants.
+    // Sim mode constants.
 #if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
-    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the Webots SIM.
+    const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the SIM.
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
+    const std::string SIM_IP_ADDRESS = "192.168.69.29";    // The IP address to use for simulation mode.
+    const uint SIM_WEBRTC_QP         = 25;    // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
@@ -144,7 +146,7 @@ namespace constants
     const bool ZED_POSETRACK_USE_GRAVITY_ORIGIN           = true;     // Override 2 of the 3 rotations from initial_world_transform using the IMU.
     // ZedCam Spatial Mapping Config.
     const sl::SpatialMappingParameters::SPATIAL_MAP_TYPE ZED_MAPPING_TYPE = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;    // Mesh or point cloud output.
-    const float ZED_MAPPING_RANGE_METER                                   = 20.0;     // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
+    const float ZED_MAPPING_RANGE_METER                                   = 20.0f;    // The max range in meters that the ZED cameras should use for mapping. 0 = auto.
     const float ZED_MAPPING_RESOLUTION_METER                              = 0.03f;    // The approx goal precision for spatial mapping in METERS. Higher = Faster.
     const int ZED_MAPPING_MAX_MEMORY                                      = 4096;     // The max amount of CPU RAM (MB) that can be allocated for spatial mapping.
     const bool ZED_MAPPING_USE_CHUNK_ONLY   = true;    // Only update chunks that have probably changed or have new data. Faster, less accurate.
@@ -171,40 +173,40 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int ZED_MAINCAM_RESOLUTIONX               = 1280;        // The horizontal pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_RESOLUTIONY               = 720;         // The vertical pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_FPS                       = 60;          // The FPS to use for the maincam.
-    const int ZED_MAINCAM_HORIZONTAL_FOV            = 110;         // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_MAINCAM_VERTICAL_FOV              = 70;          // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_USE_GPU_MAT              = true;        // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;        // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_MAINCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_RESOLUTIONX    = 1280;                       // The horizontal pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_RESOLUTIONY    = 720;                        // The vertical pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_FPS            = 60;                         // The FPS to use for the maincam.
+    const int ZED_MAINCAM_HORIZONTAL_FOV = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_MAINCAM_VERTICAL_FOV   = 70;                         // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_MAINCAM_USE_GPU_MAT   = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;            // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_MAINCAM_FUSION_MASTER            = false;           // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;              // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_SERIAL                    = 15723847;        // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left ZED Camera.
-    const int ZED_LEFTCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the leftcam images to.
-    const int ZED_LEFTCAM_RESOLUTIONY               = 720;      // The vertical pixel resolution to resize the leftcam images to.
-    const int ZED_LEFTCAM_FPS                       = 60;       // The FPS to use for the leftcam.
-    const int ZED_LEFTCAM_HORIZONTAL_FOV            = 110;      // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_LEFTCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_LEFTCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_LEFTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_LEFTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 15723847
+    const int ZED_LEFTCAM_RESOLUTIONX    = 1280;                       // The horizontal pixel resolution to resize the leftcam images to.
+    const int ZED_LEFTCAM_RESOLUTIONY    = 720;                        // The vertical pixel resolution to resize the leftcam images to.
+    const int ZED_LEFTCAM_FPS            = 60;                         // The FPS to use for the leftcam.
+    const int ZED_LEFTCAM_HORIZONTAL_FOV = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_LEFTCAM_VERTICAL_FOV   = 70;                         // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_LEFTCAM_USE_GPU_MAT   = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH = true;            // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_LEFTCAM_FUSION_MASTER            = false;           // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS   = 5;               // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_LEFTCAM_SERIAL                    = 0;               // The serial number of the camera. Set to 0 to open the next available one. 15723847
 
     // Right ZED Camera.
-    const int ZED_RIGHTCAM_RESOLUTIONX               = 1280;     // The horizontal pixel resolution to resize the rightcam images to.
-    const int ZED_RIGHTCAM_RESOLUTIONY               = 720;      // The vertical pixel resolution to resize the rightcam images to.
-    const int ZED_RIGHTCAM_FPS                       = 60;       // The FPS to use for the rightcam.
-    const int ZED_RIGHTCAM_HORIZONTAL_FOV            = 110;      // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_RIGHTCAM_VERTICAL_FOV              = 70;       // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_RIGHTCAM_USE_GPU_MAT              = true;     // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH = true;     // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_RIGHTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_RIGHTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 0
+    const int ZED_RIGHTCAM_RESOLUTIONX    = 1280;                       // The horizontal pixel resolution to resize the rightcam images to.
+    const int ZED_RIGHTCAM_RESOLUTIONY    = 720;                        // The vertical pixel resolution to resize the rightcam images to.
+    const int ZED_RIGHTCAM_FPS            = 60;                         // The FPS to use for the rightcam.
+    const int ZED_RIGHTCAM_HORIZONTAL_FOV = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_RIGHTCAM_VERTICAL_FOV   = 70;                         // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_RIGHTCAM_USE_GPU_MAT   = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH = true;            // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_RIGHTCAM_FUSION_MASTER            = false;           // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS   = 5;               // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_RIGHTCAM_SERIAL                    = 0;               // The serial number of the camera. Set to 0 to open the next available one. 0
 
     // Ground Basic Cam.
     const int BASICCAM_GROUNDCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.
@@ -223,8 +225,8 @@ namespace constants
 
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
-    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag.
-    const int ARUCO_VALIDATION_THRESHOLD             = 5;      // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
+    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag in meters.
+    const int ARUCO_VALIDATION_THRESHOLD             = 10;     // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
     const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD = 5;      // How many times can an unvalidated tag be missing from frame before being forgotten.
     const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // How many times can a validated tag be missing from frame before being forgotten.
     const double ARUCO_PIXEL_THRESHOLD               = 175;    // Pixel value threshold for pre-process threshold mask
@@ -245,7 +247,7 @@ namespace constants
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = true;                             // Whether or not to use DNN detection on top of ArUco.
+    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
     const std::string TAGDETECT_MAINCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
     const float TAGDETECT_MAINCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
@@ -296,8 +298,8 @@ namespace constants
 
     // Approaching Marker State
     const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
-    const double APPROACH_MARKER_MOTOR_POWER             = 0.5;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 5;      // How close the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_MOTOR_POWER             = 0.3;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
     // Stuck State
@@ -317,18 +319,18 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_ANGULAR_STEP_DEGREES     = 57;                  // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_MAX_RADIUS               = 25;                  //  The maximum radius to cover in the search (meters).
-    const double SEARCH_STARTING_HEADING_DEGREES = 0;                   // The angle the rover is facing at the start of the search(degrees).
-    const double SEARCH_SPACING                  = 2;                   // The spacing between successive points in the spiral (meters).
-    const double SEARCH_WAYPOINT_PROXIMITY       = 1;                   // How close a rover must be to a point to have it count as visited.
-    const double SEARCH_MOTOR_POWER              = DRIVE_MAX_EFFORT;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
+    const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
+    const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
+    const double SEARCH_MOTOR_POWER          = 0.5;     // The amount of power the motors use when approaching the marker.
 
     // Handler.
-    const int STATEMACHINE_MAX_IPS = 60;    // The maximum number of iteration per second of the state machines main thread.
+    const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
+    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Navigating State.
-    const double NAVIGATING_REACHED_GOAL_RADIUS = 1.0;    // The radius in meters that the rover should get to the goal waypoint.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;    // The radius in meters that the rover should get to the goal waypoint.
 
     // Avoidance State.
     const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_POWER;    // Drive speed of avoidance state

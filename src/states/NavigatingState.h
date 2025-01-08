@@ -42,7 +42,6 @@ namespace statemachine
             int m_nMaxDataPoints;
             std::vector<double> m_vRoverXPosition;
             std::vector<double> m_vRoverYPosition;
-            time_t m_tStuckCheckTime;
             std::array<double, 2> m_dStuckCheckLastPosition;
             bool m_bInitialized;
             std::vector<TagDetector*> m_vTagDetectors;

@@ -12,7 +12,7 @@
 #define BASICCAM_H
 
 #include "../../interfaces/AutonomyThread.hpp"
-#include "../../interfaces/Camera.hpp"
+#include "../../interfaces/BasicCamera.hpp"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -29,7 +29,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-class BasicCam : public Camera<cv::Mat>
+class BasicCam : public BasicCamera
 {
     public:
         /////////////////////////////////////////
@@ -61,8 +61,8 @@ class BasicCam : public Camera<cv::Mat>
         // Getters.
         /////////////////////////////////////////
 
-        std::string GetCameraLocation() const;
         bool GetCameraIsOpen() override;
+        std::string GetCameraLocation() const override;
 
     private:
         /////////////////////////////////////////
@@ -70,10 +70,6 @@ class BasicCam : public Camera<cv::Mat>
         /////////////////////////////////////////
         // Basic Camera specific.
         cv::VideoCapture m_cvCamera;
-        std::string m_szCameraPath;
-        bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nCameraIndex;
-        int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
         cv::Mat m_cvFrame;

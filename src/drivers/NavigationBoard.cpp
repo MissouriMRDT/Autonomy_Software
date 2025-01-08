@@ -45,7 +45,11 @@ NavigationBoard::NavigationBoard()
     stSubscribePacket.vData       = std::vector<uint8_t>{};
     if (network::g_pRoveCommUDPNode)
     {
-        network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::Nav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+        // Determine the IP address to send the subscribe packet to.
+        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Nav::IP_ADDRESS.IP_STR.c_str();
+
+        // Send subscribe packet to NavBoard.
+        network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 
         // Set RoveComm callbacks.
         network::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, manifest::Nav::TELEMETRY.find("GPSLATLONALT")->second.DATA_ID);

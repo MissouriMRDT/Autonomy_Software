@@ -36,22 +36,23 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nMaxDataPoints = 100;
-        m_vRoverPosition.reserve(m_nMaxDataPoints);
         m_eCurrentSearchPatternType = eSpiral;
         m_nSearchPathIdx            = 0;
+        m_stSearchPatternCenter     = globals::g_pWaypointHandler->PeekNextWaypoint();
+
+        // Get the current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
-        m_stSearchPatternCenter = globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate();
-        m_vSearchPath           = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter,
+        m_vSearchPath   = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                       constants::SEARCH_STARTING_HEADING_DEGREES,
-                                                                       constants::SEARCH_SPACING);
+                                                                       m_stSearchPatternCenter.dRadius,
+                                                                       stCurrentRoverPose.GetCompassHeading(),
+                                                                       constants::SEARCH_SPIRAL_SPACING);
 
-        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
     }
 
     /******************************************************************************
@@ -111,16 +112,6 @@ namespace statemachine
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
-        //////////////////////////
-        /* --- Log Position --- */
-        //////////////////////////
-
-        if (m_vRoverPosition.size() == m_nMaxDataPoints)
-        {
-            m_vRoverPosition.erase(m_vRoverPosition.begin());
-        }
-        m_vRoverPosition.emplace_back(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing);
-
         /*
             The overall flow of this state is as follows.
             1. Is there a tag -> MarkerSeen
@@ -135,16 +126,39 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
+        // Get a list of the currently detected tags, and their stats.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
 
-        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
-
+        // Check if we have detected any tags.
         if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
-            return;
+            // Check if any of the tags have a detection counter or confidence greater than the threshold.
+            if (std::any_of(vDetectedArucoTags.begin(),
+                            vDetectedArucoTags.end(),
+                            [this](arucotag::ArucoTag& stTag)
+                            {
+                                // If the Tag ID given by the user in the waypoint is less than 0, then we don't care about the ID.
+                                if (m_stSearchPatternCenter.nID < 0)
+                                {
+                                    return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT;
+                                }
+                                else
+                                {
+                                    return (stTag.nID == m_stSearchPatternCenter.nID && stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT);
+                                }
+                            }) ||
+                std::any_of(vDetectedTensorflowTags.begin(),
+                            vDetectedTensorflowTags.end(),
+                            [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))
+            {
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
+                // Handle state transition.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
+                return;
+            }
         }
 
         ////////////////////////////
@@ -184,6 +198,16 @@ namespace statemachine
         ///////////////////////////////////
         /* --- Follow Search Pattern --- */
         ///////////////////////////////////
+
+        // Check if the search path is empty.
+        if (m_vSearchPath.empty())
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Search path is empty, aborting search.");
+            // Handle state transition.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
+            return;
+        }
 
         // Have we reached the current waypoint?
         geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
@@ -271,10 +295,10 @@ namespace statemachine
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
                         // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_SPACING,
+                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+                                                                                       m_stSearchPatternCenter.dRadius * 2,
+                                                                                       m_stSearchPatternCenter.dRadius * 2,
+                                                                                       constants::SEARCH_ZIGZAG_SPACING,
                                                                                        true);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
@@ -287,10 +311,10 @@ namespace statemachine
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
                         // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_MAX_RADIUS,
-                                                                                       constants::SEARCH_SPACING,
+                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+                                                                                       m_stSearchPatternCenter.dRadius * 2,
+                                                                                       m_stSearchPatternCenter.dRadius * 2,
+                                                                                       constants::SEARCH_ZIGZAG_SPACING,
                                                                                        false);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
