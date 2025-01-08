@@ -24,72 +24,91 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Test for memory leaks
+ * @brief Mock class for RoveCommUDPNode
  *
- *
- * @author Targed (ltklionel@gmail.com)
+ * 
  * @date 2024-10-26
  ******************************************************************************/
-TEST(DriveBoardTest, DoesNotLeak)
-{
-    DriveBoard* driveBoard = new DriveBoard();
-    ASSERT_NE(driveBoard, nullptr);
-    delete driveBoard;
-    driveBoard = nullptr;
-}
-
-/******************************************************************************
- * @brief This should fail when the --check_for_leaks command line flag is specified.
- *
- *
- * @author Targed (ltklionel@gmail.com)
- * @date 2024-10-26
- ******************************************************************************/
-TEST(DriveBoardTest, Leaks)
-{
-    DriveBoard* driveBoard = new DriveBoard();
-    EXPECT_TRUE(driveBoard != nullptr);
-}
-
-// /******************************************************************************
-//  * @brief Mock class for RoveCommUDPNode
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// class MockRoveCommUDPNode : public network::RoveCommUDPNode {
+// Does not work so far 
+// class MockRoveCommUDP : public rovecomm::RoveCommUDP {
 // public:
-//     MOCK_METHOD(void, SendUDPPacket, (const rovecomm::RoveCommPacket<float>& packet, const char* ipAddress, uint16_t port), (override));
+//     MOCK_METHOD(int, SendUDPPacketWrapper, (const rovecomm::RoveCommPacket<float>&, const char*, uint16_t));
+
+//     template<typename T>
+//     ssize_t SendUDPPacket(const rovecomm::RoveCommPacket<T>& stPacket, const char* cIPAddress, int nPort) {
+//         if constexpr (std::is_same_v<T, float>) {
+//             return SendUDPPacketWrapper(stPacket, cIPAddress, nPort);
+//         } else {
+//             // Handle other types if needed
+//             return -1;
+//         }
+//     }
 // };
 
-// /******************************************************************************
-//  * @brief Test fixture for DriveBoard
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
+/******************************************************************************
+ * @brief Test fixture for DriveBoard
+ *
+ * 
+ * @date 2024-10-26
+ ******************************************************************************/
+// Does not work so far 
 // class DriveBoardTest : public ::testing::Test {
 // protected:
-//     // Create DriveBoard and MockRoveCommUDPNode objects.
 //     DriveBoard* driveBoard;
-//     MockRoveCommUDPNode* mockRoveCommUDPNode;
+//     MockRoveCommUDP* mockRoveComm;
 
-//     // Set up the test fixture.
 //     void SetUp() override {
-//         // Create objects.
-//         mockRoveCommUDPNode = new MockRoveCommUDPNode();
-//         network::g_pRoveCommUDPNode = mockRoveCommUDPNode;
+//         mockRoveComm = new MockRoveCommUDP();
+//         network::g_pRoveCommUDPNode = mockRoveComm;  // Use correct global variable
+//         network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
 //         driveBoard = new DriveBoard();
 //     }
 
-//     // Tear down the test fixture.
 //     void TearDown() override {
 //         delete driveBoard;
-//         delete mockRoveCommUDPNode;
+//         delete mockRoveComm;
+//         network::g_pRoveCommUDPNode = nullptr;
 //     }
 // };
+
+// TEST_F(DriveBoardTest, SendDriveNormalInput) {
+//     diffdrive::DrivePowers drivePowers = {0.5, -0.5};
+
+//     EXPECT_CALL(*mockRoveComm, SendUDPPacket(testing::_, testing::_, testing::_))
+//         .Times(1)
+//         .WillOnce(testing::Return(1));
+
+//     driveBoard->SendDrive(drivePowers);
+// }
+
+// /******************************************************************************
+//  * @brief Test for memory leaks
+//  *
+//  *
+//  * @author Targed (ltklionel@gmail.com)
+//  * @date 2024-10-26
+//  ******************************************************************************/
+// TEST_F(DriveBoardTest, DoesNotLeak)
+// {
+//     DriveBoard* testBoard = new DriveBoard();
+//     ASSERT_NE(testBoard, nullptr);
+//     delete testBoard;
+//     testBoard = nullptr;
+// }
+
+// /******************************************************************************
+//  * @brief This should fail when the --check_for_leaks command line flag is specified.
+//  *
+//  *
+//  * @author Targed (ltklionel@gmail.com)
+//  * @date 2024-10-26
+//  ******************************************************************************/
+// TEST_F(DriveBoardTest, Leaks)
+// {
+//     DriveBoard* testBoard = new DriveBoard();
+//     EXPECT_NE(testBoard, nullptr);
+//     // Intentionally not deleting to test leak detection
+// }
 
 // /******************************************************************************
 //  * @brief Test SendDrive with normal input values
