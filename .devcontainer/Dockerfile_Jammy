@@ -106,6 +106,18 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/a
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
 
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+
+# Install FFMPEG
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
+
 # Install Abseil.
 ARG ABSEIL_VERSION="20230802.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
@@ -118,11 +130,6 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/am
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
-# Install FFMPEG
-ARG FFMPEG_VERSION="7.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
-    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
-    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
 # Install Libdatachannel
 ARG LIBDATACHANNEL_VERSION="0.22"
@@ -130,11 +137,11 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatach
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
 
-# Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.15.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+# Install MatPlotPlusPlus
+ARG MATPLOTPLUSPLUS_VERSION="master"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/amd64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
+    dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
+    rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
 
 # Install Quill
 ARG QUILL_VERSION="7.3.0"

@@ -8,6 +8,7 @@ ADDMARKERLEG
 ADDOBJECTLEG
 ADDOBSTACLE
 ADDPOSITIONLEG
+alandefreitas
 algobase
 alloc
 allocs
@@ -361,8 +362,10 @@ MAKEFLAGS
 MAPANGLE
 MAPRANGE
 marsrover
+MATPLOT
 matplotlib
 matplotlibcpp
+matplotplusplus
 matx
 Memcheck
 MERICA

@@ -210,6 +210,9 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
 include_directories(${FFMPEG_INCLUDE_DIRS})
 
+## Find MatPlotPlusPlus
+find_package(Matplot++ REQUIRED)
+
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
 include(GoogleTest)
@@ -324,6 +327,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${OPENSSL_LIBRARIES}
                         LibDataChannel::LibDataChannel
                         nlohmann_json::nlohmann_json
+                        Matplot++::matplot
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}

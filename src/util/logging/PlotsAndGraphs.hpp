@@ -15,6 +15,7 @@
 #include "../GeospatialOperations.hpp"
 
 /// \cond
+#include <matplot/matplot.h>
 
 /// \endcond
 
