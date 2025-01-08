@@ -6,9 +6,18 @@ coverage:
     project:
       default:
         target: auto
+        informational: true
+        threshold: 5%
+        flags:
+          - unit_tests
+          - integration_tests
     patch:
       default:
         target: auto
+        threshold: 5%
+        flags:
+          - unit_tests
+          - integration_tests
     changes: false
 
 ignore:
@@ -67,7 +76,7 @@ component_management:
         - src/*.cpp
 
 comment:
-  layout: "header, diff, flags, files, components"
+  layout: "header, diff, files, flags, components"
   behavior: default
   require_changes: false
   require_base: false
