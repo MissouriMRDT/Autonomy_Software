@@ -53,76 +53,212 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Helper function to destroy objects from m_vObstacles.
+     * @brief Called in the obstacle avoidance state to plan a path around obstacles
+     *      blocking our path.
+     *
+     * @param stStartCoordinate - A UTMCoordinate reference that represents the start location.
+     * @param stGoalCoordinate - A UTMCoordinate reference that represents the goal location.
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class,
+     *                      defaults to an empty vector.
+     *
+     * @return - A vector of UTMCoordinates representing the path calculated by ASTAR.
+     *
+     * @todo Build a visualizer for testing.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    void AStar::ClearObstacleData()
+    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
+                                                                const geoops::UTMCoordinate& stGoalCoordinate,
+                                                                const std::vector<sl::ObjectData>& vObstacles)
     {
-        m_vObstacles.clear();
-    }
+        // Clear previous path data.
+        m_vPathCoordinates.clear();
 
-    /******************************************************************************
-     * @brief This method clears any saved obstacles in AStar, takes in a vector of
-     *      sl::ObjectData objects and translates them to a UTMCoordinate and estimated
-     *      size that is stored in the m_vObstacles vector.
-     *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
-     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
-     *
-     * @todo Validate data being pulled from ObjectData structs.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool& bClearObstacles)
-    {
-        // Remove stale obstacle data.
-        if (bClearObstacles)
-        {
-            ClearObstacleData();
-        }
-        // For each object in vObstacles:
-        for (size_t i = 0; i < vObstacles.size(); i++)
-        {
-            // Create Obstacle struct.
-            Obstacle stObstacleToAdd;
-            // Extract coordinate data from ObjectData struct.
-            stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
-            stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
-            // Extract size data from ObjectData and calculate size of obstacle.
-            // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-            stObstacleToAdd.dRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
-            // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
-            m_vObstacles.emplace_back(stObstacleToAdd);
-        }
-    }
+        // Translate Object data from camera and construct obstacle nodes.
+        // Stores Data in m_vObstacles.
+        UpdateObstacleData(vObstacles);
 
-    /******************************************************************************
-     * @brief This method clears any saved obstacles in AStar, takes in a vector of
-     *      AStar::Obstacle and saves a copy to the m_vObstacles vector.
-     *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
-     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
-     *
-     * @todo Validate data being pulled from ObjectData structs.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool& bClearObstacles)
-    {
-        // Remove stale obstacle data.
-        if (bClearObstacles)
+        // Create start node.
+        m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
+        // Map the goalLocation to an edge node based on maximum search size.
+        geoops::UTMCoordinate stRoundedGoal(FindNearestBoundaryPoint(stGoalCoordinate));
+        // Create goal node.
+        m_stGoalNode = nodes::AStarNode(nullptr, stRoundedGoal);
+
+        // -------------------A* algorithm-------------------
+        // Create Open and Closed Lists.
+        // Using an additional unordered map is memory inefficient but allows for O(1)
+        //  lookup of nodes based on their position rather than iterating over the heap.
+        // Carefully manage nodes between 'lists' to ensure data is consistent.
+
+        // Open list implemented as a min-heap queue for O(1) retrieval of the node with min dKf value.
+        // C++ utilizes the '*_heap' family of functions which operate on vectors.
+        std::vector<nodes::AStarNode> vOpenList;
+        std::make_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
+        // Unordered map of coordinates for open list for O(1) lookup.
+        std::unordered_map<std::string, double> umOpenListLookup;
+
+        // Vector containing pointers to nodes on the closed list.
+        // This vector also contains the nodes that will be copied to m_vPathCoordinates.
+        std::vector<std::shared_ptr<nodes::AStarNode>> vClosedList;
+
+        // Unordered map of coordinates for closed list for O(1) lookup.
+        std::unordered_map<std::string, double> umClosedList;
+
+        // Place Starting node on open list.
+        vOpenList.push_back(m_stStartNode);
+        // Translate start node to string and add location on open list lookup map.
+        std::string szLocationString = UTMCoordinateToString(m_stStartNode.stNodeLocation);
+        umOpenListLookup.emplace(std::make_pair(szLocationString, 0.0));
+
+        // While open list is not empty:
+        while (!vOpenList.empty())
         {
-            ClearObstacleData();
-        }
-        // For each object in vObstacles:
-        for (size_t i = 0; i < vObstacles.size(); i++)
-        {
-            m_vObstacles.emplace_back(vObstacles[i]);
-        }
+            // Retrieve node with the minimum dKf on open list (Q).
+            std::pop_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
+            nodes::AStarNode stNextParent = vOpenList.back();
+            // Pop Q off open list.
+            vOpenList.pop_back();
+            // Put Q on closed list to allocate parent pointers of successors.
+            // Note: make_shared creates a copy of stNextParent on the heap, and points to that copy.
+            vClosedList.push_back(std::make_shared<nodes::AStarNode>(stNextParent));
+
+            // Generate Q's 8 successors (neighbors), setting parent to Q.
+            std::vector<nodes::AStarNode> vSuccessors;
+
+            // Counter for avoiding parent duplication.
+            ushort usSuccessorTracker = 0;
+            for (int nEastingDirection = -1; nEastingDirection <= 1; nEastingDirection += 1)
+            {
+                for (int nNorthingDirection = -1; nNorthingDirection <= 1; nNorthingDirection += 1)
+                {
+                    double dSuccessorEasting  = stNextParent.stNodeLocation.dEasting + (nEastingDirection * constants::ASTAR_NODE_SIZE);
+                    double dSuccessorNorthing = stNextParent.stNodeLocation.dNorthing + (nNorthingDirection * constants::ASTAR_NODE_SIZE);
+                    // Skip duplicating the parent node.
+                    // Implemented with a counter to avoid evaluating coordinates.
+                    usSuccessorTracker++;
+                    if (usSuccessorTracker == 5)
+                    {
+                        continue;
+                    }
+
+                    // Check for valid coordinate (check for boundary and obstacles).
+                    if (!ValidCoordinate(dSuccessorEasting, dSuccessorNorthing))
+                    {
+                        continue;
+                    }
+
+                    // Otherwise create the successor.
+                    // Copy data from parent coordinate.
+                    geoops::UTMCoordinate stSuccessorCoordinate = stNextParent.stNodeLocation;
+
+                    // Adjust Easting and Northing offsets to create new coordinate.
+                    stSuccessorCoordinate.dEasting  = dSuccessorEasting;
+                    stSuccessorCoordinate.dNorthing = dSuccessorNorthing;
+                    RoundUTMCoordinate(stSuccessorCoordinate);
+                    // Create successor node, initialize values to 0 (done by constructor).
+                    nodes::AStarNode stNextSuccessor(vClosedList.back(), stSuccessorCoordinate);
+                    // Copy successor node to vector.
+                    vSuccessors.emplace_back(stNextSuccessor);
+                }
+            }
+
+            // For each successor:
+            for (size_t i = 0; i < vSuccessors.size(); i++)
+            {
+                // Vars for distance evaluation.
+                bool bAtGoal = false;
+                double dDeltaEasting;
+                double dDeltaNorthing;
+
+                // If successor distance to goal is less than the node size, stop search.
+                // Try to calculate GeoMeasurement:
+                geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
+                bool bGeoSuccess                        = stDistanceToGoal.dDistanceMeters > 0.01;
+
+                // If this succeeds, use the GeoMeasurement distance.
+                if (bGeoSuccess)
+                {
+                    bAtGoal = stDistanceToGoal.dDistanceMeters < constants::ASTAR_NODE_SIZE;
+                }
+                // Otherwise manually check for goal boundaries:
+                else
+                {
+                    dDeltaEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
+                    dDeltaNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
+                    bAtGoal        = dDeltaEasting < constants::ASTAR_NODE_SIZE && dDeltaNorthing < constants::ASTAR_NODE_SIZE;
+                }
+
+                // Construct and return path if we have reached the goal.
+                if (bAtGoal)
+                {
+                    ConstructPath(vSuccessors[i]);
+                    return m_vPathCoordinates;
+                }
+
+                // Create and format lookup string.
+                std::string szSuccessorLookup = UTMCoordinateToString(vSuccessors[i].stNodeLocation);
+
+                // Compute dKg, dKh, and dKf for successor.
+                // Calculate successor previous path cost.
+                vSuccessors[i].dKg = stNextParent.dKg + constants::ASTAR_NODE_SIZE;
+
+                // Calculate successor future path cost through geo measurement if successful:
+                if (bGeoSuccess)
+                {
+                    vSuccessors[i].dKh = stDistanceToGoal.dDistanceMeters;
+                }
+                // Otherwise calculate euclidian distance manually.
+                else
+                {
+                    vSuccessors[i].dKh = std::sqrt(std::pow(dDeltaEasting, 2) + std::pow(dDeltaNorthing, 2));
+                }
+
+                // f = g + h
+                vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
+
+                // If a node with the same position as successor is in the open list and has a lower dKf, skip this successor.
+                if (umOpenListLookup.count(szSuccessorLookup))
+                {
+                    if (umOpenListLookup[szSuccessorLookup] <= vSuccessors[i].dKf)
+                    {
+                        continue;
+                    }
+                }
+
+                // If a node with the same position as successor is in the closed list and has a lower dKf, skip this successor.
+                if (umClosedList.count(szSuccessorLookup))
+                {
+                    if (umClosedList[szSuccessorLookup] <= vSuccessors[i].dKf)
+                    {
+                        continue;
+                    }
+                }
+
+                // Otherwise add successor node to open list.
+                // Add lookup string and dKf value to lookup map.
+                umOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
+                // Push to heap.
+                vOpenList.push_back(vSuccessors[i]);
+                std::push_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
+            }    // End For (each successor).
+
+            // Create and format lookup string.
+            std::string szParentLookup = UTMCoordinateToString(stNextParent.stNodeLocation);
+            // Push lookup string and dKf value to lookup map.
+            umClosedList.emplace(std::make_pair(szParentLookup, stNextParent.dKf));
+        }    // End While(!vOpenList.empty).
+
+        // Function has failed to find a valid path.
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "ASTAR Failed to find a path from UTM point ({}, {}) to UTM point ({}, {})",
+                  m_stStartNode.stNodeLocation.dEasting,
+                  m_stStartNode.stNodeLocation.dNorthing,
+                  m_stGoalNode.stNodeLocation.dEasting,
+                  m_stGoalNode.stNodeLocation.dNorthing);
+        // Return empty vector and handle outside of class.
+        return m_vPathCoordinates;
     }
 
     /******************************************************************************
@@ -162,6 +298,105 @@ namespace pathplanners
     void AStar::AddObstacle(const Obstacle& stObstacle)
     {
         m_vObstacles.emplace_back(stObstacle);
+    }
+
+    /******************************************************************************
+     * @brief This method clears any saved obstacles in AStar, takes in a vector of
+     *      sl::ObjectData objects and translates them to a UTMCoordinate and estimated
+     *      size that is stored in the m_vObstacles vector.
+     *
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
+     *
+     * @todo Validate data being pulled from ObjectData structs.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool bClearObstacles)
+    {
+        // Remove stale obstacle data.
+        if (bClearObstacles)
+        {
+            ClearObstacleData();
+        }
+        // For each object in vObstacles:
+        for (size_t i = 0; i < vObstacles.size(); i++)
+        {
+            // Create Obstacle struct.
+            Obstacle stObstacleToAdd;
+            // Extract coordinate data from ObjectData struct.
+            stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
+            stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
+            // Extract size data from ObjectData and calculate size of obstacle.
+            // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
+            stObstacleToAdd.dRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
+            // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
+            m_vObstacles.emplace_back(stObstacleToAdd);
+        }
+    }
+
+    /******************************************************************************
+     * @brief This method clears any saved obstacles in AStar, takes in a vector of
+     *      AStar::Obstacle and saves a copy to the m_vObstacles vector.
+     *
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
+     *
+     * @todo Validate data being pulled from ObjectData structs.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool bClearObstacles)
+    {
+        // Remove stale obstacle data.
+        if (bClearObstacles)
+        {
+            ClearObstacleData();
+        }
+        // For each object in vObstacles:
+        for (size_t i = 0; i < vObstacles.size(); i++)
+        {
+            m_vObstacles.emplace_back(vObstacles[i]);
+        }
+    }
+
+    /******************************************************************************
+     * @brief Helper function to destroy objects from m_vObstacles.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-02
+     ******************************************************************************/
+    void AStar::ClearObstacleData()
+    {
+        m_vObstacles.clear();
+    }
+
+    /******************************************************************************
+     * @brief Getter for the path calculated by ASTAR.
+     *
+     * @return std::vector<geoops::UTMCoordinate> - A vector of UTMCoordinates representing the path calculated by ASTAR.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-01-09
+     ******************************************************************************/
+    std::vector<geoops::UTMCoordinate> AStar::GetPath() const
+    {
+        return m_vPathCoordinates;
+    }
+
+    /******************************************************************************
+     * @brief Getter for the current obstacle data.
+     *
+     * @return std::vector<AStar::Obstacle> - A vector of Obstacle structs representing the obstacles in the path.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-01-09
+     ******************************************************************************/
+    std::vector<AStar::Obstacle> AStar::GetObstacleData() const
+    {
+        return m_vObstacles;
     }
 
     /******************************************************************************
@@ -390,214 +625,5 @@ namespace pathplanners
         // Copy node UTMCoordinate data to m_vPathNodes.
         m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
         return;
-    }
-
-    /******************************************************************************
-     * @brief Called in the obstacle avoidance state to plan a path around obstacles
-     *      blocking our path.
-     *
-     * @param stStartCoordinate - A UTMCoordinate reference that represents the start location.
-     * @param stGoalCoordinate - A UTMCoordinate reference that represents the goal location.
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class,
-     *                      defaults to an empty vector.
-     *
-     * @return - A vector of UTMCoordinates representing the path calculated by ASTAR.
-     *
-     * @todo Build a visualizer for testing.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-02
-     ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
-                                                                const geoops::UTMCoordinate& stGoalCoordinate,
-                                                                const std::vector<sl::ObjectData>& vObstacles)
-    {
-        // Clear previous path data.
-        m_vPathCoordinates.clear();
-
-        // Translate Object data from camera and construct obstacle nodes.
-        // Stores Data in m_vObstacles.
-        UpdateObstacleData(vObstacles);
-
-        // Create start node.
-        m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
-        // Map the goalLocation to an edge node based on maximum search size.
-        geoops::UTMCoordinate stRoundedGoal(FindNearestBoundaryPoint(stGoalCoordinate));
-        // Create goal node.
-        m_stGoalNode = nodes::AStarNode(nullptr, stRoundedGoal);
-
-        // -------------------A* algorithm-------------------
-        // Create Open and Closed Lists.
-        // Using an additional unordered map is memory inefficient but allows for O(1)
-        //  lookup of nodes based on their position rather than iterating over the heap.
-        // Carefully manage nodes between 'lists' to ensure data is consistent.
-
-        // Open list implemented as a min-heap queue for O(1) retrieval of the node with min dKf value.
-        // C++ utilizes the '*_heap' family of functions which operate on vectors.
-        std::vector<nodes::AStarNode> vOpenList;
-        std::make_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
-        // Unordered map of coordinates for open list for O(1) lookup.
-        std::unordered_map<std::string, double> umOpenListLookup;
-
-        // Vector containing pointers to nodes on the closed list.
-        // This vector also contains the nodes that will be copied to m_vPathCoordinates.
-        std::vector<std::shared_ptr<nodes::AStarNode>> vClosedList;
-
-        // Unordered map of coordinates for closed list for O(1) lookup.
-        std::unordered_map<std::string, double> umClosedList;
-
-        // Place Starting node on open list.
-        vOpenList.push_back(m_stStartNode);
-        // Translate start node to string and add location on open list lookup map.
-        std::string szLocationString = UTMCoordinateToString(m_stStartNode.stNodeLocation);
-        umOpenListLookup.emplace(std::make_pair(szLocationString, 0.0));
-
-        // While open list is not empty:
-        while (!vOpenList.empty())
-        {
-            // Retrieve node with the minimum dKf on open list (Q).
-            std::pop_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
-            nodes::AStarNode stNextParent = vOpenList.back();
-            // Pop Q off open list.
-            vOpenList.pop_back();
-            // Put Q on closed list to allocate parent pointers of successors.
-            // Note: make_shared creates a copy of stNextParent on the heap, and points to that copy.
-            vClosedList.push_back(std::make_shared<nodes::AStarNode>(stNextParent));
-
-            // Generate Q's 8 successors (neighbors), setting parent to Q.
-            std::vector<nodes::AStarNode> vSuccessors;
-
-            // Counter for avoiding parent duplication.
-            ushort usSuccessorTracker = 0;
-            for (int nEastingDirection = -1; nEastingDirection <= 1; nEastingDirection += 1)
-            {
-                for (int nNorthingDirection = -1; nNorthingDirection <= 1; nNorthingDirection += 1)
-                {
-                    double dSuccessorEasting  = stNextParent.stNodeLocation.dEasting + (nEastingDirection * constants::ASTAR_NODE_SIZE);
-                    double dSuccessorNorthing = stNextParent.stNodeLocation.dNorthing + (nNorthingDirection * constants::ASTAR_NODE_SIZE);
-                    // Skip duplicating the parent node.
-                    // Implemented with a counter to avoid evaluating coordinates.
-                    usSuccessorTracker++;
-                    if (usSuccessorTracker == 5)
-                    {
-                        continue;
-                    }
-
-                    // Check for valid coordinate (check for boundary and obstacles).
-                    if (!ValidCoordinate(dSuccessorEasting, dSuccessorNorthing))
-                    {
-                        continue;
-                    }
-
-                    // Otherwise create the successor.
-                    // Copy data from parent coordinate.
-                    geoops::UTMCoordinate stSuccessorCoordinate = stNextParent.stNodeLocation;
-
-                    // Adjust Easting and Northing offsets to create new coordinate.
-                    stSuccessorCoordinate.dEasting  = dSuccessorEasting;
-                    stSuccessorCoordinate.dNorthing = dSuccessorNorthing;
-                    RoundUTMCoordinate(stSuccessorCoordinate);
-                    // Create successor node, initialize values to 0 (done by constructor).
-                    nodes::AStarNode stNextSuccessor(vClosedList.back(), stSuccessorCoordinate);
-                    // Copy successor node to vector.
-                    vSuccessors.emplace_back(stNextSuccessor);
-                }
-            }
-
-            // For each successor:
-            for (size_t i = 0; i < vSuccessors.size(); i++)
-            {
-                // Vars for distance evaluation.
-                bool bAtGoal = false;
-                double dDeltaEasting;
-                double dDeltaNorthing;
-
-                // If successor distance to goal is less than the node size, stop search.
-                // Try to calculate GeoMeasurement:
-                geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
-                bool bGeoSuccess                        = stDistanceToGoal.dDistanceMeters > 0.01;
-
-                // If this succeeds, use the GeoMeasurement distance.
-                if (bGeoSuccess)
-                {
-                    bAtGoal = stDistanceToGoal.dDistanceMeters < constants::ASTAR_NODE_SIZE;
-                }
-                // Otherwise manually check for goal boundaries:
-                else
-                {
-                    dDeltaEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
-                    dDeltaNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-                    bAtGoal        = dDeltaEasting < constants::ASTAR_NODE_SIZE && dDeltaNorthing < constants::ASTAR_NODE_SIZE;
-                }
-
-                // Construct and return path if we have reached the goal.
-                if (bAtGoal)
-                {
-                    ConstructPath(vSuccessors[i]);
-                    return m_vPathCoordinates;
-                }
-
-                // Create and format lookup string.
-                std::string szSuccessorLookup = UTMCoordinateToString(vSuccessors[i].stNodeLocation);
-
-                // Compute dKg, dKh, and dKf for successor.
-                // Calculate successor previous path cost.
-                vSuccessors[i].dKg = stNextParent.dKg + constants::ASTAR_NODE_SIZE;
-
-                // Calculate successor future path cost through geo measurement if successful:
-                if (bGeoSuccess)
-                {
-                    vSuccessors[i].dKh = stDistanceToGoal.dDistanceMeters;
-                }
-                // Otherwise calculate euclidian distance manually.
-                else
-                {
-                    vSuccessors[i].dKh = std::sqrt(std::pow(dDeltaEasting, 2) + std::pow(dDeltaNorthing, 2));
-                }
-
-                // f = g + h
-                vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
-
-                // If a node with the same position as successor is in the open list and has a lower dKf, skip this successor.
-                if (umOpenListLookup.count(szSuccessorLookup))
-                {
-                    if (umOpenListLookup[szSuccessorLookup] <= vSuccessors[i].dKf)
-                    {
-                        continue;
-                    }
-                }
-
-                // If a node with the same position as successor is in the closed list and has a lower dKf, skip this successor.
-                if (umClosedList.count(szSuccessorLookup))
-                {
-                    if (umClosedList[szSuccessorLookup] <= vSuccessors[i].dKf)
-                    {
-                        continue;
-                    }
-                }
-
-                // Otherwise add successor node to open list.
-                // Add lookup string and dKf value to lookup map.
-                umOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
-                // Push to heap.
-                vOpenList.push_back(vSuccessors[i]);
-                std::push_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
-            }    // End For (each successor).
-
-            // Create and format lookup string.
-            std::string szParentLookup = UTMCoordinateToString(stNextParent.stNodeLocation);
-            // Push lookup string and dKf value to lookup map.
-            umClosedList.emplace(std::make_pair(szParentLookup, stNextParent.dKf));
-        }    // End While(!vOpenList.empty).
-
-        // Function has failed to find a valid path.
-        LOG_ERROR(logging::g_qSharedLogger,
-                  "ASTAR Failed to find a path from UTM point ({}, {}) to UTM point ({}, {})",
-                  m_stStartNode.stNodeLocation.dEasting,
-                  m_stStartNode.stNodeLocation.dNorthing,
-                  m_stGoalNode.stNodeLocation.dEasting,
-                  m_stGoalNode.stNodeLocation.dNorthing);
-        // Return empty vector and handle outside of class.
-        return m_vPathCoordinates;
     }
 }    // namespace pathplanners

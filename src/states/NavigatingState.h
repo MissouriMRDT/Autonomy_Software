@@ -11,6 +11,8 @@
 #ifndef NAVIGATING_STATE_H
 #define NAVIGATING_STATE_H
 
+#include "../algorithms/controllers/StanleyController.h"
+#include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/logging/PathTracer2D.hpp"
@@ -43,6 +45,8 @@ namespace statemachine
             bool m_bInitialized;
             std::vector<TagDetector*> m_vTagDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            controllers::StanleyController m_StanleyController;
+            pathplanners::AStar m_AStarPlanner;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:

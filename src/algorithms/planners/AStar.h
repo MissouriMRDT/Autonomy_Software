@@ -51,33 +51,24 @@ namespace pathplanners
             /////////////////////////////////////////
             AStar();
             ~AStar();
-
             std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
                                                                  const geoops::UTMCoordinate& stGoalCoordinate,
                                                                  const std::vector<sl::ObjectData>& vObstacles = std::vector<sl::ObjectData>());
-
-            // Moved to public for unit testing.
-            geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
-            geoops::UTMCoordinate RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound);
-            void ConstructPath(const nodes::AStarNode& stFinalNode);
 
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
             void AddObstacle(const sl::ObjectData& slObstacle);
             void AddObstacle(const Obstacle& stObstacle);
-            void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool& bClearObstacles = true);
-            void UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool& bClearObstacles = true);
+            void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool bClearObstacles = true);
+            void UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool bClearObstacles = true);
             void ClearObstacleData();
-
-            const std::vector<Obstacle> GetObstacleData() { return m_vObstacles; };
-
-            void SetStartCoordinate(const geoops::UTMCoordinate& stStart) { m_stStartNode = nodes::AStarNode(nullptr, stStart); }
 
             /////////////////////////////////////////
             // Getters.
             /////////////////////////////////////////
-            const std::vector<geoops::UTMCoordinate> GetPath() { return m_vPathCoordinates; }
+            std::vector<geoops::UTMCoordinate> GetPath() const;
+            std::vector<Obstacle> GetObstacleData() const;
 
         private:
             /////////////////////////////////////////
@@ -94,6 +85,9 @@ namespace pathplanners
             /////////////////////////////////////////
             // Declare private methods.
             /////////////////////////////////////////
+            geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
+            geoops::UTMCoordinate RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound);
+            void ConstructPath(const nodes::AStarNode& stFinalNode);
             std::string UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate);
             bool ValidCoordinate(const double& dEasting, const double& dNorthing);
     };
@@ -109,6 +103,7 @@ namespace pathplanners
      ******************************************************************************/
     struct AStar::Obstacle
     {
+        public:
             geoops::UTMCoordinate stCenterPoint;
             double dRadius;
     };

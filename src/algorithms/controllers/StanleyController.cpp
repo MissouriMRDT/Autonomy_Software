@@ -141,12 +141,14 @@ namespace controllers
         // Verify the given heading is within 0-360 degrees.
         if (dCurrentHeading < 0 || dCurrentHeading > 360)
         {
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate heading must be in the interval [0-360]. Received: {}", dCurrentHeading);
+            LOG_ERROR(logging::g_qSharedLogger, "Heading must be in the interval [0-360]. Received: {}", dCurrentHeading);
+            return 0;
         }
         // Verify a path has been loaded into the Stanley Controller
         if (m_vUTMPath.empty())
         {
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate No path has been loaded.");
+            LOG_ERROR(logging::g_qSharedLogger, "No path has been loaded.");
+            return 0;
         }
 
         // Calculate the position for the center of the front axle.
@@ -262,7 +264,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::UTMCoordinate>& vUTMPath)
+    void StanleyController::SetPath(const std::vector<geoops::UTMCoordinate>& vUTMPath)
     {
         m_vUTMPath        = vUTMPath;
         m_unLastTargetIdx = 0;
@@ -285,7 +287,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-17
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::GPSCoordinate>& vGPSPath)
+    void StanleyController::SetPath(const std::vector<geoops::GPSCoordinate>& vGPSPath)
     {
         m_vUTMPath.clear();
 
@@ -309,7 +311,7 @@ namespace controllers
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-07
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::Waypoint>& vWaypointsPath)
+    void StanleyController::SetPath(const std::vector<geoops::Waypoint>& vWaypointsPath)
     {
         // Clear the current paths.
         m_vUTMPath.clear();
@@ -502,9 +504,10 @@ namespace controllers
     double StanleyController::CalculateTargetBearing(const unsigned int unTargetIdx) const
     {
         // Verify the target index is a valid point on the path.
-        if (unTargetIdx >= m_vUTMPath.size())
+        if (m_vUTMPath.empty() || unTargetIdx >= m_vUTMPath.size())
         {
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateTargetBearing target {} does not exist.", unTargetIdx);
+            LOG_ERROR(logging::g_qSharedLogger, "Target index {} does not exist on path.", unTargetIdx);
+            return 0;
         }
 
         // The yaw is calculated by finding the heading needed to navigate from the
@@ -554,6 +557,13 @@ namespace controllers
      ******************************************************************************/
     double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate& stUTMFrontAxlePos, const unsigned int unTargetIdx, const double dCurrentHeading) const
     {
+        // Check if the target index is valid and the path is not empty.
+        if (m_vUTMPath.empty() || unTargetIdx >= m_vUTMPath.size())
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Target index {} does not exist on path.", unTargetIdx);
+            return 0;
+        }
+
         // Convert the heading to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
         // Here a negative degree represents a change in yaw towards the West.

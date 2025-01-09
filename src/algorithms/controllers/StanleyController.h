@@ -69,9 +69,9 @@ namespace controllers
             void SetDistanceToFrontAxle(const double dDistToFrontAxle);
             void SetYawTolerance(const double dYawTolerance);
 
-            void SetPath(std::vector<geoops::UTMCoordinate>& vUTMPath);
-            void SetPath(std::vector<geoops::GPSCoordinate>& vGPSPath);
-            void SetPath(std::vector<geoops::Waypoint>& vWaypointsPath);
+            void SetPath(const std::vector<geoops::UTMCoordinate>& vUTMPath);
+            void SetPath(const std::vector<geoops::GPSCoordinate>& vGPSPath);
+            void SetPath(const std::vector<geoops::Waypoint>& vWaypointsPath);
 
             void ClearPath();
 

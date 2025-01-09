@@ -73,11 +73,14 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized   = false;
-        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_bInitialized  = false;
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
+        m_AStarPlanner  = pathplanners::AStar();
+        m_StanleyController =
+            controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
         m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
 
         // Start state.
@@ -158,11 +161,22 @@ namespace statemachine
         // Check if we are at the goal waypoint.
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
-            // Calculate drive move/powers.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
-                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
-                                                                                         stCurrentRoverPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
+            // // Calculate drive move/powers.
+            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
+            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+            //                                                                              stCurrentRoverPose.GetCompassHeading(),
+            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
+
+            // TEST Stanley CONTROLLER.
+            // Calculate drive move/powers at the speed multiplier.
+            diffdrive::DrivePowers stDriveSpeeds =
+                globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
+                                                      m_StanleyController.Calculate(stCurrentRoverPose.GetUTMCoordinate(),
+                                                                                    globals::g_pWaypointHandler->SmartRetrieveVelocity(),
+                                                                                    stCurrentRoverPose.GetCompassHeading()),
+                                                      stCurrentRoverPose.GetCompassHeading(),
+                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
+
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
@@ -352,8 +366,13 @@ namespace statemachine
                     LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-                    // Add the new goal waypoint to the path plot.
-                    m_pRoverPathPlot->AddPointUnlimited(std::vector<geoops::UTMCoordinate>{m_stGoalWaypoint.GetUTMCoordinate()}, "NavPath");
+                    // Generate a new path with A* to the goal waypoint.
+                    m_AStarPlanner.PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+                    // Update stanley controller with the new path.
+                    m_StanleyController.SetPath(m_AStarPlanner.GetPath());
+                    // Clear the old path plot and add the new path.
+                    m_pRoverPathPlot->ClearLayerPath("NavPath");
+                    m_pRoverPathPlot->AddPointUnlimited(m_AStarPlanner.GetPath(), "NavPath");
                 }
 
                 // Send multimedia command to update state display.

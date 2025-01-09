@@ -350,9 +350,9 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_STEER_CONTROL_GAIN = 0.5;    // Determines how reactive the rover is to yaw adjustments.
-    const double STANLEY_DIST_TO_FRONT_AXLE = 2.9;    // Distance from position sensor to the center of the front axle.
-    const double STANLEY_YAW_TOLERANCE      = 1.0;    // Threshold for limiting unnecessary small movements.
+    const double STANLEY_STEER_CONTROL_GAIN = 2.7;    // Determines how reactive the rover is to yaw adjustments.
+    const double STANLEY_DIST_TO_FRONT_AXLE = 1.6;    // Distance from position sensor to the center of the front axle.
+    const double STANLEY_YAW_TOLERANCE      = 3.0;    // Threshold for limiting unnecessary small movements.
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles
