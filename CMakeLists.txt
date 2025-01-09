@@ -103,6 +103,7 @@ endif()
 ## Build Unit and Integration Tests
 if (BUILD_TESTS_MODE)
     message("--   [x]: Build Unit and Integration Tests: Enabled")
+    include(CTest)
     enable_testing()
 else()
     message("--   [ ]: Build Unit and Integration Tests: Disabled")
