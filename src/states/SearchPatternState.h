@@ -14,10 +14,12 @@
 #include "../algorithms/controllers/StanleyController.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 
 /// \cond
+#include <matplot/matplot.h>
 
 /// \endcond
 
@@ -62,6 +64,7 @@ namespace statemachine
             SearchPatternType m_eCurrentSearchPatternType;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             controllers::StanleyController m_StanleyController;
+            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:
             /////////////////////////////////////////

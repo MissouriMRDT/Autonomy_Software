@@ -550,4 +550,5 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zlabel
 zstd

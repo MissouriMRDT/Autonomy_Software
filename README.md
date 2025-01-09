@@ -301,6 +301,10 @@ This project makes use of several open-source libraries and tools that help us a
     [nlohmann JSON GitHub](https://github.com/nlohmann/json)  
     License: [MIT License](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
 
+- **matplotplusplus** - Matplot++: A C++ Graphics Library for Data Visualization
+    [Matplot++](https://github.com/alandefreitas/matplotplusplus)
+    License: [MIT License](https://github.com/alandefreitas/matplotplusplus/blob/master/LICENSE)
+
 - **Abseil** - Collection of C++ libraries designed for performance and ease of use.  
   [Abseil GitHub](https://github.com/abseil/abseil-cpp)  
   License: [Apache License 2.0](https://github.com/abseil/abseil-cpp/blob/master/LICENSE)

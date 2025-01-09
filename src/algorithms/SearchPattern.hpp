@@ -13,7 +13,6 @@
 #define SEARCH_PATTERN_HPP
 
 #include "../util/GeospatialOperations.hpp"
-#include "../util/logging/PlotsAndGraphs.hpp"
 
 /// \cond
 #include <cmath>
@@ -101,8 +100,6 @@ namespace searchpattern
         }
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
-        // For logging and debugging purposes, plot the spiral pattern. This will be saved as a PNG file to the logs directory.
-        logging::graphing::PlotCoordinates2D(vWaypoints, "SpiralSearchPattern");
 
         return vWaypoints;
     }
@@ -179,8 +176,6 @@ namespace searchpattern
         }
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
-        // For logging and debugging purposes, plot the spiral pattern. This will be saved as a PNG file to the logs directory.
-        logging::graphing::PlotCoordinates2D(vWaypoints, "SpiralSearchPattern");
 
         return vWaypoints;
     }
