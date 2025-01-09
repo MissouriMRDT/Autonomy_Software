@@ -269,17 +269,21 @@ namespace logging
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
 
-                        // Get the x and y coordinates for the layer.
-                        std::vector<double> vEasting, vNorthing;
-                        for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umPathMap[stdLayer.first].size() > 1)
                         {
-                            vEasting.push_back(stCoordinate.first);
-                            vNorthing.push_back(stCoordinate.second);
-                        }
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing;
+                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            {
+                                vEasting.push_back(stCoordinate.first);
+                                vNorthing.push_back(stCoordinate.second);
+                            }
 
-                        // Plot the path.
-                        m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                        m_mtRoverPathAxes->hold(true);
+                            // Plot the path.
+                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            m_mtRoverPathAxes->hold(true);
+                        }
                     }
 
                     // Update legend names.
@@ -336,17 +340,21 @@ namespace logging
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
 
-                        // Get the x and y coordinates for the layer.
-                        std::vector<double> vEasting, vNorthing;
-                        for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umPathMap[stdLayer.first].size() > 1)
                         {
-                            vEasting.push_back(stCoordinate.first);
-                            vNorthing.push_back(stCoordinate.second);
-                        }
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing;
+                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            {
+                                vEasting.push_back(stCoordinate.first);
+                                vNorthing.push_back(stCoordinate.second);
+                            }
 
-                        // Plot the path.
-                        m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                        m_mtRoverPathAxes->hold(true);
+                            // Plot the path.
+                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            m_mtRoverPathAxes->hold(true);
+                        }
                     }
 
                     // Update legend names.
@@ -404,17 +412,21 @@ namespace logging
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
 
-                        // Get the x and y coordinates for the layer.
-                        std::vector<double> vEasting, vNorthing;
-                        for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umPathMap[stdLayer.first].size() > 1)
                         {
-                            vEasting.push_back(stCoordinate.first);
-                            vNorthing.push_back(stCoordinate.second);
-                        }
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing;
+                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            {
+                                vEasting.push_back(stCoordinate.first);
+                                vNorthing.push_back(stCoordinate.second);
+                            }
 
-                        // Plot the path.
-                        m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                        m_mtRoverPathAxes->hold(true);
+                            // Plot the path.
+                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            m_mtRoverPathAxes->hold(true);
+                        }
                     }
 
                     // Update legend names.
@@ -466,18 +478,22 @@ namespace logging
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
 
-                        // Get the x and y coordinates for the layer.
-                        std::vector<double> vEasting, vNorthing;
-                        for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umPathMap[stdLayer.first].size() > 1)
                         {
-                            vEasting.push_back(stCoordinate.first);
-                            vNorthing.push_back(stCoordinate.second);
-                        }
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing;
+                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            {
+                                vEasting.push_back(stCoordinate.first);
+                                vNorthing.push_back(stCoordinate.second);
+                            }
 
-                        // Plot the path.
-                        m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                        // Set the hold to true.
-                        m_mtRoverPathAxes->hold(true);
+                            // Plot the path.
+                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            // Set the hold to true.
+                            m_mtRoverPathAxes->hold(true);
+                        }
                     }
 
                     // Update legend names.
@@ -526,18 +542,22 @@ namespace logging
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
 
-                        // Get the x and y coordinates for the layer.
-                        std::vector<double> vEasting, vNorthing;
-                        for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umPathMap[stdLayer.first].size() > 1)
                         {
-                            vEasting.push_back(stCoordinate.first);
-                            vNorthing.push_back(stCoordinate.second);
-                        }
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing;
+                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            {
+                                vEasting.push_back(stCoordinate.first);
+                                vNorthing.push_back(stCoordinate.second);
+                            }
 
-                        // Plot the path.
-                        m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                        // Set the hold to true.
-                        m_mtRoverPathAxes->hold(true);
+                            // Plot the path.
+                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            // Set the hold to true.
+                            m_mtRoverPathAxes->hold(true);
+                        }
                     }
 
                     // Update legend names.
@@ -589,18 +609,22 @@ namespace logging
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
 
-                        // Get the x and y coordinates for the layer.
-                        std::vector<double> vEasting, vNorthing;
-                        for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umPathMap[stdLayer.first].size() > 1)
                         {
-                            vEasting.push_back(stCoordinate.first);
-                            vNorthing.push_back(stCoordinate.second);
-                        }
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing;
+                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            {
+                                vEasting.push_back(stCoordinate.first);
+                                vNorthing.push_back(stCoordinate.second);
+                            }
 
-                        // Plot the path.
-                        m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                        // Set the hold to true.
-                        m_mtRoverPathAxes->hold(true);
+                            // Plot the path.
+                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            // Set the hold to true.
+                            m_mtRoverPathAxes->hold(true);
+                        }
                     }
 
                     // Update legend names.
