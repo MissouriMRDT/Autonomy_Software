@@ -178,8 +178,9 @@ namespace logging
                     }
 
                     // Add the layer to the maps.
-                    m_umPathMap[szLayerName]      = std::vector<std::pair<double, double>>();
-                    m_umLineStyleMap[szLayerName] = szStyleString;
+                    m_umPathMap[szLayerName]               = std::vector<std::pair<double, double>>();
+                    m_umLineStyleMap[szLayerName]          = szStyleString;
+                    m_umLastPlotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
                 }
 
                 /******************************************************************************
@@ -240,18 +241,10 @@ namespace logging
                  ******************************************************************************/
                 void AddPoint(const geoops::Waypoint& stWaypoint, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
                 {
-                    // Check if the maximum number of waypoints per second has been exceeded.
-                    if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastPlotTime).count() < 1.0 / nMaxWaypointsPerSecond)
+                    // Check the update time.
+                    if (!this->CheckUpdateTime(szLayerName, nMaxWaypointsPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
-                        return;
-                    }
-
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
                         return;
                     }
 
@@ -260,9 +253,6 @@ namespace logging
 
                     // Update the plot.
                     this->UpdatePlot();
-
-                    // Update the last plot time.
-                    m_tmLastPlotTime = std::chrono::system_clock::now();
                 }
 
                 /******************************************************************************
@@ -278,18 +268,10 @@ namespace logging
                  ******************************************************************************/
                 void AddPoint(const geoops::UTMCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
                 {
-                    // Check if the maximum number of waypoints per second has been exceeded.
-                    if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastPlotTime).count() < 1.0 / nMaxWaypointsPerSecond)
+                    // Check the update time.
+                    if (!this->CheckUpdateTime(szLayerName, nMaxWaypointsPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
-                        return;
-                    }
-
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
                         return;
                     }
 
@@ -298,9 +280,6 @@ namespace logging
 
                     // Update the plot.
                     this->UpdatePlot();
-
-                    // Update the last plot time.
-                    m_tmLastPlotTime = std::chrono::system_clock::now();
                 }
 
                 /******************************************************************************
@@ -316,18 +295,10 @@ namespace logging
                  ******************************************************************************/
                 void AddPoint(const geoops::GPSCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
                 {
-                    // Check if the maximum number of waypoints per second has been exceeded.
-                    if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastPlotTime).count() < 1.0 / nMaxWaypointsPerSecond)
+                    // Check the update time.
+                    if (!this->CheckUpdateTime(szLayerName, nMaxWaypointsPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
-                        return;
-                    }
-
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
                         return;
                     }
 
@@ -339,9 +310,6 @@ namespace logging
 
                     // Update the plot.
                     this->UpdatePlot();
-
-                    // Update the last plot time.
-                    m_tmLastPlotTime = std::chrono::system_clock::now();
                 }
 
                 /******************************************************************************
@@ -350,17 +318,17 @@ namespace logging
                  *
                  * @param stWaypoints - The waypoints to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param unMaxUpdatesPerSecond - The maximum number of waypoints that can be added per second. Set to 0 for no limit.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPointUnlimited(const std::vector<geoops::Waypoint>& stWaypoints, const std::string& szLayerName)
+                void AddPoints(const std::vector<geoops::Waypoint>& stWaypoints, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
                 {
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
+                    // Check the update time.
+                    if (!this->CheckUpdateTime(szLayerName, unMaxUpdatesPerSecond))
                     {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
+                        // Return if the maximum number of waypoints per second has been exceeded.
                         return;
                     }
 
@@ -380,24 +348,24 @@ namespace logging
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param unMaxUpdatesPerSecond - The maximum number of waypoints that can be added per second. Set to 0 for no limit.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPointUnlimited(const std::vector<geoops::UTMCoordinate>& vCoordinates, const std::string& szLayerName)
+                void AddPoints(const std::vector<geoops::UTMCoordinate>& vCoordinates, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
                 {
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
+                    // Check the update time.
+                    if (!this->CheckUpdateTime(szLayerName, unMaxUpdatesPerSecond))
                     {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
+                        // Return if the maximum number of waypoints per second has been exceeded.
                         return;
                     }
 
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
-                    for (const geoops::UTMCoordinate& stWaypoint : vCoordinates)
+                    for (const geoops::UTMCoordinate& stCoordinate : vCoordinates)
                     {
-                        m_umPathMap[szLayerName].emplace_back(stWaypoint.dEasting, stWaypoint.dNorthing);
+                        m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing);
                     }
 
                     // Update the plot.
@@ -410,26 +378,24 @@ namespace logging
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param unMaxUpdatesPerSecond - The maximum number of waypoints that can be added per second. Set to 0 for no limit.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPointUnlimited(const std::vector<geoops::GPSCoordinate>& vCoordinates, const std::string& szLayerName)
+                void AddPoints(const std::vector<geoops::GPSCoordinate>& vCoordinates, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
                 {
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
+                    // Check the update time.
+                    if (!this->CheckUpdateTime(szLayerName, unMaxUpdatesPerSecond))
                     {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
+                        // Return if the maximum number of waypoints per second has been exceeded.
                         return;
                     }
 
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
-                    for (const geoops::GPSCoordinate& stWaypoint : vCoordinates)
+                    for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
                     {
-                        // Convert the GPS coordinate to a UTM coordinate.
-                        geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stWaypoint);
-
+                        geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
                         m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing);
                     }
 
@@ -442,8 +408,8 @@ namespace logging
                 matplot::figure_handle m_mtRoverPathPlot;
                 matplot::axes_handle m_mtRoverPathAxes;
                 std::unordered_map<std::string, std::string> m_umLineStyleMap;
+                std::unordered_map<std::string, std::chrono::system_clock::time_point> m_umLastPlotUpdateTimeMap;
                 std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
-                std::chrono::system_clock::time_point m_tmLastPlotTime;
                 std::string m_szPlotTitle;
 
                 /******************************************************************************
@@ -491,6 +457,48 @@ namespace logging
                     m_mtRoverPathAxes->hold(false);
                     // Plot the path.
                     m_mtRoverPathPlot->draw();
+                }
+
+                /******************************************************************************
+                 * @brief Checks the unordered map of last update times for a given layer name
+                 *      and returns true if the time since the last update is greater than the
+                 *      maximum updates per second, then it updates the time in the map.
+                 *      If the layer name does not exist in the map then it returns false.
+                 *      If the given update time is 0, then it will just check if the layer name
+                 *      exists in the map.
+                 *
+                 * @param szLayerName - The name of the layer to check the update time for.
+                 * @param unMaxUpdatesPerSecond - The maximum number of updates per second.
+                 * @return true - The time since the last update is greater than the maximum updates per second.
+                 * @return false - The time since the last update is less than the maximum updates per second.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-09
+                 ******************************************************************************/
+                bool CheckUpdateTime(const std::string& szLayerName, const uint unMaxUpdatesPerSecond)
+                {
+                    // Check if the layer name exists in the map.
+                    if (m_umLastPlotUpdateTimeMap.find(szLayerName) == m_umLastPlotUpdateTimeMap.end())
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
+                        return false;
+                    }
+
+                    // Check if the maximum number of waypoints per second has been exceeded.
+                    if (unMaxUpdatesPerSecond != 0 &&
+                        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_umLastPlotUpdateTimeMap[szLayerName]).count() <
+                            1.0 / unMaxUpdatesPerSecond)
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return false;
+                    }
+
+                    // Update the last plot time.
+                    m_umLastPlotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
+
+                    // Return true.
+                    return true;
                 }
         };
     }    // namespace graphing

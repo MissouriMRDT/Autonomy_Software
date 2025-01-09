@@ -54,7 +54,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateLayer("SearchPattern", "-o");
         m_pRoverPathPlot->CreateLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
-        m_pRoverPathPlot->AddPointUnlimited(m_vSearchPath, "SearchPattern");
+        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern");
 
         // Set stanley controller path.
         m_StanleyController.SetPath(m_vSearchPath);
@@ -332,7 +332,7 @@ namespace statemachine
                         m_eCurrentSearchPatternType = eZigZag;
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddPointUnlimited(m_vSearchPath, "SearchPattern");
+                        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern");
                         break;
                     }
                     case eZigZag:
@@ -351,7 +351,7 @@ namespace statemachine
                         m_eCurrentSearchPatternType = END;
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddPointUnlimited(m_vSearchPath, "SearchPattern");
+                        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern");
                         break;
                     }
                     case END:

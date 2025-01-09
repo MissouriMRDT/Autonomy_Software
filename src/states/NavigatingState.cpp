@@ -42,6 +42,7 @@ namespace statemachine
         // Create rover path layers.
         m_pRoverPathPlot->CreateLayer("NavPath", "-o");
         m_pRoverPathPlot->CreateLayer("RoverPath", "-.r*");
+        m_pRoverPathPlot->CreateLayer("StanleyPath", "-.g*");
         // Add starting point to path plot. This is the rovers current position.
         m_pRoverPathPlot->AddPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath");
     }
@@ -129,6 +130,11 @@ namespace statemachine
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+        // FIXME: Debug for stanley path following.
+        std::vector<geoops::UTMCoordinate> vStanleyDebug;
+        vStanleyDebug.push_back(stCurrentRoverPose.GetUTMCoordinate());
+        vStanleyDebug.push_back(m_StanleyController.GetPathUTM()[m_StanleyController.GetLastTargetIdx()]);
+        m_pRoverPathPlot->AddPoints(vStanleyDebug, "StanleyPath");
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
@@ -372,7 +378,7 @@ namespace statemachine
                     m_StanleyController.SetPath(m_AStarPlanner.GetPath());
                     // Clear the old path plot and add the new path.
                     m_pRoverPathPlot->ClearLayerPath("NavPath");
-                    m_pRoverPathPlot->AddPointUnlimited(m_AStarPlanner.GetPath(), "NavPath");
+                    m_pRoverPathPlot->AddPoints(m_AStarPlanner.GetPath(), "NavPath", 0);
                 }
 
                 // Send multimedia command to update state display.

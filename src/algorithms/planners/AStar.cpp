@@ -472,7 +472,7 @@ namespace pathplanners
         }
 
         // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
-        stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
+        RoundUTMCoordinate(stBoundaryCoordinate);
 
         // Handle edge case of an obstacle blocking the goal coordinate.
         // For each obstacle:
@@ -498,7 +498,7 @@ namespace pathplanners
                 {
                     stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
                 }
-                stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
+                RoundUTMCoordinate(stBoundaryCoordinate);
             }
 
             // If goal node coordinate is within Y axis obstacle borders.
@@ -513,7 +513,7 @@ namespace pathplanners
                 {
                     stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
                 }
-                stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
+                RoundUTMCoordinate(stBoundaryCoordinate);
             }
         }
         // Return rounded coordinate.
@@ -594,12 +594,10 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-12
      ******************************************************************************/
-    geoops::UTMCoordinate AStar::RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound)
+    void AStar::RoundUTMCoordinate(geoops::UTMCoordinate& stCoordinateToRound)
     {
-        geoops::UTMCoordinate stRounded = geoops::UTMCoordinate(stCoordinateToRound);
-        stRounded.dEasting              = std::round(stCoordinateToRound.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
-        stRounded.dNorthing             = std::round(stCoordinateToRound.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
-        return stRounded;
+        stCoordinateToRound.dEasting  = std::round(stCoordinateToRound.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+        stCoordinateToRound.dNorthing = std::round(stCoordinateToRound.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
     }
 
     /******************************************************************************
