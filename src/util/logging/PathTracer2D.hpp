@@ -93,11 +93,12 @@ namespace logging
                     // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
                     std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
                     int nFileNum           = 0;
-                    while (std::filesystem::exists(szFileName + ".png"))
+                    while (std::filesystem::exists(szFileName + std::to_string(nFileNum) + ".png"))
                     {
-                        szFileName = szFileName + std::to_string(nFileNum);
                         ++nFileNum;
                     }
+                    // Add the file number to the file name.
+                    szFileName = szFileName + std::to_string(nFileNum);
 
                     // Check if the final directory exists. If not then create it.
                     if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
@@ -254,44 +255,11 @@ namespace logging
                         return;
                     }
 
-                    // Create instance variables.
-                    std::vector<std::string> vLayerNames;
-
                     // Add the waypoint to the path.
                     m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing);
 
-                    // Clear the plot.
-                    m_mtRoverPathAxes->clear();
-
-                    // Loop through each of the layer name keys in the map.
-                    for (const std::pair<const std::string, std::string>& stdLayer : m_umLineStyleMap)
-                    {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
-                        // Check if the vector or coordinates has more than one point.
-                        if (m_umPathMap[stdLayer.first].size() > 1)
-                        {
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing;
-                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
-                            {
-                                vEasting.push_back(stCoordinate.first);
-                                vNorthing.push_back(stCoordinate.second);
-                            }
-
-                            // Plot the path.
-                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                            m_mtRoverPathAxes->hold(true);
-                        }
-                    }
-
-                    // Update legend names.
-                    m_mtRoverPathAxes->legend(vLayerNames);
-                    // Set the hold to false.
-                    m_mtRoverPathAxes->hold(false);
-                    // Plot the path.
-                    m_mtRoverPathPlot->draw();
+                    // Update the plot.
+                    this->UpdatePlot();
 
                     // Update the last plot time.
                     m_tmLastPlotTime = std::chrono::system_clock::now();
@@ -325,44 +293,11 @@ namespace logging
                         return;
                     }
 
-                    // Create instance variables.
-                    std::vector<std::string> vLayerNames;
-
                     // Add the waypoint to the path.
                     m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing);
 
-                    // Clear the plot.
-                    m_mtRoverPathAxes->clear();
-
-                    // Loop through each of the layer name keys in the map.
-                    for (const std::pair<const std::string, std::string>& stdLayer : m_umLineStyleMap)
-                    {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
-                        // Check if the vector or coordinates has more than one point.
-                        if (m_umPathMap[stdLayer.first].size() > 1)
-                        {
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing;
-                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
-                            {
-                                vEasting.push_back(stCoordinate.first);
-                                vNorthing.push_back(stCoordinate.second);
-                            }
-
-                            // Plot the path.
-                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                            m_mtRoverPathAxes->hold(true);
-                        }
-                    }
-
-                    // Update legend names.
-                    m_mtRoverPathAxes->legend(vLayerNames);
-                    // Set the hold to false.
-                    m_mtRoverPathAxes->hold(false);
-                    // Plot the path.
-                    m_mtRoverPathPlot->draw();
+                    // Update the plot.
+                    this->UpdatePlot();
 
                     // Update the last plot time.
                     m_tmLastPlotTime = std::chrono::system_clock::now();
@@ -397,44 +332,13 @@ namespace logging
                     }
 
                     // Create instance variables.
-                    std::vector<std::string> vLayerNames;
                     geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
 
                     // Add the waypoint to the path.
                     m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing);
 
-                    // Clear the plot.
-                    m_mtRoverPathAxes->clear();
-
-                    // Loop through each of the layer name keys in the map.
-                    for (const std::pair<const std::string, std::string>& stdLayer : m_umLineStyleMap)
-                    {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
-                        // Check if the vector or coordinates has more than one point.
-                        if (m_umPathMap[stdLayer.first].size() > 1)
-                        {
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing;
-                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
-                            {
-                                vEasting.push_back(stCoordinate.first);
-                                vNorthing.push_back(stCoordinate.second);
-                            }
-
-                            // Plot the path.
-                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                            m_mtRoverPathAxes->hold(true);
-                        }
-                    }
-
-                    // Update legend names.
-                    m_mtRoverPathAxes->legend(vLayerNames);
-                    // Set the hold to false.
-                    m_mtRoverPathAxes->hold(false);
-                    // Plot the path.
-                    m_mtRoverPathPlot->draw();
+                    // Update the plot.
+                    this->UpdatePlot();
 
                     // Update the last plot time.
                     m_tmLastPlotTime = std::chrono::system_clock::now();
@@ -460,48 +364,14 @@ namespace logging
                         return;
                     }
 
-                    // Create instance variables.
-                    std::vector<std::string> vLayerNames;
-
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
                     for (const geoops::Waypoint& stWaypoint : stWaypoints)
                     {
                         m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing);
                     }
 
-                    // Clear the plot.
-                    m_mtRoverPathAxes->clear();
-
-                    // Loop through each of the layer name keys in the map.
-                    for (const std::pair<const std::string, std::string>& stdLayer : m_umLineStyleMap)
-                    {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
-                        // Check if the vector or coordinates has more than one point.
-                        if (m_umPathMap[stdLayer.first].size() > 1)
-                        {
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing;
-                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
-                            {
-                                vEasting.push_back(stCoordinate.first);
-                                vNorthing.push_back(stCoordinate.second);
-                            }
-
-                            // Plot the path.
-                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                            // Set the hold to true.
-                            m_mtRoverPathAxes->hold(true);
-                        }
-                    }
-
-                    // Update legend names.
-                    m_mtRoverPathAxes->legend(vLayerNames);
-                    // Set the hold to false.
-                    m_mtRoverPathAxes->hold(false);
-                    // Plot the path.
-                    m_mtRoverPathPlot->draw();
+                    // Update the plot.
+                    this->UpdatePlot();
                 }
 
                 /******************************************************************************
@@ -524,48 +394,14 @@ namespace logging
                         return;
                     }
 
-                    // Create instance variables.
-                    std::vector<std::string> vLayerNames;
-
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
                     for (const geoops::UTMCoordinate& stWaypoint : vCoordinates)
                     {
                         m_umPathMap[szLayerName].emplace_back(stWaypoint.dEasting, stWaypoint.dNorthing);
                     }
 
-                    // Clear the plot.
-                    m_mtRoverPathAxes->clear();
-
-                    // Loop through each of the layer name keys in the map.
-                    for (const std::pair<const std::string, std::string>& stdLayer : m_umLineStyleMap)
-                    {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
-                        // Check if the vector or coordinates has more than one point.
-                        if (m_umPathMap[stdLayer.first].size() > 1)
-                        {
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing;
-                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
-                            {
-                                vEasting.push_back(stCoordinate.first);
-                                vNorthing.push_back(stCoordinate.second);
-                            }
-
-                            // Plot the path.
-                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
-                            // Set the hold to true.
-                            m_mtRoverPathAxes->hold(true);
-                        }
-                    }
-
-                    // Update legend names.
-                    m_mtRoverPathAxes->legend(vLayerNames);
-                    // Set the hold to false.
-                    m_mtRoverPathAxes->hold(false);
-                    // Plot the path.
-                    m_mtRoverPathPlot->draw();
+                    // Update the plot.
+                    this->UpdatePlot();
                 }
 
                 /******************************************************************************
@@ -588,9 +424,6 @@ namespace logging
                         return;
                     }
 
-                    // Create instance variables.
-                    std::vector<std::string> vLayerNames;
-
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
                     for (const geoops::GPSCoordinate& stWaypoint : vCoordinates)
                     {
@@ -599,6 +432,31 @@ namespace logging
 
                         m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing);
                     }
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
+            private:
+                // Declare private member variables.
+                matplot::figure_handle m_mtRoverPathPlot;
+                matplot::axes_handle m_mtRoverPathAxes;
+                std::unordered_map<std::string, std::string> m_umLineStyleMap;
+                std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
+                std::chrono::system_clock::time_point m_tmLastPlotTime;
+                std::string m_szPlotTitle;
+
+                /******************************************************************************
+                 * @brief Update the plot with the new waypoints and redraw the plot.
+                 *
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-08
+                 ******************************************************************************/
+                void UpdatePlot()
+                {
+                    // Create instance variables.
+                    std::vector<std::string> vLayerNames;
 
                     // Clear the plot.
                     m_mtRoverPathAxes->clear();
@@ -634,15 +492,6 @@ namespace logging
                     // Plot the path.
                     m_mtRoverPathPlot->draw();
                 }
-
-            private:
-                // Declare private member variables.
-                matplot::figure_handle m_mtRoverPathPlot;
-                matplot::axes_handle m_mtRoverPathAxes;
-                std::unordered_map<std::string, std::string> m_umLineStyleMap;
-                std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
-                std::chrono::system_clock::time_point m_tmLastPlotTime;
-                std::string m_szPlotTitle;
         };
     }    // namespace graphing
 }    // namespace logging
