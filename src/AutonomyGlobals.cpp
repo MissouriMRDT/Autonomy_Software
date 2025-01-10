@@ -24,9 +24,6 @@ namespace globals
     // Forward declarations for namespace variables and objects.
     /////////////////////////////////////////
 
-    // Versioning:
-    IdentitySoftware* g_pIdentifySoftware;
-
     // Waypoint Handler:
     WaypointHandler* g_pWaypointHandler;
 

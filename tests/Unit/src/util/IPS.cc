@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/util/IPS.hpp"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <chrono>
@@ -18,13 +19,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the IPS
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class IPSTests : public TestingBase<IPSTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new IPSTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        IPSTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the IPSTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~IPSTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the IPSTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the IPSTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Check that IPS doesn't leak any memory.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(IPSTests, DoesNotLeak)
+TEST_F(IPSTests, DoesNotLeak)
 {
     // Create a new IPS object.
     IPS* pIPS = new IPS();
@@ -41,7 +100,7 @@ TEST(IPSTests, DoesNotLeak)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(IPSTests, Leaks)
+TEST_F(IPSTests, Leaks)
 {
     // Create a new IPS object.
     IPS* pIPS = new IPS();
@@ -55,7 +114,7 @@ TEST(IPSTests, Leaks)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(IPSTest, IterationCounter)
+TEST_F(IPSTests, IterationCounter)
 {
     // Create a new IPS object.
     IPS* pIPS = new IPS();
@@ -84,7 +143,7 @@ TEST(IPSTest, IterationCounter)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(IPSTest, MetricsFunctionality)
+TEST_F(IPSTests, MetricsFunctionality)
 {
     // Create a new IPS object.
     IPS* pIPS = new IPS();
@@ -149,7 +208,7 @@ TEST(IPSTest, MetricsFunctionality)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(IPSTest, ResetFunction)
+TEST_F(IPSTests, ResetFunction)
 {
     // Create a new IPS object.
     IPS* pIPS = new IPS();

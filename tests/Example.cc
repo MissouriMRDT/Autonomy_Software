@@ -8,63 +8,126 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "./TestingBase.hh"
+
 /// \cond
 #include <gtest/gtest.h>
 
 /// \endcond
 
 /******************************************************************************
- * @brief Test some basic multiplication
- *
+ * @brief Unit Test Class for the Example Tests
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-24
+ * @date 2025-01-10
  ******************************************************************************/
-TEST(ExampleTests, TestIntegerOne_One)
+class ExampleTests : public TestingBase<ExampleTests>
 {
-    const int expected = 18;
-    const int actual   = 6 * 3;
-    ASSERT_EQ(expected, actual);
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        int m_nTestValue;
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Example Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ExampleTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Example Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ~ExampleTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Example Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+
+            m_nTestValue = 0;
+        }
+
+        /******************************************************************************
+         * @brief Destroy the Example Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+
+            EXPECT_NE(m_nTestValue, 0) << "Test value has not been modified.";
+        }
+};
+
+/******************************************************************************
+ * @brief Test the addition of two numbers.
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-10
+ ******************************************************************************/
+TEST_F(ExampleTests, Addition)
+{
+    int a = 2, b = 3;
+    m_nTestValue = a + b;
+
+    EXPECT_EQ(m_nTestValue, 5) << "Addition test failed.";
 }
 
 /******************************************************************************
- * @brief Test some basic addition
- *
+ * @brief Test the subtraction of two numbers.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-24
+ * @date 2025-01-10
  ******************************************************************************/
-TEST(ExampleTests, TestIntegerZero_Zero)
+TEST_F(ExampleTests, Subtraction)
 {
-    const int expected = 9;
-    const int actual   = 6 + 3;
-    ASSERT_EQ(expected, actual);
+    int a = 5, b = 3;
+    m_nTestValue = a - b;
+
+    EXPECT_EQ(m_nTestValue, 2) << "Subtraction test failed.";
 }
 
 /******************************************************************************
- * @brief Test some basic subtraction
- *
+ * @brief Test the multiplication of two numbers.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-24
+ * @date 2025-01-10
  ******************************************************************************/
-TEST(ExampleTests, TestIntegerZero_One)
+TEST_F(ExampleTests, Multiplication)
 {
-    const int expected = 3;
-    const int actual   = 6 - 3;
-    ASSERT_EQ(actual, expected);
+    int a = 4, b = 5;
+    m_nTestValue = a * b;
+
+    EXPECT_EQ(m_nTestValue, 20) << "Multiplication test failed.";
 }
 
 /******************************************************************************
- * @brief Test some basic division
- *
+ * @brief Test the division of two numbers.
  *
  * @author Eli Byrd (edbgkk@mst.edu)
- * @date 2023-07-24
+ * @date 2025-01-10
  ******************************************************************************/
-TEST(ExampleTests, TestDivision)
+TEST_F(ExampleTests, Division)
 {
-    const int expected = 2;
-    const int actual   = 6 / 3;
-    ASSERT_EQ(actual, expected);
+    int a = 10, b = 2;
+    m_nTestValue = a / b;
+
+    EXPECT_EQ(m_nTestValue, 5) << "Division test failed.";
 }
