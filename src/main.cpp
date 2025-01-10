@@ -78,7 +78,7 @@ int main()
     }
 
     std::cout << szHeaderText << std::endl;
-    std::cout << "Copyright \u00A9 2024 - Mars Rover Design Team\n" << std::endl;
+    std::cout << "Copyright \u00A9 2025 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
