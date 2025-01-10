@@ -24,7 +24,6 @@ ignore:
   - "examples/*"
   - "external/*"
   - "tools/*"
-  - "tests/**"
   - "**/CMakeFiles/*"
   - "**/*.md"
   - "**/*.yml"
