@@ -1,7 +1,7 @@
 /******************************************************************************
  * @brief Unit test for Aruco Tag Detection implemented using OpenCV
  *
- * @file TagDetectionOpenCV.cc
+ * @file ArucoDetection.cc
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-10
  *
@@ -26,7 +26,7 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2025-01-09
  ******************************************************************************/
-class TagDetectOpenCVTests : public TestingBase<TagDetectOpenCVTests>
+class ArucoDetectionTests : public TestingBase<ArucoDetectionTests>
 {
     private:
         // Please note that any functions or variables must be declared as protected or public
@@ -68,7 +68,7 @@ class TagDetectOpenCVTests : public TestingBase<TagDetectOpenCVTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        TagDetectOpenCVTests() { SetUp(); }
+        ArucoDetectionTests() { SetUp(); }
 
         /******************************************************************************
          * @brief Destroy the Tag Detect OpenCV Tests object.
@@ -76,7 +76,7 @@ class TagDetectOpenCVTests : public TestingBase<TagDetectOpenCVTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~TagDetectOpenCVTests() { TearDown(); }
+        ~ArucoDetectionTests() { TearDown(); }
 
         /******************************************************************************
          * @brief Setup the Tag Detect OpenCV Tests object.
@@ -111,7 +111,7 @@ class TagDetectOpenCVTests : public TestingBase<TagDetectOpenCVTests>
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-TEST_F(TagDetectOpenCVTests, FindTagCenter)
+TEST_F(ArucoDetectionTests, FindTagCenter)
 {
     arucotag::ArucoTag tag;
     tag.CornerTL                       = cv::Point2f{7.0, 5.0};
@@ -132,7 +132,7 @@ TEST_F(TagDetectOpenCVTests, FindTagCenter)
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-TEST_F(TagDetectOpenCVTests, SingleCleanTagDetect)
+TEST_F(ArucoDetectionTests, SingleCleanTagDetect)
 {
     // initialize aruco detector
     cv::aruco::Dictionary cvDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
@@ -172,7 +172,7 @@ TEST_F(TagDetectOpenCVTests, SingleCleanTagDetect)
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-TEST_F(TagDetectOpenCVTests, MultiCleanTagDetect)
+TEST_F(ArucoDetectionTests, MultiCleanTagDetect)
 {
     // Number of tags for this test case
     const unsigned int unNumTags = 3;
