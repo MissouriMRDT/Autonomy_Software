@@ -65,7 +65,7 @@ jobs:
 
           ctest --output-on-failure -T Test -T Coverage -L UTest --output-junit UTests.xml
           ctest --output-on-failure -T Test -T Coverage -L ITest --output-junit ITests.xml
-          gcovr --root .. --xml-pretty --output AllCoverage.xml
+          gcovr --root .. --xml-pretty --output AllCoverage.xml --exclude '.*/tests/.*'
 
       - name: Upload Test Coverage to Codecov
         if: ${{ !cancelled() }}
