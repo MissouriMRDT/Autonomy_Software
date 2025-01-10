@@ -189,3 +189,58 @@ TEST(NumOpsTest, CoordinateFrameRotate3D)
         EXPECT_NEAR(vPointCloud[0].tZ, aExpectedZ[nIter], 0.01);
     }
 }
+
+/******************************************************************************
+ * @brief Test the functionality of the CoordinatePoint structure
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+TEST(NumOpsTest, CoordinatePoint)
+{
+    // Default Constructor Test
+    {
+        numops::CoordinatePoint<double> point;
+        EXPECT_DOUBLE_EQ(point.tX, 0.0);
+        EXPECT_DOUBLE_EQ(point.tY, 0.0);
+        EXPECT_DOUBLE_EQ(point.tZ, 0.0);
+    }
+
+    // Parameterized Constructor Test
+    {
+        numops::CoordinatePoint<double> point(1.5, 2.5, 3.5);
+        EXPECT_DOUBLE_EQ(point.tX, 1.5);
+        EXPECT_DOUBLE_EQ(point.tY, 2.5);
+        EXPECT_DOUBLE_EQ(point.tZ, 3.5);
+    }
+
+    // Test with Integer Type
+    {
+        numops::CoordinatePoint<int> point(1, 2, 3);
+        EXPECT_EQ(point.tX, 1);
+        EXPECT_EQ(point.tY, 2);
+        EXPECT_EQ(point.tZ, 3);
+    }
+
+    // Test with Float Type
+    {
+        numops::CoordinatePoint<float> point(1.1f, 2.2f, 3.3f);
+        EXPECT_FLOAT_EQ(point.tX, 1.1f);
+        EXPECT_FLOAT_EQ(point.tY, 2.2f);
+        EXPECT_FLOAT_EQ(point.tZ, 3.3f);
+    }
+
+    // Test Modifying Values
+    {
+        numops::CoordinatePoint<double> point(1.0, 2.0, 3.0);
+
+        // Modify values
+        point.tX = 4.0;
+        point.tY = 5.0;
+        point.tZ = 6.0;
+
+        EXPECT_DOUBLE_EQ(point.tX, 4.0);
+        EXPECT_DOUBLE_EQ(point.tY, 5.0);
+        EXPECT_DOUBLE_EQ(point.tZ, 6.0);
+    }
+}
