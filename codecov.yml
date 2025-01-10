@@ -21,15 +21,22 @@ coverage:
     changes: false
 
 ignore:
+  # Project Directories to be ignored
   - "examples/*"
   - "external/*"
   - "tools/*"
   - "tests/**"
   - "**/CMakeFiles/*"
+  - "**/build/*"
+
+  # Extensions to be ignored
   - "**/*.md"
   - "**/*.yml"
-  - "**/build/*"
+  
+  # System Files to be ignored
   - "/usr/include/*"
+  
+  # Project Source Files to be ignored
   - "src/main.cpp"
 
 flag_management:
