@@ -199,48 +199,35 @@ TEST(NumOpsTest, CoordinateFrameRotate3D)
 TEST(NumOpsTest, CoordinatePoint)
 {
     // Default Constructor Test
-    {
-        numops::CoordinatePoint<double> point;
-        EXPECT_DOUBLE_EQ(point.tX, 0.0);
-        EXPECT_DOUBLE_EQ(point.tY, 0.0);
-        EXPECT_DOUBLE_EQ(point.tZ, 0.0);
-    }
+    numops::CoordinatePoint<double> stDefaultPoint;
+    EXPECT_DOUBLE_EQ(stDefaultPoint.tX, 0.0);
+    EXPECT_DOUBLE_EQ(stDefaultPoint.tY, 0.0);
+    EXPECT_DOUBLE_EQ(stDefaultPoint.tZ, 0.0);
 
     // Parameterized Constructor Test
-    {
-        numops::CoordinatePoint<double> point(1.5, 2.5, 3.5);
-        EXPECT_DOUBLE_EQ(point.tX, 1.5);
-        EXPECT_DOUBLE_EQ(point.tY, 2.5);
-        EXPECT_DOUBLE_EQ(point.tZ, 3.5);
-    }
+    numops::CoordinatePoint<double> stParamPoint(1.5, 2.5, 3.5);
+    EXPECT_DOUBLE_EQ(stParamPoint.tX, 1.5);
+    EXPECT_DOUBLE_EQ(stParamPoint.tY, 2.5);
+    EXPECT_DOUBLE_EQ(stParamPoint.tZ, 3.5);
 
     // Test with Integer Type
-    {
-        numops::CoordinatePoint<int> point(1, 2, 3);
-        EXPECT_EQ(point.tX, 1);
-        EXPECT_EQ(point.tY, 2);
-        EXPECT_EQ(point.tZ, 3);
-    }
+    numops::CoordinatePoint<int> stIntPoint(1, 2, 3);
+    EXPECT_EQ(stIntPoint.tX, 1);
+    EXPECT_EQ(stIntPoint.tY, 2);
+    EXPECT_EQ(stIntPoint.tZ, 3);
 
     // Test with Float Type
-    {
-        numops::CoordinatePoint<float> point(1.1f, 2.2f, 3.3f);
-        EXPECT_FLOAT_EQ(point.tX, 1.1f);
-        EXPECT_FLOAT_EQ(point.tY, 2.2f);
-        EXPECT_FLOAT_EQ(point.tZ, 3.3f);
-    }
+    numops::CoordinatePoint<float> stFloatPoint(1.1f, 2.2f, 3.3f);
+    EXPECT_FLOAT_EQ(stFloatPoint.tX, 1.1f);
+    EXPECT_FLOAT_EQ(stFloatPoint.tY, 2.2f);
+    EXPECT_FLOAT_EQ(stFloatPoint.tZ, 3.3f);
 
     // Test Modifying Values
-    {
-        numops::CoordinatePoint<double> point(1.0, 2.0, 3.0);
-
-        // Modify values
-        point.tX = 4.0;
-        point.tY = 5.0;
-        point.tZ = 6.0;
-
-        EXPECT_DOUBLE_EQ(point.tX, 4.0);
-        EXPECT_DOUBLE_EQ(point.tY, 5.0);
-        EXPECT_DOUBLE_EQ(point.tZ, 6.0);
-    }
+    numops::CoordinatePoint<double> stModPoint(1.0, 2.0, 3.0);
+    stModPoint.tX = 4.0;
+    stModPoint.tY = 5.0;
+    stModPoint.tZ = 6.0;
+    EXPECT_DOUBLE_EQ(stModPoint.tX, 4.0);
+    EXPECT_DOUBLE_EQ(stModPoint.tY, 5.0);
+    EXPECT_DOUBLE_EQ(stModPoint.tZ, 6.0);
 }
