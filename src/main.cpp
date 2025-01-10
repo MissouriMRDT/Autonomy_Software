@@ -70,7 +70,7 @@ int main()
     // Print Software Header
     std::ifstream fHeaderText("../data/ASCII/v25.txt");
     std::string szHeaderText;
-    if (fHeaderText)
+    if (fHeaderText.is_open())
     {
         std::ostringstream pHeaderText;
         pHeaderText << fHeaderText.rdbuf();
