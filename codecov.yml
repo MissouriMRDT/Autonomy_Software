@@ -30,6 +30,7 @@ ignore:
   - "**/*.yml"
   - "**/build/*"
   - "/usr/include/*"
+  - "src/main.cpp"
 
 flag_management:
   individual_flags:
