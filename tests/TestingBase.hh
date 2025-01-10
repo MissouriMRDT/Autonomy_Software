@@ -181,6 +181,16 @@ class TestingBase : public ::testing::Test
             // Set the current timestamp as the default timestamp.
             std::string szTimestamp = timeops::GetTimestamp();
 
+            // Check if the test being run is in the list of tests to skip setting up logging.
+            for (int i = 1; i < m_argc; ++i)
+            {
+                if (std::string(m_argv[i]).find("--timestamp=") != std::string::npos)
+                {
+                    szTimestamp = std::string(m_argv[i]).substr(std::string(m_argv[i]).find("=") + 1);
+                    break;
+                }
+            }
+
             // Set the timestamp.
             m_szTimestamp = szTimestamp;
         }
