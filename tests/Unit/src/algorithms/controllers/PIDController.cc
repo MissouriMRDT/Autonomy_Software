@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/controllers/PIDController.h"
+#include "../../../../TestingBase.hh"
 
 /// \cond
 #include <array>
@@ -18,13 +19,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the PIDController
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class PIDControllerTests : public TestingBase<PIDControllerTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new PIDControllerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        PIDControllerTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the PIDControllerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~PIDControllerTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the PIDControllerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the PIDControllerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Check that PIDController doesn't leak any memory.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-23
  ******************************************************************************/
-TEST(PIDControllerTest, DoesNotLeak)
+TEST_F(PIDControllerTests, DoesNotLeak)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.1, 0.1, 0.01);
@@ -41,7 +100,7 @@ TEST(PIDControllerTest, DoesNotLeak)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-23
  ******************************************************************************/
-TEST(PIDControllerTest, Leaks)
+TEST_F(PIDControllerTests, Leaks)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.1, 0.1, 0.01);
@@ -55,7 +114,7 @@ TEST(PIDControllerTest, Leaks)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-23
  ******************************************************************************/
-TEST(PIDControllerTest, ProportionalControl)
+TEST_F(PIDControllerTests, ProportionalControl)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
@@ -91,7 +150,7 @@ TEST(PIDControllerTest, ProportionalControl)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-23
  ******************************************************************************/
-TEST(PIDControllerTest, IntegralControl)
+TEST_F(PIDControllerTests, IntegralControl)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 1.0, 0.0);
@@ -127,7 +186,7 @@ TEST(PIDControllerTest, IntegralControl)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-23
  ******************************************************************************/
-TEST(PIDControllerTest, DerivativeControl)
+TEST_F(PIDControllerTests, DerivativeControl)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 0.0, 1.0);
@@ -166,7 +225,7 @@ TEST(PIDControllerTest, DerivativeControl)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-24
  ******************************************************************************/
-TEST(PIDControllerTest, ControllerLimits)
+TEST_F(PIDControllerTests, ControllerLimits)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
@@ -205,7 +264,7 @@ TEST(PIDControllerTest, ControllerLimits)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-24
  ******************************************************************************/
-TEST(PIDControllerTest, ContinuousInput)
+TEST_F(PIDControllerTests, ContinuousInput)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
@@ -259,7 +318,7 @@ TEST(PIDControllerTest, ContinuousInput)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-25
  ******************************************************************************/
-TEST(PIDControllerTest, MutatorsAndAccessors)
+TEST_F(PIDControllerTests, MutatorsAndAccessors)
 {
     // Create a new PIDController object.
     controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);

@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/util/NumberOperations.hpp"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <chrono>
@@ -18,13 +19,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the NumberOperations
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class NumOpsTests : public TestingBase<NumOpsTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        NumOpsTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~NumOpsTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test the functionality of the Clamp function.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-16
  ******************************************************************************/
-TEST(NumOpsTest, Clamp)
+TEST_F(NumOpsTests, Clamp)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength               = 6;
@@ -51,7 +110,7 @@ TEST(NumOpsTest, Clamp)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-16
  ******************************************************************************/
-TEST(NumOpsTest, Bounded)
+TEST_F(NumOpsTests, Bounded)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength               = 6;
@@ -78,7 +137,7 @@ TEST(NumOpsTest, Bounded)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(NumOpsTest, MapRange)
+TEST_F(NumOpsTests, MapRange)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                  = 4;
@@ -107,7 +166,7 @@ TEST(NumOpsTest, MapRange)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-19
  ******************************************************************************/
-TEST(NumOpsTest, InputAngleModulus)
+TEST_F(NumOpsTests, InputAngleModulus)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength               = 9;
@@ -133,7 +192,7 @@ TEST(NumOpsTest, InputAngleModulus)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2024-04-03
  ******************************************************************************/
-TEST(NumOpsTest, AngularDifference)
+TEST_F(NumOpsTests, AngularDifference)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                   = 8;
@@ -159,7 +218,7 @@ TEST(NumOpsTest, AngularDifference)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2024-04-03
  ******************************************************************************/
-TEST(NumOpsTest, CoordinateFrameRotate3D)
+TEST_F(NumOpsTests, CoordinateFrameRotate3D)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                = 8;
@@ -196,7 +255,7 @@ TEST(NumOpsTest, CoordinateFrameRotate3D)
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2025-01-09
  ******************************************************************************/
-TEST(NumOpsTest, CoordinatePoint)
+TEST_F(NumOpsTests, CoordinatePoint)
 {
     // Default Constructor Test
     numops::CoordinatePoint<double> stDefaultPoint;

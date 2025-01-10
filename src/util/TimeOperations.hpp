@@ -15,7 +15,9 @@
 /// \cond
 #include <chrono>
 #include <ctime>
-#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
 
 /// \endcond
 
@@ -37,25 +39,20 @@ namespace timeops
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2025-01-07
      ******************************************************************************/
-    inline std::string GetTimestamp(std::string szFormat = "%Y%m%d-%H%M%S")
+    inline std::string GetTimestamp(const std::string& szFormat = "%Y%m%d-%H%M%S")
     {
-        // Retrieve the current time for the log file name
-        std::chrono::time_point<std::chrono::system_clock> tmCurrentTime = std::chrono::system_clock::now();
-        std::time_t tCurrentTime                                         = std::chrono::system_clock::to_time_t(tmCurrentTime);
+        // Retrieve the current time
+        auto now       = std::chrono::system_clock::now();
+        time_t timeNow = std::chrono::system_clock::to_time_t(now);
 
-        // Convert time to local time
-        std::tm* tLocalTime = std::localtime(&tCurrentTime);
+        // Convert to local time (thread-safe)
+        tm localTime{};
+        localtime_r(&timeNow, &localTime);
 
-        // Format the current time in a format that can be used as a file name.
-        std::array<char, 80> cCurrentTime;
-        size_t siTimeCharacters;
-        siTimeCharacters = std::strftime(cCurrentTime.data(), cCurrentTime.size(), szFormat.c_str(), tLocalTime);
-        if (siTimeCharacters == 0)
-        {
-            std::cerr << "Unable to format calendar date & time (exceeds string length)" << std::endl;
-        }
-
-        return cCurrentTime.data();
+        // Format the time
+        std::ostringstream oss;
+        oss << std::put_time(&localTime, szFormat.c_str());
+        return oss.str();
     }
 }    // namespace timeops
 

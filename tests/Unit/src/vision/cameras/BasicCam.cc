@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../../src/vision/cameras/BasicCam.h"
+#include "../../../../TestingBase.hh"
 
 /// \cond
 #include <gtest/gtest.h>
@@ -17,13 +18,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the BasicCam
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class BasicCamTests : public TestingBase<BasicCamTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Basic Cam Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        BasicCamTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Basic Cam Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ~BasicCamTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Basic Cam Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Basic Cam Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test the functionality of the BasicCam constructor and destructor.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(BasicCamTest, ConstructorDestructor)
+TEST_F(BasicCamTests, ConstructorDestructor)
 {
     // Create a BasicCam object.
     BasicCam basicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -41,7 +100,7 @@ TEST(BasicCamTest, ConstructorDestructor)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(BasicCamTest, DoesNotLeak)
+TEST_F(BasicCamTests, DoesNotLeak)
 {
     // Create a new BasicCam object.
     BasicCam* pBasicCam = new BasicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -58,7 +117,7 @@ TEST(BasicCamTest, DoesNotLeak)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(BasicCamTest, Leaks)
+TEST_F(BasicCamTests, Leaks)
 {
     // Create a new BasicCam object.
     BasicCam* pBasicCam = new BasicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -72,7 +131,7 @@ TEST(BasicCamTest, Leaks)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(BasicCamTest, GetCameraIsOpen)
+TEST_F(BasicCamTests, GetCameraIsOpen)
 {
     // Create a BasicCam object.
     BasicCam basicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -88,7 +147,7 @@ TEST(BasicCamTest, GetCameraIsOpen)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(BasicCamTest, GetCameraLocation)
+TEST_F(BasicCamTests, GetCameraLocation)
 {
     // Create a BasicCam object.
     BasicCam basicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);

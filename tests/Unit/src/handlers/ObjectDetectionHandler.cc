@@ -10,12 +10,71 @@
 
 #include "../../../../src/handlers/ObjectDetectionHandler.h"
 #include "../../../../src/vision/objects/ObjectDetector.h"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 /// \endcond
+
+/******************************************************************************
+ * @brief Unit Test Class for the ObjectDetectionHandler
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class ObjectDetectionHandlerTests : public TestingBase<ObjectDetectionHandlerTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Object Detection Handler Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ObjectDetectionHandlerTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Object Detection Handler Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~ObjectDetectionHandlerTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Object Detection Handler Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Object Detection Handler Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
 
 // FIXME: Do not use "using" for namespaces, it's bad practice.
 using ::testing::_;
@@ -29,7 +88,7 @@ using ::testing::Return;
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST(ObjectDetectionHandlerTest, DoesNotLeak) {
+// TEST_F(ObjectDetectionHandlerTests, DoesNotLeak) {
 //     ObjectDetectionHandler* handler = new ObjectDetectionHandler();
 //     delete handler;
 // }
@@ -54,7 +113,7 @@ using ::testing::Return;
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// class ObjectDetectionHandlerTest : public ::testing::Test {
+// class ObjectDetectionHandlerTests : public ::testing::Test {
 // protected:
 //     ObjectDetectionHandler* handler;
 //     NiceMock<MockObjectDetector>* mockMainCam;
@@ -87,7 +146,7 @@ using ::testing::Return;
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(ObjectDetectionHandlerTest, ConstructorInitializesMembers) {
+// TEST_F(ObjectDetectionHandlerTests, ConstructorInitializesMembers) {
 //     EXPECT_NE(handler->m_pObjectDetectorMainCam, nullptr);
 //     EXPECT_NE(handler->m_pObjectDetectorLeftCam, nullptr);
 //     EXPECT_NE(handler->m_pObjectDetectorRightCam, nullptr);
@@ -100,7 +159,7 @@ using ::testing::Return;
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(ObjectDetectionHandlerTest, StartAllDetectors) {
+// TEST_F(ObjectDetectionHandlerTests, StartAllDetectors) {
 //     EXPECT_CALL(*mockMainCam, Start()).Times(1);
 //     EXPECT_CALL(*mockLeftCam, Start()).Times(1);
 //     EXPECT_CALL(*mockRightCam, Start()).Times(1);
@@ -115,7 +174,7 @@ using ::testing::Return;
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(ObjectDetectionHandlerTest, StopAllDetectors) {
+// TEST_F(ObjectDetectionHandlerTests, StopAllDetectors) {
 //     EXPECT_CALL(*mockMainCam, Stop()).Times(1);
 //     EXPECT_CALL(*mockLeftCam, Stop()).Times(1);
 //     EXPECT_CALL(*mockRightCam, Stop()).Times(1);
@@ -130,7 +189,7 @@ using ::testing::Return;
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(ObjectDetectionHandlerTest, GetObjectDetector) {
+// TEST_F(ObjectDetectionHandlerTests, GetObjectDetector) {
 //     EXPECT_EQ(handler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam), mockMainCam);
 //     EXPECT_EQ(handler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eFrameLeftCam), mockLeftCam);
 //     EXPECT_EQ(handler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eFrameRightCam), mockRightCam);

@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../../../src/vision/cameras/sim/SIMZEDCam.h"
+#include "../../../../../TestingBase.hh"
 
 /// \cond
 #include <gtest/gtest.h>
@@ -17,13 +18,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the SIMZEDCam
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class SIMZEDCamTests : public TestingBase<SIMZEDCamTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new SIMZEDCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        SIMZEDCamTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the SIMZEDCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ~SIMZEDCamTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the SIMZEDCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the SIMZEDCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test the functionality of the SIMZEDCam constructor and destructor.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, ConstructorDestructor)
+TEST_F(SIMZEDCamTests, ConstructorDestructor)
 {
     // Create a SIMZEDCam object.
     SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
@@ -41,7 +100,7 @@ TEST(SIMZEDCamTest, ConstructorDestructor)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, DoesNotLeak)
+TEST_F(SIMZEDCamTests, DoesNotLeak)
 {
     // Create a new SIMZEDCam object.
     SIMZEDCam* pSimZEDCam = new SIMZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
@@ -58,7 +117,7 @@ TEST(SIMZEDCamTest, DoesNotLeak)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, Leaks)
+TEST_F(SIMZEDCamTests, Leaks)
 {
     // Create a new SIMZEDCam object.
     SIMZEDCam* pSimZEDCam = new SIMZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
@@ -72,7 +131,7 @@ TEST(SIMZEDCamTest, Leaks)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, ResetPositionalTracking)
+TEST_F(SIMZEDCamTests, ResetPositionalTracking)
 {
     // Create a SIMZEDCam object.
     SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
@@ -91,7 +150,7 @@ TEST(SIMZEDCamTest, ResetPositionalTracking)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, RebootCamera)
+TEST_F(SIMZEDCamTests, RebootCamera)
 {
     // Create a SIMZEDCam object.
     SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
@@ -110,7 +169,7 @@ TEST(SIMZEDCamTest, RebootCamera)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, EnablePositionalTracking)
+TEST_F(SIMZEDCamTests, EnablePositionalTracking)
 {
     // Create a SIMZEDCam object.
     SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
@@ -129,7 +188,7 @@ TEST(SIMZEDCamTest, EnablePositionalTracking)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMZEDCamTest, DisablePositionalTracking)
+TEST_F(SIMZEDCamTests, DisablePositionalTracking)
 {
     // Create a SIMZEDCam object.
     SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
