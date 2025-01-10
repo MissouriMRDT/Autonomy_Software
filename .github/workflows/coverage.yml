@@ -63,8 +63,8 @@ jobs:
         run: |
           cd /opt/Autonomy_Software/build
 
-          ctest --output-on-failure -T Test -T Coverage -R UTest --output-junit UTests.xml
-          ctest --output-on-failure -T Test -T Coverage -R ITest --output-junit ITests.xml
+          ctest --output-on-failure -T Test -T Coverage -L UTest --output-junit UTests.xml
+          ctest --output-on-failure -T Test -T Coverage -L ITest --output-junit ITests.xml
           gcovr --root .. --xml-pretty --output AllCoverage.xml
 
       - name: Upload Test Coverage to Codecov
