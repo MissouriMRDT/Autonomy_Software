@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/drivers/MultimediaBoard.h"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <gmock/gmock.h>
@@ -16,25 +17,62 @@
 
 /// \endcond
 
-// /******************************************************************************
-//  * @brief Mock class for MultimediaBoard
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-// ******************************************************************************/
-// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
-class MultimediaBoardTest : public ::testing::Test {
-protected:
-    MultimediaBoard* multimediaBoard;
+/******************************************************************************
+ * @brief Unit Test Class for the MultimediaBoard
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
 
-    void SetUp() override {
-        multimediaBoard = new MultimediaBoard();
-    }
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
 
-    void TearDown() override {
-        delete multimediaBoard;
-    }
+    public:
+        /******************************************************************************
+         * @brief Construct a new Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        MultimediaBoardTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~MultimediaBoardTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
 };
 
 /******************************************************************************
@@ -44,7 +82,7 @@ protected:
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST_F(MultimediaBoardTest, DoesNotLeak)
+TEST_F(MultimediaBoardTests, DoesNotLeak)
 {
     MultimediaBoard* testBoard = new MultimediaBoard();
     ASSERT_NE(testBoard, nullptr);
@@ -59,7 +97,7 @@ TEST_F(MultimediaBoardTest, DoesNotLeak)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST_F(MultimediaBoardTest, Leaks)
+TEST_F(MultimediaBoardTests, Leaks)
 {
     MultimediaBoard* testBoard = new MultimediaBoard();
     EXPECT_NE(testBoard, nullptr);

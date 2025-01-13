@@ -9,67 +9,126 @@
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/controllers/StanleyController.h"
+#include "../../../../TestingBase.hh"
 
 /// \cond
 #include <gtest/gtest.h>
 
 /// \endcond
 
-// UTM Coordinates when converted to GPS need both their northing and easting to be in the range [1200km, 2800km].
-// This constant allows us shift UTM coordinates into this range by adding it to the UTM coordinate's northing and easting.
-// It is representative of 2000km.
-#define UTM_SHIFT 2 * std::pow(10, 6)
-
 /******************************************************************************
- * @brief A predicate to check two angles are with 1 degree of each other at the
- *  angle wraparound point.
+ * @brief Unit Test Class for the Stanley Controller
  *
- * This predicate is specifically for verifying angles are within each other for angles around 360 or 0 degrees.
- *
- * @param expected - Expected angle (359-360 & 0-1).
- * @param actual - Actual angle (359-360 & 0-1).
- * @return true - Angles are within 1 degree of each other.
- * @return false - Angles are further than 1 degree of each other.
- *
- * @author JSpencerPittman (jspencerpittman@gmail.com)
- * @date 2024-02-16
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
  ******************************************************************************/
-bool AnglesCloseAtWraparound(double dExpected, double dActual)
+class StanleyControllerUnitTests : public TestingBase<StanleyControllerUnitTests>
 {
-    // How many degrees from the turnaround point?
-    if (dExpected > 180)
-    {
-        dExpected = dExpected - 360;
-    }
-    if (dActual > 180)
-    {
-        dActual = dActual - 360;
-    }
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
 
-    // Are they within 1 degree of each other.
-    return std::abs(dExpected - dActual) <= 1.0;
-}
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
 
-/******************************************************************************
- * @brief Provide GPS coordinates relative to another GPS coordinate.
- *
- * @note Makes it easier to specify "1 meter to the left" of another point.
- *
- * @param stGPSPoint - Coordinate were measuring relative to.
- * @param dEast - How many meters East of provided GPS point.
- * @param dNorth - How many meters North of provided GPS point.
- * @return geoops::GPSCoordinate - GPS coordinate relative to given GPS coordinate.
- *
- * @author JSpencerPittman (jspencerpittman@gmail.com)
- * @date 2024-02-17
- ******************************************************************************/
-geoops::GPSCoordinate PointRelativeToGPSCoord(const geoops::GPSCoordinate& stGPSPoint, const double dEast, const double dNorth)
-{
-    geoops::UTMCoordinate stUTMPoint = geoops::ConvertGPSToUTM(stGPSPoint);
-    stUTMPoint.dEasting += dEast;
-    stUTMPoint.dNorthing += dNorth;
-    return geoops::ConvertUTMToGPS(stUTMPoint);
-}
+        // UTM Coordinates when converted to GPS need both their northing and easting to be in the range [1200km, 2800km].
+        // This constant allows us shift UTM coordinates into this range by adding it to the UTM coordinate's northing and easting.
+        // It is representative of 2000km.
+        static const int UTM_SHIFT = 2000000;
+
+        /******************************************************************************
+         * @brief A predicate to check two angles are with 1 degree of each other at the
+         *  angle wraparound point.
+         *
+         * This predicate is specifically for verifying angles are within each other for angles around 360 or 0 degrees.
+         *
+         * @param expected - Expected angle (359-360 & 0-1).
+         * @param actual - Actual angle (359-360 & 0-1).
+         * @return true - Angles are within 1 degree of each other.
+         * @return false - Angles are further than 1 degree of each other.
+         *
+         * @author JSpencerPittman (jspencerpittman@gmail.com)
+         * @date 2024-02-16
+         ******************************************************************************/
+        bool AnglesCloseAtWraparound(double dExpected, double dActual)
+        {
+            // How many degrees from the turnaround point?
+            if (dExpected > 180)
+            {
+                dExpected = dExpected - 360;
+            }
+            if (dActual > 180)
+            {
+                dActual = dActual - 360;
+            }
+
+            // Are they within 1 degree of each other.
+            return std::abs(dExpected - dActual) <= 1.0;
+        }
+
+        /******************************************************************************
+         * @brief Provide GPS coordinates relative to another GPS coordinate.
+         *
+         * @note Makes it easier to specify "1 meter to the left" of another point.
+         *
+         * @param stGPSPoint - Coordinate were measuring relative to.
+         * @param dEast - How many meters East of provided GPS point.
+         * @param dNorth - How many meters North of provided GPS point.
+         * @return geoops::GPSCoordinate - GPS coordinate relative to given GPS coordinate.
+         *
+         * @author JSpencerPittman (jspencerpittman@gmail.com)
+         * @date 2024-02-17
+         ******************************************************************************/
+        geoops::GPSCoordinate PointRelativeToGPSCoord(const geoops::GPSCoordinate& stGPSPoint, const double dEast, const double dNorth)
+        {
+            geoops::UTMCoordinate stUTMPoint = geoops::ConvertGPSToUTM(stGPSPoint);
+            stUTMPoint.dEasting += dEast;
+            stUTMPoint.dNorthing += dNorth;
+            return geoops::ConvertUTMToGPS(stUTMPoint);
+        }
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Stanley Controller Unit Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        StanleyControllerUnitTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Stanley Controller Unit Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~StanleyControllerUnitTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Stanley Controller Unit Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Stanley Controller Unit Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
 
 /******************************************************************************
  * @brief Test the functionality of the Calculate function using UTM coordinates.
@@ -78,7 +137,7 @@ geoops::GPSCoordinate PointRelativeToGPSCoord(const geoops::GPSCoordinate& stGPS
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2024-02-17
  ******************************************************************************/
-TEST(StanleyControllerUnitTests, TestCalculateUTM)
+TEST_F(StanleyControllerUnitTests, TestCalculateUTM)
 {
     // Define Stanley controller parameters
     double dKp              = 0.5;
@@ -113,7 +172,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     dTargetBearing = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.591);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 359.591);
     EXPECT_EQ(unTargetIdx, 0);
 
     // Test Calculate (Bearing=0, Position=(1,0))
@@ -122,7 +181,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     dTargetBearing = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 360);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 360);
     EXPECT_EQ(unTargetIdx, 0);
 
     // Test Calculate (Bearing=350, Position=(1,0))
@@ -131,7 +190,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     dTargetBearing = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.542);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 359.542);
     EXPECT_EQ(unTargetIdx, 0);
 
     // Test opposite side of path (Bearing=350, Position=(-1,1))
@@ -141,7 +200,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     dTargetBearing  = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx     = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 0.385);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 0.385);
     EXPECT_EQ(unTargetIdx, 0);
 
     // Test move further along path (Bearing=80, Position=(7,20))
@@ -169,7 +228,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
     dTargetBearing = stController.Calculate(stCurrentPosUTM, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.913);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 359.913);
     ASSERT_EQ(unTargetIdx, 0);
 }
 
@@ -181,7 +240,7 @@ TEST(StanleyControllerUnitTests, TestCalculateUTM)
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2024-02-17
  ******************************************************************************/
-TEST(StanleyControllerUnitTests, TestCalculateGPS)
+TEST_F(StanleyControllerUnitTests, TestCalculateGPS)
 {
     // Define Stanley controller parameters
     double dKp              = 0.5;
@@ -219,7 +278,7 @@ TEST(StanleyControllerUnitTests, TestCalculateGPS)
     dTargetBearing = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.591);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 359.591);
     EXPECT_EQ(unTargetIdx, 0);
 
     // Test opposite side of path (Bearing=350, Position=(-1,1))
@@ -229,7 +288,7 @@ TEST(StanleyControllerUnitTests, TestCalculateGPS)
     dTargetBearing  = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
     unTargetIdx     = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 0.385);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 0.385);
     EXPECT_EQ(unTargetIdx, 0);
 
     // Test move further along path (Bearing=80, Position=(7,20))
@@ -257,6 +316,6 @@ TEST(StanleyControllerUnitTests, TestCalculateGPS)
     dTargetBearing = stController.Calculate(stCurrentPosGPS, dVelocity, dBearing);
     unTargetIdx    = stController.GetLastTargetIdx();
 
-    EXPECT_PRED2(AnglesCloseAtWraparound, dTargetBearing, 359.913);
+    EXPECT_PRED2([this](double expected, double actual) { return AnglesCloseAtWraparound(expected, actual); }, dTargetBearing, 359.913);
     ASSERT_EQ(unTargetIdx, 0);
 }

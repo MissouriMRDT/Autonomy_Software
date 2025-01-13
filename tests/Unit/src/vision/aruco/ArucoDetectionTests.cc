@@ -1,7 +1,7 @@
 /******************************************************************************
  * @brief Unit test for Aruco Tag Detection implemented using OpenCV
  *
- * @file TagDetectionOpenCV.cc
+ * @file ArucoDetection.cc
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-10
  *
@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../../src/vision/aruco/ArucoDetection.hpp"
+#include "../../../../TestingBase.hh"
 
 /// \cond
 #include <chrono>
@@ -20,29 +21,88 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Are two points equal to each other
+ * @brief Unit Test Class for the Aruco Tag Detection using OpenCV
  *
- * @tparam T - Data type of the points coordinates (int, double, float, ..)
- * @param p1 - first point
- * @param p2 - second point
- * @return true - points are equal to each other
- * @return false - points are not equal to each other
- *
- * @author JSpencerPittman (jspencerpittman@gmail.com)
- * @date 2023-10-11
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
  ******************************************************************************/
-template<typename T>
-bool PointsAreEqual(const cv::Point_<T>& p1, const cv::Point_<T>& p2)
+class ArucoDetectionTests : public TestingBase<ArucoDetectionTests>
 {
-    return p1.x == p2.x && p1.y == p2.y;
-}
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
 
-cv::Mat LoadImageFromRelativePath(const std::string& relativePath)
-{
-    std::filesystem::path pathParentDir = std::filesystem::path(__FILE__).parent_path();
-    std::filesystem::path pathImage     = pathParentDir / relativePath;
-    return cv::imread(pathImage, cv::IMREAD_COLOR);
-}
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+        /******************************************************************************
+         * @brief Are two points equal to each other
+         *
+         * @tparam T - Data type of the points coordinates (int, double, float, ..)
+         * @param p1 - first point
+         * @param p2 - second point
+         * @return true - points are equal to each other
+         * @return false - points are not equal to each other
+         *
+         * @author JSpencerPittman (jspencerpittman@gmail.com)
+         * @date 2023-10-11
+         ******************************************************************************/
+        template<typename T>
+        bool PointsAreEqual(const cv::Point_<T>& p1, const cv::Point_<T>& p2)
+        {
+            return p1.x == p2.x && p1.y == p2.y;
+        }
+
+        cv::Mat LoadImageFromRelativePath(const std::string& relativePath)
+        {
+            std::filesystem::path pathParentDir = std::filesystem::path(__FILE__).parent_path();
+            std::filesystem::path pathImage     = pathParentDir / relativePath;
+            return cv::imread(pathImage, cv::IMREAD_COLOR);
+        }
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Tag Detect OpenCV Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ArucoDetectionTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Tag Detect OpenCV Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ~ArucoDetectionTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Tag Detect OpenCV Tests object.
+         *
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Tag Detect OpenCV Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
 
 /******************************************************************************
  * @brief Test the functionality of the FindTagcvCenterPoint method
@@ -51,7 +111,7 @@ cv::Mat LoadImageFromRelativePath(const std::string& relativePath)
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-TEST(TagDetectOpenCVTest, FindTagCenter)
+TEST_F(ArucoDetectionTests, FindTagCenter)
 {
     arucotag::ArucoTag tag;
     tag.CornerTL                       = cv::Point2f{7.0, 5.0};
@@ -62,7 +122,7 @@ TEST(TagDetectOpenCVTest, FindTagCenter)
     cv::Point2f cvPredictedCenterPoint = FindTagCenter(tag);
 
     cv::Point2f cvExpectedCenterPoint{6.75, 3.5};
-    EXPECT_PRED2(PointsAreEqual<float>, cvPredictedCenterPoint, cvExpectedCenterPoint);
+    EXPECT_PRED2([this](const cv::Point2f& p1, const cv::Point2f& p2) { return PointsAreEqual(p1, p2); }, cvPredictedCenterPoint, cvExpectedCenterPoint);
 }
 
 /******************************************************************************
@@ -72,7 +132,7 @@ TEST(TagDetectOpenCVTest, FindTagCenter)
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
+TEST_F(ArucoDetectionTests, SingleCleanTagDetect)
 {
     // initialize aruco detector
     cv::aruco::Dictionary cvDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
@@ -99,10 +159,10 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
     cv::Point2f expectedCornerBL{220, 419};
     cv::Point2f expectedCornerBR{419, 419};
 
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTL, stDetectedTag.CornerTL);
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerTR, stDetectedTag.CornerTR);
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBL, stDetectedTag.CornerBL);
-    EXPECT_PRED2(PointsAreEqual<float>, expectedCornerBR, stDetectedTag.CornerBR);
+    EXPECT_PRED2([this](const cv::Point2f& p1, const cv::Point2f& p2) { return PointsAreEqual(p1, p2); }, expectedCornerTL, stDetectedTag.CornerTL);
+    EXPECT_PRED2([this](const cv::Point2f& p1, const cv::Point2f& p2) { return PointsAreEqual(p1, p2); }, expectedCornerTR, stDetectedTag.CornerTR);
+    EXPECT_PRED2([this](const cv::Point2f& p1, const cv::Point2f& p2) { return PointsAreEqual(p1, p2); }, expectedCornerBL, stDetectedTag.CornerBL);
+    EXPECT_PRED2([this](const cv::Point2f& p1, const cv::Point2f& p2) { return PointsAreEqual(p1, p2); }, expectedCornerBR, stDetectedTag.CornerBR);
 }
 
 /******************************************************************************
@@ -112,7 +172,7 @@ TEST(TagDetectOpenCVTest, SingleCleanTagDetect)
  * @author JSpencerPittman (jspencerpittman@gmail.com)
  * @date 2023-10-11
  ******************************************************************************/
-TEST(TagDetectOpenCVTest, MultiCleanTagDetect)
+TEST_F(ArucoDetectionTests, MultiCleanTagDetect)
 {
     // Number of tags for this test case
     const unsigned int unNumTags = 3;

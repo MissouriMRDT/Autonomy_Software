@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/util/NumberOperations.hpp"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <chrono>
@@ -18,13 +19,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the NumberOperations
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class NumOpsTests : public TestingBase<NumOpsTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        NumOpsTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~NumOpsTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Num Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test the functionality of the Clamp function.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-16
  ******************************************************************************/
-TEST(NumOpsTest, Clamp)
+TEST_F(NumOpsTests, Clamp)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength               = 6;
@@ -51,7 +110,7 @@ TEST(NumOpsTest, Clamp)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-16
  ******************************************************************************/
-TEST(NumOpsTest, Bounded)
+TEST_F(NumOpsTests, Bounded)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength               = 6;
@@ -78,7 +137,7 @@ TEST(NumOpsTest, Bounded)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
-TEST(NumOpsTest, MapRange)
+TEST_F(NumOpsTests, MapRange)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                  = 4;
@@ -107,7 +166,7 @@ TEST(NumOpsTest, MapRange)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-19
  ******************************************************************************/
-TEST(NumOpsTest, InputAngleModulus)
+TEST_F(NumOpsTests, InputAngleModulus)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength               = 9;
@@ -133,7 +192,7 @@ TEST(NumOpsTest, InputAngleModulus)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2024-04-03
  ******************************************************************************/
-TEST(NumOpsTest, AngularDifference)
+TEST_F(NumOpsTests, AngularDifference)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                   = 8;
@@ -159,7 +218,7 @@ TEST(NumOpsTest, AngularDifference)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2024-04-03
  ******************************************************************************/
-TEST(NumOpsTest, CoordinateFrameRotate3D)
+TEST_F(NumOpsTests, CoordinateFrameRotate3D)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                = 8;
@@ -188,4 +247,46 @@ TEST(NumOpsTest, CoordinateFrameRotate3D)
         EXPECT_NEAR(vPointCloud[0].tY, aExpectedY[nIter], 0.01);
         EXPECT_NEAR(vPointCloud[0].tZ, aExpectedZ[nIter], 0.01);
     }
+}
+
+/******************************************************************************
+ * @brief Test the functionality of the CoordinatePoint structure
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+TEST_F(NumOpsTests, CoordinatePoint)
+{
+    // Default Constructor Test
+    numops::CoordinatePoint<double> stDefaultPoint;
+    EXPECT_DOUBLE_EQ(stDefaultPoint.tX, 0.0);
+    EXPECT_DOUBLE_EQ(stDefaultPoint.tY, 0.0);
+    EXPECT_DOUBLE_EQ(stDefaultPoint.tZ, 0.0);
+
+    // Parameterized Constructor Test
+    numops::CoordinatePoint<double> stParamPoint(1.5, 2.5, 3.5);
+    EXPECT_DOUBLE_EQ(stParamPoint.tX, 1.5);
+    EXPECT_DOUBLE_EQ(stParamPoint.tY, 2.5);
+    EXPECT_DOUBLE_EQ(stParamPoint.tZ, 3.5);
+
+    // Test with Integer Type
+    numops::CoordinatePoint<int> stIntPoint(1, 2, 3);
+    EXPECT_EQ(stIntPoint.tX, 1);
+    EXPECT_EQ(stIntPoint.tY, 2);
+    EXPECT_EQ(stIntPoint.tZ, 3);
+
+    // Test with Float Type
+    numops::CoordinatePoint<float> stFloatPoint(1.1f, 2.2f, 3.3f);
+    EXPECT_FLOAT_EQ(stFloatPoint.tX, 1.1f);
+    EXPECT_FLOAT_EQ(stFloatPoint.tY, 2.2f);
+    EXPECT_FLOAT_EQ(stFloatPoint.tZ, 3.3f);
+
+    // Test Modifying Values
+    numops::CoordinatePoint<double> stModPoint(1.0, 2.0, 3.0);
+    stModPoint.tX = 4.0;
+    stModPoint.tY = 5.0;
+    stModPoint.tZ = 6.0;
+    EXPECT_DOUBLE_EQ(stModPoint.tX, 4.0);
+    EXPECT_DOUBLE_EQ(stModPoint.tY, 5.0);
+    EXPECT_DOUBLE_EQ(stModPoint.tZ, 6.0);
 }

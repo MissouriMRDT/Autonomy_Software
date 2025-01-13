@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/drivers/NavigationBoard.h"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <chrono>
@@ -19,24 +20,61 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Mock class for NavigationBoard
+ * @brief Unit Test Class for the NavigationBoard
  *
- *
- * @author Targed (ltklionel@gmail.com)
- * @date 2024-10-26
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
  ******************************************************************************/
-// Can only use with TEST_F. Since we are not using TEST_F, we can't use this.
-class NavigationBoardTest : public ::testing::Test {
-protected:
-    NavigationBoard* navBoard;
+class NavigationBoardTests : public TestingBase<NavigationBoardTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
 
-    void SetUp() override {
-        navBoard = new NavigationBoard();
-    }
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
 
-    void TearDown() override {
-        delete navBoard;
-    }
+    public:
+        /******************************************************************************
+         * @brief Construct a new Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        NavigationBoardTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~NavigationBoardTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
 };
 
 /******************************************************************************
@@ -46,7 +84,7 @@ protected:
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST_F(NavigationBoardTest, DoesNotLeak)
+TEST_F(NavigationBoardTests, DoesNotLeak)
 {
     NavigationBoard* testBoard = new NavigationBoard();
     ASSERT_NE(testBoard, nullptr);
@@ -61,7 +99,7 @@ TEST_F(NavigationBoardTest, DoesNotLeak)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST_F(NavigationBoardTest, Leaks)
+TEST_F(NavigationBoardTests, Leaks)
 {
     NavigationBoard* testBoard = new NavigationBoard();
     EXPECT_NE(testBoard, nullptr);
