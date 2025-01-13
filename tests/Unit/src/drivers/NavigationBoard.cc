@@ -34,6 +34,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+        NavigationBoard* navBoard;
 
     public:
         /******************************************************************************
@@ -62,6 +63,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
         {
             // Call the base setup method. This initializes the loggers and RoveComm instances.
             RequiredSetup();
+            navBoard = new NavigationBoard();
         }
 
         /******************************************************************************
@@ -74,6 +76,8 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
         {
             // Call the base teardown method. This stops the RoveComm instances and loggers.
             RequiredTeardown();
+            delete navBoard;
+            navBoard = nullptr;
         }
 };
 
@@ -113,7 +117,7 @@ TEST_F(NavigationBoardTests, Leaks)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST_F(NavigationBoardTest, ConstructorInitializesMembers) 
+TEST_F(NavigationBoardTests, ConstructorInitializesMembers) 
 {
     // The latitude, longitude, and altitude are set to the location of Missouri S&T
     EXPECT_EQ(navBoard->GetGPSData().dLatitude, 37.951771);
@@ -137,7 +141,7 @@ TEST_F(NavigationBoardTest, ConstructorInitializesMembers)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST_F(NavigationBoardTest, GetGPSDataReturnsCorrectData) 
+TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData) 
 {
     geoops::GPSCoordinate gpsData = navBoard->GetGPSData();
     EXPECT_EQ(gpsData.dLatitude, 37.951771);
@@ -158,7 +162,7 @@ TEST_F(NavigationBoardTest, GetGPSDataReturnsCorrectData)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST_F(NavigationBoardTest, GetUTMDataReturnsCorrectData) {
+TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData) {
 
     geoops::UTMCoordinate utmData = navBoard->GetUTMData();
 

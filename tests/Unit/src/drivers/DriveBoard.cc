@@ -35,6 +35,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+        DriveBoard* driveBoard;
 
     public:
         /******************************************************************************
@@ -63,6 +64,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
         {
             // Call the base setup method. This initializes the loggers and RoveComm instances.
             RequiredSetup();
+            driveBoard = new DriveBoard();
         }
 
         /******************************************************************************
@@ -75,6 +77,8 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
         {
             // Call the base teardown method. This stops the RoveComm instances and loggers.
             RequiredTeardown();
+            delete driveBoard;
+            driveBoard = nullptr;
         }
 };
 
@@ -123,10 +127,11 @@ TEST_F(DriveBoardTests, Leaks)
 //     }
 // };
 
-// TEST_F(DriveBoardTest, SendDriveNormalInput) {
+// TEST_F(DriveBoardTests, SendDriveNormalInput) {
 //     diffdrive::DrivePowers drivePowers = {0.5, -0.5};
 
-//     EXPECT_CALL(*mockRoveComm, SendUDPPacket(testing::_, testing::_, testing::_))
+//     // Use the real RoveComm instance
+//     EXPECT_CALL(*network::g_pRoveCommUDPNode, SendUDPPacket(testing::_, testing::_, testing::_))
 //         .Times(1)
 //         .WillOnce(testing::Return(1));
 

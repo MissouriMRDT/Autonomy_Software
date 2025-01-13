@@ -32,6 +32,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+        MultimediaBoard* multimediaBoard;
 
     public:
         /******************************************************************************
@@ -60,6 +61,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
         {
             // Call the base setup method. This initializes the loggers and RoveComm instances.
             RequiredSetup();
+            multimediaBoard = new MultimediaBoard();
         }
 
         /******************************************************************************
@@ -72,6 +74,8 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
         {
             // Call the base teardown method. This stops the RoveComm instances and loggers.
             RequiredTeardown();
+            delete multimediaBoard;
+            multimediaBoard = nullptr;
         }
 };
 
@@ -112,7 +116,7 @@ TEST_F(MultimediaBoardTests, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-TEST_F(MultimediaBoardTest, ConstructorInitializesCorrectly) 
+TEST_F(MultimediaBoardTests, ConstructorInitializesCorrectly) 
 {
     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), 
               MultimediaBoard::MultimediaBoardLightingState::eOff);
@@ -130,7 +134,7 @@ TEST_F(MultimediaBoardTest, ConstructorInitializesCorrectly)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-TEST_F(MultimediaBoardTest, SendLightingStateSetsStateCorrectly)
+TEST_F(MultimediaBoardTests, SendLightingStateSetsStateCorrectly)
 {
     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), 
@@ -152,7 +156,7 @@ TEST_F(MultimediaBoardTest, SendLightingStateSetsStateCorrectly)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-TEST_F(MultimediaBoardTest, SendRGBSetsRGBValuesCorrectly)
+TEST_F(MultimediaBoardTests, SendRGBSetsRGBValuesCorrectly)
 {
     MultimediaBoard::RGB rgbValues(255, 128, 64);
     multimediaBoard->SendRGB(rgbValues);
