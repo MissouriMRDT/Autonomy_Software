@@ -15,22 +15,22 @@
         "--privileged",
         "-v",
         "/dev/bus/usb:/dev/bus/usb",
-        // X11 socket for XWayland
-        "-v",
-        "/tmp/.X11-unix:/tmp/.X11-unix",
-        // Wayland socket for native Wayland apps
-        "-v",
-        "/run/user/1000/wayland:/run/user/1000/wayland",
         // WSLg support (if on WSL)
         "-v",
         "/mnt/wslg:/mnt/wslg",
-        // Environment variables
-        "-e",
-        "DISPLAY", // XWayland display
-        "-e",
-        "WAYLAND_DISPLAY", // Wayland display, you may need to run 'xhost +local:docker' to allow the container to connect to the X server.
-        "-e",
-        "XDG_RUNTIME_DIR", // Runtime directory for Wayland
+        // X11 socket for XWayland
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        // // Wayland socket for native Wayland apps
+        // "-v",
+        // "/run/user/1000/wayland:/run/user/1000/wayland",
+        // // Environment variables
+        // "-e",
+        // "DISPLAY", // XWayland display
+        // "-e",
+        // "WAYLAND_DISPLAY", // Wayland display, you may need to run 'xhost +local:docker' to allow the container to connect to the X server.
+        // "-e",
+        // "XDG_RUNTIME_DIR", // Runtime directory for Wayland
         "-e",
         "GDK_BACKEND=x11,wayland" // Allow GTK to work with both backends
     ],

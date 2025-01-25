@@ -146,7 +146,7 @@ void SIMZEDCam::SetCallbacks()
  * @param cvDepthBuffer - The encoded depth buffer.
  * @param cvDepthMeasure - The decoded depth measure that will be written to.
  *
- * @note http://reality.cs.ucl.ac.uk/projects/depth-streaming/depth-streaming.pdf
+ * @note See data/WhitePapers/2011-Adapting-Standard-Video-Codecs-for-Depth-Streaming.pdf
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-04

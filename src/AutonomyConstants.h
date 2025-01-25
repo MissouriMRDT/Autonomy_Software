@@ -40,7 +40,8 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "192.168.69.29";    // The IP address to use for simulation mode.
+    const std::string SIM_IP_ADDRESS = "192.168.2.118";    // The IP address to use for simulation mode.
+    const uint SIM_WEBSOCKET_PORT    = 8080;               // The port to use for the WebSocket in simulation mode.
     const uint SIM_WEBRTC_QP         = 25;    // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
 
     // Safety constants.
@@ -350,9 +351,11 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_STEER_CONTROL_GAIN = 2.7;    // Determines how reactive the rover is to yaw adjustments.
-    const double STANLEY_DIST_TO_FRONT_AXLE = 1.6;    // Distance from position sensor to the center of the front axle.
-    const double STANLEY_YAW_TOLERANCE      = 3.0;    // Threshold for limiting unnecessary small movements.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 2.0;    // Determines how reactive the rover is to crosstrack error adjustments. This is in degrees scale to the error.
+    const double STANLEY_DIST_TO_FRONT_AXLE      = 1.0;    // Distance from position sensor to the center of the front axle in meters.
+    const double STANLEY_STEERING_ANGLE_LIMIT    = 100.0;    // The maximum steering angle in degrees.
+    const int STANLEY_PREDICTION_HORIZON         = 5;        // The number of predictions to make.
+    const double STANLEY_PREDICTION_TIME_STEP    = 0.5;      // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles

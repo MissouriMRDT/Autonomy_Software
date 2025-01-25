@@ -60,7 +60,7 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                PathTracer(const std::string& szPlotTitle)
+                PathTracer(const std::string& szPlotTitle = "Graph")
                 {
                     // Initialize member variables.
                     m_mtRoverPathPlot = matplot::figure(true);

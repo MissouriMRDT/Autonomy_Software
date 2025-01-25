@@ -8,7 +8,7 @@
  * @copyright Copyright MRDT 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../../../../src/algorithms/DifferentialDrive.hpp"
+#include "../../../../src/algorithms/kinematics/DifferentialDrive.hpp"
 
 /// \cond
 #include <array>

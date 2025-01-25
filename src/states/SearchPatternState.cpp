@@ -10,8 +10,8 @@
 
 #include "SearchPatternState.h"
 #include "../AutonomyGlobals.h"
-#include "../algorithms/DifferentialDrive.hpp"
 #include "../algorithms/SearchPattern.hpp"
+#include "../algorithms/kinematics/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
 
 /******************************************************************************
@@ -54,10 +54,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateLayer("SearchPattern", "-o");
         m_pRoverPathPlot->CreateLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
-        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern");
-
-        // Set stanley controller path.
-        m_StanleyController.SetPath(m_vSearchPath);
+        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern", 0);
 
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
@@ -94,13 +91,11 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized  = false;
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_bInitialized   = false;
+        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
-        m_StanleyController =
-            controllers::StanleyController(constants::STANLEY_STEER_CONTROL_GAIN, constants::STANLEY_DIST_TO_FRONT_AXLE, constants::STANLEY_YAW_TOLERANCE);
         m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
 
         // Start state.
@@ -245,20 +240,12 @@ namespace statemachine
         }
 
         // Drive to target waypoint.
-        // diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
-        //                                                                              stCurrRelToTarget.dStartRelativeBearing,
-        //                                                                              stCurrentRoverPose.GetCompassHeading(),
-        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
-
-        // TEST Stanley CONTROLLER.
-        // Calculate drive move/powers at the speed multiplier.
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
-                                                                                     m_StanleyController.Calculate(stCurrentRoverPose.GetUTMCoordinate(),
-                                                                                                                   globals::g_pWaypointHandler->SmartRetrieveVelocity(),
-                                                                                                                   stCurrentRoverPose.GetCompassHeading()),
+                                                                                     stCurrRelToTarget.dStartRelativeBearing,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
 
+        // Send drive powers over RoveComm.
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         return;
