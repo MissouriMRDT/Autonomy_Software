@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/drivers/MultimediaBoard.h"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <gmock/gmock.h>
@@ -17,13 +18,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the MultimediaBoard
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        MultimediaBoardTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~MultimediaBoardTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Multimedia Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test for memory leaks
  *
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(MultimediaBoardTest, DoesNotLeak)
+TEST_F(MultimediaBoardTests, DoesNotLeak)
 {
     MultimediaBoard* multimediaBoard = new MultimediaBoard();
     ASSERT_NE(multimediaBoard, nullptr);
@@ -38,7 +97,7 @@ TEST(MultimediaBoardTest, DoesNotLeak)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(MultimediaBoardTest, Leaks)
+TEST_F(MultimediaBoardTests, Leaks)
 {
     MultimediaBoard* multimediaBoard = new MultimediaBoard();
     EXPECT_TRUE(multimediaBoard != nullptr);
@@ -51,7 +110,7 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// class MultimediaBoardTest : public ::testing::Test {
+// class MultimediaBoardTests : public ::testing::Test {
 // protected:
 //     MultimediaBoard* multimediaBoard;
 
@@ -71,7 +130,7 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, ConstructorInitializesCorrectly) {
+// TEST_F(MultimediaBoardTests, ConstructorInitializesCorrectly) {
 //     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eOff);
 //     MultimediaBoard::RGB defaultRGB;
 //     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, defaultRGB.dRed);
@@ -86,7 +145,7 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, SendLightingStateSetsStateCorrectly) {
+// TEST_F(MultimediaBoardTests, SendLightingStateSetsStateCorrectly) {
 //     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
 //     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
 
@@ -101,7 +160,7 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, SendRGBSetsRGBValuesCorrectly) {
+// TEST_F(MultimediaBoardTests, SendRGBSetsRGBValuesCorrectly) {
 //     MultimediaBoard::RGB rgbValues(255, 128, 64);
 //     multimediaBoard->SendRGB(rgbValues);
 //     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, rgbValues.dRed);
@@ -116,7 +175,7 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, GetCurrentLightingStateReturnsCorrectState) {
+// TEST_F(MultimediaBoardTests, GetCurrentLightingStateReturnsCorrectState) {
 //     multimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 //     EXPECT_EQ(multimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 // }
@@ -128,7 +187,7 @@ TEST(MultimediaBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 // ******************************************************************************/
-// TEST_F(MultimediaBoardTest, GetCustomLightingValuesReturnsCorrectRGB) {
+// TEST_F(MultimediaBoardTests, GetCustomLightingValuesReturnsCorrectRGB) {
 //     MultimediaBoard::RGB rgbValues(100, 150, 200);
 //     multimediaBoard->SendRGB(rgbValues);
 //     EXPECT_EQ(multimediaBoard->GetCustomLightingValues().dRed, rgbValues.dRed);

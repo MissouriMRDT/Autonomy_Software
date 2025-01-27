@@ -57,25 +57,10 @@ namespace logging
      * @author Eli Byrd (edbgkk@mst.edu)
      * @date 2023-08-22
      ******************************************************************************/
-    void InitializeLoggers(std::string szLoggingOutputPath)
+    void InitializeLoggers(std::string szLoggingOutputPath, std::string szProgramTimeLogsDir)
     {
-        // Retrieve the current time for the log file name
-        std::chrono::time_point<std::chrono::system_clock> tmCurrentTime = std::chrono::system_clock::now();
-        time_t tCurrentTime                                              = std::chrono::system_clock::to_time_t(tmCurrentTime);
-
-        // Convert time to local time
-        tm* tLocalTime = std::localtime(&tCurrentTime);
-
-        // Format the current time in a format that can be used as a file name.
-        std::array<char, 80> cCurrentTime;
-        size_t siTimeCharacters;
-        siTimeCharacters = std::strftime(cCurrentTime.data(), cCurrentTime.size(), "%Y%m%d-%H%M%S", tLocalTime);
-        if (siTimeCharacters == 0)
-        {
-            std::cerr << "Unable to format calendar date & time (exceeds string length)" << std::endl;
-        }
         // Store start time string in member variable.
-        g_szProgramStartTimeString = cCurrentTime.data();
+        g_szProgramStartTimeString = szProgramTimeLogsDir;
 
         // Assemble filepath string.
         std::filesystem::path szFilePath;
@@ -131,22 +116,26 @@ namespace logging
             szFullOutputPath.replace_extension(".log"),    // Log Output Path
             []()
             {
-                return quill::RotatingFileSinkConfig();    // Rotating File Sink Configs
+                quill::RotatingFileSinkConfig cfg;
+                cfg.set_open_mode('a');
+                return cfg;               // Rotating File Sink Configs
             }(),
-            szLogFilePattern,                              // Log Output Pattern
-            szTimestampPattern,                            // Log Timestamp Pattern
-            quill::Timezone::LocalTime                     // Log Timezone
+            szLogFilePattern,             // Log Output Pattern
+            szTimestampPattern,           // Log Timestamp Pattern
+            quill::Timezone::LocalTime    // Log Timezone
         );
 
         std::shared_ptr<quill::Sink> qCSVFileSink = quill::Frontend::create_or_get_sink<MRDTRotatingFileSink>(
             szFullOutputPath.replace_extension(".csv"),    // Log Output Path
             []()
             {
-                return quill::RotatingFileSinkConfig();    // Rotating File Sink Configs
+                quill::RotatingFileSinkConfig cfg;
+                cfg.set_open_mode('a');
+                return cfg;               // Rotating File Sink Configs
             }(),
-            szCSVFilePattern,                              // Log Output Pattern
-            szTimestampPattern,                            // Log Timestamp Pattern
-            quill::Timezone::LocalTime                     // Log Timezone
+            szCSVFilePattern,             // Log Output Pattern
+            szTimestampPattern,           // Log Timestamp Pattern
+            quill::Timezone::LocalTime    // Log Timezone
         );
 
         std::shared_ptr<quill::Sink> qConsoleSink      = quill::Frontend::create_or_get_sink<MRDTConsoleSink>("ConsoleSink",        // Log Name

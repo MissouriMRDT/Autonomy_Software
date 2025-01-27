@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/drivers/NavigationBoard.h"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <chrono>
@@ -19,13 +20,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the NavigationBoard
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class NavigationBoardTests : public TestingBase<NavigationBoardTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        NavigationBoardTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~NavigationBoardTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Navigation Board Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test for memory leaks
  *
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(NavigationBoardTest, DoesNotLeak)
+TEST_F(NavigationBoardTests, DoesNotLeak)
 {
     NavigationBoard* navBoard = new NavigationBoard();
     ASSERT_NE(navBoard, nullptr);
@@ -40,7 +99,7 @@ TEST(NavigationBoardTest, DoesNotLeak)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  ******************************************************************************/
-TEST(NavigationBoardTest, Leaks)
+TEST_F(NavigationBoardTests, Leaks)
 {
     NavigationBoard* navBoard = new NavigationBoard();
     EXPECT_TRUE(navBoard != nullptr);
@@ -53,7 +112,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// class NavigationBoardTest : public ::testing::Test {
+// class NavigationBoardTests : public ::testing::Test {
 // protected:
 //     NavigationBoard* navBoard;
 
@@ -73,7 +132,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, ConstructorInitializesMembers) {
+// TEST_F(NavigationBoardTests, ConstructorInitializesMembers) {
 //     EXPECT_EQ(navBoard->GetGPSData().dLatitude, 0);
 //     EXPECT_EQ(navBoard->GetGPSData().dLongitude, 0);
 //     EXPECT_EQ(navBoard->GetGPSData().dAltitude, 0);
@@ -93,7 +152,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetGPSDataReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData) {
 //     geoops::GPSCoordinate gpsData = navBoard->GetGPSData();
 //     EXPECT_EQ(gpsData.dLatitude, 0);
 //     EXPECT_EQ(gpsData.dLongitude, 0);
@@ -107,7 +166,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetUTMDataReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData) {
 //     geoops::UTMCoordinate utmData = navBoard->GetUTMData();
 //     // Assuming default UTM data is zero-initialized
 //     EXPECT_EQ(utmData.dEasting, 0);
@@ -122,7 +181,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetHeadingReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetHeadingReturnsCorrectData) {
 //     EXPECT_EQ(navBoard->GetHeading(), 0);
 // }
 
@@ -133,7 +192,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetHeadingAccuracyReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetHeadingAccuracyReturnsCorrectData) {
 //     EXPECT_EQ(navBoard->GetHeadingAccuracy(), 0);
 // }
 
@@ -144,7 +203,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetVelocityReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetVelocityReturnsCorrectData) {
 //     EXPECT_EQ(navBoard->GetVelocity(), 0);
 // }
 
@@ -155,7 +214,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetAngularVelocityReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetAngularVelocityReturnsCorrectData) {
 //     EXPECT_EQ(navBoard->GetAngularVelocity(), 0);
 // }
 
@@ -166,7 +225,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetGPSLastUpdateTimeReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetGPSLastUpdateTimeReturnsCorrectData) {
 //     EXPECT_EQ(navBoard->GetGPSLastUpdateTime(), std::chrono::system_clock::duration::zero());
 // }
 
@@ -177,7 +236,7 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, GetCompassLastUpdateTimeReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, GetCompassLastUpdateTimeReturnsCorrectData) {
 //     EXPECT_EQ(navBoard->GetCompassLastUpdateTime(), std::chrono::system_clock::duration::zero());
 // }
 
@@ -188,6 +247,6 @@ TEST(NavigationBoardTest, Leaks)
 //  * @author Targed (ltklionel@gmail.com)
 //  * @date 2024-10-26
 //  ******************************************************************************/
-// TEST_F(NavigationBoardTest, IsOutOfDateReturnsCorrectData) {
+// TEST_F(NavigationBoardTests, IsOutOfDateReturnsCorrectData) {
 //     EXPECT_FALSE(navBoard->IsOutOfDate());
 // }

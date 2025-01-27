@@ -36,6 +36,7 @@
 /// \endcond
 
 #include "./AutonomyConstants.h"
+#include "./util/TimeOperations.hpp"
 
 #ifndef AUTONOMY_LOGGING_H
 #define AUTONOMY_LOGGING_H
@@ -87,7 +88,7 @@ namespace logging
     // Declare namespace methods.
     /////////////////////////////////////////
 
-    void InitializeLoggers(std::string szLoggingOutputPath);
+    void InitializeLoggers(std::string szLoggingOutputPath, std::string szProgramTimeLogsDir = timeops::GetTimestamp());
 
     /////////////////////////////////////////
     // Declare namespace callbacks.

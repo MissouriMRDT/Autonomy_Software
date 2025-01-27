@@ -11,7 +11,6 @@
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
 
-#include "IdentitySoftware.h"
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
@@ -40,8 +39,6 @@ namespace globals
     /////////////////////////////////////////
     // Declare namespace external variables and objects.
     /////////////////////////////////////////
-    // Versioning:
-    extern IdentitySoftware* g_pIdentifySoftware;    // Global Version Handler
 
     // Waypoint Handler:
     extern WaypointHandler* g_pWaypointHandler;    // Global Waypoint Handler

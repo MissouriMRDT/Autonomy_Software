@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/planners/AStar.h"
+#include "../../../../TestingBase.hh"
 
 /// \cond
 #include <array>
@@ -18,13 +19,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the AStar Planner
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class AStarPlannerTests : public TestingBase<AStarPlannerTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new AStarPlannerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        AStarPlannerTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the AStarPlannerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~AStarPlannerTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the AStarPlannerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the AStarPlannerTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Check that AStar doesn't leak any memory.
  *
  *
  * @author Kai Shafe (kasq5m@umsystem.edu)
  * @date 2024-04-28
  ******************************************************************************/
-TEST(AStarPlannerTest, DoesNotLeak)
+TEST_F(AStarPlannerTests, DoesNotLeak)
 {
     // Create a new AStar object.
     pathplanners::AStar* pAStar = new pathplanners::AStar();
@@ -41,7 +100,7 @@ TEST(AStarPlannerTest, DoesNotLeak)
  * @author Kai Shafe (kasq5m@umsystem.edu)
  * @date 2024-04-28
  ******************************************************************************/
-TEST(AStarPlannerTest, Leaks)
+TEST_F(AStarPlannerTests, Leaks)
 {
     // Create a new AStar object.
     pathplanners::AStar* pAStar = new pathplanners::AStar();
@@ -55,7 +114,7 @@ TEST(AStarPlannerTest, Leaks)
  * @author Kai Shafe (kasq5m@umsystem.edu)
  * @date 2024-04-28
  ******************************************************************************/
-TEST(AStarPlannerTest, PlanAvoidancePath)
+TEST_F(AStarPlannerTests, PlanAvoidancePath)
 {
     // Create a new AStar object.
     pathplanners::AStar* pAStar = new pathplanners::AStar();
@@ -117,7 +176,7 @@ TEST(AStarPlannerTest, PlanAvoidancePath)
  * @author Kai Shafe (kasq5m@umsystem.edu)
  * @date 2024-09-15
  ******************************************************************************/
-TEST(AStarPlannerTest, ObstacleInitialization)
+TEST_F(AStarPlannerTests, ObstacleInitialization)
 {
     // Create a new AStar object.
     pathplanners::AStar* pAStar = new pathplanners::AStar();

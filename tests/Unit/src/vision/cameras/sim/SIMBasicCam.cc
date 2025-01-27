@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "../../../../../../src/vision/cameras/sim/SIMBasicCam.h"
+#include "../../../../../TestingBase.hh"
 
 /// \cond
 #include <gtest/gtest.h>
@@ -16,11 +17,69 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the SIMBasicCam
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class SIMBasicCamTests : public TestingBase<SIMBasicCamTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new SIMBasicCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        SIMBasicCamTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the SIMBasicCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        ~SIMBasicCamTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the SIMBasicCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the SIMBasicCamTests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test the functionality of the SIMBasicCam constructor and destructor.
  *
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMBasicCamTest, ConstructorDestructor)
+TEST_F(SIMBasicCamTests, ConstructorDestructor)
 {
     // Create a SIMBasicCam object.
     SIMBasicCam simBasicCam("ws://127.0.0.1:80", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -36,7 +95,7 @@ TEST(SIMBasicCamTest, ConstructorDestructor)
  *
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMBasicCamTest, DoesNotLeak)
+TEST_F(SIMBasicCamTests, DoesNotLeak)
 {
     // Create a new SIMBasicCam object.
     SIMBasicCam* pSIMBasicCam = new SIMBasicCam("ws://127.0.0.1:80", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -51,7 +110,7 @@ TEST(SIMBasicCamTest, DoesNotLeak)
  *
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMBasicCamTest, Leaks)
+TEST_F(SIMBasicCamTests, Leaks)
 {
     // Create a new SIMBasicCam object.
     SIMBasicCam* pSIMBasicCam = new SIMBasicCam("ws://127.0.0.1:80", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -63,7 +122,7 @@ TEST(SIMBasicCamTest, Leaks)
  *
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMBasicCamTest, GetCameraIsOpen)
+TEST_F(SIMBasicCamTests, GetCameraIsOpen)
 {
     // Create a SIMBasicCam object.
     SIMBasicCam simBasicCam("ws://127.0.0.1:80", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
@@ -77,7 +136,7 @@ TEST(SIMBasicCamTest, GetCameraIsOpen)
  *
  * @date 2025-01-05
  ******************************************************************************/
-TEST(SIMBasicCamTest, GetCameraLocation)
+TEST_F(SIMBasicCamTests, GetCameraLocation)
 {
     // Create a SIMBasicCam object.
     SIMBasicCam simBasicCam("ws://127.0.0.1:80", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
