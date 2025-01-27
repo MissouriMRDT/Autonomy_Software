@@ -13,7 +13,6 @@
 #define PATH_TRACER_2D_HPP
 
 #include "../GeospatialOperations.hpp"
-#include "./PlotsAndGraphs.hpp"
 
 /// \cond
 #include <chrono>
@@ -67,7 +66,25 @@ namespace logging
                     m_mtRoverPathAxes = m_mtRoverPathPlot->current_axes();
                     m_szPlotTitle     = szPlotTitle;
 
-                    // Make sur plot title is not empty.
+                    // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
+                    std::string m_zePlotSavePath = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
+                    int nFileNum                 = 0;
+                    while (std::filesystem::exists(m_zePlotSavePath + std::to_string(nFileNum) + ".png"))
+                    {
+                        ++nFileNum;
+                    }
+                    // Add the file number to the file name.
+                    m_zePlotSavePath = m_zePlotSavePath + std::to_string(nFileNum);
+                    // Check if the final directory exists. If not then create it.
+                    if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+                    {
+                        std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+                    }
+
+                    // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+                    m_mtRoverPathPlot->backend()->output(m_zePlotSavePath + ".png");
+
+                    // Make sure plot title is not empty.
                     if (m_szPlotTitle.empty())
                     {
                         // Submit logger message.
@@ -90,23 +107,7 @@ namespace logging
                  ******************************************************************************/
                 ~PathTracer()
                 {
-                    // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
-                    std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
-                    int nFileNum           = 0;
-                    while (std::filesystem::exists(szFileName + std::to_string(nFileNum) + ".png"))
-                    {
-                        ++nFileNum;
-                    }
-                    // Add the file number to the file name.
-                    szFileName = szFileName + std::to_string(nFileNum);
-
-                    // Check if the final directory exists. If not then create it.
-                    if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
-                    {
-                        std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
-                    }
-                    // Save the plot
-                    m_mtRoverPathPlot->save(szFileName + ".png");
+                    // Nothing to do yet.
                 }
 
                 /******************************************************************************
@@ -411,6 +412,7 @@ namespace logging
                 std::unordered_map<std::string, std::chrono::system_clock::time_point> m_umLastPlotUpdateTimeMap;
                 std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
                 std::string m_szPlotTitle;
+                std::string m_zePlotSavePath;
 
                 /******************************************************************************
                  * @brief Update the plot with the new waypoints and redraw the plot.

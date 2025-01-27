@@ -63,7 +63,6 @@ namespace logging
                 LOG_WARNING(logging::g_qSharedLogger, "Coordinates vector is empty. Cannot plot.");
                 return;
             }
-
             // Check if the plot title is empty.
             if (szPlotTitle.empty())
             {
@@ -71,6 +70,23 @@ namespace logging
                 LOG_WARNING(logging::g_qSharedLogger, "Plot title is empty. Setting title to default.");
                 szPlotTitle = "UTMCoordinatePlot";
             }
+
+            // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
+            std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
+            int nFileNum           = 0;
+            while (std::filesystem::exists(szFileName + ".png"))
+            {
+                szFileName = szFileName + std::to_string(nFileNum);
+                ++nFileNum;
+            }
+
+            // Check if the final directory exists. If not then create it.
+            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+            {
+                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+            }
+            // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+            mtPlot->backend()->output(szFileName + ".png");
 
             // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
             std::vector<double> vEasting, vNorthing;
@@ -93,23 +109,6 @@ namespace logging
                 double dMidNorthing = (vCoordinates[i].dNorthing + vCoordinates[i - 1].dNorthing) / 2;
                 mtAxes->text(dMidEasting, dMidNorthing, std::to_string(int(dDistance)) + " m");
             }
-
-            // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
-            std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
-            int nFileNum           = 0;
-            while (std::filesystem::exists(szFileName + ".png"))
-            {
-                szFileName = szFileName + std::to_string(nFileNum);
-                ++nFileNum;
-            }
-
-            // Check if the final directory exists. If not then create it.
-            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
-            {
-                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
-            }
-            // Save the plot
-            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -144,6 +143,23 @@ namespace logging
                 szPlotTitle = "GPSCoordinatePlot";
             }
 
+            // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
+            std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
+            int nFileNum           = 0;
+            while (std::filesystem::exists(szFileName + ".png"))
+            {
+                szFileName = szFileName + std::to_string(nFileNum);
+                ++nFileNum;
+            }
+
+            // Check if the final directory exists. If not then create it.
+            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+            {
+                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+            }
+            // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+            mtPlot->backend()->output(szFileName + ".png");
+
             // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
             std::vector<double> vLatitude, vLongitude;
             for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
@@ -164,23 +180,6 @@ namespace logging
                 double dMidLongitude = (vCoordinates[i].dLongitude + vCoordinates[i - 1].dLongitude) / 2;
                 mtAxes->text(dMidLatitude, dMidLongitude, std::to_string(int(dDistance)) + " m");
             }
-
-            // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
-            std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
-            int nFileNum           = 0;
-            while (std::filesystem::exists(szFileName + ".png"))
-            {
-                szFileName = szFileName + std::to_string(nFileNum);
-                ++nFileNum;
-            }
-
-            // Check if the final directory exists. If not then create it.
-            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
-            {
-                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
-            }
-            // Save the plot
-            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -215,6 +214,23 @@ namespace logging
                 szPlotTitle = "WaypointPlot";
             }
 
+            // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
+            std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
+            int nFileNum           = 0;
+            while (std::filesystem::exists(szFileName + ".png"))
+            {
+                szFileName = szFileName + std::to_string(nFileNum);
+                ++nFileNum;
+            }
+
+            // Check if the final directory exists. If not then create it.
+            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
+            {
+                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
+            }
+            // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+            mtPlot->backend()->output(szFileName + ".png");
+
             // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
             std::vector<double> vEasting, vNorthing;
             for (const geoops::Waypoint& stWaypoint : vWaypoints)
@@ -235,23 +251,6 @@ namespace logging
                 double dMidNorthing = (vWaypoints[i].GetUTMCoordinate().dNorthing + vWaypoints[i - 1].GetUTMCoordinate().dNorthing) / 2;
                 mtAxes->text(dMidEasting, dMidNorthing, std::to_string(int(dDistance)) + " m");
             }
-
-            // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
-            std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
-            int nFileNum           = 0;
-            while (std::filesystem::exists(szFileName + ".png"))
-            {
-                szFileName = szFileName + std::to_string(nFileNum);
-                ++nFileNum;
-            }
-
-            // Check if the final directory exists. If not then create it.
-            if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
-            {
-                std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
-            }
-            // Save the plot
-            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -286,21 +285,6 @@ namespace logging
                 szPlotTitle = "UTMCoordinatePlot";
             }
 
-            // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
-            std::vector<double> vEasting, vNorthing, vAltitude;
-            for (const geoops::UTMCoordinate& stCoordinate : vCoordinates)
-            {
-                vEasting.push_back(stCoordinate.dEasting);
-                vNorthing.push_back(stCoordinate.dNorthing);
-                vAltitude.push_back(stCoordinate.dAltitude);
-            }
-            // Create a 3D plot
-            mtAxes->plot3(vEasting, vNorthing, vAltitude, "-o");
-            mtPlot->title(szPlotTitle);
-            mtAxes->xlabel("Easting");
-            mtAxes->ylabel("Northing");
-            mtAxes->zlabel("Altitude");
-
             // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
             std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
             int nFileNum           = 0;
@@ -315,8 +299,23 @@ namespace logging
             {
                 std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
             }
-            // Save the plot
-            mtPlot->save(szFileName + ".png");
+            // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+            mtPlot->backend()->output(szFileName + ".png");
+
+            // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
+            std::vector<double> vEasting, vNorthing, vAltitude;
+            for (const geoops::UTMCoordinate& stCoordinate : vCoordinates)
+            {
+                vEasting.push_back(stCoordinate.dEasting);
+                vNorthing.push_back(stCoordinate.dNorthing);
+                vAltitude.push_back(stCoordinate.dAltitude);
+            }
+            // Create a 3D plot
+            mtAxes->plot3(vEasting, vNorthing, vAltitude, "-o");
+            mtPlot->title(szPlotTitle);
+            mtAxes->xlabel("Easting");
+            mtAxes->ylabel("Northing");
+            mtAxes->zlabel("Altitude");
         }
 
         /******************************************************************************
@@ -351,21 +350,6 @@ namespace logging
                 szPlotTitle = "GPSCoordinatePlot";
             }
 
-            // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
-            std::vector<double> vLatitude, vLongitude, vAltitude;
-            for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
-            {
-                vLatitude.push_back(stCoordinate.dLatitude);
-                vLongitude.push_back(stCoordinate.dLongitude);
-                vAltitude.push_back(stCoordinate.dAltitude);
-            }
-            // Create a 3D plot
-            mtAxes->plot3(vLatitude, vLongitude, vAltitude, "-o");
-            mtPlot->title(szPlotTitle);
-            mtAxes->xlabel("Latitude");
-            mtAxes->ylabel("Longitude");
-            mtAxes->zlabel("Altitude");
-
             // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
             std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
             int nFileNum           = 0;
@@ -380,8 +364,23 @@ namespace logging
             {
                 std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
             }
-            // Save the plot
-            mtPlot->save(szFileName + ".png");
+            // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+            mtPlot->backend()->output(szFileName + ".png");
+
+            // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
+            std::vector<double> vLatitude, vLongitude, vAltitude;
+            for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
+            {
+                vLatitude.push_back(stCoordinate.dLatitude);
+                vLongitude.push_back(stCoordinate.dLongitude);
+                vAltitude.push_back(stCoordinate.dAltitude);
+            }
+            // Create a 3D plot
+            mtAxes->plot3(vLatitude, vLongitude, vAltitude, "-o");
+            mtPlot->title(szPlotTitle);
+            mtAxes->xlabel("Latitude");
+            mtAxes->ylabel("Longitude");
+            mtAxes->zlabel("Altitude");
         }
 
         /******************************************************************************
@@ -416,21 +415,6 @@ namespace logging
                 szPlotTitle = "WaypointPlot";
             }
 
-            // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
-            std::vector<double> vEasting, vNorthing, vAltitude;
-            for (const geoops::Waypoint& stWaypoint : vWaypoints)
-            {
-                vEasting.push_back(stWaypoint.GetUTMCoordinate().dEasting);
-                vNorthing.push_back(stWaypoint.GetUTMCoordinate().dNorthing);
-                vAltitude.push_back(stWaypoint.GetUTMCoordinate().dAltitude);
-            }
-            // Create a 3D plot
-            mtAxes->plot3(vEasting, vNorthing, vAltitude, "-o");
-            mtPlot->title(szPlotTitle);
-            mtAxes->xlabel("Easting");
-            mtAxes->ylabel("Northing");
-            mtAxes->zlabel("Altitude");
-
             // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
             std::string szFileName = logging::g_szLoggingOutputPath + "/path_plots/" + szTitle;
             int nFileNum           = 0;
@@ -445,8 +429,23 @@ namespace logging
             {
                 std::filesystem::create_directory(logging::g_szLoggingOutputPath + "/path_plots");
             }
-            // Save the plot
-            mtPlot->save(szFileName + ".png");
+            // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
+            mtPlot->backend()->output(szFileName + ".png");
+
+            // Use matplotplusplus to plot the UTM coordinates as red dots with blue lines connecting them.
+            std::vector<double> vEasting, vNorthing, vAltitude;
+            for (const geoops::Waypoint& stWaypoint : vWaypoints)
+            {
+                vEasting.push_back(stWaypoint.GetUTMCoordinate().dEasting);
+                vNorthing.push_back(stWaypoint.GetUTMCoordinate().dNorthing);
+                vAltitude.push_back(stWaypoint.GetUTMCoordinate().dAltitude);
+            }
+            // Create a 3D plot
+            mtAxes->plot3(vEasting, vNorthing, vAltitude, "-o");
+            mtPlot->title(szPlotTitle);
+            mtAxes->xlabel("Easting");
+            mtAxes->ylabel("Northing");
+            mtAxes->zlabel("Altitude");
         }
     }    // namespace graphing
 }    // namespace logging
