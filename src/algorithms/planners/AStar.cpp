@@ -536,7 +536,7 @@ namespace pathplanners
                 {
                     dDeltaEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
                     dDeltaNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-                    bAtGoal        = dDeltaEasting < constants::ASTAR_NODE_SIZE && dDeltaNorthing < constants::ASTAR_NODE_SIZE;
+                    bAtGoal        = (dDeltaEasting < constants::ASTAR_NODE_SIZE) && (dDeltaNorthing < constants::ASTAR_NODE_SIZE);
                 }
 
                 // Construct and return path if we have reached the goal.
