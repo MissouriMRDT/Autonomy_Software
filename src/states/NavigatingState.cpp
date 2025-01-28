@@ -40,10 +40,8 @@ namespace statemachine
                                globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
 
         // Create rover path layers.
-        m_pRoverPathPlot->CreateLayer("NavPath", "-o");
-        m_pRoverPathPlot->CreateLayer("RoverPath", "-.r*");
-        // Add starting point to path plot. This is the rovers current position.
-        m_pRoverPathPlot->AddPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath");
+        m_pRoverPathPlot->CreatePathLayer("NavPath", "-o");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
     }
 
     /******************************************************************************
@@ -125,7 +123,7 @@ namespace statemachine
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
@@ -354,8 +352,10 @@ namespace statemachine
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
                     // Clear the old path plot and add the new path.
-                    m_pRoverPathPlot->ClearLayerPath("NavPath");
-                    m_pRoverPathPlot->AddPoint(m_stGoalWaypoint, "NavPath", 0);
+                    m_pRoverPathPlot->ClearLayer("NavPath");
+                    // Add starting point and goal point to path plot.
+                    m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
+                    m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
                 }
 
                 // Send multimedia command to update state display.

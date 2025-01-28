@@ -72,7 +72,8 @@
                 "streetsidesoftware.code-spell-checker",
                 "vscode-icons-team.vscode-icons",
                 "ryanluker.vscode-coverage-gutters",
-                "GitHub.vscode-pull-request-github"
+                "GitHub.vscode-pull-request-github",
+                "GitHub.copilot"
             ],
             "settings": {
                 // VSCode settings.

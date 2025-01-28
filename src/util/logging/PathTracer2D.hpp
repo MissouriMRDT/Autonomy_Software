@@ -160,16 +160,8 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void CreateLayer(const std::string& szLayerName, const std::string& szStyleString = "-o")
+                void CreatePathLayer(const std::string& szLayerName, const std::string& szStyleString = "-o")
                 {
-                    // Check if that layer already exists in the map.
-                    if (m_umPathMap.find(szLayerName) != m_umPathMap.end())
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer already exists. Cannot create layer.");
-                        return;
-                    }
-
                     // Check if the layer name exists in the map.
                     if (m_umPathMap.find(szLayerName) != m_umPathMap.end())
                     {
@@ -180,8 +172,43 @@ namespace logging
 
                     // Add the layer to the maps.
                     m_umPathMap[szLayerName]               = std::vector<std::pair<double, double>>();
-                    m_umLineStyleMap[szLayerName]          = szStyleString;
+                    m_umPathLineStyleMap[szLayerName]      = szStyleString;
                     m_umLastPlotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
+                }
+
+                /******************************************************************************
+                 * @brief Add a new draw layer to the plot.
+                 *
+                 * @param szLayerName - The alias name of the layer.
+                 * @param szColorString - The color of the layer. The default is "blue".
+                 *          Here are the full options for the color string:
+                 *             "blue": Blue
+                 *             "black": Black
+                 *             "red": Red
+                 *             "green": Green
+                 *             "yellow": Yellow
+                 *             "cyan": Cyan
+                 *             "magenta": Magenta
+                 *             "white": White
+                 * @param bFillMarkerFace - Whether or not to fill the marker face. Default is true.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void CreateDotLayer(const std::string& szLayerName, const std::string& szColorString = "blue", const bool bFillMarkerFace = true)
+                {
+                    // Check if the layer name exists in the map.
+                    if (m_umDotMap.find(szLayerName) != m_umDotMap.end())
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "Layer already exists. Cannot create layer.");
+                        return;
+                    }
+
+                    // Add the layer to the maps.
+                    m_umDotMap[szLayerName]               = std::vector<std::tuple<double, double, double>>();
+                    m_umDotLineStyleMap[szLayerName]      = std::make_pair(szColorString, bFillMarkerFace);
+                    m_umLastDotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
                 }
 
                 /******************************************************************************
@@ -194,44 +221,62 @@ namespace logging
                  ******************************************************************************/
                 void DeleteLayer(const std::string& szLayerName)
                 {
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
+                    // Check if the layer name exist in the path or dot maps.
+                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end() && m_umDotMap.find(szLayerName) == m_umDotMap.end())
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot delete layer.");
                         return;
                     }
 
-                    // Remove the layer from the maps.
-                    m_umPathMap.erase(szLayerName);
-                    m_umLineStyleMap.erase(szLayerName);
+                    // Remove the appropriate layers from the maps.
+                    if (m_umPathMap.find(szLayerName) != m_umPathMap.end())
+                    {
+                        m_umPathMap.erase(szLayerName);
+                        m_umPathLineStyleMap.erase(szLayerName);
+                        m_umLastPlotUpdateTimeMap.erase(szLayerName);
+                    }
+                    if (m_umDotMap.find(szLayerName) != m_umDotMap.end())
+                    {
+                        m_umDotMap.erase(szLayerName);
+                        m_umDotLineStyleMap.erase(szLayerName);
+                        m_umLastDotUpdateTimeMap.erase(szLayerName);
+                    }
                 }
 
                 /******************************************************************************
-                 * @brief Clear the path of a layer.
+                 * @brief Clear the path or dots of a layer.
                  *
                  * @param szLayerName - The alias name of the layer.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void ClearLayerPath(const std::string& szLayerName)
+                void ClearLayer(const std::string& szLayerName)
                 {
-                    // Check if the layer name exists in the map.
-                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end())
+                    // Check if the layer name exist in the path or dot maps.
+                    if (m_umPathMap.find(szLayerName) == m_umPathMap.end() && m_umDotMap.find(szLayerName) == m_umDotMap.end())
                     {
                         // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot clear layer path.");
+                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot clear layer.");
                         return;
                     }
 
-                    // Clear the layer path.
-                    m_umPathMap[szLayerName].clear();
+                    // Clear the appropriate layer.
+                    if (m_umPathMap.find(szLayerName) != m_umPathMap.end())
+                    {
+                        m_umPathMap[szLayerName].clear();
+                    }
+                    if (m_umDotMap.find(szLayerName) != m_umDotMap.end())
+                    {
+                        m_umDotMap[szLayerName].clear();
+                    }
                 }
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has a limit
-                 *      to the number of waypoints that can be added per second.
+                 *      to the number of waypoints that can be added per second. Set the maximum
+                 *      number of waypoints per second to 0 for no limit.
                  *
                  * @param stWaypoint - The waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -240,10 +285,10 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPoint(const geoops::Waypoint& stWaypoint, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
+                void AddPathPoint(const geoops::Waypoint& stWaypoint, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
                 {
                     // Check the update time.
-                    if (!this->CheckUpdateTime(szLayerName, nMaxWaypointsPerSecond))
+                    if (!this->CheckPathUpdateTime(szLayerName, nMaxWaypointsPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
                         return;
@@ -257,8 +302,9 @@ namespace logging
                 }
 
                 /******************************************************************************
-                 * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *      to the number of waypoints that can be added per second.
+                 * @brief Add a waypoint to the path and plot the path. This method has a limit
+                 *      to the number of waypoints that can be added per second. Set the maximum
+                 *      number of waypoints per second to 0 for no limit.
                  *
                  * @param stCoordinate - The coordinate of the waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -267,10 +313,10 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPoint(const geoops::UTMCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
+                void AddPathPoint(const geoops::UTMCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
                 {
                     // Check the update time.
-                    if (!this->CheckUpdateTime(szLayerName, nMaxWaypointsPerSecond))
+                    if (!this->CheckPathUpdateTime(szLayerName, nMaxWaypointsPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
                         return;
@@ -284,8 +330,9 @@ namespace logging
                 }
 
                 /******************************************************************************
-                 * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *      to the number of waypoints that can be added per second.
+                 * @brief Add a waypoint to the path and plot the path. This method has a limit
+                 *      to the number of waypoints that can be added per second. Set the maximum
+                 *      number of waypoints per second to 0 for no limit.
                  *
                  * @param stCoordinate - The coordinate of the waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -294,10 +341,10 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPoint(const geoops::GPSCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
+                void AddPathPoint(const geoops::GPSCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
                 {
                     // Check the update time.
-                    if (!this->CheckUpdateTime(szLayerName, nMaxWaypointsPerSecond))
+                    if (!this->CheckPathUpdateTime(szLayerName, nMaxWaypointsPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
                         return;
@@ -315,7 +362,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *      to the number of waypoints that can be added per second.
+                 *      to the number of waypoints that can be added per call. But the
+                 *    number of waypoints that can be added per second is limited. Set the
+                 *    maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param stWaypoints - The waypoints to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -324,10 +373,10 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPoints(const std::vector<geoops::Waypoint>& stWaypoints, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
+                void AddPathPoints(const std::vector<geoops::Waypoint>& stWaypoints, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
                 {
                     // Check the update time.
-                    if (!this->CheckUpdateTime(szLayerName, unMaxUpdatesPerSecond))
+                    if (!this->CheckPathUpdateTime(szLayerName, unMaxUpdatesPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
                         return;
@@ -345,7 +394,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *      to the number of waypoints that can be added per second.
+                 *      to the number of waypoints that can be added per call. But the
+                 *    number of waypoints that can be added per second is limited. Set the
+                 *    maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -354,10 +405,10 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPoints(const std::vector<geoops::UTMCoordinate>& vCoordinates, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
+                void AddPathPoints(const std::vector<geoops::UTMCoordinate>& vCoordinates, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
                 {
                     // Check the update time.
-                    if (!this->CheckUpdateTime(szLayerName, unMaxUpdatesPerSecond))
+                    if (!this->CheckPathUpdateTime(szLayerName, unMaxUpdatesPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
                         return;
@@ -375,7 +426,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *    to the number of waypoints that can be added per second.
+                 *    to the number of waypoints that can be added per one call. But the
+                 *    number of waypoints that can be added per second is limited. Set the
+                 *    maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -384,10 +437,10 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void AddPoints(const std::vector<geoops::GPSCoordinate>& vCoordinates, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
+                void AddPathPoints(const std::vector<geoops::GPSCoordinate>& vCoordinates, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
                 {
                     // Check the update time.
-                    if (!this->CheckUpdateTime(szLayerName, unMaxUpdatesPerSecond))
+                    if (!this->CheckPathUpdateTime(szLayerName, unMaxUpdatesPerSecond))
                     {
                         // Return if the maximum number of waypoints per second has been exceeded.
                         return;
@@ -404,13 +457,229 @@ namespace logging
                     this->UpdatePlot();
                 }
 
+                /******************************************************************************
+                 * @brief Add a waypoint as a dot to the path. This method has a limit
+                 *      to the number of waypoints that can be added per second. Set the maximum
+                 *      number of waypoints per second to 0 for no limit.
+                 *
+                 * @param stWaypoint - The waypoint to add to the path.
+                 * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param nMaxWaypointsPerSecond - The maximum number of waypoints that can be added per second.
+                 *
+                 * @note Because this method uses Waypoint structs, the radius of the waypoint will be used as the size of the dot.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void AddDot(const geoops::Waypoint& stWaypoint, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1)
+                {
+                    // Check the update time.
+                    if (!this->CheckDotUpdateTime(szLayerName, nMaxWaypointsPerSecond))
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return;
+                    }
+
+                    // Check the radius of the waypoint. It shouldn't be less than 0.
+                    if (stWaypoint.dRadius <= 0)
+                    {
+                        m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, 5);
+                    }
+                    else
+                    {
+                        m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, stWaypoint.dRadius);
+                    }
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
+                /******************************************************************************
+                 * @brief Add a waypoint as a dot to the path. This method has a limit
+                 *     to the number of waypoints that can be added per second. Set the maximum
+                 *     number of waypoints per second to 0 for no limit.
+                 *
+                 * @param stCoordinate - The coordinate of the waypoint to add to the path.
+                 * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param nMaxWaypointsPerSecond - The maximum number of waypoints that can be added per second.
+                 * @param dDotRadius - The radius of the dot to add to the path.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void AddDot(const geoops::UTMCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1, const double dDotRadius = 5)
+                {
+                    // Check the update time.
+                    if (!this->CheckDotUpdateTime(szLayerName, nMaxWaypointsPerSecond))
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return;
+                    }
+
+                    // Add the waypoint to the path.
+                    m_umDotMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, dDotRadius);
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
+                /******************************************************************************
+                 * @brief Add a waypoint as a dot to the path. This method has a limit
+                 *     to the number of waypoints that can be added per second. Set the maximum
+                 *     number of waypoints per second to 0 for no limit.
+                 *
+                 * @param stCoordinate - The coordinate of the waypoint to add to the path.
+                 * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param nMaxWaypointsPerSecond - The maximum number of waypoints that can be added per second.
+                 * @param dDotRadius - The radius of the dot to add to the path.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void AddDot(const geoops::GPSCoordinate& stCoordinate, const std::string& szLayerName, const uint nMaxWaypointsPerSecond = 1, const double dDotRadius = 5)
+                {
+                    // Check the update time.
+                    if (!this->CheckDotUpdateTime(szLayerName, nMaxWaypointsPerSecond))
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return;
+                    }
+
+                    // Create instance variables.
+                    geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
+
+                    // Add the waypoint to the path.
+                    m_umDotMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, dDotRadius);
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
+                /******************************************************************************
+                 * @brief Add a waypoint as a dot to the path. This method has no limit
+                 *    to the number of waypoints that can be added per one call. But the
+                 *    number of waypoints that can be added per second is limited. Set the
+                 *    maximum number of waypoints per second to 0 for no limit.
+                 *
+                 * @param stWaypoints - The waypoints to add to the path.
+                 * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param unMaxUpdatesPerSecond - The maximum number of waypoints that can be added per second. Set to 0 for no limit.
+                 *
+                 * @note Because this method uses Waypoint structs, the radius of the waypoint will be used as the size of the dot.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void AddDots(const std::vector<geoops::Waypoint>& stWaypoints, const std::string& szLayerName, const uint unMaxUpdatesPerSecond = 1)
+                {
+                    // Check the update time.
+                    if (!this->CheckDotUpdateTime(szLayerName, unMaxUpdatesPerSecond))
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return;
+                    }
+
+                    // Add the waypoints to the vector or double pairs at the given layer name in the map.
+                    for (const geoops::Waypoint& stWaypoint : stWaypoints)
+                    {
+                        // Check the radius of the waypoint. It shouldn't be less than 0.
+                        if (stWaypoint.dRadius <= 0)
+                        {
+                            m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, 5);
+                        }
+                        else
+                        {
+                            m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, stWaypoint.dRadius);
+                        }
+                    }
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
+                /******************************************************************************
+                 * @brief Add a waypoint as a dot to the path. This method has no limit
+                 *   to the number of waypoints that can be added per one call. But the
+                 *   number of waypoints that can be added per second is limited. Set the
+                 *   maximum number of waypoints per second to 0 for no limit.
+                 *
+                 * @param vCoordinates - The coordinates to add to the path.
+                 * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param unMaxUpdatesPerSecond - The maximum number of waypoints that can be added per second. Set to 0 for no limit.
+                 * @param dDotRadius - The radius of the dot to add to the path.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void AddDots(const std::vector<geoops::UTMCoordinate>& vCoordinates,
+                             const std::string& szLayerName,
+                             const uint unMaxUpdatesPerSecond = 1,
+                             const double dDotRadius          = 5)
+                {
+                    // Check the update time.
+                    if (!this->CheckDotUpdateTime(szLayerName, unMaxUpdatesPerSecond))
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return;
+                    }
+
+                    // Add the waypoints to the vector or double pairs at the given layer name in the map.
+                    for (const geoops::UTMCoordinate& stCoordinate : vCoordinates)
+                    {
+                        m_umDotMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, dDotRadius);
+                    }
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
+                /******************************************************************************
+                 * @brief Add a waypoint as a dot to the path. This method has no limit
+                 *      to the number of waypoints that can be added per one call. But the
+                 *      number of waypoints that can be added per second is limited. Set the
+                 *      maximum number of waypoints per second to 0 for no limit.
+                 *
+                 * @param vCoordinates - The coordinates to add to the path.
+                 * @param szLayerName - The name of the layer to add the waypoints to.
+                 * @param unMaxUpdatesPerSecond - The maximum number of waypoints that can be added per second. Set to 0 for no limit.
+                 * @param dDotRadius - The radius of the dot to add to the path.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                void AddDots(const std::vector<geoops::GPSCoordinate>& vCoordinates,
+                             const std::string& szLayerName,
+                             const uint unMaxUpdatesPerSecond = 1,
+                             const double dDotRadius          = 5)
+                {
+                    // Check the update time.
+                    if (!this->CheckDotUpdateTime(szLayerName, unMaxUpdatesPerSecond))
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return;
+                    }
+
+                    // Add the waypoints to the vector or double pairs at the given layer name in the map.
+                    for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
+                    {
+                        geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
+                        m_umDotMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, dDotRadius);
+                    }
+
+                    // Update the plot.
+                    this->UpdatePlot();
+                }
+
             private:
                 // Declare private member variables.
                 matplot::figure_handle m_mtRoverPathPlot;
                 matplot::axes_handle m_mtRoverPathAxes;
-                std::unordered_map<std::string, std::string> m_umLineStyleMap;
+                std::unordered_map<std::string, std::string> m_umPathLineStyleMap;
+                std::unordered_map<std::string, std::pair<std::string, bool>> m_umDotLineStyleMap;
                 std::unordered_map<std::string, std::chrono::system_clock::time_point> m_umLastPlotUpdateTimeMap;
+                std::unordered_map<std::string, std::chrono::system_clock::time_point> m_umLastDotUpdateTimeMap;
                 std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
+                std::unordered_map<std::string, std::vector<std::tuple<double, double, double>>> m_umDotMap;
                 std::string m_szPlotTitle;
                 std::string m_zePlotSavePath;
 
@@ -429,8 +698,11 @@ namespace logging
                     // Clear the plot.
                     m_mtRoverPathAxes->clear();
 
+                    /*
+                        PATHS
+                    */
                     // Loop through each of the layer name keys in the map.
-                    for (const std::pair<const std::string, std::string>& stdLayer : m_umLineStyleMap)
+                    for (const std::pair<const std::string, const std::string>& stdLayer : m_umPathLineStyleMap)
                     {
                         // Add the layer name to the vector.
                         vLayerNames.push_back(stdLayer.first);
@@ -448,6 +720,36 @@ namespace logging
 
                             // Plot the path.
                             m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
+                            // Set the hold to true.
+                            m_mtRoverPathAxes->hold(true);
+                        }
+                    }
+
+                    /*
+                        DOTS
+                    */
+                    // Loop through each of the layer name keys in the map.
+                    for (const std::pair<const std::string, const std::pair<std::string, bool>>& stdLayer : m_umDotLineStyleMap)
+                    {
+                        // Add the layer name to the vector.
+                        vLayerNames.push_back(stdLayer.first);
+
+                        // Check if the vector or coordinates has more than one point.
+                        if (m_umDotMap[stdLayer.first].size() > 1)
+                        {
+                            // Get the x and y coordinates for the layer.
+                            std::vector<double> vEasting, vNorthing, vRadius;
+                            for (const std::tuple<double, double, double>& stCoordinate : m_umDotMap[stdLayer.first])
+                            {
+                                vEasting.push_back(std::get<0>(stCoordinate));
+                                vNorthing.push_back(std::get<1>(stCoordinate));
+                                vRadius.push_back(std::get<2>(stCoordinate));
+                            }
+
+                            // Plot the path.
+                            matplot::line_handle mtLineHandle = m_mtRoverPathAxes->scatter(vEasting, vNorthing, vRadius);
+                            mtLineHandle->color(stdLayer.second.first);
+                            mtLineHandle->marker_face(stdLayer.second.second);
                             // Set the hold to true.
                             m_mtRoverPathAxes->hold(true);
                         }
@@ -477,7 +779,7 @@ namespace logging
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-09
                  ******************************************************************************/
-                bool CheckUpdateTime(const std::string& szLayerName, const uint unMaxUpdatesPerSecond)
+                bool CheckPathUpdateTime(const std::string& szLayerName, const uint unMaxUpdatesPerSecond)
                 {
                     // Check if the layer name exists in the map.
                     if (m_umLastPlotUpdateTimeMap.find(szLayerName) == m_umLastPlotUpdateTimeMap.end())
@@ -498,6 +800,48 @@ namespace logging
 
                     // Update the last plot time.
                     m_umLastPlotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
+
+                    // Return true.
+                    return true;
+                }
+
+                /******************************************************************************
+                 * @brief Checks the unordered map of last update times for a given layer name
+                 *     and returns true if the time since the last update is greater than the
+                 *     maximum updates per second, then it updates the time in the map.
+                 *     If the layer name does not exist in the map then it returns false.
+                 *     If the given update time is 0, then it will just check if the layer name
+                 *     exists in the map.
+                 *
+                 * @param szLayerName - The name of the layer to check the update time for.
+                 * @param unMaxUpdatesPerSecond - The maximum number of updates per second.
+                 * @return true - The time since the last update is greater than the maximum updates per second.
+                 * @return false - The time since the last update is less than the maximum updates per second.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-27
+                 ******************************************************************************/
+                bool CheckDotUpdateTime(const std::string& szLayerName, const uint unMaxUpdatesPerSecond)
+                {
+                    // Check if the layer name exists in the map.
+                    if (m_umLastDotUpdateTimeMap.find(szLayerName) == m_umLastDotUpdateTimeMap.end())
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot add waypoints.");
+                        return false;
+                    }
+
+                    // Check if the maximum number of waypoints per second has been exceeded.
+                    if (unMaxUpdatesPerSecond != 0 &&
+                        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_umLastDotUpdateTimeMap[szLayerName]).count() <
+                            1.0 / unMaxUpdatesPerSecond)
+                    {
+                        // Return if the maximum number of waypoints per second has been exceeded.
+                        return false;
+                    }
+
+                    // Update the last plot time.
+                    m_umLastDotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
 
                     // Return true.
                     return true;

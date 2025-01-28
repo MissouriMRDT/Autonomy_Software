@@ -51,10 +51,12 @@ namespace statemachine
                                                                        constants::SEARCH_SPIRAL_SPACING);
 
         // Add the search and rover path layers to the plot.
-        m_pRoverPathPlot->CreateLayer("SearchPattern", "-o");
-        m_pRoverPathPlot->CreateLayer("RoverPath", "-.r*");
+        m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
+        m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
+        m_pRoverPathPlot->CreateDotLayer("HorizontalZigZagSearchPattern", "green");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
-        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern", 0);
+        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
 
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
@@ -121,7 +123,7 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         /*
             The overall flow of this state is as follows.
@@ -319,7 +321,7 @@ namespace statemachine
                         m_eCurrentSearchPatternType = eZigZag;
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern");
+                        m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
                         break;
                     }
                     case eZigZag:
@@ -338,7 +340,7 @@ namespace statemachine
                         m_eCurrentSearchPatternType = END;
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddPoints(m_vSearchPath, "SearchPattern");
+                        m_pRoverPathPlot->AddDots(m_vSearchPath, "HorizontalZigZagSearchPattern");
                         break;
                     }
                     case END:
