@@ -20,6 +20,8 @@ docs/*
 !docs/Doxygen
 docs/Doxygen/*
 !docs/Doxygen/resources
+# Also don't ignore the docs/Whitepapers directory.
+!docs/Whitepapers
 
 # Data. Ignore optimized models, but push base model.
 data/models/zed/.*
