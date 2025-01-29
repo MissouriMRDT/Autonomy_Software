@@ -35,7 +35,7 @@ namespace controllers
      * @brief This class implements the Predictive Stanley Controller. This controller
      *      is used to follow a path using the Stanley method with predictive control.
      *
-     * @note See data/WhitePapers/2020-A-Path-Tracking-Algorithm-Using-Predictive-Stanley-Lateral-Controller.pdf
+     * @note See docs/WhitePapers/2020-A-Path-Tracking-Algorithm-Using-Predictive-Stanley-Lateral-Controller.pdf
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10
