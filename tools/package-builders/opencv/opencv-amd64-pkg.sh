@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-OPENCV_VERSION="4.10.0"
+OPENCV_VERSION="4.11.0"
 FORCE_BUILD=false
 
 # Parse arguments

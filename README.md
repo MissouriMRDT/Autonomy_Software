@@ -109,11 +109,11 @@ The easiest way to get started is by using our Docker environment. This environm
 - **NVIDIA CUDA Toolkit 12.2**
 - **CMake 3.30.2**
 - **GCC 10**
-- **OpenCV 4.10.0**
+- **OpenCV 4.11.0**
 - **PyTorch 2.2.2**
 - **TensorFlow 2.15.0**
 - **ZED SDK 4.1**
-- **Quill 7.3.0**
+- **Quill 8.1.0**
 - **Google Test 1.15.2**
 - **Abseil 20230802.1**
 - **GeographicLib 2.3**
@@ -144,7 +144,7 @@ If you prefer to set up the environment manually, make sure your system has the 
   - Git LFS (Large File Storage) 2.13.0 or higher (for handling large files)
   - Python 3.8 or higher (for scripting and utility purposes)
   - Doxygen (for generating documentation)
-  - OpenCV 4.10.0 or higher (required for vision processing)
+  - OpenCV 4.11.0 or higher (required for vision processing)
   - CUDA Toolkit 12.2 or higher (or NVIDIA graphics card support)
   - NVIDIA JetPack SDK (required for Jetson platforms)
   - ZED SDK 4.1 or higher (for stereolabs cameras)

@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="7.3.0"
+QUILL_VERSION="8.1.0"
 FORCE_BUILD=false
 
 # Parse arguments
