@@ -287,7 +287,7 @@ jobs:
         if: needs.check-amd64-packages.outputs.ffmpeg-amd64 == 'true' || needs.check-amd64-packages.outputs.opencv-amd64 == 'true'
         run: |
           # Install FFmpeg
-          apt remove ffmpeg-mrdt ffmpeg
+          apt remove -y ffmpeg-mrdt ffmpeg
           apt install -y /tmp/archive-pkg/ffmpeg*amd64*.deb
 
           # Install OpenCV
@@ -589,7 +589,7 @@ jobs:
         if: needs.check-arm64-packages.outputs.ffmpeg-arm64 == 'true' || needs.check-arm64-packages.outputs.opencv-arm64 == 'true'
         run: |
           # Install FFmpeg
-          apt remove ffmpeg-mrdt ffmpeg
+          apt remove -y ffmpeg-mrdt ffmpeg
           apt install -y /tmp/archive-pkg/ffmpeg*arm64*.deb
 
           # Install OpenCV
