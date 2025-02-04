@@ -54,13 +54,11 @@ namespace statemachine
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bInitialized;
-            geoops::GPSCoordinate m_stSearchPatternCenter;
+            geoops::Waypoint m_stSearchPatternCenter;
             std::vector<TagDetector*> m_vTagDetectors;
             std::vector<geoops::Waypoint> m_vSearchPath;
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;
-            std::vector<std::pair<double, double>> m_vRoverPosition;
-            size_t m_nMaxDataPoints;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
         protected:

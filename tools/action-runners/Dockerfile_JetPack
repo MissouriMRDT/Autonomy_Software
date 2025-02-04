@@ -1,12 +1,12 @@
 # Base Image
-FROM ghcr.io/missourimrdt/autonomy-jetpack:latest
+FROM ghcr.io/missourimrdt/autonomy-jetpack:2024-11-27-21-06-51
 
 # Install Variables
 ARG L4T_MAJOR="36"
 ARG L4T_MINOR="2"
 ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
-ARG RUNNER_VERSION="2.319.1"
+ARG RUNNER_VERSION="2.321.0"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNNER_ALLOW_RUNASROOT=1
 
@@ -51,7 +51,7 @@ RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
 # Add over the start.sh script
-ADD scripts/start.sh start.sh
+COPY scripts/start.sh start.sh
 
 # Make the script executable
 RUN chmod +x start.sh

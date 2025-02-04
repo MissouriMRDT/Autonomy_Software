@@ -70,7 +70,7 @@ int main()
     // Print Software Header
     std::ifstream fHeaderText("../data/ASCII/v25.txt");
     std::string szHeaderText;
-    if (fHeaderText)
+    if (fHeaderText.is_open())
     {
         std::ostringstream pHeaderText;
         pHeaderText << fHeaderText.rdbuf();
@@ -78,10 +78,44 @@ int main()
     }
 
     std::cout << szHeaderText << std::endl;
-    std::cout << "Copyright \u00A9 2024 - Mars Rover Design Team\n" << std::endl;
+    std::cout << "Copyright \u00A9 2025 - Mars Rover Design Team\n" << std::endl;
 
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
+
+    /////////////////////////////////////////
+    // Setup global objects.
+    /////////////////////////////////////////
+    // Initialize RoveComm.
+    network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+    network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+    // Start RoveComm instances bound on ports.
+    network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+    network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+    // Check if RoveComm was successfully initialized.
+    if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
+    {
+        // Submit logger message.
+        LOG_CRITICAL(logging::g_qSharedLogger,
+                     "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
+                     network::g_bRoveCommUDPStatus,
+                     network::g_bRoveCommTCPStatus);
+
+        // Since RoveComm is crucial, stop code.
+        bMainStop = true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
+    }
+    // Initialize callbacks.
+    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
+
+    // Initialize drivers.
+    globals::g_pDriveBoard      = new DriveBoard();
+    globals::g_pMultimediaBoard = new MultimediaBoard();
+    globals::g_pNavigationBoard = new NavigationBoard();
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -115,39 +149,6 @@ int main()
             std::this_thread::sleep_for(std::chrono::seconds(3));
         }
 
-        /////////////////////////////////////////
-        // Setup global objects.
-        /////////////////////////////////////////
-        // Initialize RoveComm.
-        network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
-        network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
-        // Start RoveComm instances bound on ports.
-        network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
-        network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
-        // Check if RoveComm was successfully initialized.
-        if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
-        {
-            // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger,
-                         "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                         network::g_bRoveCommUDPStatus,
-                         network::g_bRoveCommTCPStatus);
-
-            // Since RoveComm is crucial, stop code.
-            bMainStop = true;
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
-        }
-
-        // Initialize callbacks.
-        network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
-        // Initialize drivers.
-        globals::g_pDriveBoard      = new DriveBoard();
-        globals::g_pMultimediaBoard = new MultimediaBoard();
-        globals::g_pNavigationBoard = new NavigationBoard();
         // Initialize handlers.
         globals::g_pCameraHandler       = new CameraHandler();
         globals::g_pWaypointHandler     = new WaypointHandler();
@@ -165,10 +166,10 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        ZEDCam* pMainCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        ZEDCam* pLeftCam            = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
-        ZEDCam* pRightCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
-        BasicCam* pGroundCam        = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        ZEDCamera* pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        ZEDCamera* pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
+        ZEDCamera* pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
+        BasicCamera* pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
         TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
         TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);

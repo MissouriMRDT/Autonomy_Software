@@ -558,6 +558,7 @@ namespace geoops
             // Declare struct public member variables.
             WaypointType eType;
             double dRadius;
+            int nID;
 
             /******************************************************************************
              * @brief Construct a new Waypoint object.
@@ -573,13 +574,17 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2024-02-02
              ******************************************************************************/
-            Waypoint(const geoops::GPSCoordinate& stGPSLocation = geoops::GPSCoordinate(), const WaypointType& eType = WaypointType::eUNKNOWN, const double dRadius = 0.0)
+            Waypoint(const geoops::GPSCoordinate& stGPSLocation = geoops::GPSCoordinate(),
+                     const WaypointType& eType                  = WaypointType::eUNKNOWN,
+                     const double dRadius                       = 0.0,
+                     const int nID                              = -1)
             {
                 // Initialize member variables.
                 this->stGPSLocation = stGPSLocation;
                 this->stUTMLocation = geoops::ConvertGPSToUTM(stGPSLocation);
                 this->eType         = eType;
                 this->dRadius       = dRadius;
+                this->nID           = nID;
             }
 
             /******************************************************************************
@@ -596,13 +601,14 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2024-02-02
              ******************************************************************************/
-            Waypoint(const geoops::UTMCoordinate& stUTMLocation, const WaypointType& eType = WaypointType::eUNKNOWN, const double dRadius = 0.0)
+            Waypoint(const geoops::UTMCoordinate& stUTMLocation, const WaypointType& eType = WaypointType::eUNKNOWN, const double dRadius = 0.0, const int nID = -1)
             {
                 // Initialize member variables.
                 this->stUTMLocation = stUTMLocation;
                 this->stGPSLocation = geoops::ConvertUTMToGPS(stUTMLocation);
                 this->eType         = eType;
                 this->dRadius       = dRadius;
+                this->nID           = nID;
             }
 
             /******************************************************************************
@@ -641,7 +647,7 @@ namespace geoops
             {
                 // Check if location, altitude, and accuracy are the same. Not going to worry about other values for now.
                 return (stGPSLocation == stOtherWaypoint.stGPSLocation && stUTMLocation == stOtherWaypoint.stUTMLocation && eType == stOtherWaypoint.eType &&
-                        dRadius == stOtherWaypoint.dRadius);
+                        dRadius == stOtherWaypoint.dRadius && nID == stOtherWaypoint.nID);
             }
 
             /******************************************************************************

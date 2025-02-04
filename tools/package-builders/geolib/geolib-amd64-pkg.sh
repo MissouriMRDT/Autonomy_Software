@@ -26,13 +26,15 @@ else
     mkdir -p /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: geographiclib-mrdt" > /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${GEOLIB_VERSION}" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: GeographicLib" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://geographiclib.sourceforge.io/" >> /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of GeographicLib. Made by the Mars Rover Design Team." >> /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: geographiclib-mrdt"
+        echo "Version: ${GEOLIB_VERSION}"
+        echo "Maintainer: GeographicLib"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://geographiclib.sourceforge.io/"
+        echo "Description: A prebuilt version of GeographicLib. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/geolib_${GEOLIB_VERSION}_amd64/DEBIAN/control
 
     # Download GeographicLib
     git clone --depth 1 --branch v${GEOLIB_VERSION} https://github.com/geographiclib/geographiclib.git

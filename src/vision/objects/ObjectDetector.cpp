@@ -22,10 +22,10 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-10
  ******************************************************************************/
-ObjectDetector::ObjectDetector(BasicCam* pBasicCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
+ObjectDetector::ObjectDetector(BasicCamera* pBasicCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
-    m_pCamera                             = dynamic_cast<BasicCam*>(pBasicCam);
+    m_pCamera                             = pBasicCam;
     m_bUsingZedCamera                     = false;    // Toggle ZED functions off.
     m_nNumDetectedObjectsRetrievalThreads = nNumDetectedObjectsRetrievalThreads;
     m_bUsingGpuMats                       = bUsingGpuMats;
@@ -43,10 +43,10 @@ ObjectDetector::ObjectDetector(BasicCam* pBasicCam, const int nNumDetectedObject
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-ObjectDetector::ObjectDetector(ZEDCam* pZEDCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
+ObjectDetector::ObjectDetector(ZEDCamera* pZEDCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
-    m_pCamera                             = dynamic_cast<ZEDCam*>(pZEDCam);
+    m_pCamera                             = pZEDCam;
     m_bUsingZedCamera                     = true;    // Toggle ZED functions off.
     m_nNumDetectedObjectsRetrievalThreads = nNumDetectedObjectsRetrievalThreads;
     m_bUsingGpuMats                       = bUsingGpuMats;
@@ -73,9 +73,9 @@ void ObjectDetector::ThreadedContinuousCode()
         // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
         if (m_bUsingGpuMats)
         {
-            // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCam* so we can use ZEDCam methods.
-            fuNormalFrame            = dynamic_cast<ZEDCam*>(m_pCamera)->RequestFrameCopy(m_cvGPUNormalFrame);
-            fuDepthMeasureCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestDepthCopy(m_cvGPUDepthMeasure);
+            // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
+            fuNormalFrame            = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvGPUNormalFrame);
+            fuDepthMeasureCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestDepthCopy(m_cvGPUDepthMeasure);
 
             // Wait for requested frames to be retrieved.
             if (fuDepthMeasureCopyStatus.get() && fuNormalFrame.get())
@@ -92,9 +92,9 @@ void ObjectDetector::ThreadedContinuousCode()
         }
         else
         {
-            // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCam* so we can use ZEDCam methods.
-            fuNormalFrame            = dynamic_cast<ZEDCam*>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
-            fuDepthMeasureCopyStatus = dynamic_cast<ZEDCam*>(m_pCamera)->RequestDepthCopy(m_cvDepthMeasure);
+            // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
+            fuNormalFrame            = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
+            fuDepthMeasureCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestDepthCopy(m_cvDepthMeasure);
 
             // Wait for requested frames to be retrieved.
             if (!fuDepthMeasureCopyStatus.get() || !fuNormalFrame.get())
@@ -107,7 +107,7 @@ void ObjectDetector::ThreadedContinuousCode()
     else
     {
         // Grab frames from camera.
-        fuNormalFrame = dynamic_cast<BasicCam*>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
+        fuNormalFrame = dynamic_cast<BasicCamera*>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
 
         // Wait for requested frames to be retrieved.
         if (!fuNormalFrame.get())

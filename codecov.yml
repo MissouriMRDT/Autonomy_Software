@@ -6,32 +6,87 @@ coverage:
     project:
       default:
         target: auto
+        informational: true
+        threshold: 5%
+        flags:
+          - unit_tests
+          - integration_tests
     patch:
       default:
         target: auto
+        threshold: 5%
+        flags:
+          - unit_tests
+          - integration_tests
     changes: false
 
 ignore:
+  # Project Directories to be ignored
   - "examples/*"
   - "external/*"
-  - "tests/*"
   - "tools/*"
+  - "tests/**"
   - "**/CMakeFiles/*"
+  - "**/build/*"
+
+  # Extensions to be ignored
   - "**/*.md"
   - "**/*.yml"
-  - "**/build/*"
+  
+  # System Files to be ignored
   - "/usr/include/*"
+  
+  # Project Source Files to be ignored
+  - "src/main.cpp"
 
-flags:
-  unit_tests:
-    paths:
-      - "tests/Unit/**"
-  integration_tests:
-    paths:
-      - "tests/Integration/**"
+flag_management:
+  individual_flags:
+    - name: unit_tests
+      paths:
+        - "tests/Unit/**"
+    - name: unit_tests
+      paths:
+        - "tests/Integration/**"
+
+component_management:
+  individual_components:
+    - component_id: algorithms
+      name: algorithms
+      paths:
+        - src/algorithms/**
+    - component_id: drivers
+      name: drivers
+      paths:
+        - src/drivers/**
+    - component_id: handlers
+      name: handlers
+      paths:
+        - src/handlers/**
+    - component_id: interfaces
+      name: interfaces
+      paths:
+        - src/interfaces/**
+    - component_id: states
+      name: states
+      paths:
+        - src/states/**
+    - component_id: util
+      name: util
+      paths:
+        - src/util/**
+    - component_id: vision
+      name: vision
+      paths:
+        - src/vision/**
+    - component_id: src
+      name: src
+      paths:
+        - src/*.h
+        - src/*.hpp
+        - src/*.cpp
 
 comment:
-  layout: "diff, flags, files"
+  layout: "header, diff, files, flags, components"
   behavior: default
   require_changes: false
   require_base: false

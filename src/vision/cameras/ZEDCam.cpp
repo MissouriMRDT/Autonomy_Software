@@ -50,20 +50,28 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const bool bEnableFusionMaster,
                const int nNumFrameRetrievalThreads,
                const unsigned int unCameraSerialNumber) :
-    Camera(nPropResolutionX, nPropResolutionY, nPropFramesPerSecond, PIXEL_FORMATS::eZED, dPropHorizontalFOV, dPropVerticalFOV, bEnableRecordingFlag)
+    ZEDCamera(nPropResolutionX,
+              nPropResolutionY,
+              nPropFramesPerSecond,
+              dPropHorizontalFOV,
+              dPropVerticalFOV,
+              bEnableRecordingFlag,
+              bMemTypeGPU,
+              bUseHalfDepthPrecision,
+              bEnableFusionMaster,
+              nNumFrameRetrievalThreads,
+              unCameraSerialNumber)
 {
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_bCameraIsFusionMaster     = bEnableFusionMaster;
-    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
-    m_unCameraSerialNumber      = unCameraSerialNumber;
-    m_dPoseOffsetX              = 0.0;
-    m_dPoseOffsetY              = 0.0;
-    m_dPoseOffsetZ              = 0.0;
-    m_dPoseOffsetXO             = 0.0;
-    m_dPoseOffsetYO             = 0.0;
-    m_dPoseOffsetZO             = 0.0;
+    m_bCameraIsFusionMaster = bEnableFusionMaster;
+    m_dPoseOffsetX          = 0.0;
+    m_dPoseOffsetY          = 0.0;
+    m_dPoseOffsetZ          = 0.0;
+    m_dPoseOffsetXO         = 0.0;
+    m_dPoseOffsetYO         = 0.0;
+    m_dPoseOffsetZO         = 0.0;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -631,7 +639,7 @@ void ZEDCam::ThreadedContinuousCode()
     if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
         !m_qGeoPoseCopySchedule.empty() || m_qFloorCopySchedule.size() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
     {
-        // Find the queue with the longest length.
+        // Add the length of all queues together to determine how many tasks need to be run.
         size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qGPUFrameCopySchedule.size() + m_qCustomBoxIngestSchedule.size() + m_qPoseCopySchedule.size() +
                                     m_qGeoPoseCopySchedule.size() + m_qFloorCopySchedule.size() + m_qObjectDataCopySchedule.size() +
                                     m_qObjectBatchedDataCopySchedule.size();
@@ -1662,7 +1670,7 @@ void ZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ
     m_dPoseOffsetX = dX - m_slCameraPose.getTranslation().x;
     m_dPoseOffsetY = dY - m_slCameraPose.getTranslation().y;
     m_dPoseOffsetZ = dZ - m_slCameraPose.getTranslation().z;
-    // Find the angular distance from current and desired pose angles.
+    // Find the angular distance from current and desired pose angles. This is complicated because zed uses different angle ranges.
     m_dPoseOffsetXO =
         numops::InputAngleModulus(numops::AngularDifference(numops::InputAngleModulus<double>(m_slCameraPose.getEulerAngles(false).x, 0.0, 360.0), dXO), 0.0, 360.0);
     m_dPoseOffsetYO =
@@ -1835,21 +1843,6 @@ bool ZEDCam::GetUsingGPUMem() const
 {
     // Check if we are using GPU memory.
     return m_slMemoryType == sl::MEM::GPU;
-}
-
-/******************************************************************************
- * @brief Accessor for if this ZED is running a fusion instance.
- *
- * @return true - This ZEDCam is a fusion master and is running an sl::Fusion instance.
- * @return false - This ZEDCam is not a fusion master and is not running a sl::Fusion instance.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-26
- ******************************************************************************/
-bool ZEDCam::GetIsFusionMaster() const
-{
-    // Return if this camera is running a Fusion instance.
-    return m_bCameraIsFusionMaster;
 }
 
 /******************************************************************************

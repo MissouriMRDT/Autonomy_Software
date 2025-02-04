@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/algorithms/DifferentialDrive.hpp"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <array>
@@ -18,13 +19,71 @@
 /// \endcond
 
 /******************************************************************************
+ * @brief Unit Test Class for the DifferentialDrive Planner
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class DifferentialDriveTests : public TestingBase<DifferentialDriveTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Differential Drive Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        DifferentialDriveTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Differential Drive Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~DifferentialDriveTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Differential Drive Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Differential Drive Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
+
+/******************************************************************************
  * @brief Test DifferentialDrive TankDrive functionality.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  ******************************************************************************/
-TEST(DifferentialDriveTest, TankDrive)
+TEST_F(DifferentialDriveTests, TankDrive)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                       = 11;
@@ -52,7 +111,7 @@ TEST(DifferentialDriveTest, TankDrive)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  ******************************************************************************/
-TEST(DifferentialDriveTest, ArcadeDrive)
+TEST_F(DifferentialDriveTests, ArcadeDrive)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                       = 11;
@@ -80,7 +139,7 @@ TEST(DifferentialDriveTest, ArcadeDrive)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-13
  ******************************************************************************/
-TEST(DifferentialDriveTest, CurvatureDrive)
+TEST_F(DifferentialDriveTests, CurvatureDrive)
 {
     // Create array for storing input and expect output values.
     const int nTestValuesLength                          = 11;

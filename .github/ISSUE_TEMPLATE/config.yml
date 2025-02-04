@@ -1,0 +1,23 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a Security Vulnerability
+    url: mailto:marsrover@mst.edu?subject=%5BGitHub%20Security%5D%20Vulnerability%20Reporting
+    about: Found a security vulnerability? Report it directly to the Mars Rover Design Team via email. Please do not disclose publicly.
+  - name: Autonomy Documentation
+    url: https://missourimrdt.github.io/Autonomy_Software/
+    about: Find detailed documentation for the Autonomy Software project.
+  - name: Contribution Guidelines
+    url: https://missourimrdt.github.io/Autonomy_Software/md_CONTRIBUTING.html
+    about: Learn how to contribute to the Autonomy Software project.
+  - name: Debug Guidelines
+    url: https://missourimrdt.github.io/Autonomy_Software/md_DEBUG.html
+    about: Learn how to debug the Autonomy Software project.
+  - name: Install Guidelines
+    url: https://missourimrdt.github.io/Autonomy_Software/md_INSTALL.html
+    about: Learn how to install the Autonomy Software project.
+  - name: Security Guidelines
+    url: https://missourimrdt.github.io/Autonomy_Software/md_SECURITY.html
+    about: Learn about the security of the Autonomy Software project.
+  - name: Code of Conduct
+    url: https://missourimrdt.github.io/Autonomy_Software/md_CODE_OF_CONDUCT.html
+    about: Learn about the code of conduct for the Autonomy Software project.

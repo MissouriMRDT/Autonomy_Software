@@ -9,11 +9,70 @@
  ******************************************************************************/
 
 #include "../../../../src/util/GeospatialOperations.hpp"
+#include "../../../TestingBase.hh"
 
 /// \cond
 #include <gtest/gtest.h>
 
 /// \endcond
+
+/******************************************************************************
+ * @brief Unit Test Class for the GeospatialOperations
+ *
+ * @author Eli Byrd (edbgkk@mst.edu)
+ * @date 2025-01-09
+ ******************************************************************************/
+class GeoOpsTests : public TestingBase<GeoOpsTests>
+{
+    private:
+        // Please note that any functions or variables must be declared as protected or public
+        // for the tests to be able to directly access them.
+
+    protected:
+        // This is where you can declare variables that are used in multiple tests.
+        // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+
+    public:
+        /******************************************************************************
+         * @brief Construct a new Geo Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        GeoOpsTests() { SetUp(); }
+
+        /******************************************************************************
+         * @brief Destroy the Geo Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        ~GeoOpsTests() { TearDown(); }
+
+        /******************************************************************************
+         * @brief Setup the Geo Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+        }
+
+        /******************************************************************************
+         * @brief Teardown the Geo Ops Tests object.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+        }
+};
 
 /******************************************************************************
  * @brief Test the functionality of the ConvertGPStoUTM function. Also tests functionality
@@ -23,7 +82,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  ******************************************************************************/
-TEST(GeoOpsTest, ConvertGPStoUTM)
+TEST_F(GeoOpsTests, ConvertGPStoUTM)
 {
     // Initialize coordinates.
     geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
@@ -74,7 +133,7 @@ TEST(GeoOpsTest, ConvertGPStoUTM)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  ******************************************************************************/
-TEST(GeoOpsTest, ConvertUTMtoGPS)
+TEST_F(GeoOpsTests, ConvertUTMtoGPS)
 {
     // Initialize coordinates.
     geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
@@ -117,7 +176,7 @@ TEST(GeoOpsTest, ConvertUTMtoGPS)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-13
  ******************************************************************************/
-TEST(GeoOpsTest, CalculateGeoMeasurementGPS)
+TEST_F(GeoOpsTests, CalculateGeoMeasurementGPS)
 {
     // Initialize coordinates.
     geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
@@ -135,7 +194,7 @@ TEST(GeoOpsTest, CalculateGeoMeasurementGPS)
     // Check distance calculation.
     EXPECT_NEAR(stMeasurement.dDistanceMeters, 1751754.48, 0.02);
     EXPECT_NEAR(stMeasurement.dArcLengthDegrees, 15.77, 0.02);
-    EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 180.0, 20.0);
+    EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 191.297, 0.02);
 
     // Calculate meter distance between the second two GPS points.
     stMeasurement = geoops::CalculateGeoMeasurement(stGPSSDELC1, stGPSSDELC2);
@@ -160,7 +219,7 @@ TEST(GeoOpsTest, CalculateGeoMeasurementGPS)
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-13
  ******************************************************************************/
-TEST(GeoOpsTest, CalculateGeoMeasurementUTM)
+TEST_F(GeoOpsTests, CalculateGeoMeasurementUTM)
 {
     // Initialize coordinates.
     geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
