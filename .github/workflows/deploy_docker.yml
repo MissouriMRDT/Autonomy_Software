@@ -611,10 +611,10 @@ jobs:
 
           if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
             echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
-            ./opencv-amd64-pkg.sh --force
+            ./opencv-arm64-pkg.sh --force
           else
             echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
-            ./opencv-amd64-pkg.sh
+            ./opencv-arm64-pkg.sh
           fi
 
           if ls /tmp/pkg/deb/opencv*arm64*.deb 1> /dev/null 2>&1; then
