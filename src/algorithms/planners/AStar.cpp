@@ -253,26 +253,20 @@ namespace pathplanners
             double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
             double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
 
-            // If goal node coordinate is within X axis obstacle borders.
-            if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder)
+            // If goal node coordinate is within X and Y axis obstacle borders.
+            if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder &&
+                dNorthObstacleBorder > stBoundaryCoordinate.dNorthing && stBoundaryCoordinate.dNorthing > dSouthObstacleBorder)
             {
-                // Shift goal coordinate along X axis to avoid obstacle.
+                // Shift goal coordinate towards closest adjacent node.
                 if (stBoundaryCoordinate.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
                 {
                     stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
                 }
-                else
+                else if (stBoundaryCoordinate.dEasting < m_vObstacles[i].stCenterPoint.dEasting)
                 {
                     stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
                 }
-                stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
-            }
-
-            // If goal node coordinate is within Y axis obstacle borders.
-            if (dNorthObstacleBorder < m_stGoalNode.stNodeLocation.dNorthing && m_stGoalNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
-            {
-                // Shift goal coordinate along Y axis to avoid obstacle.
-                if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                else if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
                 {
                     stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
                 }
@@ -281,8 +275,12 @@ namespace pathplanners
                     stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
                 }
                 stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
+
+                // Reset list iteration to check previous obstacles in new goal location
+                i = 0;
             }
         }
+
         // Return rounded coordinate.
         return stBoundaryCoordinate;
     }
