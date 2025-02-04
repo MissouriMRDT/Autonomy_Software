@@ -275,7 +275,9 @@ jobs:
           chmod +x ffmpeg-amd64-pkg.sh
           ./ffmpeg-amd64-pkg.sh
           mkdir -p /tmp/archive-pkg/
-          cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
+          if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
+            cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
+          fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
       # from a previous job. It runs the package build script for the package that is being built. This step is run
@@ -575,7 +577,9 @@ jobs:
           chmod +x ffmpeg-arm64-pkg.sh
           ./ffmpeg-arm64-pkg.sh
           mkdir -p /tmp/archive-pkg/
-          cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
+          if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
+            cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
+          fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
       # from a previous job. It runs the package build script for the package that is being built. This step is run

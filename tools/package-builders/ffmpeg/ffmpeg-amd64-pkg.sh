@@ -28,6 +28,13 @@ FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd6
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${FFMPEG_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+
+    # Download the package from the repository due to github actions limitations
+    rm -rf /tmp/pkg
+    rm -rf /tmp/ffmpeg
+    mkdir -p /tmp/pkg/deb
+    curl -L $FILE_URL --output /tmp/pkg/deb/ffmpeg_${FFMPEG_VERSION}_amd64.deb
+    
 else
     echo "Package version ${FFMPEG_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
