@@ -297,7 +297,7 @@ jobs:
           cd tools/package-builders/opencv
           chmod +x opencv-amd64-pkg.sh
 
-          if [[ "$FFMPEG_REBUILT" == "true" ]]; then
+          if [[ "$FFMPEG_REBUILT_AMD64" == "true" ]]; then
             echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
             ./opencv-amd64-pkg.sh --force
           else
@@ -609,7 +609,7 @@ jobs:
           cd tools/package-builders/opencv
           chmod +x opencv-arm64-pkg.sh
 
-          if [[ "$FFMPEG_REBUILT" == "true" ]]; then
+          if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
             echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
             ./opencv-amd64-pkg.sh --force
           else
