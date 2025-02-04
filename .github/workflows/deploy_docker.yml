@@ -277,9 +277,9 @@ jobs:
           mkdir -p /tmp/archive-pkg/
           if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
             cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
-            echo "FFMPEG_REBUILT=true" >> $GITHUB_ENV
+            echo "FFMPEG_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
-            echo "FFMPEG_REBUILTc=false" >> $GITHUB_ENV
+            echo "FFMPEG_REBUILT_AMD64=false" >> $GITHUB_ENV
           fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
@@ -307,13 +307,16 @@ jobs:
 
           if ls /tmp/pkg/deb/opencv*amd64*.deb 1> /dev/null 2>&1; then
             cp /tmp/pkg/deb/opencv*amd64*.deb /tmp/archive-pkg
+            echo "OPENCV_REBUILT_AMD64=true" >> $GITHUB_ENV
+          else
+            echo "OPENCV_REBUILT_AMD64=false" >> $GITHUB_ENV
           fi
 
       # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. And then, commits and pushes
       # the changes.
       - name: Push Packages
-        if: steps.rebuild_pkg.outputs.rebuild_pkg_ffmpeg == 'true' || steps.rebuild_pkg.outputs.rebuild_pkg_opencv == 'true'
+        if: env.FFMPEG_REBUILT_AMD64 == 'true' || env.OPENCV_REBUILT_AMD64 == 'true'
         run: |
           # Find Debian Package
           debfile=$(find /tmp/archive-pkg/ -name "*.deb" -type f -print -quit)
@@ -586,9 +589,9 @@ jobs:
           mkdir -p /tmp/archive-pkg/
           if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
             cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
-            echo "FFMPEG_REBUILT=true" >> $GITHUB_ENV
+            echo "FFMPEG_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
-            echo "FFMPEG_REBUILT=false" >> $GITHUB_ENV
+            echo "FFMPEG_REBUILT_ARM64=false" >> $GITHUB_ENV
           fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
@@ -616,13 +619,16 @@ jobs:
 
           if ls /tmp/pkg/deb/opencv*arm64*.deb 1> /dev/null 2>&1; then
             cp /tmp/pkg/deb/opencv*arm64*.deb /tmp/archive-pkg
+            echo "OPENCV_REBUILT_ARM64=true" >> $GITHUB_ENV
+          else
+            echo "OPENCV_REBUILT_ARM64=false" >> $GITHUB_ENV
           fi
 
       # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. And then, commits and pushes
       # the changes.
       - name: Push Packages
-        if: steps.rebuild_pkg.outputs.rebuild_pkg_ffmpeg == 'true' || steps.rebuild_pkg.outputs.rebuild_pkg_opencv == 'true'
+        if: env.FFMPEG_REBUILT_ARM64 == 'true' || env.OPENCV_REBUILT_ARM64 == 'true'
         run: |
           # Find Debian Package
           debfile=$(find /tmp/archive-pkg/ -name "*.deb" -type f -print -quit)
