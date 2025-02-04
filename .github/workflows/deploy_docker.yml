@@ -300,7 +300,9 @@ jobs:
             ./opencv-amd64-pkg.sh
           fi
 
-          cp /tmp/pkg/deb/opencv*amd64*.deb /tmp/archive-pkg
+          if ls /tmp/pkg/deb/opencv*amd64*.deb 1> /dev/null 2>&1; then
+            cp /tmp/pkg/deb/opencv*amd64*.deb /tmp/archive-pkg
+          fi
 
       # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. And then, commits and pushes
@@ -602,7 +604,9 @@ jobs:
             ./opencv-arm64-pkg.sh
           fi
 
-          cp /tmp/pkg/deb/opencv*arm64*.deb /tmp/archive-pkg
+          if ls /tmp/pkg/deb/opencv*arm64*.deb 1> /dev/null 2>&1; then
+            cp /tmp/pkg/deb/opencv*arm64*.deb /tmp/archive-pkg
+          fi
 
       # This step is used to push the updated package to the package repository. It clones the package
       # repository using SSH. It copies the new package into the repository. And then, commits and pushes
