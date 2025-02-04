@@ -238,7 +238,7 @@ jobs:
           cd /opt
           rm -rf /opt/Autonomy_Software
 
-  build-updated-ffmpeg-and-opencv-amd64-packages:
+  build-updated-amd64-ffmpeg-and-opencv-packages:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     timeout-minutes: 1440
@@ -550,7 +550,7 @@ jobs:
           cd /opt
           rm -rf /opt/Autonomy_Software
 
-  build-updated-ffmpeg-and-opencv-arm64-packages:
+  build-updated-arm64-ffmpeg-and-opencv-packages:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 1440
@@ -691,7 +691,7 @@ jobs:
         time-and-date,
         check-amd64-packages,
         build-updated-amd64-packages,
-        build-updated-ffmpeg-and-opencv-amd64-packages,
+        build-updated-amd64-ffmpeg-and-opencv-packages,
       ]
     runs-on: [self-hosted, linux, X64]
     timeout-minutes: 1440
@@ -795,7 +795,7 @@ jobs:
         time-and-date,
         check-arm64-packages,
         build-updated-arm64-packages,
-        build-updated-ffmpeg-and-opencv-arm64-packages,
+        build-updated-arm64-ffmpeg-and-opencv-packages,
       ]
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 1440
