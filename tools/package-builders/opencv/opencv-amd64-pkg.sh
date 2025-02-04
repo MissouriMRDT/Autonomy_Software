@@ -29,7 +29,7 @@ if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fa
     echo "Package version ${OPENCV_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
-    echo "Package version ${OPENCV_VERSION} does not exist in the repository. Building the package."
+    echo "Package version ${OPENCV_VERSION} does not exist in the repository or the forced flag was thrown. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
 
     # Delete Old Packages

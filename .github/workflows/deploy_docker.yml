@@ -277,6 +277,9 @@ jobs:
           mkdir -p /tmp/archive-pkg/
           if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
             cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
+            echo "FFMPEG_REBUILT=true" >> $GITHUB_ENV
+          else
+            echo "FFMPEG_REBUILTc=false" >> $GITHUB_ENV
           fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
@@ -294,9 +297,11 @@ jobs:
           cd tools/package-builders/opencv
           chmod +x opencv-amd64-pkg.sh
 
-          if [ needs.check-amd64-packages.outputs.ffmpeg-amd64 == 'true' ]; then
+          if [[ "$FFMPEG_REBUILT" == "true" ]]; then
+            echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
             ./opencv-amd64-pkg.sh --force
           else
+            echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
             ./opencv-amd64-pkg.sh
           fi
 
@@ -581,6 +586,9 @@ jobs:
           mkdir -p /tmp/archive-pkg/
           if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
             cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
+            echo "FFMPEG_REBUILT=true" >> $GITHUB_ENV
+          else
+            echo "FFMPEG_REBUILT=false" >> $GITHUB_ENV
           fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
@@ -598,10 +606,12 @@ jobs:
           cd tools/package-builders/opencv
           chmod +x opencv-arm64-pkg.sh
 
-          if [ needs.check-arm64-packages.outputs.ffmpeg-arm64 == 'true' ]; then
-            ./opencv-arm64-pkg.sh --force
+          if [[ "$FFMPEG_REBUILT" == "true" ]]; then
+            echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
+            ./opencv-amd64-pkg.sh --force
           else
-            ./opencv-arm64-pkg.sh
+            echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
+            ./opencv-amd64-pkg.sh
           fi
 
           if ls /tmp/pkg/deb/opencv*arm64*.deb 1> /dev/null 2>&1; then
