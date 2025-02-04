@@ -8,12 +8,27 @@ TENSORFLOW_VERSION="2.15.0"
 TENSORFLOW_COMMIT="6887368d6d46223f460358323c4b76d61d1558a8"
 TENSORFLOW_COMMIT_MD5_HASH="bb25fa4574e42ea4d452979e1d2ba3b86b39569d6b8106a846a238b880d73652"
 TENSORFLOW_BAZEL_VERSION="6.1.0"
+FORCE_BUILD=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb"
 
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${TENSORFLOW_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else

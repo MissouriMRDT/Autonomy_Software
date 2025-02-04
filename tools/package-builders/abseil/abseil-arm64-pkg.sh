@@ -5,12 +5,27 @@ cd /tmp
 
 # Install Variables
 ABSEIL_VERSION="20230802.1"
+FORCE_BUILD=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb"
 
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${ABSEIL_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
