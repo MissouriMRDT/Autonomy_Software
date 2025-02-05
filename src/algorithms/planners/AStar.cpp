@@ -247,6 +247,7 @@ namespace pathplanners
         {
             // Multiplier for avoidance radius.
             double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
+
             // Create obstacle borders.
             double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
             double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
@@ -257,24 +258,43 @@ namespace pathplanners
             if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder &&
                 dNorthObstacleBorder > stBoundaryCoordinate.dNorthing && stBoundaryCoordinate.dNorthing > dSouthObstacleBorder)
             {
-                // Shift goal coordinate towards closest adjacent node.
-                if (stBoundaryCoordinate.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
+                // Find Closest Cardinal or Diagonal Direction From Obstacle Center
+                // Check each direction for a shorter distance from the obstacle to the direction.
+                // stInverterClosestNode and dClosestDistance initialized with SW
+                double dNodeNorthing = stBoundaryCoordinate.dNorthing + (-1 * dAvoidanceRadius) - 0.5;
+                double dNodeEasting  = stBoundaryCoordinate.dEasting + (-1 * dAvoidanceRadius) - 0.5;
+                geoops::UTMCoordinate stClosestValidNode =
+                    geoops::UTMCoordinate(dNodeEasting + (2 * dAvoidanceRadius) + 1, dNodeNorthing + (2 * dAvoidanceRadius) + 1, 15);
+                double dClosestDistance =
+                    sqrt(pow(dNodeNorthing - m_vObstacles[i].stCenterPoint.dNorthing, 2) + pow(dNodeEasting - m_vObstacles[i].stCenterPoint.dEasting, 2));
+                for (int iEast = -1; iEast <= 1; iEast++)
                 {
-                    stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
+                    for (int iNorth = -1; iNorth <= 1; iNorth++)
+                    {
+                        if ((iEast == 0 && iNorth == 0) || (iEast == -1 && iNorth == -1))
+                            continue;
+
+                        dNodeNorthing = stBoundaryCoordinate.dNorthing + (iNorth * dAvoidanceRadius) + (iNorth * 0.5);
+                        dNodeEasting  = stBoundaryCoordinate.dEasting + (iEast * dAvoidanceRadius) + (iEast * 0.5);
+
+                        double dNodeDistance =
+                            sqrt(pow(dNodeNorthing - m_vObstacles[i].stCenterPoint.dNorthing, 2) + pow(dNodeEasting - m_vObstacles[i].stCenterPoint.dEasting, 2));
+
+                        if (dNodeDistance < dClosestDistance)
+                        {
+                            dClosestDistance = dNodeDistance;
+                            // Assign the closest valid coordinate if it is in bounds, otherwise place on the other side of the obstacle
+                            double closestValidCoordinateEasting  = dNodeEasting + (-2 * iEast * dAvoidanceRadius) + (iEast * -1);
+                            double closestValidCoordinateNorthing = dNodeNorthing + (-2 * iNorth * dAvoidanceRadius) + (iNorth * -1);
+                            if (ValidCoordinate(closestValidCoordinateEasting, closestValidCoordinateNorthing))
+                                stClosestValidNode = geoops::UTMCoordinate(closestValidCoordinateEasting, closestValidCoordinateNorthing, 15);
+                            else
+                                stClosestValidNode = geoops::UTMCoordinate(dNodeEasting + (iEast * 0.5), dNodeNorthing + (iNorth * 0.5), 15);
+                        }
+                    }
                 }
-                else if (stBoundaryCoordinate.dEasting < m_vObstacles[i].stCenterPoint.dEasting)
-                {
-                    stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
-                }
-                else if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
-                {
-                    stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
-                }
-                else
-                {
-                    stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
-                }
-                stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
+                // Shift goal coordinate away from closest node
+                stBoundaryCoordinate = RoundUTMCoordinate(stClosestValidNode);
 
                 // Reset list iteration to check previous obstacles in new goal location
                 i = 0;
