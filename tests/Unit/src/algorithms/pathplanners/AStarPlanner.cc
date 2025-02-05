@@ -597,3 +597,46 @@ TEST(AStarPlannerTest, GoalConflictWithObstacle)
     delete pAStar;
     pAStar = nullptr;
 }
+
+TEST(AStarPlannerTest, Maze)
+{
+    // Create a new AStar object
+    pathplanners::AStar* pAStar = new pathplanners::AStar();
+
+    // Start coordinate for AStar
+    const double dEastingStart  = stStartCoordinate.dEasting;
+    const double dNorthingStart = stStartCoordinate.dNorthing;
+
+    // Create goal coordinates for AStar
+    const geoops::UTMCoordinate stGoalCoordinate = geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true);
+
+    // Create obstacle coordinates for AStar
+    const std::vector<pathplanners::AStar::Obstacle> aObstacles = {
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599999.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600000.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600001.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4199999.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4200000.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599999.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600000.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600001.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600002.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4200000.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4299999.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4299998.5, 15, true), 0.5),
+    };
+
+    // Add obstacle to AStar
+    pAStar->UpdateObstacleData(aObstacles, true);
+
+    // Make sure AStar paths
+    std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, stGoalCoordinate);
+    EXPECT_TRUE(vReturnedPath.size() != 0);
+
+    // Cleanup
+    delete pAStar;
+    pAStar = nullptr;
+}
