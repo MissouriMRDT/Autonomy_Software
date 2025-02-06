@@ -406,7 +406,7 @@ TEST_F(AStarPlannerTests, ObstacleInitialization)
  * @author Sam Nolte (samnolte0302@gmail.com)
  * @date 2024-11-19
  ******************************************************************************/
-TEST(AStarPlannerTest, AvoidObstaclesWhilePathing)
+TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
 {
     // Create a new AStar object
     pathplanners::AStar* pAStar = new pathplanners::AStar();
@@ -490,7 +490,7 @@ TEST(AStarPlannerTest, AvoidObstaclesWhilePathing)
  * @author Sam Nolte (samnolte0302@gmail.com)
  * @date 2025-2-4
  ******************************************************************************/
-TEST(AStarPlannerTest, GoalConflictWithObstacle)
+TEST_F(AStarPlannerTests, GoalConflictWithObstacle)
 {
     // Create a new AStar object
     pathplanners::AStar* pAStar = new pathplanners::AStar();
@@ -586,7 +586,7 @@ TEST(AStarPlannerTest, GoalConflictWithObstacle)
     pAStar = nullptr;
 }
 
-TEST(AStarPlannerTest, Maze)
+TEST_F(AStarPlannerTests, Maze)
 {
     // Create a new AStar object
     pathplanners::AStar* pAStar = new pathplanners::AStar();
