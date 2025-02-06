@@ -544,6 +544,9 @@ namespace pathplanners
                 geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
                 bool bGeoSuccess                        = stDistanceToGoal.dDistanceMeters > 0.01;
 
+                // Round distance to nearest grid point
+                stDistanceToGoal.dDistanceMeters = std::round(stDistanceToGoal.dDistanceMeters / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+
                 // If this succeeds, use the GeoMeasurement distance.
                 if (bGeoSuccess)
                 {
