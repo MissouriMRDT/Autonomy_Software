@@ -18,19 +18,7 @@
 
 /// \endcond
 
-// Throws error due to not being in UPS range
-// const geoops::UTMCoordinate stStartCoordinate(607344.14, 4201167.33, 15, true);
-
-// Throws error due to not being in UTM range
-const geoops::UTMCoordinate stStartCoordinate{1600000, 4200000};
-
-// At (0, 0)
-// Throws error due to not being in UPS range
-// const geoops::UTMCoordinate stStartCoordinate = geoops::ConvertGPSToUTM(geoops::GPSCoordinate());
-
-// Throws error due to being in UTM range
-// CAUSES ASTAR PATH TO NOT FIND A PATH FROM UTM point (2000000, 2000000) to UTM point (1999990, 2000010)
-// const geoops::UTMCoordinate stStartCoordinate = geoops::ConvertGPSToUTM(geoops::GPSCoordinate(90, 180));
+const geoops::UTMCoordinate stStartCoordinate(600000, 4200000, 15, true);
 
 /******************************************************************************
  * @brief Unit Test Class for the AStar Planner
