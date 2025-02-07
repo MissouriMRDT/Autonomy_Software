@@ -40,18 +40,18 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-01-05-20-37-21",
+    // "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-01-05-20-37-21",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-01-05-20-37-21",
-    // "build": {
-    //     "dockerfile": "Dockerfile_Jammy"
-    //     // "dockerfile": "Dockerfile_JetPack"
-    // },
+    "build": {
+        "dockerfile": "Dockerfile_Jammy"
+        // "dockerfile": "Dockerfile_JetPack"
+    },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "postStartCommand": "git config --global --add safe.directory '*'",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {

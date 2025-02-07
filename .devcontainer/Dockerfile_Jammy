@@ -40,7 +40,7 @@ RUN apt update && apt install -y wget gnupg && \
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
-    build-essential gdb less udev zstd sudo libgomp1 \
+    build-essential gdb less udev zstd sudo libgomp1 python-is-python3 \
     cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
@@ -56,8 +56,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Install Required Python Packages and link python3 executable to python.
-RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install numpy opencv-python pyopengl matplotlib
+RUN python -m pip install numpy opencv-python pyopengl matplotlib
 
 # Set Timezone
 RUN echo "${TZ}" > /etc/localtime && \
@@ -83,9 +82,9 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="1"
+ARG ZED_MINOR="2"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
-    https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}${CUDA_MINOR%.*}/ubuntu${UBUNTU_MAJOR} && \
+    https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
     ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
     rm ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run && \

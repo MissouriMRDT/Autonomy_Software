@@ -32,24 +32,23 @@ RUN apt update && apt install -y wget && \
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential gfortran cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
-    libswresample-dev libcanberra-gtk3-module zstd less libx264-dev libdrm-dev \
-    libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools \
+    libswresample-dev libcanberra-gtk3-module zstd less libx264-dev libdrm-dev python-is-python3 \
+    libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools libssl-dev \
     libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev tzdata \
     libpostproc-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
     v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
     vim-common libedgetpu1-std gasket-dkms ca-certificates nlohmann-json3-dev curl \
-    python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev \
-    libmp3lame-dev libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
+    python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
-# Install Required Python Packages and link python3 executable to python.
-RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install numpy opencv-python pyopengl matplotlib
+# Install Required Python Packages.
+RUN python -m pip install numpy opencv-python pyopengl matplotlib
 
 # This symbolic link is needed to use the streaming features on Jetson inside a container
 RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so
@@ -78,7 +77,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="1"
+ARG ZED_MINOR="2"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
@@ -148,6 +147,9 @@ RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> 
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git /opt/Autonomy_Software
+
+# Disable the VSCode server requirements check, this fixes the cross architecture issues and potentially fixes mismatching VSCode server versions. Can be unstable.
+RUN touch /tmp/vscode-skip-server-requirements-check
 
 # Set Working Directory
 WORKDIR /opt/Autonomy_Software/

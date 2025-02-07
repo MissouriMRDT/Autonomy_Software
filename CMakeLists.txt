@@ -192,7 +192,6 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 
 ## Find OpenSSL
 find_package(OpenSSL REQUIRED)
-include_directories(${OPENSSL_INCLUDE_DIR})
 
 ## Find FFMPEG
 find_package(PkgConfig REQUIRED)
@@ -210,11 +209,9 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 ## Find OpenCV.
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Find Geographic Lib.
 find_package(GeographicLib REQUIRED)
-include_directories(${GeographicLib_INCLUDE_DIRS})
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED 4 REQUIRED)
