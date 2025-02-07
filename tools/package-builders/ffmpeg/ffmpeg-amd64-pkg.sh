@@ -5,6 +5,7 @@ cd /tmp
 
 # Install Variables
 FFMPEG_VERSION="7.1"
+SVT_AV1_VERSION="2.3.0"
 FORCE_BUILD=false
 
 # Parse arguments
@@ -73,7 +74,7 @@ else
     } > /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
 
     # This is a workaround for the libsvtav1-dev package not being available in the repository. The package is installed manually.
-    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    git clone --depth=1 --branch v${SVT_AV1_VERSION} https://gitlab.com/AOMediaCodec/SVT-AV1.git 
     cd SVT-AV1
     cd Build
     # We need to install to system first. Then we can install to the package directory.
@@ -91,7 +92,7 @@ else
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local \
+    ./configure --prefix=/usr/local \
     --enable-static \
     --disable-shared \
     --disable-doc \
@@ -115,7 +116,7 @@ else
 
     # Install FFMPEG
     make
-    make install
+    make install DESTDIR=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64
 
     # Cleanup Install
     cd ../
