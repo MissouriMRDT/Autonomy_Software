@@ -156,7 +156,7 @@ class TestingBase : public ::testing::Test
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2025-02-06
          ******************************************************************************/
-        virtual inline void TestSetup() {};
+        virtual inline void TestSetup() {}
 
         /******************************************************************************
          * @brief User's teardown method.
@@ -165,7 +165,7 @@ class TestingBase : public ::testing::Test
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2025-02-06
          ******************************************************************************/
-        virtual inline void TestTeardown() {};
+        virtual inline void TestTeardown() {}
 
     private:
         // Declare private members.
