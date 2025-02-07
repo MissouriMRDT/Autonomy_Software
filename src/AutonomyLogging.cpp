@@ -151,12 +151,6 @@ namespace logging
         // Start Quill
         quill::Backend::start(qBackendConfig);
 
-        // Set Handler Filters
-        qLogFileSink->add_filter(std::make_unique<LoggingFilter>("LogFileFilter", quill::LogLevel::TraceL3));
-        qCSVFileSink->add_filter(std::make_unique<LoggingFilter>("CSVFileFilter", quill::LogLevel::TraceL3));
-        qConsoleSink->add_filter(std::make_unique<LoggingFilter>("ConsoleFilter", quill::LogLevel::TraceL3));
-        qMRDTRoveCommSink->add_filter(std::make_unique<LoggingFilter>("RoveCommFilter", quill::LogLevel::Info));
-
         // Create Loggers
         g_qFileLogger     = quill::Frontend::create_or_get_logger("FILE_LOGGER", {qLogFileSink, qCSVFileSink});
         g_qConsoleLogger  = quill::Frontend::create_or_get_logger("CONSOLE_LOGGER", {qConsoleSink});
@@ -164,15 +158,15 @@ namespace logging
         g_qSharedLogger   = quill::Frontend::create_or_get_logger("SHARED_LOGGER", {qLogFileSink, qCSVFileSink, qConsoleSink, qMRDTRoveCommSink});
 
         // Set Internal Logging Level Limiters
-        g_eConsoleLogLevel  = constants::CONSOLE_DEFAULT_LEVEL;
         g_eFileLogLevel     = constants::FILE_DEFAULT_LEVEL;
+        g_eConsoleLogLevel  = constants::CONSOLE_DEFAULT_LEVEL;
         g_eRoveCommLogLevel = constants::ROVECOMM_DEFAULT_LEVEL;
 
         // Set Base Logging Levels
         g_qFileLogger->set_log_level(quill::LogLevel::TraceL3);
         g_qConsoleLogger->set_log_level(quill::LogLevel::TraceL3);
-        g_qRoveCommLogger->set_log_level(quill::LogLevel::Info);
         g_qSharedLogger->set_log_level(quill::LogLevel::TraceL3);
+        g_qRoveCommLogger->set_log_level(quill::LogLevel::Info);
 
         // Enable Backtrace
         g_qFileLogger->init_backtrace(10, quill::LogLevel::Critical);

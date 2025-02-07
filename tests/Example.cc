@@ -37,7 +37,7 @@ class ExampleTests : public TestingBase<ExampleTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ExampleTests() { SetUp(); }
+        ExampleTests() {}
 
         /******************************************************************************
          * @brief Destroy the Example Tests object.
@@ -45,7 +45,7 @@ class ExampleTests : public TestingBase<ExampleTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~ExampleTests() { TearDown(); }
+        ~ExampleTests() {}
 
         /******************************************************************************
          * @brief Setup the Example Tests object.
@@ -53,13 +53,7 @@ class ExampleTests : public TestingBase<ExampleTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-
-            m_nTestValue = 0;
-        }
+        void TestSetup() override { m_nTestValue = 0; }
 
         /******************************************************************************
          * @brief Destroy the Example Tests object.
@@ -67,13 +61,7 @@ class ExampleTests : public TestingBase<ExampleTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-
-            EXPECT_NE(m_nTestValue, 0) << "Test value has not been modified.";
-        }
+        void TestTeardown() override { EXPECT_NE(m_nTestValue, 0) << "Test value has not been modified."; }
 };
 
 /******************************************************************************
