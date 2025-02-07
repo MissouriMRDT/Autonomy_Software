@@ -65,24 +65,6 @@ class TestingBase : public ::testing::Test
 
     protected:
         /******************************************************************************
-         * @brief User's setup method.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-02-06
-         ******************************************************************************/
-        virtual inline void TestSetup() {};
-
-        /******************************************************************************
-         * @brief User's teardown method.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-02-06
-         ******************************************************************************/
-        virtual inline void TestTeardown() {};
-
-        /******************************************************************************
          * @brief Required setup for all tests.
          *
          *        This method initializes the loggers and RoveComm instances.
@@ -166,6 +148,24 @@ class TestingBase : public ::testing::Test
             network::g_pRoveCommUDPNode = nullptr;
             network::g_pRoveCommTCPNode = nullptr;
         }
+
+        /******************************************************************************
+         * @brief User's setup method.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-06
+         ******************************************************************************/
+        virtual inline void TestSetup() {};
+
+        /******************************************************************************
+         * @brief User's teardown method.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-06
+         ******************************************************************************/
+        virtual inline void TestTeardown() {};
 
     private:
         // Declare private members.

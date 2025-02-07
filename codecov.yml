@@ -32,10 +32,10 @@ ignore:
   # Extensions to be ignored
   - "**/*.md"
   - "**/*.yml"
-  
+
   # System Files to be ignored
   - "/usr/include/*"
-  
+
   # Project Source Files to be ignored
   - "src/main.cpp"
 
