@@ -83,9 +83,9 @@ else
     cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
     make -j 8
     make install
-    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
     make -j 8
-    make install
+    make install DESTDIR=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64
     cd ../..
     rm -rf SVT-AV1
 
