@@ -45,6 +45,7 @@ CELLVOLTAGE
 charconv
 chromaprint
 chrono
+chsh
 clayjay
 CLEARWAYPOINTS
 cmath

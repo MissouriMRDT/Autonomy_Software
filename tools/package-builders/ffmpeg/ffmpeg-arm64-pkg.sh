@@ -51,7 +51,9 @@ else
         libvorbis-dev \
         libvpx-dev \
         libx264-dev \
-        libx265-dev
+        libx265-dev \
+        libswscale-dev \
+        liblzma-dev
 
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -80,9 +82,9 @@ else
     cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
     make -j 8
     make install
-    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64/usr/local
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
     make -j 8
-    make install
+    make install DESTDIR=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_arm64
     cd ../..
     rm -rf SVT-AV1
 
@@ -91,10 +93,10 @@ else
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/usr/local \
+    /configure --prefix=/usr/local \
+    --disable-doc \
     --enable-static \
     --disable-shared \
-    --disable-doc \
     --enable-pic \
     --extra-libs="-lpthread -lm" \
     --ld="g++" \
@@ -111,7 +113,9 @@ else
     --enable-libvpx \
     --enable-libx264 \
     --enable-libx265 \
-    --enable-nonfree
+    --enable-lzma \
+    --enable-nonfree \
+    --enable-pthreads 
 
     # Install FFMPEG
     make

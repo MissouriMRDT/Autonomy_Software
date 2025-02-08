@@ -54,7 +54,7 @@ else
         libx264-dev \
         libx265-dev \
         libswscale-dev \
-        liblzma-dev \
+        liblzma-dev
 
     # Delete Old Packages
     rm -rf /tmp/pkg
