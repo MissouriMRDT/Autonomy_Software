@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.24.3)
 
 ## Enforce Using GCC 10 / G++ 10
 execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
+    COMMAND gcc -dumpversion
     OUTPUT_VARIABLE GCC_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
