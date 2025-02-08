@@ -146,7 +146,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm
 RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
 
 # Set Fish as Default Shell
-RUN chsh -s /usr/bin/fish
+RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git /opt/Autonomy_Software
