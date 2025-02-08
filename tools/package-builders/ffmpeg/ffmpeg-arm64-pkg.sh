@@ -93,7 +93,7 @@ else
     cd ffmpeg
 
     # Configure FFMPEG
-    /configure --prefix=/usr/local \
+    ./configure --prefix=/usr/local \
     --disable-doc \
     --enable-static \
     --disable-shared \
