@@ -193,9 +193,9 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 ## Find OpenSSL
 find_package(OpenSSL REQUIRED)
 
-## Find FFMPEG
+## Find FFMPEG.
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale libswresample libavdevice libavfilter libpostproc SvtAv1Enc)
 include_directories(${FFMPEG_INCLUDE_DIRS})
 
 ## Find Google Test
@@ -305,8 +305,8 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         Eigen3::Eigen
                         RoveComm_CPP
                         quill::quill
-                        ${FFMPEG_LIBRARIES}
                         ${OPENSSL_LIBRARIES}
+                        PkgConfig::FFMPEG
                         LibDataChannel::LibDataChannel
                         nlohmann_json::nlohmann_json
                         ${OpenCV_LIBS}

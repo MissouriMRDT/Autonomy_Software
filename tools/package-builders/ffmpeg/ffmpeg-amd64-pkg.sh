@@ -52,7 +52,9 @@ else
         libvorbis-dev \
         libvpx-dev \
         libx264-dev \
-        libx265-dev
+        libx265-dev \
+        libswscale-dev \
+        liblzma-dev \
 
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -93,9 +95,9 @@ else
 
     # Configure FFMPEG
     ./configure --prefix=/usr/local \
+    --disable-doc \
     --enable-static \
     --disable-shared \
-    --disable-doc \
     --enable-pic \
     --extra-libs="-lpthread -lm" \
     --ld="g++" \
@@ -112,7 +114,10 @@ else
     --enable-libvpx \
     --enable-libx264 \
     --enable-libx265 \
-    --enable-nonfree
+    --enable-lzma \
+    --enable-nonfree \
+    --enable-pthreads 
+
 
     # Install FFMPEG
     make

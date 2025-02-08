@@ -353,6 +353,7 @@ libzvbi
 localtime
 LOGNAME
 lpthread
+lzma
 m_muWebRTCRGBImageCopyMutex
 MAINCAM
 MAINCAN
@@ -416,6 +417,7 @@ pocketsphinx
 POSETRACK
 Pranswer
 pthread
+pthreads
 pyopengl
 QPID
 Raman

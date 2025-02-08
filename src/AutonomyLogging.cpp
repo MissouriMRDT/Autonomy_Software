@@ -100,10 +100,10 @@ namespace logging
         qColors.assign_colour_to_log_level(quill::LogLevel::Backtrace, constants::szBacktraceColor);
 
         // Create Patterns
-        std::string szLogFilePattern   = "%(time) %(qLogLevel) [%(szThreadID)] [%(file_name):%(line_number)] %(message)";
-        std::string szCSVFilePattern   = "%(time),\t%(qLogLevel),\t[%(szThreadID)],\t[%(file_name):%(line_number)],\t\"%(message)\"";
-        std::string szConsolePattern   = "%(time) %(qLogLevel:9) [%(szThreadID)] [%(file_name):%(line_number)] %(message)";
-        std::string szRoveCommPattern  = "%(time) %(qLogLevel) [%(szThreadID)] [%(file_name):%(line_number)] %(message)";
+        std::string szLogFilePattern   = "%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
+        std::string szCSVFilePattern   = "%(time),\t%(log_level),\t[%(thread_id)],\t[%(file_name):%(line_number)],\t\"%(message)\"";
+        std::string szConsolePattern   = "%(time) %(log_level:9) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
+        std::string szRoveCommPattern  = "%(time) %(log_level) [%(thread_id)] [%(file_name):%(line_number)] %(message)";
         std::string szTimestampPattern = "%Y-%m-%d %H:%M:%S.%Qms";
 
         // Create Sinks
