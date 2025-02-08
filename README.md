@@ -114,7 +114,7 @@ The easiest way to get started is by using our Docker environment. This environm
 - **TensorFlow 2.15.0**
 - **ZED SDK 4.1**
 - **Quill 8.1.0**
-- **Google Test 1.15.2**
+- **Google Test 1.16.0**
 - **Abseil 20230802.1**
 - **GeographicLib 2.3**
 - **Git LFS**
@@ -151,7 +151,7 @@ If you prefer to set up the environment manually, make sure your system has the 
   - PyTorch 2.2.2 or higher (for machine learning tasks)
   - TensorFlow 2.15.0 or higher (for deep learning tasks)
   - Quill 6.1.2 or higher (for logging)
-  - Google Test 1.15.2 (for testing)
+  - Google Test 1.16.0 (for testing)
   - Abseil 20230802.1 (for additional utilities)
   - GeographicLib 2.3 (for geospatial computations)
 

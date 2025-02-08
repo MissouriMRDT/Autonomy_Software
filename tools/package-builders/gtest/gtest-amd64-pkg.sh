@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-GTEST_VERSION="1.15.2"
+GTEST_VERSION="1.16.0"
 FORCE_BUILD=false
 
 # Parse arguments

@@ -142,7 +142,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd
     rm quill_${QUILL_VERSION}_amd64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.15.2"
+ARG GTEST_VERSION="1.16.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
