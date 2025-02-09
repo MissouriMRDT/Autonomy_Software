@@ -25,11 +25,11 @@
   </div>
 
   <div>
-    <a href="https://codecov.io/gh/MissouriMRDT/Autonomy_Software" > 
-        <img src="https://codecov.io/gh/MissouriMRDT/Autonomy_Software/branch/development/graph/badge.svg?token=AZVPRPE5A8" alt="codecov-ci" /> 
-    </a>
     <a href="https://app.codacy.com/gh/missourimrdt/autonomy_software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
       <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="codacy-ci" />
+    </a>
+    <a href="https://app.codacy.com/gh/MissouriMRDT/Autonomy_Software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage">
+        <img src="https://app.codacy.com/project/badge/Coverage/3945bf3e7657445abd82fb5c8f62b229" alt="codacy-cov-ci" />
     </a>
     <a href="https://www.codefactor.io/repository/github/missourimrdt/autonomy_software">
       <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="codefactor-ci" />

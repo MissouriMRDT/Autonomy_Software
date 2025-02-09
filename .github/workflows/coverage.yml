@@ -65,30 +65,13 @@ jobs:
 
           ctest --output-on-failure -T Test -T Coverage -L UTest --output-junit UTests.xml
           ctest --output-on-failure -T Test -T Coverage -L ITest --output-junit ITests.xml
-          gcovr --root .. --xml-pretty --output AllCoverage.xml --exclude '.*/tests/.*'
+          gcovr --root .. --xml-pretty --output AllCoverage.xml --filter '../src/.*'
 
-      - name: Upload Test Coverage to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+      - name: Upload Test Coverage to Codacy
+        uses: codacy/codacy-coverage-reporter-action@v1.3.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          root_dir: /opt/Autonomy_Software
-          working-directory: /opt/Autonomy_Software
-          verbose: true
-          plugins: gcov
-          directory: /opt/Autonomy_Software/build
-          files: /opt/Autonomy_Software/build/AllCoverage.xml
-
-      - name: Upload Test Results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          root_dir: /opt/Autonomy_Software
-          working-directory: /opt/Autonomy_Software/build
-          verbose: true
-          directory: /opt/Autonomy_Software/build/
-          files: UTests.xml, ITests.xml
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: /opt/Autonomy_Software/build/AllCoverage.xml
 
       - name: Cleanup Action Environment
         if: always()

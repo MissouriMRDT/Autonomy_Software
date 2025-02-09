@@ -49,6 +49,7 @@ chsh
 clayjay
 CLEARWAYPOINTS
 cmath
+Codacy
 Codecov
 codeql
 codezombiech
