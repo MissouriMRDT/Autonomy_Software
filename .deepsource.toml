@@ -25,10 +25,10 @@ name = "docker"
 
   [analyzers.meta]
   dockerfile_paths = [
-    ".devcontainer/Dockerfile_Jammy",
-    ".devcontainer/Dockerfile_JetPack",
-    "tools/action-runners/Dockerfile_Jammy",
-    "tools/action-runners/Dockerfile_JetPack"
+    ".devcontainer/Jammy.dockerfile",
+    ".devcontainer/JetPack.dockerfile",
+    "tools/action-runners/Jammy.dockerfile",
+    "tools/action-runners/JetPack.dockerfile"
   ]
 
 [[analyzers]]

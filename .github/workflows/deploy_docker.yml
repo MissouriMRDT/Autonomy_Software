@@ -6,8 +6,8 @@ on:
   pull_request:
     branches: ["development"]
     paths:
-      - ".devcontainer/Dockerfile_Jammy"
-      - ".devcontainer/Dockerfile_JetPack"
+      - ".devcontainer/Jammy.dockerfile"
+      - ".devcontainer/JetPack.dockerfile"
       - ".github/workflows/deploy_docker.yml"
       - "tools/package-builders/**/*.sh"
 
@@ -16,8 +16,8 @@ on:
   push:
     branches: ["development"]
     paths:
-      - ".devcontainer/Dockerfile_Jammy"
-      - ".devcontainer/Dockerfile_JetPack"
+      - ".devcontainer/Jammy.dockerfile"
+      - ".devcontainer/JetPack.dockerfile"
       - ".github/workflows/deploy_docker.yml"
       - "tools/package-builders/**/*.sh"
 
@@ -721,7 +721,7 @@ jobs:
         with:
           filters: |
             dockerfile:
-              - '.devcontainer/Dockerfile_Jammy'
+              - '.devcontainer/Jammy.dockerfile'
               - '.github/workflows/deploy_docker.yml'
 
       # This step is used to setup the docker buildx. It is needed to build the docker images.
@@ -749,7 +749,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
-          file: ".devcontainer/Dockerfile_Jammy"
+          file: ".devcontainer/Jammy.dockerfile"
           tags: |
             "ghcr.io/missourimrdt/autonomy-jammy:buildcache"
             "ghcr.io/missourimrdt/autonomy-jammy:${{ needs.time-and-date.outputs.date }}"
@@ -767,7 +767,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
-          file: ".devcontainer/Dockerfile_Jammy"
+          file: ".devcontainer/Jammy.dockerfile"
           tags: |
             "ghcr.io/missourimrdt/autonomy-jammy:buildcache"
             "ghcr.io/missourimrdt/autonomy-jammy:${{ needs.time-and-date.outputs.date }}"
@@ -825,7 +825,7 @@ jobs:
         with:
           filters: |
             dockerfile:
-              - '.devcontainer/Dockerfile_JetPack'
+              - '.devcontainer/JetPack.dockerfile'
               - '.github/workflows/deploy_docker.yml'
 
       # This step is used to setup the docker buildx. It is needed to build the docker images.
@@ -853,7 +853,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
-          file: ".devcontainer/Dockerfile_JetPack"
+          file: ".devcontainer/JetPack.dockerfile"
           tags: |
             "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
             "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
@@ -871,7 +871,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
-          file: ".devcontainer/Dockerfile_JetPack"
+          file: ".devcontainer/JetPack.dockerfile"
           tags: |
             "ghcr.io/missourimrdt/autonomy-jetpack:buildcache"
             "ghcr.io/missourimrdt/autonomy-jetpack:${{ needs.time-and-date.outputs.date }}"
