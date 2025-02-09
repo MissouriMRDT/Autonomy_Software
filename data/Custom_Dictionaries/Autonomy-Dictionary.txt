@@ -51,6 +51,7 @@ CLEARWAYPOINTS
 cmath
 Codacy
 Codecov
+codefactor
 codeql
 codezombiech
 Coeffs
@@ -448,6 +449,7 @@ rovecomm
 RTCP
 rval
 ryanluker
+sarif
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
