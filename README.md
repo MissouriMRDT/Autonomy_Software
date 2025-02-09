@@ -6,6 +6,7 @@
   </a>
   <h1>Autonomy Software C++</h1>
   <p><b>Autonomous Traversal and Object Detection for Rovers in C++</b></p>
+
   <div>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/codeql.yml?branch=development&label=CodeQL&style=flat-round" alt="codeql-ci" />
@@ -59,6 +60,16 @@
 ## 🚀 Introduction
 
 Welcome to the **Autonomy Software** repository of the [Mars Rover Design Team (MRDT)](https://marsrover.mst.edu) at [Missouri University of Science and Technology (Missouri S&T)](https://mst.edu)! This repository contains the source code, documentation, and other resources for developing autonomy software for our Mars Rover. We aim to compete in the University Rover Challenge (URC) by showcasing advanced autonomous capabilities and robust navigation algorithms.
+
+---
+
+## 🗒️ Notices
+
+
+  <div style="padding: 10px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 5px;">
+    <strong>Notice!</strong> This project is only compatible with <code>GCC-10</code> compiler!
+  </div>
+  <br/>
 
 ---
 
