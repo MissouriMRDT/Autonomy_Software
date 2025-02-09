@@ -60,6 +60,7 @@ jobs:
           make -j8
 
       - name: Run Tests
+        id: run_tests
         run: |
           cd /opt/Autonomy_Software/build
 
@@ -68,10 +69,19 @@ jobs:
           gcovr --root .. --xml-pretty --output AllCoverage.xml --filter '../src/.*'
 
       - name: Upload Test Coverage to Codacy
+        if: steps.run_tests.outcome == 'success'
         uses: codacy/codacy-coverage-reporter-action@v1.3.0
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: /opt/Autonomy_Software/build/AllCoverage.xml
+
+      - name: Upload Test Coverage to DeepSource
+        if: steps.run_tests.outcome == 'success'
+        uses: deepsourcelabs/test-coverage-action@v1.1.2
+        with:
+          key: cxx
+          coverage-file: /opt/Autonomy_Software/build/AllCoverage.xml
+          dsn: ${{ secrets.DEEPSOURCE_DSN }}
 
       - name: Cleanup Action Environment
         if: always()

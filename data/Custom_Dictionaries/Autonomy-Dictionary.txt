@@ -84,6 +84,8 @@ DEBLOCK
 Deblur
 decipercent
 declval
+DEEPSOURCE
+deepsourcelabs
 deleter
 Denoise
 Depacketization
