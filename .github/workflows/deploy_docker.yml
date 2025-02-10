@@ -279,6 +279,7 @@ jobs:
             cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
             echo "FFMPEG_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
+            ./ffmpeg-amd64-pkg.sh --download-latest
             echo "FFMPEG_REBUILT_AMD64=false" >> $GITHUB_ENV
           fi
 
@@ -591,6 +592,7 @@ jobs:
             cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
             echo "FFMPEG_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
+            ./ffmpeg-amd64-pkg.sh --download-latest
             echo "FFMPEG_REBUILT_ARM64=false" >> $GITHUB_ENV
           fi
 

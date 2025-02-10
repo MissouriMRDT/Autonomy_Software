@@ -8,13 +8,20 @@ TENSORFLOW_VERSION="2.15.0"
 TENSORFLOW_COMMIT="6887368d6d46223f460358323c4b76d61d1558a8"
 TENSORFLOW_COMMIT_MD5_HASH="bb25fa4574e42ea4d452979e1d2ba3b86b39569d6b8106a846a238b880d73652"
 TENSORFLOW_BAZEL_VERSION="6.1.0"
+
+# Build Arguments
 FORCE_BUILD=false
+DOWNLOAD_LATEST=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --force|-f)
             FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
             shift
             ;;
         *)
@@ -26,6 +33,23 @@ done
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb"
+
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
+    rm -rf /tmp/pkg
+    rm -rf /tmp/tensorflow
+    mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
+    curl -L $FILE_URL --output /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+
+    # Exit the script
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
 
 # Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
