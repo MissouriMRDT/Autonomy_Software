@@ -41,7 +41,7 @@ class IPSTests : public TestingBase<IPSTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        IPSTests() { SetUp(); }
+        IPSTests() {}
 
         /******************************************************************************
          * @brief Destroy the IPSTests object.
@@ -49,7 +49,7 @@ class IPSTests : public TestingBase<IPSTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~IPSTests() { TearDown(); }
+        ~IPSTests() {}
 
         /******************************************************************************
          * @brief Setup the IPSTests object.
@@ -57,11 +57,7 @@ class IPSTests : public TestingBase<IPSTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the IPSTests object.
@@ -69,11 +65,7 @@ class IPSTests : public TestingBase<IPSTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
