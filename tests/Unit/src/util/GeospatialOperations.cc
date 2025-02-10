@@ -39,7 +39,7 @@ class GeoOpsTests : public TestingBase<GeoOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        GeoOpsTests() { SetUp(); }
+        GeoOpsTests() {}
 
         /******************************************************************************
          * @brief Destroy the Geo Ops Tests object.
@@ -47,7 +47,7 @@ class GeoOpsTests : public TestingBase<GeoOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~GeoOpsTests() { TearDown(); }
+        ~GeoOpsTests() {}
 
         /******************************************************************************
          * @brief Setup the Geo Ops Tests object.
@@ -55,11 +55,7 @@ class GeoOpsTests : public TestingBase<GeoOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Geo Ops Tests object.
@@ -67,11 +63,7 @@ class GeoOpsTests : public TestingBase<GeoOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

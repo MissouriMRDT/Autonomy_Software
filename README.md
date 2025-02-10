@@ -8,20 +8,32 @@
   <p><b>Autonomous Traversal and Object Detection for Rovers in C++</b></p>
 
   <div>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/clang_check.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/clang_check.yml?branch=development&label=Clang&style=flat-round" alt="clang-ci" />
+    </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/codeql.yml?branch=development&label=CodeQL&style=flat-round" alt="codeql-ci" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/tests.yml?branch=development&label=Unit%20Tests&style=flat-round" alt="tests-ci" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/deploy_docker.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/deploy_docker.yml?branch=development&label=Docker&style=flat-round" alt="docker-ci" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/doxygen_generate.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/doxygen_generate.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/clang_check.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/clang_check.yml?branch=development&label=Clang&style=flat-round" alt="clang-ci" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/tests.yml?branch=development&label=Unit%20Tests&style=flat-round" alt="tests-ci" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/valgrind.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/valgrind.yml?branch=development&label=Valgrind&style=flat-round" alt="valgrind-ci" />
+    </a>
+  </div>
+
+  <div>
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=resolved+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
+    </a>
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=code+coverage&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
     </a>
   </div>
 
@@ -30,7 +42,7 @@
       <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="codacy-ci" />
     </a>
     <a href="https://app.codacy.com/gh/MissouriMRDT/Autonomy_Software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage">
-        <img src="https://app.codacy.com/project/badge/Coverage/3945bf3e7657445abd82fb5c8f62b229" alt="codacy-cov-ci" />
+      <img src="https://app.codacy.com/project/badge/Coverage/3945bf3e7657445abd82fb5c8f62b229" alt="codacy-cov-ci" />
     </a>
     <a href="https://www.codefactor.io/repository/github/missourimrdt/autonomy_software">
       <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="codefactor-ci" />
@@ -45,12 +57,19 @@
       <img src="https://img.shields.io/badge/NVIDIA_JetPack_6-latest-orange" alt="jetpack-pkg" />
     </a>
   </div>
+
+  <div>
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=active+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
+    </a>
+  </div>
+
   <div>
     <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
       <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
     </a>
     <a href="https://en.cppreference.com/w/cpp/20">
-      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
+      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language"/>
     </a>
   </div>
 </div>
