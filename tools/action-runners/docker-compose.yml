@@ -3,7 +3,7 @@ services:
     image: ghcr.io/missourimrdt/jammy-runner:latest
     build:
       context: .
-      dockerfile: Dockerfile_Jammy
+      dockerfile: Jammy.dockerfile
       args:
         RUNNER_VERSION: '2.321.0'
     command: unix-connect:/var/run/docker.sock
@@ -28,7 +28,7 @@ services:
     image: ghcr.io/missourimrdt/jetpack-runner:latest
     build:
       context: .
-      dockerfile: Dockerfile_JetPack
+      dockerfile: JetPack.dockerfile
       args:
         RUNNER_VERSION: '2.321.0'
     command: unix-connect:/var/run/docker.sock
