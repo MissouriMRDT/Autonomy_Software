@@ -8,6 +8,16 @@
 ## Set CMake Minimum Version
 cmake_minimum_required(VERSION 3.24.3)
 
+## Enforce Using GCC 10 / G++ 10
+execute_process(
+    COMMAND gcc -dumpversion
+    OUTPUT_VARIABLE GCC_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT GCC_VERSION VERSION_EQUAL "10.0")
+    message(FATAL_ERROR "Only GCC 10.0 is allowed! Detected GCC version ${GCC_VERSION}.")
+endif()
+
 ## C++ and CUDA Version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -37,9 +47,6 @@ option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
 
 ## Enable or Disable Verbose Makefile
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
-
-## Enable or Disable Install Mode
-option(BUILD_INSTALL_MODE "Enable Install Mode" OFF)
 
 ## Enable or Disable Tests Mode
 option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
@@ -92,14 +99,6 @@ else()
     message("--   [ ]: Verbose Makefile: Disabled")
 endif()
 
-## Build Installer
-if (BUILD_INSTALL_MODE)
-    message("--   [x]: Build Installer: Enabled")
-    
-else()
-    message("--   [ ]: Build Installer: Disabled")
-endif()
-
 ## Build Unit and Integration Tests
 if (BUILD_TESTS_MODE)
     message("--   [x]: Build Unit and Integration Tests: Enabled")
@@ -144,19 +143,6 @@ else()
 endif()
 
 ####################################################################################################################
-##                                                 CPack Setup                                                    ##
-####################################################################################################################
-
-## Define CPack Project Info
-set(CPACK_PROJECT_NAME ${EXE_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-set(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
-set(CPACK_GENERATOR "STGZ")
-
-####################################################################################################################
 ##                                           Dependencies and Libraries                                           ##
 ####################################################################################################################
 
@@ -195,11 +181,10 @@ find_package(nlohmann_json 3.2.0 REQUIRED)
 
 ## Find OpenSSL
 find_package(OpenSSL REQUIRED)
-include_directories(${OPENSSL_INCLUDE_DIR})
 
-## Find FFMPEG
+## Find FFMPEG.
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale libswresample libavdevice libavfilter libpostproc SvtAv1Enc)
 include_directories(${FFMPEG_INCLUDE_DIRS})
 
 ## Find MatPlotPlusPlus
@@ -216,11 +201,9 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 ## Find OpenCV.
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Find Geographic Lib.
 find_package(GeographicLib REQUIRED)
-include_directories(${GeographicLib_INCLUDE_DIRS})
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED 4 REQUIRED)
@@ -315,8 +298,8 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         RoveComm_CPP
                         Python3::Python
                         quill::quill
-                        ${FFMPEG_LIBRARIES}
                         ${OPENSSL_LIBRARIES}
+                        PkgConfig::FFMPEG
                         LibDataChannel::LibDataChannel
                         nlohmann_json::nlohmann_json
                         Matplot++::matplot
@@ -335,11 +318,6 @@ target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 ####################################################################################################################
 ##                                             Installation and Tests                                             ##
 ####################################################################################################################
-
-## Install Mode
-if (BUILD_INSTALL_MODE)
-    install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
-endif()
 
 ## Tests Mode
 if (BUILD_TESTS_MODE)
@@ -420,7 +398,6 @@ message("-- Final Autonomy Software Configuration Summary")
 message("--   Executable Name: ${EXE_NAME}")
 message("--   Simulation Mode: ${BUILD_SIM_MODE}")
 message("--   Tests Mode: ${BUILD_TESTS_MODE}")
-message("--   Install Mode: ${BUILD_INSTALL_MODE}")
 message("--   Examples Mode: ${BUILD_EXAMPLES_MODE}")
 message("--   Code Coverage Mode: ${BUILD_CODE_COVERAGE}")
 message("--   Verbose Makefile: ${BUILD_VERBOSE_MODE}")
