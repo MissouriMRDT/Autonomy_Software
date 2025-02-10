@@ -6,13 +6,20 @@ cd /tmp
 # Install Variables
 FFMPEG_VERSION="7.1"
 SVT_AV1_VERSION="2.3.0"
+
+# Build Arguments
 FORCE_BUILD=false
+DOWNLOAD_LATEST=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --force|-f)
             FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
             shift
             ;;
         *)
@@ -25,16 +32,27 @@ done
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/arm64/ffmpeg_${FFMPEG_VERSION}_arm64.deb"
 
-# Check if the file exists
-if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
-    echo "Package version ${FFMPEG_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
-
-    # Download the package from the repository due to github actions limitations
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
     rm -rf /tmp/pkg
     rm -rf /tmp/ffmpeg
     mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
     curl -L $FILE_URL --output /tmp/pkg/deb/ffmpeg_${FFMPEG_VERSION}_arm64.deb
+
+    # Exit the script
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
+
+# Check if the file exists
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+    echo "Package version ${FFMPEG_VERSION} already exists in the repository. Skipping build."
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT    
 else
     echo "Package version ${FFMPEG_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
