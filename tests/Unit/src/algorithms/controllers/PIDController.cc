@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/controllers/PIDController.h"
+#include "../../../../../src/AutonomyGlobals.h"
 #include "../../../../TestingBase.hh"
 
 /// \cond
@@ -41,7 +42,7 @@ class PIDControllerTests : public TestingBase<PIDControllerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        PIDControllerTests() { SetUp(); }
+        PIDControllerTests() {}
 
         /******************************************************************************
          * @brief Destroy the PIDControllerTests object.
@@ -49,7 +50,7 @@ class PIDControllerTests : public TestingBase<PIDControllerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~PIDControllerTests() { TearDown(); }
+        ~PIDControllerTests() {}
 
         /******************************************************************************
          * @brief Setup the PIDControllerTests object.
@@ -57,11 +58,7 @@ class PIDControllerTests : public TestingBase<PIDControllerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the PIDControllerTests object.
@@ -69,11 +66,7 @@ class PIDControllerTests : public TestingBase<PIDControllerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

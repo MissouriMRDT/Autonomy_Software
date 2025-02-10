@@ -40,7 +40,7 @@ class BasicCamTests : public TestingBase<BasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        BasicCamTests() { SetUp(); }
+        BasicCamTests() {}
 
         /******************************************************************************
          * @brief Destroy the Basic Cam Tests object.
@@ -48,7 +48,7 @@ class BasicCamTests : public TestingBase<BasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~BasicCamTests() { TearDown(); }
+        ~BasicCamTests() {}
 
         /******************************************************************************
          * @brief Setup the Basic Cam Tests object.
@@ -56,11 +56,7 @@ class BasicCamTests : public TestingBase<BasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Basic Cam Tests object.
@@ -68,11 +64,7 @@ class BasicCamTests : public TestingBase<BasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

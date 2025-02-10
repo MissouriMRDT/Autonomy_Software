@@ -41,7 +41,7 @@ class NumOpsTests : public TestingBase<NumOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        NumOpsTests() { SetUp(); }
+        NumOpsTests() {}
 
         /******************************************************************************
          * @brief Destroy the Num Ops Tests object.
@@ -49,7 +49,7 @@ class NumOpsTests : public TestingBase<NumOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~NumOpsTests() { TearDown(); }
+        ~NumOpsTests() {}
 
         /******************************************************************************
          * @brief Setup the Num Ops Tests object.
@@ -57,11 +57,7 @@ class NumOpsTests : public TestingBase<NumOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Num Ops Tests object.
@@ -69,11 +65,7 @@ class NumOpsTests : public TestingBase<NumOpsTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

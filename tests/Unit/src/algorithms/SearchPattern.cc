@@ -165,7 +165,7 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        SearchPatternTests() { SetUp(); }
+        SearchPatternTests() {}
 
         /******************************************************************************
          * @brief Destroy the Search Pattern Tests object.
@@ -173,7 +173,7 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~SearchPatternTests() { TearDown(); }
+        ~SearchPatternTests() {}
 
         /******************************************************************************
          * @brief Setup the Search Pattern Tests object.
@@ -181,11 +181,7 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Search Pattern Tests object.
@@ -193,11 +189,7 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

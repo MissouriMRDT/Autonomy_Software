@@ -95,7 +95,7 @@ class StanleyControllerUnitTests : public TestingBase<StanleyControllerUnitTests
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        StanleyControllerUnitTests() { SetUp(); }
+        StanleyControllerUnitTests() {}
 
         /******************************************************************************
          * @brief Destroy the Stanley Controller Unit Tests object.
@@ -103,7 +103,7 @@ class StanleyControllerUnitTests : public TestingBase<StanleyControllerUnitTests
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~StanleyControllerUnitTests() { TearDown(); }
+        ~StanleyControllerUnitTests() {}
 
         /******************************************************************************
          * @brief Setup the Stanley Controller Unit Tests object.
@@ -111,11 +111,7 @@ class StanleyControllerUnitTests : public TestingBase<StanleyControllerUnitTests
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Stanley Controller Unit Tests object.
@@ -123,11 +119,7 @@ class StanleyControllerUnitTests : public TestingBase<StanleyControllerUnitTests
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
