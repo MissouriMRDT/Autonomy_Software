@@ -77,11 +77,11 @@ jobs:
 
       - name: Upload Test Coverage to DeepSource
         if: steps.run_tests.outcome == 'success'
-        uses: deepsourcelabs/test-coverage-action@v1.1.2
-        with:
-          key: cxx
-          coverage-file: /opt/Autonomy_Software/build/AllCoverage.xml
-          dsn: ${{ secrets.DEEPSOURCE_DSN }}
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+        run: |
+          curl https://deepsource.com/cli | sh
+          ./bin/deepsource report --analyzer test-coverage --key cxx --value-file /opt/Autonomy_Software/build/AllCoverage.xml
 
       - name: Cleanup Action Environment
         if: always()
