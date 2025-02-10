@@ -40,7 +40,7 @@ class CameraHandlerTests : public TestingBase<CameraHandlerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        CameraHandlerTests() { SetUp(); }
+        CameraHandlerTests() {}
 
         /******************************************************************************
          * @brief Destroy the Camera Handler Tests object.
@@ -48,7 +48,7 @@ class CameraHandlerTests : public TestingBase<CameraHandlerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~CameraHandlerTests() { TearDown(); }
+        ~CameraHandlerTests() {}
 
         /******************************************************************************
          * @brief Setup the Camera Handler Tests object.
@@ -56,11 +56,7 @@ class CameraHandlerTests : public TestingBase<CameraHandlerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Camera Handler Tests object.
@@ -68,11 +64,7 @@ class CameraHandlerTests : public TestingBase<CameraHandlerTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 // /******************************************************************************
@@ -136,7 +128,7 @@ class CameraHandlerTests : public TestingBase<CameraHandlerTests>
 //     MockBasicCam* mockGroundCam;
 //     MockRecordingHandler* mockRecordingHandler;
 
-//     void SetUp() override {
+//     void TestSetup() override {
 //         mockMainCam = new MockZEDCam();
 //         mockLeftCam = new MockZEDCam();
 //         mockRightCam = new MockZEDCam();
@@ -150,7 +142,7 @@ class CameraHandlerTests : public TestingBase<CameraHandlerTests>
 //         cameraHandler->m_pRecordingHandler = mockRecordingHandler;
 //     }
 
-//     void TearDown() override {
+//     void TestTeardown() override {
 //         delete cameraHandler;
 //         delete mockMainCam;
 //         delete mockLeftCam;

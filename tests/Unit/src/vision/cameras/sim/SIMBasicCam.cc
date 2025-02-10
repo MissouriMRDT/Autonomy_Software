@@ -39,7 +39,7 @@ class SIMBasicCamTests : public TestingBase<SIMBasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        SIMBasicCamTests() { SetUp(); }
+        SIMBasicCamTests() {}
 
         /******************************************************************************
          * @brief Destroy the SIMBasicCamTests object.
@@ -47,7 +47,7 @@ class SIMBasicCamTests : public TestingBase<SIMBasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~SIMBasicCamTests() { TearDown(); }
+        ~SIMBasicCamTests() {}
 
         /******************************************************************************
          * @brief Setup the SIMBasicCamTests object.
@@ -55,11 +55,7 @@ class SIMBasicCamTests : public TestingBase<SIMBasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the SIMBasicCamTests object.
@@ -67,11 +63,7 @@ class SIMBasicCamTests : public TestingBase<SIMBasicCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
