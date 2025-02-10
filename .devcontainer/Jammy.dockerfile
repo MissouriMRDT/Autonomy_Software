@@ -40,7 +40,7 @@ RUN apt update && apt install -y wget gnupg && \
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
-    build-essential gdb less udev zstd sudo libgomp1 \
+    build-essential gdb less udev zstd sudo libgomp1 python-is-python3 \
     cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
     yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
@@ -56,8 +56,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Install Required Python Packages and link python3 executable to python.
-RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install numpy opencv-python pyopengl matplotlib
+RUN python -m pip install numpy opencv-python pyopengl matplotlib
 
 # Set Timezone
 RUN echo "${TZ}" > /etc/localtime && \
@@ -83,9 +82,9 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="1"
+ARG ZED_MINOR="2"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
-    https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}${CUDA_MINOR%.*}/ubuntu${UBUNTU_MAJOR} && \
+    https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
     ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
     rm ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run && \
@@ -95,7 +94,7 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.10.0"
+ARG OPENCV_VERSION="4.11.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
@@ -137,13 +136,13 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflo
     rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="7.3.0"
+ARG QUILL_VERSION="8.1.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.15.2"
+ARG GTEST_VERSION="1.16.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
@@ -157,8 +156,11 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en  
 ENV LC_ALL en_US.UTF-8  
 
-# Enable Cowsay.
-RUN echo 'if [ $(( RANDOM % 10000 )) -eq 0 ]; then /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else /usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f; fi' >> /root/.bashrc
+# Enable Cowsay, Fortune, Lolcat, and other fun commands.
+RUN mkdir -p ~/.config/fish/ && echo 'set fish_greeting; function random_message_or_donut; set rand (random 0 9999); if test $rand -eq 0; /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else; set cowfile (ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1); /usr/games/fortune | /usr/games/cowsay -f $cowfile | /usr/games/lolcat -f; end; end; if status is-interactive; random_message_or_donut; end' >> ~/.config/fish/config.fish
+
+# Set Fish as Default Shell.
+RUN chsh -s /usr/bin/fish
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
