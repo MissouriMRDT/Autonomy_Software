@@ -40,8 +40,8 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-02-08-23-48-34",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-02-08-23-48-34",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-02-10-18-03-17",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-02-10-18-03-17",
     // "build": {
     // "dockerfile": "Jammy.dockerfile"
     // "dockerfile": "JetPack.dockerfile"

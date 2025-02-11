@@ -67,14 +67,14 @@ namespace logging
                     m_szPlotTitle     = szPlotTitle;
 
                     // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
-                    std::string m_zePlotSavePath = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
+                    std::string m_szPlotSavePath = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
                     int nFileNum                 = 0;
-                    while (std::filesystem::exists(m_zePlotSavePath + std::to_string(nFileNum) + ".png"))
+                    while (std::filesystem::exists(m_szPlotSavePath + std::to_string(nFileNum) + ".png"))
                     {
                         ++nFileNum;
                     }
                     // Add the file number to the file name.
-                    m_zePlotSavePath = m_zePlotSavePath + std::to_string(nFileNum);
+                    m_szPlotSavePath = m_szPlotSavePath + std::to_string(nFileNum);
                     // Check if the final directory exists. If not then create it.
                     if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
                     {
@@ -82,7 +82,7 @@ namespace logging
                     }
 
                     // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
-                    m_mtRoverPathPlot->backend()->output(m_zePlotSavePath + ".png");
+                    m_mtRoverPathPlot->backend()->output(m_szPlotSavePath + ".png");
 
                     // Make sure plot title is not empty.
                     if (m_szPlotTitle.empty())
@@ -156,24 +156,28 @@ namespace logging
                  *              "-r": Solid red line.
                  *              "o": Circle markers with default line style (solid).
                  *              "-om": Solid magenta line with circle markers.
+                 * @return true - The layer was successfully created.
+                 * @return false - The layer already exists and cannot be created.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void CreatePathLayer(const std::string& szLayerName, const std::string& szStyleString = "-o")
+                bool CreatePathLayer(const std::string& szLayerName, const std::string& szStyleString = "-o")
                 {
                     // Check if the layer name exists in the map.
                     if (m_umPathMap.find(szLayerName) != m_umPathMap.end())
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "Layer already exists. Cannot create layer.");
-                        return;
+                        return false;
                     }
 
                     // Add the layer to the maps.
                     m_umPathMap[szLayerName]               = std::vector<std::pair<double, double>>();
                     m_umPathLineStyleMap[szLayerName]      = szStyleString;
                     m_umLastPlotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
+
+                    return true;
                 }
 
                 /******************************************************************************
@@ -191,42 +195,48 @@ namespace logging
                  *             "magenta": Magenta
                  *             "white": White
                  * @param bFillMarkerFace - Whether or not to fill the marker face. Default is true.
+                 * @return true - The layer was successfully created.
+                 * @return false - The layer already exists and cannot be created.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-27
                  ******************************************************************************/
-                void CreateDotLayer(const std::string& szLayerName, const std::string& szColorString = "blue", const bool bFillMarkerFace = true)
+                bool CreateDotLayer(const std::string& szLayerName, const std::string& szColorString = "blue", const bool bFillMarkerFace = true)
                 {
                     // Check if the layer name exists in the map.
                     if (m_umDotMap.find(szLayerName) != m_umDotMap.end())
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "Layer already exists. Cannot create layer.");
-                        return;
+                        return false;
                     }
 
                     // Add the layer to the maps.
                     m_umDotMap[szLayerName]               = std::vector<std::tuple<double, double, double>>();
                     m_umDotLineStyleMap[szLayerName]      = std::make_pair(szColorString, bFillMarkerFace);
                     m_umLastDotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
+
+                    return true;
                 }
 
                 /******************************************************************************
                  * @brief Delete a draw layer from the plot.
                  *
                  * @param szLayerName - The alias name of the layer.
+                 * @return true - The layer was successfully deleted.
+                 * @return false - The layer does not exist and cannot be deleted.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void DeleteLayer(const std::string& szLayerName)
+                bool DeleteLayer(const std::string& szLayerName)
                 {
                     // Check if the layer name exist in the path or dot maps.
                     if (m_umPathMap.find(szLayerName) == m_umPathMap.end() && m_umDotMap.find(szLayerName) == m_umDotMap.end())
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot delete layer.");
-                        return;
+                        return false;
                     }
 
                     // Remove the appropriate layers from the maps.
@@ -242,24 +252,28 @@ namespace logging
                         m_umDotLineStyleMap.erase(szLayerName);
                         m_umLastDotUpdateTimeMap.erase(szLayerName);
                     }
+
+                    return true;
                 }
 
                 /******************************************************************************
                  * @brief Clear the path or dots of a layer.
                  *
                  * @param szLayerName - The alias name of the layer.
+                 * @return true - The layer was successfully cleared.
+                 * @return false - The layer does not exist and cannot be cleared.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-08
                  ******************************************************************************/
-                void ClearLayer(const std::string& szLayerName)
+                bool ClearLayer(const std::string& szLayerName)
                 {
                     // Check if the layer name exist in the path or dot maps.
                     if (m_umPathMap.find(szLayerName) == m_umPathMap.end() && m_umDotMap.find(szLayerName) == m_umDotMap.end())
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "Layer does not exist. Cannot clear layer.");
-                        return;
+                        return false;
                     }
 
                     // Clear the appropriate layer.
@@ -271,6 +285,8 @@ namespace logging
                     {
                         m_umDotMap[szLayerName].clear();
                     }
+
+                    return true;
                 }
 
                 /******************************************************************************
@@ -681,7 +697,7 @@ namespace logging
                 std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
                 std::unordered_map<std::string, std::vector<std::tuple<double, double, double>>> m_umDotMap;
                 std::string m_szPlotTitle;
-                std::string m_zePlotSavePath;
+                std::string m_szPlotSavePath;
 
                 /******************************************************************************
                  * @brief Update the plot with the new waypoints and redraw the plot.

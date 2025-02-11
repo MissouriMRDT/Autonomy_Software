@@ -53,7 +53,7 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle       = szTitle;
-            matplot::figure_handle mtPlot = matplot::figure();
+            matplot::figure_handle mtPlot = matplot::figure(true);
             matplot::axes_handle mtAxes   = mtPlot->current_axes();
 
             // Check if the coordinates vector is empty.
@@ -109,6 +109,9 @@ namespace logging
                 double dMidNorthing = (vCoordinates[i].dNorthing + vCoordinates[i - 1].dNorthing) / 2;
                 mtAxes->text(dMidEasting, dMidNorthing, std::to_string(int(dDistance)) + " m");
             }
+
+            // Close the plot.
+            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -124,7 +127,7 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle       = szTitle;
-            matplot::figure_handle mtPlot = matplot::figure();
+            matplot::figure_handle mtPlot = matplot::figure(true);
             matplot::axes_handle mtAxes   = mtPlot->current_axes();
 
             // Check if the coordinates vector is empty.
@@ -180,6 +183,9 @@ namespace logging
                 double dMidLongitude = (vCoordinates[i].dLongitude + vCoordinates[i - 1].dLongitude) / 2;
                 mtAxes->text(dMidLatitude, dMidLongitude, std::to_string(int(dDistance)) + " m");
             }
+
+            // Close the plot.
+            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -195,7 +201,7 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle       = szTitle;
-            matplot::figure_handle mtPlot = matplot::figure();
+            matplot::figure_handle mtPlot = matplot::figure(true);
             matplot::axes_handle mtAxes   = mtPlot->current_axes();
 
             // Check if the coordinates vector is empty.
@@ -251,6 +257,9 @@ namespace logging
                 double dMidNorthing = (vWaypoints[i].GetUTMCoordinate().dNorthing + vWaypoints[i - 1].GetUTMCoordinate().dNorthing) / 2;
                 mtAxes->text(dMidEasting, dMidNorthing, std::to_string(int(dDistance)) + " m");
             }
+
+            // Close the plot.
+            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -266,7 +275,7 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle       = szTitle;
-            matplot::figure_handle mtPlot = matplot::figure();
+            matplot::figure_handle mtPlot = matplot::figure(true);
             matplot::axes_handle mtAxes   = mtPlot->current_axes();
 
             // Check if the coordinates vector is empty.
@@ -316,6 +325,9 @@ namespace logging
             mtAxes->xlabel("Easting");
             mtAxes->ylabel("Northing");
             mtAxes->zlabel("Altitude");
+
+            // Close the plot.
+            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -331,7 +343,7 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle       = szTitle;
-            matplot::figure_handle mtPlot = matplot::figure();
+            matplot::figure_handle mtPlot = matplot::figure(true);
             matplot::axes_handle mtAxes   = mtPlot->current_axes();
 
             // Check if the coordinates vector is empty.
@@ -381,6 +393,9 @@ namespace logging
             mtAxes->xlabel("Latitude");
             mtAxes->ylabel("Longitude");
             mtAxes->zlabel("Altitude");
+
+            // Close the plot.
+            mtPlot->save(szFileName + ".png");
         }
 
         /******************************************************************************
@@ -396,7 +411,7 @@ namespace logging
         {
             // Create instance variables.
             std::string szPlotTitle       = szTitle;
-            matplot::figure_handle mtPlot = matplot::figure();
+            matplot::figure_handle mtPlot = matplot::figure(true);
             matplot::axes_handle mtAxes   = mtPlot->current_axes();
 
             // Check if the coordinates vector is empty.
@@ -446,6 +461,9 @@ namespace logging
             mtAxes->xlabel("Easting");
             mtAxes->ylabel("Northing");
             mtAxes->zlabel("Altitude");
+
+            // Close the plot.
+            mtPlot->save(szFileName + ".png");
         }
     }    // namespace graphing
 }    // namespace logging
