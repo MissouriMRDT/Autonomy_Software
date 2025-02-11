@@ -101,6 +101,15 @@ namespace controllers
         double dSteeringAngle = 0.0;
         std::vector<BicycleModel::Prediction> vPredictions;
 
+        // Check if the reference path is empty.
+        if (m_vReferencePath.empty())
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "PredictiveStanleyController::Calculate: Reference path is empty. Cannot calculate drive powers.");
+
+            return DriveVector{0.0, 0.0};
+        }
+
         // Update the bicycle model with the current state.
         m_BicycleModel.UpdateState(stCurrentPose.GetUTMCoordinate().dEasting, stCurrentPose.GetUTMCoordinate().dNorthing, stCurrentPose.GetCompassHeading());
         // Predict the future state of the model.
