@@ -49,22 +49,6 @@ class TestingBase : public ::testing::Test
         virtual ~TestingBase() = default;
 
         /******************************************************************************
-         * @brief Method to set up the test class.
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2025-01-09
-         ******************************************************************************/
-        inline void SetUp() override { RequiredSetup(); }
-
-        /******************************************************************************
-         * @brief Method to tear down the test class.
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2025-01-09
-         ******************************************************************************/
-        inline void TearDown() override { RequiredTeardown(); }
-
-        /******************************************************************************
          * @brief Mutator for the Command Line Args private member
          *
          * @param argc - The number of command line arguments
@@ -98,7 +82,27 @@ class TestingBase : public ::testing::Test
             {
                 logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE, m_szTimestamp);
             }
+        }
 
+        /******************************************************************************
+         * @brief Required teardown for all tests.
+         *
+         *        This method stops the RoveComm instances and loggers.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        inline void RequiredTeardown() {}
+
+        /******************************************************************************
+         * @brief Setup RoveComm for testing.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-10
+         ******************************************************************************/
+        inline void SetupRoveComm()
+        {
             // Initialize RoveComm.
             if (network::g_pRoveCommUDPNode == nullptr)
             {
@@ -133,14 +137,13 @@ class TestingBase : public ::testing::Test
         }
 
         /******************************************************************************
-         * @brief Required teardown for all tests.
+         * @brief Teardown RoveComm for testing.
          *
-         *        This method stops the RoveComm instances and loggers.
          *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2025-01-09
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-10
          ******************************************************************************/
-        inline void RequiredTeardown()
+        inline void TeardownRoveComm()
         {
             // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
             network::g_bRoveCommUDPStatus = false;
@@ -165,10 +168,57 @@ class TestingBase : public ::testing::Test
             network::g_pRoveCommTCPNode = nullptr;
         }
 
+        /******************************************************************************
+         * @brief User's setup method.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-06
+         ******************************************************************************/
+        virtual inline void TestSetup() {}
+
+        /******************************************************************************
+         * @brief User's teardown method.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-06
+         ******************************************************************************/
+        virtual inline void TestTeardown() {}
+
     private:
+        // Declare private members.
         static int m_argc;
         static char** m_argv;
         static std::string m_szTimestamp;
+
+        /******************************************************************************
+         * @brief Method to set up the test class.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        inline void SetUp() override
+        {
+            // Call the base setup method. This initializes the loggers and RoveComm instances.
+            RequiredSetup();
+            // Call the user's setup method.
+            TestSetup();
+        }
+
+        /******************************************************************************
+         * @brief Method to tear down the test class.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        inline void TearDown() override
+        {
+            // Call the base teardown method. This stops the RoveComm instances and loggers.
+            RequiredTeardown();
+            // Call the user's teardown method.
+            TestTeardown();
+        }
 
         /******************************************************************************
          * @brief Method to parse the command line arguments.

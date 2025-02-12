@@ -35,7 +35,7 @@ class ZEDCamTests : public TestingBase<ZEDCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ZEDCamTests() { SetUp(); }
+        ZEDCamTests() {}
 
         /******************************************************************************
          * @brief Destroy the ZEDCamTests object.
@@ -43,7 +43,7 @@ class ZEDCamTests : public TestingBase<ZEDCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~ZEDCamTests() { TearDown(); }
+        ~ZEDCamTests() {}
 
         /******************************************************************************
          * @brief Setup the ZEDCamTests object.
@@ -51,11 +51,7 @@ class ZEDCamTests : public TestingBase<ZEDCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Destroy the ZEDCamTests object.
@@ -63,11 +59,7 @@ class ZEDCamTests : public TestingBase<ZEDCamTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

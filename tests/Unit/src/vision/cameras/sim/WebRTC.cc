@@ -43,7 +43,7 @@ class WebRTCTests : public TestingBase<WebRTCTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        WebRTCTests() { SetUp(); }
+        WebRTCTests() {}
 
         /******************************************************************************
          * @brief Destroy the WebRTC Tests object.
@@ -51,7 +51,7 @@ class WebRTCTests : public TestingBase<WebRTCTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~WebRTCTests() { TearDown(); }
+        ~WebRTCTests() {}
 
         /******************************************************************************
          * @brief Setup the WebRTC Tests object.
@@ -59,11 +59,7 @@ class WebRTCTests : public TestingBase<WebRTCTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the WebRTC Tests object.
@@ -71,11 +67,7 @@ class WebRTCTests : public TestingBase<WebRTCTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

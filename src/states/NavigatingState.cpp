@@ -34,18 +34,14 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bFetchNewWaypoint          = true;
-        m_nMaxDataPoints             = 100;
+        m_bFetchNewWaypoint = true;
+        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
 
-        m_dStuckCheckLastPosition[0] = 0;
-        m_dStuckCheckLastPosition[1] = 0;
-
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
-
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        // Create rover path layers.
+        m_pRoverPathPlot->CreatePathLayer("NavPath", "-o");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
     }
 
     /******************************************************************************
@@ -75,11 +71,13 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized  = false;
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_bInitialized   = false;
+        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
+        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
+
         // Start state.
         if (!m_bInitialized)
         {
@@ -124,6 +122,8 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+        // Add the current rover pose to the path plot.
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
@@ -161,6 +161,7 @@ namespace statemachine
                                                                                          stGoalWaypointMeasurement.dStartRelativeBearing,
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
+
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
@@ -350,6 +351,11 @@ namespace statemachine
                     LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                    // Clear the old path plot and add the new path.
+                    m_pRoverPathPlot->ClearLayer("NavPath");
+                    // Add starting point and goal point to path plot.
+                    m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
+                    m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
                 }
 
                 // Send multimedia command to update state display.

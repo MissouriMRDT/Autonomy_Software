@@ -55,364 +55,6 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Helper function to destroy objects from m_vObstacles.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-02
-     ******************************************************************************/
-    void AStar::ClearObstacleData()
-    {
-        m_vObstacles.clear();
-    }
-
-    /******************************************************************************
-     * @brief This method clears any saved obstacles in AStar, takes in a vector of
-     *      sl::ObjectData objects and translates them to a UTMCoordinate and estimated
-     *      size that is stored in the m_vObstacles vector.
-     *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
-     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
-     *
-     * @todo Validate data being pulled from ObjectData structs.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool& bClearObstacles)
-    {
-        // Remove stale obstacle data.
-        if (bClearObstacles)
-        {
-            ClearObstacleData();
-        }
-        // For each object in vObstacles:
-        for (size_t i = 0; i < vObstacles.size(); i++)
-        {
-            // Create Obstacle struct.
-            Obstacle stObstacleToAdd;
-            // Extract coordinate data from ObjectData struct.
-            stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
-            stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
-            // Extract size data from ObjectData and calculate size of obstacle.
-            // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-            stObstacleToAdd.dRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
-            // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
-            m_vObstacles.emplace_back(stObstacleToAdd);
-        }
-    }
-
-    /******************************************************************************
-     * @brief This method clears any saved obstacles in AStar, takes in a vector of
-     *      AStar::Obstacle and saves a copy to the m_vObstacles vector.
-     *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
-     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
-     *
-     * @todo Validate data being pulled from ObjectData structs.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool& bClearObstacles)
-    {
-        // Remove stale obstacle data.
-        if (bClearObstacles)
-        {
-            ClearObstacleData();
-        }
-        // For each object in vObstacles:
-        for (size_t i = 0; i < vObstacles.size(); i++)
-        {
-            m_vObstacles.emplace_back(vObstacles[i]);
-        }
-    }
-
-    /******************************************************************************
-     * @brief This method is intended to be called when a new obstacle is detected
-     *      from the ZedCam to add a new obstacle to be considered in path finding.
-     *
-     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
-     *                      to add.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::AddObstacle(const sl::ObjectData& stObstacle)
-    {
-        // Create Obstacle struct.
-        Obstacle stObstacleToAdd;
-        // Extract coordinate data from ObjectData struct.
-        stObstacleToAdd.stCenterPoint.dEasting  = stObstacle.position.x;
-        stObstacleToAdd.stCenterPoint.dNorthing = stObstacle.position.y;
-        // Extract size data from ObjectData and calculate size of obstacle.
-        // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-        stObstacleToAdd.dRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
-        // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
-        m_vObstacles.emplace_back(stObstacleToAdd);
-    }
-
-    /******************************************************************************
-     * @brief This method is intended to be called when a new obstacle is detected
-     *      to add a new obstacle to be considered in path finding.
-     *
-     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
-     *                      to add.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::AddObstacle(const Obstacle& stObstacle)
-    {
-        m_vObstacles.emplace_back(stObstacle);
-    }
-
-    /******************************************************************************
-     * @brief Helper function for the PlanAvoidancePath method. This method takes in
-     *      a UTMCoordinate reference and uses class member variables to mutate the
-     *      m_stGoalNode object's coordinates to represent the nearest boundary point.
-     *
-     * @pre - m_stStartNode has been initialized with a UTMCoordinate representing the
-     *          rover's current location.
-     *
-     * @param stGoalCoordinate - UTMCoordinate reference representing the current rover destination.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    geoops::UTMCoordinate AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate)
-    {
-        // Create return value.
-        geoops::UTMCoordinate stBoundaryCoordinate = stGoalCoordinate;
-        // Determine components of the distance vector formed by the current location and goal.
-        const double dDeltaX         = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
-        const double dDeltaY         = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
-        const double dAbsoluteDeltaX = std::abs(dDeltaX);
-        const double dAbsoluteDeltaY = std::abs(dDeltaY);
-        short sDirection;
-
-        // Only calculate the boundary point if the goal is not within the search grid.
-        if (dAbsoluteDeltaX > constants::ASTAR_MAXIMUM_SEARCH_GRID || dAbsoluteDeltaY > constants::ASTAR_MAXIMUM_SEARCH_GRID)
-        {
-            // Determine which component is major.
-            // If |X| is longer than |Y|.
-            if (dAbsoluteDeltaX > dAbsoluteDeltaY)
-            {
-                // Calculate scale ratio of distance vectors (big / small).
-                const double dVectorRatio = dAbsoluteDeltaX / constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of major component for boundary distance vector.
-                sDirection = dDeltaX / dAbsoluteDeltaX;
-                // Calculate goal node X component to be the boundary value.
-                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of minor component for boundary distance vector.
-                // Edge case of dDeltaY = 0, set sDirection to 0.
-                (dDeltaY != 0) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
-                // Calculate goal node Y axis with scale ratio.
-                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * dVectorRatio * dDeltaY;
-            }
-            // Else if |Y| is longer than |X|.
-            else if (dAbsoluteDeltaX < dAbsoluteDeltaY)
-            {
-                // Calculate scale ratio of distance vectors (big / small).
-                const double dVectorRatio = dAbsoluteDeltaY / constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of major component for boundary distance vector.
-                sDirection = dDeltaY / dAbsoluteDeltaY;
-                // Calculate goal node Y component to be the boundary value.
-                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of minor component for boundary distance vector.
-                // Edge case of dDeltaX = 0, set sDirection to 0.
-                (dDeltaX != 0) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
-                // Calculate goal node X axis with scale ratio.
-                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * dVectorRatio * dDeltaX;
-            }
-            // Else |X| = |Y|, so pick a corner.
-            else
-            {
-                // Determine +/- value of X component.
-                sDirection = dDeltaX / dAbsoluteDeltaX;
-                // Calculate goal node X component to be the boundary value.
-                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of Y component.
-                sDirection = dDeltaY / dAbsoluteDeltaY;
-                // Calculate goal node Y component to be the boundary value.
-                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-            }
-        }
-
-        // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
-        stBoundaryCoordinate = RoundUTMCoordinate(stBoundaryCoordinate);
-
-        // Handle edge case of an obstacle blocking the goal coordinate.
-        // For each obstacle:
-        for (size_t i = 0; i < m_vObstacles.size(); i++)
-        {
-            // Multiplier for avoidance radius.
-            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
-
-            // Create obstacle borders.
-            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
-            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
-            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
-            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
-
-            // If goal node coordinate is within X and Y axis obstacle borders.
-            if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder &&
-                dNorthObstacleBorder > stBoundaryCoordinate.dNorthing && stBoundaryCoordinate.dNorthing > dSouthObstacleBorder)
-            {
-                // Find Closest Cardinal or Diagonal Direction From Obstacle Center
-                // Check each direction for a shorter distance from the obstacle to the direction.
-                // stInverterClosestNode and dClosestDistance initialized with SW
-                double dNodeNorthing = stBoundaryCoordinate.dNorthing + (-1 * dAvoidanceRadius) - 0.5;
-                double dNodeEasting  = stBoundaryCoordinate.dEasting + (-1 * dAvoidanceRadius) - 0.5;
-                geoops::UTMCoordinate stClosestValidNode =
-                    geoops::UTMCoordinate(dNodeEasting + (2 * dAvoidanceRadius) + 1, dNodeNorthing + (2 * dAvoidanceRadius) + 1, 15);
-                double dClosestDistance =
-                    sqrt(pow(dNodeNorthing - m_vObstacles[i].stCenterPoint.dNorthing, 2) + pow(dNodeEasting - m_vObstacles[i].stCenterPoint.dEasting, 2));
-                for (int iEast = -1; iEast <= 1; iEast++)
-                {
-                    for (int iNorth = -1; iNorth <= 1; iNorth++)
-                    {
-                        if ((iEast == 0 && iNorth == 0) || (iEast == -1 && iNorth == -1))
-                            continue;
-
-                        dNodeNorthing = stBoundaryCoordinate.dNorthing + (iNorth * dAvoidanceRadius) + (iNorth * 0.5);
-                        dNodeEasting  = stBoundaryCoordinate.dEasting + (iEast * dAvoidanceRadius) + (iEast * 0.5);
-
-                        double dNodeDistance =
-                            sqrt(pow(dNodeNorthing - m_vObstacles[i].stCenterPoint.dNorthing, 2) + pow(dNodeEasting - m_vObstacles[i].stCenterPoint.dEasting, 2));
-
-                        if (dNodeDistance < dClosestDistance)
-                        {
-                            dClosestDistance = dNodeDistance;
-                            // Assign the closest valid coordinate if it is in bounds, otherwise place on the other side of the obstacle
-                            double closestValidCoordinateEasting  = dNodeEasting + (-2 * iEast * dAvoidanceRadius) + (iEast * -1);
-                            double closestValidCoordinateNorthing = dNodeNorthing + (-2 * iNorth * dAvoidanceRadius) + (iNorth * -1);
-                            if (ValidCoordinate(closestValidCoordinateEasting, closestValidCoordinateNorthing))
-                                stClosestValidNode = geoops::UTMCoordinate(closestValidCoordinateEasting, closestValidCoordinateNorthing, 15);
-                            else
-                                stClosestValidNode = geoops::UTMCoordinate(dNodeEasting + (iEast * 0.5), dNodeNorthing + (iNorth * 0.5), 15);
-                        }
-                    }
-                }
-                // Shift goal coordinate away from closest node
-                stBoundaryCoordinate = RoundUTMCoordinate(stClosestValidNode);
-
-                // Reset list iteration to check previous obstacles in new goal location
-                i = 0;
-            }
-        }
-
-        // Return rounded coordinate.
-        return stBoundaryCoordinate;
-    }
-
-    /******************************************************************************
-     * @brief Helper function used to translate a UTMCoordinate's dEasting and dNorthing
-     *      values into a string that can be hashed for the unordered_map data structure
-     *      for O(1) lookup of nodes at a particular location.
-     *
-     * @param stToTranslate - A UTMCoordinate struct reference containing the data to translate.
-     *
-     * @return - A string containing the translated coordinate.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-05
-     ******************************************************************************/
-    std::string AStar::UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate)
-    {
-        std::string szTranslation = std::to_string(stToTranslate.dEasting);
-        szTranslation.append(std::to_string(stToTranslate.dNorthing));
-        return szTranslation;
-    }
-
-    /******************************************************************************
-     * @brief Helper function used to determine if a potential UTMCoordinate is valid.
-     *      Returns False if there is an obstacle is blocking the node or the node is
-     *      outside the max boundary. Returns True otherwise, representing the node is a
-     *      valid path to consider. To save memory and compute time, we only evaluate the
-     *      doubles representing the coordinate.
-     *
-     * @param dEasting - A const double reference representing a dEasting to evaluate.
-     * @param dNorthing - A const double reference representing a dNorthing to evaluate.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-06
-     ******************************************************************************/
-    bool AStar::ValidCoordinate(const double& dEasting, const double& dNorthing)
-    {
-        // For each obstacle.
-        for (size_t i = 0; i < m_vObstacles.size(); i++)
-        {
-            // Multiplier for avoidance radius.
-            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
-            // Create obstacle borders.
-            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
-            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
-            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
-            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
-
-            // Return false if node is within obstacle borders.
-            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder > dNorthing && dNorthing > dSouthObstacleBorder)
-            {
-                return false;
-            }
-        }
-
-        // Boundary check (Returns true if params indicate a coordinate inside of the search grid).
-        if (dEasting >= (m_stStartNode.stNodeLocation.dEasting - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
-            dEasting <= (m_stStartNode.stNodeLocation.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE) &&
-            dNorthing >= (m_stStartNode.stNodeLocation.dNorthing - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
-            dNorthing <= (m_stStartNode.stNodeLocation.dNorthing + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE))
-        {
-            return true;
-        }
-        // Return false if boundary check failed.
-        return false;
-    }
-
-    /******************************************************************************
-     * @brief Helper function used to round UTMCoordinates to the nearest constants::ASTAR_NODE_SIZE to avoid
-     *      rounding errors when trying to determine if two nodes have the same location.
-     *
-     * @param stCoordinateToRound - A UTMCoordinate reference that will have its dNorthing and dEasting values
-     *                              mutated to round them to the nearest constants::ASTAR_NODE_SIZE.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-12
-     ******************************************************************************/
-    geoops::UTMCoordinate AStar::RoundUTMCoordinate(const geoops::UTMCoordinate& stCoordinateToRound)
-    {
-        geoops::UTMCoordinate stRounded = geoops::UTMCoordinate(stCoordinateToRound);
-        stRounded.dEasting              = std::round(stCoordinateToRound.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
-        stRounded.dNorthing             = std::round(stCoordinateToRound.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
-        return stRounded;
-    }
-
-    /******************************************************************************
-     * @brief Called when a goal node has been reached. Recursively builds a vector of
-     *          UTMCoordinates by tracing the parent pointers of AStarNodes.
-     *          This function then saves that vector to m_vPathNodes.
-     *
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-13
-     ******************************************************************************/
-    void AStar::ConstructPath(const nodes::AStarNode& stEndNode)
-    {
-        // Base case: Check for origin node.
-        if (stEndNode.pParentNode == nullptr)
-        {
-            // Start copying
-            m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
-            return;
-        }
-        // Recursive case: call ConstructPath on parent pointer.
-        ConstructPath(*stEndNode.pParentNode);
-        // Copy node UTMCoordinate data to m_vPathNodes.
-        m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
-        return;
-    }
-
-    /******************************************************************************
      * @brief Called in the obstacle avoidance state to plan a path around obstacles
      *      blocking our path.
      *
@@ -437,14 +79,7 @@ namespace pathplanners
 
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.
-        if (vObstacles.size() == 0)
-        {
-            UpdateObstacleData(vObstacles, false);
-        }
-        else
-        {
-            UpdateObstacleData(vObstacles);
-        }
+        UpdateObstacleData(vObstacles);
 
         // Create start node.
         m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
@@ -544,9 +179,6 @@ namespace pathplanners
                 geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
                 bool bGeoSuccess                        = stDistanceToGoal.dDistanceMeters > 0.01;
 
-                // Round distance to nearest grid point
-                stDistanceToGoal.dDistanceMeters = std::round(stDistanceToGoal.dDistanceMeters / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
-
                 // If this succeeds, use the GeoMeasurement distance.
                 if (bGeoSuccess)
                 {
@@ -557,7 +189,7 @@ namespace pathplanners
                 {
                     dDeltaEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
                     dDeltaNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-                    bAtGoal        = (dDeltaEasting < constants::ASTAR_NODE_SIZE) && (dDeltaNorthing < constants::ASTAR_NODE_SIZE);
+                    bAtGoal        = dDeltaEasting < constants::ASTAR_NODE_SIZE && dDeltaNorthing < constants::ASTAR_NODE_SIZE;
                 }
 
                 // Construct and return path if we have reached the goal.
@@ -629,5 +261,402 @@ namespace pathplanners
                   m_stGoalNode.stNodeLocation.dNorthing);
         // Return empty vector and handle outside of class.
         return m_vPathCoordinates;
+    }
+
+    /******************************************************************************
+     * @brief This method is intended to be called when a new obstacle is detected
+     *      from the ZedCam to add a new obstacle to be considered in path finding.
+     *
+     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
+     *                      to add.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::AddObstacle(const sl::ObjectData& stObstacle)
+    {
+        // Create Obstacle struct.
+        Obstacle stObstacleToAdd;
+        // Extract coordinate data from ObjectData struct.
+        stObstacleToAdd.stCenterPoint.dEasting  = stObstacle.position.x;
+        stObstacleToAdd.stCenterPoint.dNorthing = stObstacle.position.y;
+        // Extract size data from ObjectData and calculate size of obstacle.
+        // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
+        stObstacleToAdd.dRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
+        // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
+        m_vObstacles.emplace_back(stObstacleToAdd);
+    }
+
+    /******************************************************************************
+     * @brief This method is intended to be called when a new obstacle is detected
+     *      to add a new obstacle to be considered in path finding.
+     *
+     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
+     *                      to add.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::AddObstacle(const Obstacle& stObstacle)
+    {
+        m_vObstacles.emplace_back(stObstacle);
+    }
+
+    /******************************************************************************
+     * @brief This method clears any saved obstacles in AStar, takes in a vector of
+     *      sl::ObjectData objects and translates them to a UTMCoordinate and estimated
+     *      size that is stored in the m_vObstacles vector.
+     *
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
+     *
+     * @todo Validate data being pulled from ObjectData structs.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool bClearObstacles)
+    {
+        // Remove stale obstacle data.
+        if (bClearObstacles)
+        {
+            ClearObstacleData();
+        }
+        // For each object in vObstacles:
+        for (size_t i = 0; i < vObstacles.size(); i++)
+        {
+            // Create Obstacle struct.
+            Obstacle stObstacleToAdd;
+            // Extract coordinate data from ObjectData struct.
+            stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
+            stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
+            // Extract size data from ObjectData and calculate size of obstacle.
+            // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
+            stObstacleToAdd.dRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
+            // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
+            m_vObstacles.emplace_back(stObstacleToAdd);
+        }
+    }
+
+    /******************************************************************************
+     * @brief This method clears any saved obstacles in AStar, takes in a vector of
+     *      AStar::Obstacle and saves a copy to the m_vObstacles vector.
+     *
+     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
+     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
+     *
+     * @todo Validate data being pulled from ObjectData structs.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    void AStar::UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool bClearObstacles)
+    {
+        // Remove stale obstacle data.
+        if (bClearObstacles)
+        {
+            ClearObstacleData();
+        }
+        // For each object in vObstacles:
+        for (size_t i = 0; i < vObstacles.size(); i++)
+        {
+            m_vObstacles.emplace_back(vObstacles[i]);
+        }
+    }
+
+    /******************************************************************************
+     * @brief Helper function to destroy objects from m_vObstacles.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-02
+     ******************************************************************************/
+    void AStar::ClearObstacleData()
+    {
+        m_vObstacles.clear();
+    }
+
+    /******************************************************************************
+     * @brief Getter for the path calculated by ASTAR.
+     *
+     * @return std::vector<geoops::UTMCoordinate> - A vector of UTMCoordinates representing the path calculated by ASTAR.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-01-09
+     ******************************************************************************/
+    std::vector<geoops::UTMCoordinate> AStar::GetPath() const
+    {
+        return m_vPathCoordinates;
+    }
+
+    /******************************************************************************
+     * @brief Getter for the current obstacle data.
+     *
+     * @return std::vector<AStar::Obstacle> - A vector of Obstacle structs representing the obstacles in the path.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-01-09
+     ******************************************************************************/
+    std::vector<AStar::Obstacle> AStar::GetObstacleData() const
+    {
+        return m_vObstacles;
+    }
+
+    /******************************************************************************
+     * @brief Helper function for the PlanAvoidancePath method. This method takes in
+     *      a UTMCoordinate reference and uses class member variables to mutate the
+     *      m_stGoalNode object's coordinates to represent the nearest boundary point.
+     *
+     * @pre - m_stStartNode has been initialized with a UTMCoordinate representing the
+     *          rover's current location.
+     *
+     * @param stGoalCoordinate - UTMCoordinate reference representing the current rover destination.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-15
+     ******************************************************************************/
+    geoops::UTMCoordinate AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate)
+    {
+        // Create return value.
+        geoops::UTMCoordinate stBoundaryCoordinate = stGoalCoordinate;
+        // Determine components of the distance vector formed by the current location and goal.
+        const double dDeltaX         = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
+        const double dDeltaY         = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
+        const double dAbsoluteDeltaX = std::abs(dDeltaX);
+        const double dAbsoluteDeltaY = std::abs(dDeltaY);
+        short sDirection;
+
+        // Only calculate the boundary point if the goal is not within the search grid.
+        if (dAbsoluteDeltaX > constants::ASTAR_MAXIMUM_SEARCH_GRID || dAbsoluteDeltaY > constants::ASTAR_MAXIMUM_SEARCH_GRID)
+        {
+            // Determine which component is major.
+            // If |X| is longer than |Y|.
+            if (dAbsoluteDeltaX > dAbsoluteDeltaY)
+            {
+                // Calculate scale ratio of distance vectors (big / small).
+                const double dVectorRatio = dAbsoluteDeltaX / constants::ASTAR_MAXIMUM_SEARCH_GRID;
+                // Determine +/- value of major component for boundary distance vector.
+                sDirection = dDeltaX / dAbsoluteDeltaX;
+                // Calculate goal node X component to be the boundary value.
+                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
+                // Determine +/- value of minor component for boundary distance vector.
+                // Edge case of dDeltaY = 0, set sDirection to 0.
+                (dDeltaY != 0) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
+                // Calculate goal node Y axis with scale ratio.
+                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * dVectorRatio * dDeltaY;
+            }
+            // Else if |Y| is longer than |X|.
+            else if (dAbsoluteDeltaX < dAbsoluteDeltaY)
+            {
+                // Calculate scale ratio of distance vectors (big / small).
+                const double dVectorRatio = dAbsoluteDeltaY / constants::ASTAR_MAXIMUM_SEARCH_GRID;
+                // Determine +/- value of major component for boundary distance vector.
+                sDirection = dDeltaY / dAbsoluteDeltaY;
+                // Calculate goal node Y component to be the boundary value.
+                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
+                // Determine +/- value of minor component for boundary distance vector.
+                // Edge case of dDeltaX = 0, set sDirection to 0.
+                (dDeltaX != 0) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
+                // Calculate goal node X axis with scale ratio.
+                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * dVectorRatio * dDeltaX;
+            }
+            // Else |X| = |Y|, so pick a corner.
+            else
+            {
+                // Determine +/- value of X component.
+                sDirection = dDeltaX / dAbsoluteDeltaX;
+                // Calculate goal node X component to be the boundary value.
+                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
+                // Determine +/- value of Y component.
+                sDirection = dDeltaY / dAbsoluteDeltaY;
+                // Calculate goal node Y component to be the boundary value.
+                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
+            }
+        }
+
+        // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
+        RoundUTMCoordinate(stBoundaryCoordinate);
+
+        // Handle edge case of an obstacle blocking the goal coordinate.
+        // For each obstacle:
+        for (size_t i = 0; i < m_vObstacles.size(); i++)
+        {
+            // Multiplier for avoidance radius.
+            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
+
+            // Create obstacle borders.
+            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
+            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
+            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
+            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
+
+            // If goal node coordinate is within X and Y axis obstacle borders.
+            if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder &&
+                dNorthObstacleBorder > stBoundaryCoordinate.dNorthing && stBoundaryCoordinate.dNorthing > dSouthObstacleBorder)
+            {
+                // Find Closest Cardinal or Diagonal Direction From Obstacle Center
+                // Check each direction for a shorter distance from the obstacle to the direction.
+                // stInverterClosestNode and dClosestDistance initialized with SW
+                double dNodeNorthing = stBoundaryCoordinate.dNorthing + (-1 * dAvoidanceRadius) - 0.5;
+                double dNodeEasting  = stBoundaryCoordinate.dEasting + (-1 * dAvoidanceRadius) - 0.5;
+                geoops::UTMCoordinate stClosestValidNode =
+                    geoops::UTMCoordinate(dNodeEasting + (2 * dAvoidanceRadius) + 1, dNodeNorthing + (2 * dAvoidanceRadius) + 1, 15);
+                double dClosestDistance =
+                    sqrt(pow(dNodeNorthing - m_vObstacles[i].stCenterPoint.dNorthing, 2) + pow(dNodeEasting - m_vObstacles[i].stCenterPoint.dEasting, 2));
+                for (int iEast = -1; iEast <= 1; iEast++)
+                {
+                    for (int iNorth = -1; iNorth <= 1; iNorth++)
+                    {
+                        if ((iEast == 0 && iNorth == 0) || (iEast == -1 && iNorth == -1))
+                            continue;
+
+                        dNodeNorthing = stBoundaryCoordinate.dNorthing + (iNorth * dAvoidanceRadius) + (iNorth * 0.5);
+                        dNodeEasting  = stBoundaryCoordinate.dEasting + (iEast * dAvoidanceRadius) + (iEast * 0.5);
+
+                        double dNodeDistance =
+                            sqrt(pow(dNodeNorthing - m_vObstacles[i].stCenterPoint.dNorthing, 2) + pow(dNodeEasting - m_vObstacles[i].stCenterPoint.dEasting, 2));
+
+                        if (dNodeDistance < dClosestDistance)
+                        {
+                            dClosestDistance = dNodeDistance;
+                            // Assign the closest valid coordinate if it is in bounds, otherwise place on the other side of the obstacle
+                            double closestValidCoordinateEasting  = dNodeEasting + (-2 * iEast * dAvoidanceRadius) + (iEast * -1);
+                            double closestValidCoordinateNorthing = dNodeNorthing + (-2 * iNorth * dAvoidanceRadius) + (iNorth * -1);
+                            if (ValidCoordinate(closestValidCoordinateEasting, closestValidCoordinateNorthing))
+                                stClosestValidNode = geoops::UTMCoordinate(closestValidCoordinateEasting, closestValidCoordinateNorthing, 15);
+                            else
+                                stClosestValidNode = geoops::UTMCoordinate(dNodeEasting + (iEast * 0.5), dNodeNorthing + (iNorth * 0.5), 15);
+                        }
+                    }
+                }
+                else
+                {
+                    stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
+                }
+                RoundUTMCoordinate(stBoundaryCoordinate);
+            }
+
+            // If goal node coordinate is within Y axis obstacle borders.
+            if (dNorthObstacleBorder < m_stGoalNode.stNodeLocation.dNorthing && m_stGoalNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
+            {
+                // Shift goal coordinate along Y axis to avoid obstacle.
+                if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                {
+                    stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
+                }
+                else
+                {
+                    stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
+                }
+                RoundUTMCoordinate(stBoundaryCoordinate);
+            }
+        }
+
+        // Return rounded coordinate.
+        return stBoundaryCoordinate;
+    }
+
+    /******************************************************************************
+     * @brief Helper function used to translate a UTMCoordinate's dEasting and dNorthing
+     *      values into a string that can be hashed for the unordered_map data structure
+     *      for O(1) lookup of nodes at a particular location.
+     *
+     * @param stToTranslate - A UTMCoordinate struct reference containing the data to translate.
+     *
+     * @return - A string containing the translated coordinate.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-05
+     ******************************************************************************/
+    std::string AStar::UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate)
+    {
+        std::string szTranslation = std::to_string(stToTranslate.dEasting);
+        szTranslation.append(std::to_string(stToTranslate.dNorthing));
+        return szTranslation;
+    }
+
+    /******************************************************************************
+     * @brief Helper function used to determine if a potential UTMCoordinate is valid.
+     *      Returns False if there is an obstacle is blocking the node or the node is
+     *      outside the max boundary. Returns True otherwise, representing the node is a
+     *      valid path to consider. To save memory and compute time, we only evaluate the
+     *      doubles representing the coordinate.
+     *
+     * @param dEasting - A const double reference representing a dEasting to evaluate.
+     * @param dNorthing - A const double reference representing a dNorthing to evaluate.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-06
+     ******************************************************************************/
+    bool AStar::ValidCoordinate(const double& dEasting, const double& dNorthing)
+    {
+        // For each obstacle.
+        for (size_t i = 0; i < m_vObstacles.size(); i++)
+        {
+            // Multiplier for avoidance radius.
+            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
+            // Create obstacle borders.
+            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
+            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
+            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
+            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
+
+            // Return false if node is within obstacle borders.
+            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder > dNorthing && dNorthing > dSouthObstacleBorder)
+            {
+                return false;
+            }
+        }
+
+        // Boundary check (Returns true if params indicate a coordinate inside of the search grid).
+        if (dEasting >= (m_stStartNode.stNodeLocation.dEasting - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+            dEasting <= (m_stStartNode.stNodeLocation.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE) &&
+            dNorthing >= (m_stStartNode.stNodeLocation.dNorthing - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+            dNorthing <= (m_stStartNode.stNodeLocation.dNorthing + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE))
+        {
+            return true;
+        }
+        // Return false if boundary check failed.
+        return false;
+    }
+
+    /******************************************************************************
+     * @brief Helper function used to round UTMCoordinates to the nearest constants::ASTAR_NODE_SIZE to avoid
+     *      rounding errors when trying to determine if two nodes have the same location.
+     *
+     * @param stCoordinateToRound - A UTMCoordinate reference that will have its dNorthing and dEasting values
+     *                              mutated to round them to the nearest constants::ASTAR_NODE_SIZE.
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-12
+     ******************************************************************************/
+    void AStar::RoundUTMCoordinate(geoops::UTMCoordinate& stCoordinateToRound)
+    {
+        stCoordinateToRound.dEasting  = std::round(stCoordinateToRound.dEasting / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+        stCoordinateToRound.dNorthing = std::round(stCoordinateToRound.dNorthing / constants::ASTAR_NODE_SIZE) * constants::ASTAR_NODE_SIZE;
+    }
+
+    /******************************************************************************
+     * @brief Called when a goal node has been reached. Recursively builds a vector of
+     *          UTMCoordinates by tracing the parent pointers of AStarNodes.
+     *          This function then saves that vector to m_vPathNodes.
+     *
+     *
+     * @author Kai Shafe (kasq5m@umsystem.edu)
+     * @date 2024-02-13
+     ******************************************************************************/
+    void AStar::ConstructPath(const nodes::AStarNode& stEndNode)
+    {
+        // Base case: Check for origin node.
+        if (stEndNode.pParentNode == nullptr)
+        {
+            // Start copying
+            m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
+            return;
+        }
+        // Recursive case: call ConstructPath on parent pointer.
+        ConstructPath(*stEndNode.pParentNode);
+        // Copy node UTMCoordinate data to m_vPathNodes.
+        m_vPathCoordinates.emplace_back(stEndNode.stNodeLocation);
+        return;
     }
 }    // namespace pathplanners
