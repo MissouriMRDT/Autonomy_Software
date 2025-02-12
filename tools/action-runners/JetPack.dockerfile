@@ -1,12 +1,12 @@
 # Base Image
-FROM ghcr.io/missourimrdt/autonomy-jammy:latest
+FROM ghcr.io/missourimrdt/autonomy-jetpack:2024-11-27-21-06-51
 
 # Install Variables
-ARG UBUNTU_MAJOR="22"
-ARG CUDA_MAJOR="12"
-ARG CUDA_MINOR="2"
-ARG CUDA_PATCH="2"
-ARG RUNNER_VERSION="2.319.1"
+ARG L4T_MAJOR="36"
+ARG L4T_MINOR="2"
+ARG L4T_PATCH="0"
+ARG L4T_BASE="l4t-jetpack"
+ARG RUNNER_VERSION="2.321.0"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNNER_ALLOW_RUNASROOT=1
 
@@ -16,23 +16,23 @@ LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.5.0"
-LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, and Runner ${RUNNER_VERSION}."
+LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with Runner ${RUNNER_VERSION}."
 
-# Update the base packages + add a non-sudo user
+# Uupdate the base packages + add a non-sudo user
 RUN apt-get update -y && apt-get upgrade -y && useradd -m docker
-
-# Install the packages and dependencies along with jq so we can parse JSON (add additional packages as necessary)
-RUN apt-get install -y --no-install-recommends \
-    curl gnutls-bin openssl nodejs wget unzip vim git jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip docker.io \
-    sudo libjpeg-dev libjpeg-turbo8-dev libturbojpeg git-lfs ccache
 
 # Set Working Directory
 WORKDIR /home/docker
 
+# Install the packages and dependencies along with jq so we can parse JSON (add additional packages as necessary)
+RUN apt-get install -y --no-install-recommends \
+    curl gnutls-bin openssl nodejs wget unzip vim git jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip docker.io \
+    libjpeg-dev libjpeg-turbo8-dev libturbojpeg git-lfs ccache
+
 # Change into the user directory, download and unzip the github actions runner
 RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
-    && curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
-    && tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
+    && curl -O -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz \
+    && tar xzf ./actions-runner-linux-arm64-${RUNNER_VERSION}.tar.gz
 
 # Set Working Directory
 WORKDIR /home/docker/actions-runner
@@ -51,7 +51,7 @@ RUN chown docker -R /usr/local/zed
 RUN chown docker -R /usr/local/cuda
 
 # Add over the start.sh script
-ADD scripts/start.sh start.sh
+COPY scripts/start.sh start.sh
 
 # Make the script executable
 RUN chmod +x start.sh

@@ -27,17 +27,6 @@
 namespace controllers
 {
     /******************************************************************************
-     * @brief Default constructor for Stanley Controller.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-04-28
-     *******************************************************************************/
-    StanleyController::StanleyController()
-    {
-        // Nothing to do.
-    }
-
-    /******************************************************************************
      * @brief Construct a new Stanley Contoller:: Stanley Contoller object.
      *
      * @param dKp - Steering control gain.
@@ -141,27 +130,29 @@ namespace controllers
      *
      * @param stUTMCurrPos - The agent's current position in the UTM coordinate space.
      * @param dVelocity - The agent's current magnitude of velocity.
-     * @param dBearing - The agent's current yaw angle (heading).
+     * @param dCurrentHeading - The agent's current yaw angle (heading).
      * @return double - The calculated change in yaw needed to align the agent with the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-03
      ******************************************************************************/
-    double StanleyController::Calculate(const geoops::UTMCoordinate& stUTMCurrPos, const double dVelocity, const double dBearing)
+    double StanleyController::Calculate(const geoops::UTMCoordinate& stUTMCurrPos, const double dVelocity, const double dCurrentHeading)
     {
-        // Verify the given bearing is within 0-360 degrees.
-        if (dBearing < 0 || dBearing > 360)
+        // Verify the given heading is within 0-360 degrees.
+        if (dCurrentHeading < 0 || dCurrentHeading > 360)
         {
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate bearing must be in the interval [0-360]. Received: {}", dBearing);
+            LOG_ERROR(logging::g_qSharedLogger, "Heading must be in the interval [0-360]. Received: {}", dCurrentHeading);
+            return 0;
         }
         // Verify a path has been loaded into the Stanley Controller
         if (m_vUTMPath.empty())
         {
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::Calculate No path has been loaded.");
+            LOG_ERROR(logging::g_qSharedLogger, "No path has been loaded.");
+            return 0;
         }
 
         // Calculate the position for the center of the front axle.
-        geoops::UTMCoordinate stUTMFrontAxlePos = CalculateFrontAxleCoordinate(stUTMCurrPos, dBearing);
+        geoops::UTMCoordinate stUTMFrontAxlePos = CalculateFrontAxleCoordinate(stUTMCurrPos, dCurrentHeading);
 
         // Find the point on the path closest to the front axle center
         unsigned int unTargetIdx = IdentifyTargetIdx(stUTMFrontAxlePos);
@@ -174,10 +165,10 @@ namespace controllers
         double dTargetYaw = CalculateTargetBearing(unTargetIdx);
 
         // Calculate the difference between the rover's yaw and the desired path yaw
-        double dYawError = numops::InputAngleModulus<double>(dTargetYaw - dBearing, -180.0, 180.0);
+        double dYawError = numops::InputAngleModulus<double>(dTargetYaw - dCurrentHeading, -180.0, 180.0);
 
         // Calculate the change in yaw needed to correct for the cross track error
-        double dCrossTrackError = CalculateCrossTrackError(stUTMFrontAxlePos, unTargetIdx, dBearing);
+        double dCrossTrackError = CalculateCrossTrackError(stUTMFrontAxlePos, unTargetIdx, dCurrentHeading);
         double dDeltaYaw        = dYawError + std::atan2(m_dKp * dCrossTrackError, dVelocity);
 
         // If a rotation is small enough we will just go ahead and skip it
@@ -187,7 +178,7 @@ namespace controllers
         }
 
         // Here we translate the relative change in yaw to an absolute heading
-        return numops::InputAngleModulus<double>(dBearing + dDeltaYaw, 0, 360);
+        return numops::InputAngleModulus<double>(dCurrentHeading + dDeltaYaw, 0, 360);
     }
 
     /******************************************************************************
@@ -198,16 +189,16 @@ namespace controllers
      *
      * @param stGPSCurrPos - The agent's current position in the GPS coordinate space.
      * @param dVelocity - The agent's current magnitude of velocity.
-     * @param dBearing - The agent's current yaw angle (heading).
+     * @param dCurrentHeading - The agent's current yaw angle (heading).
      * @return double - The calculated change in yaw needed to align the agent with the path.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-17
      ******************************************************************************/
-    double StanleyController::Calculate(const geoops::GPSCoordinate& stGPSCurrPos, const double dVelocity, const double dBearing)
+    double StanleyController::Calculate(const geoops::GPSCoordinate& stGPSCurrPos, const double dVelocity, const double dCurrentHeading)
     {
         geoops::UTMCoordinate stUTMCurrPos = geoops::ConvertGPSToUTM(stGPSCurrPos);
-        return Calculate(stUTMCurrPos, dVelocity, dBearing);
+        return Calculate(stUTMCurrPos, dVelocity, dCurrentHeading);
     }
 
     /******************************************************************************
@@ -273,7 +264,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-16
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::UTMCoordinate>& vUTMPath)
+    void StanleyController::SetPath(const std::vector<geoops::UTMCoordinate>& vUTMPath)
     {
         m_vUTMPath        = vUTMPath;
         m_unLastTargetIdx = 0;
@@ -296,7 +287,7 @@ namespace controllers
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-17
      ******************************************************************************/
-    void StanleyController::SetPath(std::vector<geoops::GPSCoordinate>& vGPSPath)
+    void StanleyController::SetPath(const std::vector<geoops::GPSCoordinate>& vGPSPath)
     {
         m_vUTMPath.clear();
 
@@ -309,6 +300,33 @@ namespace controllers
         }
         m_vGPSPath        = vGPSPath;
 
+        m_unLastTargetIdx = 0;
+    }
+
+    /******************************************************************************
+     * @brief Setter for path.
+     *
+     * @param vWaypointsPath - Vector of waypoints describing path to follow.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-01-07
+     ******************************************************************************/
+    void StanleyController::SetPath(const std::vector<geoops::Waypoint>& vWaypointsPath)
+    {
+        // Clear the current paths.
+        m_vUTMPath.clear();
+        m_vGPSPath.clear();
+
+        // For each GPS coordinate convert it to UTM and save it to the path.
+        std::vector<geoops::Waypoint>::const_iterator itrWaypoint = vWaypointsPath.begin();
+        while (itrWaypoint != vWaypointsPath.end())
+        {
+            m_vUTMPath.push_back(itrWaypoint->GetUTMCoordinate());
+            m_vGPSPath.push_back(itrWaypoint->GetGPSCoordinate());
+            ++itrWaypoint;
+        }
+
+        // Reset the last target index.
         m_unLastTargetIdx = 0;
     }
 
@@ -390,6 +408,13 @@ namespace controllers
         return m_vGPSPath;
     }
 
+    /******************************************************************************
+     * @brief Clear the current path.
+     *
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2025-01-07
+     ******************************************************************************/
     void StanleyController::ClearPath()
     {
         m_vUTMPath.clear();
@@ -400,18 +425,18 @@ namespace controllers
      * @brief Calculate the UTM coordinate of the center of the agent's front axle.
      *
      * @param stUTMCurrPos - The agent's current position in the UTM coordinate space.
-     * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
+     * @param dCurrentHeading - The current heading of the agent, measured in degrees from 0 to 360.
      * @return UTMCoordinate - The UTM coordinate of the center of the agent's front axle.
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-08
      ******************************************************************************/
-    geoops::UTMCoordinate StanleyController::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stUTMCurrPos, const double dBearing) const
+    geoops::UTMCoordinate StanleyController::CalculateFrontAxleCoordinate(const geoops::UTMCoordinate& stUTMCurrPos, const double dCurrentHeading) const
     {
-        // Convert the bearing to a change in degrees of yaw relative to the north axis
+        // Convert the heading to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
         // Here a negative degree represents a change in yaw towards the West.
-        double dChangeInYawRelToNorth = dBearing <= 180 ? dBearing : dBearing - 360;
+        double dChangeInYawRelToNorth = dCurrentHeading <= 180 ? dCurrentHeading : dCurrentHeading - 360;
 
         // Convert to radians.
         dChangeInYawRelToNorth = (dChangeInYawRelToNorth / 180) * M_PI;
@@ -468,7 +493,7 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Calculate the required bearing to navigate from the current target point to the subsequent point on the path.
+     * @brief Calculate the required heading to navigate from the current target point to the subsequent point on the path.
      *
      * @param unTargetIdx - Index of the target point on the path.
      * @return double - Bearing required to get from the target point to the subsequent point on the path.
@@ -479,12 +504,13 @@ namespace controllers
     double StanleyController::CalculateTargetBearing(const unsigned int unTargetIdx) const
     {
         // Verify the target index is a valid point on the path.
-        if (unTargetIdx >= m_vUTMPath.size())
+        if (m_vUTMPath.empty() || unTargetIdx >= m_vUTMPath.size())
         {
-            LOG_ERROR(logging::g_qSharedLogger, "StanleyController::CalculateTargetBearing target {} does not exist.", unTargetIdx);
+            LOG_ERROR(logging::g_qSharedLogger, "Target index {} does not exist on path.", unTargetIdx);
+            return 0;
         }
 
-        // The yaw is calculated by finding the bearing needed to navigate from the
+        // The yaw is calculated by finding the heading needed to navigate from the
         // target point to the next point in the path.
         geoops::UTMCoordinate stUTMTargetPoint = m_vUTMPath[unTargetIdx];
         geoops::UTMCoordinate stUTMNextPoint   = m_vUTMPath[unTargetIdx + 1];
@@ -496,16 +522,16 @@ namespace controllers
         // Calculate the magnitude of the displacement.
         double dDisplacementMagnitude = std::hypot(dDisplacementEast, dDisplacementNorth);
 
-        // Calculate the bearing in degrees required to navigate to the next point on the path.
+        // Calculate the heading in degrees required to navigate to the next point on the path.
         dDisplacementNorth /= dDisplacementMagnitude;
-        double dBearing = (std::acos(dDisplacementNorth) / M_PI) * 180;
+        double dCurrentHeading = (std::acos(dDisplacementNorth) / M_PI) * 180;
         if (dDisplacementEast < 0)
         {
-            dBearing = 360 - dBearing;
+            dCurrentHeading = 360 - dCurrentHeading;
         }
 
-        // Return the relative bearing needed to get from the target point to the next point in the path.
-        return dBearing;
+        // Return the relative heading needed to get from the target point to the next point in the path.
+        return dCurrentHeading;
     }
 
     /******************************************************************************
@@ -523,18 +549,25 @@ namespace controllers
      *
      * @param stUTMFrontAxlePos - The UTM coordinate of the center of the agent's front axle.
      * @param unTargetIdx - Index of the target point on the path.
-     * @param dBearing - The current bearing of the agent, measured in degrees from 0 to 360.
+     * @param dCurrentHeading - The current heading of the agent, measured in degrees from 0 to 360.
      * @return double - The cross track error (CTE).
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-09
      ******************************************************************************/
-    double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate& stUTMFrontAxlePos, const unsigned int unTargetIdx, const double dBearing) const
+    double StanleyController::CalculateCrossTrackError(const geoops::UTMCoordinate& stUTMFrontAxlePos, const unsigned int unTargetIdx, const double dCurrentHeading) const
     {
-        // Convert the bearing to a change in degrees of yaw relative to the north axis
+        // Check if the target index is valid and the path is not empty.
+        if (m_vUTMPath.empty() || unTargetIdx >= m_vUTMPath.size())
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Target index {} does not exist on path.", unTargetIdx);
+            return 0;
+        }
+
+        // Convert the heading to a change in degrees of yaw relative to the north axis
         // Here a positive degree represents a change in yaw towards the East.
         // Here a negative degree represents a change in yaw towards the West.
-        double dChangeInYawRelToNorth = dBearing <= 180 ? dBearing : dBearing - 360;
+        double dChangeInYawRelToNorth = dCurrentHeading <= 180 ? dCurrentHeading : dCurrentHeading - 360;
         dChangeInYawRelToNorth        = (dChangeInYawRelToNorth / 180) * M_PI;
         dChangeInYawRelToNorth -= M_PI / 2;
 

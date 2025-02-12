@@ -34,19 +34,14 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bFetchNewWaypoint          = true;
-        m_nMaxDataPoints             = 100;
-        m_tStuckCheckTime            = time(nullptr);
+        m_bFetchNewWaypoint = true;
+        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
+                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
 
-        m_dStuckCheckLastPosition[0] = 0;
-        m_dStuckCheckLastPosition[1] = 0;
-
-        m_vRoverXPosition.reserve(m_nMaxDataPoints);
-        m_vRoverYPosition.reserve(m_nMaxDataPoints);
-
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+        // Create rover path layers.
+        m_pRoverPathPlot->CreatePathLayer("NavPath", "-o");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
     }
 
     /******************************************************************************
@@ -76,11 +71,13 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized  = false;
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_bInitialized   = false;
+        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
+        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
+
         // Start state.
         if (!m_bInitialized)
         {
@@ -118,100 +115,100 @@ namespace statemachine
         {
             // Trigger new waypoint event.
             globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+            return;
         }
 
-        // Check if we are at the goal waypoint. (only if we aren't waiting for a goal waypoint)
-        if (!m_bFetchNewWaypoint)
+        // Get Current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        // Calculate distance and bearing from goal waypoint.
+        geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+        // Add the current rover pose to the path plot.
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+
+        // Only print out every so often.
+        static bool bAlreadyPrinted = false;
+        if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
         {
-            // Get Current rover pose.
-            geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-            // Calculate distance and bearing from goal waypoint.
-            geoops::GeoMeasurement stGoalWaypointMeasurement =
-                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+            // Get raw Navboard GPS position.
+            geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
+            // Calculate error between pose and GPS.
+            geoops::GeoMeasurement stErrorMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
 
-            // Only print out every so often.
-            static bool bAlreadyPrinted = false;
-            if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
+            // Assemble the error metrics into a single string. We are going to include the distance and bearing to the goal waypoint and
+            // the error between the rover pose and the GPS position. The rover pose could be from VIO or GNSS fusion, or just GPS.
+            std::string szErrorMetrics =
+                "--------[ Navigating Error Report ]--------\nDistance to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dDistanceMeters) + " meters\n" +
+                "Bearing to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dStartRelativeBearing) + " degrees\n" +
+                "GPS/VIO Position Error (UTM for easy reading):\n" + std::to_string(stErrorMeasurement.dDistanceMeters) + " (distance) " +
+                std::to_string(stErrorMeasurement.dStartRelativeBearing) + " (bearing)";
+            // Submit the error metrics to the logger.
+            LOG_INFO(logging::g_qSharedLogger, "{}", szErrorMetrics);
+
+            // Set toggle.
+            bAlreadyPrinted = true;
+        }
+        else if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) != 0 && bAlreadyPrinted)
+        {
+            // Reset toggle.
+            bAlreadyPrinted = false;
+        }
+
+        // Check if we are at the goal waypoint.
+        if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+        {
+            // Calculate drive move/powers.
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
+                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
+                                                                                         stCurrentRoverPose.GetCompassHeading(),
+                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
+
+            // Send drive powers over RoveComm.
+            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+        }
+        else
+        {
+            // Stop drive.
+            globals::g_pDriveBoard->SendStop();
+
+            // Check waypoint type.
+            switch (m_stGoalWaypoint.eType)
             {
-                // Get raw Navboard GPS position.
-                geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
-                // Calculate error between pose and GPS.
-                geoops::GeoMeasurement stErrorMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
-
-                LOG_INFO(logging::g_qSharedLogger,
-                         "Distance from target: {} and Bearing to target: {}",
-                         stGoalWaypointMeasurement.dDistanceMeters,
-                         stGoalWaypointMeasurement.dStartRelativeBearing);
-                LOG_INFO(logging::g_qSharedLogger,
-                         "Distance from Rover: {} and Bearing to Rover: {}",
-                         stErrorMeasurement.dDistanceMeters,
-                         stErrorMeasurement.dStartRelativeBearing);
-
-                // Set toggle.
-                bAlreadyPrinted = true;
-            }
-            else if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) != 0 && bAlreadyPrinted)
-            {
-                // Reset toggle.
-                bAlreadyPrinted = false;
-            }
-
-            // Check if we are at the goal waypoint.
-            if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
-            {
-                // Calculate drive move/powers.
-                diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
-                                                                                             stGoalWaypointMeasurement.dStartRelativeBearing,
-                                                                                             stCurrentRoverPose.GetCompassHeading(),
-                                                                                             diffdrive::DifferentialControlMethod::eArcadeDrive);
-                // Send drive powers over RoveComm.
-                globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
-            }
-            else
-            {
-                // Stop drive.
-                globals::g_pDriveBoard->SendStop();
-
-                // Check waypoint type.
-                switch (m_stGoalWaypoint.eType)
+                // Goal waypoint is navigation.
+                case geoops::WaypointType::eNavigationWaypoint:
                 {
-                    // Goal waypoint is navigation.
-                    case geoops::WaypointType::eNavigationWaypoint:
-                    {
-                        // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
-                        break;
-                    }
-                    // Goal waypoint is marker.
-                    case geoops::WaypointType::eTagWaypoint:
-                    {
-                        // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, false);
-                        break;
-                    }
-                    // Goal waypoint is object.
-                    case geoops::WaypointType::eObjectWaypoint:
-                    {
-                        // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                        break;
-                    }
-                    // Goal waypoint is object.
-                    case geoops::WaypointType::eMalletWaypoint:
-                    {
-                        // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                        break;
-                    }
-                    // Goal waypoint is object.
-                    case geoops::WaypointType::eWaterBottleWaypoint:
-                    {
-                        // We are at the goal, signal event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                        break;
-                    }
-                    default: break;
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
+                    break;
                 }
+                // Goal waypoint is marker.
+                case geoops::WaypointType::eTagWaypoint:
+                {
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, false);
+                    break;
+                }
+                // Goal waypoint is object.
+                case geoops::WaypointType::eObjectWaypoint:
+                {
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                    break;
+                }
+                // Goal waypoint is object.
+                case geoops::WaypointType::eMalletWaypoint:
+                {
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                    break;
+                }
+                // Goal waypoint is object.
+                case geoops::WaypointType::eWaterBottleWaypoint:
+                {
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                    break;
+                }
+                default: break;
             }
         }
 
@@ -219,16 +216,43 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
-        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-
-        tagdetectutils::LoadDetectedArucoTags(vDetectedArucoTags, m_vTagDetectors, false);
-        tagdetectutils::LoadDetectedTensorflowTags(vDetectedTensorflowTags, m_vTagDetectors);
-
-        if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
+        if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
-            return;
+            // Get a list of the currently detected tags, and their stats.
+            std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+            std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+            tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
+
+            // Check if we have detected any tags.
+            if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+            {
+                // Check if any of the tags have a detection counter or confidence greater than the threshold.
+                if (std::any_of(vDetectedArucoTags.begin(),
+                                vDetectedArucoTags.end(),
+                                [this](arucotag::ArucoTag& stTag)
+                                {
+                                    // If the Tag ID given by the user in the waypoint is less than 0, then we don't care about the ID.
+                                    if (m_stGoalWaypoint.nID < 0)
+                                    {
+                                        return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT;
+                                    }
+                                    else
+                                    {
+                                        return (stTag.nID == m_stGoalWaypoint.nID && stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT);
+                                    }
+                                }) ||
+                    std::any_of(vDetectedTensorflowTags.begin(),
+                                vDetectedTensorflowTags.end(),
+                                [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))
+                {
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
+                    // Handle state transition.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
+                    return;
+                }
+            }
         }
 
         ////////////////////////////
@@ -327,6 +351,11 @@ namespace statemachine
                     LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                    // Clear the old path plot and add the new path.
+                    m_pRoverPathPlot->ClearLayer("NavPath");
+                    // Add starting point and goal point to path plot.
+                    m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
+                    m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
                 }
 
                 // Send multimedia command to update state display.

@@ -7,11 +7,50 @@ cd /tmp
 TORCH_VERSION="2.2.2"
 TORCH_CUDA_VERSION="cu121"
 
+# Build Arguments
+FORCE_BUILD=false
+DOWNLOAD_LATEST=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb"
 
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
+    rm -rf /tmp/pkg
+    rm -rf /tmp/pytorch
+    mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
+    curl -L $FILE_URL --output /tmp/pkg/deb/pytorch_${TORCH_VERSION}_amd64.deb
+
+    # Exit the script
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
+
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${TORCH_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
@@ -27,13 +66,15 @@ else
     mkdir -p /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN
 
     # Create Control File
-    echo "Package: pytorch-mrdt" > /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Version: ${TORCH_VERSION}" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Maintainer: pytorch" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Architecture: amd64" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Homepage: https://pytorch.org/cppdocs/" >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
-    echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team." >> /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
+    {
+        echo "Package: pytorch-mrdt"
+        echo "Version: ${TORCH_VERSION}"
+        echo "Maintainer: pytorch"
+        echo "Depends:"
+        echo "Architecture: amd64"
+        echo "Homepage: https://pytorch.org/cppdocs/"
+        echo "Description: A prebuilt version of Torch. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
 
     # Download Torch
     wget -O torch.zip https://download.pytorch.org/libtorch/${TORCH_CUDA_VERSION}/libtorch-cxx11-abi-shared-with-deps-${TORCH_VERSION}%2B${TORCH_CUDA_VERSION}.zip

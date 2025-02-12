@@ -56,38 +56,32 @@ jobs:
           if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_VERBOSE_MODE=ON
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_COVERAGE_WATCH=OFF -DBUILD_VERBOSE_MODE=ON
           make -j8
 
-      - name: Test
+      - name: Run Tests
+        id: run_tests
         run: |
           cd /opt/Autonomy_Software/build
-          ctest --output-on-failure -T Test -T Coverage
-          ctest --output-on-failure --output-junit Test.xml
-          gcovr --root . --xml-pretty --output Coverage.xml
-          lcov -c -d . -o coverage.info
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          root_dir: /opt/Autonomy_Software
-          working-directory: /opt/Autonomy_Software
-          verbose: true
-          plugin: gcov
-          directory: /opt/Autonomy_Software/build
-          file: /opt/Autonomy_Software/build/Coverage.xml
+          ctest --output-on-failure -T Test -T Coverage -L UTest --output-junit UTests.xml
+          ctest --output-on-failure -T Test -T Coverage -L ITest --output-junit ITests.xml
+          gcovr --root .. --xml-pretty --output AllCoverage.xml --filter '../src/.*'
 
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+      - name: Upload Test Coverage to Codacy
+        if: steps.run_tests.outcome == 'success'
+        uses: codacy/codacy-coverage-reporter-action@v1.3.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          root_dir: /opt/Autonomy_Software
-          working-directory: /opt/Autonomy_Software/build
-          verbose: true
-          directory: /opt/Autonomy_Software/build/
-          file: Test.xml
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: /opt/Autonomy_Software/build/AllCoverage.xml
+
+      - name: Upload Test Coverage to DeepSource
+        if: steps.run_tests.outcome == 'success'
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+        run: |
+          curl https://deepsource.com/cli | sh
+          ./bin/deepsource report --analyzer test-coverage --key cxx --value-file /opt/Autonomy_Software/build/AllCoverage.xml
 
       - name: Cleanup Action Environment
         if: always()

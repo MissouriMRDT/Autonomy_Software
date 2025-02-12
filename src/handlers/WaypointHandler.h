@@ -146,8 +146,26 @@ class WaypointHandler
             // Not using this.
             (void) stdAddr;
 
+            // Create instance variables.
+            int nMarkerID  = stPacket.vData[2];
+            double dRadius = stPacket.vData[3];
+
+            // Limit the radius to 0-40.
+            if (dRadius < 0)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Radius is less than 0, setting to 0.");
+                dRadius = 0;
+            }
+            else if (dRadius > 40)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Radius is greater than 40, setting to 40.");
+                dRadius = 40;
+            }
+
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eTagWaypoint);
+            geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eTagWaypoint, dRadius, nMarkerID);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -157,7 +175,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1],
+                     nMarkerID,
+                     dRadius);
         };
 
         /******************************************************************************
@@ -173,8 +196,25 @@ class WaypointHandler
             // Not using this.
             (void) stdAddr;
 
+            // Create instance variables.
+            double dRadius = stPacket.vData[2];
+
+            // Limit the radius to 0-40.
+            if (dRadius < 0)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Radius is less than 0, setting to 0.");
+                dRadius = 0;
+            }
+            else if (dRadius > 40)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Radius is greater than 40, setting to 40.");
+                dRadius = 40;
+            }
+
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint);
+            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint, dRadius);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -184,7 +224,59 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.", stPacket.vData[0], stPacket.vData[1]);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1],
+                     dRadius);
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new ADDOBSTACLE packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-01-06
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> AddObstacleCallback =
+            [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stdAddr;
+
+            // Create instance variables.
+            double dRadius = stPacket.vData[2];
+
+            // Limit the radius to 0-40.
+            if (dRadius < 0)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Obstacle Waypoint Data: Radius is less than 0, setting to 0.");
+                dRadius = 0;
+            }
+            else if (dRadius > 40)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Incoming Obstacle Waypoint Data: Radius is greater than 40, setting to 40.");
+                dRadius = 40;
+            }
+
+            // Create new waypoint struct with data from the RoveComm packet.
+            geoops::Waypoint stObstacleWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObstacleWaypoint, dRadius);
+
+            // Acquire write lock for writing to waypoints vector.
+            std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+            // Queue waypoint.
+            m_vWaypointList.emplace_back(stObstacleWaypoint);
+            // Unlock mutex.
+            lkWaypointsLock.unlock();
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger,
+                     "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
+                     stPacket.vData[0],
+                     stPacket.vData[1],
+                     dRadius);
         };
 
         /******************************************************************************

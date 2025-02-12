@@ -4,13 +4,52 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="7.3.0"
+QUILL_VERSION="8.1.0"
+
+# Build Arguments
+FORCE_BUILD=false
+DOWNLOAD_LATEST=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb"
 
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
+    rm -rf /tmp/pkg
+    rm -rf /tmp/quill
+    mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
+    curl -L $FILE_URL --output /tmp/pkg/deb/quill_${QUILL_VERSION}_arm64.deb
+
+    # Exit the script
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
+
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${QUILL_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
@@ -26,13 +65,15 @@ else
     mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN
 
     # Create Control File
-    echo "Package: quill-mrdt" > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${QUILL_VERSION}" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: odygrd" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://quillcpp.readthedocs.io/en/latest/" >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team." >> /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
+    {
+        echo "Package: quill-mrdt"
+        echo "Version: ${QUILL_VERSION}"
+        echo "Maintainer: odygrd"
+        echo "Depends:"
+        echo "Architecture: arm64"
+        echo "Homepage: https://quillcpp.readthedocs.io/en/latest/"
+        echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
 
     # Download Quill
     git clone --depth 1 --branch v${QUILL_VERSION} https://github.com/odygrd/quill.git

@@ -12,7 +12,7 @@
 #define SIMBASICCAM_H
 
 #include "../../../interfaces/AutonomyThread.hpp"
-#include "../../../interfaces/Camera.hpp"
+#include "../../../interfaces/BasicCamera.hpp"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -29,7 +29,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-class SIMBasicCam : public Camera<cv::Mat>
+class SIMBasicCam : public BasicCamera
 {
     public:
         /////////////////////////////////////////
@@ -44,26 +44,15 @@ class SIMBasicCam : public Camera<cv::Mat>
                     const double dPropVerticalFOV,
                     const bool bEnableRecordingFlag,
                     const int nNumFrameRetrievalThreads = 10);
-        SIMBasicCam(const int nCameraIndex,
-                    const int nPropResolutionX,
-                    const int nPropResolutionY,
-                    const int nPropFramesPerSecond,
-                    const PIXEL_FORMATS ePropPixelFormat,
-                    const double dPropHorizontalFOV,
-                    const double dPropVerticalFOV,
-                    const bool bEnableRecordingFlag,
-                    const int nNumFrameRetrievalThreads = 10);
         ~SIMBasicCam();
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
-        std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
-        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
 
         /////////////////////////////////////////
         // Getters.
         /////////////////////////////////////////
 
-        std::string GetCameraLocation() const;
         bool GetCameraIsOpen() override;
+        std::string GetCameraLocation() const override;
 
     private:
         /////////////////////////////////////////
@@ -72,17 +61,10 @@ class SIMBasicCam : public Camera<cv::Mat>
         // Basic Camera specific.
 
         cv::VideoCapture m_cvCamera;
-        std::string m_szCameraPath;
-        bool m_bCameraIsConnectedOnVideoIndex;
-        int m_nCameraIndex;
-        int m_nNumFrameRetrievalThreads;
 
         // Mats for storing frames.
 
         cv::Mat m_cvFrame;
-        cv::Mat m_cvDepthImage;
-        cv::Mat m_cvDepthMeasure;
-        cv::Mat m_cvPointCloud;
 
         /////////////////////////////////////////
         // Declare private methods.

@@ -339,11 +339,15 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
     // Acquire write lock for handling events.
     std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
 
-    // Trigger the event on the current state
-    statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
+    // Check if the current state is not null and the state machine is running.
+    if (m_pCurrentState != nullptr && this->GetThreadState() == AutonomyThreadState::eRunning)
+    {
+        // Trigger the event on the current state
+        statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
 
-    // Transition to the next state
-    ChangeState(eNextState, bSaveCurrentState);
+        // Transition to the next state
+        ChangeState(eNextState, bSaveCurrentState);
+    }
 }
 
 /******************************************************************************
@@ -361,6 +365,22 @@ void StateMachineHandler::ClearSavedStates()
     m_umSavedStates.clear();
     // Reset previous state to nullptr;
     m_pPreviousState = std::make_shared<statemachine::IdleState>();
+}
+
+/******************************************************************************
+ * @brief Clear a saved state based on the given state.
+ *
+ * @param eState - The state to clear from the saved states.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+void StateMachineHandler::ClearSavedState(statemachine::States eState)
+{
+    // Acquire write lock for clearing saved states.
+    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    // Remove all states that match the given state.
+    m_umSavedStates.erase(eState);
 }
 
 /******************************************************************************
@@ -407,7 +427,7 @@ statemachine::States StateMachineHandler::GetPreviousState() const
 void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading)
 {
     // Get main ZEDCam.
-    ZEDCam* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
+    ZEDCamera* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
 
     // Check if main ZEDCam is opened and positional tracking is enabled.
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
@@ -418,16 +438,29 @@ void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraNa
         // Wait for pose to be copied.
         if (fuPoseReturnStatus.get())
         {
-            // Update camera Y heading with GPSs current heading.
-            pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
-                                        stNewCameraPosition.dAltitude,
-                                        stNewCameraPosition.dNorthing,
-                                        stCurrentCameraPose.stEulerAngles.dXO,
-                                        dNewCameraHeading,
-                                        stCurrentCameraPose.stEulerAngles.dZO);
+            // Pack the current camera pose into UTM coordinate.
+            geoops::UTMCoordinate stCurrentCameraUTM = geoops::UTMCoordinate(stCurrentCameraPose.stTranslation.dX,
+                                                                             stCurrentCameraPose.stTranslation.dZ,
+                                                                             stNewCameraPosition.nZone,
+                                                                             stNewCameraPosition.bWithinNorthernHemisphere,
+                                                                             stCurrentCameraPose.stTranslation.dY);
+            // Calculate the distance between the current and new camera position.
+            geoops::GeoMeasurement stError = geoops::CalculateGeoMeasurement(stCurrentCameraUTM, stNewCameraPosition);
 
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position.");
+            // Check if the camera's current pose is close to the new position.
+            if (stError.dDistanceMeters >= constants::STATEMACHINE_ZED_REALIGN_THRESHOLD)
+            {
+                // Update camera Y heading with GPSs current heading.
+                pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
+                                            stNewCameraPosition.dAltitude,
+                                            stNewCameraPosition.dNorthing,
+                                            stCurrentCameraPose.stEulerAngles.dXO,
+                                            dNewCameraHeading,
+                                            stCurrentCameraPose.stEulerAngles.dZO);
+
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position. Error was: {} meters.", stError.dDistanceMeters);
+            }
         }
         else
         {

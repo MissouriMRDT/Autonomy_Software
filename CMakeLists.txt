@@ -8,6 +8,16 @@
 ## Set CMake Minimum Version
 cmake_minimum_required(VERSION 3.24.3)
 
+## Enforce Using GCC 10 / G++ 10
+execute_process(
+    COMMAND gcc -dumpversion
+    OUTPUT_VARIABLE GCC_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT GCC_VERSION VERSION_EQUAL "10.0")
+    message(FATAL_ERROR "Only GCC 10.0 is allowed! Detected GCC version ${GCC_VERSION}.")
+endif()
+
 ## C++ and CUDA Version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,11 +42,11 @@ option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
 
+## Enable or Disable Coverage Watch Mode
+option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
+
 ## Enable or Disable Verbose Makefile
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
-
-## Enable or Disable Install Mode
-option(BUILD_INSTALL_MODE "Enable Install Mode" OFF)
 
 ## Enable or Disable Tests Mode
 option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
@@ -89,17 +99,10 @@ else()
     message("--   [ ]: Verbose Makefile: Disabled")
 endif()
 
-## Build Installer
-if (BUILD_INSTALL_MODE)
-    message("--   [x]: Build Installer: Enabled")
-    
-else()
-    message("--   [ ]: Build Installer: Disabled")
-endif()
-
 ## Build Unit and Integration Tests
 if (BUILD_TESTS_MODE)
     message("--   [x]: Build Unit and Integration Tests: Enabled")
+    include(CTest)
     enable_testing()
 else()
     message("--   [ ]: Build Unit and Integration Tests: Disabled")
@@ -140,19 +143,6 @@ else()
 endif()
 
 ####################################################################################################################
-##                                                 CPack Setup                                                    ##
-####################################################################################################################
-
-## Define CPack Project Info
-set(CPACK_PROJECT_NAME ${EXE_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-set(CPACK_PACKAGE_VENDOR "Mars Rover Design Team")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/data/CPACK/logo.ico")
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
-set(CPACK_GENERATOR "STGZ")
-
-####################################################################################################################
 ##                                           Dependencies and Libraries                                           ##
 ####################################################################################################################
 
@@ -166,6 +156,9 @@ include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
 add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
+## Find Python3
+find_package(Python3 COMPONENTS Development NumPy REQUIRED)
+
 ## Determine if shared or static libraries will be used.
 if (NOT LINK_SHARED_ZED AND MSVC)
     message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
@@ -174,8 +167,28 @@ endif()
 ## Find Threads
 find_package(Threads REQUIRED)
 
+## Find OpenMP
+find_package(OpenMP REQUIRED)
+
 ## Find Quill
 find_package(quill REQUIRED)
+
+## Find LibDataChannel
+find_package(LibDataChannel REQUIRED)
+
+## Fine nlohmann JSON.
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
+## Find OpenSSL
+find_package(OpenSSL REQUIRED)
+
+## Find FFMPEG.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale libswresample libavdevice libavfilter libpostproc SvtAv1Enc)
+include_directories(${FFMPEG_INCLUDE_DIRS})
+
+## Find MatPlotPlusPlus
+find_package(Matplot++ REQUIRED)
 
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
@@ -188,11 +201,9 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 ## Find OpenCV.
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## Find Geographic Lib.
 find_package(GeographicLib REQUIRED)
-include_directories(${GeographicLib_INCLUDE_DIRS})
 
 ## Find ZEDSDK. Add as system package to supress library warnings.
 find_package(ZED 4 REQUIRED)
@@ -282,9 +293,16 @@ endif()
 
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
+                        OpenMP::OpenMP_CXX
                         Eigen3::Eigen
                         RoveComm_CPP
+                        Python3::Python
                         quill::quill
+                        ${OPENSSL_LIBRARIES}
+                        PkgConfig::FFMPEG
+                        LibDataChannel::LibDataChannel
+                        nlohmann_json::nlohmann_json
+                        Matplot++::matplot
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
@@ -301,36 +319,74 @@ target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 ##                                             Installation and Tests                                             ##
 ####################################################################################################################
 
-## Install Mode
-if (BUILD_INSTALL_MODE)
-    install(TARGETS ${EXE_NAME} RUNTIME_DEPENDENCIES DIRECTORIES ${AUTONOMY_LIBRARIES} RUNTIME DESTINATION bin)
-endif()
-
 ## Tests Mode
 if (BUILD_TESTS_MODE)
-    file(GLOB_RECURSE UnitTests_SRC         CONFIGURE_DEPENDS  "tests/Unit/*.cc")
-    file(GLOB_RECURSE IntegrationTests_SRC  CONFIGURE_DEPENDS  "tests/Integration/*.cc")
+    ## Find Unit and Integration Tests
+    file(GLOB_RECURSE UTests_SRC            CONFIGURE_DEPENDS  "tests/Unit/src/*.cc")
+    file(GLOB_RECURSE ITests_SRC            CONFIGURE_DEPENDS  "tests/Integration/src/*.cc")
+    file(GLOB         Runner_SRC            CONFIGURE_DEPENDS  "tests/main.cc")
+
+    ## Find Source Files Required for Tests
     file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
+    file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
+    file(GLOB_RECURSE Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
+    file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")   
 
-    list(LENGTH UnitTests_SRC UnitTests_LEN)
-    list(LENGTH IntegrationTests_SRC IntegrationTests_LEN)
+    list(LENGTH UTests_SRC UnitTests_LEN)
+    list(LENGTH ITests_SRC IntegrationTests_LEN)
+
+    string(TIMESTAMP CURRENT_TIMESTAMP "%Y%m%d-%H%M%S")
+    message("--   Current Timestamp: ${CURRENT_TIMESTAMP}")
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${UnitTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-        add_test(Unit_Tests ${EXE_NAME}_UnitTests)
+
+        foreach(test_file ${UTests_SRC})
+            get_filename_component(test_name ${test_file} NAME_WE)
+            add_test(NAME UTest_${test_name} COMMAND ${EXE_NAME}_UnitTests --gtest_filter=${test_name}Test*.* --timestamp=${CURRENT_TIMESTAMP})
+            set_tests_properties(UTest_${test_name} PROPERTIES LABELS "UTest")
+        endforeach()
     else()
         message("No Unit Tests!")
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${IntegrationTests_SRC} ${Algorithms_SRC} ${Network_SRC} ${Logging_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-        add_test(Integration_Tests ${EXE_NAME}_IntegrationTests)
+
+        foreach(test_file ${ITests_SRC})
+            get_filename_component(test_name ${test_file} NAME_WE)
+            add_test(NAME ITest_${test_name} COMMAND ${EXE_NAME}_IntegrationTests --gtest_filter=${test_name}Test*.* --timestamp=${CURRENT_TIMESTAMP})
+            set_tests_properties(ITest_${test_name} PROPERTIES LABELS "iTest")
+        endforeach()
     else()
         message("No Integration Tests!")
+    endif()
+
+    if (BUILD_CODE_COVERAGE AND BUILD_COVERAGE_WATCH)
+        add_custom_target(run_coverage ALL
+            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+            COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
+            COMMAND lcov -c -d . -o coverage.info
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Running tests and generating coverage reports..."
+            VERBATIM
+        )
+
+        # Ensure dependencies for the run_coverage target. Tests must be built first.
+        if (UnitTests_LEN GREATER 0 AND IntegrationTests_LEN GREATER 0)
+            add_dependencies(run_coverage ${EXE_NAME}_UnitTests ${EXE_NAME}_IntegrationTests)
+        elseif (UnitTests_LEN GREATER 0)
+            add_dependencies(run_coverage ${EXE_NAME}_UnitTests)
+        elseif (IntegrationTests_LEN GREATER 0)
+            add_dependencies(run_coverage ${EXE_NAME}_IntegrationTests)
+        else()
+            message("No Tests to Run! run_coverage target will not be created.")
+            set_target_properties(run_coverage PROPERTIES EXCLUDE_FROM_ALL TRUE)
+        endif()
     endif()
 endif()
 
@@ -342,7 +398,6 @@ message("-- Final Autonomy Software Configuration Summary")
 message("--   Executable Name: ${EXE_NAME}")
 message("--   Simulation Mode: ${BUILD_SIM_MODE}")
 message("--   Tests Mode: ${BUILD_TESTS_MODE}")
-message("--   Install Mode: ${BUILD_INSTALL_MODE}")
 message("--   Examples Mode: ${BUILD_EXAMPLES_MODE}")
 message("--   Code Coverage Mode: ${BUILD_CODE_COVERAGE}")
 message("--   Verbose Makefile: ${BUILD_VERBOSE_MODE}")

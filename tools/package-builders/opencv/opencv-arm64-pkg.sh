@@ -4,17 +4,56 @@
 cd /tmp
 
 # Install Variables
-OPENCV_VERSION="4.10.0"
+OPENCV_VERSION="4.11.0"
+
+# Build Arguments
+FORCE_BUILD=false
+DOWNLOAD_LATEST=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb"
 
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
+    rm -rf /tmp/pkg
+    rm -rf /tmp/opencv
+    mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
+    curl -L $FILE_URL --output /tmp/pkg/deb/opencv_${OPENCV_VERSION}_arm64.deb
+
+    # Exit the script
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
+
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${OPENCV_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
-    echo "Package version ${OPENCV_VERSION} does not exist in the repository. Building the package."
+    echo "Package version ${OPENCV_VERSION} does not exist in the repository or the forced flag was thrown. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
 
     # Delete Old Packages
@@ -27,13 +66,15 @@ else
     mkdir -p /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN
 
     # Create Control File
-    echo "Package: opencv-mrdt" > /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${OPENCV_VERSION}" >> /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: OpenCV" >> /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://opencv.org/" >> /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team." >> /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
+    {
+        echo "Package: opencv-mrdt"
+        echo "Version: ${OPENCV_VERSION}"
+        echo "Maintainer: OpenCV"
+        echo "Depends:"
+        echo "Architecture: arm64"
+        echo "Homepage: https://opencv.org/"
+        echo "Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/opencv_${OPENCV_VERSION}_arm64/DEBIAN/control
 
     # Download OpenCV
     git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git

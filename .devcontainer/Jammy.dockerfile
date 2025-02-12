@@ -31,31 +31,32 @@ RUN echo "${TZ}" > /etc/localtime && \
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
 # Add APT Repo for PCIe drivers.
-RUN apt update && apt install -y curl && \
+RUN apt update && apt install -y wget gnupg && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-    curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg && \
+    wget -qO - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    wget -qO - https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel-archive-keyring.gpg && \
     mv bazel-archive-keyring.gpg /usr/share/keyrings && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
-    build-essential gdb wget less udev zstd sudo libgomp1 libswscale-dev \
-    cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev tzdata \
+    build-essential gdb less udev zstd sudo libgomp1 python-is-python3 \
+    cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
-    yasm libatlas-base-dev gfortran libpq-dev libavutil-dev libpostproc-dev \
+    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
-    libboost-all-dev valgrind doxygen graphviz htop nano fortune fortunes \
-    vim-common gasket-dkms
+    valgrind doxygen graphviz htop nano fortune fortunes gnuplot-nox \
+    vim-common gasket-dkms nlohmann-json3-dev gcovr lcov curl \
+    libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Install Required Python Packages and link python3 executable to python.
-RUN ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install numpy opencv-python pyopengl
+RUN python -m pip install numpy opencv-python pyopengl matplotlib
 
 # Set Timezone
 RUN echo "${TZ}" > /etc/localtime && \
@@ -81,18 +82,19 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="1"
+ARG ZED_MINOR="2"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
-    https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}${CUDA_MINOR%.*}/ubuntu${UBUNTU_MAJOR} && \
+    https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
     ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
     rm ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /root/Documents/ZED/ && \
-    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp
+    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp && \
+    sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.10.0"
+ARG OPENCV_VERSION="4.11.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
@@ -102,6 +104,18 @@ ARG TORCH_VERSION="2.2.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
+
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+
+# Install FFMPEG
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
 # Install Abseil.
 ARG ABSEIL_VERSION="20230802.1"
@@ -115,20 +129,26 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/am
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
-# Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.15.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+# Install Libdatachannel
+ARG LIBDATACHANNEL_VERSION="0.22"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
+    dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
+    rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
+
+# Install MatPlotPlusPlus
+ARG MATPLOTPLUSPLUS_VERSION="master"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/amd64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
+    dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
+    rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="7.3.0"
+ARG QUILL_VERSION="8.1.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.15.2"
+ARG GTEST_VERSION="1.16.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
@@ -142,8 +162,11 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en  
 ENV LC_ALL en_US.UTF-8  
 
-# Enable Cowsay.
-RUN echo 'if [ $(( RANDOM % 5 )) -eq 0 ]; then /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else /usr/games/fortune | /usr/games/cowsay -f `ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1` | /usr/games/lolcat -f; fi' >> /root/.bashrc
+# Enable Cowsay, Fortune, Lolcat, and other fun commands.
+RUN mkdir -p ~/.config/fish/ && echo 'set fish_greeting; function random_message_or_donut; set rand (random 0 9999); if test $rand -eq 0; /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else; set cowfile (ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1); /usr/games/fortune | /usr/games/cowsay -f $cowfile | /usr/games/lolcat -f; end; end; if status is-interactive; random_message_or_donut; end' >> ~/.config/fish/config.fish
+
+# Set Fish as Default Shell.
+RUN chsh -s /usr/bin/fish
 
 # Clone Autonomy Software Repository
 RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
