@@ -8,6 +8,7 @@ ADDMARKERLEG
 ADDOBJECTLEG
 ADDOBSTACLE
 ADDPOSITIONLEG
+alandefreitas
 algobase
 alloc
 allocs
@@ -369,7 +370,10 @@ MAKEFLAGS
 MAPANGLE
 MAPRANGE
 marsrover
+MATPLOT
 matplotlib
+matplotlibcpp
+matplotplusplus
 matx
 Memcheck
 MERICA
@@ -542,10 +546,12 @@ Wpedantic
 wslg
 xauth
 xhost
+xlabel
 XNNPACK
 XYZBGRA
 XYZRGBA
 yasm
+ylabel
 YOLO
 yolomodel
 YUVJ
@@ -554,4 +560,5 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zlabel
 zstd

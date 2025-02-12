@@ -69,6 +69,7 @@ jobs:
     outputs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
       libdatachannel-amd64: ${{ steps.changes.outputs.libdatachannel-amd64 }}
+      matplotplusplus-amd64: ${{ steps.changes.outputs.matplotplusplus-amd64 }}
       ffmpeg-amd64: ${{ steps.changes.outputs.ffmpeg-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
@@ -104,6 +105,8 @@ jobs:
               - 'tools/package-builders/geolib/geolib-amd64-pkg.sh'
             libdatachannel-amd64:
               - 'tools/package-builders/libdatachannel/libdatachannel-amd64-pkg.sh'
+            matplotplusplus-amd64:
+              - 'tools/package-builders/matplotplusplus/matplotplusplus-amd64-pkg.sh'
             ffmpeg-amd64:
               - 'tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh'
             gtest-amd64:
@@ -153,6 +156,7 @@ jobs:
         package:
           - geolib
           - libdatachannel
+          - matplotplusplus
           - gtest
           - pytorch
           - abseil
@@ -385,6 +389,7 @@ jobs:
     outputs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       libdatachannel-arm64: ${{ steps.changes.outputs.libdatachannel-arm64 }}
+      matplotplusplus-arm64: ${{ steps.changes.outputs.matplotplusplus-arm64 }}
       ffmpeg-arm64: ${{ steps.changes.outputs.ffmpeg-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
@@ -420,6 +425,8 @@ jobs:
               - 'tools/package-builders/geolib/geolib-arm64-pkg.sh'
             libdatachannel-arm64:
               - 'tools/package-builders/libdatachannel/libdatachannel-arm64-pkg.sh'
+            matplotplusplus-arm64:
+              - 'tools/package-builders/matplotplusplus/matplotplusplus-arm64-pkg.sh'
             ffmpeg-arm64:
               - 'tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh'
             gtest-arm64:
@@ -468,6 +475,7 @@ jobs:
         package:
           - geolib
           - libdatachannel
+          - matplotplusplus
           - gtest
           - pytorch
           - abseil

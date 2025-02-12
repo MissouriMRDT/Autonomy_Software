@@ -82,7 +82,27 @@ class TestingBase : public ::testing::Test
             {
                 logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE, m_szTimestamp);
             }
+        }
 
+        /******************************************************************************
+         * @brief Required teardown for all tests.
+         *
+         *        This method stops the RoveComm instances and loggers.
+         *
+         * @author Eli Byrd (edbgkk@mst.edu)
+         * @date 2025-01-09
+         ******************************************************************************/
+        inline void RequiredTeardown() {}
+
+        /******************************************************************************
+         * @brief Setup RoveComm for testing.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-10
+         ******************************************************************************/
+        inline void SetupRoveComm()
+        {
             // Initialize RoveComm.
             if (network::g_pRoveCommUDPNode == nullptr)
             {
@@ -117,14 +137,13 @@ class TestingBase : public ::testing::Test
         }
 
         /******************************************************************************
-         * @brief Required teardown for all tests.
+         * @brief Teardown RoveComm for testing.
          *
-         *        This method stops the RoveComm instances and loggers.
          *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2025-01-09
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-10
          ******************************************************************************/
-        inline void RequiredTeardown()
+        inline void TeardownRoveComm()
         {
             // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
             network::g_bRoveCommUDPStatus = false;
