@@ -41,7 +41,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        MultimediaBoardTests() { SetUp(); }
+        MultimediaBoardTests() {}
 
         /******************************************************************************
          * @brief Destroy the Multimedia Board Tests object.
@@ -49,7 +49,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~MultimediaBoardTests() { TearDown(); }
+        ~MultimediaBoardTests() {}
 
         /******************************************************************************
          * @brief Setup the Multimedia Board Tests object.
@@ -57,10 +57,8 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
+        void TestSetup() override
         {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
             multimediaBoard = new MultimediaBoard();
         }
 
@@ -70,10 +68,8 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
+        void TestTeardown() override
         {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
             delete multimediaBoard;
             multimediaBoard = nullptr;
         }
@@ -108,6 +104,15 @@ TEST_F(MultimediaBoardTests, Leaks)
     // Intentionally not deleting to test leak detection
 }
 
+
+//     void TestSetup() override {
+//         multimediaBoard = new MultimediaBoard();
+//     }
+
+//     void TestTeardown() override {
+//         delete multimediaBoard;
+//     }
+// };
 
 // /******************************************************************************
 //  * @brief Test that the constructor initializes the lighting state and RGB values correctly

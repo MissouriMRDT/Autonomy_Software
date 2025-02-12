@@ -12,9 +12,9 @@
 #ifndef DIFFERENTIAL_DRIVE_HPP
 #define DIFFERENTIAL_DRIVE_HPP
 
-#include "../AutonomyLogging.h"
-#include "../util/NumberOperations.hpp"
-#include "controllers/PIDController.h"
+#include "../../AutonomyLogging.h"
+#include "../../util/NumberOperations.hpp"
+#include "../controllers/PIDController.h"
 
 /// \cond
 #include <array>

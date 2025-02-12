@@ -43,7 +43,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        NavigationBoardTests() { SetUp(); }
+        NavigationBoardTests() {}
 
         /******************************************************************************
          * @brief Destroy the Navigation Board Tests object.
@@ -51,7 +51,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~NavigationBoardTests() { TearDown(); }
+        ~NavigationBoardTests() {}
 
         /******************************************************************************
          * @brief Setup the Navigation Board Tests object.
@@ -59,10 +59,8 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
+        void TestSetup() override
         {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
             navBoard = new NavigationBoard();
         }
 
@@ -72,10 +70,8 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
+        void TestTeardown() override
         {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
             delete navBoard;
             navBoard = nullptr;
         }

@@ -55,7 +55,7 @@ jobs:
         run: |
           cd /opt
           rm -rf /opt/Autonomy_Software
-          
+
   build-and-upload:
     needs: [create-release]
     strategy:
@@ -183,10 +183,10 @@ jobs:
           sed -i 's/\(project(Autonomy_Software VERSION \)[0-9]\+\.[0-9]\+\.[0-9]\+/\1'"${formatted_tag}"'/' CMakeLists.txt
           sed -i "s/\(##[[:space:]]*v\)[0-9]\+\.[0-9]\+\.[0-9]\+ Build/\1$formatted_tag Build/" CMakeLists.txt
           sed -i "s/\(PROJECT_NUMBER[[:space:]]*=[[:space:]]*\)[0-9]\+\.[0-9]\+\.[0-9]\+/\1$clean_tag/" Doxyfile
-          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Dockerfile_Jammy
-          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Dockerfile_JetPack
-          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Dockerfile_Jammy
-          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Dockerfile_JetPack
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/Jammy.dockerfile
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" .devcontainer/JetPack.dockerfile
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/Jammy.dockerfile
+          sed -i "s/\(org.opencontainers.image.version=\)\"v[0-9]\+\.[0-9]\+\.[0-9]\+\"/\1\"v$clean_tag\"/" tools/action-runners/JetPack.dockerfile
 
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
