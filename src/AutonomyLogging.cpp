@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "AutonomyLogging.h"
+#include "./util/logging/PlotsAndGraphs.hpp"
 #include "AutonomyNetworking.h"
 
 /// \cond
@@ -44,6 +45,7 @@ namespace logging
     quill::LogLevel g_eRoveCommLogLevel;
 
     std::string g_szProgramStartTimeString;
+    std::string g_szLoggingOutputPath;
 
     /******************************************************************************
      * @brief Logger Initializer - Sets Up all the logging handlers required for
@@ -66,6 +68,9 @@ namespace logging
         szFilePath = szLoggingOutputPath;                  // Main location for all recordings.
         szFilePath += g_szProgramStartTimeString + "/";    // Folder for each program run.
         szFilename = "console_output";                     // Base file name.
+
+        // Store the logging output path.
+        g_szLoggingOutputPath = szFilePath;
 
         // Check if directory exists.
         if (!std::filesystem::exists(szFilePath))

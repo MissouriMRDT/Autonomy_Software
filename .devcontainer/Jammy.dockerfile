@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
-    valgrind doxygen graphviz htop nano fortune fortunes \
+    valgrind doxygen graphviz htop nano fortune fortunes gnuplot-nox \
     vim-common gasket-dkms nlohmann-json3-dev gcovr lcov curl \
     libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
@@ -105,6 +105,18 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/a
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
 
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+
+# Install FFMPEG
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
+
 # Install Abseil.
 ARG ABSEIL_VERSION="20230802.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
@@ -117,23 +129,17 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/am
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
-# Install FFMPEG
-ARG FFMPEG_VERSION="7.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
-    dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
-    rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
-
 # Install Libdatachannel
 ARG LIBDATACHANNEL_VERSION="0.22"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
 
-# Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.15.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/amd64/tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-    dpkg -i tensorflow_${TENSORFLOW_VERSION}_amd64.deb && \
-    rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
+# Install MatPlotPlusPlus
+ARG MATPLOTPLUSPLUS_VERSION="master"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/amd64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
+    dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
+    rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
 
 # Install Quill
 ARG QUILL_VERSION="8.1.0"

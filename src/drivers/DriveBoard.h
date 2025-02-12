@@ -12,7 +12,7 @@
 #ifndef DRIVEBOARD_H
 #define DRIVEBOARD_H
 
-#include "../algorithms/DifferentialDrive.hpp"
+#include "../algorithms/kinematics/DifferentialDrive.hpp"
 
 /// \cond
 #include <RoveComm/RoveComm.h>

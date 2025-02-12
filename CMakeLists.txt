@@ -156,6 +156,9 @@ include_directories(external/rovecomm/src)
 add_subdirectory(external/rovecomm)
 add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
+## Find Python3
+find_package(Python3 COMPONENTS Development NumPy REQUIRED)
+
 ## Determine if shared or static libraries will be used.
 if (NOT LINK_SHARED_ZED AND MSVC)
     message(FATAL_ERROR "LINK_SHARED_ZED OFF : ZED SDK static libraries not available on Windows")
@@ -183,6 +186,9 @@ find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale libswresample libavdevice libavfilter libpostproc SvtAv1Enc)
 include_directories(${FFMPEG_INCLUDE_DIRS})
+
+## Find MatPlotPlusPlus
+find_package(Matplot++ REQUIRED)
 
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
@@ -290,11 +296,13 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
                         Eigen3::Eigen
                         RoveComm_CPP
+                        Python3::Python
                         quill::quill
                         ${OPENSSL_LIBRARIES}
                         PkgConfig::FFMPEG
                         LibDataChannel::LibDataChannel
                         nlohmann_json::nlohmann_json
+                        Matplot++::matplot
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
