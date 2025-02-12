@@ -40,7 +40,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        MultimediaBoardTests() { SetUp(); }
+        MultimediaBoardTests() {}
 
         /******************************************************************************
          * @brief Destroy the Multimedia Board Tests object.
@@ -48,7 +48,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~MultimediaBoardTests() { TearDown(); }
+        ~MultimediaBoardTests() {}
 
         /******************************************************************************
          * @brief Setup the Multimedia Board Tests object.
@@ -56,11 +56,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Multimedia Board Tests object.
@@ -68,11 +64,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
@@ -114,11 +106,11 @@ TEST_F(MultimediaBoardTests, Leaks)
 // protected:
 //     MultimediaBoard* multimediaBoard;
 
-//     void SetUp() override {
+//     void TestSetup() override {
 //         multimediaBoard = new MultimediaBoard();
 //     }
 
-//     void TearDown() override {
+//     void TestTeardown() override {
 //         delete multimediaBoard;
 //     }
 // };

@@ -47,7 +47,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        DriveBoardTests() { SetUp(); }
+        DriveBoardTests() {}
 
         /******************************************************************************
          * @brief Destroy the Drive Board Tests object.
@@ -55,7 +55,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~DriveBoardTests() { TearDown(); }
+        ~DriveBoardTests() {}
 
         /******************************************************************************
          * @brief Setup the Drive Board Tests object.
@@ -63,11 +63,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Drive Board Tests object.
@@ -75,11 +71,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
@@ -134,7 +126,7 @@ TEST_F(DriveBoardTests, Leaks)
 //     MockRoveCommUDPNode* mockRoveCommUDPNode;
 
 //     // Set up the test fixture.
-//     void SetUp() override {
+//     void TestSetup() override {
 //         // Create objects.
 //         mockRoveCommUDPNode = new MockRoveCommUDPNode();
 //         network::g_pRoveCommUDPNode = mockRoveCommUDPNode;
@@ -142,7 +134,7 @@ TEST_F(DriveBoardTests, Leaks)
 //     }
 
 //     // Tear down the test fixture.
-//     void TearDown() override {
+//     void TestTeardown() override {
 //         delete driveBoard;
 //         delete mockRoveCommUDPNode;
 //     }

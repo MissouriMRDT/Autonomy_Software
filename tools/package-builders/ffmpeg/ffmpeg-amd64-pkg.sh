@@ -5,14 +5,54 @@ cd /tmp
 
 # Install Variables
 FFMPEG_VERSION="7.1"
+SVT_AV1_VERSION="2.3.0"
+
+# Build Arguments
+FORCE_BUILD=false
+DOWNLOAD_LATEST=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb"
 
-# Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
-    echo "Package version ${FFMPEG_VERSION} already exists in the repository. Skipping build."
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
+    rm -rf /tmp/pkg
+    rm -rf /tmp/ffmpeg
+    mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
+    curl -L $FILE_URL --output /tmp/pkg/deb/ffmpeg_${FFMPEG_VERSION}_amd64.deb
+
+    # Exit the script
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
+
+# Check if the file exists
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+    echo "Package version ${FFMPEG_VERSION} already exists in the repository. Skipping build."
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT    
 else
     echo "Package version ${FFMPEG_VERSION} does not exist in the repository. Building the package."
     echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
@@ -29,7 +69,9 @@ else
         libvorbis-dev \
         libvpx-dev \
         libx264-dev \
-        libx265-dev
+        libx265-dev \
+        libswscale-dev \
+        liblzma-dev
 
     # Delete Old Packages
     rm -rf /tmp/pkg
@@ -51,16 +93,16 @@ else
     } > /tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/DEBIAN/control
 
     # This is a workaround for the libsvtav1-dev package not being available in the repository. The package is installed manually.
-    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    git clone --depth=1 --branch v${SVT_AV1_VERSION} https://gitlab.com/AOMediaCodec/SVT-AV1.git 
     cd SVT-AV1
     cd Build
     # We need to install to system first. Then we can install to the package directory.
     cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
     make -j 8
     make install
-    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
     make -j 8
-    make install
+    make install DESTDIR=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64
     cd ../..
     rm -rf SVT-AV1
 
@@ -69,10 +111,10 @@ else
     cd ffmpeg
 
     # Configure FFMPEG
-    ./configure --prefix=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64/usr/local \
+    ./configure --prefix=/usr/local \
+    --disable-doc \
     --enable-static \
     --disable-shared \
-    --disable-doc \
     --enable-pic \
     --extra-libs="-lpthread -lm" \
     --ld="g++" \
@@ -89,11 +131,14 @@ else
     --enable-libvpx \
     --enable-libx264 \
     --enable-libx265 \
-    --enable-nonfree
+    --enable-lzma \
+    --enable-nonfree \
+    --enable-pthreads 
+
 
     # Install FFMPEG
     make
-    make install
+    make install DESTDIR=/tmp/pkg/ffmpeg_${FFMPEG_VERSION}_amd64
 
     # Cleanup Install
     cd ../
