@@ -6,18 +6,22 @@
   </a>
   <h1>Autonomy Software C++</h1>
   <p><b>Autonomous Traversal and Object Detection for Rovers in C++</b></p>
+
   <div>
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/clang_check.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/clang_check.yml?branch=development&label=Clang&style=flat-round" alt="clang-ci" />
+    </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/codeql.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/codeql.yml?branch=development&label=CodeQL&style=flat-round" alt="codeql-ci" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/tests.yml?branch=development&label=Unit%20Tests&style=flat-round" alt="tests-ci" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/deploy_docker.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/deploy_docker.yml?branch=development&label=Docker&style=flat-round" alt="docker-ci" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/doxygen_generate.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/doxygen_generate.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/clang_check.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/clang_check.yml?branch=development&label=Clang&style=flat-round" alt="clang-ci" />
+    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/tests.yml?branch=development&label=Unit%20Tests&style=flat-round" alt="tests-ci" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/valgrind.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/valgrind.yml?branch=development&label=Valgrind&style=flat-round" alt="valgrind-ci" />
@@ -25,11 +29,20 @@
   </div>
 
   <div>
-    <a href="https://codecov.io/gh/MissouriMRDT/Autonomy_Software" > 
-        <img src="https://codecov.io/gh/MissouriMRDT/Autonomy_Software/branch/development/graph/badge.svg?token=AZVPRPE5A8" alt="codecov-ci" /> 
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=resolved+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
     </a>
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=code+coverage&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
+    </a>
+  </div>
+
+  <div>
     <a href="https://app.codacy.com/gh/missourimrdt/autonomy_software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
       <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="codacy-ci" />
+    </a>
+    <a href="https://app.codacy.com/gh/MissouriMRDT/Autonomy_Software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage">
+      <img src="https://app.codacy.com/project/badge/Coverage/3945bf3e7657445abd82fb5c8f62b229" alt="codacy-cov-ci" />
     </a>
     <a href="https://www.codefactor.io/repository/github/missourimrdt/autonomy_software">
       <img src="https://img.shields.io/codefactor/grade/github/missourimrdt/autonomy_software?logo=codefactor&style=flat-round" alt="codefactor-ci" />
@@ -44,12 +57,19 @@
       <img src="https://img.shields.io/badge/NVIDIA_JetPack_6-latest-orange" alt="jetpack-pkg" />
     </a>
   </div>
+
+  <div>
+    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
+      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=active+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
+    </a>
+  </div>
+
   <div>
     <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
       <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
     </a>
     <a href="https://en.cppreference.com/w/cpp/20">
-      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language" />
+      <img src="https://img.shields.io/badge/language-C%2B%2B20-blue.svg?style=flat-round" alt="language"/>
     </a>
   </div>
 </div>
@@ -59,6 +79,16 @@
 ## 🚀 Introduction
 
 Welcome to the **Autonomy Software** repository of the [Mars Rover Design Team (MRDT)](https://marsrover.mst.edu) at [Missouri University of Science and Technology (Missouri S&T)](https://mst.edu)! This repository contains the source code, documentation, and other resources for developing autonomy software for our Mars Rover. We aim to compete in the University Rover Challenge (URC) by showcasing advanced autonomous capabilities and robust navigation algorithms.
+
+---
+
+## 🗒️ Notices
+
+
+  <div style="padding: 10px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 5px;">
+    <strong>Notice!</strong> This project is only compatible with <code>GCC-10</code> compiler!
+  </div>
+  <br/>
 
 ---
 
@@ -109,12 +139,12 @@ The easiest way to get started is by using our Docker environment. This environm
 - **NVIDIA CUDA Toolkit 12.2**
 - **CMake 3.30.2**
 - **GCC 10**
-- **OpenCV 4.10.0**
+- **OpenCV 4.11.0**
 - **PyTorch 2.2.2**
 - **TensorFlow 2.15.0**
 - **ZED SDK 4.1**
-- **Quill 7.3.0**
-- **Google Test 1.15.2**
+- **Quill 8.1.0**
+- **Google Test 1.16.0**
 - **Abseil 20230802.1**
 - **GeographicLib 2.3**
 - **Git LFS**
@@ -144,14 +174,14 @@ If you prefer to set up the environment manually, make sure your system has the 
   - Git LFS (Large File Storage) 2.13.0 or higher (for handling large files)
   - Python 3.8 or higher (for scripting and utility purposes)
   - Doxygen (for generating documentation)
-  - OpenCV 4.10.0 or higher (required for vision processing)
+  - OpenCV 4.11.0 or higher (required for vision processing)
   - CUDA Toolkit 12.2 or higher (or NVIDIA graphics card support)
   - NVIDIA JetPack SDK (required for Jetson platforms)
   - ZED SDK 4.1 or higher (for stereolabs cameras)
   - PyTorch 2.2.2 or higher (for machine learning tasks)
   - TensorFlow 2.15.0 or higher (for deep learning tasks)
   - Quill 6.1.2 or higher (for logging)
-  - Google Test 1.15.2 (for testing)
+  - Google Test 1.16.0 (for testing)
   - Abseil 20230802.1 (for additional utilities)
   - GeographicLib 2.3 (for geospatial computations)
 
@@ -288,6 +318,22 @@ This project makes use of several open-source libraries and tools that help us a
 - **Google Test** - C++ testing framework used for unit tests.  
   [Google Test GitHub](https://github.com/google/googletest)  
   License: [BSD-3-Clause License](https://github.com/google/googletest/blob/main/LICENSE)
+
+- **LibDataChannel** - Lightweight C++ library implementing basic WebRTC functions.  
+    [LibDataChannel GitHub](https://github.com/paullouisageneau/libdatachannel)  
+    License: [MIT License](https://github.com/paullouisageneau/libdatachannel/blob/master/LICENSE)
+
+- **FFMPEG** - A comprehensive multimedia framework for handling video, audio, and other multimedia files and streams.  
+    [FFMPEG GitHub](https://github.com/FFmpeg/FFmpeg)  
+    License: [LGPL-2.1 License](https://github.com/FFmpeg/FFmpeg/blob/master/LICENSE.md)
+
+- **nlohmann JSON** - A modern C++ library for JSON parsing and serialization.  
+    [nlohmann JSON GitHub](https://github.com/nlohmann/json)  
+    License: [MIT License](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
+
+- **matplotplusplus** - Matplot++: A C++ Graphics Library for Data Visualization
+    [Matplot++](https://github.com/alandefreitas/matplotplusplus)
+    License: [MIT License](https://github.com/alandefreitas/matplotplusplus/blob/master/LICENSE)
 
 - **Abseil** - Collection of C++ libraries designed for performance and ease of use.  
   [Abseil GitHub](https://github.com/abseil/abseil-cpp)  

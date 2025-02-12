@@ -47,8 +47,6 @@ namespace tensorflowtag
             cv::Point2f CornerTR;                  // The top right corner of the bounding box.
             cv::Point2f CornerBL;                  // The bottom left corner of the bounding box.
             cv::Point2f CornerBR;                  // The bottom right corner of bounding box.
-            int nHits                    = 0;      // Total number of detections for tag id.
-            int nFramesSinceLastHit      = 0;      // The total number of frames since a tag with this ID was last detected.
             double dConfidence           = 0.0;    // The detection confidence of the tag reported from the tensorflow model.
             double dStraightLineDistance = 0.0;    // Distance between the tag and the camera.
             double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.

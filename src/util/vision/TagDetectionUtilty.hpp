@@ -35,29 +35,33 @@
 namespace tagdetectutils
 {
     /******************************************************************************
-     * @brief Aggregates all detected tags from each provided tag detector for OpenCV detection.
+     * @brief Aggregates all detected tags from each provided tag detector for both OpenCV and Tensorflow detection.
      *
      * @note When using bUnique, if you wish to prioritize one tag detector's detections over another put that tag detector earlier in the vTagDetectors.
      *
-     * @param vDetectedTags - Reference vector that will hold all of the aggregated detected tags.
+     * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
+     * @param vDetectedTensorflowTags - Reference vector that will hold all of the aggregated detected Tensorflow tags.
      * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
-     * @param bUnique - Ensure vDetectedTags is a unique list of tags (unique by ID).
+     * @param bUnique - Ensure vDetectedArucoTags is a unique list of tags (unique by ID).
      *
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-03-07
      ******************************************************************************/
-    inline void LoadDetectedArucoTags(std::vector<arucotag::ArucoTag>& vDetectedTags, const std::vector<TagDetector*>& vTagDetectors, bool bUnique = false)
+    inline void LoadDetectedTags(std::vector<arucotag::ArucoTag>& vDetectedArucoTags,
+                                 std::vector<tensorflowtag::TensorflowTag>& vDetectedTensorflowTags,
+                                 const std::vector<TagDetector*>& vTagDetectors,
+                                 bool bUnique = false)
     {
         // Number of tag detectors.
         size_t siNumTagDetectors = vTagDetectors.size();
 
         // Initialize vectors to store detected tags temporarily.
-        // Using pointers the interference between vectors being updated across different threads should be minimal.
-        std::vector<std::vector<arucotag::ArucoTag>> vDetectedTagBuffers;
-        vDetectedTagBuffers.resize(siNumTagDetectors);
+        std::vector<std::vector<arucotag::ArucoTag>> vDetectedArucoTagBuffers(siNumTagDetectors);
+        std::vector<std::vector<tensorflowtag::TensorflowTag>> vDetectedTensorflowTagBuffers(siNumTagDetectors);
 
-        // Initialize vectors to stored detected tags
-        std::vector<std::future<bool>> vDetectedTagsFuture;
+        // Initialize vectors to store detected tags futures.
+        std::vector<std::future<bool>> vDetectedArucoTagsFuture;
+        std::vector<std::future<bool>> vDetectedTensorflowTagsFuture;
 
         // Request tags from each detector.
         for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
@@ -65,35 +69,49 @@ namespace tagdetectutils
             // Check if this tag detector is ready.
             if (vTagDetectors[siIdx]->GetIsReady())
             {
-                // Request detected tags from detector.
-                vDetectedTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedTagBuffers[siIdx]));
+                // Request detected Aruco tags from detector.
+                vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
+                // Request detected Tensorflow tags from detector.
+                vDetectedTensorflowTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedTensorflowTags(vDetectedTensorflowTagBuffers[siIdx]));
             }
         }
 
         // Ensure all requests have been fulfilled.
-        // Then transfer tags from the buffer to vDetectedTags for the user to access.
-        for (size_t siIdx = 0; siIdx < vDetectedTagsFuture.size(); ++siIdx)
+        // Then transfer tags from the buffer to vDetectedArucoTags and vDetectedTensorflowTags for the user to access.
+        for (size_t siIdx = 0; siIdx < vDetectedArucoTagsFuture.size(); ++siIdx)
         {
-            vDetectedTagsFuture[siIdx].get();
-            vDetectedTags.insert(vDetectedTags.end(), vDetectedTagBuffers[siIdx].begin(), vDetectedTagBuffers[siIdx].end());
+            // Wait for the request to be fulfilled.
+            vDetectedArucoTagsFuture[siIdx].get();
+            vDetectedTensorflowTagsFuture[siIdx].get();
+
+            // Loop through the detected Aruco tags and add them to the vDetectedArucoTags vector.
+            for (const arucotag::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+            {
+                vDetectedArucoTags.emplace_back(tTag);
+            }
+
+            // Loop through the detected Tensorflow tags and add them to the vDetectedTensorflowTags vector.
+            for (const tensorflowtag::TensorflowTag& tTag : vDetectedTensorflowTagBuffers[siIdx])
+            {
+                vDetectedTensorflowTags.emplace_back(tTag);
+            }
         }
 
         if (bUnique)
         {
-            // Remove all tags with a duplicate ID.
-            // This is done in ascending order. This means that if a user wishes to prioritize tags detected from
-            //  specific tag detectors they should be first in the vector.
+            // Remove all Aruco tags with a duplicate ID.
             std::set<int> setIds;
             size_t szIdx = 0;
-            while (szIdx < vDetectedTags.size())
+            while (szIdx < vDetectedArucoTags.size())
             {
                 // Tag was detected by another tag detector.
-                if (setIds.count(vDetectedTags[szIdx].nID))
+                if (setIds.count(vDetectedArucoTags[szIdx].nID))
                 {
-                    vDetectedTags.erase(vDetectedTags.begin() + szIdx);
+                    vDetectedArucoTags.erase(vDetectedArucoTags.begin() + szIdx);
                 }
                 else
                 {
+                    setIds.insert(vDetectedArucoTags[szIdx].nID);
                     ++szIdx;
                 }
             }
@@ -101,76 +119,10 @@ namespace tagdetectutils
     }
 
     /******************************************************************************
-     * @brief Aggregates all detected tags from each provided tag detector for Tensorflow detection.
-     *
-     * @note When using bUnique, if you wish to prioritize one tag detector's detections over another put that tag detector earlier in the vTagDetectors.
-     *
-     * @param vDetectedTags - Reference vector that will hold all of the aggregated detected tags.
-     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
-     *
-     * @author JSpencerPittman (jspencerpittman@gmail.com)
-     * @date 2024-03-07
-     ******************************************************************************/
-    inline void LoadDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vDetectedTags, const std::vector<TagDetector*>& vTagDetectors)
-    {
-        // Number of tag detectors.
-        size_t siNumTagDetectors = vTagDetectors.size();
-
-        // Initialize vectors to store detected tags temporarily.
-        // Using pointers the interference between vectors being updated across different threads should be minimal.
-        std::vector<std::vector<tensorflowtag::TensorflowTag>> vDetectedTagBuffers;
-        vDetectedTagBuffers.resize(siNumTagDetectors);
-
-        // Initialize vectors to stored detected tags
-        std::vector<std::future<bool>> vDetectedTagsFuture;
-
-        // Request tags from each detector.
-        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
-        {
-            // Check if this tag detector is ready.
-            if (vTagDetectors[siIdx]->GetIsReady())
-            {
-                // Request detected tags from detector.
-                vDetectedTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedTensorflowTags(vDetectedTagBuffers[siIdx]));
-            }
-        }
-
-        // Ensure all requests have been fulfilled.
-        // Then transfer tags from the buffer to vDetectedTags for the user to access.
-        for (size_t siIdx = 0; siIdx < vDetectedTagsFuture.size(); ++siIdx)
-        {
-            vDetectedTagsFuture[siIdx].get();
-            vDetectedTags.insert(vDetectedTags.end(), vDetectedTagBuffers[siIdx].begin(), vDetectedTagBuffers[siIdx].end());
-        }
-
-        // LEAD: Commented out since TensorflowTag no longer has ID.
-        // if (bUnique)
-        // {
-        //     // Remove all tags with a duplicate ID.
-        //     // This is done in ascending order. This means that if a user wishes to prioritize tags detected from
-        //     //  specific tag detectors they should be first in the vector.
-        //     std::set<int> setIds;
-        //     size_t szIdx = 0;
-        //     while (szIdx < vDetectedTags.size())
-        //     {
-        //         // Tag was detected by another tag detector.
-        //         if (setIds.count(vDetectedTags[szIdx].nID))
-        //         {
-        //             vDetectedTags.erase(vDetectedTags.begin() + szIdx);
-        //         }
-        //         else
-        //         {
-        //             ++szIdx;
-        //         }
-        //     }
-        // }
-    }
-
-    /******************************************************************************
      * @brief Find a tag in the rover's vision with the specified ID, using OpenCV detection.
      *
      * @param nID - The ID of the tag being looked for.
-     * @param tIdentifiedTag - Reference to save the identified tag.
+     * @param stIdentifiedArucoTag - Reference to save the identified tag.
      * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
      * @return true - The tag was found.
      * @return false - The tag was not found.
@@ -178,19 +130,20 @@ namespace tagdetectutils
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-03-08
      ******************************************************************************/
-    inline bool FindArucoTagByID(int nID, arucotag::ArucoTag& stIdentifiedTag, const std::vector<TagDetector*>& vTagDetectors)
+    inline bool FindArucoTagByID(int nID, arucotag::ArucoTag& stIdentifiedArucoTag, const std::vector<TagDetector*>& vTagDetectors)
     {
         // Load all detected tags in the rover's vision.
-        std::vector<arucotag::ArucoTag> vDetectedTags;
-        LoadDetectedArucoTags(vDetectedTags, vTagDetectors, true);
+        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
+        LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, vTagDetectors, true);
 
         // Find the tag with the corresponding id.
-        for (const arucotag::ArucoTag& tTag : vDetectedTags)
+        for (const arucotag::ArucoTag& tTag : vDetectedArucoTags)
         {
             // Is this the tag being searched for.
             if (tTag.nID == nID)
             {
-                stIdentifiedTag = tTag;
+                stIdentifiedArucoTag = tTag;
                 return true;
             }
         }

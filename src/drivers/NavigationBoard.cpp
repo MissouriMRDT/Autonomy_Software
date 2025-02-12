@@ -43,12 +43,19 @@ NavigationBoard::NavigationBoard()
     stSubscribePacket.unDataCount = 0;
     stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
     stSubscribePacket.vData       = std::vector<uint8_t>{};
-    network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, manifest::Nav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+    if (network::g_pRoveCommUDPNode)
+    {
+        // Determine the IP address to send the subscribe packet to.
+        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Nav::IP_ADDRESS.IP_STR.c_str();
 
-    // Set RoveComm callbacks.
-    network::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, manifest::Nav::TELEMETRY.find("GPSLATLONALT")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, manifest::Nav::TELEMETRY.find("ACCURACYDATA")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessCompassData, manifest::Nav::TELEMETRY.find("COMPASSDATA")->second.DATA_ID);
+        // Send subscribe packet to NavBoard.
+        network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+
+        // Set RoveComm callbacks.
+        network::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, manifest::Nav::TELEMETRY.find("GPSLATLONALT")->second.DATA_ID);
+        network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, manifest::Nav::TELEMETRY.find("ACCURACYDATA")->second.DATA_ID);
+        network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessCompassData, manifest::Nav::TELEMETRY.find("COMPASSDATA")->second.DATA_ID);
+    }
 }
 
 /******************************************************************************

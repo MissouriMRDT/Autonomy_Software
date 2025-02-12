@@ -9,11 +9,50 @@ TENSORFLOW_COMMIT="6887368d6d46223f460358323c4b76d61d1558a8"
 TENSORFLOW_COMMIT_MD5_HASH="bb25fa4574e42ea4d452979e1d2ba3b86b39569d6b8106a846a238b880d73652"
 TENSORFLOW_BAZEL_VERSION="6.1.0"
 
+# Build Arguments
+FORCE_BUILD=false
+DOWNLOAD_LATEST=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force|-f)
+            FORCE_BUILD=true
+            shift
+            ;;
+        --download-latest|-d)
+            DOWNLOAD_LATEST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb"
 
+# Download the latest version
+if [[ "$DOWNLOAD_LATEST" == true ]]; then
+    echo "Downloading the latest version..."
+    
+    # Cleanup the download directory
+    rm -rf /tmp/pkg
+    rm -rf /tmp/tensorflow
+    mkdir -p /tmp/pkg/deb
+
+    # Download the package from the repository
+    curl -L $FILE_URL --output /tmp/pkg/deb/tensorflow_${TENSORFLOW_VERSION}_arm64.deb
+
+    # Exit the script
+    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    exit 0
+fi
+
 # Check if the file exists
-if curl --output /dev/null --silent --head --fail "$FILE_URL"; then
+if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${TENSORFLOW_VERSION} already exists in the repository. Skipping build."
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
 else
@@ -48,14 +87,16 @@ else
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/usr/local
     mkdir -p /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN
 
-    # Create Control File for Tensorflow.
-    echo "Package: tensorflow-mrdt" > /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Version: ${TENSORFLOW_VERSION}" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Maintainer: google" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Depends:" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Architecture: arm64" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Homepage: https://www.tensorflow.org/api_docs/cc" >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
-    echo "Description: A prebuilt version of Tensorflow. Made by the Mars Rover Design Team." >> /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
+    # Create Control File
+    {
+        echo "Package: tensorflow-mrdt"
+        echo "Version: ${TENSORFLOW_VERSION}"
+        echo "Maintainer: google"
+        echo "Depends:"
+        echo "Architecture: arm64"
+        echo "Homepage: https://www.tensorflow.org/api_docs/cc"
+        echo "Description: A prebuilt version of Tensorflow. Made by the Mars Rover Design Team."
+    } > /tmp/pkg/tensorflow_${TENSORFLOW_VERSION}_arm64/DEBIAN/control
 
     # Download Tensorflow
     git clone --depth 1 --recurse-submodules --branch v${TENSORFLOW_VERSION} https://github.com/tensorflow/tensorflow

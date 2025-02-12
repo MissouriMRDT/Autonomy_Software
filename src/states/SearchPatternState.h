@@ -11,12 +11,15 @@
 #ifndef SEARCH_PATTERN_STATE_H
 #define SEARCH_PATTERN_STATE_H
 
+#include "../algorithms/controllers/PredictiveStanleyController.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 
 /// \cond
+#include <matplot/matplot.h>
 
 /// \endcond
 
@@ -54,14 +57,13 @@ namespace statemachine
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bInitialized;
-            geoops::GPSCoordinate m_stSearchPatternCenter;
+            geoops::Waypoint m_stSearchPatternCenter;
             std::vector<TagDetector*> m_vTagDetectors;
             std::vector<geoops::Waypoint> m_vSearchPath;
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;
-            std::vector<std::pair<double, double>> m_vRoverPosition;
-            size_t m_nMaxDataPoints;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:
             /////////////////////////////////////////
