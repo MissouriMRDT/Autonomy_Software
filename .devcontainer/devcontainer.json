@@ -15,22 +15,22 @@
         "--privileged",
         "-v",
         "/dev/bus/usb:/dev/bus/usb",
-        // X11 socket for XWayland
-        "-v",
-        "/tmp/.X11-unix:/tmp/.X11-unix",
-        // Wayland socket for native Wayland apps
-        "-v",
-        "/run/user/1000/wayland:/run/user/1000/wayland",
         // WSLg support (if on WSL)
         "-v",
         "/mnt/wslg:/mnt/wslg",
+        // X11 socket for XWayland
+        "-v",
+        "/tmp/.X11-unix:/tmp/.X11-unix",
+        // // Wayland socket for native Wayland apps
+        // "-v",
+        // "/run/user/1000/wayland:/run/user/1000/wayland",
         // Environment variables
-        "-e",
-        "DISPLAY", // XWayland display
-        "-e",
-        "WAYLAND_DISPLAY", // Wayland display, you may need to run 'xhost +local:docker' to allow the container to connect to the X server.
-        "-e",
-        "XDG_RUNTIME_DIR", // Runtime directory for Wayland
+        // "-e",
+        // "DISPLAY", // XWayland display
+        // "-e",
+        // "WAYLAND_DISPLAY", // Wayland display, you may need to run 'xhost +local:docker' to allow the container to connect to the X server.
+        // "-e",
+        // "XDG_RUNTIME_DIR", // Runtime directory for Wayland
         "-e",
         "GDK_BACKEND=x11,wayland" // Allow GTK to work with both backends
     ],
@@ -40,18 +40,18 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-01-05-20-37-21",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-01-05-20-37-21",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-02-10-18-03-17",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-02-10-18-03-17",
     // "build": {
-    //     "dockerfile": "Dockerfile_Jammy"
-    //     // "dockerfile": "Dockerfile_JetPack"
+    // "dockerfile": "Jammy.dockerfile"
+    // "dockerfile": "JetPack.dockerfile"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "postStartCommand": "git config --global --add safe.directory '*'",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
@@ -72,7 +72,8 @@
                 "streetsidesoftware.code-spell-checker",
                 "vscode-icons-team.vscode-icons",
                 "ryanluker.vscode-coverage-gutters",
-                "GitHub.vscode-pull-request-github"
+                "GitHub.vscode-pull-request-github",
+                "GitHub.copilot"
             ],
             "settings": {
                 // VSCode settings.
@@ -127,6 +128,8 @@
                     "/usr/local/include/libavfilter/**",
                     "/usr/local/include/libavdevice",
                     "/usr/local/include/libavdevice/**",
+                    "/usr/local/include/matplot",
+                    "/usr/local/include/matplot/**",
                     "/usr/local/include/gmock",
                     "/usr/local/include/gmock/**",
                     "/usr/local/include/gtest",
@@ -140,7 +143,9 @@
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",
-                    "/usr/include/nlohmann/**"
+                    "/usr/include/nlohmann/**",
+                    "/usr/include/python*",
+                    "/usr/include/python*/**"
                 ],
                 "C_Cpp.default.defines": [
                     "__ROVECOMM_LIBRARY_MODE__=1"

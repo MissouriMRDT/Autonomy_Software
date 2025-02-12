@@ -68,7 +68,7 @@ class ArucoDetectionTests : public TestingBase<ArucoDetectionTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ArucoDetectionTests() { SetUp(); }
+        ArucoDetectionTests() {}
 
         /******************************************************************************
          * @brief Destroy the Tag Detect OpenCV Tests object.
@@ -76,7 +76,7 @@ class ArucoDetectionTests : public TestingBase<ArucoDetectionTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        ~ArucoDetectionTests() { TearDown(); }
+        ~ArucoDetectionTests() {}
 
         /******************************************************************************
          * @brief Setup the Tag Detect OpenCV Tests object.
@@ -85,11 +85,7 @@ class ArucoDetectionTests : public TestingBase<ArucoDetectionTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Tag Detect OpenCV Tests object.
@@ -97,11 +93,7 @@ class ArucoDetectionTests : public TestingBase<ArucoDetectionTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-10
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************

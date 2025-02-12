@@ -44,7 +44,7 @@ CameraHandler::CameraHandler()
     }
     else
     {
-        m_pMainCam = new SIMZEDCam("ws://" + constants::SIM_IP_ADDRESS + ":80",
+        m_pMainCam = new SIMZEDCam("ws://" + constants::SIM_IP_ADDRESS + ":" + std::to_string(constants::SIM_WEBSOCKET_PORT),
                                    constants::ZED_MAINCAM_RESOLUTIONX,
                                    constants::ZED_MAINCAM_RESOLUTIONY,
                                    constants::ZED_MAINCAM_FPS,

@@ -223,7 +223,7 @@ int main()
             IterPerSecond.Tick();
 
             // No need to loop as fast as possible. Sleep...
-            std::this_thread::sleep_for(std::chrono::milliseconds(60));
+            std::this_thread::sleep_for(std::chrono::microseconds(66666));
         }
 
         /////////////////////////////////////////

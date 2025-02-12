@@ -8,6 +8,7 @@ ADDMARKERLEG
 ADDOBJECTLEG
 ADDOBSTACLE
 ADDPOSITIONLEG
+alandefreitas
 algobase
 alloc
 allocs
@@ -45,16 +46,20 @@ CELLVOLTAGE
 charconv
 chromaprint
 chrono
+chsh
 clayjay
 CLEARWAYPOINTS
 cmath
+Codacy
 Codecov
+codefactor
 codeql
 codezombiech
 Coeffs
 Colour
 COMPASSDATA
 Contoller
+cowfile
 cowsay
 Cowsay
 CPACK
@@ -80,6 +85,8 @@ DEBLOCK
 Deblur
 decipercent
 declval
+DEEPSOURCE
+deepsourcelabs
 deleter
 Denoise
 Depacketization
@@ -353,6 +360,7 @@ libzvbi
 localtime
 LOGNAME
 lpthread
+lzma
 m_muWebRTCRGBImageCopyMutex
 MAINCAM
 MAINCAN
@@ -362,7 +370,10 @@ MAKEFLAGS
 MAPANGLE
 MAPRANGE
 marsrover
+MATPLOT
 matplotlib
+matplotlibcpp
+matplotplusplus
 matx
 Memcheck
 MERICA
@@ -416,6 +427,7 @@ pocketsphinx
 POSETRACK
 Pranswer
 pthread
+pthreads
 pyopengl
 QPID
 Raman
@@ -443,6 +455,7 @@ rovecomm
 RTCP
 rval
 ryanluker
+sarif
 searchbar
 searchpattern
 SEARCHPATTERNSTATE
@@ -533,10 +546,12 @@ Wpedantic
 wslg
 xauth
 xhost
+xlabel
 XNNPACK
 XYZBGRA
 XYZRGBA
 yasm
+ylabel
 YOLO
 yolomodel
 YUVJ
@@ -545,4 +560,5 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zlabel
 zstd

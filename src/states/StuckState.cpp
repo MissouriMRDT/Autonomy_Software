@@ -11,7 +11,7 @@
 #include "StuckState.h"
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
-#include "../algorithms/DifferentialDrive.hpp"
+#include "../algorithms/kinematics/DifferentialDrive.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.

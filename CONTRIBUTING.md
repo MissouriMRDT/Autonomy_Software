@@ -185,6 +185,7 @@ External libraries and their corresponding type prefixes are listed below:
 | WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
 | JSON           | `jsn`  | `nlohmann::json jsnExampleJSONType` |
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |
+| Matplot        | `mt`   | `axes_handle mtExampleMatplot`   |
 
 ---
 

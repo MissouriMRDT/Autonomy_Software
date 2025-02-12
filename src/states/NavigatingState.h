@@ -11,8 +11,11 @@
 #ifndef NAVIGATING_STATE_H
 #define NAVIGATING_STATE_H
 
+#include "../algorithms/controllers/PredictiveStanleyController.h"
+#include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 
@@ -39,13 +42,10 @@ namespace statemachine
             /////////////////////////////////////////
             bool m_bFetchNewWaypoint;
             geoops::Waypoint m_stGoalWaypoint;
-            int m_nMaxDataPoints;
-            std::vector<double> m_vRoverXPosition;
-            std::vector<double> m_vRoverYPosition;
-            std::array<double, 2> m_dStuckCheckLastPosition;
             bool m_bInitialized;
             std::vector<TagDetector*> m_vTagDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:
             /////////////////////////////////////////

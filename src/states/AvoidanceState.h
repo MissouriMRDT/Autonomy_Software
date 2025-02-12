@@ -11,7 +11,7 @@
 #ifndef AVOIDANCE_STATE_H
 #define AVOIDANCE_STATE_H
 
-#include "../algorithms/controllers/StanleyController.h"
+#include "../algorithms/controllers/PredictiveStanleyController.h"
 #include "../algorithms/planners/AStar.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
@@ -36,8 +36,8 @@ namespace statemachine
     {
         private:
             statemachine::TimeIntervalBasedStuckDetector m_stStuckChecker;
-            pathplanners::AStar m_stPlanner;
-            controllers::StanleyController m_stController;
+            pathplanners::AStar m_AStarPlanner;
+            controllers::PredictiveStanleyController m_StanleyController;
             geoops::RoverPose m_stPose;
             geoops::UTMCoordinate m_stStart;
             geoops::UTMCoordinate m_stGoal;

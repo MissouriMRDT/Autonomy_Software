@@ -41,7 +41,7 @@ class ObjectDetectionHandlerTests : public TestingBase<ObjectDetectionHandlerTes
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ObjectDetectionHandlerTests() { SetUp(); }
+        ObjectDetectionHandlerTests() {}
 
         /******************************************************************************
          * @brief Destroy the Object Detection Handler Tests object.
@@ -49,7 +49,7 @@ class ObjectDetectionHandlerTests : public TestingBase<ObjectDetectionHandlerTes
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        ~ObjectDetectionHandlerTests() { TearDown(); }
+        ~ObjectDetectionHandlerTests() {}
 
         /******************************************************************************
          * @brief Setup the Object Detection Handler Tests object.
@@ -57,11 +57,7 @@ class ObjectDetectionHandlerTests : public TestingBase<ObjectDetectionHandlerTes
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void SetUp() override
-        {
-            // Call the base setup method. This initializes the loggers and RoveComm instances.
-            RequiredSetup();
-        }
+        void TestSetup() override {}
 
         /******************************************************************************
          * @brief Teardown the Object Detection Handler Tests object.
@@ -69,11 +65,7 @@ class ObjectDetectionHandlerTests : public TestingBase<ObjectDetectionHandlerTes
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TearDown() override
-        {
-            // Call the base teardown method. This stops the RoveComm instances and loggers.
-            RequiredTeardown();
-        }
+        void TestTeardown() override {}
 };
 
 // FIXME: Do not use "using" for namespaces, it's bad practice.
@@ -120,7 +112,7 @@ using ::testing::Return;
 //     NiceMock<MockObjectDetector>* mockLeftCam;
 //     NiceMock<MockObjectDetector>* mockRightCam;
 
-//     void SetUp() override {
+//     void TestSetup() override {
 //         mockMainCam = new NiceMock<MockObjectDetector>();
 //         mockLeftCam = new NiceMock<MockObjectDetector>();
 //         mockRightCam = new NiceMock<MockObjectDetector>();
@@ -131,7 +123,7 @@ using ::testing::Return;
 //         handler->m_pObjectDetectorRightCam = mockRightCam;
 //     }
 
-//     void TearDown() override {
+//     void TestTeardown() override {
 //         delete handler;
 //         delete mockMainCam;
 //         delete mockLeftCam;
