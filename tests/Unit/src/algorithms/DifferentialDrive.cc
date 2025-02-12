@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../src/algorithms/kinematics/DifferentialDrive.hpp"
