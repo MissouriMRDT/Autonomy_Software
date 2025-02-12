@@ -60,10 +60,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override
-        {
-            driveBoard = new DriveBoard();
-        }
+        void TestSetup() override { driveBoard = new DriveBoard(); }
 
         /******************************************************************************
          * @brief Teardown the Drive Board Tests object.
@@ -104,26 +101,6 @@ TEST_F(DriveBoardTests, Leaks)
     EXPECT_TRUE(driveBoard != nullptr);
 }
 
-class DriveBoardTest : public ::testing::Test {
-
-protected:
-    DriveBoard* driveBoard;
-
-    void TestSetup() override
-    {
-        // Create objects.
-        // mockRoveCOmmUDPNode = new MockRoveCOmmUDPNode();
-        // network::g_pRoveCommUDPNode = mockRoveCommUDPNode;
-        driveBoard = new DriveBoard();
-    }
-
-    void TestTeardown() override
-    {
-        delete driveBoard;
-        // delete mockRoveCommUDPNode;
-    }
-};
-
 /******************************************************************************
  * @brief Verify that CalculateMove returns near-zero powers with zero speed/heading.
  *
@@ -141,7 +118,7 @@ TEST_F(DriveBoardTests, CalculateMove_ZeroSpeedZeroHeading)
 
     // Test with eCurvatureDrive
     diffdrive::DrivePowers eCurvatureDriveResultPowers = driveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
-    
+
     // We expect zero drive power when speed & heading are both zero.
     EXPECT_NEAR(eCurvatureDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
     EXPECT_NEAR(eCurvatureDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
@@ -161,7 +138,7 @@ TEST_F(DriveBoardTests, SendDrive_UpdatesDrivePowers)
 
     driveBoard->SendDrive(stPowers);
 
-    // This test does not pass. Not because t is wrong but because, somehow, dLeftDrivePower and dRightDrivePower are returning half the expected value they are set to. 
+    // This test does not pass. Not because t is wrong but because, somehow, dLeftDrivePower and dRightDrivePower are returning half the expected value they are set to.
     // From what I have seen, the speed is halved when it is sent to the drive board.
     auto currentPowers = driveBoard->GetDrivePowers();
     EXPECT_DOUBLE_EQ(currentPowers.dLeftDrivePower, 0.25);
