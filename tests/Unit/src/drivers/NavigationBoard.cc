@@ -5,7 +5,7 @@
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  *
- * @copyright Copyright MRDT 2024 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../src/drivers/NavigationBoard.h"
@@ -59,10 +59,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override
-        {
-            navBoard = new NavigationBoard();
-        }
+        void TestSetup() override { navBoard = new NavigationBoard(); }
 
         /******************************************************************************
          * @brief Teardown the Navigation Board Tests object.
@@ -113,7 +110,7 @@ TEST_F(NavigationBoardTests, Leaks)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST_F(NavigationBoardTests, ConstructorInitializesMembers) 
+TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
 {
     // The latitude, longitude, and altitude are set to the location of Missouri S&T
     EXPECT_EQ(navBoard->GetGPSData().dLatitude, 37.951771);
@@ -137,7 +134,7 @@ TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData) 
+TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
 {
     geoops::GPSCoordinate gpsData = navBoard->GetGPSData();
     EXPECT_EQ(gpsData.dLatitude, 37.951771);
@@ -158,8 +155,8 @@ TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-12-02
  ******************************************************************************/
-TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData) {
-
+TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData)
+{
     geoops::UTMCoordinate utmData = navBoard->GetUTMData();
 
     // Assuming default UTM data is MST's location
