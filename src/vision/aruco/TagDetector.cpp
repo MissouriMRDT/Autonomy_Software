@@ -44,6 +44,8 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
     m_pCamera                          = pBasicCam;
     m_bTensorflowInitialized           = false;
     m_bTensorflowEnabled               = false;
+    m_bTorchInitialized                = false;
+    m_bTorchEnabled                    = false;
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
@@ -103,6 +105,8 @@ TagDetector::TagDetector(ZEDCamera* pZEDCam,
     m_pCamera                          = pZEDCam;
     m_bTensorflowInitialized           = false;
     m_bTensorflowEnabled               = false;
+    m_bTorchInitialized                = false;
+    m_bTorchEnabled                    = false;
     m_bUsingZedCamera                  = true;    // Toggle ZED functions on.
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
@@ -330,6 +334,23 @@ void TagDetector::ThreadedContinuousCode()
             tensorflowtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTensorTags);
         }
 
+        // Check if torch detection if turned on.
+        if (m_bTorchEnabled)
+        {
+            // Drop the Alpha channel from the image copy to preproc frame.
+            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
+            // Detect tags in the image.
+            m_vDetectedTorchTags = torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            // Estimate the positions of the tags using the point cloud
+            for (torchtag::TorchTag& stTag : m_vDetectedTorchTags)
+            {
+                // Use the point cloud to get the location of the tag.
+                torchtag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+            }
+            // Draw tag overlays onto normal image.
+            torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTorchTags);
+        }
+
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -429,6 +450,28 @@ void TagDetector::PooledLinearCode()
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
     }
+
+    /////////////////////////////
+    //  TensorflowTag queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedTagCopySchedule.
+    std::unique_lock<std::mutex> lkTorchTagQueue(m_muTorchDataCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qDetectedTorchTagCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::DataFetchContainer<std::vector<torchtag::TorchTag>> stContainer = m_qDetectedTorchTagCopySchedule.front();
+        // Pop out of queue.
+        m_qDetectedTorchTagCopySchedule.pop();
+        // Release lock.
+        lkTorchTagQueue.unlock();
+
+        // Copy the detected tags to the target location
+        *(stContainer.pData) = m_vDetectedTorchTags;
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
+    }
 }
 
 /******************************************************************************
@@ -513,6 +556,31 @@ std::future<bool> TagDetector::RequestDetectedTensorflowTags(std::vector<tensorf
 }
 
 /******************************************************************************
+ * @brief Request the most up to date vector of detected tags from our custom torch
+ *
+ * @param vTorchTags - The vector the detected torch tags will be saved to.
+ * @return std::future<bool> - The future that should be waited on before using the passed in tag vector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-02-13
+ ******************************************************************************/
+std::future<bool> TagDetector::RequestDetectedTorchTags(std::vector<torchtag::TorchTag>& vTorchTags)
+{
+    // Assemble the DataFetchContainer.
+    containers::DataFetchContainer<std::vector<torchtag::TorchTag>> stContainer(vTorchTags);
+
+    // Acquire lock on pool copy queue.
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    // Append detected tag fetch container to the schedule queue.
+    m_qDetectedTorchTagCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkScheduler.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedDataStatus->get_future();
+}
+
+/******************************************************************************
  * @brief Attempt to open the next available TPU hardware and load model at the given
  *      path onto the device.
  *
@@ -547,6 +615,32 @@ bool TagDetector::InitTensorflowDetection(const std::string& szModelPath, yolomo
         m_bTensorflowInitialized = false;
         // Close hardware.
         m_pTensorflowDetector->CloseHardware();
+        // Return status.
+        return false;
+    }
+}
+
+bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
+{
+    // Initialize a new YOLOModel object.
+    m_pTorchDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
+
+    // Check if device/model was opened without issue.
+    if (m_pTorchDetector->IsReadyForInference())
+    {
+        // Update member variable.
+        m_bTorchInitialized = true;
+        // Return status.
+        return true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Torch detection for TagDetector.");
+        // Update member variable.
+        m_bTorchInitialized = false;
+        // Close hardware.
+        // m_pTorchDetector->;
         // Return status.
         return false;
     }
