@@ -381,6 +381,7 @@ microcontrollers
 miniflann
 missourimrdt
 MJPEG
+MKLDNN
 MRDT
 mrdtavoidance
 msgpack
@@ -509,6 +510,7 @@ Tgsnwcv
 threadpool
 timestamping
 timestep
+torchtag
 tparam
 transops
 twxs

@@ -16,6 +16,7 @@
 #include "../../interfaces/ZEDCamera.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TensorflowTagDetection.hpp"
+#include "./TorchTagDetection.hpp"
 
 /// \cond
 #include <future>
@@ -71,8 +72,12 @@ class TagDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
         std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
-        bool InitTensorflowDetection(const std::string szModelPath,
-                                     yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode = yolomodel::tensorflow::TPUInterpreter::eMax);
+        std::future<bool> RequestDetectedTorchTags(std::vector<torchtag::TorchTag>& vTorchTags);
+        bool InitTensorflowDetection(
+            const std::string& szModelPath,
+            yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode = yolomodel::tensorflow::TPUInterpreter::PerformanceModes::eMax);
+        bool InitTorchDetection(const std::string& szModelPath,
+                                yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
 
         /////////////////////////////////////////
         // Mutators.
@@ -80,6 +85,8 @@ class TagDetector : public AutonomyThread<void>
 
         void EnableTensorflowDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
         void DisableTensorflowDetection();
+        void EnableTorchDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
+        void DisableTorchDetection();
         void SetDetectorFPS(const int nRecordingFPS);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
 
@@ -113,10 +120,15 @@ class TagDetector : public AutonomyThread<void>
         cv::aruco::DetectorParameters m_cvArucoDetectionParams;
         cv::aruco::Dictionary m_cvTagDictionary;
         std::shared_ptr<yolomodel::tensorflow::TPUInterpreter> m_pTensorflowDetector;
-        std::atomic<float> m_fMinObjectConfidence;
-        std::atomic<float> m_fNMSThreshold;
+        std::atomic<float> m_fTensorflowMinObjectConfidence;
+        std::atomic<float> m_fTensorflowNMSThreshold;
         std::atomic_bool m_bTensorflowInitialized;
         std::atomic_bool m_bTensorflowEnabled;
+        std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> m_pTorchDetector;
+        std::atomic<float> m_fTorchMinObjectConfidence;
+        std::atomic<float> m_fTorchNMSThreshold;
+        std::atomic_bool m_bTorchInitialized;
+        std::atomic_bool m_bTorchEnabled;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         bool m_bCameraIsOpened;
@@ -128,6 +140,7 @@ class TagDetector : public AutonomyThread<void>
 
         std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
         std::vector<tensorflowtag::TensorflowTag> m_vDetectedTensorTags;
+        std::vector<torchtag::TorchTag> m_vDetectedTorchTags;
 
         // Create frames for storing images and point clouds.
 
@@ -135,6 +148,7 @@ class TagDetector : public AutonomyThread<void>
         cv::cuda::GpuMat m_cvGPUFrame;
         cv::Mat m_cvArucoProcFrame;
         cv::Mat m_cvTensorflowProcFrame;
+        cv::Mat m_cvTorchProcFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
@@ -143,10 +157,12 @@ class TagDetector : public AutonomyThread<void>
         std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFrames;
         std::queue<containers::DataFetchContainer<std::vector<arucotag::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>>> m_qDetectedTensorflowTagCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<torchtag::TorchTag>>> m_qDetectedTorchTagCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
         std::mutex m_muFrameCopyMutex;
         std::mutex m_muArucoDataCopyMutex;
         std::mutex m_muTensorflowDataCopyMutex;
+        std::mutex m_muTorchDataCopyMutex;
 };
 
 #endif

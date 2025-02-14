@@ -36,7 +36,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_eCurrentSearchPatternType = eSpiral;
+        m_eCurrentSearchPatternType = SearchPatternType::eSpiral;
         m_nSearchPathIdx            = 0;
         m_stSearchPatternCenter     = globals::g_pWaypointHandler->PeekNextWaypoint();
 
@@ -305,7 +305,7 @@ namespace statemachine
                 switch (m_eCurrentSearchPatternType)
                 {
                     // Check which pattern to do next.
-                    case eSpiral:
+                    case SearchPatternType::eSpiral:
                     {
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
@@ -318,13 +318,13 @@ namespace statemachine
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
-                        m_eCurrentSearchPatternType = eZigZag;
+                        m_eCurrentSearchPatternType = SearchPatternType::eZigZag;
 
                         // Add the search and rover path layers to the plot.
                         m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
                         break;
                     }
-                    case eZigZag:
+                    case SearchPatternType::eZigZag:
                     {
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
@@ -337,13 +337,13 @@ namespace statemachine
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
-                        m_eCurrentSearchPatternType = END;
+                        m_eCurrentSearchPatternType = SearchPatternType::END;
 
                         // Add the search and rover path layers to the plot.
                         m_pRoverPathPlot->AddDots(m_vSearchPath, "HorizontalZigZagSearchPattern");
                         break;
                     }
-                    case END:
+                    case SearchPatternType::END:
                     {
                         // Submit logger message.
                         LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: All patterns failed to find anything, giving up...");

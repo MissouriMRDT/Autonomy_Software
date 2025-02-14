@@ -18,6 +18,8 @@
 
 /// \cond
 #include <opencv2/opencv.hpp>
+#include <torch/script.h>
+#include <torch/torch.h>
 
 /// \endcond
 
@@ -233,7 +235,10 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2023-11-11
                  ******************************************************************************/
-                TPUInterpreter(std::string szModelPath, PerformanceModes ePowerMode = eHigh, unsigned int unMaxBulkInQueueLength = 32, bool bUSBAlwaysDFU = false) :
+                TPUInterpreter(std::string szModelPath,
+                               PerformanceModes ePowerMode         = PerformanceModes::eHigh,
+                               unsigned int unMaxBulkInQueueLength = 32,
+                               bool bUSBAlwaysDFU                  = false) :
                     TensorflowTPU<std::vector<std::vector<Detection>>, cv::Mat>(szModelPath, ePowerMode, unMaxBulkInQueueLength, bUSBAlwaysDFU)
 
                 {}
@@ -691,7 +696,245 @@ namespace yolomodel
      * @date 2025-01-06
      ******************************************************************************/
     namespace pytorch
-    {}
+    {
+        /******************************************************************************
+         * @brief This struct is used to store the dimensions of an input tensor for a
+         *      yolo model.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-01-06
+         ******************************************************************************/
+        struct InputTensorDimensions
+        {
+            public:
+                /////////////////////////////////////////
+                // Define public struct attributes.
+                /////////////////////////////////////////
+
+                int nHeight;      // The height of the input image.
+                int nWidth;       // The width of the input image.
+                int nChannels;    // The number of channels of the input image.
+        };
+
+        /******************************************************************************
+         * @brief This struct is used to store the dimensions of an output tensor for a
+         *      yolo model.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-01-06
+         ******************************************************************************/
+        struct OutputTensorDimensions
+        {
+            public:
+                /////////////////////////////////////////
+                // Define public struct attributes.
+                /////////////////////////////////////////
+
+                int nAnchors;                      // Determined from the trained image size of the model.
+                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
+                                                   // nc is the number of classes The model has.
+        };
+
+        /******************************************************************************
+         * @brief This class is designed to enable quick, easy, and robust inferencing of .pt
+         *      yolo model.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-01-06
+         ******************************************************************************/
+        class PyTorchInterpreter
+        {
+            public:
+                /////////////////////////////////////////
+                // Declare public enums that are specific to and used within this class.
+                /////////////////////////////////////////
+                enum class HardwareDevices
+                {
+                    eCPU,      // The CPU device.
+                    eCUDA,     // The CUDA device.
+                    eMKLDNN    // The MKLDNN device.
+                };
+
+                /////////////////////////////////////////
+                // Declare public methods and member variables.
+                /////////////////////////////////////////
+
+                /******************************************************************************
+                 * @brief Construct a new PyTorchInterpreter object.
+                 *
+                 * @param szModelPath - The path to the model to open and inference.
+                 * @param trDevice - The device to run the model on. Default is CUDA. Other options are CPU and MKLDNN.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-06
+                 ******************************************************************************/
+                PyTorchInterpreter(std::string szModelPath, torch::Device trDevice = torch::kCUDA)
+                {
+                    // Check if the model path is valid.
+                    if (!std::filesystem::exists(szModelPath))
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger, "Model path {} does not exist!", szModelPath);
+                        return;
+                    }
+                    // Check if the device is available.
+                    if (!torch::cuda::is_available() && trDevice == torch::kCUDA)
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger, "CUDA device is not available, falling back to CPU.");
+                        m_trDevice = torch::kCPU;
+                        return;
+                    }
+                    else
+                    {
+                        // Set the device.
+                        m_trDevice = trDevice;
+                        // Submit logger message.
+                        LOG_INFO(logging::g_qSharedLogger, "Using device: {}", m_trDevice.str());
+                    }
+
+                    // Finally, attempt to load the model.
+                    try
+                    {
+                        // Load the model and set it to eval mode.
+                        m_trModel = torch::jit::load(szModelPath, m_trDevice);
+                        m_trModel.eval();
+
+                        // Check if the model is empty.
+                        if (m_trModel.get_methods().empty())
+                        {
+                            LOG_ERROR(logging::g_qSharedLogger, "Model is empty! Check if the correct model file was provided.");
+                            return;
+                        }
+                        // Check if the model did not move to the expected device.
+                        if (m_trModel.buffers().size() > 0)
+                        {
+                            // Get the device of the model.
+                            torch::Device model_device = m_trModel.buffers().begin().operator->().device();
+                            if (model_device != m_trDevice)
+                            {
+                                LOG_ERROR(logging::g_qSharedLogger, "Model did not move to the expected device! Model is on: {}", model_device.str());
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "Model has no buffers to check the device.");
+                        }
+
+                        // Model is ready for inference.
+                        LOG_INFO(logging::g_qSharedLogger, "Model successfully loaded and set to eval mode.");
+                        m_bReady = true;
+                    }
+                    catch (const c10::Error& trError)
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "Error loading model: {}", trError.what());
+                    }
+                }
+
+                /******************************************************************************
+                 * @brief Destroy the PyTorchInterpreter object.
+                 *
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-06
+                 ******************************************************************************/
+                ~PyTorchInterpreter()
+                {
+                    // Nothing to destroy.
+                }
+
+                /******************************************************************************
+                 * @brief Given an input image forward the image through the YOLO model to run inference
+                 *      on the PyTorch model, then parse and repackage the output tensor data into a vector
+                 *      of easy-to-use Detection structs.
+                 *
+                 * @param cvInputFrame - The RGB camera frame to run detection on.
+                 * @param fMinObjectConfidence - Minimum confidence required for an object to be considered a valid detection
+                 * @param fNMSThreshold - Threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
+                 * @return std::vector<Detection> - A vector of structs containing information about the valid object detections in the given image.
+                 *
+                 * @note The input image MUST BE RGB format, otherwise you will likely experience prediction accuracy problems.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-01-06
+                 ******************************************************************************/
+                std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6)
+                {
+                    // Create instance variables.
+                    std::vector<Detection> vObjects;
+
+                    // Convert the input frame to a tensor.
+                    torch::Tensor m_trTensorImage = torch::from_blob(cvInputFrame.data, {1, cvInputFrame.rows, cvInputFrame.cols, 3}, torch::kByte);
+                    m_trTensorImage               = m_trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
+                    m_trTensorImage               = m_trTensorImage.to(torch::kFloat) / 255.0;
+
+                    // Run inference.
+                    c10::intrusive_ptr<c10::ivalue::Tuple> pOutput = m_trModel.forward({m_trTensorImage}).toTuple();
+
+                    // Parse the output.
+                    const at::Tensor trOutputTensor = pOutput->elements()[0].toTensor();
+
+                    for (int i = 0; i < trOutputTensor.size(0); ++i)
+                    {
+                        float fConfidence = trOutputTensor[i][4].item<float>();
+                        if (fConfidence >= fMinObjectConfidence)
+                        {
+                            Detection stDetection;
+                            stDetection.nClassID      = trOutputTensor[i][5].item<int>();
+                            stDetection.fConfidence   = fConfidence;
+                            stDetection.cvBoundingBox = cv::Rect(trOutputTensor[i][0].item<int>(),
+                                                                 trOutputTensor[i][1].item<int>(),
+                                                                 trOutputTensor[i][2].item<int>() - trOutputTensor[i][0].item<int>(),
+                                                                 trOutputTensor[i][3].item<int>() - trOutputTensor[i][1].item<int>());
+                            vObjects.push_back(stDetection);
+                        }
+                    }
+
+                    // Create separate vectors for storing class confidences, bounding boxes, and classIDs.
+                    std::vector<int> vClassIDs;
+                    std::vector<float> vClassConfidences;
+                    std::vector<cv::Rect> vBoundingBoxes;
+
+                    // Fill vClassIDs, vClassConfidences, and vBoundingBoxes with the appropriate data from detections.
+                    for (const Detection& stDetection : vObjects)
+                    {
+                        vClassIDs.push_back(stDetection.nClassID);
+                        vClassConfidences.push_back(stDetection.fConfidence);
+                        vBoundingBoxes.push_back(stDetection.cvBoundingBox);
+                    }
+
+                    // Clear vObjects before refilling it with valid detections.
+                    vObjects.clear();
+
+                    // Perform NMS to filter out bad/duplicate detections.
+                    NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
+
+                    return vObjects;
+                }
+
+                /******************************************************************************
+                 * @brief Check if the model is ready for inference.
+                 *
+                 * @return true - Model is ready for inference.
+                 * @return false - Model is not ready for inference.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-02-13
+                 ******************************************************************************/
+                bool IsReadyForInference() const { return m_bReady; }
+
+            private:
+                /////////////////////////////////////////
+                // Declare private member variables.
+                /////////////////////////////////////////
+                torch::jit::script::Module m_trModel;
+                torch::Device m_trDevice = torch::kCUDA;
+                bool m_bReady            = false;
+        };
+    }    // namespace pytorch
 }    // namespace yolomodel
 
 #endif
