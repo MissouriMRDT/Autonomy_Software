@@ -134,7 +134,12 @@ namespace statemachine
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
         // NOTE: Remove this after SAR testing if not using stanley.
-        m_pRoverPathPlot->AddDot(m_vPathCoordinates[m_pStanleyController->GetReferencePathTargetIndex()], "StanleyGoal");
+        // Check if the path coordinates are not empty.
+        if (!m_vPathCoordinates.empty())
+        {
+            // Add the stanley goal to the path plot.
+            m_pRoverPathPlot->AddDot(m_vPathCoordinates[m_pStanleyController->GetReferencePathTargetIndex()], "StanleyGoal");
+        }
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
@@ -385,11 +390,10 @@ namespace statemachine
                 {
                     vAStarObstacles.emplace_back(pathplanners::AStar::Obstacle(stObstacle.GetUTMCoordinate(), stObstacle.dRadius));
                 }
-                // Set the obstacles in the A* planner.
-                m_pAStarPlanner->UpdateObstacleData(vAStarObstacles);
                 // Set A* planner start and goal.
-                m_vPathCoordinates =
-                    m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+                m_vPathCoordinates = m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
+                                                                        m_stGoalWaypoint.GetUTMCoordinate(),
+                                                                        vAStarObstacles);
                 // Set the path of the stanley controller.
                 m_pStanleyController->SetReferencePath(m_vPathCoordinates);
                 // Update our plot with the new path.
