@@ -198,7 +198,7 @@ TEST_F(PredictiveStanleyControllerTests, CalculateEmptyPath)
     controllers::PredictiveStanleyController Controller;
     geoops::RoverPose stPose                                          = {geoops::UTMCoordinate{0.0, 0.0}, 0.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
-    EXPECT_NEAR(driveVector.dSteeringAngle, 0.0, 0.01);
+    EXPECT_NEAR(driveVector.dThetaHeading, 0.0, 0.01);
 }
 
 /******************************************************************************
@@ -215,7 +215,7 @@ TEST_F(PredictiveStanleyControllerTests, CalculateFullPath)
     Controller.SetReferencePath(vPath);
     geoops::RoverPose stPose                                          = {geoops::UTMCoordinate{1.0, 1.0}, 0.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
-    EXPECT_NEAR(driveVector.dSteeringAngle, 100.0, 0.01);
+    EXPECT_NEAR(driveVector.dThetaHeading, 100.0, 0.01);
 }
 
 /******************************************************************************

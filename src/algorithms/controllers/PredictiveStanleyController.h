@@ -49,7 +49,7 @@ namespace controllers
             struct DriveVector
             {
                 public:
-                    double dSteeringAngle;
+                    double dThetaHeading;
                     double dVelocity;
             };
 

@@ -221,6 +221,7 @@
                     "**/CONTRIBUTING.md"
                 ],
                 "todo-tree.general.tags": [
+                    "NOTE:",
                     "* @todo",
                     "@todo",
                     "TODO:",
@@ -242,6 +243,13 @@
                     "iconColour": "#00ff00"
                 },
                 "todo-tree.highlights.customHighlight": {
+                    "NOTE:": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#808080",
+                        "foreground": "#ffffff",
+                        "background": "#808080"
+                    },
                     "* @todo": {
                         "icon": "bookmark",
                         "type": "line",
@@ -294,9 +302,9 @@
                     "ISSUE NOTE:": {
                         "icon": "book",
                         "type": "line",
-                        "iconColour": "#808080",
+                        "iconColour": "#ffffff",
                         "foreground": "#ffffff",
-                        "background": "#808080"
+                        "background": "#ffffff"
                     },
                     "TEST:": {
                         "icon": "beaker",
