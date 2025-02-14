@@ -112,7 +112,7 @@ namespace controllers
 
         // Check if we are at the end of the path. Normally stanley would continue driving in the last direction of the calculated path
         // headings, but we want to make sure we get to the end point, so we'll just drive straight to it once at the end of the path.
-        if (m_nCurrentReferencePathTargetIndex >= m_vReferencePath.size() - 1)
+        if (m_nCurrentReferencePathTargetIndex >= static_cast<int>(m_vReferencePath.size()) - 1)
         {
             // Get the last point in the path.
             geoops::Waypoint stLastWaypoint = m_vReferencePath.back();

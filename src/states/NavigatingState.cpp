@@ -42,7 +42,7 @@ namespace statemachine
         // Create rover path layers.
         m_pRoverPathPlot->CreatePathLayer("NavPath", "-o");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
-        m_pRoverPathPlot->CreatePathLayer("ObstaclePath", "-.b*");
+        m_pRoverPathPlot->CreatePathLayer("AStarPath", "-.b*");
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "b");
         m_pRoverPathPlot->CreateDotLayer("StanleyGoal", "g");
     }
@@ -393,8 +393,8 @@ namespace statemachine
                 // Set the path of the stanley controller.
                 m_pStanleyController->SetReferencePath(m_vPathCoordinates);
                 // Update our plot with the new path.
-                m_pRoverPathPlot->ClearLayer("ObstaclePath");
-                m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "ObstaclePath", 0);
+                m_pRoverPathPlot->ClearLayer("AStarPath");
+                m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
                 m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
 
                 // Send multimedia command to update state display.
