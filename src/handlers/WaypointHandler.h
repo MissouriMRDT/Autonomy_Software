@@ -48,21 +48,21 @@ class WaypointHandler
         void StorePath(const std::string& szPathName, const std::vector<geoops::Waypoint>& vWaypointPath);
         void StorePath(const std::string& szPathName, const std::vector<geoops::GPSCoordinate>& vLocationPath);
         void StorePath(const std::string& szPathName, const std::vector<geoops::UTMCoordinate>& vLocationPath);
-        void AddObject(const geoops::Waypoint& stWaypoint);
-        void AddObject(const geoops::GPSCoordinate& stLocation, const double dRadius = 0.0);
-        void AddObject(const geoops::UTMCoordinate& stLocation, const double dRadius = 0.0);
+        void AddObstacle(const geoops::Waypoint& stWaypoint);
+        void AddObstacle(const geoops::GPSCoordinate& stLocation, const double dRadius = 0.0);
+        void AddObstacle(const geoops::UTMCoordinate& stLocation, const double dRadius = 0.0);
         void DeleteWaypoint(const long unsigned int nIndex);
         void DeleteWaypoint(const geoops::Waypoint& stWaypoint);
         void DeleteWaypoint(const geoops::GPSCoordinate& stLocation);
         void DeleteWaypoint(const geoops::UTMCoordinate& stLocation);
         bool DeletePath(const std::string& szPathName);
-        void DeleteObject(const long unsigned int nIndex);
-        void DeleteObject(const geoops::Waypoint& stWaypoint);
-        void DeleteObject(const geoops::GPSCoordinate& stLocation);
-        void DeleteObject(const geoops::UTMCoordinate& stLocation);
+        void DeleteObstacle(const long unsigned int nIndex);
+        void DeleteObstacle(const geoops::Waypoint& stWaypoint);
+        void DeleteObstacle(const geoops::GPSCoordinate& stLocation);
+        void DeleteObstacle(const geoops::UTMCoordinate& stLocation);
         void ClearWaypoints();
         void ClearPaths();
-        void ClearObjects();
+        void ClearObstacles();
 
         /////////////////////////////////////////
         // Setters.
@@ -75,12 +75,12 @@ class WaypointHandler
         const geoops::Waypoint PeekNextWaypoint();
         const geoops::Waypoint RetrieveWaypointAtIndex(const long unsigned int nIndex);
         const std::vector<geoops::Waypoint> RetrievePath(const std::string& szPathName);
-        const geoops::Waypoint RetrieveObjectAtIndex(const long unsigned int nIndex);
+        const geoops::Waypoint RetrieveObstacleAtIndex(const long unsigned int nIndex);
         const std::vector<geoops::Waypoint> GetAllWaypoints();
-        const std::vector<geoops::Waypoint> GetAllObjects();
+        const std::vector<geoops::Waypoint> GetAllObstacles();
         int GetWaypointCount();
         int GetPathsCount();
-        int GetObjectsCount();
+        int GetObstaclesCount();
 
         // Smart location retrieving.
         geoops::RoverPose SmartRetrieveRoverPose(bool bVIOTracking = false);
@@ -96,8 +96,8 @@ class WaypointHandler
         std::shared_mutex m_muWaypointsMutex;
         std::unordered_map<std::string, std::vector<geoops::Waypoint>> m_umStoredPaths;
         std::shared_mutex m_muPathMutex;
-        std::vector<geoops::Waypoint> m_vPermanentObjects;
-        std::shared_mutex m_muObjectsMutex;
+        std::vector<geoops::Waypoint> m_vPermanentObstacles;
+        std::shared_mutex m_muObstaclesMutex;
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -267,7 +267,7 @@ class WaypointHandler
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
             // Queue waypoint.
-            m_vWaypointList.emplace_back(stObstacleWaypoint);
+            m_vPermanentObstacles.emplace_back(stObstacleWaypoint);
             // Unlock mutex.
             lkWaypointsLock.unlock();
 

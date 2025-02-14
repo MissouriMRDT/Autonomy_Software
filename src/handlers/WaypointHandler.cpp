@@ -20,7 +20,7 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Construct a new geoops::Waypoint Handler:: geoops::Waypoint Handler object.
+ * @brief Construct a new geoops::Waypoint Handler:: geoops::Waypoint Handler obstacle.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -37,7 +37,7 @@ WaypointHandler::WaypointHandler()
 }
 
 /******************************************************************************
- * @brief Destroy the geoops::Waypoint Handler:: geoops::Waypoint Handler object.
+ * @brief Destroy the geoops::Waypoint Handler:: geoops::Waypoint Handler obstacle.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -69,8 +69,8 @@ void WaypointHandler::AddWaypoint(const geoops::Waypoint& stWaypoint)
  * @brief Append a waypoint to the end of the WaypointHandler's list.
  *
  * @param stLocation - The location of the waypoint stored in a geoops namespace GPSCoordinate struct.
- * @param eType - The leg type of the waypoint signalling if this is a tag, navigation, object, etc. waypoint.
- * @param dRadius - The circular area around the waypoint that should be counted as reaching the waypoint. Or object radius.
+ * @param eType - The leg type of the waypoint signalling if this is a tag, navigation, obstacle, etc. waypoint.
+ * @param dRadius - The circular area around the waypoint that should be counted as reaching the waypoint. Or obstacle radius.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
@@ -90,8 +90,8 @@ void WaypointHandler::AddWaypoint(const geoops::GPSCoordinate& stLocation, const
  * @brief Append a waypoint to the end of the WaypointHandler's list.
  *
  * @param stLocation - The location of the waypoint stored in a geoops namespace UTMCoordinate struct.
- * @param eType - The leg type of the waypoint signalling if this is a tag, navigation, object, etc. waypoint.
- * @param dRadius - The circular area around the waypoint that should be counted as reaching the waypoint. Or object radius.
+ * @param eType - The leg type of the waypoint signalling if this is a tag, navigation, obstacle, etc. waypoint.
+ * @param dRadius - The circular area around the waypoint that should be counted as reaching the waypoint. Or obstacle radius.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
@@ -191,60 +191,60 @@ void WaypointHandler::StorePath(const std::string& szPathName, const std::vector
 }
 
 /******************************************************************************
- * @brief Append a new object to the WaypointHandler object list.
+ * @brief Append a new obstacle to the WaypointHandler obstacle list.
  *
- * @param stWaypoint - The WaypointHandler::geoops::Waypoint struct containing information about the object to
+ * @param stWaypoint - The WaypointHandler::geoops::Waypoint struct containing information about the obstacle to
  *                  store in the handler.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::AddObject(const geoops::Waypoint& stWaypoint)
+void WaypointHandler::AddObstacle(const geoops::Waypoint& stWaypoint)
 {
-    // Acquire a write lock on the object vector.
-    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
-    // Add object waypoint to end of member variable vector.
-    m_vPermanentObjects.emplace_back(stWaypoint);
+    // Acquire a write lock on the obstacle vector.
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
+    // Add obstacle waypoint to end of member variable vector.
+    m_vPermanentObstacles.emplace_back(stWaypoint);
 }
 
 /******************************************************************************
- * @brief Append a new object to the WaypointHandler object list.
+ * @brief Append a new obstacle to the WaypointHandler obstacle list.
  *
  * @param stLocation - The location of the waypoint stored in a geoops namespace GPSCoordinate struct.
- * @param dRadius - The circular area around the object or the object radius.
+ * @param dRadius - The circular area around the obstacle or the obstacle radius.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::AddObject(const geoops::GPSCoordinate& stLocation, const double dRadius)
+void WaypointHandler::AddObstacle(const geoops::GPSCoordinate& stLocation, const double dRadius)
 {
     // Construct a new waypoint struct from the given info.
     geoops::Waypoint stTempWaypoint(stLocation, geoops::WaypointType::eObstacleWaypoint, dRadius);
 
     // Acquire a write lock on the waypoint vector.
-    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
     // Add waypoint to end of member variable vector.
-    m_vPermanentObjects.emplace_back(stTempWaypoint);
+    m_vPermanentObstacles.emplace_back(stTempWaypoint);
 }
 
 /******************************************************************************
- * @brief Append a new object to the WaypointHandler object list.
+ * @brief Append a new obstacle to the WaypointHandler obstacle list.
  *
  * @param stLocation - The location of the waypoint stored in a geoops namespace UTMCoordinate struct.
- * @param dRadius - The circular area around the object or the object radius.
+ * @param dRadius - The circular area around the obstacle or the obstacle radius.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::AddObject(const geoops::UTMCoordinate& stLocation, const double dRadius)
+void WaypointHandler::AddObstacle(const geoops::UTMCoordinate& stLocation, const double dRadius)
 {
     // Construct a new waypoint struct from the given info.
     geoops::Waypoint stTempWaypoint(stLocation, geoops::WaypointType::eObstacleWaypoint, dRadius);
 
     // Acquire a write lock on the waypoint vector.
-    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
     // Add waypoint to end of member variable vector.
-    m_vPermanentObjects.emplace_back(stTempWaypoint);
+    m_vPermanentObstacles.emplace_back(stTempWaypoint);
 }
 
 /******************************************************************************
@@ -355,92 +355,92 @@ bool WaypointHandler::DeletePath(const std::string& szPathName)
 }
 
 /******************************************************************************
- * @brief Delete the object at a given index from the waypoint handler object list.
+ * @brief Delete the obstacle at a given index from the waypoint handler obstacle list.
  *
  * @param nIndex - The index of the element to remove.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::DeleteObject(const long unsigned int nIndex)
+void WaypointHandler::DeleteObstacle(const long unsigned int nIndex)
 {
     // Acquire a read lock on the waypoint vector.
-    std::shared_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    std::shared_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
     // Check if the vector has at least one waypoint.
-    if (nIndex < m_vPermanentObjects.size())
+    if (nIndex < m_vPermanentObstacles.size())
     {
         // Release read lock.
         lkObjectListLock.unlock();
 
-        // Acquire a write lock on the object vector.
-        std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+        // Acquire a write lock on the obstacle vector.
+        std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
         // Delete the geoops::Waypoint at the index.
-        m_vPermanentObjects.erase(m_vPermanentObjects.begin() + nIndex);
+        m_vPermanentObstacles.erase(m_vPermanentObstacles.begin() + nIndex);
     }
     else
     {
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger,
-                  "Attempted to delete an object waypoint at index {} from the WaypointHandler but it is already empty or the index is out of bounds!",
+                  "Attempted to delete an obstacle waypoint at index {} from the WaypointHandler but it is already empty or the index is out of bounds!",
                   nIndex);
     }
 }
 
 /******************************************************************************
- * @brief Delete an object from the WaypointHandler given a matching location.
+ * @brief Delete an obstacle from the WaypointHandler given a matching location.
  *      Any waypoint in the list that matches the given location will be removed.
  *
- * @param stWaypoint - The equivalent object location that should be removed.
+ * @param stWaypoint - The equivalent obstacle location that should be removed.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-void WaypointHandler::DeleteObject(const geoops::Waypoint& stWaypoint)
+void WaypointHandler::DeleteObstacle(const geoops::Waypoint& stWaypoint)
 {
-    // Acquire a write lock on the object vector.
-    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    // Acquire a write lock on the obstacle vector.
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
     // Delete any waypoint matching the given one from the list.
-    m_vPermanentObjects.erase(std::remove(m_vPermanentObjects.begin(), m_vPermanentObjects.end(), stWaypoint), m_vPermanentObjects.end());
+    m_vPermanentObstacles.erase(std::remove(m_vPermanentObstacles.begin(), m_vPermanentObstacles.end(), stWaypoint), m_vPermanentObstacles.end());
 }
 
 /******************************************************************************
- * @brief Delete an object from the WaypointHandler given a matching location.
+ * @brief Delete an obstacle from the WaypointHandler given a matching location.
  *      Any waypoint in the list that matches the given location will be removed.
  *
- * @param stLocation - The equivalent object location that should be removed.
+ * @param stLocation - The equivalent obstacle location that should be removed.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-void WaypointHandler::DeleteObject(const geoops::GPSCoordinate& stLocation)
+void WaypointHandler::DeleteObstacle(const geoops::GPSCoordinate& stLocation)
 {
-    // Acquire a write lock on the object vector.
-    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    // Acquire a write lock on the obstacle vector.
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
     // Delete any waypoint matching the given location from the list.
-    m_vPermanentObjects.erase(std::remove_if(m_vPermanentObjects.begin(),
-                                             m_vPermanentObjects.end(),
-                                             [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetGPSCoordinate() == stLocation; }),
-                              m_vPermanentObjects.end());
+    m_vPermanentObstacles.erase(std::remove_if(m_vPermanentObstacles.begin(),
+                                               m_vPermanentObstacles.end(),
+                                               [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetGPSCoordinate() == stLocation; }),
+                                m_vPermanentObstacles.end());
 }
 
 /******************************************************************************
- * @brief Delete an object from the WaypointHandler given a matching location.
+ * @brief Delete an obstacle from the WaypointHandler given a matching location.
  *      Any waypoint in the list that matches the given location will be removed.
  *
- * @param stLocation - The equivalent object location that should be removed.
+ * @param stLocation - The equivalent obstacle location that should be removed.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-void WaypointHandler::DeleteObject(const geoops::UTMCoordinate& stLocation)
+void WaypointHandler::DeleteObstacle(const geoops::UTMCoordinate& stLocation)
 {
-    // Acquire a write lock on the object vector.
-    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObjectsMutex);
+    // Acquire a write lock on the obstacle vector.
+    std::unique_lock<std::shared_mutex> lkObjectListLock(m_muObstaclesMutex);
     // Delete any waypoint matching the given location from the list.
-    m_vPermanentObjects.erase(std::remove_if(m_vPermanentObjects.begin(),
-                                             m_vPermanentObjects.end(),
-                                             [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetUTMCoordinate() == stLocation; }),
-                              m_vPermanentObjects.end());
+    m_vPermanentObstacles.erase(std::remove_if(m_vPermanentObstacles.begin(),
+                                               m_vPermanentObstacles.end(),
+                                               [stLocation](const geoops::Waypoint& stWaypoint) { return stWaypoint.GetUTMCoordinate() == stLocation; }),
+                                m_vPermanentObstacles.end());
 }
 
 /******************************************************************************
@@ -480,12 +480,12 @@ void WaypointHandler::ClearPaths()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-void WaypointHandler::ClearObjects()
+void WaypointHandler::ClearObstacles()
 {
     // Acquire a write lock on the path unordered map.
-    std::unique_lock<std::shared_mutex> lkObjectsLock(m_muObjectsMutex);
-    // Clear the object vector.
-    m_vPermanentObjects.clear();
+    std::unique_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
+    // Clear the obstacle vector.
+    m_vPermanentObstacles.clear();
 }
 
 /******************************************************************************
@@ -614,28 +614,30 @@ const std::vector<geoops::Waypoint> WaypointHandler::RetrievePath(const std::str
 }
 
 /******************************************************************************
- * @brief Retrieve an immutable reference to the object at the given index.
+ * @brief Retrieve an immutable reference to the obstacle at the given index.
  *
  * @param nIndex - The index of the element to retrieve.
- * @return const WaypointHandler::geoops::Waypoint - An immutable reference to the object geoops::Waypoint containing data.
+ * @return const WaypointHandler::geoops::Waypoint - An immutable reference to the obstacle geoops::Waypoint containing data.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-const geoops::Waypoint WaypointHandler::RetrieveObjectAtIndex(const long unsigned int nIndex)
+const geoops::Waypoint WaypointHandler::RetrieveObstacleAtIndex(const long unsigned int nIndex)
 {
     // Acquire a read lock on the waypoint vector.
-    std::shared_lock<std::shared_mutex> lkObjectsLock(m_muObjectsMutex);
+    std::shared_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
     // Check if the vector has at least one waypoint.
-    if (nIndex < m_vPermanentObjects.size())
+    if (nIndex < m_vPermanentObstacles.size())
     {
         // Return an immutable reference to the waypoint at the index.
-        return m_vPermanentObjects[nIndex];
+        return m_vPermanentObstacles[nIndex];
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Attempted to retrieve a object at index {} from the WaypointHandler but it is empty or the index is out of bounds!", nIndex);
+        LOG_ERROR(logging::g_qSharedLogger,
+                  "Attempted to retrieve a obstacle at index {} from the WaypointHandler but it is empty or the index is out of bounds!",
+                  nIndex);
 
         // Return an empty waypoint.
         return geoops::Waypoint(geoops::GPSCoordinate(), geoops::WaypointType::eUNKNOWN);
@@ -659,7 +661,7 @@ const std::vector<geoops::Waypoint> WaypointHandler::GetAllWaypoints()
 }
 
 /******************************************************************************
- * @brief Accessor for the full list of current object stored in the WaypointHandler.
+ * @brief Accessor for the full list of current obstacle stored in the WaypointHandler.
  *
  * @return const std::vector<WaypointHandler::geoops::Waypoint> - A vector of geoops::Waypoint structs representing
  *                                      objects that are currently stored in the WaypointHandler.
@@ -667,12 +669,12 @@ const std::vector<geoops::Waypoint> WaypointHandler::GetAllWaypoints()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-04
  ******************************************************************************/
-const std::vector<geoops::Waypoint> WaypointHandler::GetAllObjects()
+const std::vector<geoops::Waypoint> WaypointHandler::GetAllObstacles()
 {
     // Acquire a read lock on the path unordered map.
-    std::shared_lock<std::shared_mutex> lkObjectsLock(m_muObjectsMutex);
-    // Return a copy of the current object list.
-    return m_vPermanentObjects;
+    std::shared_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
+    // Return a copy of the current obstacle list.
+    return m_vPermanentObstacles;
 }
 
 /******************************************************************************
@@ -708,19 +710,19 @@ int WaypointHandler::GetPathsCount()
 }
 
 /******************************************************************************
- * @brief Accessor for the number of elements on the WaypointHandler's object vector.
+ * @brief Accessor for the number of elements on the WaypointHandler's obstacle vector.
  *
- * @return int - The size of the object vector.
+ * @return int - The size of the obstacle vector.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-02-03
  ******************************************************************************/
-int WaypointHandler::GetObjectsCount()
+int WaypointHandler::GetObstaclesCount()
 {
     // Acquire a write lock on the waypoint vector.
-    std::shared_lock<std::shared_mutex> lkObjectsLock(m_muObjectsMutex);
+    std::shared_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
     // Return total number of objects stored.
-    return m_vPermanentObjects.size();
+    return m_vPermanentObstacles.size();
 }
 
 /******************************************************************************
