@@ -43,7 +43,7 @@ namespace statemachine
         m_pRoverPathPlot->CreatePathLayer("NavPath", "-o");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         m_pRoverPathPlot->CreatePathLayer("AStarPath", "-.b*");
-        m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "b");
+        m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
         m_pRoverPathPlot->CreateDotLayer("StanleyGoal", "g");
     }
 

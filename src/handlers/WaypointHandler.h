@@ -300,6 +300,14 @@ class WaypointHandler
             // Unlock mutex.
             lkWaypointsLock.unlock();
 
+            // FIX ME: After SAR testing make this it's own rovecomm packet and add to basestation.
+            // Acquire write lock for obstacle vector.
+            std::unique_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
+            // Clear obstacles queue.
+            m_vPermanentObstacles.clear();
+            // Unlock mutex.
+            lkObstaclesLock.unlock();
+
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
         };
