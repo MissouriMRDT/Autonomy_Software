@@ -182,6 +182,7 @@ External libraries and their corresponding type prefixes are listed below:
 | GeographicLib  | `ge`   | `GeographicLib::Geodesic geExampleGeographicType` |
 | Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
 | Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
+| Torch          | `tr`   | `torch::Tensor trExampleTorchType` |
 | WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
 | JSON           | `jsn`  | `nlohmann::json jsnExampleJSONType` |
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |

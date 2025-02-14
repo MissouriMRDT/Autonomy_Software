@@ -46,7 +46,7 @@ namespace statemachine
             /////////////////////////////////////////
 
             // Enum for storing which search pattern type we are using.
-            enum SearchPatternType
+            enum class SearchPatternType
             {
                 eSpiral,
                 eZigZag,

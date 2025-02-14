@@ -319,7 +319,7 @@ void TagDetector::ThreadedContinuousCode()
             // Drop the Alpha channel from the image copy to preproc frame.
             cv::cvtColor(m_cvFrame, m_cvTensorflowProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
-            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvTensorflowProcFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
+            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvTensorflowProcFrame, *m_pTensorflowDetector, m_fTensorflowMinObjectConfidence, m_fTensorflowNMSThreshold);
             // Estimate the positions of the tags using the point cloud
             for (tensorflowtag::TensorflowTag& stTag : m_vDetectedTensorTags)
             {
@@ -524,7 +524,7 @@ std::future<bool> TagDetector::RequestDetectedTensorflowTags(std::vector<tensorf
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-03-31
  ******************************************************************************/
-bool TagDetector::InitTensorflowDetection(const std::string szModelPath, yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode)
+bool TagDetector::InitTensorflowDetection(const std::string& szModelPath, yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode)
 {
     // Initialize a new YOLOModel object.
     m_pTensorflowDetector = std::make_shared<yolomodel::tensorflow::TPUInterpreter>(szModelPath, ePerformanceMode);
@@ -566,8 +566,8 @@ bool TagDetector::InitTensorflowDetection(const std::string szModelPath, yolomod
 void TagDetector::EnableTensorflowDetection(const float fMinObjectConfidence, const float fNMSThreshold)
 {
     // Update member variables.
-    m_fMinObjectConfidence = fMinObjectConfidence;
-    m_fNMSThreshold        = fNMSThreshold;
+    m_fTensorflowMinObjectConfidence = fMinObjectConfidence;
+    m_fTensorflowNMSThreshold        = fNMSThreshold;
 
     // Check if tensorflow model has been initialized.
     if (m_bTensorflowInitialized)
