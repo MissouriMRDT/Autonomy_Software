@@ -303,7 +303,7 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER             = 0.3;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_MOTOR_POWER             = 0.2;    // The amount of power the motors use when approaching the marker.
     const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
@@ -319,13 +319,13 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_EFFORT;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                 // The distance to reverse in meters.
-    const double REVERSE_TIMEOUT_PER_METER = 5.0;                 // Reverse state timeout in seconds for each meter reversed.
-    const bool REVERSE_MAINTAIN_HEADING    = true;                // Whether or not the rover should maintain heading while reversing.
+    const double REVERSE_MOTOR_POWER       = 0.3;     // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 3.0;     // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT_PER_METER = 5.0;     // Reverse state timeout in seconds for each meter reversed.
+    const bool REVERSE_MAINTAIN_HEADING    = true;    // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER          = 0.5;     // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER          = 0.3;     // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
@@ -336,7 +336,7 @@ namespace constants
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;    // The radius in meters that the rover should get to the goal waypoint.
 
     // Avoidance State.
-    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_EFFORT;    // Drive speed of avoidance state
+    const double AVOIDANCE_STATE_MOTOR_POWER = 0.3;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 
