@@ -143,7 +143,7 @@ namespace statemachine
             controllers::PredictiveStanleyController::DriveVector stDriveVector = m_StanleyController.Calculate(stCurrentRoverPose);
 
             diffdrive::DrivePowers stDriveSpeeds                                = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                         stDriveVector.dSteeringAngle,
+                                                                                         stDriveVector.dThetaHeading,
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
 

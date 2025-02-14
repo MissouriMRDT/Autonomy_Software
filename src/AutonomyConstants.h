@@ -80,10 +80,11 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Power constants.
-    const float DRIVE_MAX_POWER  = 1.0;
-    const float DRIVE_MIN_POWER  = -1.0;
-    const float DRIVE_MAX_EFFORT = 0.2;
-    const float DRIVE_MIN_EFFORT = -0.2;
+    const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
+    const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
+    // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
+    const float DRIVE_MAX_EFFORT = 0.35;     // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MIN_EFFORT = -0.35;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -297,9 +298,13 @@ namespace constants
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
+    // Handler.
+    const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
+    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
+
     // Approaching Marker State
-    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
     const double APPROACH_MARKER_MOTOR_POWER             = 0.3;    // The amount of power the motors use when approaching the marker.
+    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
 
@@ -314,27 +319,24 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_POWER;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                // The distance to reverse in meters.
-    const double REVERSE_TIMEOUT_PER_METER = 5.0;                // Reverse state timeout in seconds for each meter reversed.
-    const bool REVERSE_MAINTAIN_HEADING    = true;               // Whether or not the rover should maintain heading while reversing.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_EFFORT;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 3.0;                 // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT_PER_METER = 5.0;                 // Reverse state timeout in seconds for each meter reversed.
+    const bool REVERSE_MAINTAIN_HEADING    = true;                // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
+    const double SEARCH_MOTOR_POWER          = 0.5;     // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
-    const double SEARCH_MOTOR_POWER          = 0.5;     // The amount of power the motors use when approaching the marker.
-
-    // Handler.
-    const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
-    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Navigating State.
+    const double NAVIGATING_MOTOR_POWER         = 0.3;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;    // The radius in meters that the rover should get to the goal waypoint.
 
     // Avoidance State.
-    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_POWER;    // Drive speed of avoidance state
+    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_EFFORT;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -351,11 +353,11 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 2.0;    // Determines how reactive the rover is to crosstrack error adjustments. This is in degrees scale to the error.
-    const double STANLEY_DIST_TO_FRONT_AXLE      = 1.0;    // Distance from position sensor to the center of the front axle in meters.
-    const double STANLEY_STEERING_ANGLE_LIMIT    = 100.0;    // The maximum steering angle in degrees.
-    const int STANLEY_PREDICTION_HORIZON         = 5;        // The number of predictions to make.
-    const double STANLEY_PREDICTION_TIME_STEP    = 0.5;      // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.6;    // Determines how reactive the rover is to crosstrack error adjustments. This is in degrees scale to the error.
+    const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;    // Distance from position sensor to the center of the front axle in meters.
+    const double STANLEY_STEERING_ANGLE_LIMIT    = 60.0;    // The maximum steering angle in degrees.
+    const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
+    const double STANLEY_PREDICTION_TIME_STEP    = 0.5;     // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles

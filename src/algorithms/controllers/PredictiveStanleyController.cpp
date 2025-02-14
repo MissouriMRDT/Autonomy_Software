@@ -110,6 +110,18 @@ namespace controllers
             return DriveVector{0.0, 0.0};
         }
 
+        // Check if we are at the end of the path. Normally stanley would continue driving in the last direction of the calculated path
+        // headings, but we want to make sure we get to the end point, so we'll just drive straight to it once at the end of the path.
+        if (m_nCurrentReferencePathTargetIndex >= m_vReferencePath.size() - 1)
+        {
+            // Get the last point in the path.
+            geoops::Waypoint stLastWaypoint = m_vReferencePath.back();
+            // Calculate the heading to the last point.
+            double dHeadingToLastWaypoint = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), stLastWaypoint.GetUTMCoordinate()).dStartRelativeBearing;
+
+            return DriveVector{dHeadingToLastWaypoint, 1.0};
+        }
+
         // Update the bicycle model with the current state.
         m_BicycleModel.UpdateState(stCurrentPose.GetUTMCoordinate().dEasting, stCurrentPose.GetUTMCoordinate().dNorthing, stCurrentPose.GetCompassHeading());
         // Predict the future state of the model.
@@ -156,8 +168,7 @@ namespace controllers
             dSteeringAngle += dTimeWeight * (m_dControlGain * dCrossTrackError + dHeadingError);
 
             // Limit the steering angle to the given limit.
-            dSteeringAngle = std::min(dSteeringAngle, m_dSteeringAngleLimit);
-            dSteeringAngle = std::max(dSteeringAngle, -m_dSteeringAngleLimit);
+            dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
         }
 
         // The new steering heading must be from 0-360 degrees.
