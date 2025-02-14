@@ -70,7 +70,7 @@ namespace pathplanners
      ******************************************************************************/
     std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
                                                                 const geoops::UTMCoordinate& stGoalCoordinate,
-                                                                const std::vector<sl::ObjectData>& vObstacles)
+                                                                const std::vector<Obstacle>& vObstacles)
     {
         // Clear previous path data.
         m_vPathCoordinates.clear();
@@ -89,7 +89,7 @@ namespace pathplanners
         // -------------------A* algorithm-------------------
         // Create Open and Closed Lists.
         // Using an additional unordered map is memory inefficient but allows for O(1)
-        //  lookup of nodes based on their position rather than iterating over the heap.
+        // lookup of nodes based on their position rather than iterating over the heap.
         // Carefully manage nodes between 'lists' to ensure data is consistent.
 
         // Open list implemented as a min-heap queue for O(1) retrieval of the node with min dKf value.
@@ -128,20 +128,12 @@ namespace pathplanners
             std::vector<nodes::AStarNode> vSuccessors;
 
             // Counter for avoiding parent duplication.
-            ushort usSuccessorTracker = 0;
             for (int nEastingDirection = -1; nEastingDirection <= 1; nEastingDirection += 1)
             {
                 for (int nNorthingDirection = -1; nNorthingDirection <= 1; nNorthingDirection += 1)
                 {
                     double dSuccessorEasting  = stNextParent.stNodeLocation.dEasting + (nEastingDirection * constants::ASTAR_NODE_SIZE);
                     double dSuccessorNorthing = stNextParent.stNodeLocation.dNorthing + (nNorthingDirection * constants::ASTAR_NODE_SIZE);
-                    // Skip duplicating the parent node.
-                    // Implemented with a counter to avoid evaluating coordinates.
-                    usSuccessorTracker++;
-                    if (usSuccessorTracker == 5)
-                    {
-                        continue;
-                    }
 
                     // Check for valid coordinate (check for boundary and obstacles).
                     if (!ValidCoordinate(dSuccessorEasting, dSuccessorNorthing))
@@ -209,7 +201,7 @@ namespace pathplanners
                 {
                     vSuccessors[i].dKh = stDistanceToGoal.dDistanceMeters;
                 }
-                // Otherwise calculate euclidian distance manually.
+                // Otherwise calculate euclidean distance manually.
                 else
                 {
                     vSuccessors[i].dKh = std::sqrt(std::pow(dDeltaEasting, 2) + std::pow(dDeltaNorthing, 2));
@@ -475,47 +467,58 @@ namespace pathplanners
         RoundUTMCoordinate(stBoundaryCoordinate);
 
         // Handle edge case of an obstacle blocking the goal coordinate.
-        // For each obstacle:
-        for (size_t i = 0; i < m_vObstacles.size(); i++)
+        bool bGoalBlocked = false;
+        /*
+         * This loop will check if the goal node is within the avoidance radius of any obstacle.
+         * If it is, the goal node will be shifted along the X and Y axes to avoid the obstacle.
+         * Then the loop will recheck all obstacles to ensure the new goal node is not blocked.
+         */
+        do
         {
-            // Multiplier for avoidance radius.
-            double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
-            // Create obstacle borders.
-            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
-            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
-            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
-            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
-
-            // If goal node coordinate is within X axis obstacle borders.
-            if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder)
+            // For each obstacle:
+            for (size_t i = 0; i < m_vObstacles.size(); i++)
             {
-                // Shift goal coordinate along X axis to avoid obstacle.
-                if (stBoundaryCoordinate.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
-                {
-                    stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
-                }
-                else
-                {
-                    stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
-                }
-                RoundUTMCoordinate(stBoundaryCoordinate);
-            }
+                // Multiplier for avoidance radius.
+                double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
+                // Create obstacle borders.
+                double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
+                double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
+                double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
+                double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
 
-            // If goal node coordinate is within Y axis obstacle borders.
-            if (dNorthObstacleBorder < m_stGoalNode.stNodeLocation.dNorthing && m_stGoalNode.stNodeLocation.dNorthing > dSouthObstacleBorder)
-            {
-                // Shift goal coordinate along Y axis to avoid obstacle.
-                if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                // If goal node coordinate is within obstacle borders.
+                if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder &&
+                    dSouthObstacleBorder < stBoundaryCoordinate.dNorthing && stBoundaryCoordinate.dNorthing < dNorthObstacleBorder)
                 {
-                    stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
+                    bGoalBlocked = true;
+                    // Shift goal coordinate along X axis to avoid obstacle.
+                    if (stBoundaryCoordinate.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
+                    {
+                        stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
+                    }
+                    else
+                    {
+                        stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
+                    }
+                    // Shift goal coordinate along Y axis to avoid obstacle.
+                    if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                    {
+                        stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
+                    }
+                    else
+                    {
+                        stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
+                    }
+                    RoundUTMCoordinate(stBoundaryCoordinate);
+
+                    // Set bGoalBlocked to false to recheck all obstacles.
+                    bGoalBlocked = false;
+                    // Recheck all obstacles after adjusting the coordinate.
+                    break;
                 }
-                else
-                {
-                    stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
-                }
-                RoundUTMCoordinate(stBoundaryCoordinate);
             }
-        }
+        } while (bGoalBlocked);
+
         // Return rounded coordinate.
         return stBoundaryCoordinate;
     }
@@ -566,7 +569,7 @@ namespace pathplanners
             double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
 
             // Return false if node is within obstacle borders.
-            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder < dNorthing && dNorthing > dSouthObstacleBorder)
+            if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder > dNorthing && dNorthing > dSouthObstacleBorder)
             {
                 return false;
             }
