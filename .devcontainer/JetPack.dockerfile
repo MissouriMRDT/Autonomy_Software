@@ -77,7 +77,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="2"
+ARG ZED_MINOR="1"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
