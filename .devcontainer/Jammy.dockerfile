@@ -82,7 +82,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="2"
+ARG ZED_MINOR="1"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
