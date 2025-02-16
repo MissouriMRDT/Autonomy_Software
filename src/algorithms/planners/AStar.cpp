@@ -160,9 +160,9 @@ namespace pathplanners
             for (size_t i = 0; i < vSuccessors.size(); i++)
             {
                 // Vars for distance evaluation.
-                bool bAtGoal = false;
-                double dDeltaEasting;
-                double dDeltaNorthing;
+                bool bAtGoal          = false;
+                double dDeltaEasting  = 0;
+                double dDeltaNorthing = 0;
 
                 // If successor distance to goal is less than the node size, stop search.
                 // Try to calculate GeoMeasurement:
@@ -473,8 +473,9 @@ namespace pathplanners
          * If it is, the goal node will be shifted along the X and Y axes to avoid the obstacle.
          * Then the loop will recheck all obstacles to ensure the new goal node is not blocked.
          */
-        do
+        while (bGoalBlocked)
         {
+            bGoalBlocked = false;
             // For each obstacle:
             for (size_t i = 0; i < m_vObstacles.size(); i++)
             {
@@ -510,14 +511,11 @@ namespace pathplanners
                         stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
                     }
                     RoundUTMCoordinate(stBoundaryCoordinate);
-
-                    // Set bGoalBlocked to false to recheck all obstacles.
-                    bGoalBlocked = false;
                     // Recheck all obstacles after adjusting the coordinate.
                     break;
                 }
             }
-        } while (bGoalBlocked);
+        }
 
         // Return rounded coordinate.
         return stBoundaryCoordinate;
