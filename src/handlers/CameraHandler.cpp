@@ -34,6 +34,7 @@ CameraHandler::CameraHandler()
                                 constants::ZED_MAINCAM_HORIZONTAL_FOV,
                                 constants::ZED_MAINCAM_VERTICAL_FOV,
                                 constants::ZED_MAINCAM_ENABLE_RECORDING,
+                                constants::ZED_MAINCAM_EXPORT_SVO_RECORDING,
                                 constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                                 constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                                 constants::ZED_MAINCAM_USE_GPU_MAT,
@@ -41,6 +42,16 @@ CameraHandler::CameraHandler()
                                 constants::ZED_MAINCAM_FUSION_MASTER,
                                 constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                                 constants::ZED_MAINCAM_SERIAL);
+
+        // Additional setup for main ZED camera.
+        if (constants::ZED_MAINCAM_EXPORT_SPATIAL_MAP)
+        {
+            m_pMainCam->EnablePositionalTracking();
+        }
+        if (constants::ZED_MAINCAM_EXPORT_SVO_RECORDING)
+        {
+            m_pMainCam->EnableSpatialMapping();
+        }
     }
     else
     {
@@ -62,6 +73,7 @@ CameraHandler::CameraHandler()
                             constants::ZED_LEFTCAM_HORIZONTAL_FOV,
                             constants::ZED_LEFTCAM_VERTICAL_FOV,
                             constants::ZED_LEFTCAM_ENABLE_RECORDING,
+                            constants::ZED_LEFTCAM_EXPORT_SVO_RECORDING,
                             constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                             constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                             constants::ZED_LEFTCAM_USE_GPU_MAT,
@@ -70,6 +82,16 @@ CameraHandler::CameraHandler()
                             constants::ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS,
                             constants::ZED_LEFTCAM_SERIAL);
 
+    // Additional setup for left ZED camera.
+    if (constants::ZED_LEFTCAM_EXPORT_SPATIAL_MAP)
+    {
+        m_pMainCam->EnablePositionalTracking();
+    }
+    if (constants::ZED_LEFTCAM_EXPORT_SVO_RECORDING)
+    {
+        m_pMainCam->EnableSpatialMapping();
+    }
+
     // Initialize right ZED camera.
     m_pRightCam = new ZEDCam(constants::ZED_RIGHTCAM_RESOLUTIONX,
                              constants::ZED_RIGHTCAM_RESOLUTIONY,
@@ -77,6 +99,7 @@ CameraHandler::CameraHandler()
                              constants::ZED_RIGHTCAM_HORIZONTAL_FOV,
                              constants::ZED_RIGHTCAM_VERTICAL_FOV,
                              constants::ZED_RIGHTCAM_ENABLE_RECORDING,
+                             constants::ZED_RIGHTCAM_EXPORT_SVO_RECORDING,
                              constants::ZED_DEFAULT_MINIMUM_DISTANCE,
                              constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                              constants::ZED_RIGHTCAM_USE_GPU_MAT,
@@ -84,6 +107,16 @@ CameraHandler::CameraHandler()
                              constants::ZED_RIGHTCAM_FUSION_MASTER,
                              constants::ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS,
                              constants::ZED_RIGHTCAM_SERIAL);
+
+    // Additional setup for right ZED camera.
+    if (constants::ZED_RIGHTCAM_EXPORT_SPATIAL_MAP)
+    {
+        m_pMainCam->EnablePositionalTracking();
+    }
+    if (constants::ZED_RIGHTCAM_EXPORT_SVO_RECORDING)
+    {
+        m_pMainCam->EnableSpatialMapping();
+    }
 
     // Initialize ground eye.
     m_pGroundCam = new BasicCam(constants::BASICCAM_GROUNDCAM_INDEX,

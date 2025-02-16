@@ -101,7 +101,7 @@ namespace constants
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 
-    /////////////////////////////////////////////////////////.;'//////////////////
+    ///////////////////////////////////////////////////////////////////////////
     //// Recording Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -137,7 +137,7 @@ namespace constants
     const int ZED_DEPTH_STABILIZATION            = 1;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
     // ZedCam SVO Recording Config.
     const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION = sl::SVO_COMPRESSION_MODE::H265;    // SVO file compression. H264/H265 minimally affect performance, but need GPU.
-    const int ZED_SVO_BITRATE                          = 0;                                 // The video bitrate in kbits/s. 0 or [1000-60000]
+    const int ZED_SVO_BITRATE                          = 1000;                              // The video bitrate in kbits/s. 0 or [1000-60000]
     // ZedCam Positional Tracking Config.
     const sl::POSITIONAL_TRACKING_MODE ZED_POSETRACK_MODE = sl::POSITIONAL_TRACKING_MODE::GEN_1;    // Positional tracking accuracy.
     const bool ZED_POSETRACK_AREA_MEMORY                  = true;     // Enabled camera to remember its surroundings for better positioning. Uses more resources.
@@ -175,40 +175,46 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int ZED_MAINCAM_RESOLUTIONX    = 1280;                       // The horizontal pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_RESOLUTIONY    = 720;                        // The vertical pixel resolution to resize the maincam images to.
-    const int ZED_MAINCAM_FPS            = 60;                         // The FPS to use for the maincam.
-    const int ZED_MAINCAM_HORIZONTAL_FOV = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_MAINCAM_VERTICAL_FOV   = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_USE_GPU_MAT   = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;            // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_MAINCAM_FUSION_MASTER            = false;           // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;              // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 15723847;        // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_RESOLUTIONY           = 720;                        // The vertical pixel resolution to resize the maincam images to.
+    const int ZED_MAINCAM_FPS                   = 60;                         // The FPS to use for the maincam.
+    const int ZED_MAINCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_MAINCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_MAINCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the leftcam to an SVO file.
+    const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
+    const bool ZED_MAINCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_MAINCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left ZED Camera.
-    const int ZED_LEFTCAM_RESOLUTIONX    = 1280;                       // The horizontal pixel resolution to resize the leftcam images to.
-    const int ZED_LEFTCAM_RESOLUTIONY    = 720;                        // The vertical pixel resolution to resize the leftcam images to.
-    const int ZED_LEFTCAM_FPS            = 60;                         // The FPS to use for the leftcam.
-    const int ZED_LEFTCAM_HORIZONTAL_FOV = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_LEFTCAM_VERTICAL_FOV   = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_LEFTCAM_USE_GPU_MAT   = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH = true;            // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_LEFTCAM_FUSION_MASTER            = false;           // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS   = 5;               // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_LEFTCAM_SERIAL                    = 0;               // The serial number of the camera. Set to 0 to open the next available one. 15723847
+    const int ZED_LEFTCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the leftcam images to.
+    const int ZED_LEFTCAM_RESOLUTIONY           = 720;                        // The vertical pixel resolution to resize the leftcam images to.
+    const int ZED_LEFTCAM_FPS                   = 60;                         // The FPS to use for the leftcam.
+    const int ZED_LEFTCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_LEFTCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_LEFTCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the leftcam to an SVO file.
+    const bool ZED_LEFTCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
+    const bool ZED_LEFTCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_LEFTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_LEFTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 15723847
 
     // Right ZED Camera.
-    const int ZED_RIGHTCAM_RESOLUTIONX    = 1280;                       // The horizontal pixel resolution to resize the rightcam images to.
-    const int ZED_RIGHTCAM_RESOLUTIONY    = 720;                        // The vertical pixel resolution to resize the rightcam images to.
-    const int ZED_RIGHTCAM_FPS            = 60;                         // The FPS to use for the rightcam.
-    const int ZED_RIGHTCAM_HORIZONTAL_FOV = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_RIGHTCAM_VERTICAL_FOV   = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_RIGHTCAM_USE_GPU_MAT   = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH = true;            // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_RIGHTCAM_FUSION_MASTER            = false;           // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS   = 5;               // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_RIGHTCAM_SERIAL                    = 0;               // The serial number of the camera. Set to 0 to open the next available one. 0
+    const int ZED_RIGHTCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the rightcam images to.
+    const int ZED_RIGHTCAM_RESOLUTIONY           = 720;                        // The vertical pixel resolution to resize the rightcam images to.
+    const int ZED_RIGHTCAM_FPS                   = 60;                         // The FPS to use for the rightcam.
+    const int ZED_RIGHTCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
+    const int ZED_RIGHTCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
+    const bool ZED_RIGHTCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the rightcam to an SVO file.
+    const bool ZED_RIGHTCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
+    const bool ZED_RIGHTCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
+    const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
+    const bool ZED_RIGHTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_RIGHTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 0
 
     // Ground Basic Cam.
     const int BASICCAM_GROUNDCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.
@@ -332,8 +338,9 @@ namespace constants
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER         = 0.3;    // The speed to drive at when navigating.
-    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;    // The radius in meters that the rover should get to the goal waypoint.
+    const double NAVIGATING_MOTOR_POWER         = 0.3;      // The speed to drive at when navigating.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;      // The radius in meters that the rover should get to the goal waypoint.
+    const bool NAVIGATING_VERIFY_POSITION       = false;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
 
     // Avoidance State.
     const double AVOIDANCE_STATE_MOTOR_POWER = 0.3;    // Drive speed of avoidance state
