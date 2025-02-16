@@ -720,12 +720,12 @@ namespace logging
                     // Loop through each of the layer name keys in the map.
                     for (const std::pair<const std::string, const std::string>& stdLayer : m_umPathLineStyleMap)
                     {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
                         // Check if the vector or coordinates has more than one point.
                         if (m_umPathMap[stdLayer.first].size() > 1)
                         {
+                            // Add the layer name to the vector.
+                            vLayerNames.push_back(stdLayer.first);
+
                             // Get the x and y coordinates for the layer.
                             std::vector<double> vEasting, vNorthing;
                             for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
@@ -747,12 +747,12 @@ namespace logging
                     // Loop through each of the layer name keys in the map.
                     for (const std::pair<const std::string, const std::pair<std::string, bool>>& stdLayer : m_umDotLineStyleMap)
                     {
-                        // Add the layer name to the vector.
-                        vLayerNames.push_back(stdLayer.first);
-
-                        // Check if the vector or coordinates has more than one point.
-                        if (m_umDotMap[stdLayer.first].size() > 1)
+                        // Check if the vector or coordinates has at least one point.
+                        if (m_umDotMap[stdLayer.first].size() > 0)
                         {
+                            // Add the layer name to the vector.
+                            vLayerNames.push_back(stdLayer.first);
+
                             // Get the x and y coordinates for the layer.
                             std::vector<double> vEasting, vNorthing, vRadius;
                             for (const std::tuple<double, double, double>& stCoordinate : m_umDotMap[stdLayer.first])
