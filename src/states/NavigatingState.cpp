@@ -173,18 +173,17 @@ namespace statemachine
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
             // NOTE: Optional - Uncomment the above code and comment out the below code to use the drive board to navigate to the goal waypoint.
-            // Use stanley to calculate drive move/powers.
-            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-
-            // Calculate move from goal heading and desired speed.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
-                                                                                         stDriveVector.dThetaHeading,
-                                                                                         stCurrentRoverPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
-            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+            // // Use stanley to calculate drive move/powers.
+            // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
+            // // Calculate move from goal heading and desired speed.
+            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::DRIVE_MAX_POWER,
+            //                                                                              stDriveVector.dThetaHeading,
             //                                                                              stCurrentRoverPose.GetCompassHeading(),
             //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
+                                                                                         stCurrentRoverPose.GetCompassHeading(),
+                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
@@ -335,9 +334,24 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eVerifyingPosition;
+
+                // Check constants to see if we should go into verifying position or just trigger reached marker.
+                if (constants::NAVIGATING_VERIFY_POSITION)
+                {
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                    // Change state.
+                    eNextState = States::eVerifyingPosition;
+                }
+                else
+                {
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                    // Pop the next waypoint.
+                    globals::g_pWaypointHandler->PopNextWaypoint();
+                    // Change state.
+                    eNextState = States::eIdle;
+                }
                 break;
             }
             case Event::eReachedMarker:
@@ -381,25 +395,25 @@ namespace statemachine
                     m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
                 }
 
-                // NOTE: Remove this section after SAR filming if not using the A* planner anymore.
-                // Get all obstacles from the obstacle handler.
-                std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                // Repack waypoints into a obstacle struct.
-                std::vector<pathplanners::AStar::Obstacle> vAStarObstacles;
-                for (const geoops::Waypoint& stObstacle : vObstacles)
-                {
-                    vAStarObstacles.emplace_back(pathplanners::AStar::Obstacle(stObstacle.GetUTMCoordinate(), stObstacle.dRadius));
-                }
-                // Set A* planner start and goal.
-                m_vPathCoordinates = m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
-                                                                        m_stGoalWaypoint.GetUTMCoordinate(),
-                                                                        vAStarObstacles);
-                // Set the path of the stanley controller.
-                m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                // Update our plot with the new path.
-                m_pRoverPathPlot->ClearLayer("AStarPath");
-                m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
-                m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+                // // NOTE: Remove this section after SAR filming if not using the A* planner anymore.
+                // // Get all obstacles from the obstacle handler.
+                // std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+                // // Repack waypoints into a obstacle struct.
+                // std::vector<pathplanners::AStar::Obstacle> vAStarObstacles;
+                // for (const geoops::Waypoint& stObstacle : vObstacles)
+                // {
+                //     vAStarObstacles.emplace_back(pathplanners::AStar::Obstacle(stObstacle.GetUTMCoordinate(), stObstacle.dRadius));
+                // }
+                // // Set A* planner start and goal.
+                // m_vPathCoordinates = m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
+                //                                                         m_stGoalWaypoint.GetUTMCoordinate(),
+                //                                                         vAStarObstacles);
+                // // Set the path of the stanley controller.
+                // m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                // // Update our plot with the new path.
+                // m_pRoverPathPlot->ClearLayer("AStarPath");
+                // m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
+                // m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
 
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);

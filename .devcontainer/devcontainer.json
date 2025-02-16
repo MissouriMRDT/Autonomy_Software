@@ -8,9 +8,9 @@
         "--network",
         "host",
         // Add all available GPUs
-        // "--gpus",
-        // "all",
-        "--runtime=nvidia",
+        "--gpus",
+        "all",
+        // "--runtime=nvidia",
         // Grants permission to the container to access USBs.
         "--privileged",
         "-v",
@@ -43,8 +43,8 @@
     // "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-02-10-18-03-17",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-02-10-18-03-17",
     "build": {
-        // "dockerfile": "Jammy.dockerfile"
-        "dockerfile": "JetPack.dockerfile"
+        "dockerfile": "Jammy.dockerfile"
+        // "dockerfile": "JetPack.dockerfile"
     },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
