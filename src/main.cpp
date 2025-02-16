@@ -175,10 +175,6 @@ int main()
         TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
         IPS IterPerSecond           = IPS();
 
-        // Camera and TagDetector config.
-        pMainCam->EnablePositionalTracking();    // Enable positional tracking for main ZED cam.
-        pMainCam->EnableSpatialMapping();
-
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
 
