@@ -40,11 +40,10 @@ namespace statemachine
                                globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
 
         // Create rover path layers.
-        m_pRoverPathPlot->CreatePathLayer("NavPath", "-o");
+        m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
-        m_pRoverPathPlot->CreatePathLayer("AStarPath", "-.b*");
+        m_pRoverPathPlot->CreatePathLayer("AStarPath", "-m");
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
-        m_pRoverPathPlot->CreateDotLayer("StanleyGoal", "g");
     }
 
     /******************************************************************************
@@ -133,13 +132,6 @@ namespace statemachine
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
-        // NOTE: Remove this after SAR testing if not using stanley.
-        // Check if the path coordinates are not empty.
-        if (!m_vPathCoordinates.empty())
-        {
-            // Add the stanley goal to the path plot.
-            m_pRoverPathPlot->AddDot(m_vPathCoordinates[m_pStanleyController->GetReferencePathTargetIndex()], "StanleyGoal");
-        }
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
