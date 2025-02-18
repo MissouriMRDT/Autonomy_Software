@@ -409,58 +409,22 @@ namespace pathplanners
         // Create return value.
         geoops::UTMCoordinate stBoundaryCoordinate = stGoalCoordinate;
         // Determine components of the distance vector formed by the current location and goal.
-        const double dDeltaX         = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
-        const double dDeltaY         = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
-        const double dAbsoluteDeltaX = std::abs(dDeltaX);
-        const double dAbsoluteDeltaY = std::abs(dDeltaY);
-        short sDirection;
+        const double dDeltaX = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
+        const double dDeltaY = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
 
         // Only calculate the boundary point if the goal is not within the search grid.
-        if (dAbsoluteDeltaX > constants::ASTAR_MAXIMUM_SEARCH_GRID || dAbsoluteDeltaY > constants::ASTAR_MAXIMUM_SEARCH_GRID)
+        if (std::fabs(dDeltaX) > constants::ASTAR_MAXIMUM_SEARCH_GRID || std::fabs(dDeltaY) > constants::ASTAR_MAXIMUM_SEARCH_GRID)
         {
-            // Determine which component is major.
-            // If |X| is longer than |Y|.
-            if (dAbsoluteDeltaX > dAbsoluteDeltaY)
-            {
-                // Calculate scale ratio of distance vectors (big / small).
-                const double dVectorRatio = dAbsoluteDeltaX / constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of major component for boundary distance vector.
-                sDirection = dDeltaX / dAbsoluteDeltaX;
-                // Calculate goal node X component to be the boundary value.
-                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of minor component for boundary distance vector.
-                // Edge case of dDeltaY = 0, set sDirection to 0.
-                (dDeltaY != 0) ? sDirection = dDeltaY / dAbsoluteDeltaY : sDirection = 0;
-                // Calculate goal node Y axis with scale ratio.
-                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * dVectorRatio * dDeltaY;
-            }
-            // Else if |Y| is longer than |X|.
-            else if (dAbsoluteDeltaX < dAbsoluteDeltaY)
-            {
-                // Calculate scale ratio of distance vectors (big / small).
-                const double dVectorRatio = dAbsoluteDeltaY / constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of major component for boundary distance vector.
-                sDirection = dDeltaY / dAbsoluteDeltaY;
-                // Calculate goal node Y component to be the boundary value.
-                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of minor component for boundary distance vector.
-                // Edge case of dDeltaX = 0, set sDirection to 0.
-                (dDeltaX != 0) ? sDirection = dDeltaX / dAbsoluteDeltaX : sDirection = 0;
-                // Calculate goal node X axis with scale ratio.
-                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * dVectorRatio * dDeltaX;
-            }
-            // Else |X| = |Y|, so pick a corner.
-            else
-            {
-                // Determine +/- value of X component.
-                sDirection = dDeltaX / dAbsoluteDeltaX;
-                // Calculate goal node X component to be the boundary value.
-                stBoundaryCoordinate.dEasting = m_stStartNode.stNodeLocation.dEasting + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-                // Determine +/- value of Y component.
-                sDirection = dDeltaY / dAbsoluteDeltaY;
-                // Calculate goal node Y component to be the boundary value.
-                stBoundaryCoordinate.dNorthing = m_stStartNode.stNodeLocation.dNorthing + sDirection * constants::ASTAR_MAXIMUM_SEARCH_GRID;
-            }
+            // Calculate the slope of the line formed by the goal and the current location.
+            const double dSlope = std::fabs(dDeltaY / dDeltaX);
+            // Calculate the angle of the line formed by the goal and the current location.
+            const double dAngle = std::atan(dSlope);
+            // Calculate the boundary point's X and Y components.
+            const double dBoundaryX = m_stStartNode.stNodeLocation.dEasting + (constants::ASTAR_MAXIMUM_SEARCH_GRID * std::cos(dAngle)) * (dDeltaX < 0 ? -1 : 1);
+            const double dBoundaryY = m_stStartNode.stNodeLocation.dNorthing + (constants::ASTAR_MAXIMUM_SEARCH_GRID * std::sin(dAngle)) * (dDeltaY < 0 ? -1 : 1);
+            // Set the boundary point's coordinates.
+            stBoundaryCoordinate.dEasting  = dBoundaryX;
+            stBoundaryCoordinate.dNorthing = dBoundaryY;
         }
 
         // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
