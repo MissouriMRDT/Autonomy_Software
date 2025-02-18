@@ -81,6 +81,8 @@ namespace pathplanners
             std::vector<geoops::UTMCoordinate> m_vPathCoordinates;
             // Obstacles for AStar to use during routing
             std::vector<Obstacle> m_vObstacles;
+            // Time point for measuring total planning time.
+            std::chrono::steady_clock::time_point m_tmStartTime;
 
             /////////////////////////////////////////
             // Declare private methods.
