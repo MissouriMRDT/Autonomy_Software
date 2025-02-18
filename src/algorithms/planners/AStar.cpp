@@ -75,6 +75,14 @@ namespace pathplanners
         // Clear previous path data.
         m_vPathCoordinates.clear();
 
+        // Submit log message.
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "ASTAR has started planning a path up to {} meters long with a node spacing of {} meters.",
+                   constants::ASTAR_MAXIMUM_SEARCH_GRID,
+                   constants::ASTAR_NODE_SIZE);
+        // Update path plan start time.
+        m_tmStartTime = std::chrono::steady_clock::now();
+
         // Translate Object data from camera and construct obstacle nodes.
         // Stores Data in m_vObstacles.
         UpdateObstacleData(vObstacles);
@@ -185,7 +193,20 @@ namespace pathplanners
                 // Construct and return path if we have reached the goal.
                 if (bAtGoal)
                 {
+                    // Construct path from goal node.
                     ConstructPath(vSuccessors[i]);
+                    // Calculate elapsed time.
+                    std::chrono::steady_clock::time_point tmEndTime = std::chrono::steady_clock::now();
+                    std::chrono::duration<double> dElapsedTime      = std::chrono::duration_cast<std::chrono::duration<double>>(tmEndTime - m_tmStartTime);
+                    // Submit log message.
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "ASTAR has successfully planned a path from UTM point ({}, {}) to UTM point ({}, {}) in {} seconds.",
+                               m_stStartNode.stNodeLocation.dEasting,
+                               m_stStartNode.stNodeLocation.dNorthing,
+                               m_stGoalNode.stNodeLocation.dEasting,
+                               m_stGoalNode.stNodeLocation.dNorthing,
+                               dElapsedTime.count());
+                    // Return path.
                     return m_vPathCoordinates;
                 }
 
@@ -242,9 +263,14 @@ namespace pathplanners
             umClosedList.emplace(std::make_pair(szParentLookup, stNextParent.dKf));
         }    // End While(!vOpenList.empty).
 
+        // Calculate elapsed time.
+        std::chrono::steady_clock::time_point tmEndTime = std::chrono::steady_clock::now();
+        std::chrono::duration<double> dElapsedTime      = std::chrono::duration_cast<std::chrono::duration<double>>(tmEndTime - m_tmStartTime);
+
         // Function has failed to find a valid path.
         LOG_ERROR(logging::g_qSharedLogger,
-                  "ASTAR Failed to find a path from UTM point ({}, {}) to UTM point ({}, {})",
+                  "After {} seconds, ASTAR Failed to find a path from UTM point ({}, {}) to UTM point ({}, {})",
+                  dElapsedTime.count(),
                   m_stStartNode.stNodeLocation.dEasting,
                   m_stStartNode.stNodeLocation.dNorthing,
                   m_stGoalNode.stNodeLocation.dEasting,
