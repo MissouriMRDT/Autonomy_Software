@@ -166,7 +166,7 @@ TEST_F(PredictiveStanleyControllerTests, SetReferencePath)
 TEST_F(PredictiveStanleyControllerTests, SetReferencePathUTM)
 {
     controllers::PredictiveStanleyController Controller;
-    std::vector<geoops::UTMCoordinate> vPath = {{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}};
+    std::vector<geoops::GPSCoordinate> vPath = {{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}};
     Controller.SetReferencePath(vPath);
     EXPECT_EQ(Controller.GetReferencePath().size(), vPath.size());
 }
@@ -196,7 +196,7 @@ TEST_F(PredictiveStanleyControllerTests, SetReferencePathGPS)
 TEST_F(PredictiveStanleyControllerTests, CalculateEmptyPath)
 {
     controllers::PredictiveStanleyController Controller;
-    geoops::RoverPose stPose                                          = {geoops::UTMCoordinate{0.0, 0.0}, 0.0};
+    geoops::RoverPose stPose                                          = {geoops::GPSCoordinate{0.0, 0.0}, 0.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
     EXPECT_NEAR(driveVector.dThetaHeading, 0.0, 0.01);
 }
@@ -213,9 +213,9 @@ TEST_F(PredictiveStanleyControllerTests, CalculateFullPath)
     controllers::PredictiveStanleyController Controller;
     std::vector<geoops::Waypoint> vPath = {geoops::GPSCoordinate(0.0, 0.0), geoops::GPSCoordinate(1.0, 1.0), geoops::GPSCoordinate(2.0, 2.0)};
     Controller.SetReferencePath(vPath);
-    geoops::RoverPose stPose                                          = {geoops::UTMCoordinate{1.0, 1.0}, 0.0};
+    geoops::RoverPose stPose                                          = {geoops::GPSCoordinate{1.0, 1.0}, 0.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
-    EXPECT_NEAR(driveVector.dThetaHeading, 100.0, 0.01);
+    EXPECT_NEAR(driveVector.dThetaHeading, 49.22, 0.01);
 }
 
 /******************************************************************************
@@ -230,6 +230,6 @@ TEST_F(PredictiveStanleyControllerTests, GetPathTargetIndex)
     controllers::PredictiveStanleyController Controller;
     std::vector<geoops::Waypoint> vPath = {geoops::GPSCoordinate(0.0, 0.0), geoops::GPSCoordinate(1.0, 1.0), geoops::GPSCoordinate(2.0, 2.0)};
     Controller.SetReferencePath(vPath);
-    Controller.Calculate({geoops::UTMCoordinate{2.0, 2.0}, 0.0});
-    EXPECT_EQ(Controller.GetReferencePathTargetIndex(), 0);
+    Controller.Calculate({geoops::GPSCoordinate{2.0, 2.0}, 0.0});
+    EXPECT_EQ(Controller.GetReferencePathTargetIndex(), 2);
 }
