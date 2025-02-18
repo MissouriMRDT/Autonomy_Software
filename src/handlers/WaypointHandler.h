@@ -273,10 +273,11 @@ class WaypointHandler
 
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
+                     "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue. Total Obstacles: {}",
                      stPacket.vData[0],
                      stPacket.vData[1],
-                     dRadius);
+                     dRadius,
+                     m_vPermanentObstacles.size());
         };
 
         /******************************************************************************
