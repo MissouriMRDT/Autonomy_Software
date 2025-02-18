@@ -135,15 +135,15 @@ namespace controllers
             double dPredictedYPosition = vPredictions[nIter].dYPosition;
             double dPredictedTheta     = vPredictions[nIter].dTheta;
 
-            // Find the closest point to the reference path.
-            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stCurrentPose.GetUTMCoordinate(), stCurrentPose.GetCompassHeading());
             // Create a UTM coordinate for the predicted position.
-            geoops::UTMCoordinate stPredictedPosition = stClosestWaypoint.GetUTMCoordinate();
+            geoops::UTMCoordinate stPredictedPosition = stCurrentPose.GetUTMCoordinate();
             stPredictedPosition.dEasting              = dPredictedXPosition;
             stPredictedPosition.dNorthing             = dPredictedYPosition;
+            // Find the closest point to the reference path.
+            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stPredictedPosition, dPredictedTheta);
 
             // Compute the heading error. This is the difference between the heading of the rover and the heading or curvature of the path.
-            double dHeadingError = m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex] - dPredictedTheta;
+            double dHeadingError = numops::AngularDifference(m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex], dPredictedTheta);
 
             /*
                 Compute the cross track error. This is the distance between the predicted position and the closest point on the path. The sign of the cross track error
@@ -164,17 +164,19 @@ namespace controllers
 
             // Apply an exponential weight factor that decreases as we predict further into the future.
             double dTimeWeight = std::exp(-2.5 * static_cast<double>(nIter));
+            // Limit the cross track error steering angle to -+ 90 degrees.
+            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -90.0, 90.0);
             // Calculate the steering angle using lateral and heading errors, weighted by the time step.
-            dSteeringAngle += dTimeWeight * (m_dControlGain * dCrossTrackError + dHeadingError);
+            dSteeringAngle += dTimeWeight * (dCrossTrackError - dHeadingError);
 
             // Limit the steering angle to the given limit.
             dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
         }
 
         // The new steering heading must be from 0-360 degrees.
-        dSteeringAngle = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
+        double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
 
-        return DriveVector{dSteeringAngle, 1.0};
+        return DriveVector{dAbsoluteHeadingGoal, 1.0};
     }
 
     /******************************************************************************

@@ -360,17 +360,16 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.6;    // Determines how reactive the rover is to crosstrack error adjustments. This is in degrees scale to the error.
-    const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;    // Distance from position sensor to the center of the front axle in meters.
-    const double STANLEY_STEERING_ANGLE_LIMIT    = 60.0;    // The maximum steering angle in degrees.
-    const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
-    const double STANLEY_PREDICTION_TIME_STEP    = 0.5;     // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 4.54;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;      // Distance from position sensor to the center of the front axle in meters.
+    const double STANLEY_STEERING_ANGLE_LIMIT    = 120.0;    // The maximum steering angle in degrees.
+    const int STANLEY_PREDICTION_HORIZON         = 5;        // The number of predictions to make.
+    const double STANLEY_PREDICTION_TIME_STEP    = 0.1;      // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 
     // ASTAR config.
-    const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;          // Multiplier for marking extra nodes around objects as obstacles
-    const double ASTAR_MAXIMUM_SEARCH_GRID  = 1000.0;       // Maximum search grid size (UTM)
-    const double ASTAR_NODE_SIZE            = 0.5;          // Represents the node size / accuracy in meters
-    const double ASTAR_SQRT_NODE_SIZE       = M_SQRT1_2;    // Square root of m_dNodeSize
+    const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles
+    const double ASTAR_MAXIMUM_SEARCH_GRID  = 4000.0;    // Maximum search grid size (UTM)
+    const double ASTAR_NODE_SIZE            = 0.5;       // Represents the node size / accuracy in meters
 
     ///////////////////////////////////////////////////////////////////////////
 
