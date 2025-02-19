@@ -72,7 +72,7 @@ namespace constants
     // RoveComm constants.
     const int ROVECOMM_OUTGOING_UDP_PORT        = MODE_SIM ? 11001 : 11000;    // The UDP socket port to use for the main UDP RoveComm instance.
     const int ROVECOMM_OUTGOING_TCP_PORT        = MODE_SIM ? 12001 : 12000;    // The UDP socket port to use for the main UDP RoveComm instance.
-    const std::string ROVECOMM_TCP_INTERFACE_IP = "";    // The IP address to bind the socket to. If set to "", the socket will be bound to all available interfaces.
+    const std::string ROVECOMM_TCP_INTERFACE_IP = "127.0.0.1";    // The IP address to bind the socket to. If set to "", the socket will bind all available interfaces.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -368,7 +368,8 @@ namespace constants
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles
-    const double ASTAR_MAXIMUM_SEARCH_GRID  = 4000.0;    // Maximum search grid size (UTM)
+    const double ASTAR_MAX_SEARCH_GRID      = 4000.0;    // Maximum search grid size (UTM)
+    const double ASTAR_MAX_SEARCH_TIME      = 5.0;       // Maximum time to search for a path before giving up. Time is in seconds.
     const double ASTAR_NODE_SIZE            = 0.5;       // Represents the node size / accuracy in meters
 
     ///////////////////////////////////////////////////////////////////////////

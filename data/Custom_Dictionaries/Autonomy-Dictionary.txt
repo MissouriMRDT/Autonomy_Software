@@ -243,6 +243,8 @@ infoeq
 inplace
 INSB
 intrin
+IOCP
+iovecs
 IPKN
 IPKS
 IPPN
@@ -360,6 +362,7 @@ libzmq
 libzvbi
 localtime
 LOGNAME
+LPOVERLAPPED
 lpthread
 lzma
 m_muWebRTCRGBImageCopyMutex
@@ -434,6 +437,7 @@ QPID
 Raman
 rdparty
 Rdtsc
+recvmmsg
 REELN
 reprojection
 RESOLUTIONX
@@ -544,6 +548,7 @@ Webots
 WEBRTC
 Wextra
 Wpedantic
+WSADATA
 wslg
 xauth
 xhost

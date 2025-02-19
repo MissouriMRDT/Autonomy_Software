@@ -78,7 +78,7 @@ namespace pathplanners
         // Submit log message.
         LOG_NOTICE(logging::g_qSharedLogger,
                    "ASTAR has started planning a path up to {} meters long with a node spacing of {} meters.",
-                   constants::ASTAR_MAXIMUM_SEARCH_GRID,
+                   constants::ASTAR_MAX_SEARCH_GRID,
                    constants::ASTAR_NODE_SIZE);
         // Update path plan start time.
         m_tmStartTime = std::chrono::steady_clock::now();
@@ -123,6 +123,19 @@ namespace pathplanners
         // While open list is not empty:
         while (!vOpenList.empty())
         {
+            // Check if we have exceeded the maximum search time.
+            std::chrono::steady_clock::time_point tmCurrentTime = std::chrono::steady_clock::now();
+            std::chrono::duration<double> dElapsedTime          = std::chrono::duration_cast<std::chrono::duration<double>>(tmCurrentTime - m_tmStartTime);
+            if (dElapsedTime.count() > constants::ASTAR_MAX_SEARCH_TIME)
+            {
+                // Submit log message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "ASTAR has exceeded the maximum search time of {} seconds. Path planning has been aborted.",
+                            constants::ASTAR_MAX_SEARCH_TIME);
+                // Return empty path.
+                return m_vPathCoordinates;
+            }
+
             // Retrieve node with the minimum dKf on open list (Q).
             std::pop_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
             nodes::AStarNode stNextParent = vOpenList.back();
@@ -439,15 +452,15 @@ namespace pathplanners
         const double dDeltaY = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
 
         // Only calculate the boundary point if the goal is not within the search grid.
-        if (std::fabs(dDeltaX) > constants::ASTAR_MAXIMUM_SEARCH_GRID || std::fabs(dDeltaY) > constants::ASTAR_MAXIMUM_SEARCH_GRID)
+        if (std::fabs(dDeltaX) > constants::ASTAR_MAX_SEARCH_GRID || std::fabs(dDeltaY) > constants::ASTAR_MAX_SEARCH_GRID)
         {
             // Calculate the slope of the line formed by the goal and the current location.
             const double dSlope = std::fabs(dDeltaY / dDeltaX);
             // Calculate the angle of the line formed by the goal and the current location.
             const double dAngle = std::atan(dSlope);
             // Calculate the boundary point's X and Y components.
-            const double dBoundaryX = m_stStartNode.stNodeLocation.dEasting + (constants::ASTAR_MAXIMUM_SEARCH_GRID * std::cos(dAngle)) * (dDeltaX < 0 ? -1 : 1);
-            const double dBoundaryY = m_stStartNode.stNodeLocation.dNorthing + (constants::ASTAR_MAXIMUM_SEARCH_GRID * std::sin(dAngle)) * (dDeltaY < 0 ? -1 : 1);
+            const double dBoundaryX = m_stStartNode.stNodeLocation.dEasting + (constants::ASTAR_MAX_SEARCH_GRID * std::cos(dAngle)) * (dDeltaX < 0 ? -1 : 1);
+            const double dBoundaryY = m_stStartNode.stNodeLocation.dNorthing + (constants::ASTAR_MAX_SEARCH_GRID * std::sin(dAngle)) * (dDeltaY < 0 ? -1 : 1);
             // Set the boundary point's coordinates.
             stBoundaryCoordinate.dEasting  = dBoundaryX;
             stBoundaryCoordinate.dNorthing = dBoundaryY;
@@ -564,10 +577,10 @@ namespace pathplanners
         }
 
         // Boundary check (Returns true if params indicate a coordinate inside of the search grid).
-        if (dEasting >= (m_stStartNode.stNodeLocation.dEasting - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
-            dEasting <= (m_stStartNode.stNodeLocation.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE) &&
-            dNorthing >= (m_stStartNode.stNodeLocation.dNorthing - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
-            dNorthing <= (m_stStartNode.stNodeLocation.dNorthing + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE))
+        if (dEasting >= (m_stStartNode.stNodeLocation.dEasting - constants::ASTAR_MAX_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+            dEasting <= (m_stStartNode.stNodeLocation.dEasting + constants::ASTAR_MAX_SEARCH_GRID + constants::ASTAR_NODE_SIZE) &&
+            dNorthing >= (m_stStartNode.stNodeLocation.dNorthing - constants::ASTAR_MAX_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+            dNorthing <= (m_stStartNode.stNodeLocation.dNorthing + constants::ASTAR_MAX_SEARCH_GRID + constants::ASTAR_NODE_SIZE))
         {
             return true;
         }

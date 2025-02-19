@@ -120,14 +120,14 @@ TEST_F(AStarPlannerTests, PlanAvoidancePath)
 
     // Create goal coordinates for AStar.
     const geoops::UTMCoordinate aGoalCoordinates[siTestValuesLength] = {
-        geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),                                           // N
-        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart, 15),                                           // E
-        geoops::UTMCoordinate(dEastingStart, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),                                           // S
-        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart, 15),                                           // W
-        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),    // NE
-        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),    // SE
-        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15),    // SW
-        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15)     // NW
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAX_SEARCH_GRID, 15),                                       // N
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAX_SEARCH_GRID, dNorthingStart, 15),                                       // E
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart - constants::ASTAR_MAX_SEARCH_GRID, 15),                                       // S
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAX_SEARCH_GRID, dNorthingStart, 15),                                       // W
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAX_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAX_SEARCH_GRID, 15),    // NE
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAX_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAX_SEARCH_GRID, 15),    // SE
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAX_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAX_SEARCH_GRID, 15),    // SW
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAX_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAX_SEARCH_GRID, 15)     // NW
     };
 
     // Compare output paths with expected paths.
