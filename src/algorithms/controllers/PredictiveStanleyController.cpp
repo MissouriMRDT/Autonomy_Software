@@ -90,12 +90,13 @@ namespace controllers
      *      using the predictive stanley controller.
      *
      * @param stCurrentPose - The current pose of the rover.
+     * @param dMaxSpeed - The maximum speed the rover can travel.
      * @return double - The new output steering angle for the rover.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10
      ******************************************************************************/
-    PredictiveStanleyController::DriveVector PredictiveStanleyController::Calculate(const geoops::RoverPose& stCurrentPose)
+    PredictiveStanleyController::DriveVector PredictiveStanleyController::Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed)
     {
         // Create instance variables.
         double dSteeringAngle = 0.0;
@@ -176,7 +177,7 @@ namespace controllers
         // The new steering heading must be from 0-360 degrees.
         double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
 
-        return DriveVector{dAbsoluteHeadingGoal, 1.0};
+        return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
     }
 
     /******************************************************************************
