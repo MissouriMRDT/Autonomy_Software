@@ -301,7 +301,24 @@ class WaypointHandler
             // Unlock mutex.
             lkWaypointsLock.unlock();
 
-            // FIX ME: After SAR testing make this it's own rovecomm packet and add to basestation.
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new CLEAROBSTACLES packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-02-19
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> ClearObstaclesCallback =
+            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stPacket;
+            (void) stdAddr;
+
             // Acquire write lock for obstacle vector.
             std::unique_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
             // Clear obstacles queue.
@@ -310,7 +327,7 @@ class WaypointHandler
             lkObstaclesLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
+            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Obstacles packet: Cleared permanent obstacles list.");
         };
 };
 
