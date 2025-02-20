@@ -34,6 +34,7 @@ WaypointHandler::WaypointHandler()
     network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddObjectLegCallback, manifest::Autonomy::COMMANDS.find("ADDOBJECTLEG")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddObstacleCallback, manifest::Autonomy::COMMANDS.find("ADDOBSTACLE")->second.DATA_ID);
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(ClearWaypointsCallback, manifest::Autonomy::COMMANDS.find("CLEARWAYPOINTS")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(ClearObstaclesCallback, manifest::Autonomy::COMMANDS.find("CLEAROBSTACLES")->second.DATA_ID);
 }
 
 /******************************************************************************
