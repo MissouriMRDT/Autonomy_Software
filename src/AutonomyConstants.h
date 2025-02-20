@@ -87,9 +87,9 @@ namespace constants
     const float DRIVE_MIN_EFFORT = -0.35;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.005;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.02;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_PROPORTIONAL       = 0.008;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL           = 0.006;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE         = 0.03;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_FEEDFORWARD        = 0.0;      // The feedforward for the controller used to predict control output.
     const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
     const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.15;     // The max effort the I term is allowed to contribute.
@@ -318,7 +318,7 @@ namespace constants
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
     const double STUCK_CHECK_ROT_THRESH      = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double STUCK_CHECK_VEL_THRESH      = 0.5;     // Minimum velocity required to consider the rover as actively moving.
+    const double STUCK_CHECK_VEL_THRESH      = 0.2;     // Minimum velocity required to consider the rover as actively moving.
     const double STUCK_SAME_POINT_PROXIMITY  = 1.0;     // Points within this proximity of another point are considered the same.
     const double STUCK_HEADING_ALIGN_TIMEOUT = 5.0;     // The timeout in seconds before the rover gives up aligning to a certain heading.
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
@@ -369,7 +369,7 @@ namespace constants
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles
     const double ASTAR_MAX_SEARCH_GRID      = 4000.0;    // Maximum search grid size (UTM)
-    const double ASTAR_MAX_SEARCH_TIME      = 5.0;       // Maximum time to search for a path before giving up. Time is in seconds.
+    const double ASTAR_MAX_SEARCH_TIME      = 20.0;      // Maximum time to search for a path before giving up. Time is in seconds.
     const double ASTAR_NODE_SIZE            = 0.5;       // Represents the node size / accuracy in meters
 
     ///////////////////////////////////////////////////////////////////////////
