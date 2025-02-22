@@ -105,7 +105,7 @@ namespace arucotag
 
         // Grayscale.
         cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGR2GRAY);
-        cv::filter2D(cvOutputFrame, cvOutputFrame, -1, constants::ARUCO_TEST_KERNEL);
+        cv::filter2D(cvOutputFrame, cvOutputFrame, -1, constants::ARUCO_EDGE_KERNEL);
         // Reduce number of colors/gradients in the image.
         imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)
@@ -186,7 +186,9 @@ namespace arucotag
     {
         // Create instance variables.
         std::vector<int> vIDs;
-        std::vector<std::vector<cv::Point2f>> cvMarkers;
+        std::vector<std::vector<cv::Point2f>> vMarkers;
+        std::vector<std::vector<cv::Point>> vPolygons;
+        std::vector<int> vTagIDs;
 
         // Loop through each of the given AR tags and repackage them so that the draw function can read them.
         for (long unsigned int nIter = 0; nIter < vDetectedTags.size(); ++nIter)
@@ -201,14 +203,47 @@ namespace arucotag
             cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerBR);
             cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerBL);
             // Append vector of marker corners.
-            cvMarkers.emplace_back(cvMarkerCorners);
+            vMarkers.emplace_back(cvMarkerCorners);
+
+            // Polylines likes cv::Point not cv::Point2f.
+            std::vector<cv::Point> vPolygon;
+            // Clockwise order.
+            vPolygon.emplace_back(vDetectedTags[nIter].CornerTR);
+            vPolygon.emplace_back(vDetectedTags[nIter].CornerTL);
+            vPolygon.emplace_back(vDetectedTags[nIter].CornerBL);
+            vPolygon.emplace_back(vDetectedTags[nIter].CornerBR);
+            vPolygons.emplace_back(vPolygon);
+            // Also append tag ID.
+            vTagIDs.emplace_back(vDetectedTags[nIter].nID);
         }
 
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {
             // Draw markers onto normal given image.
-            cv::aruco::drawDetectedMarkers(cvDetectionsFrame, cvMarkers, vIDs, cv::Scalar(0, 0, 0));
+            // cv::aruco::drawDetectedMarkers(cvDetectionsFrame, vMarkers, vIDs, cv::Scalar(0, 0, 0));
+
+            // Draw markers onto normal given image.
+            cv::polylines(cvDetectionsFrame, vPolygons, true, cv::Scalar(0, 0, 0), 10);
+
+            int nIter = 0;
+            for (std::vector<cv::Point2f>& cvMarkerCorners : vMarkers)
+            {
+                // Draw tag ID onto image.
+                std::string szText  = "TAG " + std::to_string(vTagIDs[nIter++]);
+                cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
+                cv::rectangle(cvDetectionsFrame,
+                              cvMarkerCorners[0],
+                              cvMarkerCorners[0] + cv::Point2f(cvTextSize.width * 1.25, cvTextSize.height * 2),
+                              cv::Scalar(0, 0, 0),
+                              cv::FILLED);
+                cv::putText(cvDetectionsFrame,
+                            "TAG " + std::to_string(nIter),
+                            cvMarkerCorners[0] + cv::Point2f(5, cvTextSize.height * 1.25),
+                            cv::FONT_HERSHEY_SIMPLEX,
+                            0.75,
+                            cv::Scalar(255, 255, 255));
+            }
         }
         else
         {
