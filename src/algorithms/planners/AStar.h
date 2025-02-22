@@ -44,31 +44,29 @@ namespace pathplanners
             /////////////////////////////////////////
             // Declare public member variables.
             /////////////////////////////////////////
-            struct Obstacle;
 
             /////////////////////////////////////////
             // Declare public primary methods.
             /////////////////////////////////////////
             AStar();
             ~AStar();
-            std::vector<geoops::UTMCoordinate> PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
-                                                                 const geoops::UTMCoordinate& stGoalCoordinate,
-                                                                 const std::vector<Obstacle>& vObstacles = std::vector<Obstacle>());
+            std::vector<geoops::Waypoint> PlanAvoidancePath(const geoops::Waypoint& stStartCoordinate, const geoops::Waypoint& stGoalCoordinate);
+            std::vector<geoops::Waypoint> PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate, const geoops::UTMCoordinate& stGoalCoordinate);
+            std::vector<geoops::Waypoint> PlanAvoidancePath(const geoops::GPSCoordinate& stStartCoordinate, const geoops::GPSCoordinate& stGoalCoordinate);
 
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
-            void AddObstacle(const sl::ObjectData& slObstacle);
-            void AddObstacle(const Obstacle& stObstacle);
-            void UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool bClearObstacles = false);
-            void UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool bClearObstacles = false);
+            void UpsertObstacleData(const std::vector<geoops::Waypoint>& vObstacles);
+            void UpsertObstacleData(const std::vector<geoops::UTMCoordinate>& vObstacles);
+            void UpsertObstacleData(const std::vector<geoops::GPSCoordinate>& vObstacles);
             void ClearObstacleData();
 
             /////////////////////////////////////////
             // Getters.
             /////////////////////////////////////////
-            std::vector<geoops::UTMCoordinate> GetPath() const;
-            std::vector<Obstacle> GetObstacleData() const;
+            std::vector<geoops::Waypoint> GetPath() const;
+            std::vector<geoops::Waypoint> GetObstacleData() const;
 
         private:
             /////////////////////////////////////////
@@ -78,36 +76,21 @@ namespace pathplanners
             nodes::AStarNode m_stStartNode;
             nodes::AStarNode m_stGoalNode;
             // Nodes used as the final path for routing
-            std::vector<geoops::UTMCoordinate> m_vPathCoordinates;
+            std::vector<geoops::Waypoint> m_vPathCoordinates;
             // Obstacles for AStar to use during routing
-            std::vector<Obstacle> m_vObstacles;
+            std::vector<geoops::Waypoint> m_vObstacles;
             // Time point for measuring total planning time.
             std::chrono::steady_clock::time_point m_tmStartTime;
 
             /////////////////////////////////////////
             // Declare private methods.
             /////////////////////////////////////////
-            geoops::UTMCoordinate FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate);
+            geoops::Waypoint FindNearestGoalPoint(const geoops::UTMCoordinate& stGoalCoordinate);
+            geoops::Waypoint FindNearestStartPoint(const geoops::UTMCoordinate& stStartCoordinate);
             void RoundUTMCoordinate(geoops::UTMCoordinate& stCoordinateToRound);
             void ConstructPath(const nodes::AStarNode& stFinalNode);
             std::string UTMCoordinateToString(const geoops::UTMCoordinate& stToTranslate);
-            bool ValidCoordinate(const double& dEasting, const double& dNorthing);
-    };
-
-    /******************************************************************************
-     * @brief Struct to represent the obstacles that need to be avoided by the
-     *      PlanAvoidanceRoute method. dRadius is meant to represent the estimated size
-     *      of the obstacle in meters.
-     *
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-06
-     ******************************************************************************/
-    struct AStar::Obstacle
-    {
-        public:
-            geoops::UTMCoordinate stCenterPoint;
-            double dRadius;
+            bool ValidCoordinate(const double dEasting, const double dNorthing);
     };
 }    // namespace pathplanners
 

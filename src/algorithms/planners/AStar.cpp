@@ -54,23 +54,32 @@ namespace pathplanners
 
     /******************************************************************************
      * @brief Called in the obstacle avoidance state to plan a path around obstacles
+     *
+     * @param stStartCoordinate - A Waypoint reference that represents the start location.
+     * @param stGoalCoordinate - A Waypoint reference that represents the goal location.
+     * @return std::vector<geoops::Waypoint> - A vector of Waypoints representing the path calculated by ASTAR.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
+     ******************************************************************************/
+    std::vector<geoops::Waypoint> AStar::PlanAvoidancePath(const geoops::Waypoint& stStartCoordinate, const geoops::Waypoint& stGoalCoordinate)
+    {
+        // Call the UTMCoordinate version of PlanAvoidancePath.
+        return PlanAvoidancePath(stStartCoordinate.GetUTMCoordinate(), stGoalCoordinate.GetUTMCoordinate());
+    }
+
+    /******************************************************************************
+     * @brief Called in the obstacle avoidance state to plan a path around obstacles
      *      blocking our path.
      *
      * @param stStartCoordinate - A UTMCoordinate reference that represents the start location.
      * @param stGoalCoordinate - A UTMCoordinate reference that represents the goal location.
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class,
-     *                      defaults to an empty vector.
-     *
-     * @return - A vector of UTMCoordinates representing the path calculated by ASTAR.
-     *
-     * @todo Build a visualizer for testing.
+     * @return - A vector of Waypoints representing the path calculated by ASTAR.
      *
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-02
      ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> AStar::PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate,
-                                                                const geoops::UTMCoordinate& stGoalCoordinate,
-                                                                const std::vector<Obstacle>& vObstacles)
+    std::vector<geoops::Waypoint> AStar::PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate, const geoops::UTMCoordinate& stGoalCoordinate)
     {
         // Clear previous path data.
         m_vPathCoordinates.clear();
@@ -83,16 +92,14 @@ namespace pathplanners
         // Update path plan start time.
         m_tmStartTime = std::chrono::steady_clock::now();
 
-        // Translate Object data from camera and construct obstacle nodes.
-        // Stores Data in m_vObstacles.
-        UpdateObstacleData(vObstacles);
-
+        // Map the start location to a nearby point that isn't overlapping with an obstacle.
+        geoops::Waypoint stRoundedStart(FindNearestStartPoint(stStartCoordinate));
         // Create start node.
-        m_stStartNode = nodes::AStarNode(nullptr, stStartCoordinate);
+        m_stStartNode = nodes::AStarNode(nullptr, stRoundedStart.GetUTMCoordinate());
         // Map the goalLocation to an edge node based on maximum search size.
-        geoops::UTMCoordinate stRoundedGoal(FindNearestBoundaryPoint(stGoalCoordinate));
+        geoops::Waypoint stRoundedGoal(FindNearestGoalPoint(stGoalCoordinate));
         // Create goal node.
-        m_stGoalNode = nodes::AStarNode(nullptr, stRoundedGoal);
+        m_stGoalNode = nodes::AStarNode(nullptr, stRoundedGoal.GetUTMCoordinate());
 
         // -------------------A* algorithm-------------------
         // Create Open and Closed Lists.
@@ -293,103 +300,99 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief This method is intended to be called when a new obstacle is detected
-     *      from the ZedCam to add a new obstacle to be considered in path finding.
+     * @brief Called in the obstacle avoidance state to plan a path around obstacles
      *
-     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
-     *                      to add.
+     * @param stStartCoordinate - A GPSCoordinate reference that represents the start location.
+     * @param stGoalCoordinate - A GPSCoordinate reference that represents the goal location.
+     * @return std::vector<geoops::Waypoint> - A vector of Waypoints representing the path calculated by ASTAR.
      *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
      ******************************************************************************/
-    void AStar::AddObstacle(const sl::ObjectData& stObstacle)
+    std::vector<geoops::Waypoint> AStar::PlanAvoidancePath(const geoops::GPSCoordinate& stStartCoordinate, const geoops::GPSCoordinate& stGoalCoordinate)
     {
-        // Create Obstacle struct.
-        Obstacle stObstacleToAdd;
-        // Extract coordinate data from ObjectData struct.
-        stObstacleToAdd.stCenterPoint.dEasting  = stObstacle.position.x;
-        stObstacleToAdd.stCenterPoint.dNorthing = stObstacle.position.y;
-        // Extract size data from ObjectData and calculate size of obstacle.
-        // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-        stObstacleToAdd.dRadius = std::sqrt(std::pow(stObstacle.dimensions.x, 2) + std::pow(stObstacle.dimensions.y, 2));
-        // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
-        m_vObstacles.emplace_back(stObstacleToAdd);
+        // Convert the GPS coordinates to UTM coordinates.
+        geoops::UTMCoordinate stStartUTM = geoops::ConvertGPSToUTM(stStartCoordinate);
+        geoops::UTMCoordinate stGoalUTM  = geoops::ConvertGPSToUTM(stGoalCoordinate);
+
+        // Call the UTMCoordinate version of PlanAvoidancePath.
+        return PlanAvoidancePath(stStartUTM, stGoalUTM);
     }
 
     /******************************************************************************
-     * @brief This method is intended to be called when a new obstacle is detected
-     *      to add a new obstacle to be considered in path finding.
+     * @brief Adds new obstacle data to the class member variable m_vObstacles.
+     *    Also checks if the obstacle is already in the vector and skips it if it is.
      *
-     * @param stObstacle - A reference to an ObjectData struct representing the obstacle
-     *                      to add.
+     * @param vObstacles - A vector of Waypoints representing the obstacles to add to the path.
      *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
      ******************************************************************************/
-    void AStar::AddObstacle(const Obstacle& stObstacle)
+    void AStar::UpsertObstacleData(const std::vector<geoops::Waypoint>& vObstacles)
     {
-        m_vObstacles.emplace_back(stObstacle);
-    }
+        // Only add obstacles if they are not already in the vector.
+        for (const geoops::Waypoint& stObstacle : vObstacles)
+        {
+            std::vector<geoops::Waypoint>::iterator stdIter =
+                std::find_if(m_vObstacles.begin(),
+                             m_vObstacles.end(),
+                             [&stObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle == stObstacle; });
 
-    /******************************************************************************
-     * @brief This method clears any saved obstacles in AStar, takes in a vector of
-     *      sl::ObjectData objects and translates them to a UTMCoordinate and estimated
-     *      size that is stored in the m_vObstacles vector.
-     *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
-     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
-     *
-     * @todo Validate data being pulled from ObjectData structs.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
-     ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<sl::ObjectData>& vObstacles, const bool bClearObstacles)
-    {
-        // Remove stale obstacle data.
-        if (bClearObstacles)
-        {
-            ClearObstacleData();
-        }
-        // For each object in vObstacles:
-        for (size_t i = 0; i < vObstacles.size(); i++)
-        {
-            // Create Obstacle struct.
-            Obstacle stObstacleToAdd;
-            // Extract coordinate data from ObjectData struct.
-            stObstacleToAdd.stCenterPoint.dEasting  = vObstacles[i].position.x;
-            stObstacleToAdd.stCenterPoint.dNorthing = vObstacles[i].position.y;
-            // Extract size data from ObjectData and calculate size of obstacle.
-            // Assuming worst case scenario and calculating the maximum diagonal as object radius, optimize later?
-            stObstacleToAdd.dRadius = std::sqrt(std::pow(vObstacles[i].dimensions.x, 2) + std::pow(vObstacles[i].dimensions.y, 2));
-            // Copy Obstacle data to m_vObstacles for use in PlanAvoidancePath().
-            m_vObstacles.emplace_back(stObstacleToAdd);
+            if (stdIter == m_vObstacles.end())
+            {
+                m_vObstacles.push_back(stObstacle);
+            }
         }
     }
 
     /******************************************************************************
-     * @brief This method clears any saved obstacles in AStar, takes in a vector of
-     *      AStar::Obstacle and saves a copy to the m_vObstacles vector.
+     * @brief Adds new obstacle data to the class member variable m_vObstacles.
      *
-     * @param vObstacles - A vector reference containing ObjectData objects from the ZEDCam class.
-     * @param bClearObstacles - T/F indicating whether or not internal obstacle data should be cleared.
+     * @param vObstacles - A vector of UTMCoordinates representing the obstacles to add to the path.
      *
-     * @todo Validate data being pulled from ObjectData structs.
-     *
-     * @author Kai Shafe (kasq5m@umsystem.edu)
-     * @date 2024-02-15
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
      ******************************************************************************/
-    void AStar::UpdateObstacleData(const std::vector<Obstacle>& vObstacles, const bool bClearObstacles)
+    void AStar::UpsertObstacleData(const std::vector<geoops::UTMCoordinate>& vObstacles)
     {
-        // Remove stale obstacle data.
-        if (bClearObstacles)
+        // Only add obstacles if they are not already in the vector.
+        for (const geoops::UTMCoordinate& stObstacle : vObstacles)
         {
-            ClearObstacleData();
+            std::vector<geoops::Waypoint>::iterator stdIter =
+                std::find_if(m_vObstacles.begin(),
+                             m_vObstacles.end(),
+                             [&stObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle.GetUTMCoordinate() == stObstacle; });
+
+            if (stdIter == m_vObstacles.end())
+            {
+                m_vObstacles.push_back(geoops::Waypoint(stObstacle));
+            }
         }
-        // For each object in vObstacles:
-        for (size_t i = 0; i < vObstacles.size(); i++)
+    }
+
+    /******************************************************************************
+     * @brief Adds new obstacle data to the class member variable m_vObstacles.
+     *
+     * @param vObstacles - A vector of GPSCoordinates representing the obstacles to add to the path.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
+     ******************************************************************************/
+    void AStar::UpsertObstacleData(const std::vector<geoops::GPSCoordinate>& vObstacles)
+    {
+        // Only add obstacles if they are not already in the vector.
+        for (const geoops::GPSCoordinate& stObstacle : vObstacles)
         {
-            m_vObstacles.emplace_back(vObstacles[i]);
+            geoops::UTMCoordinate stUTMObstacle = geoops::ConvertGPSToUTM(stObstacle);
+            std::vector<geoops::Waypoint>::iterator stdIter =
+                std::find_if(m_vObstacles.begin(),
+                             m_vObstacles.end(),
+                             [&stUTMObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle.GetUTMCoordinate() == stUTMObstacle; });
+
+            if (stdIter == m_vObstacles.end())
+            {
+                m_vObstacles.push_back(geoops::Waypoint(stUTMObstacle));
+            }
         }
     }
 
@@ -412,7 +415,7 @@ namespace pathplanners
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-09
      ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> AStar::GetPath() const
+    std::vector<geoops::Waypoint> AStar::GetPath() const
     {
         return m_vPathCoordinates;
     }
@@ -425,7 +428,7 @@ namespace pathplanners
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-09
      ******************************************************************************/
-    std::vector<AStar::Obstacle> AStar::GetObstacleData() const
+    std::vector<geoops::Waypoint> AStar::GetObstacleData() const
     {
         return m_vObstacles;
     }
@@ -443,7 +446,7 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-15
      ******************************************************************************/
-    geoops::UTMCoordinate AStar::FindNearestBoundaryPoint(const geoops::UTMCoordinate& stGoalCoordinate)
+    geoops::Waypoint AStar::FindNearestGoalPoint(const geoops::UTMCoordinate& stGoalCoordinate)
     {
         // Create return value.
         geoops::UTMCoordinate stBoundaryCoordinate = stGoalCoordinate;
@@ -470,7 +473,7 @@ namespace pathplanners
         RoundUTMCoordinate(stBoundaryCoordinate);
 
         // Handle edge case of an obstacle blocking the goal coordinate.
-        bool bGoalBlocked = false;
+        bool bGoalBlocked = true;
         /*
          * This loop will check if the goal node is within the avoidance radius of any obstacle.
          * If it is, the goal node will be shifted along the X and Y axes to avoid the obstacle.
@@ -485,10 +488,10 @@ namespace pathplanners
                 // Multiplier for avoidance radius.
                 double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
                 // Create obstacle borders.
-                double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
-                double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
-                double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
-                double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
+                double dEastObstacleBorder  = m_vObstacles[i].GetUTMCoordinate().dEasting + dAvoidanceRadius;
+                double dWestObstacleBorder  = m_vObstacles[i].GetUTMCoordinate().dEasting - dAvoidanceRadius;
+                double dNorthObstacleBorder = m_vObstacles[i].GetUTMCoordinate().dNorthing + dAvoidanceRadius;
+                double dSouthObstacleBorder = m_vObstacles[i].GetUTMCoordinate().dNorthing - dAvoidanceRadius;
 
                 // If goal node coordinate is within obstacle borders.
                 if (dWestObstacleBorder < stBoundaryCoordinate.dEasting && stBoundaryCoordinate.dEasting < dEastObstacleBorder &&
@@ -496,7 +499,7 @@ namespace pathplanners
                 {
                     bGoalBlocked = true;
                     // Shift goal coordinate along X axis to avoid obstacle.
-                    if (stBoundaryCoordinate.dEasting > m_vObstacles[i].stCenterPoint.dEasting)
+                    if (stBoundaryCoordinate.dEasting > m_vObstacles[i].GetUTMCoordinate().dEasting)
                     {
                         stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
                     }
@@ -505,7 +508,7 @@ namespace pathplanners
                         stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
                     }
                     // Shift goal coordinate along Y axis to avoid obstacle.
-                    if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].stCenterPoint.dNorthing)
+                    if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].GetUTMCoordinate().dNorthing)
                     {
                         stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
                     }
@@ -522,6 +525,77 @@ namespace pathplanners
 
         // Return rounded coordinate.
         return stBoundaryCoordinate;
+    }
+
+    /******************************************************************************
+     * @brief Helper function to round a UTMCoordinate to align with the grid.
+     *
+     * @param stStartCoordinate - A UTMCoordinate reference that represents the coordinate to round.
+     * @return geoops::Waypoint - A Waypoint struct containing the rounded coordinate.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
+     ******************************************************************************/
+    geoops::Waypoint AStar::FindNearestStartPoint(const geoops::UTMCoordinate& stStartCoordinate)
+    {
+        // Create instance variables.
+        geoops::UTMCoordinate stAdjustedStartCoordinate = stStartCoordinate;
+        // Round the start coordinate to align with the grid.
+        RoundUTMCoordinate(stAdjustedStartCoordinate);
+
+        // Continue shifting until the adjusted start coordinate no longer overlaps any obstacle.
+        bool bStartBlocked = true;
+        while (bStartBlocked)
+        {
+            bStartBlocked = false;
+
+            // Check each obstacle.
+            for (size_t i = 0; i < m_vObstacles.size(); i++)
+            {
+                // Calculate the avoidance radius and obstacle borders.
+                double dAvoidanceRadius     = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
+                double dEastObstacleBorder  = m_vObstacles[i].GetUTMCoordinate().dEasting + dAvoidanceRadius;
+                double dWestObstacleBorder  = m_vObstacles[i].GetUTMCoordinate().dEasting - dAvoidanceRadius;
+                double dNorthObstacleBorder = m_vObstacles[i].GetUTMCoordinate().dNorthing + dAvoidanceRadius;
+                double dSouthObstacleBorder = m_vObstacles[i].GetUTMCoordinate().dNorthing - dAvoidanceRadius;
+
+                // If the start coordinate is inside the obstacle's borders...
+                if (dWestObstacleBorder < stAdjustedStartCoordinate.dEasting && stAdjustedStartCoordinate.dEasting < dEastObstacleBorder &&
+                    dSouthObstacleBorder < stAdjustedStartCoordinate.dNorthing && stAdjustedStartCoordinate.dNorthing < dNorthObstacleBorder)
+                {
+                    bStartBlocked = true;
+
+                    // Shift along the X axis: move to just outside the obstacle.
+                    if (stAdjustedStartCoordinate.dEasting > m_vObstacles[i].GetUTMCoordinate().dEasting)
+                    {
+                        stAdjustedStartCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE * 2;
+                    }
+                    else
+                    {
+                        stAdjustedStartCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE * 2;
+                    }
+
+                    // Shift along the Y axis: move to just outside the obstacle.
+                    if (stAdjustedStartCoordinate.dNorthing > m_vObstacles[i].GetUTMCoordinate().dNorthing)
+                    {
+                        stAdjustedStartCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE * 2;
+                    }
+                    else
+                    {
+                        stAdjustedStartCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE * 2;
+                    }
+
+                    // Round the coordinate to align with the grid.
+                    RoundUTMCoordinate(stAdjustedStartCoordinate);
+
+                    // Break out of the obstacle loop to recheck all obstacles with the new coordinate.
+                    break;
+                }
+            }
+        }
+
+        // Return the adjusted start point that no longer overlaps any obstacle.
+        return stAdjustedStartCoordinate;
     }
 
     /******************************************************************************
@@ -556,7 +630,7 @@ namespace pathplanners
      * @author Kai Shafe (kasq5m@umsystem.edu)
      * @date 2024-02-06
      ******************************************************************************/
-    bool AStar::ValidCoordinate(const double& dEasting, const double& dNorthing)
+    bool AStar::ValidCoordinate(const double dEasting, const double dNorthing)
     {
         // For each obstacle.
         for (size_t i = 0; i < m_vObstacles.size(); i++)
@@ -564,10 +638,10 @@ namespace pathplanners
             // Multiplier for avoidance radius.
             double dAvoidanceRadius = constants::ASTAR_AVOIDANCE_MULTIPLIER * m_vObstacles[i].dRadius;
             // Create obstacle borders.
-            double dEastObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting + dAvoidanceRadius;
-            double dWestObstacleBorder  = m_vObstacles[i].stCenterPoint.dEasting - dAvoidanceRadius;
-            double dNorthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing + dAvoidanceRadius;
-            double dSouthObstacleBorder = m_vObstacles[i].stCenterPoint.dNorthing - dAvoidanceRadius;
+            double dEastObstacleBorder  = m_vObstacles[i].GetUTMCoordinate().dEasting + dAvoidanceRadius;
+            double dWestObstacleBorder  = m_vObstacles[i].GetUTMCoordinate().dEasting - dAvoidanceRadius;
+            double dNorthObstacleBorder = m_vObstacles[i].GetUTMCoordinate().dNorthing + dAvoidanceRadius;
+            double dSouthObstacleBorder = m_vObstacles[i].GetUTMCoordinate().dNorthing - dAvoidanceRadius;
 
             // Return false if node is within obstacle borders.
             if (dWestObstacleBorder < dEasting && dEasting < dEastObstacleBorder && dNorthObstacleBorder > dNorthing && dNorthing > dSouthObstacleBorder)

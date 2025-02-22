@@ -42,7 +42,7 @@ namespace statemachine
             geoops::UTMCoordinate m_stStart;
             geoops::UTMCoordinate m_stGoal;
             geoops::Waypoint m_stGoalWaypoint;
-            std::vector<geoops::UTMCoordinate> m_vPlannedRoute;
+            std::vector<geoops::Waypoint> m_vPlannedRoute;
             States m_eTriggeringState;
             bool m_bInitialized;
 
