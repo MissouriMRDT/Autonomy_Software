@@ -48,7 +48,7 @@ namespace statemachine
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::unique_ptr<pathplanners::AStar> m_pAStarPlanner;
-            std::vector<geoops::UTMCoordinate> m_vPathCoordinates;
+            std::vector<geoops::Waypoint> m_vPathCoordinates;
 
         protected:
             /////////////////////////////////////////

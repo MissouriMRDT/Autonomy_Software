@@ -390,16 +390,11 @@ namespace statemachine
                 // NOTE: Remove this section after SAR filming if not using the A* planner anymore.
                 // Get all obstacles from the obstacle handler.
                 std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                // Repack waypoints into a obstacle struct.
-                std::vector<pathplanners::AStar::Obstacle> vAStarObstacles;
-                for (const geoops::Waypoint& stObstacle : vObstacles)
-                {
-                    vAStarObstacles.emplace_back(pathplanners::AStar::Obstacle(stObstacle.GetUTMCoordinate(), stObstacle.dRadius));
-                }
+                // Add obstacles to the A* planner.
+                m_pAStarPlanner->UpsertObstacleData(vObstacles);
                 // Set A* planner start and goal.
-                m_vPathCoordinates = m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
-                                                                        m_stGoalWaypoint.GetUTMCoordinate(),
-                                                                        vAStarObstacles);
+                m_vPathCoordinates =
+                    m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
                 // Set the path of the stanley controller.
                 m_pStanleyController->SetReferencePath(m_vPathCoordinates);
                 // Update our plot with the new path.
