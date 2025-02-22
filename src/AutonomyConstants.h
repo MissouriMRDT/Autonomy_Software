@@ -241,6 +241,7 @@ namespace constants
     const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE     = 255;    // Pixel value to set to if pixel is within threshold
     const cv::Mat ARUCO_SHARPEN_KERNEL_FAST          = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
     const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA         = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
+    const cv::Mat ARUCO_TEST_KERNEL                  = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
