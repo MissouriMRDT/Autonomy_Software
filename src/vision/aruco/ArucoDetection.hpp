@@ -188,7 +188,6 @@ namespace arucotag
         std::vector<int> vIDs;
         std::vector<std::vector<cv::Point2f>> vMarkers;
         std::vector<std::vector<cv::Point>> vPolygons;
-        std::vector<int> vTagIDs;
 
         // Loop through each of the given AR tags and repackage them so that the draw function can read them.
         for (long unsigned int nIter = 0; nIter < vDetectedTags.size(); ++nIter)
@@ -213,8 +212,6 @@ namespace arucotag
             vPolygon.emplace_back(vDetectedTags[nIter].CornerBL);
             vPolygon.emplace_back(vDetectedTags[nIter].CornerBR);
             vPolygons.emplace_back(vPolygon);
-            // Also append tag ID.
-            vTagIDs.emplace_back(vDetectedTags[nIter].nID);
         }
 
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
@@ -230,7 +227,7 @@ namespace arucotag
             for (std::vector<cv::Point2f>& cvMarkerCorners : vMarkers)
             {
                 // Draw tag ID onto image.
-                std::string szText  = "TAG " + std::to_string(vTagIDs[nIter++]);
+                std::string szText  = "TAG " + std::to_string(vIDs[nIter++]);
                 cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
                 cv::rectangle(cvDetectionsFrame,
                               cvMarkerCorners[0],

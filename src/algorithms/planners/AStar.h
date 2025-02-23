@@ -53,6 +53,7 @@ namespace pathplanners
             std::vector<geoops::Waypoint> PlanAvoidancePath(const geoops::Waypoint& stStartCoordinate, const geoops::Waypoint& stGoalCoordinate);
             std::vector<geoops::Waypoint> PlanAvoidancePath(const geoops::UTMCoordinate& stStartCoordinate, const geoops::UTMCoordinate& stGoalCoordinate);
             std::vector<geoops::Waypoint> PlanAvoidancePath(const geoops::GPSCoordinate& stStartCoordinate, const geoops::GPSCoordinate& stGoalCoordinate);
+            void CancelPathGeneration();
 
             /////////////////////////////////////////
             // Setters.
@@ -81,6 +82,7 @@ namespace pathplanners
             std::vector<geoops::Waypoint> m_vObstacles;
             // Time point for measuring total planning time.
             std::chrono::steady_clock::time_point m_tmStartTime;
+            std::atomic_bool m_bPathGenerationCancelled;
 
             /////////////////////////////////////////
             // Declare private methods.

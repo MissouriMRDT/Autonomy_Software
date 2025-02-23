@@ -83,6 +83,8 @@ namespace pathplanners
     {
         // Clear previous path data.
         m_vPathCoordinates.clear();
+        // Reset path generation cancellation flag.
+        m_bPathGenerationCancelled = false;
 
         // Submit log message.
         LOG_NOTICE(logging::g_qSharedLogger,
@@ -130,6 +132,17 @@ namespace pathplanners
         // While open list is not empty:
         while (!vOpenList.empty())
         {
+            // Check if path generation has been cancelled.
+            if (m_bPathGenerationCancelled)
+            {
+                // Submit log message.
+                LOG_WARNING(logging::g_qSharedLogger, "ASTAR path generation has been cancelled.");
+                // Clear path coordinates.
+                m_vPathCoordinates.clear();
+                // Return empty path.
+                return m_vPathCoordinates;
+            }
+
             // Check if we have exceeded the maximum search time.
             std::chrono::steady_clock::time_point tmCurrentTime = std::chrono::steady_clock::now();
             std::chrono::duration<double> dElapsedTime          = std::chrono::duration_cast<std::chrono::duration<double>>(tmCurrentTime - m_tmStartTime);
@@ -160,16 +173,21 @@ namespace pathplanners
             {
                 for (int nNorthingDirection = -1; nNorthingDirection <= 1; nNorthingDirection += 1)
                 {
+                    // Skip parent node.
+                    if (nEastingDirection == 0 && nNorthingDirection == 0)
+                    {
+                        continue;
+                    }
+
+                    // Calculate successor coordinates.
                     double dSuccessorEasting  = stNextParent.stNodeLocation.dEasting + (nEastingDirection * constants::ASTAR_NODE_SIZE);
                     double dSuccessorNorthing = stNextParent.stNodeLocation.dNorthing + (nNorthingDirection * constants::ASTAR_NODE_SIZE);
-
                     // Check for valid coordinate (check for boundary and obstacles).
                     if (!ValidCoordinate(dSuccessorEasting, dSuccessorNorthing))
                     {
                         continue;
                     }
 
-                    // Otherwise create the successor.
                     // Copy data from parent coordinate.
                     geoops::UTMCoordinate stSuccessorCoordinate = stNextParent.stNodeLocation;
 
@@ -320,6 +338,18 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief Cancels the path generation process.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-21
+     ******************************************************************************/
+    void AStar::CancelPathGeneration()
+    {
+        m_bPathGenerationCancelled = true;
+    }
+
+    /******************************************************************************
      * @brief Adds new obstacle data to the class member variable m_vObstacles.
      *    Also checks if the obstacle is already in the vector and skips it if it is.
      *
@@ -448,11 +478,15 @@ namespace pathplanners
      ******************************************************************************/
     geoops::Waypoint AStar::FindNearestGoalPoint(const geoops::UTMCoordinate& stGoalCoordinate)
     {
+        // Round the goal coordinate to align with the grid.
+        geoops::UTMCoordinate stRoundedGoal = stGoalCoordinate;
+        RoundUTMCoordinate(stRoundedGoal);
+
         // Create return value.
-        geoops::UTMCoordinate stBoundaryCoordinate = stGoalCoordinate;
+        geoops::UTMCoordinate stBoundaryCoordinate = stRoundedGoal;
         // Determine components of the distance vector formed by the current location and goal.
-        const double dDeltaX = stGoalCoordinate.dEasting - m_stStartNode.stNodeLocation.dEasting;
-        const double dDeltaY = stGoalCoordinate.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
+        const double dDeltaX = stRoundedGoal.dEasting - m_stStartNode.stNodeLocation.dEasting;
+        const double dDeltaY = stRoundedGoal.dNorthing - m_stStartNode.stNodeLocation.dNorthing;
 
         // Only calculate the boundary point if the goal is not within the search grid.
         if (std::fabs(dDeltaX) > constants::ASTAR_MAX_SEARCH_GRID || std::fabs(dDeltaY) > constants::ASTAR_MAX_SEARCH_GRID)
@@ -467,10 +501,19 @@ namespace pathplanners
             // Set the boundary point's coordinates.
             stBoundaryCoordinate.dEasting  = dBoundaryX;
             stBoundaryCoordinate.dNorthing = dBoundaryY;
-        }
 
-        // In all cases, round the goal node's UTMCoordinate to align with grid for equality comparisons.
-        RoundUTMCoordinate(stBoundaryCoordinate);
+            // Submit log message.
+            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartNode.stNodeLocation, stBoundaryCoordinate);
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "The goal node was adjusted from UTM point ({}, {}) to UTM point ({}, {}) to stay within the search grid of {} meters. The distance between the "
+                        "original goal and the boundary point is {} meters.",
+                        stRoundedGoal.dEasting,
+                        stRoundedGoal.dNorthing,
+                        stBoundaryCoordinate.dEasting,
+                        stBoundaryCoordinate.dNorthing,
+                        constants::ASTAR_MAX_SEARCH_GRID,
+                        stMeasurement.dDistanceMeters);
+        }
 
         // Handle edge case of an obstacle blocking the goal coordinate.
         bool bGoalBlocked = true;
@@ -501,26 +544,41 @@ namespace pathplanners
                     // Shift goal coordinate along X axis to avoid obstacle.
                     if (stBoundaryCoordinate.dEasting > m_vObstacles[i].GetUTMCoordinate().dEasting)
                     {
-                        stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE;
+                        stBoundaryCoordinate.dEasting = dEastObstacleBorder + constants::ASTAR_NODE_SIZE * 2;
                     }
                     else
                     {
-                        stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE;
+                        stBoundaryCoordinate.dEasting = dWestObstacleBorder - constants::ASTAR_NODE_SIZE * 2;
                     }
                     // Shift goal coordinate along Y axis to avoid obstacle.
                     if (stBoundaryCoordinate.dNorthing > m_vObstacles[i].GetUTMCoordinate().dNorthing)
                     {
-                        stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE;
+                        stBoundaryCoordinate.dNorthing = dNorthObstacleBorder + constants::ASTAR_NODE_SIZE * 2;
                     }
                     else
                     {
-                        stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE;
+                        stBoundaryCoordinate.dNorthing = dSouthObstacleBorder - constants::ASTAR_NODE_SIZE * 2;
                     }
                     RoundUTMCoordinate(stBoundaryCoordinate);
                     // Recheck all obstacles after adjusting the coordinate.
                     break;
                 }
             }
+        }
+
+        // Check if the goal node doesn't equal the original goal node.
+        if (stBoundaryCoordinate != stRoundedGoal)
+        {
+            // Submit log message.
+            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stRoundedGoal, stBoundaryCoordinate);
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "The goal node was adjusted from UTM point ({}, {}) to UTM point ({}, {}) to avoid obstacles. The distance between the original goal and the "
+                        "adjusted goal is {} meters.",
+                        stRoundedGoal.dEasting,
+                        stRoundedGoal.dNorthing,
+                        stBoundaryCoordinate.dEasting,
+                        stBoundaryCoordinate.dNorthing,
+                        stMeasurement.dDistanceMeters);
         }
 
         // Return rounded coordinate.
@@ -542,6 +600,8 @@ namespace pathplanners
         geoops::UTMCoordinate stAdjustedStartCoordinate = stStartCoordinate;
         // Round the start coordinate to align with the grid.
         RoundUTMCoordinate(stAdjustedStartCoordinate);
+        // Make a copy of the rounded start coordinate so we can compare it to the original start coordinate later.
+        geoops::UTMCoordinate stRoundedStart = stAdjustedStartCoordinate;
 
         // Continue shifting until the adjusted start coordinate no longer overlaps any obstacle.
         bool bStartBlocked = true;
@@ -592,6 +652,21 @@ namespace pathplanners
                     break;
                 }
             }
+        }
+
+        // Check if the adjusted start coordinate doesn't equal the original start coordinate.
+        if (stAdjustedStartCoordinate != stRoundedStart)
+        {
+            // Submit log message.
+            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stRoundedStart, stAdjustedStartCoordinate);
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "The start node was adjusted from UTM point ({}, {}) to UTM point ({}, {}) to avoid obstacles. The distance between the original start and the "
+                        "adjusted start is {} meters.",
+                        stRoundedStart.dEasting,
+                        stRoundedStart.dNorthing,
+                        stAdjustedStartCoordinate.dEasting,
+                        stAdjustedStartCoordinate.dNorthing,
+                        stMeasurement.dDistanceMeters);
         }
 
         // Return the adjusted start point that no longer overlaps any obstacle.
