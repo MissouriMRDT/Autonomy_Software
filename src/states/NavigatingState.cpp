@@ -387,7 +387,6 @@ namespace statemachine
                     m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
                 }
 
-                // NOTE: Remove this section after SAR filming if not using the A* planner anymore.
                 // Get all obstacles from the obstacle handler.
                 std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
                 // Add obstacles to the A* planner.
