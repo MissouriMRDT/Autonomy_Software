@@ -45,11 +45,11 @@ namespace controllers
         m_dKff                    = dKff;
         m_dSetpoint               = 0.0;
         m_dErrorSum               = 0.0;
-        m_dMaxError               = 0.0;
+        m_dMaxIError              = 0.0;
         m_dMaxIEffort             = 0.0;
         m_dMinEffort              = 0.0;
         m_dMaxEffort              = 0.0;
-        m_dLastActual             = 0.0;
+        m_dLastError              = 0.0;
         m_dOutputRampRate         = 0.0;
         m_dLastControlOutput      = 0.0;
         m_dOutputFilter           = 0.0;
@@ -92,6 +92,12 @@ namespace controllers
 
         // Determine error from setpoint.
         double dError = dSetpoint - dActual;
+        // Check if the controller is within the tolerance.
+        if (numops::Bounded(dError, -m_dTolerance, m_dTolerance))
+        {
+            // Reset the error sum.
+            dError = 0.0;
+        }
 
         // Check if the input, and therefor controller is continuous.
         if (m_bControllerIsContinuous)
@@ -111,7 +117,7 @@ namespace controllers
         if (m_bFirstCalculation)
         {
             // Assume the process variable hold same as previous.
-            m_dLastActual = dActual;
+            m_dLastError = dError;
             // Assume the last output is the current time-independent output.
             m_dLastControlOutput = dPTermOutput + dFFTermOutput;
 
@@ -122,8 +128,8 @@ namespace controllers
         // Calculate derivative term.
         // Note, derivative is actually negative and "slows" the system if it's doing
         // the correct thing. Small gain values help prevent output spikes and overshoot.
-        dDTermOutput  = -m_dKd * (dActual - m_dLastActual);
-        m_dLastActual = dActual;
+        dDTermOutput = -m_dKd * (dError - m_dLastError);
+        m_dLastError = dError;
 
         // Calculate integral term.
         // The integral term is more complex. There's several things to factor in to make it easier to deal with.
@@ -158,7 +164,7 @@ namespace controllers
         else if (m_dMaxIEffort != 0)
         {
             // In addition to output limiting directly, we also want to prevent integral term wind-up. Restrict directly.
-            m_dErrorSum = numops::Clamp(m_dErrorSum + dError, -m_dMaxError, m_dMaxError);
+            m_dErrorSum = numops::Clamp(m_dErrorSum + dError, -m_dMaxIError, m_dMaxIError);
         }
         else
         {
@@ -206,20 +212,6 @@ namespace controllers
     {
         // Calculate and return the output from the PIDController using the same setpoint.
         return this->Calculate(dActual, m_dSetpoint);
-    }
-
-    /******************************************************************************
-     * @brief Calculates the control output using the last provided setpoint and actual.
-     *
-     * @return double - The resultant PID controller output.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-10-17
-     ******************************************************************************/
-    double PIDController::Calculate()
-    {
-        // Calculate and return the output from the PIDController using the previous actual and setpoint.
-        return this->Calculate(m_dLastActual, m_dSetpoint);
     }
 
     /******************************************************************************
@@ -316,7 +308,7 @@ namespace controllers
         if (m_dMaxIEffort != 0)
         {
             // Update max error from new integral and max effort.
-            m_dMaxError = m_dMaxIEffort / dKi;
+            m_dMaxIError = m_dMaxIEffort / dKi;
         }
 
         // Assign integral gain member variable.
@@ -451,6 +443,20 @@ namespace controllers
     {
         // Assign member variable.
         m_dMaxIEffort = dMaxIEffort;
+    }
+
+    /******************************************************************************
+     * @brief Mutator for the tolerance of the controller. This is used to determine if the
+     *
+     * @param dTolerance - The allowable error from the setpoint.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-28
+     ******************************************************************************/
+    void PIDController::SetTolerance(const double dTolerance)
+    {
+        // Assign member variable.
+        m_dTolerance = dTolerance;
     }
 
     /******************************************************************************

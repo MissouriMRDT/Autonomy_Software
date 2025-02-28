@@ -166,16 +166,16 @@ namespace statemachine
         {
             // NOTE: Optional - Uncomment the above code and comment out the below code to use the drive board to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
-            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // Calculate move from goal heading and desired speed.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                         stDriveVector.dThetaHeading,
-                                                                                         stCurrentRoverPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
-            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+            // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
+            // // Calculate move from goal heading and desired speed.
+            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+            //                                                                              stDriveVector.dThetaHeading,
             //                                                                              stCurrentRoverPose.GetCompassHeading(),
-            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
+            //                                                                              diffdrive::DifferentialControlMethod::eCurvatureDrive);
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
+                                                                                         stCurrentRoverPose.GetCompassHeading(),
+                                                                                         diffdrive::DifferentialControlMethod::eCurvatureDrive);
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }

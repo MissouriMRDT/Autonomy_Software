@@ -220,11 +220,12 @@ namespace statemachine
         }
 
         // If we are close enough to the target inform the state machine we have reached the marker.
-        if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
-        {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
-            return;
-        }
+        // FIXME: This is a forced approaching marker doesn't really do much right now, the the detectors have to get within 2m of the tag to detect it anyways.
+        // if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+        // {
+        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
+        return;
+        // }
 
         // Move the rover to the target's estimated position.
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
