@@ -151,17 +151,28 @@ namespace controllers
                 indicates which side of the path the rover is on. Left is positive, right is negative. The sign of the crosstrack error is determined by the sign of the
             */
 
-            // Get the reference path vector. This is the vector from the closest point on the path to a forward point on the path.
+            // Get the reference path vector: from the closest waypoint to the next waypoint.
             double dForwardVectorX = m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dEasting - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dForwardVectorY =
                 m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dNorthing - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Get the vehicle position vector. This is the vector from the closest point on the path to the predicted position.
+            // Compute the norm and unit vector for the path segment.
+            double dForwardNorm = sqrt(dForwardVectorX * dForwardVectorX + dForwardVectorY * dForwardVectorY);
+            double dFwdUnitX    = dForwardVectorX / dForwardNorm;
+            double dFwdUnitY    = dForwardVectorY / dForwardNorm;
+            // Get the vehicle's position vector relative to the closest waypoint.
             double dVehicleVectorX = dPredictedXPosition - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dVehicleVectorY = dPredictedYPosition - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Calculate the sign of the cross track error.
-            int nCrossTrackErrorSign = (dForwardVectorX * dVehicleVectorY - dForwardVectorY * dVehicleVectorX) > 0 ? 1 : -1;
-            // Calculate the cross track error.
-            double dCrossTrackError = nCrossTrackErrorSign * geoops::CalculateGeoMeasurement(stClosestWaypoint.GetUTMCoordinate(), stPredictedPosition).dDistanceMeters;
+            // Project the vehicle vector onto the path unit vector to obtain the longitudinal component.
+            double dLongitudinal = dVehicleVectorX * dFwdUnitX + dVehicleVectorY * dFwdUnitY;
+            // Compute the lateral error vector by subtracting the longitudinal projection from the vehicle vector.
+            double dLateralX = dVehicleVectorX - dLongitudinal * dFwdUnitX;
+            double dLateralY = dVehicleVectorY - dLongitudinal * dFwdUnitY;
+            // The cross-track error is the magnitude of this lateral vector.
+            double dLateralDistance = sqrt(dLateralX * dLateralX + dLateralY * dLateralY);
+            // Determine the sign of the cross-track error using the cross product (left positive, right negative).
+            int nCrossTrackErrorSign = (dFwdUnitX * dVehicleVectorY - dFwdUnitY * dVehicleVectorX) > 0 ? 1 : -1;
+            // Final cross-track error.
+            double dCrossTrackError = nCrossTrackErrorSign * dLateralDistance;
 
             // Apply an exponential weight factor that decreases as we predict further into the future.
             double dTimeWeight = std::exp(-2.5 * static_cast<double>(nIter));

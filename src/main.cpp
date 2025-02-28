@@ -184,16 +184,6 @@ int main()
         */
         while (!bMainStop)
         {
-            // Send current robot state over RoveComm.
-            // Construct a RoveComm packet with the drive data.
-            rovecomm::RoveCommPacket<uint8_t> stPacket;
-            stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
-            stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
-            stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
-            stPacket.vData.emplace_back(static_cast<uint8_t>(globals::g_pStateMachineHandler->GetCurrentState()));
-            // Send drive command over RoveComm to drive board to all subscribers.
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
-
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.

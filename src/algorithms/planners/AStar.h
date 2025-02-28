@@ -58,6 +58,9 @@ namespace pathplanners
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
+            void UpsertObstacleData(const geoops::Waypoint& stObstacle);
+            void UpsertObstacleData(const geoops::UTMCoordinate& stObstacle);
+            void UpsertObstacleData(const geoops::GPSCoordinate& stObstacle);
             void UpsertObstacleData(const std::vector<geoops::Waypoint>& vObstacles);
             void UpsertObstacleData(const std::vector<geoops::UTMCoordinate>& vObstacles);
             void UpsertObstacleData(const std::vector<geoops::GPSCoordinate>& vObstacles);

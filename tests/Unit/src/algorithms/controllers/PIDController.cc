@@ -124,7 +124,6 @@ TEST_F(PIDControllerTests, ProportionalControl)
         // Calculate drive powers.
         double dOutput = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
         dOutput        = pPIDController->Calculate(aActualInput[nIter]);
-        dOutput        = pPIDController->Calculate();
 
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
@@ -152,7 +151,7 @@ TEST_F(PIDControllerTests, IntegralControl)
     const int nTestValuesLength                     = 5;
     const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
     const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
-    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, -2.0, -7.0, -8.0};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, -1.0, -4.0, -5.5};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
@@ -160,7 +159,6 @@ TEST_F(PIDControllerTests, IntegralControl)
         // Calculate drive powers a few times.
         double dOutput = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
         dOutput        = pPIDController->Calculate(aActualInput[nIter]);
-        dOutput        = pPIDController->Calculate();
 
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
@@ -188,7 +186,7 @@ TEST_F(PIDControllerTests, DerivativeControl)
     const int nTestValuesLength                     = 5;
     const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
     const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
-    const double aExpectedOutput[nTestValuesLength] = {0.0, -1.0, -1.0, -1.0, 53.0};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, 1.0, 1.0, -2.5};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)

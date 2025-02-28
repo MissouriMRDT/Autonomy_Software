@@ -83,21 +83,21 @@ namespace constants
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
     // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
-    const float DRIVE_MAX_EFFORT = 0.35;     // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
-    const float DRIVE_MIN_EFFORT = -0.35;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MAX_EFFORT = DRIVE_MAX_POWER;    // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MIN_EFFORT = DRIVE_MIN_POWER;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL       = 0.008;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL           = 0.006;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE         = 0.03;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_FEEDFORWARD        = 0.0;      // The feedforward for the controller used to predict control output.
-    const double DRIVE_PID_MAX_ERROR_PER_ITER = 180;      // The max allowable error the controller will see per iteration. This is on degrees from setpoint.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM  = 0.15;     // The max effort the I term is allowed to contribute.
-    const double DRIVE_PID_MAX_RAMP_RATE      = 0.08;     // The max ramp rate of the output of the PID controller.
-    const double DRIVE_PID_OUTPUT_FILTER      = 0.78;     // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point.
-    const double DRIVE_PID_TOLERANCE          = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint.
-    const bool DRIVE_PID_OUTPUT_REVERSED      = false;    // Negates the output of the PID controller.
-    const bool DRIVE_SQUARE_CONTROL_INPUTS    = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const double DRIVE_PID_PROPORTIONAL      = 0.015;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL          = 0.002;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE        = 0.005;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_FEEDFORWARD       = 0.0;      // The feedforward for the controller used to predict control output.
+    const double DRIVE_PID_MAX_ERROR         = 180.0;    // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.3;      // The max effort the I term is allowed to contribute. 0 = Disable.
+    const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;     // The max ramp rate of the output of the PID controller. 0 = Disable.
+    const double DRIVE_PID_OUTPUT_FILTER     = 0.1;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point. 0 = Disable.
+    const double DRIVE_PID_TOLERANCE         = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint. 0 = Disable.
+    const bool DRIVE_PID_OUTPUT_REVERSED     = false;    // Negates the output of the PID controller.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // This enabled turning in-place when using curvature drive control.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -332,7 +332,7 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;    // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER          = 0.3;     // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER          = 0.2;     // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
@@ -361,11 +361,11 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 4.54;     // Determines how reactive the rover is to crosstrack error adjustments.
-    const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;      // Distance from position sensor to the center of the front axle in meters.
-    const double STANLEY_STEERING_ANGLE_LIMIT    = 120.0;    // The maximum steering angle in degrees.
-    const int STANLEY_PREDICTION_HORIZON         = 5;        // The number of predictions to make.
-    const double STANLEY_PREDICTION_TIME_STEP    = 0.1;      // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 2.0;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;     // Distance from position sensor to the center of the front axle in meters.
+    const double STANLEY_STEERING_ANGLE_LIMIT    = 90.0;    // The maximum steering angle in degrees.
+    const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
+    const double STANLEY_PREDICTION_TIME_STEP    = 0.1;     // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles

@@ -134,26 +134,27 @@ TEST_F(AStarPlannerTests, PlanAvoidancePath)
     for (size_t siIter = 0; siIter < siTestValuesLength; siIter++)
     {
         // Generate a path for this goal.
-        std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStart, aGoalCoordinates[siIter]);
+        std::vector<geoops::Waypoint> vReturnedPath = pAStar->PlanAvoidancePath(stStart, aGoalCoordinates[siIter]);
 
         // Validate that each node is separated by a valid distance.
         // (no more than a node size difference between each coordinate value).
         for (size_t siPathIter = 1; siPathIter < vReturnedPath.size(); siPathIter++)
         {
-            bool bValidNodeDistance = std::abs(vReturnedPath[siPathIter - 1].dEasting - vReturnedPath[siPathIter].dEasting) <= constants::ASTAR_NODE_SIZE;
-            bValidNodeDistance =
-                bValidNodeDistance && std::abs(vReturnedPath[siPathIter - 1].dNorthing - vReturnedPath[siPathIter].dNorthing) <= constants::ASTAR_NODE_SIZE;
+            bool bValidNodeDistance =
+                std::abs(vReturnedPath[siPathIter - 1].GetUTMCoordinate().dEasting - vReturnedPath[siPathIter].GetUTMCoordinate().dEasting) <= constants::ASTAR_NODE_SIZE;
+            bValidNodeDistance = bValidNodeDistance && std::abs(vReturnedPath[siPathIter - 1].GetUTMCoordinate().dNorthing -
+                                                                vReturnedPath[siPathIter].GetUTMCoordinate().dNorthing) <= constants::ASTAR_NODE_SIZE;
 
             EXPECT_TRUE(bValidNodeDistance);
         }
 
         // Validate start coordinate.
-        EXPECT_NEAR(stStart.dEasting, vReturnedPath[0].dEasting, 0.1);
-        EXPECT_NEAR(stStart.dNorthing, vReturnedPath[0].dNorthing, 0.1);
+        EXPECT_NEAR(stStart.dEasting, vReturnedPath[0].GetUTMCoordinate().dEasting, 0.1);
+        EXPECT_NEAR(stStart.dNorthing, vReturnedPath[0].GetUTMCoordinate().dNorthing, 0.1);
 
         // Validate end coordinate.
-        EXPECT_NEAR(aGoalCoordinates[siIter].dEasting, vReturnedPath.back().dEasting, 0.1);
-        EXPECT_NEAR(aGoalCoordinates[siIter].dNorthing, vReturnedPath.back().dNorthing, 0.1);
+        EXPECT_NEAR(aGoalCoordinates[siIter].dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
+        EXPECT_NEAR(aGoalCoordinates[siIter].dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
     }
 
     // Cleanup.
@@ -174,37 +175,37 @@ TEST_F(AStarPlannerTests, ObstacleInitialization)
     pathplanners::AStar* pAStar = new pathplanners::AStar();
 
     // Create obstacle for AStar initialization.
-    const geoops::UTMCoordinate stObstacleCenter   = geoops::UTMCoordinate(608120, 4201140, 15);
-    const double dObstacleSize                     = 3 * constants::ASTAR_NODE_SIZE;
-    const pathplanners::AStar::Obstacle stObstacle = {stObstacleCenter, dObstacleSize};
+    const geoops::UTMCoordinate stObstacleCenter = geoops::UTMCoordinate(608120, 4201140, 15);
+    const double dObstacleSize                   = 3 * constants::ASTAR_NODE_SIZE;
+    const geoops::Waypoint stObstacle            = {stObstacleCenter, geoops::WaypointType::eObstacleWaypoint, dObstacleSize};
 
     // Add obstacle to AStar.
-    pAStar->AddObstacle(stObstacle);
+    pAStar->UpsertObstacleData(stObstacle);
 
     // Validate obstacle exists within AStar.
-    std::vector<pathplanners::AStar::Obstacle> vReturnVector = pAStar->GetObstacleData();
-    EXPECT_NEAR(stObstacle.stCenterPoint.dEasting, vReturnVector[0].stCenterPoint.dEasting, 0.1);
-    EXPECT_NEAR(stObstacle.stCenterPoint.dNorthing, vReturnVector[0].stCenterPoint.dNorthing, 0.1);
+    std::vector<geoops::Waypoint> vReturnVector = pAStar->GetObstacleData();
+    EXPECT_NEAR(stObstacle.GetUTMCoordinate().dEasting, vReturnVector[0].GetUTMCoordinate().dEasting, 0.1);
+    EXPECT_NEAR(stObstacle.GetUTMCoordinate().dNorthing, vReturnVector[0].GetUTMCoordinate().dNorthing, 0.1);
     EXPECT_NEAR(stObstacle.dRadius, vReturnVector[0].dRadius, 0.1);
 
     // Create obstacle vector for AStar re-initialization.
-    std::vector<pathplanners::AStar::Obstacle> vObstacles;
-    const geoops::UTMCoordinate stObstacle2Center   = geoops::UTMCoordinate(608100, 4201100, 15);
-    const double dObstacle2Size                     = 2 * constants::ASTAR_NODE_SIZE;
-    const pathplanners::AStar::Obstacle stObstacle2 = {stObstacle2Center, dObstacle2Size};
+    std::vector<geoops::Waypoint> vObstacles;
+    const geoops::UTMCoordinate stObstacle2Center = geoops::UTMCoordinate(608100, 4201100, 15);
+    const double dObstacle2Size                   = 2 * constants::ASTAR_NODE_SIZE;
+    const geoops::Waypoint stObstacle2            = {stObstacle2Center, geoops::WaypointType::eObstacleWaypoint, dObstacle2Size};
     vObstacles.emplace_back(stObstacle);
     vObstacles.emplace_back(stObstacle2);
 
     // Reset obstacles within AStar.
-    pAStar->UpdateObstacleData(vObstacles, true);
+    pAStar->UpsertObstacleData(vObstacles);
 
     // Validate obstacles exist within AStar.
     vReturnVector       = pAStar->GetObstacleData();
     size_t siVectorSize = vReturnVector.size();
     for (size_t siCounter = 0; siCounter < siVectorSize; siCounter++)
     {
-        EXPECT_NEAR(vObstacles[siCounter].stCenterPoint.dEasting, vReturnVector[siCounter].stCenterPoint.dEasting, 0.1);
-        EXPECT_NEAR(vObstacles[siCounter].stCenterPoint.dNorthing, vReturnVector[siCounter].stCenterPoint.dNorthing, 0.1);
+        EXPECT_NEAR(vObstacles[siCounter].GetUTMCoordinate().dEasting, vReturnVector[siCounter].GetUTMCoordinate().dEasting, 0.1);
+        EXPECT_NEAR(vObstacles[siCounter].GetUTMCoordinate().dNorthing, vReturnVector[siCounter].GetUTMCoordinate().dNorthing, 0.1);
         EXPECT_NEAR(vObstacles[siCounter].dRadius, vReturnVector[siCounter].dRadius, 0.1);
     }
 

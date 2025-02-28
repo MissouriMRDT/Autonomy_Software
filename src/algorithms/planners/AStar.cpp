@@ -218,7 +218,9 @@ namespace pathplanners
                 // If this succeeds, use the GeoMeasurement distance.
                 if (bGeoSuccess)
                 {
-                    bAtGoal = stDistanceToGoal.dDistanceMeters < constants::ASTAR_NODE_SIZE;
+                    // Round the calculated distance to the nearest half meter.
+                    stDistanceToGoal.dDistanceMeters = std::round(stDistanceToGoal.dDistanceMeters * 2) / 2;
+                    bAtGoal                          = stDistanceToGoal.dDistanceMeters < constants::ASTAR_NODE_SIZE;
                 }
                 // Otherwise manually check for goal boundaries:
                 else
@@ -351,6 +353,74 @@ namespace pathplanners
 
     /******************************************************************************
      * @brief Adds new obstacle data to the class member variable m_vObstacles.
+     *
+     * @param stObstacle - A Waypoint representing the obstacle to add to the path.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-23
+     ******************************************************************************/
+    void AStar::UpsertObstacleData(const geoops::Waypoint& stObstacle)
+    {
+        // Only add obstacles if they are not already in the vector.
+        std::vector<geoops::Waypoint>::iterator stdIter =
+            std::find_if(m_vObstacles.begin(),
+                         m_vObstacles.end(),
+                         [&stObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle == stObstacle; });
+
+        if (stdIter == m_vObstacles.end())
+        {
+            m_vObstacles.push_back(stObstacle);
+        }
+    }
+
+    /******************************************************************************
+     * @brief Adds new obstacle data to the class member variable m_vObstacles.
+     *
+     * @param stObstacle - A UTMCoordinate representing the obstacle to add to the path.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-23
+     ******************************************************************************/
+    void AStar::UpsertObstacleData(const geoops::UTMCoordinate& stObstacle)
+    {
+        // Only add obstacles if they are not already in the vector.
+        std::vector<geoops::Waypoint>::iterator stdIter =
+            std::find_if(m_vObstacles.begin(),
+                         m_vObstacles.end(),
+                         [&stObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle.GetUTMCoordinate() == stObstacle; });
+
+        if (stdIter == m_vObstacles.end())
+        {
+            m_vObstacles.push_back(geoops::Waypoint(stObstacle));
+        }
+    }
+
+    /******************************************************************************
+     * @brief Adds new obstacle data to the class member variable m_vObstacles.
+     *
+     * @param stObstacle - A GPSCoordinate representing the obstacle to add to the path.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-02-23
+     ******************************************************************************/
+    void AStar::UpsertObstacleData(const geoops::GPSCoordinate& stObstacle)
+    {
+        // Convert the GPS coordinate to a UTM coordinate.
+        geoops::UTMCoordinate stUTMObstacle = geoops::ConvertGPSToUTM(stObstacle);
+        // Only add obstacles if they are not already in the vector.
+        std::vector<geoops::Waypoint>::iterator stdIter =
+            std::find_if(m_vObstacles.begin(),
+                         m_vObstacles.end(),
+                         [&stUTMObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle.GetUTMCoordinate() == stUTMObstacle; });
+
+        if (stdIter == m_vObstacles.end())
+        {
+            m_vObstacles.push_back(geoops::Waypoint(stUTMObstacle));
+        }
+    }
+
+    /******************************************************************************
+     * @brief Adds new obstacle data to the class member variable m_vObstacles.
      *    Also checks if the obstacle is already in the vector and skips it if it is.
      *
      * @param vObstacles - A vector of Waypoints representing the obstacles to add to the path.
@@ -363,15 +433,7 @@ namespace pathplanners
         // Only add obstacles if they are not already in the vector.
         for (const geoops::Waypoint& stObstacle : vObstacles)
         {
-            std::vector<geoops::Waypoint>::iterator stdIter =
-                std::find_if(m_vObstacles.begin(),
-                             m_vObstacles.end(),
-                             [&stObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle == stObstacle; });
-
-            if (stdIter == m_vObstacles.end())
-            {
-                m_vObstacles.push_back(stObstacle);
-            }
+            this->UpsertObstacleData(stObstacle);
         }
     }
 
@@ -388,15 +450,7 @@ namespace pathplanners
         // Only add obstacles if they are not already in the vector.
         for (const geoops::UTMCoordinate& stObstacle : vObstacles)
         {
-            std::vector<geoops::Waypoint>::iterator stdIter =
-                std::find_if(m_vObstacles.begin(),
-                             m_vObstacles.end(),
-                             [&stObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle.GetUTMCoordinate() == stObstacle; });
-
-            if (stdIter == m_vObstacles.end())
-            {
-                m_vObstacles.push_back(geoops::Waypoint(stObstacle));
-            }
+            this->UpsertObstacleData(stObstacle);
         }
     }
 
@@ -413,16 +467,7 @@ namespace pathplanners
         // Only add obstacles if they are not already in the vector.
         for (const geoops::GPSCoordinate& stObstacle : vObstacles)
         {
-            geoops::UTMCoordinate stUTMObstacle = geoops::ConvertGPSToUTM(stObstacle);
-            std::vector<geoops::Waypoint>::iterator stdIter =
-                std::find_if(m_vObstacles.begin(),
-                             m_vObstacles.end(),
-                             [&stUTMObstacle](const geoops::Waypoint& stExistingObstacle) { return stExistingObstacle.GetUTMCoordinate() == stUTMObstacle; });
-
-            if (stdIter == m_vObstacles.end())
-            {
-                m_vObstacles.push_back(geoops::Waypoint(stUTMObstacle));
-            }
+            this->UpsertObstacleData(stObstacle);
         }
     }
 
