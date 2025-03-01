@@ -30,6 +30,9 @@ RUN echo "${TZ}" > /etc/localtime && \
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
+# Set the default shell to bash with pipefail option. This ensures that the shell exits immediately if any command exits with a non-zero status.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Add APT Repo for PCIe drivers.
 RUN apt update && apt install -y wget gnupg && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \

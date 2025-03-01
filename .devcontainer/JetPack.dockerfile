@@ -22,6 +22,9 @@ ENV LOGNAME root
 # Set L4T Version
 RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}.${L4T_PATCH}" > /etc/nv_tegra_release
 
+# Set the default shell to bash with pipefail option. This ensures that the shell exits immediately if any command exits with a non-zero status.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Clean APT Cache
 RUN rm /var/lib/dpkg/info/libc-bin.*
 # Add APT Repo for PCIe drivers and Bazel.
