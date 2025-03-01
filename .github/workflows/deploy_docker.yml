@@ -279,17 +279,28 @@ jobs:
         if: needs.check-amd64-packages.outputs.ffmpeg-amd64 == 'true'
         run: |
           cd tools/package-builders/ffmpeg
-
           chmod +x ffmpeg-amd64-pkg.sh
           ./ffmpeg-amd64-pkg.sh
-          mkdir -p /tmp/archive-pkg/
+
+          # Check if build succeeded
           if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
             echo "FFMPEG_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
+            # Attempt to download the latest
+            echo "Build failed; attempting to download latest..."
             ./ffmpeg-amd64-pkg.sh --download-latest
-            cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
-            echo "FFMPEG_REBUILT_AMD64=false" >> $GITHUB_ENV
+            
+            # Check if download succeeded
+            if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
+              mkdir -p /tmp/archive-pkg/
+              cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
+              echo "FFMPEG_REBUILT_AMD64=false" >> $GITHUB_ENV
+            else
+              echo "Error: FFmpeg build/download failed. No .deb file found."
+              exit 1  # Fail the step if both build and download fail
+            fi
           fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
@@ -602,17 +613,28 @@ jobs:
         if: needs.check-arm64-packages.outputs.ffmpeg-arm64 == 'true'
         run: |
           cd tools/package-builders/ffmpeg
-
           chmod +x ffmpeg-arm64-pkg.sh
           ./ffmpeg-arm64-pkg.sh
-          mkdir -p /tmp/archive-pkg/
+
+          # Check if build succeeded
           if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
             echo "FFMPEG_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
+            # Attempt to download the latest
+            echo "Build failed; attempting to download latest..."
             ./ffmpeg-arm64-pkg.sh --download-latest
-            cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
-            echo "FFMPEG_REBUILT_ARM64=false" >> $GITHUB_ENV
+            
+            # Check if download succeeded
+            if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
+              mkdir -p /tmp/archive-pkg/
+              cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
+              echo "FFMPEG_REBUILT_ARM64=false" >> $GITHUB_ENV
+            else
+              echo "Error: FFmpeg build/download failed. No .deb file found."
+              exit 1  # Fail the step if both build and download fail
+            fi
           fi
 
       # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
