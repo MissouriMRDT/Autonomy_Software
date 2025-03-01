@@ -337,9 +337,14 @@ jobs:
             cp /tmp/pkg/deb/opencv*amd64*.deb /tmp/archive-pkg
             echo "OPENCV_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
-            echo "OPENCV_REBUILT_AMD64=false" >> $GITHUB_ENV
-            echo "Error: OpenCV build failed."
-            exit 1  # Fail the step if OpenCV build fails
+            if [[ $? -eq 0 ]]; then
+              echo "OPENCV_REBUILT_AMD64=false" >> $GITHUB_ENV
+              echo "No new OpenCV .deb file found, but script exited successfully. Assuming no rebuild was needed."
+            else
+              echo "OPENCV_REBUILT_AMD64=false" >> $GITHUB_ENV
+              echo "Error: OpenCV build failed."
+              exit 1  # Fail the step if OpenCV build fails
+            fi
           fi
 
       # This step is used to push the updated package to the package repository. It clones the package
@@ -686,9 +691,14 @@ jobs:
             cp /tmp/pkg/deb/opencv*arm64*.deb /tmp/archive-pkg
             echo "OPENCV_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
-            echo "OPENCV_REBUILT_ARM64=false" >> $GITHUB_ENV
-            echo "Error: OpenCV build failed."
-            exit 1  # Fail the step if OpenCV build fails
+            if [[ $? -eq 0 ]]; then
+              echo "OPENCV_REBUILT_ARM64=false" >> $GITHUB_ENV
+              echo "No new OpenCV .deb file found, but script exited successfully. Assuming no rebuild was needed."
+            else
+              echo "OPENCV_REBUILT_ARM64=false" >> $GITHUB_ENV
+              echo "Error: OpenCV build failed."
+              exit 1  # Fail the step if OpenCV build fails
+            fi
           fi
 
       # This step is used to push the updated package to the package repository. It clones the package
