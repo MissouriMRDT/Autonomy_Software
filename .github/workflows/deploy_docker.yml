@@ -697,9 +697,6 @@ jobs:
       - name: Push Packages
         if: env.FFMPEG_REBUILT_ARM64 == 'true' || env.OPENCV_REBUILT_ARM64 == 'true'
         run: |
-          # Find Debian Package
-          debfile=$(find /tmp/archive-pkg/ -name "*.deb" -type f -print -quit)
-
           # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
           git config --global user.name "MRDT-Software"
@@ -714,11 +711,21 @@ jobs:
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new ARM64 packages into the repository
-          mkdir -p ffmpeg/arm64/
-          cp -r /tmp/archive-pkg/ffmpeg*arm64*.deb ffmpeg/arm64/
-          mkdir -p opencv/arm64/
-          cp -r /tmp/archive-pkg/opencv*arm64*.deb opencv/arm64/
+          # Copy FFmpeg package only if it was rebuilt
+          if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
+            mkdir -p ffmpeg/arm64/
+            cp -v /tmp/archive-pkg/ffmpeg*arm64*.deb ffmpeg/arm64/
+          else
+            echo "Skipping FFmpeg copy (not rebuilt)."
+          fi
+
+          # Copy OpenCV package only if it was rebuilt
+          if [[ "$OPENCV_REBUILT_ARM64" == "true" ]]; then
+            mkdir -p opencv/arm64/
+            cp -v /tmp/archive-pkg/opencv*arm64*.deb opencv/arm64/
+          else
+            echo "Skipping OpenCV copy (not rebuilt)."
+          fi
 
           # Set up Git LFS
           git lfs install

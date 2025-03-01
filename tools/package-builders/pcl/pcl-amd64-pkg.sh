@@ -86,7 +86,7 @@ else
     -D CMAKE_BUILD_TYPE=Release ..
 
     # Install LibDataChannel
-    make -j30
+    make
     make install
 
     # Cleanup Install
