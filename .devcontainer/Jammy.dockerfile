@@ -49,7 +49,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     valgrind doxygen graphviz htop nano fortune fortunes gnuplot-nox \
     vim-common gasket-dkms nlohmann-json3-dev gcovr lcov curl \
     libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
-    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
+    libboost-all-dev libflann-dev libvtk9-dev libqhull-dev libopenni2-dev \
+    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libcjson-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \

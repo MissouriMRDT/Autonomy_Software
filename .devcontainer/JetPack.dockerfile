@@ -41,7 +41,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
     vim-common libedgetpu1-std gasket-dkms ca-certificates nlohmann-json3-dev curl \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
-    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
+    libboost-all-dev libflann-dev libvtk9-dev libqhull-dev libopenni2-dev \
+    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libcjson-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
