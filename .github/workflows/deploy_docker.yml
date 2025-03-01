@@ -310,28 +310,36 @@ jobs:
         id: rebuild_pkg_opencv
         if: needs.check-amd64-packages.outputs.ffmpeg-amd64 == 'true' || needs.check-amd64-packages.outputs.opencv-amd64 == 'true'
         run: |
-          # Install FFmpeg
-          apt remove -y ffmpeg-mrdt || true
-          apt remove -y ffmpeg || true
-          apt install -y /tmp/archive-pkg/ffmpeg*amd64*.deb
+          # Only remove and install FFmpeg if it was rebuilt
+          if [[ "$FFMPEG_REBUILT_AMD64" == "true" ]]; then
+            apt remove -y ffmpeg-mrdt || true
+            apt remove -y ffmpeg || true
+            apt install -y /tmp/archive-pkg/ffmpeg*amd64*.deb
+          else
+            echo "Skipping FFmpeg installation (not rebuilt)."
+          fi
 
-          # Install OpenCV
+          # Proceed with OpenCV build
           cd tools/package-builders/opencv
           chmod +x opencv-amd64-pkg.sh
 
           if [[ "$FFMPEG_REBUILT_AMD64" == "true" ]]; then
-            echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
+            echo "FFmpeg was rebuilt. Forcing OpenCV rebuild."
             ./opencv-amd64-pkg.sh --force
           else
-            echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
+            echo "FFmpeg not rebuilt. Building OpenCV normally."
             ./opencv-amd64-pkg.sh
           fi
 
+          # Check for OpenCV .deb
           if ls /tmp/pkg/deb/opencv*amd64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/opencv*amd64*.deb /tmp/archive-pkg
             echo "OPENCV_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
             echo "OPENCV_REBUILT_AMD64=false" >> $GITHUB_ENV
+            echo "Error: OpenCV build failed."
+            exit 1  # Fail the step if OpenCV build fails
           fi
 
       # This step is used to push the updated package to the package repository. It clones the package
@@ -644,28 +652,36 @@ jobs:
         id: rebuild_pkg_opencv
         if: needs.check-arm64-packages.outputs.ffmpeg-arm64 == 'true' || needs.check-arm64-packages.outputs.opencv-arm64 == 'true'
         run: |
-          # Install FFmpeg
-          apt remove -y ffmpeg-mrdt || true
-          apt remove -y ffmpeg || true
-          apt install -y /tmp/archive-pkg/ffmpeg*arm64*.deb
+          # Only remove and install FFmpeg if it was rebuilt
+          if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
+            apt remove -y ffmpeg-mrdt || true
+            apt remove -y ffmpeg || true
+            apt install -y /tmp/archive-pkg/ffmpeg*arm64*.deb
+          else
+            echo "Skipping FFmpeg installation (not rebuilt)."
+          fi
 
-          # Install OpenCV
+          # Proceed with OpenCV build
           cd tools/package-builders/opencv
           chmod +x opencv-arm64-pkg.sh
 
           if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
-            echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
+            echo "FFmpeg was rebuilt. Forcing OpenCV rebuild."
             ./opencv-arm64-pkg.sh --force
           else
-            echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
+            echo "FFmpeg not rebuilt. Building OpenCV normally."
             ./opencv-arm64-pkg.sh
           fi
 
+          # Check for OpenCV .deb
           if ls /tmp/pkg/deb/opencv*arm64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/opencv*arm64*.deb /tmp/archive-pkg
             echo "OPENCV_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
             echo "OPENCV_REBUILT_ARM64=false" >> $GITHUB_ENV
+            echo "Error: OpenCV build failed."
+            exit 1  # Fail the step if OpenCV build fails
           fi
 
       # This step is used to push the updated package to the package repository. It clones the package
