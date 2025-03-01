@@ -143,6 +143,12 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotpl
     dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
     rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
 
+# Install PointCloudLibrary
+ARG PCL_VERSION="1.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64/pcl_${PCL_VERSION}_amd64.deb && \
+    dpkg -i pcl_${PCL_VERSION}_amd64.deb && \
+    rm pcl_${PCL_VERSION}_amd64.deb
+
 # Install Quill
 ARG QUILL_VERSION="8.1.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \

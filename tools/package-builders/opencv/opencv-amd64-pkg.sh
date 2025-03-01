@@ -73,7 +73,7 @@ else
         echo "Depends:"
         echo "Architecture: amd64"
         echo "Homepage: https://opencv.org/"
-        echo "Description: A prebuilt version of OpenCV with minimal packages and Cuda support. Made by the Mars Rover Design Team."
+        echo "Description: A prebuilt version of OpenCV with Cuda support. Made by the Mars Rover Design Team."
     } > /tmp/pkg/opencv_${OPENCV_VERSION}_amd64/DEBIAN/control
 
 
