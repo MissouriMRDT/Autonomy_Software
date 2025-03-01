@@ -77,6 +77,7 @@ jobs:
       abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
       tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
+      pcl-amd64: ${{ steps.changes.outputs.pcl-amd64 }}
 
     steps:
       - name: Setup Action Environment
@@ -121,6 +122,8 @@ jobs:
               - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
+            pcl-amd64:
+              - 'tools/package-builders/pcl/pcl-amd64-pkg.sh'
 
       - name: Cleanup Action Environment
         if: always()
@@ -162,6 +165,7 @@ jobs:
           - abseil
           - tensorflow
           - quill
+          - pcl
 
     steps:
       - name: Setup Action Environment
@@ -397,6 +401,7 @@ jobs:
       abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
       tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
+      pcl-arm64: ${{ steps.changes.outputs.pcl-arm64 }}
 
     steps:
       - name: Setup Action Environment
@@ -441,6 +446,8 @@ jobs:
               - 'tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
+            pcl-arm64:
+              - 'tools/package-builders/pcl/pcl-arm64-pkg.sh'
 
       - name: Cleanup Action Environment
         if: always()
@@ -481,6 +488,7 @@ jobs:
           - abseil
           - tensorflow
           - quill
+          - pcl
 
     steps:
       - name: Setup Action Environment
