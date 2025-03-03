@@ -40,8 +40,8 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    // "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-02-10-18-03-17",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-02-10-18-03-17",
+    // "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-03-01-21-27-07",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-03-01-21-27-07",
     "build": {
         "dockerfile": "Jammy.dockerfile"
         // "dockerfile": "JetPack.dockerfile"
@@ -140,14 +140,14 @@
                     "/usr/local/include/tensorflow/lite/**",
                     "/usr/local/include/edgetpu",
                     "/usr/local/include/edgetpu/**",
+                    "/usr/local/include/pcl-1.15/pcl",
+                    "/usr/local/include/pcl-1.15/pcl/**",
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",
                     "/usr/include/nlohmann/**",
                     "/usr/include/python*",
-                    "/usr/include/python*/**",
-                    "/usr/include/pcl*",
-                    "/usr/include/pcl*/**"
+                    "/usr/include/python*/**"
                 ],
                 "C_Cpp.default.defines": [
                     "__ROVECOMM_LIBRARY_MODE__=1"
