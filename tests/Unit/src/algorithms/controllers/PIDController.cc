@@ -210,6 +210,45 @@ TEST_F(PIDControllerTests, DerivativeControl)
 }
 
 /******************************************************************************
+ * @brief Test PIDController gains sign check.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-02
+ ******************************************************************************/
+TEST_F(PIDControllerTests, CheckGainSigns)
+{
+    // Create a new PIDController object.
+    controllers::PIDController* pPIDController = new controllers::PIDController(-1.0, -1.0, -1.0);
+
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                     = 5;
+    const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
+    const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, 0.0, 3.0, 8.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Get last iterator index.
+        int nLastIter;
+        ((nIter - 1) <= 0) ? nLastIter = 0 : nLastIter = (nIter - 1);
+
+        // Calculate drive powers a few times.
+        double dOutput = pPIDController->Calculate(aActualInput[nLastIter], aSetpointInput[nLastIter]);
+        dOutput        = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
+    }
+
+    // Delete object.
+    delete pPIDController;
+    // Point to null.
+    pPIDController = nullptr;
+}
+
+/******************************************************************************
  * @brief Test PIDController limits adherence.
  *
  *
