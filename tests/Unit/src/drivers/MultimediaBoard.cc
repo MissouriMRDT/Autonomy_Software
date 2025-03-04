@@ -149,8 +149,8 @@ TEST_F(MultimediaBoardTests, SendRGBSetsRGBValuesCorrectly)
     MultimediaBoard::RGB stCurrentRGBValues(255, 128, 64);
     pMultimediaBoard->SendRGB(stCurrentRGBValues);
 
-    MultimediaBoard::RGB rgb_values = pMultimediaBoard->GetCustomLightingValues();
-    EXPECT_EQ(rgb_values.dRed, stCurrentRGBValues.dRed);
-    EXPECT_EQ(rgb_values.dGreen, stCurrentRGBValues.dGreen);
-    EXPECT_EQ(rgb_values.dBlue, stCurrentRGBValues.dBlue);
+    MultimediaBoard::RGB stRGBValues = pMultimediaBoard->GetCustomLightingValues();
+    EXPECT_EQ(stRGBValues.dRed, stCurrentRGBValues.dRed);
+    EXPECT_EQ(stRGBValues.dGreen, stCurrentRGBValues.dGreen);
+    EXPECT_EQ(stRGBValues.dBlue, stCurrentRGBValues.dBlue);
 }

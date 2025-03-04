@@ -110,18 +110,18 @@ TEST_F(DriveBoardTests, Leaks)
 TEST_F(DriveBoardTests, CalculateMove_ZeroSpeedZeroHeading)
 {
     // Test with eArcadeDrive
-    diffdrive::DrivePowers eArcadeDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eArcadeDrive);
+    diffdrive::DrivePowers stArcadeDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eArcadeDrive);
 
     // We expect zero drive power when speed & heading are both zero.
-    EXPECT_NEAR(eArcadeDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
-    EXPECT_NEAR(eArcadeDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
+    EXPECT_NEAR(stArcadeDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
+    EXPECT_NEAR(stArcadeDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
 
     // Test with eCurvatureDrive
-    diffdrive::DrivePowers eCurvatureDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
+    diffdrive::DrivePowers stCurvatureDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
 
     // We expect zero drive power when speed & heading are both zero.
-    EXPECT_NEAR(eCurvatureDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
-    EXPECT_NEAR(eCurvatureDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
+    EXPECT_NEAR(stCurvatureDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
+    EXPECT_NEAR(stCurvatureDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
 }
 
 /******************************************************************************
