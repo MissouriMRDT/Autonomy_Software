@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-25
  *
- * @copyright Copyright MRDT 2024 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef ZEDCAM_H

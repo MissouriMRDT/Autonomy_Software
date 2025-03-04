@@ -5,7 +5,7 @@
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  *
- * @copyright Copyright MRDT 2024 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../src/handlers/CameraHandler.h"
