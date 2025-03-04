@@ -34,7 +34,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
-        NavigationBoard* navBoard;
+        NavigationBoard* pNavBoard;
 
     public:
         /******************************************************************************
@@ -59,7 +59,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override { navBoard = new NavigationBoard(); }
+        void TestSetup() override { pNavBoard = new NavigationBoard(); }
 
         /******************************************************************************
          * @brief Teardown the Navigation Board Tests object.
@@ -69,8 +69,8 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          ******************************************************************************/
         void TestTeardown() override
         {
-            delete navBoard;
-            navBoard = nullptr;
+            delete pNavBoard;
+            pNavBoard = nullptr;
         }
 };
 
@@ -83,10 +83,10 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
  ******************************************************************************/
 TEST_F(NavigationBoardTests, DoesNotLeak)
 {
-    NavigationBoard* testBoard = new NavigationBoard();
-    ASSERT_NE(testBoard, nullptr);
-    delete testBoard;
-    testBoard = nullptr;
+    NavigationBoard* pTestBoard = new NavigationBoard();
+    ASSERT_NE(pTestBoard, nullptr);
+    delete pTestBoard;
+    pTestBoard = nullptr;
 }
 
 /******************************************************************************
@@ -98,8 +98,8 @@ TEST_F(NavigationBoardTests, DoesNotLeak)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, Leaks)
 {
-    NavigationBoard* testBoard = new NavigationBoard();
-    EXPECT_NE(testBoard, nullptr);
+    NavigationBoard* pTestBoard = new NavigationBoard();
+    EXPECT_NE(pTestBoard, nullptr);
     // Intentionally not deleting to test leak detection
 }
 
@@ -113,18 +113,18 @@ TEST_F(NavigationBoardTests, Leaks)
 TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
 {
     // The latitude, longitude, and altitude are set to the location of Missouri S&T
-    EXPECT_EQ(navBoard->GetGPSData().dLatitude, 37.951771);
-    EXPECT_EQ(navBoard->GetGPSData().dLongitude, -91.778114);
-    EXPECT_EQ(navBoard->GetGPSData().dAltitude, 315.0);
-    EXPECT_EQ(navBoard->GetHeading(), 0);
-    EXPECT_EQ(navBoard->GetHeadingAccuracy(), 0);
+    EXPECT_EQ(pNavBoard->GetGPSData().dLatitude, 37.951771);
+    EXPECT_EQ(pNavBoard->GetGPSData().dLongitude, -91.778114);
+    EXPECT_EQ(pNavBoard->GetGPSData().dAltitude, 315.0);
+    EXPECT_EQ(pNavBoard->GetHeading(), 0);
+    EXPECT_EQ(pNavBoard->GetHeadingAccuracy(), 0);
     // Not moving or rotating
-    EXPECT_EQ(navBoard->GetVelocity(), 0);
-    EXPECT_EQ(navBoard->GetAngularVelocity(), 0);
+    EXPECT_EQ(pNavBoard->GetVelocity(), 0);
+    EXPECT_EQ(pNavBoard->GetAngularVelocity(), 0);
     // Allow for small time difference due to construction
-    EXPECT_LE(navBoard->GetGPSLastUpdateTime(), std::chrono::seconds(1));
-    EXPECT_LE(navBoard->GetCompassLastUpdateTime(), std::chrono::seconds(1));
-    EXPECT_FALSE(navBoard->IsOutOfDate());
+    EXPECT_LE(pNavBoard->GetGPSLastUpdateTime(), std::chrono::seconds(1));
+    EXPECT_LE(pNavBoard->GetCompassLastUpdateTime(), std::chrono::seconds(1));
+    EXPECT_FALSE(pNavBoard->IsOutOfDate());
 }
 
 /******************************************************************************
@@ -136,16 +136,16 @@ TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
 {
-    geoops::GPSCoordinate gpsData = navBoard->GetGPSData();
-    EXPECT_EQ(gpsData.dLatitude, 37.951771);
-    EXPECT_EQ(gpsData.dLongitude, -91.778114);
-    EXPECT_EQ(gpsData.dAltitude, 315.0);
-    EXPECT_EQ(gpsData.d2DAccuracy, -1);
-    EXPECT_EQ(gpsData.d3DAccuracy, -1);
-    EXPECT_EQ(gpsData.dMeridianConvergence, -1);
-    EXPECT_EQ(gpsData.dScale, 0);
-    EXPECT_EQ(gpsData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
-    EXPECT_EQ(gpsData.bIsDifferential, false);
+    geoops::GPSCoordinate stGPSData = pNavBoard->GetGPSData();
+    EXPECT_EQ(stGPSData.dLatitude, 37.951771);
+    EXPECT_EQ(stGPSData.dLongitude, -91.778114);
+    EXPECT_EQ(stGPSData.dAltitude, 315.0);
+    EXPECT_EQ(stGPSData.d2DAccuracy, -1);
+    EXPECT_EQ(stGPSData.d3DAccuracy, -1);
+    EXPECT_EQ(stGPSData.dMeridianConvergence, -1);
+    EXPECT_EQ(stGPSData.dScale, 0);
+    EXPECT_EQ(stGPSData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
+    EXPECT_EQ(stGPSData.bIsDifferential, false);
 }
 
 /******************************************************************************
@@ -157,19 +157,19 @@ TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData)
 {
-    geoops::UTMCoordinate utmData = navBoard->GetUTMData();
+    geoops::UTMCoordinate stUTMData = pNavBoard->GetUTMData();
 
     // Assuming default UTM data is MST's location
-    EXPECT_NEAR(utmData.dEasting, 607350.55, 0.01);
-    EXPECT_NEAR(utmData.dNorthing, 4201167.97, 0.01);
-    EXPECT_EQ(utmData.dAltitude, 315.0);
-    EXPECT_EQ(utmData.nZone, 15);
-    EXPECT_EQ(utmData.bWithinNorthernHemisphere, true);
-    EXPECT_EQ(utmData.d2DAccuracy, -1);
-    EXPECT_EQ(utmData.d3DAccuracy, -1);
+    EXPECT_NEAR(stUTMData.dEasting, 607350.55, 0.01);
+    EXPECT_NEAR(stUTMData.dNorthing, 4201167.97, 0.01);
+    EXPECT_EQ(stUTMData.dAltitude, 315.0);
+    EXPECT_EQ(stUTMData.nZone, 15);
+    EXPECT_EQ(stUTMData.bWithinNorthernHemisphere, true);
+    EXPECT_EQ(stUTMData.d2DAccuracy, -1);
+    EXPECT_EQ(stUTMData.d3DAccuracy, -1);
     // IDK why these are what they are
-    EXPECT_EQ(utmData.dMeridianConvergence, 0.75152911093843622);
-    EXPECT_EQ(utmData.dScale, 0.99974193500083242);
-    EXPECT_EQ(utmData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
-    EXPECT_EQ(utmData.bIsDifferential, false);
+    EXPECT_EQ(stUTMData.dMeridianConvergence, 0.75152911093843622);
+    EXPECT_EQ(stUTMData.dScale, 0.99974193500083242);
+    EXPECT_EQ(stUTMData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
+    EXPECT_EQ(stUTMData.bIsDifferential, false);
 }

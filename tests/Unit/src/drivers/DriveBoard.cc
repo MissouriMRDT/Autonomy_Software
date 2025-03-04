@@ -35,7 +35,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
-        DriveBoard* driveBoard;
+        DriveBoard* pDriveBoard;
 
     public:
         /******************************************************************************
@@ -60,7 +60,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override { driveBoard = new DriveBoard(); }
+        void TestSetup() override { pDriveBoard = new DriveBoard(); }
 
         /******************************************************************************
          * @brief Teardown the Drive Board Tests object.
@@ -70,8 +70,8 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          ******************************************************************************/
         void TestTeardown() override
         {
-            delete driveBoard;
-            driveBoard = nullptr;
+            delete pDriveBoard;
+            pDriveBoard = nullptr;
         }
 };
 
@@ -83,10 +83,10 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
  ******************************************************************************/
 TEST_F(DriveBoardTests, DoesNotLeak)
 {
-    DriveBoard* driveBoard = new DriveBoard();
-    ASSERT_NE(driveBoard, nullptr);
-    delete driveBoard;
-    driveBoard = nullptr;
+    DriveBoard* pDriveBoard = new DriveBoard();
+    ASSERT_NE(pDriveBoard, nullptr);
+    delete pDriveBoard;
+    pDriveBoard = nullptr;
 }
 
 /******************************************************************************
@@ -97,8 +97,8 @@ TEST_F(DriveBoardTests, DoesNotLeak)
  ******************************************************************************/
 TEST_F(DriveBoardTests, Leaks)
 {
-    DriveBoard* driveBoard = new DriveBoard();
-    EXPECT_TRUE(driveBoard != nullptr);
+    DriveBoard* pDriveBoard = new DriveBoard();
+    EXPECT_TRUE(pDriveBoard != nullptr);
 }
 
 /******************************************************************************
@@ -110,14 +110,14 @@ TEST_F(DriveBoardTests, Leaks)
 TEST_F(DriveBoardTests, CalculateMove_ZeroSpeedZeroHeading)
 {
     // Test with eArcadeDrive
-    diffdrive::DrivePowers eArcadeDriveResultPowers = driveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eArcadeDrive);
+    diffdrive::DrivePowers eArcadeDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eArcadeDrive);
 
     // We expect zero drive power when speed & heading are both zero.
     EXPECT_NEAR(eArcadeDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
     EXPECT_NEAR(eArcadeDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
 
     // Test with eCurvatureDrive
-    diffdrive::DrivePowers eCurvatureDriveResultPowers = driveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
+    diffdrive::DrivePowers eCurvatureDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
 
     // We expect zero drive power when speed & heading are both zero.
     EXPECT_NEAR(eCurvatureDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
@@ -136,13 +136,13 @@ TEST_F(DriveBoardTests, SendDrive_UpdatesDrivePowers)
     stPowers.dLeftDrivePower  = 0.5;
     stPowers.dRightDrivePower = -0.5;
 
-    driveBoard->SendDrive(stPowers);
+    pDriveBoard->SendDrive(stPowers);
 
     // This test does not pass. Not because t is wrong but because, somehow, dLeftDrivePower and dRightDrivePower are returning half the expected value they are set to.
     // From what I have seen, the speed is halved when it is sent to the drive board.
-    auto currentPowers = driveBoard->GetDrivePowers();
-    EXPECT_DOUBLE_EQ(currentPowers.dLeftDrivePower, 0.25);
-    EXPECT_DOUBLE_EQ(currentPowers.dRightDrivePower, -0.25);
+    diffdrive::DrivePowers stCurrentPowers = pDriveBoard->GetDrivePowers();
+    EXPECT_DOUBLE_EQ(stCurrentPowers.dLeftDrivePower, 0.25);
+    EXPECT_DOUBLE_EQ(stCurrentPowers.dRightDrivePower, -0.25);
 }
 
 /******************************************************************************
@@ -157,10 +157,10 @@ TEST_F(DriveBoardTests, SendStop_StopsTheDrive)
     stPowers.dLeftDrivePower  = 1.0;
     stPowers.dRightDrivePower = 1.0;
 
-    driveBoard->SendDrive(stPowers);
-    driveBoard->SendStop();
+    pDriveBoard->SendDrive(stPowers);
+    pDriveBoard->SendStop();
 
-    auto currentPowers = driveBoard->GetDrivePowers();
-    EXPECT_DOUBLE_EQ(currentPowers.dLeftDrivePower, 0.0);
-    EXPECT_DOUBLE_EQ(currentPowers.dRightDrivePower, 0.0);
+    diffdrive::DrivePowers stCurrentPowers = pDriveBoard->GetDrivePowers();
+    EXPECT_DOUBLE_EQ(stCurrentPowers.dLeftDrivePower, 0.0);
+    EXPECT_DOUBLE_EQ(stCurrentPowers.dRightDrivePower, 0.0);
 }
