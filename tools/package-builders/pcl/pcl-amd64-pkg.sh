@@ -84,10 +84,14 @@ else
     # Build LibDataChannel
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/pcl_${PCL_VERSION}_amd64/usr/local \
+    -D BUILD_GPU=ON \
+    -D BUILD_CUDA=ON \
+    -D WITH_CUDA=ON \
+    -D BUILD_examples=ON \
     -D CMAKE_BUILD_TYPE=Release ..
 
     # Install LibDataChannel
-    make
+    make -j20
     make install
 
     # Cleanup Install

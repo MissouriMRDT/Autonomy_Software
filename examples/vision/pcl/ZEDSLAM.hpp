@@ -27,6 +27,8 @@
 // Include PCL headers.
 #include <pcl-1.15/pcl/common/transforms.h>
 #include <pcl-1.15/pcl/filters/voxel_grid.h>
+#include <pcl-1.15/pcl/impl/point_types.hpp>
+#include <pcl-1.15/pcl/pcl_macros.h>
 #include <pcl-1.15/pcl/point_cloud.h>
 #include <pcl-1.15/pcl/point_types.h>
 #include <pcl-1.15/pcl/registration/icp.h>
@@ -104,10 +106,10 @@ void RunExample()
     // Global map for accumulated point clouds.
     pcl::PointCloud<pcl::PointXYZ>::Ptr global_map(new pcl::PointCloud<pcl::PointXYZ>);
     // Create a PCL visualizer.
-    std::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("SLAM Viewer"));
-    viewer->setBackgroundColor(0, 0, 0);
-    // For timing the SLAM update (once per second)
-    auto last_slam_time = std::chrono::steady_clock::now();
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("SLAM Viewer"));
+    // viewer->setBackgroundColor(0, 0, 0);
+    // // For timing the SLAM update (once per second)
+    // auto last_slam_time = std::chrono::steady_clock::now();
 
     // Loop forever, or until user hits ESC.
     while (true)
@@ -190,56 +192,56 @@ void RunExample()
             cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
 
             // ----- SLAM Processing: once per second -----
-            auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_slam_time).count() >= 1)
-            {
-                last_slam_time = now;
-                // Convert the acquired cv::Mat point cloud to a PCL point cloud.
-                pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud = convertCVMatToPCL(cvPointCloud1);
+            // auto now = std::chrono::steady_clock::now();
+            // if (std::chrono::duration_cast<std::chrono::seconds>(now - last_slam_time).count() >= 1)
+            // {
+            //     last_slam_time = now;
+            //     // Convert the acquired cv::Mat point cloud to a PCL point cloud.
+            //     pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud = convertCVMatToPCL(cvPointCloud1);
 
-                // Optional: Downsample the current scan with a VoxelGrid filter.
-                pcl::VoxelGrid<pcl::PointXYZ> voxel;
-                voxel.setInputCloud(current_cloud);
-                voxel.setLeafSize(0.05f, 0.05f, 0.05f);    // Adjust leaf size as needed.
-                pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-                voxel.filter(*filtered_cloud);
+            //     // Optional: Downsample the current scan with a VoxelGrid filter.
+            //     pcl::VoxelGrid<pcl::PointXYZ> voxel;
+            //     voxel.setInputCloud(current_cloud);
+            //     voxel.setLeafSize(0.05f, 0.05f, 0.05f);    // Adjust leaf size as needed.
+            //     pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+            //     voxel.filter(*filtered_cloud);
 
-                // If the global map is empty, initialize it with the current scan.
-                if (global_map->points.empty())
-                {
-                    *global_map = *filtered_cloud;
-                }
-                else
-                {
-                    // Register the current scan to the global map using ICP.
-                    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-                    icp.setInputSource(filtered_cloud);
-                    icp.setInputTarget(global_map);
-                    pcl::PointCloud<pcl::PointXYZ> aligned;
-                    icp.align(aligned);
+            //     // If the global map is empty, initialize it with the current scan.
+            //     if (global_map->points.empty())
+            //     {
+            //         *global_map = *filtered_cloud;
+            //     }
+            //     else
+            //     {
+            //         // Register the current scan to the global map using ICP.
+            //         pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+            //         icp.setInputSource(filtered_cloud);
+            //         icp.setInputTarget(global_map);
+            //         pcl::PointCloud<pcl::PointXYZ> aligned;
+            //         icp.align(aligned);
 
-                    if (icp.hasConverged())
-                    {
-                        // Get the transformation from ICP.
-                        Eigen::Matrix4f icp_transform = icp.getFinalTransformation();
-                        // Transform the current scan into the global coordinate frame.
-                        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-                        pcl::transformPointCloud(*filtered_cloud, *transformed_cloud, icp_transform);
-                        // Fuse the transformed scan into the global map.
-                        *global_map += *transformed_cloud;
-                    }
-                    else
-                    {
-                        LOG_WARNING(logging::g_qConsoleLogger, "ICP did not converge for the current scan.");
-                    }
-                }
+            //         if (icp.hasConverged())
+            //         {
+            //             // Get the transformation from ICP.
+            //             Eigen::Matrix4f icp_transform = icp.getFinalTransformation();
+            //             // Transform the current scan into the global coordinate frame.
+            //             pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+            //             pcl::transformPointCloud(*filtered_cloud, *transformed_cloud, icp_transform);
+            //             // Fuse the transformed scan into the global map.
+            //             *global_map += *transformed_cloud;
+            //         }
+            //         else
+            //         {
+            //             LOG_WARNING(logging::g_qConsoleLogger, "ICP did not converge for the current scan.");
+            //         }
+            //     }
 
-                // Update the PCL visualizer.
-                viewer->removeAllPointClouds();
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(global_map, 255, 255, 255);
-                viewer->addPointCloud<pcl::PointXYZ>(global_map, color_handler, "global_map");
-                viewer->spinOnce(10);
-            }
+            //     // Update the PCL visualizer.
+            //     viewer->removeAllPointClouds();
+            //     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(global_map, 255, 255, 255);
+            //     viewer->addPointCloud<pcl::PointXYZ>(global_map, color_handler, "global_map");
+            //     viewer->spinOnce(10);
+            // }
         }
 
         // Tick FPS counter.
