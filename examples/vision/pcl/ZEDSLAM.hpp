@@ -25,14 +25,14 @@
 #include <opencv2/opencv.hpp>
 
 // Include PCL headers.
-#include <pcl-1.15/pcl/common/transforms.h>
-#include <pcl-1.15/pcl/filters/voxel_grid.h>
-#include <pcl-1.15/pcl/impl/point_types.hpp>
-#include <pcl-1.15/pcl/pcl_macros.h>
-#include <pcl-1.15/pcl/point_cloud.h>
-#include <pcl-1.15/pcl/point_types.h>
-#include <pcl-1.15/pcl/registration/icp.h>
-#include <pcl-1.15/pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/impl/point_types.hpp>
+#include <pcl/pcl_macros.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/registration/icp.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 // Declare file constants.
 const bool ENABLE_SPATIAL_MAPPING = false;

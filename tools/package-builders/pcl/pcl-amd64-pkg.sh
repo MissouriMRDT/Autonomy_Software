@@ -5,6 +5,7 @@ cd /tmp
 
 # Install Variables
 PCL_VERSION="1.15.0"
+PCL_INTERMEDIATE="1.15"
 
 # Build Arguments
 FORCE_BUILD=false
@@ -91,12 +92,18 @@ else
     -D CMAKE_BUILD_TYPE=Release ..
 
     # Install LibDataChannel
-    make -j20
+    make
     make install
 
     # Cleanup Install
     cd ../..
     rm -rf pcl
+
+    # Remove Intermediate Directories.
+    cd /tmp/pkg/pcl_${PCL_VERSION}_amd64/usr/local
+    mkdir -p share/pcl && mkdir -p include/pcl
+    mv share/pcl-${PCL_INTERMEDIATE}/* share/pcl && rm -r share/pcl-${PCL_INTERMEDIATE}
+    mv include/pcl-${PCL_INTERMEDIATE}/pcl/* include/pcl && rm -r include/pcl-${PCL_INTERMEDIATE}
 
     # Create Package
     dpkg --build /tmp/pkg/pcl_${PCL_VERSION}_amd64

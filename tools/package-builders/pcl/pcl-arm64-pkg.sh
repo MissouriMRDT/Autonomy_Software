@@ -5,6 +5,7 @@ cd /tmp
 
 # Install Variables
 PCL_VERSION="1.15.0"
+PCL_INTERMEDIATE="1.15"
 
 # Build Arguments
 FORCE_BUILD=false
@@ -84,6 +85,10 @@ else
     # Build LibDataChannel
     cmake \
     -D CMAKE_INSTALL_PREFIX=/tmp/pkg/pcl_${PCL_VERSION}_arm64/usr/local \
+    -D BUILD_GPU=ON \
+    -D BUILD_CUDA=ON \
+    -D WITH_CUDA=ON \
+    -D BUILD_examples=ON \
     -D CMAKE_BUILD_TYPE=Release ..
 
     # Install LibDataChannel
@@ -93,6 +98,12 @@ else
     # Cleanup Install
     cd ../..
     rm -rf pcl
+
+    # Remove Intermediate Directories.
+    cd /tmp/pkg/pcl_${PCL_VERSION}_arm64/usr/local
+    mkdir -p share/pcl && mkdir -p include/pcl
+    mv share/pcl-${PCL_INTERMEDIATE}/* share/pcl && rm -r share/pcl-${PCL_INTERMEDIATE}
+    mv include/pcl-${PCL_INTERMEDIATE}/pcl/* include/pcl && rm -r include/pcl-${PCL_INTERMEDIATE}
 
     # Create Package
     dpkg --build /tmp/pkg/pcl_${PCL_VERSION}_arm64

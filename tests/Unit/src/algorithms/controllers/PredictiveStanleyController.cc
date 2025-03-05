@@ -166,7 +166,7 @@ TEST_F(PredictiveStanleyControllerTests, SetReferencePath)
 TEST_F(PredictiveStanleyControllerTests, SetReferencePathUTM)
 {
     controllers::PredictiveStanleyController Controller;
-    std::vector<geoops::GPSCoordinate> vPath = {{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}};
+    std::vector<geoops::UTMCoordinate> vPath = {{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}};
     Controller.SetReferencePath(vPath);
     EXPECT_EQ(Controller.GetReferencePath().size(), vPath.size());
 }
@@ -216,6 +216,24 @@ TEST_F(PredictiveStanleyControllerTests, CalculateFullPath)
     geoops::RoverPose stPose                                          = {geoops::GPSCoordinate{1.0, 1.0}, 0.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
     EXPECT_NEAR(driveVector.dThetaHeading, 49.229, 0.01);
+}
+
+/******************************************************************************
+ * @brief Test the reached end of path logic in the Calculate method of PredictiveStanleyController.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(PredictiveStanleyControllerTests, DriveTowardsEndOfPath)
+{
+    controllers::PredictiveStanleyController Controller;
+    std::vector<geoops::Waypoint> vPath = {geoops::GPSCoordinate(0.0, 0.0), geoops::GPSCoordinate(1.0, 1.0), geoops::GPSCoordinate(2.0, 2.0)};
+    Controller.SetReferencePath(vPath);
+    geoops::RoverPose stPose                                          = {geoops::GPSCoordinate{3.0, 3.0}, 45.0};
+    controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
+    driveVector                                                       = Controller.Calculate(stPose);
+    EXPECT_NEAR(driveVector.dThetaHeading, 225.19, 0.01);
 }
 
 /******************************************************************************
