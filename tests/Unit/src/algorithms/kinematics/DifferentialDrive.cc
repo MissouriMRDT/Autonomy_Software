@@ -9,7 +9,7 @@
  ******************************************************************************/
 
 #include "../../../../src/algorithms/kinematics/DifferentialDrive.hpp"
-#include "../../../TestingBase.hh"
+#include "../../../../TestingBase.hh"
 
 /// \cond
 #include <array>
@@ -97,6 +97,34 @@ TEST_F(DifferentialDriveTests, TankDrive)
 }
 
 /******************************************************************************
+ * @brief Test DifferentialDrive TankDrive with square inputs.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(DifferentialDriveTests, TankDriveSquareInputs)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                       = 11;
+    const double aLeftSpeedInput[nTestValuesLength]   = {-1.0, -0.5, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0, -0.5, -1.0, 1.5};
+    const double aRightSpeedInput[nTestValuesLength]  = {-1.0, -0.5, 0.0, 0.5, 1.0, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5};
+    const double aLeftSpeedOutput[nTestValuesLength]  = {-1.0, -0.25, 0.0, 0.25, 1.0, 1.0, 0.25, 0.0, -0.25, -1.0, 1.0};
+    const double aRightSpeedOutput[nTestValuesLength] = {-1.0, -0.25, 0.0, 0.25, 1.0, -1.0, -0.25, 0.0, 0.25, 1.0, 1.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Calculate drive powers.
+        diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateTankDrive(aLeftSpeedInput[nIter], aRightSpeedInput[nIter], true);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.01);      // Left output check.
+        EXPECT_NEAR(aRightSpeedOutput[nIter], stDriveOutput.dRightDrivePower, 0.01);    // Right output check.
+    }
+}
+
+/******************************************************************************
  * @brief Test DifferentialDrive ArcadeDrive functionality.
  *
  *
@@ -117,6 +145,34 @@ TEST_F(DifferentialDriveTests, ArcadeDrive)
     {
         // Calculate drive powers.
         diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateArcadeDrive(aSpeedInput[nIter], aRotationInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.02);      // Left output check.
+        EXPECT_NEAR(aRightSpeedOutput[nIter], stDriveOutput.dRightDrivePower, 0.02);    // Right output check.
+    }
+}
+
+/******************************************************************************
+ * @brief Test DifferentialDrive ArcadeDrive with square inputs.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(DifferentialDriveTests, ArcadeDriveSquareInputs)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                       = 11;
+    const double aSpeedInput[nTestValuesLength]       = {-1.0, -0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.3, 1.5};
+    const double aRotationInput[nTestValuesLength]    = {0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -0.5, 0.5, 1.0, 1.0, 1.5};
+    const double aLeftSpeedOutput[nTestValuesLength]  = {-1.0, -0.25, 0.0, 0.25, 1.0, -1.0, -0.25, 0.25, 1.0, 1.0, 1.0};
+    const double aRightSpeedOutput[nTestValuesLength] = {-1.0, -0.25, 0.0, 0.25, 1.0, 1.0, 0.25, -0.25, -1.0, -0.83, 0.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Calculate drive powers.
+        diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateArcadeDrive(aSpeedInput[nIter], aRotationInput[nIter], true);
 
         // Check that the expected output values were calculated.
         EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.02);      // Left output check.
@@ -146,6 +202,35 @@ TEST_F(DifferentialDriveTests, CurvatureDrive)
     {
         // Calculate drive powers.
         diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateCurvatureDrive(aSpeedInput[nIter], aRotationInput[nIter], aAllowTurnInPlaceInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.02);      // Left output check.
+        EXPECT_NEAR(aRightSpeedOutput[nIter], stDriveOutput.dRightDrivePower, 0.02);    // Right output check.
+    }
+}
+
+/******************************************************************************
+ * @brief Test DifferentialDrive CurvatureDrive with square inputs.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(DifferentialDriveTests, CurvatureDriveSquareInputs)
+{
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                          = 11;
+    const double aSpeedInput[nTestValuesLength]          = {-1.0, -0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.3, 1.5};
+    const double aRotationInput[nTestValuesLength]       = {0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -0.5, 0.5, 1.0, 1.0, 1.5};
+    const bool aAllowTurnInPlaceInput[nTestValuesLength] = {true, true, true, true, true, true, true, true, true, true, true};
+    const double aLeftSpeedOutput[nTestValuesLength]     = {-1.0, -0.25, 0.0, 0.25, 1.0, -1.0, -0.25, 0.25, 1.0, 0.18, 1.0};
+    const double aRightSpeedOutput[nTestValuesLength]    = {-1.0, -0.25, 0.0, 0.25, 1.0, 1.0, 0.25, -0.25, -1.0, 0.0, 0.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Calculate drive powers.
+        diffdrive::DrivePowers stDriveOutput = diffdrive::CalculateCurvatureDrive(aSpeedInput[nIter], aRotationInput[nIter], aAllowTurnInPlaceInput[nIter], true);
 
         // Check that the expected output values were calculated.
         EXPECT_NEAR(aLeftSpeedOutput[nIter], stDriveOutput.dLeftDrivePower, 0.02);      // Left output check.

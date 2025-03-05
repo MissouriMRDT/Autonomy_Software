@@ -60,7 +60,6 @@
             // Add the IDs of extensions you want installed when the container is created.
             "extensions": [
                 "ms-vscode.cpptools",
-                "twxs.cmake",
                 "ms-vscode.cmake-tools",
                 "ms-vscode.cpptools-extension-pack",
                 "ZainChen.json",
@@ -140,8 +139,8 @@
                     "/usr/local/include/tensorflow/lite/**",
                     "/usr/local/include/edgetpu",
                     "/usr/local/include/edgetpu/**",
-                    "/usr/local/include/pcl-1.15",
-                    "/usr/local/include/pcl-1.15/**",
+                    "/usr/local/include/pcl",
+                    "/usr/local/include/pcl/**",
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",

@@ -59,6 +59,9 @@ namespace controllers
         m_bControllerIsContinuous = false;
         m_bFirstCalculation       = true;
         m_bReversed               = false;
+
+        // Check gain values for sign.
+        this->CheckGainSigns();
     }
 
     /******************************************************************************
@@ -442,7 +445,9 @@ namespace controllers
     void PIDController::SetMaxIntegralEffort(const double dMaxIEffort)
     {
         // Assign member variable.
-        m_dMaxIEffort = dMaxIEffort;
+        m_dMaxIEffort = std::fabs(dMaxIEffort);
+        // Update max error from new integral and max effort.
+        m_dMaxIError = m_dMaxIEffort / m_dKi;
     }
 
     /******************************************************************************
