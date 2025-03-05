@@ -136,13 +136,13 @@ TEST_F(DriveBoardTests, SendDrive_UpdatesDrivePowers)
     stPowers.dLeftDrivePower  = 0.5;
     stPowers.dRightDrivePower = -0.5;
 
+    pDriveBoard->SetMaxDriveEffort(1.0);
     pDriveBoard->SendDrive(stPowers);
 
-    // This test does not pass. Not because t is wrong but because, somehow, dLeftDrivePower and dRightDrivePower are returning half the expected value they are set to.
-    // From what I have seen, the speed is halved when it is sent to the drive board.
+    // The output drive powers will changed depending on what the drive board effort limits are.
     diffdrive::DrivePowers stCurrentPowers = pDriveBoard->GetDrivePowers();
-    EXPECT_DOUBLE_EQ(stCurrentPowers.dLeftDrivePower, 0.25);
-    EXPECT_DOUBLE_EQ(stCurrentPowers.dRightDrivePower, -0.25);
+    EXPECT_DOUBLE_EQ(stCurrentPowers.dLeftDrivePower, 0.5);
+    EXPECT_DOUBLE_EQ(stCurrentPowers.dRightDrivePower, -0.5);
 }
 
 /******************************************************************************
