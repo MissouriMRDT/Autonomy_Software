@@ -187,6 +187,7 @@ External libraries and their corresponding type prefixes are listed below:
 | JSON           | `jsn`  | `nlohmann::json jsnExampleJSONType` |
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |
 | Matplot        | `mt`   | `axes_handle mtExampleMatplot`   |
+| PCL            | `pcl`  | `PointXYZ pclExamplePCLType`     |
 
 ---
 
