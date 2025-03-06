@@ -8,7 +8,6 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
-#include "../examples/vision/pcl/ZEDSLAM.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
