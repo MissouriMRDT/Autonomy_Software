@@ -5,7 +5,7 @@
  * @author Targed (ltklionel@gmail.com)
  * @date 2024-10-26
  *
- * @copyright Copyright MRDT 2024 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../src/drivers/NavigationBoard.h"
@@ -34,6 +34,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
+        NavigationBoard* pNavBoard;
 
     public:
         /******************************************************************************
@@ -58,7 +59,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override {}
+        void TestSetup() override { pNavBoard = new NavigationBoard(); }
 
         /******************************************************************************
          * @brief Teardown the Navigation Board Tests object.
@@ -66,7 +67,11 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestTeardown() override {}
+        void TestTeardown() override
+        {
+            delete pNavBoard;
+            pNavBoard = nullptr;
+        }
 };
 
 /******************************************************************************
@@ -78,10 +83,10 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
  ******************************************************************************/
 TEST_F(NavigationBoardTests, DoesNotLeak)
 {
-    NavigationBoard* navBoard = new NavigationBoard();
-    ASSERT_NE(navBoard, nullptr);
-    delete navBoard;
-    navBoard = nullptr;
+    NavigationBoard* pTestBoard = new NavigationBoard();
+    ASSERT_NE(pTestBoard, nullptr);
+    delete pTestBoard;
+    pTestBoard = nullptr;
 }
 
 /******************************************************************************
@@ -93,152 +98,78 @@ TEST_F(NavigationBoardTests, DoesNotLeak)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, Leaks)
 {
-    NavigationBoard* navBoard = new NavigationBoard();
-    EXPECT_TRUE(navBoard != nullptr);
+    NavigationBoard* pTestBoard = new NavigationBoard();
+    EXPECT_NE(pTestBoard, nullptr);
+    // Intentionally not deleting to test leak detection
 }
 
-// /******************************************************************************
-//  * @brief Mock class for NavigationBoard
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// class NavigationBoardTests : public ::testing::Test {
-// protected:
-//     NavigationBoard* navBoard;
+/******************************************************************************
+ * @brief Test that the constructor initializes the members correctly
+ *
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2024-12-02
+ ******************************************************************************/
+TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
+{
+    // The latitude, longitude, and altitude are set to the location of Missouri S&T
+    EXPECT_EQ(pNavBoard->GetGPSData().dLatitude, 37.951771);
+    EXPECT_EQ(pNavBoard->GetGPSData().dLongitude, -91.778114);
+    EXPECT_EQ(pNavBoard->GetGPSData().dAltitude, 315.0);
+    EXPECT_EQ(pNavBoard->GetHeading(), 0);
+    EXPECT_EQ(pNavBoard->GetHeadingAccuracy(), 0);
+    // Not moving or rotating
+    EXPECT_EQ(pNavBoard->GetVelocity(), 0);
+    EXPECT_EQ(pNavBoard->GetAngularVelocity(), 0);
+    // Allow for small time difference due to construction
+    EXPECT_LE(pNavBoard->GetGPSLastUpdateTime(), std::chrono::seconds(1));
+    EXPECT_LE(pNavBoard->GetCompassLastUpdateTime(), std::chrono::seconds(1));
+    EXPECT_FALSE(pNavBoard->IsOutOfDate());
+}
 
-//     void TestSetup() override {
-//         navBoard = new NavigationBoard();
-//     }
+/******************************************************************************
+ * @brief Test that GetGPSData returns correct data
+ *
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2024-12-02
+ ******************************************************************************/
+TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
+{
+    geoops::GPSCoordinate stGPSData = pNavBoard->GetGPSData();
+    EXPECT_EQ(stGPSData.dLatitude, 37.951771);
+    EXPECT_EQ(stGPSData.dLongitude, -91.778114);
+    EXPECT_EQ(stGPSData.dAltitude, 315.0);
+    EXPECT_EQ(stGPSData.d2DAccuracy, -1);
+    EXPECT_EQ(stGPSData.d3DAccuracy, -1);
+    EXPECT_EQ(stGPSData.dMeridianConvergence, -1);
+    EXPECT_EQ(stGPSData.dScale, 0);
+    EXPECT_EQ(stGPSData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
+    EXPECT_EQ(stGPSData.bIsDifferential, false);
+}
 
-//     void TestTeardown() override {
-//         delete navBoard;
-//     }
-// };
+/******************************************************************************
+ * @brief Test that GetUTMData returns correct data
+ *
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2024-12-02
+ ******************************************************************************/
+TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData)
+{
+    geoops::UTMCoordinate stUTMData = pNavBoard->GetUTMData();
 
-// /******************************************************************************
-//  * @brief Test that the constructor initializes the members correctly
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, ConstructorInitializesMembers) {
-//     EXPECT_EQ(navBoard->GetGPSData().dLatitude, 0);
-//     EXPECT_EQ(navBoard->GetGPSData().dLongitude, 0);
-//     EXPECT_EQ(navBoard->GetGPSData().dAltitude, 0);
-//     EXPECT_EQ(navBoard->GetHeading(), 0);
-//     EXPECT_EQ(navBoard->GetHeadingAccuracy(), 0);
-//     EXPECT_EQ(navBoard->GetVelocity(), 0);
-//     EXPECT_EQ(navBoard->GetAngularVelocity(), 0);
-//     EXPECT_EQ(navBoard->GetGPSLastUpdateTime(), std::chrono::system_clock::duration::zero());
-//     EXPECT_EQ(navBoard->GetCompassLastUpdateTime(), std::chrono::system_clock::duration::zero());
-//     EXPECT_FALSE(navBoard->IsOutOfDate());
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetGPSData returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData) {
-//     geoops::GPSCoordinate gpsData = navBoard->GetGPSData();
-//     EXPECT_EQ(gpsData.dLatitude, 0);
-//     EXPECT_EQ(gpsData.dLongitude, 0);
-//     EXPECT_EQ(gpsData.dAltitude, 0);
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetUTMData returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData) {
-//     geoops::UTMCoordinate utmData = navBoard->GetUTMData();
-//     // Assuming default UTM data is zero-initialized
-//     EXPECT_EQ(utmData.dEasting, 0);
-//     EXPECT_EQ(utmData.dNorthing, 0);
-//     EXPECT_EQ(utmData.iZone, 0);
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetHeading returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetHeadingReturnsCorrectData) {
-//     EXPECT_EQ(navBoard->GetHeading(), 0);
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetHeadingAccuracy returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetHeadingAccuracyReturnsCorrectData) {
-//     EXPECT_EQ(navBoard->GetHeadingAccuracy(), 0);
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetVelocity returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetVelocityReturnsCorrectData) {
-//     EXPECT_EQ(navBoard->GetVelocity(), 0);
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetAngularVelocity returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetAngularVelocityReturnsCorrectData) {
-//     EXPECT_EQ(navBoard->GetAngularVelocity(), 0);
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetGPSLastUpdateTime returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetGPSLastUpdateTimeReturnsCorrectData) {
-//     EXPECT_EQ(navBoard->GetGPSLastUpdateTime(), std::chrono::system_clock::duration::zero());
-// }
-
-// /******************************************************************************
-//  * @brief Test that GetCompassLastUpdateTime returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, GetCompassLastUpdateTimeReturnsCorrectData) {
-//     EXPECT_EQ(navBoard->GetCompassLastUpdateTime(), std::chrono::system_clock::duration::zero());
-// }
-
-// /******************************************************************************
-//  * @brief Test that IsOutOfDate returns correct data
-//  *
-//  *
-//  * @author Targed (ltklionel@gmail.com)
-//  * @date 2024-10-26
-//  ******************************************************************************/
-// TEST_F(NavigationBoardTests, IsOutOfDateReturnsCorrectData) {
-//     EXPECT_FALSE(navBoard->IsOutOfDate());
-// }
+    // Assuming default UTM data is MST's location
+    EXPECT_NEAR(stUTMData.dEasting, 607350.55, 0.01);
+    EXPECT_NEAR(stUTMData.dNorthing, 4201167.97, 0.01);
+    EXPECT_EQ(stUTMData.dAltitude, 315.0);
+    EXPECT_EQ(stUTMData.nZone, 15);
+    EXPECT_EQ(stUTMData.bWithinNorthernHemisphere, true);
+    EXPECT_EQ(stUTMData.d2DAccuracy, -1);
+    EXPECT_EQ(stUTMData.d3DAccuracy, -1);
+    // IDK why these are what they are
+    EXPECT_EQ(stUTMData.dMeridianConvergence, 0.75152911093843622);
+    EXPECT_EQ(stUTMData.dScale, 0.99974193500083242);
+    EXPECT_EQ(stUTMData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
+    EXPECT_EQ(stUTMData.bIsDifferential, false);
+}

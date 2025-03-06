@@ -30,6 +30,9 @@ RUN echo "${TZ}" > /etc/localtime && \
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
+# Set the default shell to bash with pipefail option. This ensures that the shell exits immediately if any command exits with a non-zero status.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Add APT Repo for PCIe drivers.
 RUN apt update && apt install -y wget gnupg && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
@@ -43,13 +46,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     build-essential gdb less udev zstd sudo libgomp1 python-is-python3 \
     cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
-    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
+    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev libusb-1.0-0-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     valgrind doxygen graphviz htop nano fortune fortunes gnuplot-nox \
     vim-common gasket-dkms nlohmann-json3-dev gcovr lcov curl \
     libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
-    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
+    libboost-all-dev libflann-dev libvtk9-dev libvtk9-qt-dev libqhull-dev libopenni-dev libopenni2-dev \
+    qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libqt5opengl5-dev qttools5-dev qttools5-dev-tools \
+    libpcap-dev libcjson-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
@@ -140,6 +146,12 @@ ARG MATPLOTPLUSPLUS_VERSION="master"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/amd64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
     dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
     rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
+
+# Install PointCloudLibrary
+ARG PCL_VERSION="1.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64/pcl_${PCL_VERSION}_amd64.deb && \
+    dpkg -i pcl_${PCL_VERSION}_amd64.deb && \
+    rm pcl_${PCL_VERSION}_amd64.deb
 
 # Install Quill
 ARG QUILL_VERSION="8.1.0"

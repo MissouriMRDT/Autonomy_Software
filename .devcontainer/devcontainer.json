@@ -21,7 +21,7 @@
         // X11 socket for XWayland
         "-v",
         "/tmp/.X11-unix:/tmp/.X11-unix",
-        // // Wayland socket for native Wayland apps
+        // Wayland socket for native Wayland apps
         // "-v",
         // "/run/user/1000/wayland:/run/user/1000/wayland",
         // Environment variables
@@ -40,11 +40,11 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-02-10-18-03-17",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-02-10-18-03-17",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-03-05-23-27-04",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-03-05-23-27-04",
     // "build": {
-    // "dockerfile": "Jammy.dockerfile"
-    // "dockerfile": "JetPack.dockerfile"
+    //     "dockerfile": "Jammy.dockerfile"
+    //     // "dockerfile": "JetPack.dockerfile"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -60,7 +60,6 @@
             // Add the IDs of extensions you want installed when the container is created.
             "extensions": [
                 "ms-vscode.cpptools",
-                "twxs.cmake",
                 "ms-vscode.cmake-tools",
                 "ms-vscode.cpptools-extension-pack",
                 "ZainChen.json",
@@ -141,6 +140,8 @@
                     "/usr/local/include/tensorflow/lite/**",
                     "/usr/local/include/edgetpu",
                     "/usr/local/include/edgetpu/**",
+                    "/usr/local/include/pcl",
+                    "/usr/local/include/pcl/**",
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",
@@ -222,6 +223,7 @@
                     "**/CONTRIBUTING.md"
                 ],
                 "todo-tree.general.tags": [
+                    "NOTE:",
                     "* @todo",
                     "@todo",
                     "TODO:",
@@ -243,6 +245,13 @@
                     "iconColour": "#00ff00"
                 },
                 "todo-tree.highlights.customHighlight": {
+                    "NOTE:": {
+                        "icon": "bookmark",
+                        "type": "line",
+                        "iconColour": "#808080",
+                        "foreground": "#ffffff",
+                        "background": "#808080"
+                    },
                     "* @todo": {
                         "icon": "bookmark",
                         "type": "line",
@@ -295,9 +304,9 @@
                     "ISSUE NOTE:": {
                         "icon": "book",
                         "type": "line",
-                        "iconColour": "#808080",
+                        "iconColour": "#ffffff",
                         "foreground": "#ffffff",
-                        "background": "#808080"
+                        "background": "#ffffff"
                     },
                     "TEST:": {
                         "icon": "beaker",
