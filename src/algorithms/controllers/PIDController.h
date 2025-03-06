@@ -60,7 +60,6 @@ namespace controllers
             PIDController(const double dKp, const double dKi, const double dKd, const double dKff = 0.0);
             double Calculate(const double dActual, const double dSetpoint);
             double Calculate(const double dActual);
-            double Calculate();
             void EnableContinuousInput(const double dMinimumInput, const double dMaximumInput);
             void DisableContinuousInput();
             void Reset();
@@ -78,6 +77,7 @@ namespace controllers
             void SetSetpoint(const double dSetpoint);
             void SetMaxSetpointDifference(const double dMaxSetpointDifference);
             void SetMaxIntegralEffort(const double dMaxIEffort);
+            void SetTolerance(const double dTolerance);
             void SetOutputLimits(const double dMinEffort, const double dMaxEffort);
             void SetOutputLimits(const double dMaxMin);
             void SetOutputRampRate(const double dOutputRampRate);
@@ -117,13 +117,14 @@ namespace controllers
             double m_dKff;                       // Feedforward gain.
             double m_dSetpoint;                  // Current control setpoint.
             double m_dErrorSum;                  // Error accumulation.
-            double m_dMaxError;                  // Max allowed error.
+            double m_dMaxIError;                 // Max allowed error.
             double m_dMaxIEffort;                // Max integral calculated term effort.
             double m_dMinEffort;                 // Min output of the PID controller.
             double m_dMaxEffort;                 // Max output of the PID controller.
-            double m_dLastActual;                // The previous process variable input.
+            double m_dLastError;                 // The previous error from the setpoint, used to calculate the D term.
             double m_dOutputRampRate;            // The max rate of change of the controller output.
             double m_dLastControlOutput;         // The previous control output of the controller.
+            double m_dTolerance;                 // The max allowable error from the setpoint for the controller to be considered at the setpoint.
             double m_dOutputFilter;              // Strength of an exponential rolling sum filter. Used to reduce sharp oscillations.
             double m_dMaxSetpointDifference;     // Limit on how far the setpoint can be from the current position.
             double m_dMinimumContinuousInput;    // The minimum wraparound value of the input for the controller.
