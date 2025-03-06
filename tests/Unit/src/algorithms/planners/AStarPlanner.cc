@@ -506,3 +506,233 @@ TEST_F(AStarPlannerTests, UpsertObstacleData)
     delete pAStar;
     pAStar = nullptr;
 }
+
+/******************************************************************************
+ * @brief Test AStar path obstacle avoidance for all 8 directions.
+ *
+ *
+ * @author Sam Nolte (samnolte0302@gmail.com)
+ * @date 2024-11-19
+ ******************************************************************************/
+TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
+{
+    // Create a new AStar object
+    pathplanners::AStar* pAStar = new pathplanners::AStar();
+
+    size_t siTestValuesLength   = 8;
+
+    // Start coordinate for AStar
+    const double dEastingStart  = stStartCoordinate.dEasting;
+    const double dNorthingStart = stStartCoordinate.dNorthing;
+
+    // Create goal coordinates for AStar
+    const geoops::UTMCoordinate aGoalCoordinates[siTestValuesLength] = {
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true),                                           // N
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart, 15, true),                                           // E
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true),                                           // S
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart, 15, true),                                           // W
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true),    // NE
+        geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true),    // SE
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true),    // SW
+        geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true)     // NW
+    };
+
+    // Create obstacle coordinates for AStar
+    const pathplanners::AStar::Obstacle aObstacles[siTestValuesLength] = {
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // N
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // E
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(dEastingStart, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // S
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // W
+        pathplanners::AStar::Obstacle(
+            geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, 15, true),
+            2 * constants::ASTAR_NODE_SIZE),    // NE
+        pathplanners::AStar::Obstacle(
+            geoops::UTMCoordinate(dEastingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, 15, true),
+            2 * constants::ASTAR_NODE_SIZE),    // SE
+        pathplanners::AStar::Obstacle(
+            geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, 15, true),
+            2 * constants::ASTAR_NODE_SIZE),    // SW
+        pathplanners::AStar::Obstacle(
+            geoops::UTMCoordinate(dEastingStart - constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID / 2, 15, true),
+            2 * constants::ASTAR_NODE_SIZE)    // NW
+    };
+
+    for (size_t siI = 0; siI < siTestValuesLength; siI++)
+    {
+        // Add obstacle to AStar
+        pAStar->UpdateObstacleData(std::vector<pathplanners::AStar::Obstacle>{aObstacles[siI]}, true);
+
+        // Get AStar path
+        std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, aGoalCoordinates[siI]);
+
+        // Check for pathing through obstacles
+        for (size_t siJ = 0; siJ < vReturnedPath.size(); siJ++)
+        {
+            // Check to see if current coordinate is within obstacle bounds
+            EXPECT_FALSE(vReturnedPath[siJ].dNorthing >= aObstacles[siI].stCenterPoint.dNorthing - aObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].dNorthing <= aObstacles[siI].stCenterPoint.dNorthing + aObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].dEasting >= aObstacles[siI].stCenterPoint.dEasting - aObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].dEasting <= aObstacles[siI].stCenterPoint.dEasting + aObstacles[siI].dRadius);
+        }
+        // Make sure AStar actually found a path
+        EXPECT_TRUE(vReturnedPath.size() != 0);
+
+        // Steal Kai's goal coord end point check
+        EXPECT_NEAR(aGoalCoordinates[siI].dEasting, vReturnedPath.back().dEasting, 0.1);
+        EXPECT_NEAR(aGoalCoordinates[siI].dNorthing, vReturnedPath.back().dNorthing, 0.1);
+    }
+
+    // Cleanup
+    delete pAStar;
+    pAStar = nullptr;
+}
+
+/******************************************************************************
+ * @brief Test AStar pathing when obstacles conflict with the goal node.
+ *
+ *
+ * @author Sam Nolte (samnolte0302@gmail.com)
+ * @date 2025-2-4
+ ******************************************************************************/
+TEST_F(AStarPlannerTests, GoalConflictWithObstacle)
+{
+    // Create a new AStar object
+    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    pAStar->SetStartCoordinate(stStartCoordinate);
+
+    // Start coordinate for AStar
+    const double dEastingStart  = stStartCoordinate.dEasting;
+    const double dNorthingStart = stStartCoordinate.dNorthing;
+
+    // Create goal coordinates for AStar
+    const geoops::UTMCoordinate stGoalCoordinate = geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true);
+
+    // Create obstacle coordinates for AStar
+    const std::vector<pathplanners::AStar::Obstacle> aObstacles = {
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting, stGoalCoordinate.dNorthing, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // At goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting, stGoalCoordinate.dNorthing + constants::ASTAR_NODE_SIZE, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // 1 node North of goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting + constants::ASTAR_NODE_SIZE, stGoalCoordinate.dNorthing, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // 1 node East of goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting, stGoalCoordinate.dNorthing - constants::ASTAR_NODE_SIZE, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // 1 node South of goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting - constants::ASTAR_NODE_SIZE, stGoalCoordinate.dNorthing, 15, true),
+                                      2 * constants::ASTAR_NODE_SIZE),    // 1 node West of goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting, stGoalCoordinate.dNorthing - constants::ASTAR_NODE_SIZE, 15, true),
+                                      5 * constants::ASTAR_NODE_SIZE),    // 2 nodes South of goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting, stGoalCoordinate.dNorthing - constants::ASTAR_NODE_SIZE, 15, true),
+                                      5 * constants::ASTAR_NODE_SIZE),    // 2 nodes East of goal
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(stGoalCoordinate.dEasting, stGoalCoordinate.dNorthing - constants::ASTAR_NODE_SIZE, 15, true),
+                                      5 * constants::ASTAR_NODE_SIZE),    // 3 nodes South of goal
+    };
+
+    for (size_t siI = 0; siI < aObstacles.size(); siI++)
+    {
+        // Add obstacle to AStar
+        pAStar->UpdateObstacleData(std::vector<pathplanners::AStar::Obstacle>{aObstacles[siI]}, true);
+
+        // Get Shifted Goal coordinate
+        geoops::UTMCoordinate stShiftedGoal = pAStar->FindNearestBoundaryPoint(stGoalCoordinate);
+
+        // Obstacle Bounds
+        double dNorthBorder = aObstacles[siI].stCenterPoint.dNorthing + aObstacles[siI].dRadius;
+        double dEastBorder  = aObstacles[siI].stCenterPoint.dEasting + aObstacles[siI].dRadius;
+        double dSouthBorder = aObstacles[siI].stCenterPoint.dNorthing - aObstacles[siI].dRadius;
+        double dWestBorder  = aObstacles[siI].stCenterPoint.dEasting - aObstacles[siI].dRadius;
+
+        // Check goal-obstacle collision
+        EXPECT_TRUE(stShiftedGoal.dEasting < dWestBorder || stShiftedGoal.dEasting > dEastBorder || stShiftedGoal.dNorthing < dSouthBorder ||
+                    stShiftedGoal.dNorthing > dNorthBorder);
+
+        // Check search grid bounds
+        EXPECT_TRUE(stShiftedGoal.dEasting >= (stStartCoordinate.dEasting - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+                    stShiftedGoal.dEasting <= (stStartCoordinate.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE) &&
+                    stShiftedGoal.dNorthing >= (stStartCoordinate.dNorthing - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+                    stShiftedGoal.dNorthing <= (stStartCoordinate.dNorthing + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE));
+
+        // Make sure AStar paths
+        std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, stGoalCoordinate);
+        EXPECT_TRUE(vReturnedPath.size() != 0);
+    }
+
+    // Add all obstacles to AStar
+    pAStar->UpdateObstacleData(aObstacles, true);
+
+    // Get Shifted Goal coordinate
+    geoops::UTMCoordinate stShiftedGoal = pAStar->FindNearestBoundaryPoint(stGoalCoordinate);
+
+    for (size_t siI = 0; siI < aObstacles.size(); siI++)
+    {
+        // Obstacle Bounds
+        double dNorthBorder = aObstacles[siI].stCenterPoint.dNorthing + aObstacles[siI].dRadius;
+        double dEastBorder  = aObstacles[siI].stCenterPoint.dEasting + aObstacles[siI].dRadius;
+        double dSouthBorder = aObstacles[siI].stCenterPoint.dNorthing - aObstacles[siI].dRadius;
+        double dWestBorder  = aObstacles[siI].stCenterPoint.dEasting - aObstacles[siI].dRadius;
+
+        // Check goal-obstacle collision
+        EXPECT_TRUE(stShiftedGoal.dEasting < dWestBorder || stShiftedGoal.dEasting > dEastBorder || stShiftedGoal.dNorthing < dSouthBorder ||
+                    stShiftedGoal.dNorthing > dNorthBorder);
+    }
+
+    // Check search grid bounds
+    EXPECT_TRUE(stShiftedGoal.dEasting >= (stStartCoordinate.dEasting - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+                stShiftedGoal.dEasting <= (stStartCoordinate.dEasting + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE) &&
+                stShiftedGoal.dNorthing >= (stStartCoordinate.dNorthing - constants::ASTAR_MAXIMUM_SEARCH_GRID - constants::ASTAR_NODE_SIZE) &&
+                stShiftedGoal.dNorthing <= (stStartCoordinate.dNorthing + constants::ASTAR_MAXIMUM_SEARCH_GRID + constants::ASTAR_NODE_SIZE));
+
+    // Make sure AStar paths
+    std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, stGoalCoordinate);
+    EXPECT_TRUE(vReturnedPath.size() != 0);
+
+    // Cleanup
+    delete pAStar;
+    pAStar = nullptr;
+}
+
+TEST_F(AStarPlannerTests, Maze)
+{
+    // Create a new AStar object
+    pathplanners::AStar* pAStar = new pathplanners::AStar();
+
+    // Start coordinate for AStar
+    const double dEastingStart  = stStartCoordinate.dEasting;
+    const double dNorthingStart = stStartCoordinate.dNorthing;
+
+    // Create goal coordinates for AStar
+    const geoops::UTMCoordinate stGoalCoordinate = geoops::UTMCoordinate(dEastingStart, dNorthingStart + constants::ASTAR_MAXIMUM_SEARCH_GRID, 15, true);
+
+    // Create obstacle coordinates for AStar
+    const std::vector<pathplanners::AStar::Obstacle> aObstacles = {
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599999.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600000.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600001.5, 4199998.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4199999.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4200000.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599998.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1599999.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600000.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600001.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600002.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4200001.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4200000.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4299999.5, 15, true), 0.5),
+        pathplanners::AStar::Obstacle(geoops::UTMCoordinate(1600003.5, 4299998.5, 15, true), 0.5),
+    };
+
+    // Add obstacle to AStar
+    pAStar->UpdateObstacleData(aObstacles, true);
+
+    // Make sure AStar paths
+    std::vector<geoops::UTMCoordinate> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, stGoalCoordinate);
+    EXPECT_TRUE(vReturnedPath.size() != 0);
+
+    // Cleanup
+    delete pAStar;
+    pAStar = nullptr;
+}

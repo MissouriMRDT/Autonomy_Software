@@ -37,9 +37,7 @@ namespace pathplanners
      ******************************************************************************/
     AStar::AStar()
     {
-        // Initialize Member
-        m_vPathCoordinates = std::vector<geoops::UTMCoordinate>();
-        m_vObstacles       = std::vector<Obstacle>();
+        // Nothing to do yet.
     }
 
     /******************************************************************************
