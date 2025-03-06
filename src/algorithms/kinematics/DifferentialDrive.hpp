@@ -186,7 +186,7 @@ namespace diffdrive
         }
 
         // Check if turn-in-place is allowed.
-        if (bAllowTurnInPlace && dSpeed <= 0.01)
+        if (bAllowTurnInPlace && dSpeed <= 0.05)
         {
             // Differential drive inverse kinematics for curvature drive with turn while stopped.
             dLeftSpeed  = dSpeed + dRotation;
@@ -260,7 +260,14 @@ namespace diffdrive
             case DifferentialControlMethod::eCurvatureDrive:
             {
                 // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
-                dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
+                if (bCurvatureDriveAllowTurningWhileStopped)
+                {
+                    dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
+                }
+                else
+                {
+                    dGoalSpeed *= 1.3 - std::pow(dTurnOutput, 2);
+                }
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateCurvatureDrive(dGoalSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
                 break;
@@ -273,6 +280,7 @@ namespace diffdrive
             }
         }
 
+        // std::cout << stOutputPowers.dLeftDrivePower << " " << stOutputPowers.dRightDrivePower << std::endl;
         // Return result powers.
         return stOutputPowers;
     }

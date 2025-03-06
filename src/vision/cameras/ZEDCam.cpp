@@ -43,6 +43,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
                const bool bEnableRecordingFlag,
+               const bool bExportSVORecordingFlag,
                const float fMinSenseDistance,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
@@ -65,13 +66,12 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_bCameraIsFusionMaster = bEnableFusionMaster;
-    m_dPoseOffsetX          = 0.0;
-    m_dPoseOffsetY          = 0.0;
-    m_dPoseOffsetZ          = 0.0;
-    m_dPoseOffsetXO         = 0.0;
-    m_dPoseOffsetYO         = 0.0;
-    m_dPoseOffsetZO         = 0.0;
+    m_dPoseOffsetX  = 0.0;
+    m_dPoseOffsetY  = 0.0;
+    m_dPoseOffsetZ  = 0.0;
+    m_dPoseOffsetXO = 0.0;
+    m_dPoseOffsetYO = 0.0;
+    m_dPoseOffsetZO = 0.0;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -153,7 +153,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         // Update camera model.
         m_slCameraModel = m_slCamera.getCameraInformation().camera_model;
         // Check if the camera should record and output an SVO file.
-        if (m_bEnableRecordingFlag)
+        if (bExportSVORecordingFlag)
         {
             // Now that camera is opened get camera name and construct path.
             std::string szSVOFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/" + this->GetCameraModel() + "_" +
