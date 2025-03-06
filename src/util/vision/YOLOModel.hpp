@@ -752,9 +752,8 @@ namespace yolomodel
                 /////////////////////////////////////////
                 enum class HardwareDevices
                 {
-                    eCPU,      // The CPU device.
-                    eCUDA,     // The CUDA device.
-                    eMKLDNN    // The MKLDNN device.
+                    eCPU,    // The CPU device.
+                    eCUDA    // The CUDA device.
                 };
 
                 /////////////////////////////////////////
@@ -770,8 +769,16 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-06
                  ******************************************************************************/
-                PyTorchInterpreter(std::string szModelPath, torch::Device trDevice = torch::kCUDA)
+                PyTorchInterpreter(std::string szModelPath, HardwareDevices eHardwareDevice = HardwareDevices::eCUDA)
                 {
+                    // Translate the hardware device enum to a torch device.
+                    switch (eHardwareDevice)
+                    {
+                        case HardwareDevices::eCPU: m_trDevice = torch::kCPU; break;
+                        case HardwareDevices::eCUDA: m_trDevice = torch::kCUDA; break;
+                        default: m_trDevice = torch::kCPU; break;
+                    }
+
                     // Check if the model path is valid.
                     if (!std::filesystem::exists(szModelPath))
                     {
@@ -780,7 +787,7 @@ namespace yolomodel
                         return;
                     }
                     // Check if the device is available.
-                    if (!torch::cuda::is_available() && trDevice == torch::kCUDA)
+                    if (!torch::cuda::is_available() && m_trDevice == torch::kCUDA)
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger, "CUDA device is not available, falling back to CPU.");
@@ -789,8 +796,6 @@ namespace yolomodel
                     }
                     else
                     {
-                        // Set the device.
-                        m_trDevice = trDevice;
                         // Submit logger message.
                         LOG_INFO(logging::g_qSharedLogger, "Using device: {}", m_trDevice.str());
                     }

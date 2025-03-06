@@ -620,6 +620,18 @@ bool TagDetector::InitTensorflowDetection(const std::string& szModelPath, yolomo
     }
 }
 
+/******************************************************************************
+ * @brief Attempt to open the next available Torch hardware and load model at the given
+ *      path onto the device.
+ *
+ * @param szModelPath -
+ * @param eDevice -
+ * @return true -
+ * @return false -
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-06
+ ******************************************************************************/
 bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
 {
     // Initialize a new YOLOModel object.
