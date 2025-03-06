@@ -42,7 +42,7 @@ option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
 
 ## Enable or Disable Coverage Watch Mode
-option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" OFF)
+option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
 
 ## Enable or Disable Verbose Makefile
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
