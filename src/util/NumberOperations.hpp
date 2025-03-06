@@ -203,29 +203,11 @@ namespace numops
     template<typename T>
     inline constexpr T AngularDifference(T tFirstValue, T tSecondValue)
     {
-        // Check input.
-        if (!Bounded<T>(tFirstValue, 0, 360) && !Bounded<T>(tSecondValue, 0, 360))
-        {
-            // Submit logger message.
-            std::cerr << "ANGULARDIFFERENCE: An input value is not valid must be between 0-360. The result difference will not be accurate!" << std::endl;
-        }
+        // Calculate the difference between the two angles.
+        T tDifference = tSecondValue - tFirstValue;
+        // Wrap the difference around the 0-360 degree range.
+        tDifference = InputAngleModulus(tDifference, -180.0, 180.0);
 
-        // Find absolute difference between the two values.
-        T tDifference = std::abs(tFirstValue - tSecondValue);
-        // If greater than 180 degrees, subtract 360/
-        if (tDifference > 180)
-        {
-            // Wrap value.
-            tDifference -= 360;
-
-            // Check if first values is bigger than second value. If it is, flip sign so that clockwise is positive.
-            if (tFirstValue > tSecondValue)
-            {
-                tDifference *= -1;
-            }
-        }
-
-        // Return value.
         return tDifference;
     }
 

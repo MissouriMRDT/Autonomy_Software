@@ -26,11 +26,10 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 
 ## Project Name and Version
-project(Autonomy_Software VERSION 24.05.00 LANGUAGES CXX CUDA)
+project(Autonomy_Software VERSION 24.05.00 LANGUAGES C CXX CUDA)
 
 ## CMake Policies
-cmake_policy(SET CMP0146 OLD)    # Allows use of "FindCUDA" function
-cmake_policy(SET CMP0153 OLD)    # Allows use of "Exec_Program" function
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warnings")
 
 ####################################################################################################################
 ##                                                    Options                                                     ##
@@ -247,6 +246,16 @@ include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
 find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
 include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
 
+## Find OpenMPI. This is needed by PCL.
+find_package(MPI REQUIRED)
+include_directories(${MPI_INCLUDE_PATH})
+
+## Fine PointCloudLibrary.
+find_package(PCL REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 ## Define libraries for ZED. Optionally static or dynamic.
 if (LINK_SHARED_ZED)
     set(ZED_LIBS ${ZED_LIBRARIES} CUDA::toolkit)
@@ -311,6 +320,8 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${ABSL_LIBRARY_DIRS}
                         ${TENSORFLOWLITE_LIBS}
                         ${LIBEDGETPU_LIBS}
+                        ${MPI_LIBRARIES}
+                        ${PCL_LIBRARIES}
                         gcov
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})

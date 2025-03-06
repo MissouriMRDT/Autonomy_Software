@@ -90,12 +90,13 @@ namespace controllers
      *      using the predictive stanley controller.
      *
      * @param stCurrentPose - The current pose of the rover.
+     * @param dMaxSpeed - The maximum speed the rover can travel.
      * @return double - The new output steering angle for the rover.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10
      ******************************************************************************/
-    PredictiveStanleyController::DriveVector PredictiveStanleyController::Calculate(const geoops::RoverPose& stCurrentPose)
+    PredictiveStanleyController::DriveVector PredictiveStanleyController::Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed)
     {
         // Create instance variables.
         double dSteeringAngle = 0.0;
@@ -108,6 +109,18 @@ namespace controllers
             LOG_WARNING(logging::g_qSharedLogger, "PredictiveStanleyController::Calculate: Reference path is empty. Cannot calculate drive powers.");
 
             return DriveVector{0.0, 0.0};
+        }
+
+        // Check if we are at the end of the path. Normally stanley would continue driving in the last direction of the calculated path
+        // headings, but we want to make sure we get to the end point, so we'll just drive straight to it once at the end of the path.
+        if (m_nCurrentReferencePathTargetIndex >= static_cast<int>(m_vReferencePath.size()) - 1)
+        {
+            // Get the last point in the path.
+            geoops::Waypoint stLastWaypoint = m_vReferencePath.back();
+            // Calculate the heading to the last point.
+            double dHeadingToLastWaypoint = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), stLastWaypoint.GetUTMCoordinate()).dStartRelativeBearing;
+
+            return DriveVector{dHeadingToLastWaypoint, 1.0};
         }
 
         // Update the bicycle model with the current state.
@@ -123,47 +136,59 @@ namespace controllers
             double dPredictedYPosition = vPredictions[nIter].dYPosition;
             double dPredictedTheta     = vPredictions[nIter].dTheta;
 
-            // Find the closest point to the reference path.
-            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stCurrentPose.GetUTMCoordinate(), stCurrentPose.GetCompassHeading());
             // Create a UTM coordinate for the predicted position.
-            geoops::UTMCoordinate stPredictedPosition = stClosestWaypoint.GetUTMCoordinate();
+            geoops::UTMCoordinate stPredictedPosition = stCurrentPose.GetUTMCoordinate();
             stPredictedPosition.dEasting              = dPredictedXPosition;
             stPredictedPosition.dNorthing             = dPredictedYPosition;
+            // Find the closest point to the reference path.
+            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stPredictedPosition, dPredictedTheta);
 
             // Compute the heading error. This is the difference between the heading of the rover and the heading or curvature of the path.
-            double dHeadingError = m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex] - dPredictedTheta;
+            double dHeadingError = numops::AngularDifference(m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex], dPredictedTheta);
 
             /*
                 Compute the cross track error. This is the distance between the predicted position and the closest point on the path. The sign of the cross track error
                 indicates which side of the path the rover is on. Left is positive, right is negative. The sign of the crosstrack error is determined by the sign of the
             */
 
-            // Get the reference path vector. This is the vector from the closest point on the path to a forward point on the path.
+            // Get the reference path vector: from the closest waypoint to the next waypoint.
             double dForwardVectorX = m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dEasting - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dForwardVectorY =
                 m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dNorthing - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Get the vehicle position vector. This is the vector from the closest point on the path to the predicted position.
+            // Compute the norm and unit vector for the path segment.
+            double dForwardNorm = sqrt(dForwardVectorX * dForwardVectorX + dForwardVectorY * dForwardVectorY);
+            double dFwdUnitX    = dForwardVectorX / dForwardNorm;
+            double dFwdUnitY    = dForwardVectorY / dForwardNorm;
+            // Get the vehicle's position vector relative to the closest waypoint.
             double dVehicleVectorX = dPredictedXPosition - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dVehicleVectorY = dPredictedYPosition - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Calculate the sign of the cross track error.
-            int nCrossTrackErrorSign = (dForwardVectorX * dVehicleVectorY - dForwardVectorY * dVehicleVectorX) > 0 ? 1 : -1;
-            // Calculate the cross track error.
-            double dCrossTrackError = nCrossTrackErrorSign * geoops::CalculateGeoMeasurement(stClosestWaypoint.GetUTMCoordinate(), stPredictedPosition).dDistanceMeters;
+            // Project the vehicle vector onto the path unit vector to obtain the longitudinal component.
+            double dLongitudinal = dVehicleVectorX * dFwdUnitX + dVehicleVectorY * dFwdUnitY;
+            // Compute the lateral error vector by subtracting the longitudinal projection from the vehicle vector.
+            double dLateralX = dVehicleVectorX - dLongitudinal * dFwdUnitX;
+            double dLateralY = dVehicleVectorY - dLongitudinal * dFwdUnitY;
+            // The cross-track error is the magnitude of this lateral vector.
+            double dLateralDistance = sqrt(dLateralX * dLateralX + dLateralY * dLateralY);
+            // Determine the sign of the cross-track error using the cross product (left positive, right negative).
+            int nCrossTrackErrorSign = (dFwdUnitX * dVehicleVectorY - dFwdUnitY * dVehicleVectorX) > 0 ? 1 : -1;
+            // Final cross-track error.
+            double dCrossTrackError = nCrossTrackErrorSign * dLateralDistance;
 
             // Apply an exponential weight factor that decreases as we predict further into the future.
             double dTimeWeight = std::exp(-2.5 * static_cast<double>(nIter));
+            // Limit the cross track error steering angle to -+ 90 degrees.
+            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -90.0, 90.0);
             // Calculate the steering angle using lateral and heading errors, weighted by the time step.
-            dSteeringAngle += dTimeWeight * (m_dControlGain * dCrossTrackError + dHeadingError);
+            dSteeringAngle += dTimeWeight * (dCrossTrackError - dHeadingError);
 
             // Limit the steering angle to the given limit.
-            dSteeringAngle = std::min(dSteeringAngle, m_dSteeringAngleLimit);
-            dSteeringAngle = std::max(dSteeringAngle, -m_dSteeringAngleLimit);
+            dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
         }
 
         // The new steering heading must be from 0-360 degrees.
-        dSteeringAngle = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
+        double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
 
-        return DriveVector{dSteeringAngle, 1.0};
+        return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
     }
 
     /******************************************************************************

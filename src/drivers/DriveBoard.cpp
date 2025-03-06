@@ -41,12 +41,12 @@ DriveBoard::DriveBoard()
                                             constants::DRIVE_PID_INTEGRAL,
                                             constants::DRIVE_PID_DERIVATIVE,
                                             constants::DRIVE_PID_FEEDFORWARD);
-    m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR_PER_ITER);
+    m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR);
     m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
     m_pPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
     m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
     m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
-    m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_TOLERANCE);
+    m_pPID->SetTolerance(constants::DRIVE_PID_TOLERANCE);
     m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
     m_pPID->EnableContinuousInput(0, 360);
 
