@@ -49,7 +49,7 @@ namespace controllers
             struct DriveVector
             {
                 public:
-                    double dSteeringAngle;
+                    double dThetaHeading;
                     double dVelocity;
             };
 
@@ -63,7 +63,7 @@ namespace controllers
                                         const int nPredictionHorizon,
                                         const double dPredictionTimeStep);
             ~PredictiveStanleyController();
-            DriveVector Calculate(const geoops::RoverPose& stCurrentPose);
+            DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_MOTOR_POWER);
 
             /////////////////////////////////////////
             // Setters.

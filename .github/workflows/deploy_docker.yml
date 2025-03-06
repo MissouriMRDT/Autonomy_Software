@@ -77,6 +77,7 @@ jobs:
       abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
       tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
+      pcl-amd64: ${{ steps.changes.outputs.pcl-amd64 }}
 
     steps:
       - name: Setup Action Environment
@@ -121,6 +122,8 @@ jobs:
               - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
+            pcl-amd64:
+              - 'tools/package-builders/pcl/pcl-amd64-pkg.sh'
 
       - name: Cleanup Action Environment
         if: always()
@@ -162,6 +165,7 @@ jobs:
           - abseil
           - tensorflow
           - quill
+          - pcl
 
     steps:
       - name: Setup Action Environment
@@ -246,7 +250,6 @@ jobs:
     needs: [time-and-date, check-amd64-packages]
     runs-on: [self-hosted, linux, X64]
     timeout-minutes: 1440
-
     environment:
       name: docker-packages
       url: https://github.com/MissouriMRDT/Autonomy_Packages
@@ -258,100 +261,169 @@ jobs:
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then 
+            git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          fi
 
-      # This step is used to checkout the repository. It is needed so that the package build scripts can be
-      # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
 
-      # This step is used to rebuild the updated ffmpeg package. It gets the list of packages that need to be rebuilt
-      # from a previous job. It runs the package build script for the package that is being built.
+      # --- Check if FFmpeg rebuild is needed. ---
+      - name: Check if FFmpeg Rebuild is Needed
+        id: check_ffmpeg
+        run: |
+          SCRIPT_PATH="tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh"
+          PACKAGE_GLOB="/tmp/pkg/deb/ffmpeg*amd64*.deb"
+
+          # If the script is missing, mark for rebuild.
+          if [ ! -f "$SCRIPT_PATH" ]; then
+            echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
+            echo "ffmpeg script not found – marking for rebuild."
+          else
+            # Use git diff to determine if the build script was changed.
+            if ! git diff --quiet HEAD~1 "$SCRIPT_PATH"; then
+              echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
+              echo "ffmpeg script has changed – marking for rebuild."
+            else
+              # Also check if the package already exists.
+              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
+                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
+                echo "ffmpeg package not found – marking for rebuild."
+              else
+                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
+                echo "ffmpeg package exists and script is unchanged."
+              fi
+            fi
+          fi
+
+      # --- Check if OpenCV rebuild is needed. ---
+      - name: Check if OpenCV Rebuild is Needed
+        id: check_opencv
+        run: |
+          SCRIPT_PATH="tools/package-builders/opencv/opencv-amd64-pkg.sh"
+          PACKAGE_GLOB="/tmp/pkg/deb/opencv*amd64*.deb"
+
+          if [ ! -f "$SCRIPT_PATH" ]; then
+            echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
+            echo "opencv script not found – marking for rebuild."
+          else
+            if ! git diff --quiet HEAD~1 "$SCRIPT_PATH"; then
+              echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
+              echo "opencv script has changed – marking for rebuild."
+            else
+              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
+                echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
+                echo "opencv package not found – marking for rebuild."
+              else
+                echo "OPENCV_NEEDS_REBUILD=false" >> $GITHUB_ENV
+                echo "opencv package exists and script is unchanged."
+              fi
+            fi
+          fi
+
+      # --- Rebuild FFmpeg. (if needed) ---
       - name: Rebuild FFmpeg Package
         id: rebuild_pkg_ffmpeg
-        if: needs.check-amd64-packages.outputs.ffmpeg-amd64 == 'true'
+        if: env.FFMPEG_NEEDS_REBUILD == 'true'
         run: |
           cd tools/package-builders/ffmpeg
-
           chmod +x ffmpeg-amd64-pkg.sh
           ./ffmpeg-amd64-pkg.sh
-          mkdir -p /tmp/archive-pkg/
+
+          # Check if build succeeded by verifying the .deb file exists
           if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
             echo "FFMPEG_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
+            echo "Build failed; attempting to download latest..."
             ./ffmpeg-amd64-pkg.sh --download-latest
-            cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
-            echo "FFMPEG_REBUILT_AMD64=false" >> $GITHUB_ENV
+            if ls /tmp/pkg/deb/ffmpeg*amd64*.deb 1> /dev/null 2>&1; then
+              mkdir -p /tmp/archive-pkg/
+              cp /tmp/pkg/deb/ffmpeg*amd64*.deb /tmp/archive-pkg
+              echo "FFMPEG_REBUILT_AMD64=false" >> $GITHUB_ENV
+            else
+              echo "Error: FFmpeg build/download failed. No .deb file found."
+              exit 1
+            fi
           fi
 
-      # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
-      # from a previous job. It runs the package build script for the package that is being built. This step is run
-      # if the ffmpeg package was rebuilt in the previous step. Or if the opencv package needs to be rebuilt.
+      # --- Rebuild OpenCV ---
+      # This step uses the opencv rebuild script.
+      # Note: The script itself checks via a HEAD request whether the package exists and uses the --force flag
+      # when ffmpeg was rebuilt.
       - name: Rebuild OpenCV Package
         id: rebuild_pkg_opencv
-        if: needs.check-amd64-packages.outputs.ffmpeg-amd64 == 'true' || needs.check-amd64-packages.outputs.opencv-amd64 == 'true'
+        if: env.FFMPEG_NEEDS_REBUILD == 'true' || env.OPENCV_NEEDS_REBUILD == 'true'
         run: |
-          # Install FFmpeg
-          apt remove -y ffmpeg-mrdt || true
-          apt remove -y ffmpeg || true
-          apt install -y /tmp/archive-pkg/ffmpeg*amd64*.deb
+          # If ffmpeg was rebuilt, install the new ffmpeg package first.
+          if [[ "$FFMPEG_REBUILT_AMD64" == "true" ]]; then
+            apt remove -y ffmpeg-mrdt || true
+            apt remove -y ffmpeg || true
+            apt install -y /tmp/archive-pkg/ffmpeg*amd64*.deb
+          else
+            echo "Skipping FFmpeg installation (not rebuilt)."
+          fi
 
-          # Install OpenCV
           cd tools/package-builders/opencv
           chmod +x opencv-amd64-pkg.sh
 
+          # If ffmpeg was rebuilt, force OpenCV rebuild to ensure compatibility.
           if [[ "$FFMPEG_REBUILT_AMD64" == "true" ]]; then
-            echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
+            echo "FFmpeg was rebuilt. Forcing OpenCV rebuild."
             ./opencv-amd64-pkg.sh --force
           else
-            echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
+            echo "Building OpenCV normally."
             ./opencv-amd64-pkg.sh
           fi
 
+          # Check for the OpenCV .deb file (you can also capture the script's output via $GITHUB_OUTPUT)
           if ls /tmp/pkg/deb/opencv*amd64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/opencv*amd64*.deb /tmp/archive-pkg
             echo "OPENCV_REBUILT_AMD64=true" >> $GITHUB_ENV
           else
             echo "OPENCV_REBUILT_AMD64=false" >> $GITHUB_ENV
+            echo "No new OpenCV .deb file found, assuming no rebuild was needed."
           fi
 
-      # This step is used to push the updated package to the package repository. It clones the package
-      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
-      # the changes.
+      # --- Push updated packages if any were rebuilt. ---
       - name: Push Packages
         if: env.FFMPEG_REBUILT_AMD64 == 'true' || env.OPENCV_REBUILT_AMD64 == 'true'
         run: |
-          # Find Debian Package
-          debfile=$(find /tmp/archive-pkg/ -name "*.deb" -type f -print -quit)
-
-          # Set up Git configuration
+          # Configure Git and SSH
           git config --global user.email "mrdt.autonomy@gmail.com"
           git config --global user.name "MRDT-Software"
-
-          # Set up SSH key
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-          # Clone the destination repository using SSH
+          # Clone the package repository
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new AMD64 packages into the repository
-          mkdir -p ffmpeg/amd64/
-          cp -r /tmp/archive-pkg/ffmpeg*amd64*.deb ffmpeg/amd64/
-          mkdir -p opencv/amd64/
-          cp -r /tmp/archive-pkg/opencv*amd64*.deb opencv/amd64/
+          # Copy FFmpeg package if rebuilt
+          if [[ "$FFMPEG_REBUILT_AMD64" == "true" ]]; then
+            mkdir -p ffmpeg/amd64/
+            cp -v /tmp/archive-pkg/ffmpeg*amd64*.deb ffmpeg/amd64/
+          else
+            echo "Skipping FFmpeg copy (not rebuilt)."
+          fi
 
-          # Set up Git LFS
+          # Copy OpenCV package if rebuilt
+          if [[ "$OPENCV_REBUILT_AMD64" == "true" ]]; then
+            mkdir -p opencv/amd64/
+            cp -v /tmp/archive-pkg/opencv*amd64*.deb opencv/amd64/
+          else
+            echo "Skipping OpenCV copy (not rebuilt)."
+          fi
+
+          # Use Git LFS for .deb files and push changes
           git lfs install
-
-          # Commit and push changes
           git lfs track '*.deb'
           git add .gitattributes
           git add .
@@ -360,19 +432,16 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # This step is used to remove the package from the temporary directory. It gets the list of packages that
-      # need to be rebuilt from the previous job. It removes the package from the temporary directory. This is
-      # done so that the next package can be built without having to worry about the previous package causing
-      # conflicts.
-      - name: Remove ${{ matrix.package }} Package
-        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+      # --- Clean up temporary directories. ---
+      - name: Remove Package Artifacts
+        if: always()
         run: rm -rf /tmp/pkg/* /tmp/archive-pkg/*
 
       - name: Cleanup Action Environment
         if: always()
         run: |
           cd /opt
-          rm -rf /opt/Autonomy_Software
+          rm -rf Autonomy_Software
 
   # This job is used to check if any of the packages for ARM64 need to be rebuilt. If any of the package build
   # scripts have been updated, then the packages need to be rebuilt in the next job. This job is run on a self-
@@ -397,6 +466,7 @@ jobs:
       abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
       tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
+      pcl-arm64: ${{ steps.changes.outputs.pcl-arm64 }}
 
     steps:
       - name: Setup Action Environment
@@ -441,6 +511,8 @@ jobs:
               - 'tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
+            pcl-arm64:
+              - 'tools/package-builders/pcl/pcl-arm64-pkg.sh'
 
       - name: Cleanup Action Environment
         if: always()
@@ -481,6 +553,7 @@ jobs:
           - abseil
           - tensorflow
           - quill
+          - pcl
 
     steps:
       - name: Setup Action Environment
@@ -565,7 +638,6 @@ jobs:
     needs: [time-and-date, check-arm64-packages]
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 1440
-
     environment:
       name: docker-packages
       url: https://github.com/MissouriMRDT/Autonomy_Packages
@@ -577,100 +649,155 @@ jobs:
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then 
+            git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
+          fi
 
-      # This step is used to checkout the repository. It is needed so that the package build scripts can be
-      # checked for changes.
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
 
-      # This step is used to rebuild the updated ffmpeg package. It gets the list of packages that need to be rebuilt
-      # from a previous job. It runs the package build script for the package that is being built.
+      # --- Check if FFmpeg rebuild is needed for ARM64 ---
+      - name: Check if FFmpeg Rebuild is Needed
+        id: check_ffmpeg_arm64
+        run: |
+          SCRIPT_PATH="tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh"
+          PACKAGE_GLOB="/tmp/pkg/deb/ffmpeg*arm64*.deb"
+
+          if [ ! -f "$SCRIPT_PATH" ]; then
+            echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+            echo "ffmpeg-arm64 script not found – marking for rebuild."
+          else
+            if ! git diff --quiet HEAD~1 "$SCRIPT_PATH"; then
+              echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+              echo "ffmpeg-arm64 script has changed – marking for rebuild."
+            else
+              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
+                echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+                echo "ffmpeg-arm64 package not found – marking for rebuild."
+              else
+                echo "FFMPEG_NEEDS_REBUILD_ARM64=false" >> $GITHUB_ENV
+                echo "ffmpeg-arm64 package exists and script is unchanged."
+              fi
+            fi
+          fi
+
+      # --- Check if OpenCV rebuild is needed for ARM64 ---
+      - name: Check if OpenCV Rebuild is Needed
+        id: check_opencv_arm64
+        run: |
+          SCRIPT_PATH="tools/package-builders/opencv/opencv-arm64-pkg.sh"
+          PACKAGE_GLOB="/tmp/pkg/deb/opencv*arm64*.deb"
+
+          if [ ! -f "$SCRIPT_PATH" ]; then
+            echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+            echo "opencv-arm64 script not found – marking for rebuild."
+          else
+            if ! git diff --quiet HEAD~1 "$SCRIPT_PATH"; then
+              echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+              echo "opencv-arm64 script has changed – marking for rebuild."
+            else
+              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
+                echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+                echo "opencv-arm64 package not found – marking for rebuild."
+              else
+                echo "OPENCV_NEEDS_REBUILD_ARM64=false" >> $GITHUB_ENV
+                echo "opencv-arm64 package exists and script is unchanged."
+              fi
+            fi
+          fi
+
+      # --- Rebuild FFmpeg Package for ARM64 ---
       - name: Rebuild FFmpeg Package
-        id: rebuild_pkg_ffmpeg
-        if: needs.check-arm64-packages.outputs.ffmpeg-arm64 == 'true'
+        id: rebuild_pkg_ffmpeg_arm64
+        if: env.FFMPEG_NEEDS_REBUILD_ARM64 == 'true'
         run: |
           cd tools/package-builders/ffmpeg
-
           chmod +x ffmpeg-arm64-pkg.sh
           ./ffmpeg-arm64-pkg.sh
-          mkdir -p /tmp/archive-pkg/
+
           if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
             echo "FFMPEG_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
+            echo "Build failed; attempting to download latest..."
             ./ffmpeg-arm64-pkg.sh --download-latest
-            cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
-            echo "FFMPEG_REBUILT_ARM64=false" >> $GITHUB_ENV
+            if ls /tmp/pkg/deb/ffmpeg*arm64*.deb 1> /dev/null 2>&1; then
+              mkdir -p /tmp/archive-pkg/
+              cp /tmp/pkg/deb/ffmpeg*arm64*.deb /tmp/archive-pkg
+              echo "FFMPEG_REBUILT_ARM64=false" >> $GITHUB_ENV
+            else
+              echo "Error: FFmpeg ARM64 build/download failed. No .deb file found."
+              exit 1
+            fi
           fi
 
-      # This step is used to rebuild the updated opencv package. It gets the list of packages that need to be rebuilt
-      # from a previous job. It runs the package build script for the package that is being built. This step is run
-      # if the ffmpeg package was rebuilt in the previous step. Or if the opencv package needs to be rebuilt.
+      # --- Rebuild OpenCV Package for ARM64 ---
       - name: Rebuild OpenCV Package
-        id: rebuild_pkg_opencv
-        if: needs.check-arm64-packages.outputs.ffmpeg-arm64 == 'true' || needs.check-arm64-packages.outputs.opencv-arm64 == 'true'
+        id: rebuild_pkg_opencv_arm64
+        if: env.FFMPEG_NEEDS_REBUILD_ARM64 == 'true' || env.OPENCV_NEEDS_REBUILD_ARM64 == 'true'
         run: |
-          # Install FFmpeg
-          apt remove -y ffmpeg-mrdt || true
-          apt remove -y ffmpeg || true
-          apt install -y /tmp/archive-pkg/ffmpeg*arm64*.deb
+          if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
+            apt remove -y ffmpeg-mrdt || true
+            apt remove -y ffmpeg || true
+            apt install -y /tmp/archive-pkg/ffmpeg*arm64*.deb
+          else
+            echo "Skipping FFmpeg installation (not rebuilt)."
+          fi
 
-          # Install OpenCV
           cd tools/package-builders/opencv
           chmod +x opencv-arm64-pkg.sh
 
           if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
-            echo "FFmpeg was rebuilt. Forcing OpenCV to be rebuilt."
+            echo "FFmpeg was rebuilt. Forcing OpenCV rebuild."
             ./opencv-arm64-pkg.sh --force
           else
-            echo "FFmpeg was NOT rebuilt. Allowing OpenCV to be rebuilt normally."
+            echo "Building OpenCV normally."
             ./opencv-arm64-pkg.sh
           fi
 
           if ls /tmp/pkg/deb/opencv*arm64*.deb 1> /dev/null 2>&1; then
+            mkdir -p /tmp/archive-pkg/
             cp /tmp/pkg/deb/opencv*arm64*.deb /tmp/archive-pkg
             echo "OPENCV_REBUILT_ARM64=true" >> $GITHUB_ENV
           else
             echo "OPENCV_REBUILT_ARM64=false" >> $GITHUB_ENV
+            echo "No new OpenCV ARM64 .deb file found, assuming no rebuild was needed."
           fi
 
-      # This step is used to push the updated package to the package repository. It clones the package
-      # repository using SSH. It copies the new package into the repository. And then, commits and pushes
-      # the changes.
+      # --- Push updated packages for ARM64 ---
       - name: Push Packages
         if: env.FFMPEG_REBUILT_ARM64 == 'true' || env.OPENCV_REBUILT_ARM64 == 'true'
         run: |
-          # Find Debian Package
-          debfile=$(find /tmp/archive-pkg/ -name "*.deb" -type f -print -quit)
-
-          # Set up Git configuration
           git config --global user.email "mrdt.autonomy@gmail.com"
           git config --global user.name "MRDT-Software"
 
-          # Set up SSH key
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-          # Clone the destination repository using SSH
           git clone git@github.com:MissouriMRDT/Autonomy_Packages.git
           cd Autonomy_Packages
 
-          # Copy the new ARM64 packages into the repository
-          mkdir -p ffmpeg/arm64/
-          cp -r /tmp/archive-pkg/ffmpeg*arm64*.deb ffmpeg/arm64/
-          mkdir -p opencv/arm64/
-          cp -r /tmp/archive-pkg/opencv*arm64*.deb opencv/arm64/
+          if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
+            mkdir -p ffmpeg/arm64/
+            cp -v /tmp/archive-pkg/ffmpeg*arm64*.deb ffmpeg/arm64/
+          else
+            echo "Skipping FFmpeg copy (not rebuilt)."
+          fi
 
-          # Set up Git LFS
+          if [[ "$OPENCV_REBUILT_ARM64" == "true" ]]; then
+            mkdir -p opencv/arm64/
+            cp -v /tmp/archive-pkg/opencv*arm64*.deb opencv/arm64/
+          else
+            echo "Skipping OpenCV copy (not rebuilt)."
+          fi
+
           git lfs install
-
-          # Commit and push changes
           git lfs track '*.deb'
           git add .gitattributes
           git add .
@@ -679,19 +806,16 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # This step is used to remove the package from the temporary directory. It gets the list of packages that
-      # need to be rebuilt from the previous job. It removes the package from the temporary directory. This is
-      # done so that the next package can be built without having to worry about the previous package causing
-      # conflicts.
-      - name: Remove ${{ matrix.package }} Package
-        if: steps.rebuild_pkg.outputs.rebuilding_pkg == 'true'
+      # --- Clean up temporary directories ---
+      - name: Remove Package Artifacts
+        if: always()
         run: rm -rf /tmp/pkg/* /tmp/archive-pkg/*
 
       - name: Cleanup Action Environment
         if: always()
         run: |
           cd /opt
-          rm -rf /opt/Autonomy_Software
+          rm -rf Autonomy_Software
 
   # This job is used to build and push the new jammy docker image. It is run on a self-hosted runner because
   # there is not an NVIDIA GPU available on the GitHub runners. If this is being run on a pull request, then

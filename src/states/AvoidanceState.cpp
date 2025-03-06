@@ -50,7 +50,7 @@ namespace statemachine
         // Check for AStar failure.
         if (!m_vPlannedRoute.empty())
         {
-            m_stGoal = m_vPlannedRoute.back();
+            m_stGoal = m_vPlannedRoute.back().GetUTMCoordinate();
             m_StanleyController.SetReferencePath(m_vPlannedRoute);
         }
         // Exit Obstacle Avoidance if AStar fails to generate a path.
@@ -143,7 +143,7 @@ namespace statemachine
             controllers::PredictiveStanleyController::DriveVector stDriveVector = m_StanleyController.Calculate(stCurrentRoverPose);
 
             diffdrive::DrivePowers stDriveSpeeds                                = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                         stDriveVector.dSteeringAngle,
+                                                                                         stDriveVector.dThetaHeading,
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
 

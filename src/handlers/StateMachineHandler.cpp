@@ -149,6 +149,15 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
         // Set atomic toggle saying we are done switching states.
         m_bSwitchingStates = false;
     }
+
+    // Send current robot state over RoveComm.
+    rovecomm::RoveCommPacket<uint8_t> stPacket;
+    stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(static_cast<uint8_t>(this->GetCurrentState()));
+    // Send drive command over RoveComm to drive board to all subscribers.
+    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
