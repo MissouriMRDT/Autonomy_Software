@@ -37,10 +37,15 @@
 // Declare file constants.
 const bool ENABLE_SPATIAL_MAPPING = false;
 
-//------------------------------------------------------------------------------
-// Helper function to convert cv::Mat point cloud to a PCL point cloud.
-// Assumes cvPointCloud is CV_32FC4 (X, Y, Z, and an extra channel)
-// from the ZED SDK.
+/******************************************************************************
+ * @brief Converts a cv::Mat to a pcl::PointCloud<pcl::PointXYZ>::Ptr.
+ *
+ * @param cvPointCloud - The cv::Mat to convert.
+ * @return pcl::PointCloud<pcl::PointXYZ>::Ptr - The converted point cloud.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-05
+ ******************************************************************************/
 pcl::PointCloud<pcl::PointXYZ>::Ptr convertCVMatToPCL(const cv::Mat& cvPointCloud)
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -67,25 +72,30 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertCVMatToPCL(const cv::Mat& cvPointClou
     return cloud;
 }
 
-//------------------------------------------------------------------------------
-// Main example routine.
+/******************************************************************************
+ * @brief Main example function.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-05
+ ******************************************************************************/
 void RunExample()
 {
     // Initialize and start handlers.
     globals::g_pCameraHandler = new CameraHandler();
 
     // Get pointer to camera.
-    ZEDCamera* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    ZEDCamera* pExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Start ZED cam.
-    ExampleZEDCam1->Start();
+    pExampleZEDCam1->Start();
 
     // Turn on ZED features.
-    ExampleZEDCam1->EnablePositionalTracking();
+    pExampleZEDCam1->EnablePositionalTracking();
     // Check if we should turn on spatial mapping.
     if (ENABLE_SPATIAL_MAPPING)
     {
         // Enable spatial mapping.
-        ExampleZEDCam1->EnableSpatialMapping();
+        pExampleZEDCam1->EnableSpatialMapping();
     }
 
     // Declare mats to store images in.
@@ -104,10 +114,10 @@ void RunExample()
 
     // ----- SLAM Setup -----
     // Global map for accumulated point clouds.
-    pcl::PointCloud<pcl::PointXYZ>::Ptr global_map(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pclGlobalMap(new pcl::PointCloud<pcl::PointXYZ>);
     // Create a PCL visualizer.
-    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("SLAM Viewer"));
-    // viewer->setBackgroundColor(0, 0, 0);
+    pcl::visualization::PCLVisualizer::Ptr pclViewer(new pcl::visualization::PCLVisualizer("SLAM Viewer"));
+    // pclViewer->setBackgroundColor(0, 0, 0);
     // // For timing the SLAM update (once per second)
     // auto last_slam_time = std::chrono::steady_clock::now();
 
@@ -120,28 +130,28 @@ void RunExample()
         std::future<bool> fuPointCloudCopyStatus;
 
         // Check if the camera is setup to use CPU or GPU mats.
-        if (ExampleZEDCam1->GetUsingGPUMem())
+        if (pExampleZEDCam1->GetUsingGPUMem())
         {
             // Grab frames from camera.
-            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
-            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
-            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
+            fuFrameCopyStatus      = pExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
+            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
         }
         else
         {
             // Grab frames from camera.
-            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
-            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
-            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
+            fuFrameCopyStatus      = pExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
+            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuPoseCopyStatus = pExampleZEDCam1->RequestPositionalPoseCopy(stPose);
 
         // Wait for the frames to be copied.
         if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
         {
             // Check if the camera is setup to use CPU or GPU mats.
-            if (ExampleZEDCam1->GetUsingGPUMem())
+            if (pExampleZEDCam1->GetUsingGPUMem())
             {
                 // Download memory from GPU mats if necessary.
                 cvGPUNormalFrame1.download(cvNormalFrame1);
@@ -151,14 +161,19 @@ void RunExample()
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
-                        std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()),
+                        std::to_string(pExampleZEDCam1->GetIPS().GetExactIPS()),
                         cv::Point(50, 50),
                         cv::FONT_HERSHEY_COMPLEX,
                         1,
                         cv::Scalar(255, 255, 255));
 
             // Put FPS on depth frame.
-            cv::putText(cvDepthFrame1, std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()), cv::Point(50, 50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255, 255, 255));
+            cv::putText(cvDepthFrame1,
+                        std::to_string(pExampleZEDCam1->GetIPS().GetExactIPS()),
+                        cv::Point(50, 50),
+                        cv::FONT_HERSHEY_COMPLEX,
+                        1,
+                        cv::Scalar(255, 255, 255));
 
             // Split color from point cloud.
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
@@ -179,11 +194,11 @@ void RunExample()
             }
 
             // Print info.
-            LOG_INFO(logging::g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", ExampleZEDCam1->GetIPS().GetAverageIPS(), ExampleZEDCam1->GetIPS().Get1PercentLow());
+            LOG_INFO(logging::g_qConsoleLogger, "ZED Getter FPS: {} | 1% Low: {}", pExampleZEDCam1->GetIPS().GetAverageIPS(), pExampleZEDCam1->GetIPS().Get1PercentLow());
             // Check if spatial mapping is enabled.
             if (ENABLE_SPATIAL_MAPPING)
             {
-                LOG_INFO(logging::g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(ExampleZEDCam1->GetSpatialMappingState()).get());
+                LOG_INFO(logging::g_qConsoleLogger, "Spatial Mapping State: {}", sl::toString(pExampleZEDCam1->GetSpatialMappingState()).get());
             }
 
             // Display frames.
@@ -207,16 +222,16 @@ void RunExample()
             //     voxel.filter(*filtered_cloud);
 
             //     // If the global map is empty, initialize it with the current scan.
-            //     if (global_map->points.empty())
+            //     if (pclGlobalMap->points.empty())
             //     {
-            //         *global_map = *filtered_cloud;
+            //         *pclGlobalMap = *filtered_cloud;
             //     }
             //     else
             //     {
             //         // Register the current scan to the global map using ICP.
             //         pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
             //         icp.setInputSource(filtered_cloud);
-            //         icp.setInputTarget(global_map);
+            //         icp.setInputTarget(pclGlobalMap);
             //         pcl::PointCloud<pcl::PointXYZ> aligned;
             //         icp.align(aligned);
 
@@ -228,7 +243,7 @@ void RunExample()
             //             pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>);
             //             pcl::transformPointCloud(*filtered_cloud, *transformed_cloud, icp_transform);
             //             // Fuse the transformed scan into the global map.
-            //             *global_map += *transformed_cloud;
+            //             *pclGlobalMap += *transformed_cloud;
             //         }
             //         else
             //         {
@@ -237,10 +252,10 @@ void RunExample()
             //     }
 
             //     // Update the PCL visualizer.
-            //     viewer->removeAllPointClouds();
-            //     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(global_map, 255, 255, 255);
-            //     viewer->addPointCloud<pcl::PointXYZ>(global_map, color_handler, "global_map");
-            //     viewer->spinOnce(10);
+            //     pclViewer->removeAllPointClouds();
+            //     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(pclGlobalMap, 255, 255, 255);
+            //     pclViewer->addPointCloud<pcl::PointXYZ>(pclGlobalMap, color_handler, "pclGlobalMap");
+            //     pclViewer->spinOnce(10);
             // }
         }
 
@@ -262,7 +277,7 @@ void RunExample()
     {
         // Extract spatial map.
         std::future<sl::Mesh> fuSpatialMap;
-        ExampleZEDCam1->ExtractSpatialMapAsync(fuSpatialMap);
+        pExampleZEDCam1->ExtractSpatialMapAsync(fuSpatialMap);
         sl::Mesh slSpatialMap = fuSpatialMap.get();
         slSpatialMap.save("test.obj", sl::MESH_FILE_FORMAT::PLY);
     }
@@ -282,6 +297,7 @@ void RunExample()
     delete globals::g_pNavigationBoard;
     delete network::g_pRoveCommUDPNode;
     delete network::g_pRoveCommTCPNode;
+
     // Set dangling pointers to null.
     globals::g_pCameraHandler   = nullptr;
     globals::g_pNavigationBoard = nullptr;
