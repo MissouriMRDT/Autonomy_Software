@@ -446,7 +446,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
-                                  "Unable to create the VideoWriter output directory: {} for camera {}",
+                                  "Unable to create the VideoWriter output directory: {} for tag detector {}",
                                   szFilePath.string(),
                                   pTagDetector->GetCameraName());
                     }
@@ -466,7 +466,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for basic camera at path/index {}",
+                                "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
                                 pTagDetector->GetCameraName());
                 }
             }
