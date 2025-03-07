@@ -55,7 +55,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
     libboost-all-dev libflann-dev libvtk9-dev libvtk9-qt-dev libqhull-dev libopenni-dev libopenni2-dev \
     qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libqt5opengl5-dev qttools5-dev qttools5-dev-tools \
-    libpcap-dev libcjson-dev
+    libcjson-dev libpcap-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
@@ -192,4 +192,4 @@ LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.5.0"
-LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."
+LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}."
