@@ -115,7 +115,7 @@ else
     ./configure --prefix=/usr/local \
     --disable-doc \
     --enable-static \
-    --disable-shared \
+    --enable-shared \
     --enable-pic \
     --extra-libs="-lpthread -lm" \
     --ld="g++" \
