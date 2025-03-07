@@ -9,6 +9,7 @@ QUILL_VERSION="8.1.0"
 # Build Arguments
 FORCE_BUILD=false
 DOWNLOAD_LATEST=false
+CHECK_PACKAGE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --download-latest|-d)
             DOWNLOAD_LATEST=true
+            shift
+            ;;
+        --check|-c)
+            CHECK_PACKAGE=true
             shift
             ;;
         *)
@@ -54,52 +59,58 @@ if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fa
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
     exit 0
 else
-    echo "Package version ${QUILL_VERSION} does not exist in the repository. Building the package."
-    echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+    if [[ "$CHECK_PACKAGE" == true ]]; then
+        echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        exit 1
+    else
+        echo "Package version ${QUILL_VERSION} does not exist in the repository. Building the package."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
 
-    # Delete Old Packages
-    rm -rf /tmp/pkg
-    rm -rf /tmp/quill
+        # Delete Old Packages
+        rm -rf /tmp/pkg
+        rm -rf /tmp/quill
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local
-    mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN
+        # Create Package Directory
+        mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local
+        mkdir -p /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN
 
-    # Create Control File
-    {
-        echo "Package: quill-mrdt"
-        echo "Version: ${QUILL_VERSION}"
-        echo "Maintainer: odygrd"
-        echo "Depends:"
-        echo "Architecture: arm64"
-        echo "Homepage: https://quillcpp.readthedocs.io/en/latest/"
-        echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team."
-    } > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
+        # Create Control File
+        {
+            echo "Package: quill-mrdt"
+            echo "Version: ${QUILL_VERSION}"
+            echo "Maintainer: odygrd"
+            echo "Depends:"
+            echo "Architecture: arm64"
+            echo "Homepage: https://quillcpp.readthedocs.io/en/latest/"
+            echo "Description: A prebuilt version of Quill. Made by the Mars Rover Design Team."
+        } > /tmp/pkg/quill_${QUILL_VERSION}_arm64/DEBIAN/control
 
-    # Download Quill
-    git clone --depth 1 --branch v${QUILL_VERSION} https://github.com/odygrd/quill.git
-    mkdir quill/build
-    cd quill/build
+        # Download Quill
+        git clone --depth 1 --branch v${QUILL_VERSION} https://github.com/odygrd/quill.git
+        mkdir quill/build
+        cd quill/build
 
-    # Build Quill
-    cmake \
-    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local \
-    -D CMAKE_BUILD_TYPE=Release ..
+        # Build Quill
+        cmake \
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/quill_${QUILL_VERSION}_arm64/usr/local \
+        -D CMAKE_BUILD_TYPE=Release ..
 
-    # Install Quill
-    make
-    make install
+        # Install Quill
+        make
+        make install
 
-    # Cleanup Install
-    cd ../..
-    rm -rf quill
+        # Cleanup Install
+        cd ../..
+        rm -rf quill
 
-    # Create Package
-    dpkg --build /tmp/pkg/quill_${QUILL_VERSION}_arm64
+        # Create Package
+        dpkg --build /tmp/pkg/quill_${QUILL_VERSION}_arm64
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
+        # Create Package Directory
+        mkdir -p /tmp/pkg/deb
 
-    # Copy Package
-    cp /tmp/pkg/quill_${QUILL_VERSION}_arm64.deb /tmp/pkg/deb/quill_${QUILL_VERSION}_arm64.deb
+        # Copy Package
+        cp /tmp/pkg/quill_${QUILL_VERSION}_arm64.deb /tmp/pkg/deb/quill_${QUILL_VERSION}_arm64.deb
+    fi
 fi

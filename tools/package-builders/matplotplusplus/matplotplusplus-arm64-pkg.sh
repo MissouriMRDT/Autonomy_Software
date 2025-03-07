@@ -9,6 +9,7 @@ MATPLOT_VERSION="master"
 # Build Arguments
 FORCE_BUILD=false
 DOWNLOAD_LATEST=false
+CHECK_PACKAGE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --download-latest|-d)
             DOWNLOAD_LATEST=true
+            shift
+            ;;
+        --check|-c)
+            CHECK_PACKAGE=true
             shift
             ;;
         *)
@@ -54,52 +59,58 @@ if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fa
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
     exit 0
 else
-    echo "Package version ${MATPLOT_VERSION} does not exist in the repository. Building the package."
-    echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
-    
-    # Delete Old Packages
-    rm -rf /tmp/pkg
-    rm -rf /tmp/matplotplusplus
+    if [[ "$CHECK_PACKAGE" == true ]]; then
+        echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        exit 1
+    else
+        echo "Package version ${MATPLOT_VERSION} does not exist in the repository. Building the package."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        
+        # Delete Old Packages
+        rm -rf /tmp/pkg
+        rm -rf /tmp/matplotplusplus
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/usr/local
-    mkdir -p /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/DEBIAN
+        # Create Package Directory
+        mkdir -p /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/usr/local
+        mkdir -p /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/DEBIAN
 
-    # Create Control File
-    {
-        echo "Package: matplotplusplus-mrdt"
-        echo "Version: 1.6.0"
-        echo "Maintainer: alandefreitas"
-        echo "Depends:"
-        echo "Architecture: arm64"
-        echo "Homepage: https://github.com/alandefreitas/matplotplusplus.git"
-        echo "Description: A prebuilt version of matplotplusplus for WebRTC and websocket connections. Made by the Mars Rover Design Team."
-    } > /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/DEBIAN/control
+        # Create Control File
+        {
+            echo "Package: matplotplusplus-mrdt"
+            echo "Version: 1.6.0"
+            echo "Maintainer: alandefreitas"
+            echo "Depends:"
+            echo "Architecture: arm64"
+            echo "Homepage: https://github.com/alandefreitas/matplotplusplus.git"
+            echo "Description: A prebuilt version of matplotplusplus for WebRTC and websocket connections. Made by the Mars Rover Design Team."
+        } > /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/DEBIAN/control
 
-    # Download LibDataChannel
-    git clone --recurse-submodules --depth 1 --branch ${MATPLOT_VERSION} https://github.com/alandefreitas/matplotplusplus.git matplotplusplus
-    mkdir matplotplusplus/build
-    cd matplotplusplus/build
+        # Download LibDataChannel
+        git clone --recurse-submodules --depth 1 --branch ${MATPLOT_VERSION} https://github.com/alandefreitas/matplotplusplus.git matplotplusplus
+        mkdir matplotplusplus/build
+        cd matplotplusplus/build
 
-    # Build LibDataChannel
-    cmake \
-    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/usr/local \
-    -D CMAKE_BUILD_TYPE=Release ..
+        # Build LibDataChannel
+        cmake \
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64/usr/local \
+        -D CMAKE_BUILD_TYPE=Release ..
 
-    # Install LibDataChannel
-    make
-    make install
+        # Install LibDataChannel
+        make
+        make install
 
-    # Cleanup Install
-    cd ../..
-    rm -rf matplotplusplus
+        # Cleanup Install
+        cd ../..
+        rm -rf matplotplusplus
 
-    # Create Package
-    dpkg --build /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64
+        # Create Package
+        dpkg --build /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
+        # Create Package Directory
+        mkdir -p /tmp/pkg/deb
 
-    # Copy Package
-    cp /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64.deb /tmp/pkg/deb/matplotplusplus_${MATPLOT_VERSION}_arm64.deb
+        # Copy Package
+        cp /tmp/pkg/matplotplusplus_${MATPLOT_VERSION}_arm64.deb /tmp/pkg/deb/matplotplusplus_${MATPLOT_VERSION}_arm64.deb
+    fi
 fi
