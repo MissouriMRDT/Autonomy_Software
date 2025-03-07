@@ -141,8 +141,8 @@ int main()
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger,
-                            "Autonomy_Software is running in SIM mode! If you aren't currently using the WeBots sim, disable SIM mode in CMakeLists.txt or in your build "
-                            "arguments!");
+                            "Autonomy_Software is running in SIM mode! If you aren't currently using the Unreal RoveSoSimulator sim, disable SIM mode in CMakeLists.txt "
+                            "or in your build arguments!");
             }
 
             // Sleep for 3 seconds to make sure it's seen.

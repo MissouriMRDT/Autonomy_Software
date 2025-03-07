@@ -58,33 +58,65 @@ TagDetectionHandler::TagDetectionHandler()
                                              false);
 
     // Check if tensorflow detection is enabled for main ZEDCam.
-    if (constants::TAGDETECT_MAINCAM_ENABLE_DNN)
+    if (constants::TAGDETECT_MAINCAM_ENABLE_TF)
     {
         // Attempt to init tensorflow detection.
-        if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_MODEL_PATH))
+        if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_TF_MODEL))
         {
             // Set tensorflow detection enabled.
             m_pTagDetectorMainCam->EnableTensorflowDetection(constants::TAGDETECT_MAINCAM_DNN_CONFIDENCE, constants::TAGDETECT_MAINCAM_DNN_NMS_THRESH);
         }
     }
+    // Check if torch detection is enabled for main ZEDCam.
+    if (constants::TAGDETECT_MAINCAM_ENABLE_TORCH)
+    {
+        // Attempt to init torch detection.
+        if (m_pTagDetectorMainCam->InitTorchDetection(constants::TAGDETECT_MAINCAM_TORCH_MODEL))
+        {
+            // Set torch detection enabled.
+            m_pTagDetectorMainCam->EnableTorchDetection(constants::TAGDETECT_MAINCAM_TORCH_CONFIDENCE, constants::TAGDETECT_MAINCAM_TORCH_NMS_THRESH);
+        }
+    }
+
     // Check if tensorflow detection is enabled for left BasicCam.
-    if (constants::TAGDETECT_LEFTCAM_ENABLE_DNN)
+    if (constants::TAGDETECT_LEFTCAM_ENABLE_TF)
     {
         // Attempt to init tensorflow detection.
-        if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_MODEL_PATH))
+        if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_TF_MODEL))
         {
             // Set tensorflow detection enabled.
             m_pTagDetectorLeftCam->EnableTensorflowDetection(constants::TAGDETECT_LEFTCAM_DNN_CONFIDENCE, constants::TAGDETECT_LEFTCAM_DNN_NMS_THRESH);
         }
     }
+    // Check if torch detection is enabled for left BasicCam.
+    if (constants::TAGDETECT_LEFTCAM_ENABLE_TORCH)
+    {
+        // Attempt to init torch detection.
+        if (m_pTagDetectorLeftCam->InitTorchDetection(constants::TAGDETECT_LEFTCAM_TORCH_MODEL))
+        {
+            // Set torch detection enabled.
+            m_pTagDetectorLeftCam->EnableTorchDetection(constants::TAGDETECT_LEFTCAM_TORCH_CONFIDENCE, constants::TAGDETECT_LEFTCAM_TORCH_NMS_THRESH);
+        }
+    }
+
     // Check if tensorflow detection is enabled for right BasicCam.
-    if (constants::TAGDETECT_RIGHTCAM_ENABLE_DNN)
+    if (constants::TAGDETECT_RIGHTCAM_ENABLE_TF)
     {
         // Attempt to init tensorflow detection.
-        if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_MODEL_PATH))
+        if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_TF_MODEL))
         {
             // Set tensorflow detection enabled.
             m_pTagDetectorRightCam->EnableTensorflowDetection(constants::TAGDETECT_RIGHTCAM_DNN_CONFIDENCE, constants::TAGDETECT_RIGHTCAM_DNN_NMS_THRESH);
+        }
+    }
+    // Check if torch detection is enabled for right BasicCam.
+    if (constants::TAGDETECT_RIGHTCAM_ENABLE_TORCH)
+    {
+        // Attempt to init torch detection.
+        if (m_pTagDetectorRightCam->InitTorchDetection(constants::TAGDETECT_RIGHTCAM_TORCH_MODEL))
+        {
+            // Set torch detection enabled.
+            m_pTagDetectorRightCam->EnableTorchDetection(constants::TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE, constants::TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH);
         }
     }
 

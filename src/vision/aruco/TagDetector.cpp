@@ -704,6 +704,49 @@ void TagDetector::DisableTensorflowDetection()
 }
 
 /******************************************************************************
+ * @brief Turn on torch detection with given parameters.
+ *
+ * @param fMinObjectConfidence - The lower limit of detection confidence.
+ * @param fNMSThreshold - The overlap thresh for NMS algorithm.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-06
+ ******************************************************************************/
+void TagDetector::EnableTorchDetection(const float fMinObjectConfidence, const float fNMSThreshold)
+{
+    // Update member variables.
+    m_fTorchMinObjectConfidence = fMinObjectConfidence;
+    m_fTorchNMSThreshold        = fNMSThreshold;
+
+    // Check if torch model has been initialized.
+    if (m_bTorchInitialized)
+    {
+        // Update member variable.
+        m_bTorchEnabled = true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Tried to enable torch detection for TagDetector but it has not been initialized yet!");
+        // Update member variable.
+        m_bTorchEnabled = false;
+    }
+}
+
+/******************************************************************************
+ * @brief Set flag to stop tag detection with the torch model.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-06
+ ******************************************************************************/
+void TagDetector::DisableTorchDetection()
+{
+    // Update member variables.
+    m_bTorchEnabled = false;
+}
+
+/******************************************************************************
  * @brief Updates the detected aruco tags including forgetting tags that haven't been seen for long enough.
  *      If a new tag is spotted: add it to the detected tags vector
  *      If a tag has been spotted again: update the tags distance and angle
