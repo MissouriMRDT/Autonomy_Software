@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libvtk9-qt-dev libusb-1.0-0-dev \
     libboost-all-dev libflann-dev libvtk9-dev libqhull-dev libopenni2-dev qtchooser qt5-qmake qtbase5-dev-tools \
-    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libcjson-dev libopenni-dev
+    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libopenni-dev libcjson-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
