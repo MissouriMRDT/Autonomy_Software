@@ -276,7 +276,6 @@ jobs:
         id: check_ffmpeg
         run: |
           SCRIPT_PATH="tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh"
-          PACKAGE_GLOB="/tmp/pkg/deb/ffmpeg*amd64*.deb"
 
           # If the script is missing, mark for rebuild.
           if [ ! -f "$SCRIPT_PATH" ]; then
@@ -288,13 +287,13 @@ jobs:
               echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
               echo "ffmpeg script has changed – marking for rebuild."
             else
-              # Also check if the package already exists.
-              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
+              # Execute the script with the --check flag.
+              if ! bash "$SCRIPT_PATH" --check; then
                 echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
-                echo "ffmpeg package not found – marking for rebuild."
+                echo "ffmpeg check failed – marking for rebuild."
               else
                 echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
-                echo "ffmpeg package exists and script is unchanged."
+                echo "ffmpeg check passed – no rebuild needed."
               fi
             fi
           fi
@@ -304,7 +303,6 @@ jobs:
         id: check_opencv
         run: |
           SCRIPT_PATH="tools/package-builders/opencv/opencv-amd64-pkg.sh"
-          PACKAGE_GLOB="/tmp/pkg/deb/opencv*amd64*.deb"
 
           if [ ! -f "$SCRIPT_PATH" ]; then
             echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
@@ -314,12 +312,13 @@ jobs:
               echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
               echo "opencv script has changed – marking for rebuild."
             else
-              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
-                echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
-                echo "opencv package not found – marking for rebuild."
+              # Execute the script with the --check flag.
+              if ! bash "$SCRIPT_PATH" --check; then
+                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
+                echo "ffmpeg check failed – marking for rebuild."
               else
-                echo "OPENCV_NEEDS_REBUILD=false" >> $GITHUB_ENV
-                echo "opencv package exists and script is unchanged."
+                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
+                echo "ffmpeg check passed – no rebuild needed."
               fi
             fi
           fi
@@ -664,7 +663,6 @@ jobs:
         id: check_ffmpeg_arm64
         run: |
           SCRIPT_PATH="tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh"
-          PACKAGE_GLOB="/tmp/pkg/deb/ffmpeg*arm64*.deb"
 
           if [ ! -f "$SCRIPT_PATH" ]; then
             echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
@@ -674,12 +672,13 @@ jobs:
               echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
               echo "ffmpeg-arm64 script has changed – marking for rebuild."
             else
-              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
-                echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
-                echo "ffmpeg-arm64 package not found – marking for rebuild."
+              # Execute the script with the --check flag.
+              if ! bash "$SCRIPT_PATH" --check; then
+                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
+                echo "ffmpeg check failed – marking for rebuild."
               else
-                echo "FFMPEG_NEEDS_REBUILD_ARM64=false" >> $GITHUB_ENV
-                echo "ffmpeg-arm64 package exists and script is unchanged."
+                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
+                echo "ffmpeg check passed – no rebuild needed."
               fi
             fi
           fi
@@ -689,7 +688,6 @@ jobs:
         id: check_opencv_arm64
         run: |
           SCRIPT_PATH="tools/package-builders/opencv/opencv-arm64-pkg.sh"
-          PACKAGE_GLOB="/tmp/pkg/deb/opencv*arm64*.deb"
 
           if [ ! -f "$SCRIPT_PATH" ]; then
             echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
@@ -699,12 +697,13 @@ jobs:
               echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
               echo "opencv-arm64 script has changed – marking for rebuild."
             else
-              if ! ls $PACKAGE_GLOB 1> /dev/null 2>&1; then
-                echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
-                echo "opencv-arm64 package not found – marking for rebuild."
+              # Execute the script with the --check flag.
+              if ! bash "$SCRIPT_PATH" --check; then
+                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
+                echo "ffmpeg check failed – marking for rebuild."
               else
-                echo "OPENCV_NEEDS_REBUILD_ARM64=false" >> $GITHUB_ENV
-                echo "opencv-arm64 package exists and script is unchanged."
+                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
+                echo "ffmpeg check passed – no rebuild needed."
               fi
             fi
           fi

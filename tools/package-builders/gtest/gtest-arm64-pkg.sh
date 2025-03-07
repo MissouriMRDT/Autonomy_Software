@@ -9,6 +9,7 @@ GTEST_VERSION="1.16.0"
 # Build Arguments
 FORCE_BUILD=false
 DOWNLOAD_LATEST=false
+CHECK_PACKAGE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --download-latest|-d)
             DOWNLOAD_LATEST=true
+            shift
+            ;;
+        --check|-c)
+            CHECK_PACKAGE=true
             shift
             ;;
         *)
@@ -54,51 +59,57 @@ if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fa
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
     exit 0
 else
-    echo "Package version ${GTEST_VERSION} does not exist in the repository. Building the package."
-    echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
-    
-    # Delete Old Packages
-    rm -rf /tmp/pkg
-    rm -rf /tmp/googletest
+    if [[ "$CHECK_PACKAGE" == true ]]; then
+        echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        exit 1
+    else
+        echo "Package version ${GTEST_VERSION} does not exist in the repository. Building the package."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        
+        # Delete Old Packages
+        rm -rf /tmp/pkg
+        rm -rf /tmp/googletest
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local
-    mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN
+        # Create Package Directory
+        mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local
+        mkdir -p /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN
 
-    # Create Control File
-    {
-        echo "Package: googletest-mrdt"
-        echo "Version: ${GTEST_VERSION}"
-        echo "Maintainer: Google"
-        echo "Depends:"
-        echo "Architecture: arm64"
-        echo "Homepage: https://google.github.io/googletest/"
-        echo "Description: A prebuilt version of Google Test. Made by the Mars Rover Design Team."
-    } > /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
+        # Create Control File
+        {
+            echo "Package: googletest-mrdt"
+            echo "Version: ${GTEST_VERSION}"
+            echo "Maintainer: Google"
+            echo "Depends:"
+            echo "Architecture: arm64"
+            echo "Homepage: https://google.github.io/googletest/"
+            echo "Description: A prebuilt version of Google Test. Made by the Mars Rover Design Team."
+        } > /tmp/pkg/gtest_${GTEST_VERSION}_arm64/DEBIAN/control
 
-    # Download Google Test
-    git clone --depth 1 --branch v${GTEST_VERSION} https://github.com/google/googletest.git
-    mkdir googletest/build
-    cd googletest/build
+        # Download Google Test
+        git clone --depth 1 --branch v${GTEST_VERSION} https://github.com/google/googletest.git
+        mkdir googletest/build
+        cd googletest/build
 
-    # Build Google Test
-    cmake \
-    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local ..
+        # Build Google Test
+        cmake \
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local ..
 
-    # Install Google Test
-    make
-    make install
+        # Install Google Test
+        make
+        make install
 
-    # Cleanup Install
-    cd ../..
-    rm -rf googletest
+        # Cleanup Install
+        cd ../..
+        rm -rf googletest
 
-    # Create Package
-    dpkg --build /tmp/pkg/gtest_${GTEST_VERSION}_arm64
+        # Create Package
+        dpkg --build /tmp/pkg/gtest_${GTEST_VERSION}_arm64
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
+        # Create Package Directory
+        mkdir -p /tmp/pkg/deb
 
-    # Copy Package
-    cp /tmp/pkg/gtest_${GTEST_VERSION}_arm64.deb /tmp/pkg/deb/gtest_${GTEST_VERSION}_arm64.deb
+        # Copy Package
+        cp /tmp/pkg/gtest_${GTEST_VERSION}_arm64.deb /tmp/pkg/deb/gtest_${GTEST_VERSION}_arm64.deb
+    fi
 fi
