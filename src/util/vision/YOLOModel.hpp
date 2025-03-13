@@ -698,26 +698,6 @@ namespace yolomodel
     namespace pytorch
     {
         /******************************************************************************
-         * @brief This struct is used to store the dimensions of an input tensor for a
-         *      yolo model.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-06
-         ******************************************************************************/
-        struct InputTensorDimensions
-        {
-            public:
-                /////////////////////////////////////////
-                // Define public struct attributes.
-                /////////////////////////////////////////
-
-                int nHeight;      // The height of the input image.
-                int nWidth;       // The width of the input image.
-                int nChannels;    // The number of channels of the input image.
-        };
-
-        /******************************************************************************
          * @brief This struct is used to store the dimensions of an output tensor for a
          *      yolo model.
          *
@@ -778,6 +758,9 @@ namespace yolomodel
                         case HardwareDevices::eCUDA: m_trDevice = torch::kCUDA; break;
                         default: m_trDevice = torch::kCPU; break;
                     }
+
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "Attempting to load model {} onto device {}", szModelPath, m_trDevice.str());
 
                     // Check if the model path is valid.
                     if (!std::filesystem::exists(szModelPath))
@@ -868,51 +851,37 @@ namespace yolomodel
                  ******************************************************************************/
                 std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6)
                 {
+                    // Force single-threaded execution (if acceptable for your workload)
+                    torch::set_num_threads(1);
                     // Create instance variables.
                     std::vector<Detection> vObjects;
 
-                    // Convert the input frame to a tensor.
-                    torch::Tensor m_trTensorImage = torch::from_blob(cvInputFrame.data, {1, cvInputFrame.rows, cvInputFrame.cols, 3}, torch::kByte);
-                    m_trTensorImage               = m_trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
-                    m_trTensorImage               = m_trTensorImage.to(torch::kFloat) / 255.0;
+                    // Preprocess the given image and pack int into an image.
+                    torch::Tensor trTensorImage = PreprocessImage(cvInputFrame, m_trDevice);
 
-                    // Run inference.
-                    c10::intrusive_ptr<c10::ivalue::Tuple> pOutput = m_trModel.forward({m_trTensorImage}).toTuple();
-
-                    // Parse the output.
-                    const at::Tensor trOutputTensor = pOutput->elements()[0].toTensor();
-
-                    for (int i = 0; i < trOutputTensor.size(0); ++i)
+                    // Perform inference.
+                    std::vector<torch::jit::IValue> vInputs;
+                    vInputs.push_back(trTensorImage);
+                    torch::Tensor trOutputTensor;
+                    try
                     {
-                        float fConfidence = trOutputTensor[i][4].item<float>();
-                        if (fConfidence >= fMinObjectConfidence)
-                        {
-                            Detection stDetection;
-                            stDetection.nClassID      = trOutputTensor[i][5].item<int>();
-                            stDetection.fConfidence   = fConfidence;
-                            stDetection.cvBoundingBox = cv::Rect(trOutputTensor[i][0].item<int>(),
-                                                                 trOutputTensor[i][1].item<int>(),
-                                                                 trOutputTensor[i][2].item<int>() - trOutputTensor[i][0].item<int>(),
-                                                                 trOutputTensor[i][3].item<int>() - trOutputTensor[i][1].item<int>());
-                            vObjects.push_back(stDetection);
-                        }
+                        trOutputTensor = m_trModel.forward(vInputs).toTensor();
+                    }
+                    catch (const c10::Error& trError)
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "Error running inference: {}", trError.what());
+                        return vObjects;
                     }
 
-                    // Create separate vectors for storing class confidences, bounding boxes, and classIDs.
+                    std::cout << "Output tensor shape: " << trOutputTensor.sizes() << std::endl;
+                    // Make tensor contiguous.
+                    trOutputTensor = trOutputTensor.contiguous();
+
+                    // Parse the output tensor.
                     std::vector<int> vClassIDs;
                     std::vector<float> vClassConfidences;
                     std::vector<cv::Rect> vBoundingBoxes;
-
-                    // Fill vClassIDs, vClassConfidences, and vBoundingBoxes with the appropriate data from detections.
-                    for (const Detection& stDetection : vObjects)
-                    {
-                        vClassIDs.push_back(stDetection.nClassID);
-                        vClassConfidences.push_back(stDetection.fConfidence);
-                        vBoundingBoxes.push_back(stDetection.cvBoundingBox);
-                    }
-
-                    // Clear vObjects before refilling it with valid detections.
-                    vObjects.clear();
+                    this->ParseTensorOutputYOLOv8(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
 
                     // Perform NMS to filter out bad/duplicate detections.
                     NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
@@ -932,6 +901,111 @@ namespace yolomodel
                 bool IsReadyForInference() const { return m_bReady; }
 
             private:
+                /////////////////////////////////////////
+                // Declare private methods.
+                /////////////////////////////////////////
+
+                /******************************************************************************
+                 * @brief Given an input image, preprocess the image to match the input tensor shape
+                 *      of the model, then return the preprocessed image as a tensor.
+                 *
+                 * @param cvInputFrame - The input image to preprocess.
+                 * @param trDevice - The device to run the model on.
+                 * @return torch::Tensor - The preprocessed image as a tensor.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-03-08
+                 ******************************************************************************/
+                torch::Tensor PreprocessImage(const cv::Mat& cvInputFrame, const torch::Device& trDevice)
+                {
+                    // Resize the input image to math model and normalize it to 0-1.
+                    cv::Mat cvResizedImage;
+                    cv::resize(cvInputFrame, cvResizedImage, cv::Size(640, 640), cv::INTER_LINEAR);
+                    cvResizedImage.convertTo(cvResizedImage, CV_32FC3, 1.0 / 255.0);
+
+                    // Convert OpenCV mat to a tensor.
+                    torch::Tensor trTensorImage = torch::from_blob(cvResizedImage.data, {1, cvResizedImage.rows, cvResizedImage.cols, 3}, torch::kFloat);
+                    trTensorImage               = trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
+                    trTensorImage               = trTensorImage.to(trDevice);
+
+                    return trTensorImage;
+                }
+
+                /******************************************************************************
+                 * @brief Given a tensor output from a YOLOv5 model, parse it's output into something more usable.
+                 *
+                 * @param trOutput - A reference to the output tensor from the model.
+                 * @param vClassIDs - A reference to a vector that will be filled with class IDs for each prediction. The class ID of a prediction will be choosen
+                 *             by the highest class confidence for that prediction.
+                 * @param vClassConfidences - A reference to a vector that will be filled with the highest class confidence for that prediction.
+                 * @param vBoundingBoxes - A reference to a vector that will be filled with cv::Rect bounding box for each prediction.
+                 * @param cvInputFrameSize - The size of the original input frame before resizing. This is used to scale the bounding box back to the original size.
+                 * @param fMinObjectConfidence - The minimum confidence required for an object to be considered a valid detection.
+                 *
+                 * @note For YOLOv8, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
+                 *       of 80x80, 40x40, 20x20. Each grid point has 1 anchor, and each anchor contains a vector 4 + nc long, where nc is the number
+                 *       of classes the model has. So for a 640 image, the output tensor will be [1, 84, 8400] (80 classes). Notice how the larger dimensions is swapped
+                 *       when compared to YOLOv8.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-03-08
+                 ******************************************************************************/
+                void ParseTensorOutputYOLOv8(const torch::Tensor& trOutput,
+                                             std::vector<int>& vClassIDs,
+                                             std::vector<float>& vClassConfidences,
+                                             std::vector<cv::Rect>& vBoundingBoxes,
+                                             const cv::Size& cvInputFrameSize,
+                                             const float fMinObjectConfidence)
+                {
+                    /*
+                     * Permute the output tensor shape to match the expected format of the model. If the model is YOLOv8, the output
+                     * shape for a 640x640 image will be [1, 4 + nc, 8400] (nc = number of classes). Notice how the larger dimensions is swapped
+                     * when compared to YOLOv5. We will permute the tensor to [1, 8400, 4 + nc] to make it easier to parse. Then squeeze the
+                     * tensor to remove the batch dimension so the final shape will be [8400, 4 + nc]. Thanks pytorch for being cool with the
+                     * permute function.
+                     */
+                    torch::Tensor trPermuteOutput = trOutput.permute({0, 2, 1}).squeeze(0);
+
+                    // Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
+                    for (int nIter = 0; nIter < trPermuteOutput.size(0); nIter++)
+                    {
+                        // First things first, lets find the class with the highest confidence.
+                        torch::Tensor trClassConfidences                              = trPermuteOutput[nIter].slice(0, 4, trPermuteOutput.size(1));
+                        std::tuple<torch::Tensor, torch::Tensor> trMaxConfidenceTuple = torch::max(trClassConfidences, 0);
+                        torch::Tensor trMaxConfidence                                 = std::get<0>(trMaxConfidenceTuple);
+                        torch::Tensor trMaxIndices                                    = std::get<1>(trMaxConfidenceTuple);
+                        float fClassConfidence                                        = trMaxConfidence.item<float>();
+                        int nClassID                                                  = trMaxIndices.item<int>();
+
+                        // Check if the class confidence meets the minimum object confidence.
+                        if (fClassConfidence >= fMinObjectConfidence)
+                        {
+                            continue;
+                        }
+
+                        // Get the bounding box data.
+                        torch::Tensor trBoundingBox = trPermuteOutput[nIter].slice(0, 0, 4);
+                        int nCenterX                = trBoundingBox[0].item<int>();
+                        int nCenterY                = trBoundingBox[1].item<int>();
+                        int nWidth                  = trBoundingBox[2].item<int>();
+                        int nHeight                 = trBoundingBox[3].item<int>();
+
+                        // Scale bounding box to match original input image size.
+                        cv::Rect cvBoundingBox;
+                        cvBoundingBox.x      = int(nCenterX * cvInputFrameSize.width / 640 -
+                                              (0.5 * nWidth * cvInputFrameSize.width / 640));      // Rect.x is the top-left corner not center point.
+                        cvBoundingBox.y      = int(nCenterY * cvInputFrameSize.height / 640 -
+                                              (0.5 * nHeight * cvInputFrameSize.height / 640));    // Rect.y is the top-left corner not center point.
+                        cvBoundingBox.width  = nWidth * cvInputFrameSize.width / 640;
+                        cvBoundingBox.height = nHeight * cvInputFrameSize.height / 640;
+
+                        // Add data to vectors.
+                        vClassIDs.emplace_back(nClassID);
+                        vClassConfidences.emplace_back(fClassConfidence);
+                        vBoundingBoxes.emplace_back(cvBoundingBox);
+                    }
+                }
+
                 /////////////////////////////////////////
                 // Declare private member variables.
                 /////////////////////////////////////////

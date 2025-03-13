@@ -4,8 +4,8 @@
 cd /tmp
 
 # Install Variables
-TORCH_VERSION="2.2.2"
-TORCH_CUDA_VERSION="cu121"
+TORCH_VERSION="2.6.0"
+TORCH_CUDA_VERSION="cu124"
 
 # Build Arguments
 FORCE_BUILD=false
