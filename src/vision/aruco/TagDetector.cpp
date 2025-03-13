@@ -178,7 +178,8 @@ void TagDetector::ThreadedContinuousCode()
 
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
-                             "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
+                             "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted! "
+                             "This tag detector will now stop.",
                              dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraSerial());
             }
         }
@@ -624,10 +625,10 @@ bool TagDetector::InitTensorflowDetection(const std::string& szModelPath, yolomo
  * @brief Attempt to open the next available Torch hardware and load model at the given
  *      path onto the device.
  *
- * @param szModelPath -
- * @param eDevice -
- * @return true -
- * @return false -
+ * @param szModelPath - The absolute path to the model to open.
+ * @param eDevice - The hardware device to launch the Torch model on.
+ * @return true - Model was opened and loaded successfully onto the Torch device.
+ * @return false - Something went wrong, model/device not opened.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-03-06
