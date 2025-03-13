@@ -17,6 +17,7 @@
 #include "../../interfaces/TensorflowTPU.hpp"
 
 /// \cond
+#include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
 #include <torch/script.h>
 #include <torch/torch.h>
@@ -698,26 +699,6 @@ namespace yolomodel
     namespace pytorch
     {
         /******************************************************************************
-         * @brief This struct is used to store the dimensions of an output tensor for a
-         *      yolo model.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-06
-         ******************************************************************************/
-        struct OutputTensorDimensions
-        {
-            public:
-                /////////////////////////////////////////
-                // Define public struct attributes.
-                /////////////////////////////////////////
-
-                int nAnchors;                      // Determined from the trained image size of the model.
-                int nObjectnessLocationClasses;    // The number of data points of each anchor. Each anchor contains a vector 5+nc (YOLOv5) or 4+nc (YOLOv8) long, where
-                                                   // nc is the number of classes The model has.
-        };
-
-        /******************************************************************************
          * @brief This class is designed to enable quick, easy, and robust inferencing of .pt
          *      yolo model.
          *
@@ -787,8 +768,18 @@ namespace yolomodel
                     try
                     {
                         // Load the model and set it to eval mode.
-                        m_trModel = torch::jit::load(szModelPath, m_trDevice);
+                        torch::jit::ExtraFilesMap trExtraConfigFiles{{"config.txt", ""}};
+                        m_trModel = torch::jit::load(szModelPath, m_trDevice, trExtraConfigFiles);
                         m_trModel.eval();
+
+                        std::cout << trExtraConfigFiles.at("config.txt") << std::endl;
+
+                        // Use nlohmann json to parse the config file.
+                        nlohmann::json jConfig = nlohmann::json::parse(trExtraConfigFiles.at("config.txt"));
+                        // Get the input image size for the model.
+                        m_cvModelInputSize = cv::Size(jConfig["imgsz"][0], jConfig["imgsz"][1]);
+                        m_szModelTask      = jConfig["task"];
+                        m_vClassLabels     = jConfig["names"].get<std::vector<std::string>>();
 
                         // Check if the model is empty.
                         if (m_trModel.get_methods().empty())
@@ -813,7 +804,12 @@ namespace yolomodel
                         }
 
                         // Model is ready for inference.
-                        LOG_INFO(logging::g_qSharedLogger, "Model successfully loaded and set to eval mode.");
+                        LOG_INFO(logging::g_qSharedLogger,
+                                 "Model successfully loaded and set to eval mode. The model is a {} model, and has {} classes.",
+                                 m_szModelTask,
+                                 m_vClassLabels.size());
+
+                        // Set flag saying we are ready for inference.
                         m_bReady = true;
                     }
                     catch (const c10::Error& trError)
@@ -873,15 +869,39 @@ namespace yolomodel
                         return vObjects;
                     }
 
-                    std::cout << "Output tensor shape: " << trOutputTensor.sizes() << std::endl;
-                    // Make tensor contiguous.
-                    trOutputTensor = trOutputTensor.contiguous();
+                    // std::cout << "Output tensor shape: " << trOutputTensor.sizes() << std::endl;
+
+                    // Calculate the general stride sizes for YOLO based on input tensor shape.
+                    int nImgSize  = m_cvModelInputSize.height;
+                    int nP3Stride = std::pow((nImgSize / 8), 2);
+                    int nP4Stride = std::pow((nImgSize / 16), 2);
+                    int nP5Stride = std::pow((nImgSize / 32), 2);
+                    // Calculate the proper prediction length for different YOLO versions.
+                    int nYOLOv5AnchorsPerGridPoint = 3;
+                    int nYOLOv8AnchorsPerGridPoint = 1;
+                    int nYOLOv5TotalPredictionLength =
+                        (nP3Stride * nYOLOv5AnchorsPerGridPoint) + (nP4Stride * nYOLOv5AnchorsPerGridPoint) + (nP5Stride * nYOLOv5AnchorsPerGridPoint);
+                    int nYOLOv8TotalPredictionLength =
+                        (nP3Stride * nYOLOv8AnchorsPerGridPoint) + (nP4Stride * nYOLOv8AnchorsPerGridPoint) + (nP5Stride * nYOLOv8AnchorsPerGridPoint);
 
                     // Parse the output tensor.
                     std::vector<int> vClassIDs;
                     std::vector<float> vClassConfidences;
                     std::vector<cv::Rect> vBoundingBoxes;
-                    this->ParseTensorOutputYOLOv8(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
+
+                    // Get the largest dimension of our output tensor.
+                    int nLargestDimension = *std::max_element(trOutputTensor.sizes().begin(), trOutputTensor.sizes().end());
+                    // Check if the output tensor is YOLOv5 format.
+                    if (nLargestDimension == nYOLOv5TotalPredictionLength)
+                    {
+                        // TODO: YOLOv5 parsing hasn't been written yet.
+                    }
+                    // Check if the output tensor is YOLOv8 format.
+                    else if (nLargestDimension == nYOLOv8TotalPredictionLength)
+                    {
+                        // Parse inferenced output from tensor.
+                        this->ParseTensorOutputYOLOv8(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
+                    }
 
                     // Perform NMS to filter out bad/duplicate detections.
                     NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
@@ -920,7 +940,7 @@ namespace yolomodel
                 {
                     // Resize the input image to math model and normalize it to 0-1.
                     cv::Mat cvResizedImage;
-                    cv::resize(cvInputFrame, cvResizedImage, cv::Size(640, 640), cv::INTER_LINEAR);
+                    cv::resize(cvInputFrame, cvResizedImage, cv::Size(m_cvModelInputSize.width, m_cvModelInputSize.height), cv::INTER_LINEAR);
                     cvResizedImage.convertTo(cvResizedImage, CV_32FC3, 1.0 / 255.0);
 
                     // Convert OpenCV mat to a tensor.
@@ -964,45 +984,71 @@ namespace yolomodel
                      * tensor to remove the batch dimension so the final shape will be [8400, 4 + nc]. Thanks pytorch for being cool with the
                      * permute function.
                      */
+                    // Permute the tensor shape from [1, 4 + nc, 8400] to [1, 8400, 4 + nc]
+                    // and then squeeze to remove the batch dimension, resulting in [8400, 4 + nc]
                     torch::Tensor trPermuteOutput = trOutput.permute({0, 2, 1}).squeeze(0);
 
-                    // Loop through each grid cell output of the model output and filter out objects that don't meet conf thresh.
-                    for (int nIter = 0; nIter < trPermuteOutput.size(0); nIter++)
+                    // Move tensor to CPU if necessary. If we're using GPU and we don't move the tensor to CPU, we will get an error and it will be slow.
+                    if (trPermuteOutput.device().is_cuda())
                     {
-                        // First things first, lets find the class with the highest confidence.
-                        torch::Tensor trClassConfidences                              = trPermuteOutput[nIter].slice(0, 4, trPermuteOutput.size(1));
-                        std::tuple<torch::Tensor, torch::Tensor> trMaxConfidenceTuple = torch::max(trClassConfidences, 0);
-                        torch::Tensor trMaxConfidence                                 = std::get<0>(trMaxConfidenceTuple);
-                        torch::Tensor trMaxIndices                                    = std::get<1>(trMaxConfidenceTuple);
-                        float fClassConfidence                                        = trMaxConfidence.item<float>();
-                        int nClassID                                                  = trMaxIndices.item<int>();
+                        trPermuteOutput = trPermuteOutput.to(torch::kCPU);
+                    }
+                    // Convert tensor to float if necessary.
+                    if (trPermuteOutput.scalar_type() != torch::kFloat32)
+                    {
+                        trPermuteOutput = trPermuteOutput.to(torch::kFloat32);
+                    }
+                    // Ensure tensor is contiguous in memory.
+                    if (!trPermuteOutput.is_contiguous())
+                    {
+                        trPermuteOutput = trPermuteOutput.contiguous();
+                    }
 
-                        // Check if the class confidence meets the minimum object confidence.
-                        if (fClassConfidence >= fMinObjectConfidence)
+                    // Create an accessor for fast element-wise access.
+                    at::TensorAccessor trAccessor = trPermuteOutput.accessor<float, 2>();
+                    const int nNumDetections      = trPermuteOutput.size(0);
+                    const int nTotalValues        = trPermuteOutput.size(1);    // equals 4 + number_of_classes
+
+                    // Loop through each detection.
+                    for (int i = 0; i < nNumDetections; i++)
+                    {
+                        float fClassConfidence = -1.0f;
+                        int nClassID           = -1;
+
+                        // Loop over class confidence values.
+                        for (int j = 4; j < nTotalValues; j++)
+                        {
+                            float fConfidence = trAccessor[i][j];
+                            if (fConfidence > fClassConfidence)
+                            {
+                                fClassConfidence = fConfidence;
+                                nClassID         = j - 4;
+                            }
+                        }
+
+                        // Only process detections that meet the minimum confidence.
+                        if (fClassConfidence < fMinObjectConfidence)
                         {
                             continue;
                         }
 
-                        // Get the bounding box data.
-                        torch::Tensor trBoundingBox = trPermuteOutput[nIter].slice(0, 0, 4);
-                        int nCenterX                = trBoundingBox[0].item<int>();
-                        int nCenterY                = trBoundingBox[1].item<int>();
-                        int nWidth                  = trBoundingBox[2].item<int>();
-                        int nHeight                 = trBoundingBox[3].item<int>();
+                        // Retrieve bounding box data.
+                        float fCenterX = trAccessor[i][0];
+                        float fCenterY = trAccessor[i][1];
+                        float fWidth   = trAccessor[i][2];
+                        float fHeight  = trAccessor[i][3];
 
-                        // Scale bounding box to match original input image size.
-                        cv::Rect cvBoundingBox;
-                        cvBoundingBox.x      = int(nCenterX * cvInputFrameSize.width / 640 -
-                                              (0.5 * nWidth * cvInputFrameSize.width / 640));      // Rect.x is the top-left corner not center point.
-                        cvBoundingBox.y      = int(nCenterY * cvInputFrameSize.height / 640 -
-                                              (0.5 * nHeight * cvInputFrameSize.height / 640));    // Rect.y is the top-left corner not center point.
-                        cvBoundingBox.width  = nWidth * cvInputFrameSize.width / 640;
-                        cvBoundingBox.height = nHeight * cvInputFrameSize.height / 640;
+                        // Scale bounding box to original image size.
+                        int nLeft      = static_cast<int>(fCenterX * cvInputFrameSize.width / 640.0f - (0.5f * fWidth * cvInputFrameSize.width / 640.0f));
+                        int nTop       = static_cast<int>(fCenterY * cvInputFrameSize.height / 640.0f - (0.5f * fHeight * cvInputFrameSize.height / 640.0f));
+                        int nBoxWidth  = static_cast<int>(fWidth * cvInputFrameSize.width / 640.0f);
+                        int nBoxHeight = static_cast<int>(fHeight * cvInputFrameSize.height / 640.0f);
+                        cv::Rect cvBoundingBox(nLeft, nTop, nBoxWidth, nBoxHeight);
 
-                        // Add data to vectors.
-                        vClassIDs.emplace_back(nClassID);
-                        vClassConfidences.emplace_back(fClassConfidence);
-                        vBoundingBoxes.emplace_back(cvBoundingBox);
+                        // Append results.
+                        vClassIDs.push_back(nClassID);
+                        vClassConfidences.push_back(fClassConfidence);
+                        vBoundingBoxes.push_back(cvBoundingBox);
                     }
                 }
 
@@ -1010,8 +1056,11 @@ namespace yolomodel
                 // Declare private member variables.
                 /////////////////////////////////////////
                 torch::jit::script::Module m_trModel;
-                torch::Device m_trDevice = torch::kCUDA;
-                bool m_bReady            = false;
+                torch::Device m_trDevice  = torch::kCUDA;
+                bool m_bReady             = false;
+                std::string m_szModelTask = "";
+                cv::Size m_cvModelInputSize;
+                std::vector<std::string> m_vClassLabels;
         };
     }    // namespace pytorch
 }    // namespace yolomodel
