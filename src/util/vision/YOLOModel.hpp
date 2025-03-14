@@ -878,8 +878,6 @@ namespace yolomodel
                         return vObjects;
                     }
 
-                    // std::cout << "Output tensor shape: " << trOutputTensor.sizes() << std::endl;
-
                     // Calculate the general stride sizes for YOLO based on input tensor shape.
                     int nImgSize  = m_cvModelInputSize.height;
                     int nP3Stride = std::pow((nImgSize / 8), 2);
