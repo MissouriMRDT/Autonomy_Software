@@ -48,9 +48,10 @@ namespace yolomodel
             // Define public struct attributes.
             /////////////////////////////////////////
 
-            int nClassID;              // The class index of the object. Dependent on class order when trained.
-            float fConfidence;         // The detection confidence of the object.
-            cv::Rect cvBoundingBox;    // An object used to access the dimensions and other properties of the objects bounding box.
+            int nClassID;               // The class index of the object. Dependent on class order when trained.
+            std::string szClassName;    // The class name of the object. This is dependent on the class names used when training.
+            float fConfidence;          // The detection confidence of the object.
+            cv::Rect cvBoundingBox;     // An object used to access the dimensions and other properties of the objects bounding box.
     };
 
     /******************************************************************************
@@ -732,6 +733,13 @@ namespace yolomodel
                  ******************************************************************************/
                 PyTorchInterpreter(std::string szModelPath, HardwareDevices eHardwareDevice = HardwareDevices::eCUDA)
                 {
+                    // Initialize member variables.
+                    m_szModelPath      = szModelPath;
+                    m_bReady           = false;
+                    m_cvModelInputSize = cv::Size(640, 640);
+                    m_szModelTask      = "Unknown";
+                    m_vClassLabels     = std::vector<std::string>();
+
                     // Translate the hardware device enum to a torch device.
                     switch (eHardwareDevice)
                     {
@@ -767,19 +775,20 @@ namespace yolomodel
                     // Finally, attempt to load the model.
                     try
                     {
-                        // Load the model and set it to eval mode.
+                        // Load the model and set it to eval mode for inference.
                         torch::jit::ExtraFilesMap trExtraConfigFiles{{"config.txt", ""}};
                         m_trModel = torch::jit::load(szModelPath, m_trDevice, trExtraConfigFiles);
                         m_trModel.eval();
-
-                        std::cout << trExtraConfigFiles.at("config.txt") << std::endl;
 
                         // Use nlohmann json to parse the config file.
                         nlohmann::json jConfig = nlohmann::json::parse(trExtraConfigFiles.at("config.txt"));
                         // Get the input image size for the model.
                         m_cvModelInputSize = cv::Size(jConfig["imgsz"][0], jConfig["imgsz"][1]);
                         m_szModelTask      = jConfig["task"];
-                        m_vClassLabels     = jConfig["names"].get<std::vector<std::string>>();
+                        for (const auto& item : jConfig["names"].items())
+                        {
+                            m_vClassLabels.push_back(item.value());
+                        }
 
                         // Check if the model is empty.
                         if (m_trModel.get_methods().empty())
@@ -886,6 +895,7 @@ namespace yolomodel
 
                     // Parse the output tensor.
                     std::vector<int> vClassIDs;
+                    std::vector<std::string> vClassLabels;
                     std::vector<float> vClassConfidences;
                     std::vector<cv::Rect> vBoundingBoxes;
 
@@ -894,7 +904,8 @@ namespace yolomodel
                     // Check if the output tensor is YOLOv5 format.
                     if (nLargestDimension == nYOLOv5TotalPredictionLength)
                     {
-                        // TODO: YOLOv5 parsing hasn't been written yet.
+                        // Parse inferenced output from tensor.
+                        this->ParseTensorOutputYOLOv5(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
                     }
                     // Check if the output tensor is YOLOv8 format.
                     else if (nLargestDimension == nYOLOv8TotalPredictionLength)
@@ -905,6 +916,20 @@ namespace yolomodel
 
                     // Perform NMS to filter out bad/duplicate detections.
                     NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
+
+                    // Loop through the final detections and set the class names for each detection based on the class ID.
+                    for (size_t nIter = 0; nIter < vObjects.size(); ++nIter)
+                    {
+                        // Check if the class ID is valid.
+                        if (vClassIDs[nIter] >= 0 && vClassIDs[nIter] < static_cast<int>(m_vClassLabels.size()))
+                        {
+                            vObjects[nIter].szClassName = m_vClassLabels[vClassIDs[nIter]];
+                        }
+                        else
+                        {
+                            vObjects[nIter].szClassName = "UnknownClass";
+                        }
+                    }
 
                     return vObjects;
                 }
@@ -938,7 +963,7 @@ namespace yolomodel
                  ******************************************************************************/
                 torch::Tensor PreprocessImage(const cv::Mat& cvInputFrame, const torch::Device& trDevice)
                 {
-                    // Resize the input image to math model and normalize it to 0-1.
+                    // Resize the input image to match model and normalize it to 0-1.
                     cv::Mat cvResizedImage;
                     cv::resize(cvInputFrame, cvResizedImage, cv::Size(m_cvModelInputSize.width, m_cvModelInputSize.height), cv::INTER_LINEAR);
                     cvResizedImage.convertTo(cvResizedImage, CV_32FC3, 1.0 / 255.0);
@@ -946,9 +971,112 @@ namespace yolomodel
                     // Convert OpenCV mat to a tensor.
                     torch::Tensor trTensorImage = torch::from_blob(cvResizedImage.data, {1, cvResizedImage.rows, cvResizedImage.cols, 3}, torch::kFloat);
                     trTensorImage               = trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
-                    trTensorImage               = trTensorImage.to(trDevice);
+                    trTensorImage               = trTensorImage.to(trDevice);             // Move tensor to the specified hardware device.
 
                     return trTensorImage;
+                }
+
+                /******************************************************************************
+                 * @brief Given a tensor output from a YOLOv5 model, parse it's output into something more usable.
+                 *
+                 * @param trOutput - A reference to the output tensor from the model. The tensor should be of shape [1, 25200, 85] for YOLOv5.
+                 * @param vClassIDs - A reference to a vector that will be filled with class IDs for each prediction. The class ID of a prediction will be chosen
+                 * @param vClassConfidences - A reference to a vector that will be filled with the highest class confidence for
+                 * @param vBoundingBoxes - A reference to a vector that will be filled with cv::Rect bounding box for each prediction.
+                 * @param cvInputFrameSize - The size of the original input frame. This is used to scale the bounding boxes back to the original image size.
+                 * @param fMinObjectConfidence - The minimum confidence for determining which predictions to keep. Predictions with a confidence below this value will be
+                 *discarded.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2025-03-13
+                 ******************************************************************************/
+                void ParseTensorOutputYOLOv5(const torch::Tensor& trOutput,
+                                             std::vector<int>& vClassIDs,
+                                             std::vector<float>& vClassConfidences,
+                                             std::vector<cv::Rect>& vBoundingBoxes,
+                                             const cv::Size& cvInputFrameSize,
+                                             const float fMinObjectConfidence)
+                {
+                    /*
+                     * For YOLOv5, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
+                     * of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (anchor box values: small, medium, large), and each anchor contains a vector 5 +
+                     * nc long, where nc is the number of classes the model has. So for a 640 image, the output tensor will be [1, 25200, 85]
+                     */
+                    // Squeeze the batch dimension from the output tensor.
+                    torch::Tensor trSqueezedOutput = trOutput.squeeze(0);
+
+                    // Move the tensor to CPU if necessary. If we're using GPU and we don't move the tensor to CPU, we will get an error and it will be slow.
+                    if (trSqueezedOutput.device().is_cuda())
+                    {
+                        trSqueezedOutput = trSqueezedOutput.to(torch::kCPU);
+                    }
+                    // Convert tensor to float if necessary.
+                    if (trSqueezedOutput.scalar_type() != torch::kFloat32)
+                    {
+                        trSqueezedOutput = trSqueezedOutput.to(torch::kFloat32);
+                    }
+                    // Ensure tensor is contiguous in memory.
+                    if (!trSqueezedOutput.is_contiguous())
+                    {
+                        trSqueezedOutput = trSqueezedOutput.contiguous();
+                    }
+
+                    // Create an accessor for fast element-wise access.
+                    at::TensorAccessor trAccessor = trSqueezedOutput.accessor<float, 2>();
+                    const int nNumDetections      = trSqueezedOutput.size(0);
+                    const int nTotalValues        = trSqueezedOutput.size(1);    // equals 5 + number_of_classes
+
+                    // Loop through each detection.
+                    for (int i = 0; i < nNumDetections; i++)
+                    {
+                        // Get the objectness confidence. This is the 5th value for each grid/anchor prediction. (4th index)
+                        float fObjectnessConfidence = trAccessor[i][4];
+
+                        // Check if the object confidence is greater than or equal to the threshold.
+                        if (fObjectnessConfidence < fMinObjectConfidence)
+                        {
+                            continue;
+                        }
+
+                        // Retrieve bounding box data.
+                        float fCenterX = trAccessor[i][0];
+                        float fCenterY = trAccessor[i][1];
+                        float fWidth   = trAccessor[i][2];
+                        float fHeight  = trAccessor[i][3];
+
+                        // Scale bounding box to original image size.
+                        int nLeft           = static_cast<int>((fCenterX - (0.5 * fWidth)) * cvInputFrameSize.width);
+                        int nTop            = static_cast<int>((fCenterY - (0.5 * fHeight)) * cvInputFrameSize.height);
+                        int nBoundingWidth  = static_cast<int>(fWidth * cvInputFrameSize.width);
+                        int nBoundingHeight = static_cast<int>(fHeight * cvInputFrameSize.height);
+
+                        // Repackaged bounding box data to be more readable.
+                        cv::Rect cvBoundingBox(nLeft, nTop, nBoundingWidth, nBoundingHeight);
+
+                        // Loop over class confidence values and find the class ID with the highest confidence.
+                        float fClassConfidence = -1.0f;
+                        int nClassID           = -1;
+                        for (int j = 5; j < nTotalValues; j++)
+                        {
+                            float fConfidence = trAccessor[i][j];
+                            if (fConfidence > fClassConfidence)
+                            {
+                                fClassConfidence = fConfidence;
+                                nClassID         = j - 5;
+                            }
+                        }
+
+                        // Only process detections that meet the minimum confidence.
+                        if (fClassConfidence < fMinObjectConfidence)
+                        {
+                            continue;
+                        }
+
+                        // Add data to vectors.
+                        vClassIDs.emplace_back(nClassID);
+                        vClassConfidences.emplace_back(fClassConfidence);
+                        vBoundingBoxes.emplace_back(cvBoundingBox);
+                    }
                 }
 
                 /******************************************************************************
@@ -1056,9 +1184,10 @@ namespace yolomodel
                 // Declare private member variables.
                 /////////////////////////////////////////
                 torch::jit::script::Module m_trModel;
-                torch::Device m_trDevice  = torch::kCUDA;
-                bool m_bReady             = false;
-                std::string m_szModelTask = "";
+                torch::Device m_trDevice = torch::kCPU;
+                std::string m_szModelPath;
+                bool m_bReady;
+                std::string m_szModelTask;
                 cv::Size m_cvModelInputSize;
                 std::vector<std::string> m_vClassLabels;
         };
