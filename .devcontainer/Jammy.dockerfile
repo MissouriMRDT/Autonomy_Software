@@ -1,19 +1,17 @@
 # Image Variables
 ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="12"
-ARG CUDA_MINOR="2"
-ARG CUDA_PATCH="2"
-ARG CUDNN_VERSION="8"
+ARG CUDA_MINOR="6"
+ARG CUDA_PATCH="3"
 
 # Base Image
-FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn${CUDNN_VERSION}-devel-ubuntu${UBUNTU_MAJOR}.04
+FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn-devel-ubuntu${UBUNTU_MAJOR}.04
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="12"
-ARG CUDA_MINOR="2"
-ARG CUDA_PATCH="2"
-ARG CUDNN_VERSION="8"
+ARG CUDA_MINOR="6"
+ARG CUDA_PATCH="3"
 
 # Set Non-Interactive Mode
 ARG DEBIAN_FRONTEND=noninteractive
@@ -106,7 +104,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.2.2"
+ARG TORCH_VERSION="2.6.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
@@ -124,19 +122,19 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/am
     rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
 # Install Abseil.
-ARG ABSEIL_VERSION="20230802.1"
+ARG ABSEIL_VERSION="20250127.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
     dpkg -i abseil_${ABSEIL_VERSION}_amd64.deb && \
     rm abseil_${ABSEIL_VERSION}_amd64.deb
 
 # Install GeographicLib
-ARG GEOLIB_VERSION="2.3"
+ARG GEOLIB_VERSION="2.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/amd64/geolib_${GEOLIB_VERSION}_amd64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22"
+ARG LIBDATACHANNEL_VERSION="0.22.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
@@ -154,7 +152,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64
     rm pcl_${PCL_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="8.1.0"
+ARG QUILL_VERSION="8.2.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb

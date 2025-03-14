@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "TagDetector.h"
+#include "../../util/vision/BoundingBoxTracking.hpp"
 #include "../../util/vision/ImageOperations.hpp"
 
 /******************************************************************************

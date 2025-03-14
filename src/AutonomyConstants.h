@@ -261,7 +261,7 @@ namespace constants
     const float TAGDETECT_MAINCAM_DNN_CONFIDENCE    = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_DNN_NMS_THRESH    = 0.4f;    // The threshold for non-max suppression filtering.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH       = true;    // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v5n_x640_175epochs/best.torchscript";    // The model path to use for detection.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.torchscript";    // The model path to use for detection.
     const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
@@ -279,8 +279,8 @@ namespace constants
     const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH    = 0.4f;     // The threshold for non-max suppression filtering.
     const bool TAGDETECT_LEFTCAM_ENABLE_TORCH       = false;    // Whether or not to use pytorch detection on top of ArUco.
     const std::string TAGDETECT_LEFTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
-    const bool TAGDETECT_LEFTCAM_TORCH_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const bool TAGDETECT_LEFTCAM_TORCH_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
+    const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -296,8 +296,8 @@ namespace constants
     const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH    = 0.4f;     // The threshold for non-max suppression filtering.
     const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH       = false;    // Whether or not to use pytorch detection on top of ArUco.
     const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
-    const bool TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const bool TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
+    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
