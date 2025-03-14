@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-ABSEIL_VERSION="20230802.1"
+ABSEIL_VERSION="20250127.0"
 
 # Build Arguments
 FORCE_BUILD=false

@@ -100,9 +100,10 @@ else
         -D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_amd64/usr/local \
         -D INSTALL_PYTHON_EXAMPLES=OFF \
         -D INSTALL_C_EXAMPLES=OFF \
-        -D BUILD_SHARED_LIBS=OFF \
+        -D BUILD_SHARED_LIBS=ON \
         -D WITH_CSTRIPES=ON \
         -D WITH_OPENCL=ON \
+        -D BUILD_opencv_tracking=ON \
         -D WITH_CUDA=ON \
         -D WITH_CUDNN=ON \
         -D OPENCV_DNN_CUDA=ON \
@@ -114,9 +115,7 @@ else
         -D WITH_IPP=ON \
         -D WITH_CUBLAS=1 \
         -D WITH_FFMPEG=ON \
-        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
-        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
-        -D HAVE_opencv_python3=ON ..
+        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules ..
 
         # Install OpenCV
         cat /proc/cpuinfo | grep "processor" | wc -l | xargs make -j

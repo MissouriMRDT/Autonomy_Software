@@ -99,10 +99,11 @@ else
         -D CMAKE_INSTALL_PREFIX=/tmp/pkg/opencv_${OPENCV_VERSION}_arm64/usr/local \
         -D INSTALL_PYTHON_EXAMPLES=OFF \
         -D INSTALL_C_EXAMPLES=OFF \
-        -D BUILD_SHARED_LIBS=OFF \
+        -D BUILD_SHARED_LIBS=ON \
         -D BUILD_EXAMPLES=OFF \
         -D BUILD_PERF_TESTS=OFF \
         -D BUILD_TESTS=OFF \
+        -D BUILD_opencv_tracking=ON \
         -D WITH_CUDA=ON \
         -D WITH_CUDNN=ON \
         -D OPENCV_DNN_CUDA=ON \
@@ -114,8 +115,7 @@ else
         -D CUDA_ARCH_BIN="8.7" \
         -D WITH_CUBLAS=1 \
         -D WITH_FFMPEG=ON \
-        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/aruco \
-        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules/cudev \
+        -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib/modules \
         -D HAVE_opencv_python3=ON ..
 
         # Install OpenCV

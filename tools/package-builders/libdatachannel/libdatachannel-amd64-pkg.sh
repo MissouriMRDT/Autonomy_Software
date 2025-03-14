@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-LIBDATACHANNEL_VERSION="0.22.3"
+LIBDATACHANNEL_VERSION="0.22.5"
 
 # Build Arguments
 FORCE_BUILD=false
