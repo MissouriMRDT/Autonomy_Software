@@ -165,9 +165,6 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
 
-# Enable Make Threads
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> /root/.bashrc
-
 # Fix Perl Locale Error
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG en_US.UTF-8  

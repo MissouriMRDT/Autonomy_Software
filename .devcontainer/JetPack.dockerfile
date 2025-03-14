@@ -159,9 +159,6 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm
     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
     rm gtest_${GTEST_VERSION}_arm64.deb
 
-# Enable Make Threads
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
-
 # Set Fish as Default Shell
 RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish
 

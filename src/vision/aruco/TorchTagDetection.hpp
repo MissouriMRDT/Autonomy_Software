@@ -50,6 +50,8 @@ namespace torchtag
             double dConfidence           = 0.0;    // The detection confidence of the tag reported from the PyTorch model.
             double dStraightLineDistance = 0.0;    // Distance between the tag and the camera.
             double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.
+            int nID                      = -1;     // The ID of the tag. This is set to -1 if the tag is not detected.
+            std::string szClassName;               // The class name of the tag. This is dependent on the class names used when training.
     };
 
     /******************************************************************************
@@ -114,6 +116,8 @@ namespace torchtag
                 stDetectedTag.CornerBL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
                 stDetectedTag.CornerBR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width,
                                                      stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
+                stDetectedTag.nID         = stTagDetection.nClassID;
+                stDetectedTag.szClassName = stTagDetection.szClassName;
 
                 // Add the newly detected tag to the vector.
                 vDetectedTags.push_back(stDetectedTag);
@@ -157,7 +161,7 @@ namespace torchtag
                               cv::FILLED);
                 // Draw class text onto image.
                 cv::putText(cvDetectionsFrame,
-                            "Tag Conf: " + std::to_string(stTag.dConfidence),
+                            stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100)),
                             cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 5),
                             cv::FONT_HERSHEY_SIMPLEX,
                             0.5,
