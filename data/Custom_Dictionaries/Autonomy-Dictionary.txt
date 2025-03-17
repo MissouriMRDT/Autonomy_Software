@@ -84,6 +84,7 @@ Cowsay
 CPACK
 cpptools
 cschlosser
+CSRT
 CSTRIPES
 ctest
 ctype
@@ -235,6 +236,7 @@ gfortran
 gmock
 GNSS
 gnutls
+GOTURN
 GPSLATLONALT
 GPSLOCKERROR
 GPSMDRS
@@ -414,6 +416,7 @@ matplotlib
 matplotlibcpp
 matplotplusplus
 matx
+MEDIANFLOW
 Memcheck
 MERICA
 microcontrollers
@@ -422,6 +425,7 @@ MISCCURRENT
 missourimrdt
 MJPEG
 MKLDNN
+MOSSE
 MRDT
 mrdtavoidance
 msgpack

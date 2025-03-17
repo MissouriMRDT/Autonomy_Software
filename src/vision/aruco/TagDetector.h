@@ -14,6 +14,7 @@
 
 #include "../../interfaces/BasicCamera.hpp"
 #include "../../interfaces/ZEDCamera.hpp"
+#include "../../util/vision/BoundingBoxTracking.h"
 #include "./ArucoDetection.hpp"
 #include "./TensorflowTagDetection.hpp"
 #include "./TorchTagDetection.hpp"
@@ -46,7 +47,7 @@ class TagDetector : public AutonomyThread<void>
 {
     public:
         /////////////////////////////////////////
-        // Declare public methods and member variables.
+        // Declare public methods.
         /////////////////////////////////////////
         TagDetector(BasicCamera* pBasicCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
@@ -109,6 +110,7 @@ class TagDetector : public AutonomyThread<void>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
+        void UpdateDetectedTags(std::vector<torchtag::TorchTag>& vNewlyDetectedTags);
 
         /////////////////////////////////////////
         // Declare private member variables.
@@ -129,6 +131,7 @@ class TagDetector : public AutonomyThread<void>
         std::atomic<float> m_fTorchNMSThreshold;
         std::atomic_bool m_bTorchInitialized;
         std::atomic_bool m_bTorchEnabled;
+        std::shared_ptr<tracking::MultiTracker> m_pMultiTracker;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         bool m_bCameraIsOpened;
