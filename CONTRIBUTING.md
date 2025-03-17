@@ -166,7 +166,9 @@ The table below lists various other common types and their corresponding prefixe
 | Struct              | `st`    | `StructName stExampleUseOfStruct`      |
 | Future              | `fu`    | `future<void> fuExampleUseOfFuture`    |
 | Promise             | `pm`    | `promise<void> pmExampleUseOfPromise`  |
+| Map                 | `m`     | `map<int, int> mExampleUseOfMap`       |
 | Unordered Map       | `um`    | `unordered_map<int, int> umExampleUseOfUnorderedMap` |
+| Set                 | `s`    | `set<int> sExampleUseOfSet`          |
 | Functions           | `fn`    | `function<void> fnExampleUseOfFunction`   |
 
 ---

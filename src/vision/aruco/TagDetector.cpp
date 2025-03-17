@@ -9,7 +9,6 @@
  ******************************************************************************/
 
 #include "TagDetector.h"
-#include "../../util/vision/BoundingBoxTracking.hpp"
 #include "../../util/vision/ImageOperations.hpp"
 
 /******************************************************************************
@@ -65,6 +64,9 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Create a multi-tracker for tracking multiple tags from the tensorflow and torch detectors.
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_DNN_TRACKER_TYPE);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -343,12 +345,15 @@ void TagDetector::ThreadedContinuousCode()
             cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
             m_vDetectedTorchTags = torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
-            // Estimate the positions of the tags using the point cloud
+            // Loop through the newly detected tags.
+            std::vector<cv::Rect2d> vTorchTagBoundingBoxes;
             for (torchtag::TorchTag& stTag : m_vDetectedTorchTags)
             {
                 // Use the point cloud to get the location of the tag.
                 torchtag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
             }
+            // Merge the newly detected tags with the pre-existing detected tags
+            this->UpdateDetectedTags(m_vDetectedTorchTags);
             // Draw tag overlays onto normal image.
             torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTorchTags);
         }
@@ -833,6 +838,20 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
         // Add the newly detected tags to the member variable list
         m_vDetectedArucoTags.push_back(stTag);
     }
+}
+
+/******************************************************************************
+ * @brief Updates the detected torch tags including tracking the detected tags over time
+ *        and removing tags that haven't been seen for long enough.
+ *
+ * @param vNewlyDetectedTags - Input vector of TorchTag structs containing the tag info.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-15
+ ******************************************************************************/
+void TagDetector::UpdateDetectedTags(std::vector<torchtag::TorchTag>& vNewlyDetectedTags)
+{
+    // Nothing to do yet.
 }
 
 /******************************************************************************
