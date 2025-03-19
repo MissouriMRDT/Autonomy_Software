@@ -245,7 +245,7 @@ namespace statemachine
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
                                                                                      stCurrRelToTarget.dStartRelativeBearing,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
-                                                                                     diffdrive::DifferentialControlMethod::eCurvatureDrive);
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
 
         // Send drive powers over RoveComm.
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
