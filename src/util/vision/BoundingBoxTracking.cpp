@@ -120,7 +120,7 @@ namespace tracking
                 // Reinitialize the tracker with the new detection.
                 cv::Ptr<cv::Tracker> tracker = m_fnTrackerFactory(m_eTrackerType);
                 tracker->init(cvFrame, vDetections[siIter]);
-                m_mTrackers[nBestTrackerID]       = tracker;
+                // m_mTrackers[nBestTrackerID]       = tracker;
                 m_mBoundingBoxes[nBestTrackerID]  = vDetections[siIter];
                 m_mLastUpdateTime[nBestTrackerID] = std::chrono::steady_clock::now();
                 sMatchedTrackerIDs.insert(nBestTrackerID);
@@ -153,7 +153,7 @@ namespace tracking
         cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(m_eTrackerType);
         cvTracker->init(cvFrame, cvBoundingBox);
         // Add the new tracker to the maps.
-        m_mTrackers[m_nNextId]       = cvTracker;
+        // m_mTrackers[m_nNextId]       = cvTracker;
         m_mBoundingBoxes[m_nNextId]  = cvBoundingBox;
         m_mLastUpdateTime[m_nNextId] = std::chrono::steady_clock::now();
         m_nNextId++;
@@ -183,7 +183,6 @@ namespace tracking
             bool bOK = stdEntry.second->update(cvFrame, cvBoundingBox);
             if (bOK)
             {
-                std::map<int, cv::Rect2d> m_mBoundingBoxes;
                 m_mBoundingBoxes[nID]  = cvBoundingBox;
                 m_mLastUpdateTime[nID] = tmCurrentTime;
                 vResults.push_back({nID, cvBoundingBox});
@@ -207,7 +206,7 @@ namespace tracking
         // Remove trackers that have been lost for too long.
         for (int nID : vToRemove)
         {
-            m_mTrackers.erase(nID);
+            // m_mTrackers.erase(nID);
             m_mBoundingBoxes.erase(nID);
             m_mLastUpdateTime.erase(nID);
         }
