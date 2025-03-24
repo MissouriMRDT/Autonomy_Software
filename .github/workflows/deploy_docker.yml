@@ -314,11 +314,11 @@ jobs:
             else
               # Execute the script with the --check flag.
               if ! bash "$SCRIPT_PATH" --check; then
-                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
-                echo "ffmpeg check failed – marking for rebuild."
+                echo "OPENCV_NEEDS_REBUILD=true" >> $GITHUB_ENV
+                echo "opencv check failed – marking for rebuild."
               else
-                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
-                echo "ffmpeg check passed – no rebuild needed."
+                echo "OPENCV_NEEDS_REBUILD=false" >> $GITHUB_ENV
+                echo "opencv check passed – no rebuild needed."
               fi
             fi
           fi
@@ -674,11 +674,11 @@ jobs:
             else
               # Execute the script with the --check flag.
               if ! bash "$SCRIPT_PATH" --check; then
-                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
-                echo "ffmpeg check failed – marking for rebuild."
+                echo "FFMPEG_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+                echo "ffmpeg-arm64 check failed – marking for rebuild."
               else
-                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
-                echo "ffmpeg check passed – no rebuild needed."
+                echo "FFMPEG_NEEDS_REBUILD_ARM64=false" >> $GITHUB_ENV
+                echo "ffmpeg-arm64 check passed – no rebuild needed."
               fi
             fi
           fi
@@ -699,11 +699,11 @@ jobs:
             else
               # Execute the script with the --check flag.
               if ! bash "$SCRIPT_PATH" --check; then
-                echo "FFMPEG_NEEDS_REBUILD=true" >> $GITHUB_ENV
-                echo "ffmpeg check failed – marking for rebuild."
+                echo "OPENCV_NEEDS_REBUILD_ARM64=true" >> $GITHUB_ENV
+                echo "opencv-arm64 check failed – marking for rebuild."
               else
-                echo "FFMPEG_NEEDS_REBUILD=false" >> $GITHUB_ENV
-                echo "ffmpeg check passed – no rebuild needed."
+                echo "OPENCV_NEEDS_REBUILD_ARM64=false" >> $GITHUB_ENV
+                echo "opencv-arm64 check passed – no rebuild needed."
               fi
             fi
           fi
