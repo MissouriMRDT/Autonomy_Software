@@ -93,71 +93,71 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp && \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
-# # Install OpenCV
-# ARG OPENCV_VERSION="4.11.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
-#     dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
-#     rm opencv_${OPENCV_VERSION}_arm64.deb
+# Install OpenCV
+ARG OPENCV_VERSION="4.11.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
+    dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
+    rm opencv_${OPENCV_VERSION}_arm64.deb
 
-# # Install PyTorch.
-# ARG TORCH_VERSION="2.2.2"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
-#     dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
-#     rm pytorch_${TORCH_VERSION}_arm64.deb
+# Install PyTorch.
+ARG TORCH_VERSION="2.6.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
+    dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
+    rm pytorch_${TORCH_VERSION}_arm64.deb
 
-# # Install Tensorflow.
-# ARG TENSORFLOW_VERSION="2.15.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-#     dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-#     rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
+# Install Tensorflow.
+ARG TENSORFLOW_VERSION="2.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
+    dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
+    rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
 
-# # Install FFMPEG
-# ARG FFMPEG_VERSION="7.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/arm64/ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
-#     dpkg -i ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
-#     rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
+# Install FFMPEG
+ARG FFMPEG_VERSION="7.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/arm64/ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
+    dpkg -i ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
+    rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
 
-# # Install Abseil.
-# ARG ABSEIL_VERSION="20230802.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
-#     dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
-#     rm abseil_${ABSEIL_VERSION}_arm64.deb
+# Install Abseil.
+ARG ABSEIL_VERSION="20250127.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
+    dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
+    rm abseil_${ABSEIL_VERSION}_arm64.deb
 
-# # Install GeographicLib
-# ARG GEOLIB_VERSION="2.3"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
-#     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
-#     rm geolib_${GEOLIB_VERSION}_arm64.deb
+# Install GeographicLib
+ARG GEOLIB_VERSION="2.5"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
+    dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
+    rm geolib_${GEOLIB_VERSION}_arm64.deb
 
-# # Install Libdatachannel
-# ARG LIBDATACHANNEL_VERSION="0.22"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
-#     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
-#     rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
+# Install Libdatachannel
+ARG LIBDATACHANNEL_VERSION="0.22.5"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
+    dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
+    rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
 
-# # Install MatPlotPlusPlus
-# ARG MATPLOTPLUSPLUS_VERSION="master"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/arm64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb && \
-#     dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb && \
-#     rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb
+# Install MatPlotPlusPlus
+ARG MATPLOTPLUSPLUS_VERSION="master"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/arm64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb && \
+    dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb && \
+    rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb
 
-# # Install PointCloudLibrary
-# ARG PCL_VERSION="1.15.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/arm64/pcl_${PCL_VERSION}_arm64.deb && \
-#     dpkg -i pcl_${PCL_VERSION}_arm64.deb && \
-#     rm pcl_${PCL_VERSION}_arm64.deb
+# Install PointCloudLibrary
+ARG PCL_VERSION="1.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/arm64/pcl_${PCL_VERSION}_arm64.deb && \
+    dpkg -i pcl_${PCL_VERSION}_arm64.deb && \
+    rm pcl_${PCL_VERSION}_arm64.deb
 
-# # Install Quill
-# ARG QUILL_VERSION="8.1.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
-#     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
-#     rm quill_${QUILL_VERSION}_arm64.deb
+# Install Quill
+ARG QUILL_VERSION="8.2.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
+    dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
+    rm quill_${QUILL_VERSION}_arm64.deb
 
-# # Install Google Test
-# ARG GTEST_VERSION="1.16.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
-#     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
-#     rm gtest_${GTEST_VERSION}_arm64.deb
+# Install Google Test
+ARG GTEST_VERSION="1.16.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
+    dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
+    rm gtest_${GTEST_VERSION}_arm64.deb
 
 # Set Fish as Default Shell
 RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish
