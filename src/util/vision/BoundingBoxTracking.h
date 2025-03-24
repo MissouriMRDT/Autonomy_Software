@@ -54,9 +54,8 @@ namespace tracking
 
             MultiTracker(const TrackerType eTrackerType = TrackerType::eKCF, const double dTrackingLostThreshold = 1.0, const double dIOUThreshold = 0.3);
             ~MultiTracker();
-            void UpdateDetections(const cv::Mat& cvFrame, const std::vector<cv::Rect2d>& vDetections);
-            void AddTracker(const cv::Mat& cvFrame, const cv::Rect2d& cvBoundingBox);
-            std::vector<std::pair<int, cv::Rect2d>> Update(const cv::Mat& cvFrame);
+            void AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox);
+            void Update(const cv::Mat& cvFrame, const std::vector<std::shared_ptr<cv::Rect2d>>& vDetections, const bool bNewGroundTruthDetections = false);
 
         private:
             /////////////////////////////////////////
@@ -69,7 +68,7 @@ namespace tracking
             // Declare private member variables.
             /////////////////////////////////////////
             std::map<int, cv::Ptr<cv::Tracker>> m_mTrackers;
-            std::map<int, cv::Rect2d> m_mBoundingBoxes;
+            std::map<int, std::shared_ptr<cv::Rect2d>> m_mBoundingBoxes;
             std::map<int, std::chrono::steady_clock::time_point> m_mLastUpdateTime;
             std::function<cv::Ptr<cv::Tracker>(TrackerType)> m_fnTrackerFactory;
             TrackerType m_eTrackerType;         // The type of tracker to use (MIL, KCF, GOTURN, CSRT).

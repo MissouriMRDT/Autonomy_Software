@@ -22,7 +22,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-10
  ******************************************************************************/
-ObjectDetector::ObjectDetector(BasicCamera* pBasicCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
+ObjectDetector::ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                             = pBasicCam;
@@ -43,7 +43,7 @@ ObjectDetector::ObjectDetector(BasicCamera* pBasicCam, const int nNumDetectedObj
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-ObjectDetector::ObjectDetector(ZEDCamera* pZEDCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
+ObjectDetector::ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                             = pZEDCam;
@@ -74,8 +74,8 @@ void ObjectDetector::ThreadedContinuousCode()
         if (m_bUsingGpuMats)
         {
             // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-            fuNormalFrame            = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvGPUNormalFrame);
-            fuDepthMeasureCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestDepthCopy(m_cvGPUDepthMeasure);
+            fuNormalFrame            = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUNormalFrame);
+            fuDepthMeasureCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestDepthCopy(m_cvGPUDepthMeasure);
 
             // Wait for requested frames to be retrieved.
             if (fuDepthMeasureCopyStatus.get() && fuNormalFrame.get())
@@ -93,8 +93,8 @@ void ObjectDetector::ThreadedContinuousCode()
         else
         {
             // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-            fuNormalFrame            = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
-            fuDepthMeasureCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestDepthCopy(m_cvDepthMeasure);
+            fuNormalFrame            = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
+            fuDepthMeasureCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestDepthCopy(m_cvDepthMeasure);
 
             // Wait for requested frames to be retrieved.
             if (!fuDepthMeasureCopyStatus.get() || !fuNormalFrame.get())
@@ -107,7 +107,7 @@ void ObjectDetector::ThreadedContinuousCode()
     else
     {
         // Grab frames from camera.
-        fuNormalFrame = dynamic_cast<BasicCamera*>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
+        fuNormalFrame = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
 
         // Wait for requested frames to be retrieved.
         if (!fuNormalFrame.get())

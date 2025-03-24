@@ -746,7 +746,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
 
     // Create instance variables.
-    ZEDCamera* pMainCam                        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    std::shared_ptr<ZEDCamera> pMainCam                        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
     double dCurrentHeading                     = dCurrentGPSHeading;
     bool bVIOGPSFused                          = false;

@@ -83,9 +83,9 @@ class RecordingHandler : public AutonomyThread<void>
 
         int m_nTotalVideoFeeds;
         RecordingMode m_eRecordingMode;
-        std::vector<ZEDCamera*> m_vZEDCameras;
-        std::vector<BasicCamera*> m_vBasicCameras;
-        std::vector<TagDetector*> m_vTagDetectors;
+        std::vector<std::shared_ptr<ZEDCamera>> m_vZEDCameras;
+        std::vector<std::shared_ptr<BasicCamera>> m_vBasicCameras;
+        std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
         std::vector<cv::VideoWriter> m_vCameraWriters;
         std::vector<bool> m_vRecordingToggles;
         std::vector<cv::Mat> m_vFrames;

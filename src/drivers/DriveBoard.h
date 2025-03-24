@@ -37,11 +37,11 @@ class DriveBoard
         // Declare private member variables.
         /////////////////////////////////////////
 
-        diffdrive::DrivePowers m_stDrivePowers;    // Struct used to store the left and right drive powers of the robot.
-        controllers::PIDController* m_pPID;        // The PID controller used for drive towards a heading.
-        float m_fMinDriveEffort;                   // The min power limit of the drive. This can be adjusted through RoveComm.
-        float m_fMaxDriveEffort;                   // The max power limit of the drive. This can be adjusted through RoveComm.
-        std::shared_mutex m_muDriveEffortMutex;    // Mutex used for changing the drive efforts.
+        diffdrive::DrivePowers m_stDrivePowers;                // Struct used to store the left and right drive powers of the robot.
+        std::unique_ptr<controllers::PIDController> m_pPID;    // The PID controller used for drive towards a heading.
+        float m_fMinDriveEffort;                               // The min power limit of the drive. This can be adjusted through RoveComm.
+        float m_fMaxDriveEffort;                               // The max power limit of the drive. This can be adjusted through RoveComm.
+        std::shared_mutex m_muDriveEffortMutex;                // Mutex used for changing the drive efforts.
 
         /////////////////////////////////////////
         // Declare private methods.

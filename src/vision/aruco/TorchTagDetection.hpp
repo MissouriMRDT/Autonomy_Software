@@ -43,10 +43,7 @@ namespace torchtag
     {
         public:
             // Declare public struct member attributes.
-            cv::Point2f CornerTL;                  // The top left corner of the bounding box.
-            cv::Point2f CornerTR;                  // The top right corner of the bounding box.
-            cv::Point2f CornerBL;                  // The bottom left corner of the bounding box.
-            cv::Point2f CornerBR;                  // The bottom right corner of bounding box.
+            cv::Rect2d cvBoundingBox;              // The bounding box of the detected tag.
             double dConfidence           = 0.0;    // The detection confidence of the tag reported from the PyTorch model.
             double dStraightLineDistance = 0.0;    // Distance between the tag and the camera.
             double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.
@@ -66,7 +63,7 @@ namespace torchtag
     inline cv::Point2f FindTagCenter(const TorchTag& stTag)
     {
         // Calculate the center point of the tag.
-        cv::Point2f cvCenter = cv::Point2f((stTag.CornerTL.x + stTag.CornerBR.x) / 2, (stTag.CornerTL.y + stTag.CornerBR.y) / 2);
+        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width / 2, stTag.cvBoundingBox.y + stTag.cvBoundingBox.height / 2);
 
         return cvCenter;
     }
@@ -110,14 +107,10 @@ namespace torchtag
             {
                 // Create and initialize new TensorflowTag.
                 TorchTag stDetectedTag;
-                stDetectedTag.dConfidence = stTagDetection.fConfidence;
-                stDetectedTag.CornerTL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y);
-                stDetectedTag.CornerTR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width, stTagDetection.cvBoundingBox.y);
-                stDetectedTag.CornerBL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
-                stDetectedTag.CornerBR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width,
-                                                     stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
-                stDetectedTag.nID         = stTagDetection.nClassID;
-                stDetectedTag.szClassName = stTagDetection.szClassName;
+                stDetectedTag.dConfidence   = stTagDetection.fConfidence;
+                stDetectedTag.cvBoundingBox = stTagDetection.cvBoundingBox;
+                stDetectedTag.nID           = stTagDetection.nClassID;
+                stDetectedTag.szClassName   = stTagDetection.szClassName;
 
                 // Add the newly detected tag to the vector.
                 vDetectedTags.push_back(stDetectedTag);
@@ -152,17 +145,17 @@ namespace torchtag
             for (TorchTag stTag : vDetectedTags)
             {
                 // Draw bounding box onto image.
-                cv::rectangle(cvDetectionsFrame, stTag.CornerTL, stTag.CornerBR, cv::Scalar(255, 255, 255), 2);
+                cv::rectangle(cvDetectionsFrame, stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);
                 // Draw classID background box onto image.
                 cv::rectangle(cvDetectionsFrame,
-                              cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 20),
-                              cv::Point(stTag.CornerTR.x, stTag.CornerTL.y),
+                              cv::Point(stTag.cvBoundingBox.x, stTag.cvBoundingBox.y - 20),
+                              cv::Point(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width, stTag.cvBoundingBox.y),
                               cv::Scalar(255, 255, 255),
                               cv::FILLED);
                 // Draw class text onto image.
                 cv::putText(cvDetectionsFrame,
                             stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100)),
-                            cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 5),
+                            cv::Point(stTag.cvBoundingBox.x, stTag.cvBoundingBox.y - 5),
                             cv::FONT_HERSHEY_SIMPLEX,
                             0.5,
                             cv::Scalar(0, 0, 0));

@@ -29,8 +29,8 @@
 namespace network
 {
     // RoveComm Instances:
-    extern rovecomm::RoveCommUDP* g_pRoveCommUDPNode;    // Global RoveComm UDP Instance.
-    extern rovecomm::RoveCommTCP* g_pRoveCommTCPNode;    // Global RoveComm TCP Instance.
+    extern std::shared_ptr<rovecomm::RoveCommUDP> g_pRoveCommUDPNode;    // Global RoveComm UDP Instance.
+    extern std::shared_ptr<rovecomm::RoveCommTCP> g_pRoveCommTCPNode;    // Global RoveComm TCP Instance.
 
     // RoveComm Status:
     extern bool g_bRoveCommUDPStatus;

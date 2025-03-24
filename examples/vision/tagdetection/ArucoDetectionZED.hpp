@@ -26,16 +26,16 @@
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler       = new CameraHandler();
-    globals::g_pTagDetectionHandler = new TagDetectionHandler();
+    globals::g_pCameraHandler       = std::make_shared<CameraHandler>();
+    globals::g_pTagDetectionHandler = std::make_shared<TagDetectionHandler>();
 
     // Get pointer to camera.
-    ZEDCamera* ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Start basic cam.
     ExampleZEDCam1->Start();
 
     // Get pointer to the tag detector for the basic cam.
-    TagDetector* ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+    std::shared_ptr<TagDetector> ExampleTagDetector1 = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
     // Start the basic cam detector.
     ExampleTagDetector1->Start();
 
@@ -140,18 +140,4 @@ void RunExample()
     // Stop camera threads.
     globals::g_pTagDetectionHandler->StopAllDetectors();
     globals::g_pCameraHandler->StopAllCameras();
-
-    // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
-    delete globals::g_pTagDetectionHandler;
-    delete globals::g_pNavigationBoard;
-    delete network::g_pRoveCommUDPNode;
-    delete network::g_pRoveCommTCPNode;
-
-    // Set dangling pointers to null.
-    globals::g_pCameraHandler       = nullptr;
-    globals::g_pTagDetectionHandler = nullptr;
-    globals::g_pNavigationBoard     = nullptr;
-    network::g_pRoveCommUDPNode     = nullptr;
-    network::g_pRoveCommTCPNode     = nullptr;
 }
