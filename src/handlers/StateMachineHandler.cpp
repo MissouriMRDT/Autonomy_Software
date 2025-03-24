@@ -436,7 +436,7 @@ statemachine::States StateMachineHandler::GetPreviousState() const
 void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading)
 {
     // Get main ZEDCam.
-    ZEDCamera* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
+    std::shared_ptr<ZEDCamera> pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
 
     // Check if main ZEDCam is opened and positional tracking is enabled.
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())

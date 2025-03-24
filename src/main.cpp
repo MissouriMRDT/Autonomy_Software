@@ -87,8 +87,8 @@ int main()
     // Setup global objects.
     /////////////////////////////////////////
     // Initialize RoveComm.
-    network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
-    network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+    network::g_pRoveCommUDPNode = std::make_shared<rovecomm::RoveCommUDP>();
+    network::g_pRoveCommTCPNode = std::make_shared<rovecomm::RoveCommTCP>();
     // Start RoveComm instances bound on ports.
     network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
     network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
@@ -113,9 +113,9 @@ int main()
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
 
     // Initialize drivers.
-    globals::g_pDriveBoard      = new DriveBoard();
-    globals::g_pMultimediaBoard = new MultimediaBoard();
-    globals::g_pNavigationBoard = new NavigationBoard();
+    globals::g_pDriveBoard      = std::make_shared<DriveBoard>();
+    globals::g_pMultimediaBoard = std::make_shared<MultimediaBoard>();
+    globals::g_pNavigationBoard = std::make_shared<NavigationBoard>();
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -150,10 +150,10 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pCameraHandler       = new CameraHandler();
-        globals::g_pWaypointHandler     = new WaypointHandler();
-        globals::g_pTagDetectionHandler = new TagDetectionHandler();
-        globals::g_pStateMachineHandler = new StateMachineHandler();
+        globals::g_pCameraHandler       = std::make_shared<CameraHandler>();
+        globals::g_pWaypointHandler     = std::make_shared<WaypointHandler>();
+        globals::g_pTagDetectionHandler = std::make_shared<TagDetectionHandler>();
+        globals::g_pStateMachineHandler = std::make_shared<StateMachineHandler>();
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
@@ -166,14 +166,14 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        ZEDCamera* pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        ZEDCamera* pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
-        ZEDCamera* pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
-        BasicCamera* pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
-        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
-        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
-        IPS IterPerSecond           = IPS();
+        std::shared_ptr<ZEDCamera> pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        std::shared_ptr<ZEDCamera> pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
+        std::shared_ptr<ZEDCamera> pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
+        std::shared_ptr<BasicCamera> pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        std::shared_ptr<TagDetector> pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        std::shared_ptr<TagDetector> pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
+        std::shared_ptr<TagDetector> pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
+        IPS IterPerSecond                           = IPS();
 
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
@@ -182,35 +182,37 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        while (!bMainStop)
-        {
-            // Create a string to append FPS values to.
-            std::string szMainInfo = "";
-            // Get FPS of all cameras and detectors and construct the info into a string.
-            szMainInfo += "\n--------[ Threads FPS ]--------\n";
-            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\n--------[ State Machine Info ]--------\n";
-            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
+        // while (!bMainStop)
+        // {
+        // Create a string to append FPS values to.
+        std::string szMainInfo = "";
+        // Get FPS of all cameras and detectors and construct the info into a string.
+        szMainInfo += "\n--------[ Threads FPS ]--------\n";
+        szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
+        szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+        szMainInfo += "\n--------[ State Machine Info ]--------\n";
+        szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
 
-            // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+        // Submit logger message.
+        LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
 
-            // Update IPS tick.
-            IterPerSecond.Tick();
+        // Update IPS tick.
+        IterPerSecond.Tick();
 
-            // No need to loop as fast as possible. Sleep...
-            std::this_thread::sleep_for(std::chrono::microseconds(66666));
-        }
+        // No need to loop as fast as possible. Sleep...
+        std::this_thread::sleep_for(std::chrono::microseconds(66666));
+        // }
+
+        std::this_thread::sleep_for(std::chrono::seconds(10));
 
         /////////////////////////////////////////
         // Cleanup.
@@ -239,22 +241,6 @@ int main()
         globals::g_pCameraHandler->StopAllCameras();
         network::g_pRoveCommUDPNode->CloseUDPSocket();
         network::g_pRoveCommTCPNode->CloseTCPSocket();
-
-        // Delete dynamically allocated objects.
-        delete globals::g_pStateMachineHandler;
-        delete globals::g_pTagDetectionHandler;
-        delete globals::g_pCameraHandler;
-        delete globals::g_pWaypointHandler;
-        delete network::g_pRoveCommUDPNode;
-        delete network::g_pRoveCommTCPNode;
-
-        // Set dangling pointers to null.
-        globals::g_pStateMachineHandler = nullptr;
-        globals::g_pTagDetectionHandler = nullptr;
-        globals::g_pCameraHandler       = nullptr;
-        globals::g_pWaypointHandler     = nullptr;
-        network::g_pRoveCommUDPNode     = nullptr;
-        network::g_pRoveCommTCPNode     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.

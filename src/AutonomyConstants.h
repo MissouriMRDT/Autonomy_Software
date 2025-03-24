@@ -41,9 +41,9 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "10.8.0.2";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT    = 8080;          // The port to use for the WebSocket in simulation mode.
-    const uint SIM_WEBRTC_QP         = 25;            // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
+    const std::string SIM_IP_ADDRESS = "127.0.0.1";    // The IP address to use for simulation mode.
+    const uint SIM_WEBSOCKET_PORT    = 8080;           // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBRTC_QP         = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.

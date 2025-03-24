@@ -43,10 +43,7 @@ namespace tensorflowtag
     {
         public:
             // Declare public struct member attributes.
-            cv::Point2f CornerTL;                  // The top left corner of the bounding box.
-            cv::Point2f CornerTR;                  // The top right corner of the bounding box.
-            cv::Point2f CornerBL;                  // The bottom left corner of the bounding box.
-            cv::Point2f CornerBR;                  // The bottom right corner of bounding box.
+            cv::Rect2d cvBoundingBox;              // The bounding box of the detected tag.
             double dConfidence           = 0.0;    // The detection confidence of the tag reported from the tensorflow model.
             double dStraightLineDistance = 0.0;    // Distance between the tag and the camera.
             double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.
@@ -63,17 +60,9 @@ namespace tensorflowtag
      ******************************************************************************/
     inline cv::Point2f FindTagCenter(const TensorflowTag& stTag)
     {
-        // Average of the four corners
-        cv::Point2f cvCenter(0, 0);
+        // Calculate the center point of the tag.
+        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width / 2, stTag.cvBoundingBox.y + stTag.cvBoundingBox.height / 2);
 
-        // Add each tag x, y to the center x, y.
-        cvCenter.x += stTag.CornerBL.x + stTag.CornerBR.x + stTag.CornerTL.x + stTag.CornerTR.x;
-        cvCenter.y += stTag.CornerBL.y + stTag.CornerBR.y + stTag.CornerTL.y + stTag.CornerTR.y;
-        // Divide by number of corners.
-        cvCenter.x /= 4;
-        cvCenter.y /= 4;
-
-        // Return a copy of the center point of the tag.
         return cvCenter;
     }
 
@@ -121,12 +110,11 @@ namespace tensorflowtag
                 {
                     // Create and initialize new TensorflowTag.
                     TensorflowTag stDetectedTag;
-                    stDetectedTag.dConfidence = stTagDetection.fConfidence;
-                    stDetectedTag.CornerTL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y);
-                    stDetectedTag.CornerTR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width, stTagDetection.cvBoundingBox.y);
-                    stDetectedTag.CornerBL    = cv::Point2f(stTagDetection.cvBoundingBox.x, stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
-                    stDetectedTag.CornerBR    = cv::Point2f(stTagDetection.cvBoundingBox.x + stTagDetection.cvBoundingBox.width,
-                                                         stTagDetection.cvBoundingBox.y + stTagDetection.cvBoundingBox.height);
+                    stDetectedTag.dConfidence   = stTagDetection.fConfidence;
+                    stDetectedTag.cvBoundingBox = cv::Rect2d(stTagDetection.cvBoundingBox.x,
+                                                             stTagDetection.cvBoundingBox.y,
+                                                             stTagDetection.cvBoundingBox.width,
+                                                             stTagDetection.cvBoundingBox.height);
 
                     // Add TensorflowTag to return vector.
                     vDetectedTags.emplace_back(stDetectedTag);
@@ -165,17 +153,17 @@ namespace tensorflowtag
             for (TensorflowTag stTag : vDetectedTags)
             {
                 // Draw bounding box onto image.
-                cv::rectangle(cvDetectionsFrame, stTag.CornerTL, stTag.CornerBR, cv::Scalar(255, 255, 255), 2);
+                cv::rectangle(cvDetectionsFrame, stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);
                 // Draw classID background box onto image.
                 cv::rectangle(cvDetectionsFrame,
-                              cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 20),
-                              cv::Point(stTag.CornerTR.x, stTag.CornerTL.y),
+                              cv::Point(stTag.cvBoundingBox.x, stTag.cvBoundingBox.y - 20),
+                              cv::Point(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width, stTag.cvBoundingBox.y),
                               cv::Scalar(255, 255, 255),
                               cv::FILLED);
                 // Draw class text onto image.
                 cv::putText(cvDetectionsFrame,
                             "Tag Conf: " + std::to_string(stTag.dConfidence),
-                            cv::Point(stTag.CornerTL.x, stTag.CornerTL.y - 5),
+                            cv::Point(stTag.cvBoundingBox.x, stTag.cvBoundingBox.y - 5),
                             cv::FONT_HERSHEY_SIMPLEX,
                             0.5,
                             cv::Scalar(0, 0, 0));

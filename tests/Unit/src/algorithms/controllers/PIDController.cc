@@ -110,7 +110,7 @@ TEST_F(PIDControllerTests, Leaks)
 TEST_F(PIDControllerTests, ProportionalControl)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(1.0, 0.0, 0.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -128,11 +128,6 @@ TEST_F(PIDControllerTests, ProportionalControl)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -145,7 +140,7 @@ TEST_F(PIDControllerTests, ProportionalControl)
 TEST_F(PIDControllerTests, IntegralControl)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 1.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(0.0, 1.0, 0.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -163,11 +158,6 @@ TEST_F(PIDControllerTests, IntegralControl)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -180,7 +170,7 @@ TEST_F(PIDControllerTests, IntegralControl)
 TEST_F(PIDControllerTests, DerivativeControl)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 0.0, 1.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(0.0, 0.0, 1.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -202,11 +192,6 @@ TEST_F(PIDControllerTests, DerivativeControl)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -219,7 +204,7 @@ TEST_F(PIDControllerTests, DerivativeControl)
 TEST_F(PIDControllerTests, MaxIEffort)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 1.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(0.0, 1.0, 0.0);
     pPIDController->SetMaxIntegralEffort(1.0);
     pPIDController->SetIntegral(1.0);
 
@@ -243,11 +228,6 @@ TEST_F(PIDControllerTests, MaxIEffort)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -260,7 +240,7 @@ TEST_F(PIDControllerTests, MaxIEffort)
 TEST_F(PIDControllerTests, MaxRampRate)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(1.0, 0.0, 0.0);
     pPIDController->SetOutputRampRate(0.01);
 
     // Create array for storing input and expect output values.
@@ -283,11 +263,6 @@ TEST_F(PIDControllerTests, MaxRampRate)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -300,7 +275,7 @@ TEST_F(PIDControllerTests, MaxRampRate)
 TEST_F(PIDControllerTests, OutputFilter)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(1.0, 0.0, 0.0);
     pPIDController->SetOutputFilter(0.1);
 
     // Create array for storing input and expect output values.
@@ -323,11 +298,6 @@ TEST_F(PIDControllerTests, OutputFilter)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -340,7 +310,7 @@ TEST_F(PIDControllerTests, OutputFilter)
 TEST_F(PIDControllerTests, CheckGainSigns)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(-1.0, -1.0, -1.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(-1.0, -1.0, -1.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -362,11 +332,6 @@ TEST_F(PIDControllerTests, CheckGainSigns)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -379,7 +344,7 @@ TEST_F(PIDControllerTests, CheckGainSigns)
 TEST_F(PIDControllerTests, ControllerLimits)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(1.0, 0.0, 0.0);
     // Set controller limits.
     pPIDController->SetMaxSetpointDifference(0.1);
     pPIDController->SetMaxIntegralEffort(1);
@@ -401,11 +366,6 @@ TEST_F(PIDControllerTests, ControllerLimits)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -418,7 +378,7 @@ TEST_F(PIDControllerTests, ControllerLimits)
 TEST_F(PIDControllerTests, ContinuousInput)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(1.0, 0.0, 0.0);
     // Enable continuous input.
     pPIDController->EnableContinuousInput(-180.0, 180.0);
 
@@ -455,11 +415,6 @@ TEST_F(PIDControllerTests, ContinuousInput)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput2[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -472,7 +427,7 @@ TEST_F(PIDControllerTests, ContinuousInput)
 TEST_F(PIDControllerTests, MutatorsAndAccessors)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::shared_ptr<controllers::PIDController> pPIDController = std::make_shared<controllers::PIDController>(1.0, 0.0, 0.0);
 
     ////////////////////////////////////////////////////////////////////////////
     // Test mutators and then see if accessors return the same values.
@@ -514,9 +469,4 @@ TEST_F(PIDControllerTests, MutatorsAndAccessors)
     // No accessors for these.
     pPIDController->SetOutputLimits(11.0, 12.0);
     pPIDController->SetOutputLimits(13.0);
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }

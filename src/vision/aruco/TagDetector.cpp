@@ -29,7 +29,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-10
  ******************************************************************************/
-TagDetector::TagDetector(BasicCamera* pBasicCam,
+TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
                          const int nArucoCornerRefinementMaxIterations,
                          const int nArucoCornerRefinementMethod,
                          const int nArucoMarkerBorderBits,
@@ -50,7 +50,7 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
-    m_szCameraName                     = dynamic_cast<BasicCamera*>(pBasicCam)->GetCameraLocation();
+    m_szCameraName                     = std::dynamic_pointer_cast<BasicCamera>(pBasicCam)->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
 
@@ -93,7 +93,7 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-TagDetector::TagDetector(ZEDCamera* pZEDCam,
+TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
                          const int nArucoCornerRefinementMaxIterations,
                          const int nArucoCornerRefinementMethod,
                          const int nArucoMarkerBorderBits,
@@ -171,7 +171,7 @@ void TagDetector::ThreadedContinuousCode()
     if (m_bUsingZedCamera)
     {
         // Check if camera is NOT open.
-        if (!dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraIsOpen())
+        if (!std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
@@ -186,7 +186,7 @@ void TagDetector::ThreadedContinuousCode()
                 LOG_CRITICAL(logging::g_qSharedLogger,
                              "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted! "
                              "This tag detector will now stop.",
-                             dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraSerial());
+                             std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
             }
         }
         else
@@ -198,7 +198,7 @@ void TagDetector::ThreadedContinuousCode()
     else
     {
         // Check if camera is NOT open.
-        if (!dynamic_cast<BasicCamera*>(m_pCamera)->GetCameraIsOpen())
+        if (!std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
@@ -212,7 +212,7 @@ void TagDetector::ThreadedContinuousCode()
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
                              "TagDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
-                             dynamic_cast<BasicCamera*>(m_pCamera)->GetCameraLocation());
+                             std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
             }
         }
         else
@@ -236,9 +236,9 @@ void TagDetector::ThreadedContinuousCode()
             if (m_bUsingGpuMats)
             {
                 // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-                fuPointCloudCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
                 // Get the regular RGB image from the camera.
-                fuRegularFrameCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
 
                 // Wait for point cloud to be retrieved.
                 if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
@@ -258,8 +258,8 @@ void TagDetector::ThreadedContinuousCode()
             else
             {
                 // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
                 // Wait for point cloud to be retrieved.
                 if (!fuPointCloudCopyStatus.get())
@@ -282,7 +282,7 @@ void TagDetector::ThreadedContinuousCode()
         else
         {
             // Grab frames from camera.
-            fuPointCloudCopyStatus = dynamic_cast<BasicCamera*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            fuPointCloudCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
             // Wait for point cloud to be retrieved.
             if (!fuPointCloudCopyStatus.get())
@@ -790,10 +790,7 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
             // Update data for tag.
             itOldItr->dYawAngle             = itNewItr->dYawAngle;
             itOldItr->dStraightLineDistance = itNewItr->dStraightLineDistance;
-            itOldItr->CornerTL              = itNewItr->CornerTL;
-            itOldItr->CornerTR              = itNewItr->CornerTR;
-            itOldItr->CornerBR              = itNewItr->CornerBR;
-            itOldItr->CornerBL              = itNewItr->CornerBL;
+            itOldItr->cvBoundingBox         = itNewItr->cvBoundingBox;
             itOldItr->nFramesSinceLastHit   = 0;
             itOldItr->nHits                 = std::max(itOldItr->nHits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
 
@@ -854,38 +851,7 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
  ******************************************************************************/
 void TagDetector::UpdateDetectedTags(std::vector<torchtag::TorchTag>& vNewlyDetectedTags)
 {
-    // Create instance variables.
-    std::vector<std::pair<int, cv::Rect2d>> vTrackedTags;
-
-    // Check if the detected tags vector is empty.
-    if (vNewlyDetectedTags.empty())
-    {
-        // Just update the tracker with the latest frame.
-        vTrackedTags = m_pMultiTracker->Update(m_cvTorchProcFrame);
-        return;
-    }
-    // We have detected some tags, so we need to update the tracker.
-    else
-    {
-        // Repack the TorchTag structs into a vector of cv::Rect2d for the tracker.
-        for (const torchtag::TorchTag& stTag : vNewlyDetectedTags)
-        {
-            // Create a cv::Rect2d from the corners of the TorchTag.
-            cv::Rect2d rBoundingBox(stTag.CornerTL.x, stTag.CornerTL.y, stTag.CornerBR.x - stTag.CornerTL.x, stTag.CornerBR.y - stTag.CornerTL.y);
-            // Add the tag ID and bounding box to the vector for the tracker.
-            vTrackedTags.push_back(std::make_pair(stTag.nID, rBoundingBox));
-        }
-
-        // Update the tracker with the latest frame and the detections for that frame.
-        std::vector<cv::Rect2d> vBoundingBoxes;
-        for (const auto& pair : vTrackedTags)
-        {
-            vBoundingBoxes.push_back(pair.second);
-        }
-
-        // Update the tracker with the latest frame and the detections for that frame.
-        m_pMultiTracker->UpdateDetections(m_cvTorchProcFrame, vBoundingBoxes);
-    }
+    //
 }
 
 /******************************************************************************
@@ -936,7 +902,7 @@ bool TagDetector::GetIsReady()
         if (m_bUsingZedCamera)
         {
             // Check if camera is NOT open.
-            if (dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraIsOpen())
+            if (std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
             {
                 // Set camera opened toggle.
                 bDetectorIsReady = true;
@@ -945,7 +911,7 @@ bool TagDetector::GetIsReady()
         else
         {
             // Check if camera is NOT open.
-            if (dynamic_cast<BasicCamera*>(m_pCamera)->GetCameraIsOpen())
+            if (std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
             {
                 // Set camera opened toggle.
                 bDetectorIsReady = true;
@@ -1012,11 +978,11 @@ cv::Size TagDetector::GetProcessFrameResolution() const
     if (m_bUsingZedCamera)
     {
         // Concatenate camera model name and serial number.
-        return dynamic_cast<ZEDCamera*>(m_pCamera)->GetPropResolution();
+        return std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetPropResolution();
     }
     else
     {
         // Concatenate camera path or index.
-        return dynamic_cast<BasicCamera*>(m_pCamera)->GetPropResolution();
+        return std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetPropResolution();
     }
 }

@@ -41,21 +41,21 @@ namespace globals
     /////////////////////////////////////////
 
     // Waypoint Handler:
-    extern WaypointHandler* g_pWaypointHandler;    // Global Waypoint Handler
+    extern std::shared_ptr<WaypointHandler> g_pWaypointHandler;    // Global Waypoint Handler
 
     // Camera Handler:
-    extern CameraHandler* g_pCameraHandler;    // Global Camera Handler
+    extern std::shared_ptr<CameraHandler> g_pCameraHandler;    // Global Camera Handler
 
     // Tag Detection Handler:
-    extern TagDetectionHandler* g_pTagDetectionHandler;    // Global Tag Detection Handler
+    extern std::shared_ptr<TagDetectionHandler> g_pTagDetectionHandler;    // Global Tag Detection Handler
 
     // State Machine Handler:
-    extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
+    extern std::shared_ptr<StateMachineHandler> g_pStateMachineHandler;    // Global State Machine Handler
 
     // Board Interfaces:
-    extern DriveBoard* g_pDriveBoard;              // Global Drive Board Driver
-    extern MultimediaBoard* g_pMultimediaBoard;    // Global Multimedia Board Driver
-    extern NavigationBoard* g_pNavigationBoard;    // Global Navigation Board Driver
+    extern std::shared_ptr<DriveBoard> g_pDriveBoard;              // Global Drive Board Driver
+    extern std::shared_ptr<MultimediaBoard> g_pMultimediaBoard;    // Global Multimedia Board Driver
+    extern std::shared_ptr<NavigationBoard> g_pNavigationBoard;    // Global Navigation Board Driver
 }    // namespace globals
 
 #endif    // AUTONOMY_GLOBALS_H

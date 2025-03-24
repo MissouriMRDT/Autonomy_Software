@@ -49,7 +49,7 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods.
         /////////////////////////////////////////
-        TagDetector(BasicCamera* pBasicCam,
+        TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
                     const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
                     const int nArucoMarkerBorderBits              = 1,
@@ -59,7 +59,7 @@ class TagDetector : public AutonomyThread<void>
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
-        TagDetector(ZEDCamera* pZEDCam,
+        TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
                     const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
                     const int nArucoMarkerBorderBits              = 1,
@@ -117,7 +117,7 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Class member variables.
 
-        Camera<cv::Mat>* m_pCamera;
+        std::shared_ptr<Camera<cv::Mat>> m_pCamera;
         cv::aruco::ArucoDetector m_cvArucoDetector;
         cv::aruco::DetectorParameters m_cvArucoDetectionParams;
         cv::aruco::Dictionary m_cvTagDictionary;

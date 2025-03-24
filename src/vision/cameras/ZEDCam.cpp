@@ -1248,10 +1248,11 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
         slCustomBox.probability      = stObjectData.fConfidence;
         slCustomBox.is_grounded      = stObjectData.bObjectRemainsOnFloorPlane;
         // Repackage object corner data.
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerTL.nX, stObjectData.CornerTL.nY));
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerTR.nX, stObjectData.CornerTR.nY));
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerBL.nX, stObjectData.CornerBL.nY));
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerBR.nX, stObjectData.CornerBR.nY));
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x, stObjectData.cvBoundingBox.y));                                        // Top-left corner
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x + stObjectData.cvBoundingBox.width, stObjectData.cvBoundingBox.y));     // Top-right corner
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x, stObjectData.cvBoundingBox.y + stObjectData.cvBoundingBox.height));    // Bottom-left corner
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x + stObjectData.cvBoundingBox.width,
+                                        stObjectData.cvBoundingBox.y + stObjectData.cvBoundingBox.height));                                  // Bottom-right corner
         slCustomBox.bounding_box_2d = vCorners;
 
         // Append repackaged object to vector.
