@@ -36,6 +36,6 @@ namespace network
     std::shared_ptr<rovecomm::RoveCommTCP> g_pRoveCommTCPNode;
 
     // RoveComm Status:
-    bool g_bRoveCommUDPStatus = false;
-    bool g_bRoveCommTCPStatus = false;
+    std::atomic_bool g_bRoveCommUDPStatus = false;
+    std::atomic_bool g_bRoveCommTCPStatus = false;
 }    // namespace network

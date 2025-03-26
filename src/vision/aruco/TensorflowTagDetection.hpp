@@ -47,6 +47,34 @@ namespace tensorflowtag
             double dConfidence           = 0.0;    // The detection confidence of the tag reported from the tensorflow model.
             double dStraightLineDistance = 0.0;    // Distance between the tag and the camera.
             double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.
+
+            /******************************************************************************
+             * @brief Overload the equality operator for the TensorflowTag struct.
+             *
+             * @param stOther - The other TensorflowTag struct to compare to.
+             * @return true - The two TensorflowTag structs are equal.
+             * @return false - The two TensorflowTag structs are not equal
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator==(const TensorflowTag& stOther) const
+            {
+                return cvBoundingBox == stOther.cvBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
+                       dYawAngle == stOther.dYawAngle;
+            }
+
+            /******************************************************************************
+             * @brief Overload the inequality operator for the TensorflowTag struct.
+             *
+             * @param stOther - The other TensorflowTag struct to compare to.
+             * @return true - The two TensorflowTag structs are not equal.
+             * @return false - The two TensorflowTag structs are equal
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator!=(const TensorflowTag& stOther) const { return !(*this == stOther); }
     };
 
     /******************************************************************************

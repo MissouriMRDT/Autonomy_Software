@@ -98,8 +98,8 @@ int main()
         // Submit logger message.
         LOG_CRITICAL(logging::g_qSharedLogger,
                      "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                     network::g_bRoveCommUDPStatus,
-                     network::g_bRoveCommTCPStatus);
+                     network::g_bRoveCommUDPStatus.load(),
+                     network::g_bRoveCommTCPStatus.load());
 
         // Since RoveComm is crucial, stop code.
         bMainStop = true;
@@ -182,37 +182,35 @@ int main()
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
-        // while (!bMainStop)
-        // {
-        // Create a string to append FPS values to.
-        std::string szMainInfo = "";
-        // Get FPS of all cameras and detectors and construct the info into a string.
-        szMainInfo += "\n--------[ Threads FPS ]--------\n";
-        szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
-        szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-        szMainInfo += "\n--------[ State Machine Info ]--------\n";
-        szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
+        while (!bMainStop)
+        {
+            // Create a string to append FPS values to.
+            std::string szMainInfo = "";
+            // Get FPS of all cameras and detectors and construct the info into a string.
+            szMainInfo += "\n--------[ Threads FPS ]--------\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
+            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\n--------[ State Machine Info ]--------\n";
+            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
 
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
 
-        // Update IPS tick.
-        IterPerSecond.Tick();
+            // Update IPS tick.
+            IterPerSecond.Tick();
 
-        // No need to loop as fast as possible. Sleep...
-        std::this_thread::sleep_for(std::chrono::microseconds(66666));
-        // }
-
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+            // No need to loop as fast as possible. Sleep...
+            std::this_thread::sleep_for(std::chrono::microseconds(66666));
+        }
 
         /////////////////////////////////////////
         // Cleanup.
@@ -239,8 +237,21 @@ int main()
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
-        network::g_pRoveCommUDPNode->CloseUDPSocket();
-        network::g_pRoveCommTCPNode->CloseTCPSocket();
+
+        // Even though smart pointers should handle lifetime, explicitly reset to ensure cleanup in proper order, this also prevents the main thread
+        // from exiting and killing quill loggers since they are used in some of the destructors.
+        globals::g_pStateMachineHandler.reset();
+        globals::g_pTagDetectionHandler.reset();
+        globals::g_pCameraHandler.reset();
+        globals::g_pWaypointHandler.reset();
+        globals::g_pDriveBoard.reset();
+        globals::g_pMultimediaBoard.reset();
+        globals::g_pNavigationBoard.reset();
+
+        // Finally, stop RoveComm.
+        LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
+        network::g_pRoveCommUDPNode.reset();
+        network::g_pRoveCommTCPNode.reset();
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.

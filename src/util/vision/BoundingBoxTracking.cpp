@@ -163,11 +163,11 @@ namespace tracking
             }
 
             // For any new detection that wasn't associated, add a new tracker.
-            for (size_t d = 0; d < vDetections.size(); d++)
+            for (size_t siIter = 0; siIter < vDetections.size(); siIter++)
             {
-                if (sMatchedDetectionsIndices.find(static_cast<int>(d)) == sMatchedDetectionsIndices.end())
+                if (sMatchedDetectionsIndices.find(static_cast<int>(siIter)) == sMatchedDetectionsIndices.end())
                 {
-                    this->AddTracker(cvFrame, vDetections[d]);
+                    this->AddTracker(cvFrame, vDetections[siIter]);
                 }
             }
         }

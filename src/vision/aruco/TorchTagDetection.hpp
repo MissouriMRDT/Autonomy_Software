@@ -49,6 +49,34 @@ namespace torchtag
             double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.
             int nID                      = -1;     // The ID of the tag. This is set to -1 if the tag is not detected.
             std::string szClassName;               // The class name of the tag. This is dependent on the class names used when training.
+
+            /******************************************************************************
+             * @brief Overload the equality operator for the TorchTag struct.
+             *
+             * @param stOther - The other TorchTag struct to compare to.
+             * @return true - The two TorchTag structs are equal.
+             * @return false - The two TorchTag structs are not equal
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator==(const TorchTag& stOther) const
+            {
+                return cvBoundingBox == stOther.cvBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
+                       dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName;
+            }
+
+            /******************************************************************************
+             * @brief Overload the inequality operator for the TorchTag struct.
+             *
+             * @param stOther - The other TorchTag struct to compare to.
+             * @return true - The two TorchTag structs are not equal.
+             * @return false - The two TorchTag structs are equal
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator!=(const TorchTag& stOther) const { return !(*this == stOther); }
     };
 
     /******************************************************************************
