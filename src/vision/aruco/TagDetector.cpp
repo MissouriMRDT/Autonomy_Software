@@ -347,10 +347,9 @@ void TagDetector::ThreadedContinuousCode()
             // Drop the Alpha channel from the image copy to preproc frame.
             cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
-            std::vector<torchtag::TorchTag> vDetectedTorchTags =
-                torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            m_vDetectedTorchTags = torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
             // Merge the newly detected tags with the pre-existing detected tags
-            this->UpdateDetectedTags(vDetectedTorchTags);
+            this->UpdateDetectedTags(m_vDetectedTorchTags);
             // Loop through the newly detected tags.
             for (torchtag::TorchTag& stTag : m_vDetectedTorchTags)
             {
@@ -851,7 +850,37 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
  ******************************************************************************/
 void TagDetector::UpdateDetectedTags(std::vector<torchtag::TorchTag>& vNewlyDetectedTags)
 {
-    //
+    // Check if the given tag vector is empty
+    if (vNewlyDetectedTags.empty())
+    {}
+    else
+    {
+        // Newly detected tags and m_vDetectedTorchTags should contain the exact same tags.
+        if (m_vDetectedTorchTags != vNewlyDetectedTags)
+        {
+            m_vDetectedTorchTags = vNewlyDetectedTags;
+        }
+
+        // Copy the newly detected tags to a new vector of shared pointers to tags.
+        std::vector<std::shared_ptr<cv::Rect2d>> vNewTags;
+        for (torchtag::TorchTag& stTag : vNewlyDetectedTags)
+        {
+            // Create a shared pointer to the tag.
+            std::shared_ptr<cv::Rect2d> pBoundingBox = std::make_shared<cv::Rect2d>(stTag.cvBoundingBox);
+            // Add the shared pointer to the new tags vector.
+            vNewTags.push_back(pBoundingBox);
+        }
+
+        // Track the tags.
+        m_pMultiTracker->Update(m_cvFrame, vNewTags);
+
+        // Loop through the new tags vector and update the m_vDetectedTorchTags vector with the updated bounding box data.
+        for (size_t siIter = 0; siIter < vNewTags.size(); siIter++)
+        {
+            // Update the bounding box data for the tag.
+            m_vDetectedTorchTags[siIter].cvBoundingBox = *vNewTags[siIter];
+        }
+    }
 }
 
 /******************************************************************************

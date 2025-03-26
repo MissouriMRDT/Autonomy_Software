@@ -50,6 +50,34 @@ namespace arucotag
             int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
             double dStraightLineDistance;    // Distance between the tag and the camera.
             double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
+
+            /******************************************************************************
+             * @brief Overload the equality operator for the ArucoTag struct.
+             *
+             * @param stOther - The other ArucoTag struct to compare to.
+             * @return true - The two ArucoTag structs are equal.
+             * @return false - The two ArucoTag structs are not equal
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator==(const ArucoTag& stOther) const
+            {
+                return (cvBoundingBox == stOther.cvBoundingBox && nID == stOther.nID && nHits == stOther.nHits && nFramesSinceLastHit == stOther.nFramesSinceLastHit &&
+                        dStraightLineDistance == stOther.dStraightLineDistance && dYawAngle == stOther.dYawAngle);
+            }
+
+            /******************************************************************************
+             * @brief Overload the inequality operator for the ArucoTag struct.
+             *
+             * @param stOther - The other ArucoTag struct to compare to.
+             * @return true - The two ArucoTag structs are not equal.
+             * @return false - The two ArucoTag structs are equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator!=(const ArucoTag& stOther) const { return !(*this == stOther); }
     };
 
     /******************************************************************************
