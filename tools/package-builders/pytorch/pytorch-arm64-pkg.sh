@@ -96,7 +96,7 @@ else
         cd pytorch && pip3 install -r requirements.txt
         
         # mkdir pytorch-build
-        cd /tmp/pytorch-build    
+        mkdir -p /tmp/pytorch-build && cd /tmp/pytorch-build    
         # Build Torch
         cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release -DPYTHON_EXECUTABLE:PATH=`which python3` -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install ../pytorch
 
