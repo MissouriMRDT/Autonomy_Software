@@ -44,12 +44,12 @@ namespace arucotag
     {
         public:
             // Declare public struct member attributes.
-            cv::Rect2d cvBoundingBox;        // The bounding box of the detected tag.
-            int nID;                         // ID of the tag.
-            int nHits;                       // Total number of detections for tag id.
-            int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
-            double dStraightLineDistance;    // Distance between the tag and the camera.
-            double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;    // The bounding box of the detected tag.
+            int nID;                                      // ID of the tag.
+            int nHits;                                    // Total number of detections for tag id.
+            int nFramesSinceLastHit;                      // The total number of frames since a tag with this ID was last detected.
+            double dStraightLineDistance;                 // Distance between the tag and the camera.
+            double dYawAngle;                             // This is the yaw angle so roll and pitch are ignored.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -92,7 +92,7 @@ namespace arucotag
     inline cv::Point2f FindTagCenter(const ArucoTag& stTag)
     {
         // Calculate the center point of the tag.
-        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width / 2, stTag.cvBoundingBox.y + stTag.cvBoundingBox.height / 2);
+        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width / 2, stTag.cvBoundingBox->y + stTag.cvBoundingBox->height / 2);
 
         return cvCenter;
     }
@@ -174,7 +174,7 @@ namespace arucotag
             ArucoTag stDetectedTag;
             stDetectedTag.nID = vIDs[unIter];
             // Copy corners.
-            stDetectedTag.cvBoundingBox = cv::boundingRect(cvMarkerCorners[unIter]);
+            stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(cv::boundingRect(cvMarkerCorners[unIter]));
 
             // Add new tag to detected tags vector.
             vDetectedTags.push_back(stDetectedTag);
@@ -210,13 +210,13 @@ namespace arucotag
 
             // Assemble vector of marker corners.
             std::vector<cv::Point2f> cvMarkerCorners;
-            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox.x, vDetectedTags[nIter].cvBoundingBox.y));          // Top-left corner
-            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox.x + vDetectedTags[nIter].cvBoundingBox.width,
-                                                     vDetectedTags[nIter].cvBoundingBox.y));                                                // Top-right corner
-            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox.x + vDetectedTags[nIter].cvBoundingBox.width,
-                                                     vDetectedTags[nIter].cvBoundingBox.y + vDetectedTags[nIter].cvBoundingBox.height));    // Bottom-right corner
-            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox.x,
-                                                     vDetectedTags[nIter].cvBoundingBox.y + vDetectedTags[nIter].cvBoundingBox.height));    // Bottom-left corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x, vDetectedTags[nIter].cvBoundingBox->y));          // Top-left corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x + vDetectedTags[nIter].cvBoundingBox->width,
+                                                     vDetectedTags[nIter].cvBoundingBox->y));                                                 // Top-right corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x + vDetectedTags[nIter].cvBoundingBox->width,
+                                                     vDetectedTags[nIter].cvBoundingBox->y + vDetectedTags[nIter].cvBoundingBox->height));    // Bottom-right corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x,
+                                                     vDetectedTags[nIter].cvBoundingBox->y + vDetectedTags[nIter].cvBoundingBox->height));    // Bottom-left corner
             // Append vector of marker corners.
             vMarkers.emplace_back(cvMarkerCorners);
         }
@@ -330,13 +330,14 @@ namespace arucotag
 
         // Repackage tag image points into a mat.
         cv::Mat cvImgPoints(4, 1, CV_32FC3);
-        cvImgPoints.at<cv::Vec3f>(0) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox.x), static_cast<float>(stTag.cvBoundingBox.y), 0.0f};      // Top-left corner.
-        cvImgPoints.at<cv::Vec3f>(1) =
-            cv::Vec3f{static_cast<float>(stTag.cvBoundingBox.x), static_cast<float>(stTag.cvBoundingBox.y + stTag.cvBoundingBox.height), 0.0f};    // Bottom-left corner.
+        cvImgPoints.at<cv::Vec3f>(0) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x), static_cast<float>(stTag.cvBoundingBox->y), 0.0f};    // Top-left corner.
+        cvImgPoints.at<cv::Vec3f>(1) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x),
+                                                 static_cast<float>(stTag.cvBoundingBox->y + stTag.cvBoundingBox->height),
+                                                 0.0f};    // Bottom-left corner.
         cvImgPoints.at<cv::Vec3f>(2) =
-            cv::Vec3f{static_cast<float>(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width), static_cast<float>(stTag.cvBoundingBox.y), 0.0f};     // Top-right corner.
-        cvImgPoints.at<cv::Vec3f>(3) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width),
-                                                 static_cast<float>(stTag.cvBoundingBox.y + stTag.cvBoundingBox.height),
+            cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width), static_cast<float>(stTag.cvBoundingBox->y), 0.0f};    // Top-right corner.
+        cvImgPoints.at<cv::Vec3f>(3) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width),
+                                                 static_cast<float>(stTag.cvBoundingBox->y + stTag.cvBoundingBox->height),
                                                  0.0f};    // Bottom-right corner.
 
         // Use solve perspective n' point algorithm to estimate pose of the tag.

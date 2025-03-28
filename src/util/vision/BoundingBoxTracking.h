@@ -52,10 +52,16 @@ namespace tracking
             // Declare public methods.
             /////////////////////////////////////////
 
-            MultiTracker(const TrackerType eTrackerType = TrackerType::eKCF, const double dTrackingLostThreshold = 1.0, const double dIOUThreshold = 0.3);
+            MultiTracker(const double dTrackingLostTimeout = 1.0, const double dIOUThreshold = 0.3);
             ~MultiTracker();
-            void AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox);
-            void Update(const cv::Mat& cvFrame, const std::vector<std::shared_ptr<cv::Rect2d>>& vDetections, const bool bNewGroundTruthDetections = false);
+            void AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType = TrackerType::eKCF);
+            void Update(const cv::Mat& cvFrame);
+            void ClearTrackers();
+
+            /////////////////////////////////////////
+            // Setters.
+            /////////////////////////////////////////
+            void SetTrackerLostTimeout();
 
         private:
             /////////////////////////////////////////
@@ -71,7 +77,6 @@ namespace tracking
             std::map<int, std::shared_ptr<cv::Rect2d>> m_mBoundingBoxes;
             std::map<int, std::chrono::steady_clock::time_point> m_mLastUpdateTime;
             std::function<cv::Ptr<cv::Tracker>(TrackerType)> m_fnTrackerFactory;
-            TrackerType m_eTrackerType;         // The type of tracker to use (MIL, KCF, GOTURN, CSRT).
             double m_dTrackingLostThreshold;    // Time in seconds after which a tracker is considered lost.
             double m_dIOUThreshold;             // Minimum Intersection over Union required to associate a new detection with an existing tracker.
             int m_nNextId;

@@ -28,17 +28,15 @@ namespace tracking
     /******************************************************************************
      * @brief Construct a new Multi Tracker object.
      *
-     * @param eTrackerType - The type of tracker to use (default is KCF).
      * @param dTrackingLostThreshold - The time in seconds after which a tracker is considered lost (default is 1.0).
      * @param dIOUThreshold - The minimum Intersection over Union (IoU) required to associate a new detection with an existing tracker (default is 0.3).
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-03-15
      ******************************************************************************/
-    MultiTracker::MultiTracker(const TrackerType eTrackerType, const double dTrackingLostThreshold, const double dIOUThreshold)
+    MultiTracker::MultiTracker(const double dTrackingLostThreshold, const double dIOUThreshold)
     {
         // Initialize member variables.
-        m_eTrackerType           = eTrackerType;
         m_dTrackingLostThreshold = dTrackingLostThreshold;
         m_dIOUThreshold          = dIOUThreshold;
         m_nNextId                = 0;
@@ -80,133 +78,113 @@ namespace tracking
      *
      * @param cvFrame - The frame to initialize the tracker with.
      * @param cvBoundingBox - The bounding box (cv::Rect2d) for the object to track.
+     * @param eTrackerType - The type of tracker to use (default is KCF).
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-03-15
      ******************************************************************************/
-    void MultiTracker::AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox)
+    void MultiTracker::AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType)
     {
-        // Create a new tracker and initialize it with the given frame and bounding box.
-        cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(m_eTrackerType);
-        cvTracker->init(cvFrame, *cvBoundingBox);
-        // Add the new tracker to the maps.
-        m_mTrackers[m_nNextId]       = cvTracker;
-        m_mBoundingBoxes[m_nNextId]  = cvBoundingBox;
-        m_mLastUpdateTime[m_nNextId] = std::chrono::steady_clock::now();
-        m_nNextId++;
+        // Create instance variables.
+        double dBestIOU    = 0.0;
+        int nBestTrackerID = -1;
+
+        // Loop through the existing trackers to find the best match for the given bounding box.
+        for (const auto& stdEntry : m_mBoundingBoxes)
+        {
+            int nID     = stdEntry.first;
+            double dIOU = this->CalculateIOU(*stdEntry.second, *cvBoundingBox);
+            if (dIOU > dBestIOU)
+            {
+                dBestIOU       = dIOU;
+                nBestTrackerID = nID;
+            }
+        }
+
+        // If the best IoU is above the threshold and a tracker was found, update the tracker.
+        if (dBestIOU > m_dIOUThreshold && nBestTrackerID != -1)
+        {
+            // Reinitialize the tracker with the new bounding box.
+            cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(eTrackerType);
+            cvTracker->init(cvFrame, *cvBoundingBox);
+            m_mTrackers[nBestTrackerID]       = cvTracker;
+            m_mBoundingBoxes[nBestTrackerID]  = cvBoundingBox;
+            m_mLastUpdateTime[nBestTrackerID] = std::chrono::steady_clock::now();
+        }
+        else
+        {
+            // Create a new tracker and initialize it with the given frame and bounding box.
+            cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(eTrackerType);
+            cvTracker->init(cvFrame, *cvBoundingBox);
+            // Add the new tracker to the maps.
+            m_mTrackers[m_nNextId]       = cvTracker;
+            m_mBoundingBoxes[m_nNextId]  = cvBoundingBox;
+            m_mLastUpdateTime[m_nNextId] = std::chrono::steady_clock::now();
+            m_nNextId++;
+        }
     }
 
     /******************************************************************************
      * @brief Initialize the MultiTracker with a new frame and a vector of bounding boxes.
      *
      * @param cvFrame - The initial frame to track objects in.
-     * @param vDetections - A vector of bounding boxes (cv::Rect2d) representing the initial detections.
-     * @param bNewGroundTruthDetections - A flag indicating that the bounding boxes in the given vector should be considered new detections.
-     *                              This will treat the given detections as ground truth and will not attempt to match them with existing trackers.
-     *                              Instead of matching, it will find the best IOU for each detection and update the corresponding tracker. If no match is found,
-     *                              a new tracker will be created for that detection.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-03-15
      ******************************************************************************/
-    void MultiTracker::Update(const cv::Mat& cvFrame, const std::vector<std::shared_ptr<cv::Rect2d>>& vDetections, const bool bNewGroundTruthDetections)
+    void MultiTracker::Update(const cv::Mat& cvFrame)
     {
-        // Check if the detections are new ground truth detections.
-        if (bNewGroundTruthDetections)
+        // Create instance variables.
+        std::vector<int> vToRemove;
+        std::chrono::steady_clock::time_point tmCurrentTime = std::chrono::steady_clock::now();
+
+        // Loop through the existing trackers.
+        for (const std::pair<const int, cv::Ptr<cv::Tracker>>& stdEntry : m_mTrackers)
         {
-            // Clear the existing trackers and bounding boxes.
-            m_mTrackers.clear();
-            m_mBoundingBoxes.clear();
-            m_mLastUpdateTime.clear();
-            m_nNextId = 0;
-
-            // Create instance variables.
-            std::set<int> sMatchedTrackerIDs;
-            std::set<int> sMatchedDetectionsIndices;
-
-            // Loop through the new detections.
-            for (size_t siIter = 0; siIter < vDetections.size(); siIter++)
+            int nID = stdEntry.first;
+            cv::Rect cvBoundingBox;
+            bool bOK = stdEntry.second->update(cvFrame, cvBoundingBox);
+            if (bOK)
             {
-                // Create instance variables.
-                double dBestIOU    = 0.0;
-                int nBestTrackerID = -1;
-
-                // Loop through the existing trackers to find the best match for the current detection.
-                for (std::pair<const int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
+                // Update the data of the existing bounding box for the tracker.
+                if (m_mBoundingBoxes[nID])
                 {
-                    // Skip if this tracker has already been matched with a detection.
-                    int nID = stdEntry.first;
-                    if (sMatchedTrackerIDs.find(nID) != sMatchedTrackerIDs.end())
-                    {
-                        continue;
-                    }
-                    // Calculate the Intersection over Union (IoU) between the current detection and the existing tracker.
-                    double dIOU = this->CalculateIOU(*stdEntry.second, *vDetections[siIter]);
-                    if (dIOU > dBestIOU)
-                    {
-                        dBestIOU       = dIOU;
-                        nBestTrackerID = nID;
-                    }
+                    *m_mBoundingBoxes[nID] = cvBoundingBox;
                 }
-                // If the best IoU is above the threshold and a tracker was found, update the tracker.
-                if (dBestIOU > m_dIOUThreshold && nBestTrackerID != -1)
-                {
-                    // Reinitialize the tracker with the new detection.
-                    cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(m_eTrackerType);
-                    cvTracker->init(cvFrame, *vDetections[siIter]);
-                    m_mTrackers[nBestTrackerID]       = cvTracker;
-                    m_mBoundingBoxes[nBestTrackerID]  = vDetections[siIter];
-                    m_mLastUpdateTime[nBestTrackerID] = std::chrono::steady_clock::now();
-                    sMatchedTrackerIDs.insert(nBestTrackerID);
-                    sMatchedDetectionsIndices.insert(static_cast<int>(siIter));
-                }
+                m_mLastUpdateTime[nID] = tmCurrentTime;
             }
-
-            // For any new detection that wasn't associated, add a new tracker.
-            for (size_t siIter = 0; siIter < vDetections.size(); siIter++)
+            else
             {
-                if (sMatchedDetectionsIndices.find(static_cast<int>(siIter)) == sMatchedDetectionsIndices.end())
+                // Check elapsed time since last successful update.
+                double dElapsed = std::chrono::duration_cast<std::chrono::duration<double>>(tmCurrentTime - m_mLastUpdateTime[nID]).count();
+                if (dElapsed > m_dTrackingLostThreshold)
                 {
-                    this->AddTracker(cvFrame, vDetections[siIter]);
+                    vToRemove.push_back(nID);
                 }
             }
         }
-        else
+
+        // Remove trackers that have been lost for too long.
+        for (int nID : vToRemove)
         {
-            // Create instance variables.
-            std::vector<int> vToRemove;
-            std::chrono::steady_clock::time_point tmCurrentTime = std::chrono::steady_clock::now();
-
-            // Loop through the existing trackers.
-            for (const std::pair<const int, cv::Ptr<cv::Tracker>>& stdEntry : m_mTrackers)
-            {
-                int nID = stdEntry.first;
-                cv::Rect cvBoundingBox;
-                bool bOK = stdEntry.second->update(cvFrame, cvBoundingBox);
-                if (bOK)
-                {
-                    m_mBoundingBoxes[nID]  = std::make_shared<cv::Rect2d>(cvBoundingBox);
-                    m_mLastUpdateTime[nID] = tmCurrentTime;
-                }
-                else
-                {
-                    // Check elapsed time since last successful update.
-                    double dElapsed = std::chrono::duration_cast<std::chrono::duration<double>>(tmCurrentTime - m_mLastUpdateTime[nID]).count();
-                    if (dElapsed > m_dTrackingLostThreshold)
-                    {
-                        vToRemove.push_back(nID);
-                    }
-                }
-            }
-
-            // Remove trackers that have been lost for too long.
-            for (int nID : vToRemove)
-            {
-                m_mTrackers.erase(nID);
-                m_mBoundingBoxes.erase(nID);
-                m_mLastUpdateTime.erase(nID);
-            }
+            m_mTrackers.erase(nID);
+            m_mBoundingBoxes.erase(nID);
+            m_mLastUpdateTime.erase(nID);
         }
+    }
+
+    /******************************************************************************
+     * @brief Clear all trackers and bounding boxes from the MultiTracker.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-03-27
+     ******************************************************************************/
+    void MultiTracker::ClearTrackers()
+    {
+        m_mTrackers.clear();
+        m_mBoundingBoxes.clear();
+        m_mLastUpdateTime.clear();
     }
 
     /******************************************************************************

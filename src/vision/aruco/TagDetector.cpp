@@ -66,7 +66,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the tensorflow and torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_DNN_TRACKER_TYPE);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -130,7 +130,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the tensorflow and torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_DNN_TRACKER_TYPE);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>();
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -347,9 +347,10 @@ void TagDetector::ThreadedContinuousCode()
             // Drop the Alpha channel from the image copy to preproc frame.
             cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
-            m_vDetectedTorchTags = torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            std::vector<torchtag::TorchTag> vNewlyDetectedTags =
+                torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
             // Merge the newly detected tags with the pre-existing detected tags
-            this->UpdateDetectedTags(m_vDetectedTorchTags);
+            this->UpdateDetectedTags(vNewlyDetectedTags);
             // Loop through the newly detected tags.
             for (torchtag::TorchTag& stTag : m_vDetectedTorchTags)
             {
@@ -851,34 +852,32 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
 void TagDetector::UpdateDetectedTags(std::vector<torchtag::TorchTag>& vNewlyDetectedTags)
 {
     // Check if the given tag vector is empty
-    if (vNewlyDetectedTags.empty())
-    {}
+    if (vNewlyDetectedTags.empty() && !m_vDetectedTorchTags.empty())
+    {
+        // Since the tags are empty that means the detector has not detected any new ground truth tags.
+        // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
+        // stored in the m_vDetectedTorchTags vector.
+        // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
+        // and it doesn't have the ability to track tags over time.
+        // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
+
+        // Update the multi-tracker with the current frame.
+        m_pMultiTracker->Update(m_cvFrame);
+    }
     else
     {
-        // Newly detected tags and m_vDetectedTorchTags should contain the exact same tags.
-        if (m_vDetectedTorchTags != vNewlyDetectedTags)
-        {
-            m_vDetectedTorchTags = vNewlyDetectedTags;
-        }
+        // Reset the multi-tracker if the torch detector has detected new tags.
+        m_pMultiTracker->ClearTrackers();
+        // Clear the member variable vector of detected tags.
+        m_vDetectedTorchTags.clear();
 
-        // Copy the newly detected tags to a new vector of shared pointers to tags.
-        std::vector<std::shared_ptr<cv::Rect2d>> vNewTags;
+        // Loop through the newly detected tags.
         for (torchtag::TorchTag& stTag : vNewlyDetectedTags)
         {
-            // Create a shared pointer to the tag.
-            std::shared_ptr<cv::Rect2d> pBoundingBox = std::make_shared<cv::Rect2d>(stTag.cvBoundingBox);
-            // Add the shared pointer to the new tags vector.
-            vNewTags.push_back(pBoundingBox);
-        }
-
-        // Track the tags.
-        m_pMultiTracker->Update(m_cvFrame, vNewTags);
-
-        // Loop through the new tags vector and update the m_vDetectedTorchTags vector with the updated bounding box data.
-        for (size_t siIter = 0; siIter < vNewTags.size(); siIter++)
-        {
-            // Update the bounding box data for the tag.
-            m_vDetectedTorchTags[siIter].cvBoundingBox = *vNewTags[siIter];
+            // Add the newly detected tag to the the member variable vector of detected tags.
+            m_vDetectedTorchTags.push_back(stTag);
+            // Add the newly detected tags to the multi-tracker.
+            m_pMultiTracker->AddTracker(m_cvFrame, stTag.cvBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
         }
     }
 }

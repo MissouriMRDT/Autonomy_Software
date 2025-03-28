@@ -43,12 +43,12 @@ namespace torchtag
     {
         public:
             // Declare public struct member attributes.
-            cv::Rect2d cvBoundingBox;              // The bounding box of the detected tag.
-            double dConfidence           = 0.0;    // The detection confidence of the tag reported from the PyTorch model.
-            double dStraightLineDistance = 0.0;    // Distance between the tag and the camera.
-            double dYawAngle             = 0.0;    // This is the yaw angle so roll and pitch are ignored.
-            int nID                      = -1;     // The ID of the tag. This is set to -1 if the tag is not detected.
-            std::string szClassName;               // The class name of the tag. This is dependent on the class names used when training.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;    // The bounding box of the detected tag.
+            double dConfidence           = 0.0;           // The detection confidence of the tag reported from the PyTorch model.
+            double dStraightLineDistance = 0.0;           // Distance between the tag and the camera.
+            double dYawAngle             = 0.0;           // This is the yaw angle so roll and pitch are ignored.
+            int nID                      = -1;            // The ID of the tag. This is set to -1 if the tag is not detected.
+            std::string szClassName;                      // The class name of the tag. This is dependent on the class names used when training.
 
             /******************************************************************************
              * @brief Overload the equality operator for the TorchTag struct.
@@ -91,7 +91,7 @@ namespace torchtag
     inline cv::Point2f FindTagCenter(const TorchTag& stTag)
     {
         // Calculate the center point of the tag.
-        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width / 2, stTag.cvBoundingBox.y + stTag.cvBoundingBox.height / 2);
+        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width / 2, stTag.cvBoundingBox->y + stTag.cvBoundingBox->height / 2);
 
         return cvCenter;
     }
@@ -136,7 +136,7 @@ namespace torchtag
                 // Create and initialize new TensorflowTag.
                 TorchTag stDetectedTag;
                 stDetectedTag.dConfidence   = stTagDetection.fConfidence;
-                stDetectedTag.cvBoundingBox = stTagDetection.cvBoundingBox;
+                stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
                 stDetectedTag.nID           = stTagDetection.nClassID;
                 stDetectedTag.szClassName   = stTagDetection.szClassName;
 
@@ -173,17 +173,17 @@ namespace torchtag
             for (TorchTag stTag : vDetectedTags)
             {
                 // Draw bounding box onto image.
-                cv::rectangle(cvDetectionsFrame, stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);
+                cv::rectangle(cvDetectionsFrame, *stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);
                 // Draw classID background box onto image.
                 cv::rectangle(cvDetectionsFrame,
-                              cv::Point(stTag.cvBoundingBox.x, stTag.cvBoundingBox.y - 20),
-                              cv::Point(stTag.cvBoundingBox.x + stTag.cvBoundingBox.width, stTag.cvBoundingBox.y),
+                              cv::Point(stTag.cvBoundingBox->x, stTag.cvBoundingBox->y - 20),
+                              cv::Point(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width, stTag.cvBoundingBox->y),
                               cv::Scalar(255, 255, 255),
                               cv::FILLED);
                 // Draw class text onto image.
                 cv::putText(cvDetectionsFrame,
                             stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100)),
-                            cv::Point(stTag.cvBoundingBox.x, stTag.cvBoundingBox.y - 5),
+                            cv::Point(stTag.cvBoundingBox->x, stTag.cvBoundingBox->y - 5),
                             cv::FONT_HERSHEY_SIMPLEX,
                             0.5,
                             cv::Scalar(0, 0, 0));
