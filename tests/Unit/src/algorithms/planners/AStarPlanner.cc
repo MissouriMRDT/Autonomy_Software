@@ -111,7 +111,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathWaypoints)
     // Create a new AStar object.
     std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart     = 608120.0;
@@ -170,7 +170,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathUTMCoordinates)
     // Create a new AStar object.
     std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -229,7 +229,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathGPSCoordinates)
     // Create a new AStar object.
     std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -332,7 +332,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
     // Create a new AStar object.
     std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;

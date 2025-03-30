@@ -661,8 +661,6 @@ bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::
         LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Torch detection for TagDetector.");
         // Update member variable.
         m_bTorchInitialized = false;
-        // Close hardware.
-        // m_pTorchDetector->;
         // Return status.
         return false;
     }
