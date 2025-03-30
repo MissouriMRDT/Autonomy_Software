@@ -219,9 +219,9 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
     // Determine which tag detector should be returned.
     switch (eDetectorName)
     {
-        case TagDetectors::eHeadMainCam: return m_pTagDetectorMainCam;
-        case TagDetectors::eFrameLeftCam: return m_pTagDetectorLeftCam;
-        case TagDetectors::eFrameRightCam: return m_pTagDetectorRightCam;
-        default: return m_pTagDetectorMainCam;
+        case TagDetectors::eHeadMainCam: return m_pTagDetectorMainCam; break;
+        case TagDetectors::eFrameLeftCam: return m_pTagDetectorLeftCam; break;
+        case TagDetectors::eFrameRightCam: return m_pTagDetectorRightCam; break;
+        default: return m_pTagDetectorMainCam; break;
     }
 }

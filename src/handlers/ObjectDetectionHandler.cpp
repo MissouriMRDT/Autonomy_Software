@@ -101,9 +101,9 @@ std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(Object
     // Determine which object detector should be returned.
     switch (eDetectorName)
     {
-        case ObjectDetectors::eHeadMainCam: return m_pObjectDetectorMainCam;
-        case ObjectDetectors::eFrameLeftCam: return m_pObjectDetectorLeftCam;
-        case ObjectDetectors::eFrameRightCam: return m_pObjectDetectorRightCam;
-        default: return m_pObjectDetectorMainCam;
+        case ObjectDetectors::eHeadMainCam: return m_pObjectDetectorMainCam; break;
+        case ObjectDetectors::eFrameLeftCam: return m_pObjectDetectorLeftCam; break;
+        case ObjectDetectors::eFrameRightCam: return m_pObjectDetectorRightCam; break;
+        default: return m_pObjectDetectorMainCam; break;
     }
 }
