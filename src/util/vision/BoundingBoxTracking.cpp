@@ -71,7 +71,7 @@ namespace tracking
         int nBestTrackerID = -1;
 
         // Loop through the existing trackers to find the best match for the given bounding box.
-        for (const auto& stdEntry : m_mBoundingBoxes)
+        for (const std::pair<int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
         {
             int nID     = stdEntry.first;
             double dIOU = this->CalculateIOU(*stdEntry.second, *cvBoundingBox);
@@ -124,8 +124,7 @@ namespace tracking
         {
             int nID = stdEntry.first;
             cv::Rect cvBoundingBox;
-            bool bOK = stdEntry.second->update(cvFrame, cvBoundingBox);
-            if (bOK)
+            if (stdEntry.second->update(cvFrame, cvBoundingBox))
             {
                 // Update the data of the existing bounding box for the tracker.
                 *m_mBoundingBoxes[nID] = cvBoundingBox;
