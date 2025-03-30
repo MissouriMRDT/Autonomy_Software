@@ -40,25 +40,6 @@ namespace tracking
         m_dTrackingLostThreshold = dTrackingLostThreshold;
         m_dIOUThreshold          = dIOUThreshold;
         m_nNextId                = 0;
-
-        // Set the tracker factory function based on the specified tracker type.
-        m_fnTrackerFactory = [](const TrackerType eType) -> cv::Ptr<cv::Tracker>
-        {
-            switch (eType)
-            {
-                case TrackerType::eMIL: return cv::TrackerMIL::create();
-                case TrackerType::eKCF: return cv::TrackerKCF::create();
-                case TrackerType::eGOTURN: return cv::TrackerGOTURN::create();
-                case TrackerType::eCSRT: return cv::TrackerCSRT::create();
-                default:
-                {
-                    // Submit a warning message if the tracker type is unknown.
-                    LOG_WARNING(logging::g_qSharedLogger, "Unknown tracker type specified. Defaulting to KCF.");
-                    // Return a default tracker (KCF) if the type is unknown.
-                    return cv::TrackerKCF::create();
-                }
-            }
-        };
     }
 
     /******************************************************************************
@@ -105,7 +86,7 @@ namespace tracking
         if (dBestIOU > m_dIOUThreshold && nBestTrackerID != -1)
         {
             // Reinitialize the tracker with the new bounding box.
-            cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(eTrackerType);
+            cv::Ptr<cv::Tracker> cvTracker = this->CreateTracker(eTrackerType);
             cvTracker->init(cvFrame, *cvBoundingBox);
             m_mTrackers[nBestTrackerID]       = cvTracker;
             m_mBoundingBoxes[nBestTrackerID]  = cvBoundingBox;
@@ -114,7 +95,7 @@ namespace tracking
         else
         {
             // Create a new tracker and initialize it with the given frame and bounding box.
-            cv::Ptr<cv::Tracker> cvTracker = m_fnTrackerFactory(eTrackerType);
+            cv::Ptr<cv::Tracker> cvTracker = this->CreateTracker(eTrackerType);
             cvTracker->init(cvFrame, *cvBoundingBox);
             // Add the new tracker to the maps.
             m_mTrackers[m_nNextId]       = cvTracker;
@@ -147,16 +128,13 @@ namespace tracking
             if (bOK)
             {
                 // Update the data of the existing bounding box for the tracker.
-                if (m_mBoundingBoxes[nID])
-                {
-                    *m_mBoundingBoxes[nID] = cvBoundingBox;
-                }
+                *m_mBoundingBoxes[nID] = cvBoundingBox;
                 m_mLastUpdateTime[nID] = tmCurrentTime;
             }
             else
             {
                 // Check elapsed time since last successful update.
-                double dElapsed = std::chrono::duration_cast<std::chrono::duration<double>>(tmCurrentTime - m_mLastUpdateTime[nID]).count();
+                double dElapsed = std::chrono::duration<double>(tmCurrentTime - m_mLastUpdateTime[nID]).count();
                 if (dElapsed > m_dTrackingLostThreshold)
                 {
                     vToRemove.push_back(nID);
@@ -188,6 +166,32 @@ namespace tracking
     }
 
     /******************************************************************************
+     * @brief Set the timeout for when a tracker is considered lost.
+     *
+     * @param dTimeout - The time in seconds after which a tracker is considered lost.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-03-29
+     ******************************************************************************/
+    void MultiTracker::SetTrackerLostTimeout(const double dTimeout)
+    {
+        m_dTrackingLostThreshold = dTimeout;
+    }
+
+    /******************************************************************************
+     * @brief Get the timeout for when a tracker is considered lost.
+     *
+     * @return double - The time in seconds after which a tracker is considered lost.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-03-29
+     ******************************************************************************/
+    double MultiTracker::GetTrackerLostTimeout() const
+    {
+        return m_dTrackingLostThreshold;
+    }
+
+    /******************************************************************************
      * @brief Calculate the Intersection over Union (IoU) of two bounding boxes.
      *
      * @param cvBoxA - The first bounding box (cv::Rect2d).
@@ -205,5 +209,31 @@ namespace tracking
         double dUnionArea = cvBoxA.area() + cvBoxB.area() - dIntersectionArea;
         // Return the Intersection over Union (IoU).
         return (dUnionArea > 0) ? (dIntersectionArea / dUnionArea) : 0.0;
+    }
+
+    /******************************************************************************
+     * @brief Create a tracker based on the specified type.
+     *
+     * @param eType - The type of tracker to create (eMIL, eKCF, eGOTURN, eCSRT).
+     * @return cv::Ptr<cv::Tracker> - A pointer to the created tracker.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-03-29
+     ******************************************************************************/
+    cv::Ptr<cv::Tracker> MultiTracker::CreateTracker(const TrackerType eType)
+    {
+        // Create a tracker based on the specified type.
+        switch (eType)
+        {
+            case TrackerType::eMIL: return cv::TrackerMIL::create();
+            case TrackerType::eKCF: return cv::TrackerKCF::create();
+            case TrackerType::eGOTURN: return cv::TrackerGOTURN::create();
+            case TrackerType::eCSRT: return cv::TrackerCSRT::create();
+            default:
+                // Submit a warning message if the tracker type is unknown.
+                LOG_WARNING(logging::g_qSharedLogger, "Unknown tracker type specified. Defaulting to KCF.");
+                // Return a default tracker (KCF) if the type is unknown.
+                return cv::TrackerKCF::create();
+        }
     }
 }    // namespace tracking

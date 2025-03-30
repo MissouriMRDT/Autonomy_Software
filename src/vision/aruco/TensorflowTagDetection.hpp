@@ -139,10 +139,7 @@ namespace tensorflowtag
                     // Create and initialize new TensorflowTag.
                     TensorflowTag stDetectedTag;
                     stDetectedTag.dConfidence   = stTagDetection.fConfidence;
-                    stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox.x,
-                                                                               stTagDetection.cvBoundingBox.y,
-                                                                               stTagDetection.cvBoundingBox.width,
-                                                                               stTagDetection.cvBoundingBox.height);
+                    stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
 
                     // Add TensorflowTag to return vector.
                     vDetectedTags.emplace_back(stDetectedTag);
@@ -178,7 +175,7 @@ namespace tensorflowtag
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {
             // Loop through each detection.
-            for (TensorflowTag stTag : vDetectedTags)
+            for (const TensorflowTag& stTag : vDetectedTags)
             {
                 // Draw bounding box onto image.
                 cv::rectangle(cvDetectionsFrame, *stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);
