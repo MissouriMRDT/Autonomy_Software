@@ -224,15 +224,16 @@ namespace tracking
         // Create a tracker based on the specified type.
         switch (eType)
         {
-            case TrackerType::eMIL: return cv::TrackerMIL::create();
-            case TrackerType::eKCF: return cv::TrackerKCF::create();
-            case TrackerType::eGOTURN: return cv::TrackerGOTURN::create();
-            case TrackerType::eCSRT: return cv::TrackerCSRT::create();
+            case TrackerType::eMIL: return cv::TrackerMIL::create(); break;
+            case TrackerType::eKCF: return cv::TrackerKCF::create(); break;
+            case TrackerType::eGOTURN: return cv::TrackerGOTURN::create(); break;
+            case TrackerType::eCSRT: return cv::TrackerCSRT::create(); break;
             default:
                 // Submit a warning message if the tracker type is unknown.
                 LOG_WARNING(logging::g_qSharedLogger, "Unknown tracker type specified. Defaulting to KCF.");
                 // Return a default tracker (KCF) if the type is unknown.
                 return cv::TrackerKCF::create();
+                break;
         }
     }
 }    // namespace tracking
