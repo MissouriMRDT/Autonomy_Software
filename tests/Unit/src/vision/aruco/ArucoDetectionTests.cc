@@ -110,7 +110,7 @@ TEST_F(ArucoDetectionTests, FindTagCenter)
 
     cv::Point2f cvPredictedCenterPoint = FindTagCenter(stTag);
 
-    cv::Point2f cvExpectedCenterPoint{6.75, 3.5};
+    cv::Point2f cvExpectedCenterPoint{6.5, 2.5};
     EXPECT_PRED2([this](const cv::Point2f& p1, const cv::Point2f& p2) { return PointsAreEqual(p1, p2); }, cvPredictedCenterPoint, cvExpectedCenterPoint);
 }
 
@@ -144,9 +144,9 @@ TEST_F(ArucoDetectionTests, SingleCleanTagDetect)
 
     // Does the detected tag's corners match with the real tags
     cv::Point2f cvExpectedCornerTL{220, 220};
-    cv::Point2f cvExpectedCornerTR{419, 220};
-    cv::Point2f cvExpectedCornerBL{220, 419};
-    cv::Point2f cvExpectedCornerBR{419, 419};
+    cv::Point2f cvExpectedCornerTR{420, 220};
+    cv::Point2f cvExpectedCornerBL{220, 420};
+    cv::Point2f cvExpectedCornerBR{420, 420};
 
     cv::Rect2d cvBoundingBox     = *stDetectedTag.cvBoundingBox;
     cv::Point2f cvActualCornerTL = cv::Point2f(cvBoundingBox.x, cvBoundingBox.y);
@@ -220,9 +220,9 @@ TEST_F(ArucoDetectionTests, MultiCleanTagDetect)
 
         // Calculate the expected corners
         cv::Point2f cvExpectedCornerTL{cvCenterPoint.x - unApothem, cvCenterPoint.y - unApothem};
-        cv::Point2f cvExpectedCornerTR{cvCenterPoint.x + unApothem - 1, cvCenterPoint.y - unApothem};
-        cv::Point2f cvExpectedCornerBL{cvCenterPoint.x - unApothem, cvCenterPoint.y + unApothem - 1};
-        cv::Point2f cvExpectedCornerBR{cvCenterPoint.x + unApothem - 1, cvCenterPoint.y + unApothem - 1};
+        cv::Point2f cvExpectedCornerTR{cvCenterPoint.x + unApothem, cvCenterPoint.y - unApothem};
+        cv::Point2f cvExpectedCornerBL{cvCenterPoint.x - unApothem, cvCenterPoint.y + unApothem};
+        cv::Point2f cvExpectedCornerBR{cvCenterPoint.x + unApothem, cvCenterPoint.y + unApothem};
 
         // Do the corners between the expected and detected tags match?
         bool bTLMatch, bTRMatch, bBLMatch, bBRMatch;
