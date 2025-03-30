@@ -87,8 +87,8 @@ int main()
     // Setup global objects.
     /////////////////////////////////////////
     // Initialize RoveComm.
-    network::g_pRoveCommUDPNode = std::make_shared<rovecomm::RoveCommUDP>();
-    network::g_pRoveCommTCPNode = std::make_shared<rovecomm::RoveCommTCP>();
+    network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
+    network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
     // Start RoveComm instances bound on ports.
     network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
     network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
@@ -113,9 +113,9 @@ int main()
     network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
 
     // Initialize drivers.
-    globals::g_pDriveBoard      = std::make_shared<DriveBoard>();
-    globals::g_pMultimediaBoard = std::make_shared<MultimediaBoard>();
-    globals::g_pNavigationBoard = std::make_shared<NavigationBoard>();
+    globals::g_pDriveBoard      = new DriveBoard();
+    globals::g_pMultimediaBoard = new MultimediaBoard();
+    globals::g_pNavigationBoard = new NavigationBoard();
 
     // Check whether or not we should run example code or continue with normal operation.
     if (bRunExampleFlag)
@@ -150,10 +150,10 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pCameraHandler       = std::make_shared<CameraHandler>();
-        globals::g_pWaypointHandler     = std::make_shared<WaypointHandler>();
-        globals::g_pTagDetectionHandler = std::make_shared<TagDetectionHandler>();
-        globals::g_pStateMachineHandler = std::make_shared<StateMachineHandler>();
+        globals::g_pCameraHandler       = new CameraHandler();
+        globals::g_pWaypointHandler     = new WaypointHandler();
+        globals::g_pTagDetectionHandler = new TagDetectionHandler();
+        globals::g_pStateMachineHandler = new StateMachineHandler();
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
@@ -240,18 +240,29 @@ int main()
 
         // Even though smart pointers should handle lifetime, explicitly reset to ensure cleanup in proper order, this also prevents the main thread
         // from exiting and killing quill loggers since they are used in some of the destructors.
-        globals::g_pStateMachineHandler.reset();
-        globals::g_pTagDetectionHandler.reset();
-        globals::g_pCameraHandler.reset();
-        globals::g_pWaypointHandler.reset();
-        globals::g_pDriveBoard.reset();
-        globals::g_pMultimediaBoard.reset();
-        globals::g_pNavigationBoard.reset();
+        delete globals::g_pStateMachineHandler;
+        delete globals::g_pTagDetectionHandler;
+        delete globals::g_pCameraHandler;
+        delete globals::g_pWaypointHandler;
+        delete globals::g_pDriveBoard;
+        delete globals::g_pMultimediaBoard;
+        delete globals::g_pNavigationBoard;
 
         // Finally, stop RoveComm.
         LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
-        network::g_pRoveCommUDPNode.reset();
-        network::g_pRoveCommTCPNode.reset();
+        delete network::g_pRoveCommUDPNode;
+        delete network::g_pRoveCommTCPNode;
+
+        // Set all pointers to nullptr to prevent dangling pointers.
+        globals::g_pStateMachineHandler = nullptr;
+        globals::g_pTagDetectionHandler = nullptr;
+        globals::g_pCameraHandler       = nullptr;
+        globals::g_pWaypointHandler     = nullptr;
+        globals::g_pDriveBoard          = nullptr;
+        globals::g_pMultimediaBoard     = nullptr;
+        globals::g_pNavigationBoard     = nullptr;
+        network::g_pRoveCommUDPNode     = nullptr;
+        network::g_pRoveCommTCPNode     = nullptr;
     }
 
     // Submit logger message that program is done cleaning up and is now exiting.

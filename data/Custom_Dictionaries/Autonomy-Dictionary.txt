@@ -301,6 +301,7 @@ jspencerpittman
 Jter
 jthread
 kbits
+Kernelized
 keyrings
 keyscan
 ladspa

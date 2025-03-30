@@ -131,7 +131,7 @@ namespace torchtag
             std::vector<yolomodel::Detection> vOutputTensorTags = tfPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
 
             // Repackage detections into tensorflow tags.
-            for (yolomodel::Detection stTagDetection : vOutputTensorTags)
+            for (const yolomodel::Detection& stTagDetection : vOutputTensorTags)
             {
                 // Create and initialize new TensorflowTag.
                 TorchTag stDetectedTag;
@@ -141,7 +141,7 @@ namespace torchtag
                 stDetectedTag.szClassName   = stTagDetection.szClassName;
 
                 // Add the newly detected tag to the vector.
-                vDetectedTags.push_back(stDetectedTag);
+                vDetectedTags.emplace_back(stDetectedTag);
             }
         }
         else
@@ -170,7 +170,7 @@ namespace torchtag
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {
             // Loop through each detection.
-            for (TorchTag stTag : vDetectedTags)
+            for (const TorchTag& stTag : vDetectedTags)
             {
                 // Draw bounding box onto image.
                 cv::rectangle(cvDetectionsFrame, *stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);

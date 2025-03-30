@@ -32,8 +32,8 @@
 namespace network
 {
     // RoveComm Instances:
-    std::shared_ptr<rovecomm::RoveCommUDP> g_pRoveCommUDPNode;
-    std::shared_ptr<rovecomm::RoveCommTCP> g_pRoveCommTCPNode;
+    rovecomm::RoveCommUDP* g_pRoveCommUDPNode;
+    rovecomm::RoveCommTCP* g_pRoveCommTCPNode;
 
     // RoveComm Status:
     std::atomic_bool g_bRoveCommUDPStatus = false;

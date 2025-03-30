@@ -30,10 +30,10 @@ namespace tracking
     // Enum class to define the different types of trackers available in OpenCV.
     enum class TrackerType
     {
-        eMIL,
-        eKCF,
-        eGOTURN,
-        eCSRT
+        eMIL,       // Multi Instance Learning
+        eKCF,       // Kernelized Correlation Filter
+        eGOTURN,    // Generic Object Tracking Using Regression Networks
+        eCSRT       // Discriminative Correlation Filter with Channel and Spatial Reliability
     };
 
     /******************************************************************************
@@ -61,7 +61,12 @@ namespace tracking
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
-            void SetTrackerLostTimeout();
+            void SetTrackerLostTimeout(const double dTimeout);
+
+            /////////////////////////////////////////
+            // Getters.
+            /////////////////////////////////////////
+            double GetTrackerLostTimeout() const;
 
         private:
             /////////////////////////////////////////
@@ -69,6 +74,7 @@ namespace tracking
             /////////////////////////////////////////
 
             double CalculateIOU(const cv::Rect2d& cvBoxA, const cv::Rect2d& cvBoxB);
+            cv::Ptr<cv::Tracker> CreateTracker(const TrackerType eType);
 
             /////////////////////////////////////////
             // Declare private member variables.
@@ -76,7 +82,6 @@ namespace tracking
             std::map<int, cv::Ptr<cv::Tracker>> m_mTrackers;
             std::map<int, std::shared_ptr<cv::Rect2d>> m_mBoundingBoxes;
             std::map<int, std::chrono::steady_clock::time_point> m_mLastUpdateTime;
-            std::function<cv::Ptr<cv::Tracker>(TrackerType)> m_fnTrackerFactory;
             double m_dTrackingLostThreshold;    // Time in seconds after which a tracker is considered lost.
             double m_dIOUThreshold;             // Minimum Intersection over Union required to associate a new detection with an existing tracker.
             int m_nNextId;

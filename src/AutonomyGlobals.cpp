@@ -25,19 +25,19 @@ namespace globals
     /////////////////////////////////////////
 
     // Waypoint Handler:
-    std::shared_ptr<WaypointHandler> g_pWaypointHandler;
+    WaypointHandler* g_pWaypointHandler;
 
     // Camera Handler:
-    std::shared_ptr<CameraHandler> g_pCameraHandler;
+    CameraHandler* g_pCameraHandler;
 
     // Tag Detection Handler:
-    std::shared_ptr<TagDetectionHandler> g_pTagDetectionHandler;
+    TagDetectionHandler* g_pTagDetectionHandler;
 
     // State Machine Handler:
-    std::shared_ptr<StateMachineHandler> g_pStateMachineHandler;
+    StateMachineHandler* g_pStateMachineHandler;
 
     // Drivers:
-    std::shared_ptr<DriveBoard> g_pDriveBoard;
-    std::shared_ptr<MultimediaBoard> g_pMultimediaBoard;
-    std::shared_ptr<NavigationBoard> g_pNavigationBoard;
+    DriveBoard* g_pDriveBoard;
+    MultimediaBoard* g_pMultimediaBoard;
+    NavigationBoard* g_pNavigationBoard;
 }    // namespace globals
