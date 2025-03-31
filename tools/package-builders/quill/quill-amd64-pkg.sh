@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="8.1.0"
+QUILL_VERSION="8.2.0"
 
 # Build Arguments
 FORCE_BUILD=false

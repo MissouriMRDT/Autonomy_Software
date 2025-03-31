@@ -43,7 +43,7 @@ class TensorflowTPU
         /////////////////////////////////////////
 
         // Enumerator for selecting which EdgeTPU device type the model should try to run on.
-        enum DeviceType
+        enum class DeviceType
         {
             eAuto,    // Any open device will be picked. Prioritizes PCIe device if not already in use.
             ePCIe,    // Attempt to use a PCIe device for this model.
@@ -51,7 +51,7 @@ class TensorflowTPU
         };
 
         // Enumerator for selecting performance mode of EdgeTPU devices.
-        enum PerformanceModes
+        enum class PerformanceModes
         {
             eLow,       // Power saver mode. Low power draw and little heat output, but not great performance.
             eMedium,    // Balanced. Medium power draw, medium performance.
@@ -79,7 +79,10 @@ class TensorflowTPU
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-11-11
          ******************************************************************************/
-        TensorflowTPU(std::string szModelPath, PerformanceModes ePowerMode = eHigh, unsigned int unMaxBulkInQueueLength = 32, bool bUSBAlwaysDFU = false)
+        TensorflowTPU(std::string szModelPath,
+                      PerformanceModes ePowerMode         = PerformanceModes::eHigh,
+                      unsigned int unMaxBulkInQueueLength = 32,
+                      bool bUSBAlwaysDFU                  = false)
         {
             // Initialize member variables.
             m_szModelPath                                  = szModelPath;
@@ -89,10 +92,10 @@ class TensorflowTPU
             // Determine which power mode should be set.
             switch (ePowerMode)
             {
-                case eLow: m_tpuDeviceOptions["Performance"] = "Low"; break;
-                case eMedium: m_tpuDeviceOptions["Performance"] = "Medium"; break;
-                case eHigh: m_tpuDeviceOptions["Performance"] = "High"; break;
-                case eMax: m_tpuDeviceOptions["Performance"] = "Max"; break;
+                case PerformanceModes::eLow: m_tpuDeviceOptions["Performance"] = "Low"; break;
+                case PerformanceModes::eMedium: m_tpuDeviceOptions["Performance"] = "Medium"; break;
+                case PerformanceModes::eHigh: m_tpuDeviceOptions["Performance"] = "High"; break;
+                case PerformanceModes::eMax: m_tpuDeviceOptions["Performance"] = "Max"; break;
                 default: m_tpuDeviceOptions["Performance"] = "High"; break;
             }
 
@@ -159,7 +162,7 @@ class TensorflowTPU
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2023-11-11
          ******************************************************************************/
-        TfLiteStatus OpenAndLoad(DeviceType eDeviceType = eAuto)
+        TfLiteStatus OpenAndLoad(DeviceType eDeviceType = DeviceType::eAuto)
         {
             // Create instance variables.
             TfLiteStatus tfReturnStatus = TfLiteStatus::kTfLiteCancelled;
@@ -168,9 +171,9 @@ class TensorflowTPU
             // Determine which device is going to be used for this model.
             switch (eDeviceType)
             {
-                case eAuto: m_tpuDevice.type = edgetpu::DeviceType(-1); break;
-                case ePCIe: m_tpuDevice.type = edgetpu::DeviceType::kApexPci; break;
-                case eUSB: m_tpuDevice.type = edgetpu::DeviceType::kApexUsb; break;
+                case DeviceType::eAuto: m_tpuDevice.type = edgetpu::DeviceType(-1); break;
+                case DeviceType::ePCIe: m_tpuDevice.type = edgetpu::DeviceType::kApexPci; break;
+                case DeviceType::eUSB: m_tpuDevice.type = edgetpu::DeviceType::kApexUsb; break;
                 default: m_tpuDevice.type = edgetpu::DeviceType(-1); break;
             }
 
@@ -200,7 +203,7 @@ class TensorflowTPU
                             bValidDevice = false;
                         }
                         // Determine if we should check device type.
-                        else if (eDeviceType != eAuto)
+                        else if (eDeviceType != DeviceType::eAuto)
                         {
                             // Check if device type matches.
                             if (vDevices[unIter].type != m_tpuDevice.type)

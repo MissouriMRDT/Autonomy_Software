@@ -12,6 +12,7 @@
 #define CONSTS_H
 
 #include "./interfaces/Camera.hpp"
+#include "./util/vision/BoundingBoxTracking.h"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -40,9 +41,9 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS = "192.168.2.118";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT    = 8080;               // The port to use for the WebSocket in simulation mode.
-    const uint SIM_WEBRTC_QP         = 25;    // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
+    const std::string SIM_IP_ADDRESS = "127.0.0.1";    // The IP address to use for simulation mode.
+    const uint SIM_WEBSOCKET_PORT    = 8080;           // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBRTC_QP         = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
@@ -186,7 +187,7 @@ namespace constants
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
     const bool ZED_MAINCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_MAINCAM_SERIAL                    = 15723847;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
+    const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
     // Left ZED Camera.
     const int ZED_LEFTCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the leftcam images to.
@@ -234,14 +235,16 @@ namespace constants
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
     const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag in meters.
-    const int ARUCO_VALIDATION_THRESHOLD             = 10;     // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
-    const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD = 5;      // How many times can an unvalidated tag be missing from frame before being forgotten.
-    const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD   = 10;     // How many times can a validated tag be missing from frame before being forgotten.
-    const double ARUCO_PIXEL_THRESHOLD               = 175;    // Pixel value threshold for pre-process threshold mask
-    const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE     = 255;    // Pixel value to set to if pixel is within threshold
-    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST          = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
-    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA         = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
-    const cv::Mat ARUCO_EDGE_KERNEL                  = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
+    const int ARUCO_VALIDATION_THRESHOLD                = 10;     // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
+    const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD    = 5;      // How many times can an unvalidated tag be missing from frame before being forgotten.
+    const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD      = 10;     // How many times can a validated tag be missing from frame before being forgotten.
+    const double ARUCO_PIXEL_THRESHOLD                  = 175;    // Pixel value threshold for pre-process threshold mask
+    const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE        = 255;    // Pixel value to set to if pixel is within threshold
+    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST             = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
+    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA            = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
+    const cv::Mat ARUCO_EDGE_KERNEL                     = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
+    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection. KCF is fast and accurate.
+    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 5.0;                            // The time in seconds to wait before considering a tracker lost.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -256,10 +259,14 @@ namespace constants
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_MAINCAM_ENABLE_TF              = false;                            // Whether or not to use tensorflow detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_TF_MODEL    = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE    = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH    = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_MAINCAM_ENABLE_TORCH       = true;    // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.torchscript";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -269,10 +276,14 @@ namespace constants
     const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_LEFTCAM_ENABLE_TF              = false;                            // Whether or not to use DNN detection on top of ArUco.
+    const std::string TAGDETECT_LEFTCAM_TF_MODEL    = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE    = 0.4f;     // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH    = 0.4f;     // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_LEFTCAM_ENABLE_TORCH       = false;    // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_LEFTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -282,10 +293,14 @@ namespace constants
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_DNN             = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_MODEL_PATH = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE   = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH   = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_TF              = false;                            // Whether or not to use DNN detection on top of ArUco.
+    const std::string TAGDETECT_RIGHTCAM_TF_MODEL    = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE    = 0.4f;     // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH    = 0.4f;     // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH       = false;    // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.

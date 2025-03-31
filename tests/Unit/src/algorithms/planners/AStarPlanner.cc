@@ -109,9 +109,9 @@ TEST_F(AStarPlannerTests, Leaks)
 TEST_F(AStarPlannerTests, PlanAvoidancePathWaypoints)
 {
     // Create a new AStar object.
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart     = 608120.0;
@@ -156,10 +156,6 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathWaypoints)
         EXPECT_NEAR(aGoalCoordinates[siIter].GetUTMCoordinate().dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
         EXPECT_NEAR(aGoalCoordinates[siIter].GetUTMCoordinate().dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
     }
-
-    // Cleanup.
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -172,9 +168,9 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathWaypoints)
 TEST_F(AStarPlannerTests, PlanAvoidancePathUTMCoordinates)
 {
     // Create a new AStar object.
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -219,10 +215,6 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathUTMCoordinates)
         EXPECT_NEAR(aGoalCoordinates[siIter].dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
         EXPECT_NEAR(aGoalCoordinates[siIter].dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
     }
-
-    // Cleanup.
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -235,9 +227,9 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathUTMCoordinates)
 TEST_F(AStarPlannerTests, PlanAvoidancePathGPSCoordinates)
 {
     // Create a new AStar object.
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -286,10 +278,6 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathGPSCoordinates)
         EXPECT_NEAR(aGoalCoordinates[siIter].dLatitude, vReturnedPath.back().GetGPSCoordinate().dLatitude, 0.1);
         EXPECT_NEAR(aGoalCoordinates[siIter].dLongitude, vReturnedPath.back().GetGPSCoordinate().dLongitude, 0.1);
     }
-
-    // Cleanup.
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -304,7 +292,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathGPSCoordinates)
 TEST_F(AStarPlannerTests, PlanAvoidancePathStartEndBlocked)
 {
     // Create a new AStar object.
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -330,10 +318,6 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathStartEndBlocked)
 
     // Validate that the path has some points.
     EXPECT_FALSE(vReturnedPath.empty());
-
-    // Cleanup.
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -346,9 +330,9 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathStartEndBlocked)
 TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
 {
     // Create a new AStar object.
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
-    size_t siTestValuesLength   = 8;
+    size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -377,10 +361,6 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
     EXPECT_LT(dElapsedTime.count(), 1);
     // Make sure the path is empty.
     EXPECT_TRUE(pAStar->GetPath().empty());
-
-    // Cleanup.
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -393,7 +373,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
 TEST_F(AStarPlannerTests, ObstacleInitialization)
 {
     // Create a new AStar object.
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
     // Create obstacle for AStar initialization.
     const geoops::UTMCoordinate stObstacleCenter = geoops::UTMCoordinate(608120, 4201140, 15);
@@ -429,10 +409,6 @@ TEST_F(AStarPlannerTests, ObstacleInitialization)
         EXPECT_NEAR(vObstacles[siCounter].GetUTMCoordinate().dNorthing, vReturnVector[siCounter].GetUTMCoordinate().dNorthing, 0.1);
         EXPECT_NEAR(vObstacles[siCounter].dRadius, vReturnVector[siCounter].dRadius, 0.1);
     }
-
-    // Cleanup.
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -444,7 +420,7 @@ TEST_F(AStarPlannerTests, ObstacleInitialization)
 TEST_F(AStarPlannerTests, UpsertObstacleData)
 {
     // Create a new AStar object
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
 
     // Test single Waypoint obstacle
     const geoops::UTMCoordinate stObstacle1UTM(608120, 4201140, 15);
@@ -501,8 +477,4 @@ TEST_F(AStarPlannerTests, UpsertObstacleData)
     pAStar->ClearObstacleData();
     pAStar->UpsertObstacleData(vGPSObstacles);
     EXPECT_EQ(pAStar->GetObstacleData().size(), 2);
-
-    // Cleanup
-    delete pAStar;
-    pAStar = nullptr;
 }

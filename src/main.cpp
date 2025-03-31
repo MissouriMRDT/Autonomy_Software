@@ -98,8 +98,8 @@ int main()
         // Submit logger message.
         LOG_CRITICAL(logging::g_qSharedLogger,
                      "RoveComm did not initialize properly! UDPNode Status: {}, TCPNode Status: {}",
-                     network::g_bRoveCommUDPStatus,
-                     network::g_bRoveCommTCPStatus);
+                     network::g_bRoveCommUDPStatus.load(),
+                     network::g_bRoveCommTCPStatus.load());
 
         // Since RoveComm is crucial, stop code.
         bMainStop = true;
@@ -141,8 +141,8 @@ int main()
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger,
-                            "Autonomy_Software is running in SIM mode! If you aren't currently using the WeBots sim, disable SIM mode in CMakeLists.txt or in your build "
-                            "arguments!");
+                            "Autonomy_Software is running in SIM mode! If you aren't currently using the Unreal RoveSoSimulator sim, disable SIM mode in CMakeLists.txt "
+                            "or in your build arguments!");
             }
 
             // Sleep for 3 seconds to make sure it's seen.
@@ -166,14 +166,14 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        ZEDCamera* pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        ZEDCamera* pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
-        ZEDCamera* pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
-        BasicCamera* pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
-        TagDetector* pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        TagDetector* pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
-        TagDetector* pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
-        IPS IterPerSecond           = IPS();
+        std::shared_ptr<ZEDCamera> pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        std::shared_ptr<ZEDCamera> pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
+        std::shared_ptr<ZEDCamera> pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
+        std::shared_ptr<BasicCamera> pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        std::shared_ptr<TagDetector> pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        std::shared_ptr<TagDetector> pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
+        std::shared_ptr<TagDetector> pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
+        IPS IterPerSecond                           = IPS();
 
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
@@ -237,22 +237,30 @@ int main()
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
-        network::g_pRoveCommUDPNode->CloseUDPSocket();
-        network::g_pRoveCommTCPNode->CloseTCPSocket();
 
-        // Delete dynamically allocated objects.
+        // Even though smart pointers should handle lifetime, explicitly reset to ensure cleanup in proper order, this also prevents the main thread
+        // from exiting and killing quill loggers since they are used in some of the destructors.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
+        delete globals::g_pDriveBoard;
+        delete globals::g_pMultimediaBoard;
+        delete globals::g_pNavigationBoard;
+
+        // Finally, stop RoveComm.
+        LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
         delete network::g_pRoveCommUDPNode;
         delete network::g_pRoveCommTCPNode;
 
-        // Set dangling pointers to null.
+        // Set all pointers to nullptr to prevent dangling pointers.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
         globals::g_pWaypointHandler     = nullptr;
+        globals::g_pDriveBoard          = nullptr;
+        globals::g_pMultimediaBoard     = nullptr;
+        globals::g_pNavigationBoard     = nullptr;
         network::g_pRoveCommUDPNode     = nullptr;
         network::g_pRoveCommTCPNode     = nullptr;
     }

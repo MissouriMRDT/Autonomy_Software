@@ -33,8 +33,8 @@ namespace network
     extern rovecomm::RoveCommTCP* g_pRoveCommTCPNode;    // Global RoveComm TCP Instance.
 
     // RoveComm Status:
-    extern bool g_bRoveCommUDPStatus;
-    extern bool g_bRoveCommTCPStatus;
+    extern std::atomic_bool g_bRoveCommUDPStatus;
+    extern std::atomic_bool g_bRoveCommTCPStatus;
 }    // namespace network
 
 #endif    // AUTONOMY_NETWORKING_H
