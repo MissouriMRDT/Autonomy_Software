@@ -166,7 +166,9 @@ The table below lists various other common types and their corresponding prefixe
 | Struct              | `st`    | `StructName stExampleUseOfStruct`      |
 | Future              | `fu`    | `future<void> fuExampleUseOfFuture`    |
 | Promise             | `pm`    | `promise<void> pmExampleUseOfPromise`  |
+| Map                 | `m`     | `map<int, int> mExampleUseOfMap`       |
 | Unordered Map       | `um`    | `unordered_map<int, int> umExampleUseOfUnorderedMap` |
+| Set                 | `s`    | `set<int> sExampleUseOfSet`          |
 | Functions           | `fn`    | `function<void> fnExampleUseOfFunction`   |
 
 ---
@@ -183,6 +185,7 @@ External libraries and their corresponding type prefixes are listed below:
 | GeographicLib  | `ge`   | `GeographicLib::Geodesic geExampleGeographicType` |
 | Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
 | Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
+| Torch          | `tr`   | `torch::Tensor trExampleTorchType` |
 | WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
 | JSON           | `jsn`  | `nlohmann::json jsnExampleJSONType` |
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |

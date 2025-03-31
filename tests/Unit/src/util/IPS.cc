@@ -109,7 +109,7 @@ TEST_F(IPSTests, Leaks)
 TEST_F(IPSTests, IterationCounter)
 {
     // Create a new IPS object.
-    IPS* pIPS = new IPS();
+    std::unique_ptr<IPS> pIPS = std::make_unique<IPS>();
 
     // Call tick method, wait 16.666 ms, call tick method.
     pIPS->Tick();
@@ -121,11 +121,6 @@ TEST_F(IPSTests, IterationCounter)
 
     // Check if FPS is within 5 frames of 60.
     EXPECT_TRUE(dFPS <= 65 && dFPS >= 55);
-
-    // Delete object.
-    delete pIPS;
-    // Point to null.
-    pIPS = nullptr;
 }
 
 /******************************************************************************
@@ -138,7 +133,7 @@ TEST_F(IPSTests, IterationCounter)
 TEST_F(IPSTests, MetricsFunctionality)
 {
     // Create a new IPS object.
-    IPS* pIPS = new IPS();
+    std::unique_ptr<IPS> pIPS = std::make_unique<IPS>();
 
     // Declare a start time, current time, elapsed time.
     std::chrono::time_point tStartTime         = std::chrono::high_resolution_clock::now();
@@ -186,11 +181,6 @@ TEST_F(IPSTests, MetricsFunctionality)
     EXPECT_TRUE(dHigh >= dLow);
     // Test that the returned 1% low makes sense.
     EXPECT_TRUE(d1Percent <= dHigh && d1Percent >= dLow);
-
-    // Delete object.
-    delete pIPS;
-    // Point to null.
-    pIPS = nullptr;
 }
 
 /******************************************************************************
@@ -203,7 +193,7 @@ TEST_F(IPSTests, MetricsFunctionality)
 TEST_F(IPSTests, ResetFunction)
 {
     // Create a new IPS object.
-    IPS* pIPS = new IPS();
+    std::unique_ptr<IPS> pIPS = std::make_unique<IPS>();
 
     // Call tick method, wait 16.666 ms, call tick method.
     pIPS->Tick();
@@ -224,9 +214,4 @@ TEST_F(IPSTests, ResetFunction)
     EXPECT_EQ(pIPS->GetHighestIPS(), 0);
     EXPECT_EQ(pIPS->GetLowestIPS(), 9999999);
     EXPECT_EQ(pIPS->Get1PercentLow(), 0);
-
-    // Delete object.
-    delete pIPS;
-    // Point to null.
-    pIPS = nullptr;
 }

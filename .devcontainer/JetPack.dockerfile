@@ -1,6 +1,6 @@
 # Image Variables
 ARG L4T_MAJOR="36"
-ARG L4T_MINOR="2"
+ARG L4T_MINOR="4"
 ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
 
@@ -9,7 +9,7 @@ FROM nvcr.io/nvidia/${L4T_BASE}:r${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH}
 
 # Install Variables
 ARG L4T_MAJOR="36"
-ARG L4T_MINOR="2"
+ARG L4T_MINOR="4"
 ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
  
@@ -82,7 +82,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="1"
+ARG ZED_MINOR="2"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
@@ -100,7 +100,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/ar
     rm opencv_${OPENCV_VERSION}_arm64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.2.2"
+ARG TORCH_VERSION="2.6.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
     rm pytorch_${TORCH_VERSION}_arm64.deb
@@ -118,19 +118,19 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/ar
     rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
 
 # Install Abseil.
-ARG ABSEIL_VERSION="20230802.1"
+ARG ABSEIL_VERSION="20250127.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
     dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
     rm abseil_${ABSEIL_VERSION}_arm64.deb
 
 # Install GeographicLib
-ARG GEOLIB_VERSION="2.3"
+ARG GEOLIB_VERSION="2.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
     rm geolib_${GEOLIB_VERSION}_arm64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22"
+ARG LIBDATACHANNEL_VERSION="0.22.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
@@ -148,7 +148,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/arm64
     rm pcl_${PCL_VERSION}_arm64.deb
 
 # Install Quill
-ARG QUILL_VERSION="8.1.0"
+ARG QUILL_VERSION="8.2.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
     rm quill_${QUILL_VERSION}_arm64.deb
@@ -158,9 +158,6 @@ ARG GTEST_VERSION="1.16.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
     rm gtest_${GTEST_VERSION}_arm64.deb
-
-# Enable Make Threads
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
 
 # Set Fish as Default Shell
 RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish

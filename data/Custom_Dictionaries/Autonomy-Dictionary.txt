@@ -34,6 +34,7 @@ autofetch
 AUTONOMYLOG
 AUTONOMYSTATE
 AUTONOMYTHREAD
+AUTONOMYTHREADS
 AVAILABLECAMERAS
 avcodec
 AVCOL
@@ -84,6 +85,7 @@ Cowsay
 CPACK
 cpptools
 cschlosser
+CSRT
 CSTRIPES
 ctest
 ctype
@@ -103,6 +105,7 @@ debfile
 DEBLOCK
 Deblur
 decipercent
+decipercents
 declval
 DEEPSOURCE
 deepsourcelabs
@@ -132,6 +135,7 @@ dpkg
 driveboard
 DRIVEINDIVIDUAL
 DRIVELEFTRIGHT
+dumpversion
 Eddb
 Eddbb
 Eddd
@@ -234,6 +238,7 @@ gfortran
 gmock
 GNSS
 gnutls
+GOTURN
 GPSLATLONALT
 GPSLOCKERROR
 GPSMDRS
@@ -256,6 +261,7 @@ IJZNS
 IKNS
 ILNS
 imgops
+imgsz
 imread
 imshow
 IMUDATA
@@ -270,6 +276,7 @@ infoeq
 inplace
 INSB
 INSTRUMENTSAXIS
+Interp
 intrin
 IOCP
 iovecs
@@ -294,6 +301,7 @@ jspencerpittman
 Jter
 jthread
 kbits
+Kernelized
 keyrings
 keyscan
 ladspa
@@ -411,6 +419,7 @@ matplotlib
 matplotlibcpp
 matplotplusplus
 matx
+MEDIANFLOW
 Memcheck
 MERICA
 microcontrollers
@@ -418,6 +427,8 @@ miniflann
 MISCCURRENT
 missourimrdt
 MJPEG
+MKLDNN
+MOSSE
 MRDT
 mrdtavoidance
 msgpack
@@ -572,6 +583,8 @@ threadpool
 timestamping
 timestep
 TOGGLESTREAM
+torchscript
+torchtag
 tparam
 TRACEL
 transops

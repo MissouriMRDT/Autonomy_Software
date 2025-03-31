@@ -66,7 +66,14 @@ jobs:
 
           ctest --output-on-failure -T Test -T Coverage -L UTest --output-junit UTests.xml
           ctest --output-on-failure -T Test -T Coverage -L ITest --output-junit ITests.xml
-          gcovr --root .. --xml-pretty --output AllCoverage.xml --filter '../src/.*' --exclude '../src/states/.*' --exclude '../src/handlers/.*' --exclude '../src/interfaces/.*'
+          gcovr --root .. --xml-pretty --output AllCoverage.xml --filter '../src/.*' \
+            --exclude '../src/states/.*' \
+            --exclude '../src/handlers/.*' \
+            --exclude '../src/interfaces/.*' \
+            --exclude '../src/vision/aruco/TagDetector.h' --exclude '../src/vision/aruco/TagDetector.cpp' \
+            --exclude '../src/vision/cameras/.*' \
+            --exclude '../src/vision/objects/ObjectDetector.h' --exclude '../src/vision/objects/ObjectDetector.cpp' \
+            --exclude 'util/vision/YOLOModel.hpp'
 
       - name: Upload Test Coverage to Codacy
         if: steps.run_tests.outcome == 'success'

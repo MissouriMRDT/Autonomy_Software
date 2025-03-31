@@ -156,7 +156,7 @@ add_subdirectory(external/rovecomm)
 add_compile_definitions(__ROVECOMM_LIBRARY_MODE__=1)
 
 ## Find Python3
-find_package(Python3 COMPONENTS Development NumPy REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
 
 ## Determine if shared or static libraries will be used.
 if (NOT LINK_SHARED_ZED AND MSVC)
@@ -341,6 +341,7 @@ if (BUILD_TESTS_MODE)
     file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
     file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
     file(GLOB_RECURSE Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
+    file(GLOB_RECURSE Util_SRC              CONFIGURE_DEPENDS  "src/util/*.cpp")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
     file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")   
@@ -352,7 +353,7 @@ if (BUILD_TESTS_MODE)
     message("--   Current Timestamp: ${CURRENT_TIMESTAMP}")
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${UTests_SRC})
@@ -365,7 +366,7 @@ if (BUILD_TESTS_MODE)
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${ITests_SRC})
