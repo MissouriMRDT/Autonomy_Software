@@ -300,6 +300,7 @@ Jhhh
 jspencerpittman
 Jter
 jthread
+kalman
 kbits
 Kernelized
 keyrings

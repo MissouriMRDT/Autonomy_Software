@@ -191,6 +191,7 @@ External libraries and their corresponding type prefixes are listed below:
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |
 | Matplot        | `mt`   | `axes_handle mtExampleMatplot`   |
 | PCL            | `pcl`  | `PointXYZ pclExamplePCLType`     |
+| Eigen          | `ei`   | `Eigen::Matrix3f eiExampleEigenType`     |
 
 ---
 
