@@ -15,6 +15,7 @@
 #include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
+#include <chrono>
 #include <opencv2/opencv.hpp>
 #include <torch/script.h>
 #include <torch/torch.h>
@@ -43,12 +44,14 @@ namespace torchtag
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> cvBoundingBox;    // The bounding box of the detected tag.
-            double dConfidence           = 0.0;           // The detection confidence of the tag reported from the PyTorch model.
-            double dStraightLineDistance = 0.0;           // Distance between the tag and the camera.
-            double dYawAngle             = 0.0;           // This is the yaw angle so roll and pitch are ignored.
-            int nID                      = -1;            // The ID of the tag. This is set to -1 if the tag is not detected.
-            std::string szClassName;                      // The class name of the tag. This is dependent on the class names used when training.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;               // The bounding box of the detected tag.
+            double dConfidence           = 0.0;                      // The detection confidence of the tag reported from the PyTorch model.
+            double dStraightLineDistance = 0.0;                      // Distance between the tag and the camera.
+            double dYawAngle             = 0.0;                      // This is the yaw angle so roll and pitch are ignored.
+            int nID                      = -1;                       // The ID of the tag. This is set to -1 if the tag is not detected.
+            std::chrono::system_clock::time_point tmLastDetected;    // The time the tag was last detected.
+            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
+            std::string szClassName;    // The class name of the tag. This is dependent on the class names used when training.
 
             /******************************************************************************
              * @brief Overload the equality operator for the TorchTag struct.
@@ -63,7 +66,8 @@ namespace torchtag
             bool operator==(const TorchTag& stOther) const
             {
                 return cvBoundingBox == stOther.cvBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
-                       dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName;
+                       dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmLastDetected == stOther.tmLastDetected &&
+                       tmCreation == stOther.tmCreation;
             }
 
             /******************************************************************************

@@ -779,6 +779,9 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
     // Create vector for storing new tags.
     std::vector<arucotag::ArucoTag> vNewTags;
 
+    // Get the current time. :nerd:
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
     // Here we process tags from both the newly detected and previously detected tags in the order of increasing id.
     while (itNewItr != vNewlyDetectedTags.end() || itOldItr != m_vDetectedArucoTags.end())
     {
@@ -790,7 +793,6 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
             itOldItr->dStraightLineDistance = itNewItr->dStraightLineDistance;
             itOldItr->cvBoundingBox         = itNewItr->cvBoundingBox;
             itOldItr->nFramesSinceLastHit   = 0;
-            itOldItr->nHits                 = std::max(itOldItr->nHits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
 
             // Move to next tags.
             itOldItr++;
@@ -802,9 +804,12 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
             // Increment hit counter.
             itOldItr->nFramesSinceLastHit++;
 
+            // Calculate time metrics.
+            double dTimeSinceLastDetection = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - itOldItr->tmLastDetected).count();
+            double dTotalTagAge            = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - itOldItr->tmCreation).count();
+
             // Check if the tag should be removed.
-            if ((itOldItr->nHits >= constants::ARUCO_VALIDATION_THRESHOLD && itOldItr->nFramesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD) ||
-                !(itOldItr->nHits >= constants::ARUCO_VALIDATION_THRESHOLD && itOldItr->nFramesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD))
+            if (dTotalTagAge < constants::ARUCO_LIFETIME_THRESHOLD || dTimeSinceLastDetection > constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD)
             {
                 // Remove the tag from the detected tags member variable.
                 itOldItr = m_vDetectedArucoTags.erase(itOldItr);
@@ -819,7 +824,7 @@ void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDete
         else if (itNewItr != vNewlyDetectedTags.end())
         {
             // Set the new tags attributes for a first detection.
-            itNewItr->nHits               = 1;
+            itNewItr->tmLastDetected      = std::chrono::system_clock::now();
             itNewItr->nFramesSinceLastHit = 0;
 
             // Add tag to new tags vector.

@@ -20,6 +20,7 @@
 #include "../../vision/aruco/ArucoDetection.hpp"
 #include "../../vision/aruco/TagDetector.h"
 #include "../../vision/aruco/TensorflowTagDetection.hpp"
+#include "../../vision/aruco/TorchTagDetection.hpp"
 
 /// \endcond
 
@@ -40,6 +41,7 @@ namespace tagdetectutils
      * @note When using bUnique, if you wish to prioritize one tag detector's detections over another put that tag detector earlier in the vTagDetectors.
      *
      * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
+     * @param vDetectedTorchTags - Reference vector that will hold all of the aggregated detected Torch tags.
      * @param vDetectedTensorflowTags - Reference vector that will hold all of the aggregated detected Tensorflow tags.
      * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
      * @param bUnique - Ensure vDetectedArucoTags is a unique list of tags (unique by ID).
@@ -48,6 +50,7 @@ namespace tagdetectutils
      * @date 2024-03-07
      ******************************************************************************/
     inline void LoadDetectedTags(std::vector<arucotag::ArucoTag>& vDetectedArucoTags,
+                                 std::vector<torchtag::TorchTag>& vDetectedTorchTags,
                                  std::vector<tensorflowtag::TensorflowTag>& vDetectedTensorflowTags,
                                  const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors,
                                  bool bUnique = false)
@@ -57,10 +60,12 @@ namespace tagdetectutils
 
         // Initialize vectors to store detected tags temporarily.
         std::vector<std::vector<arucotag::ArucoTag>> vDetectedArucoTagBuffers(siNumTagDetectors);
+        std::vector<std::vector<torchtag::TorchTag>> vDetectedTorchTagBuffers(siNumTagDetectors);
         std::vector<std::vector<tensorflowtag::TensorflowTag>> vDetectedTensorflowTagBuffers(siNumTagDetectors);
 
         // Initialize vectors to store detected tags futures.
         std::vector<std::future<bool>> vDetectedArucoTagsFuture;
+        std::vector<std::future<bool>> vDetectedTorchTagsFuture;
         std::vector<std::future<bool>> vDetectedTensorflowTagsFuture;
 
         // Request tags from each detector.
@@ -71,6 +76,8 @@ namespace tagdetectutils
             {
                 // Request detected Aruco tags from detector.
                 vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
+                // Request detected Torch tags from detector.
+                vDetectedTorchTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedTorchTags(vDetectedTorchTagBuffers[siIdx]));
                 // Request detected Tensorflow tags from detector.
                 vDetectedTensorflowTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedTensorflowTags(vDetectedTensorflowTagBuffers[siIdx]));
             }
@@ -82,12 +89,19 @@ namespace tagdetectutils
         {
             // Wait for the request to be fulfilled.
             vDetectedArucoTagsFuture[siIdx].get();
+            vDetectedTorchTagsFuture[siIdx].get();
             vDetectedTensorflowTagsFuture[siIdx].get();
 
             // Loop through the detected Aruco tags and add them to the vDetectedArucoTags vector.
             for (const arucotag::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
             {
                 vDetectedArucoTags.emplace_back(tTag);
+            }
+
+            // Loop through the detected Torch tags and add them to the vDetectedTorchTags vector.
+            for (const torchtag::TorchTag& tTag : vDetectedTorchTagBuffers[siIdx])
+            {
+                vDetectedTorchTags.emplace_back(tTag);
             }
 
             // Loop through the detected Tensorflow tags and add them to the vDetectedTensorflowTags vector.
@@ -134,8 +148,9 @@ namespace tagdetectutils
     {
         // Load all detected tags in the rover's vision.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<torchtag::TorchTag> vDetectedTorchTags;
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, vTagDetectors, true);
+        LoadDetectedTags(vDetectedArucoTags, vDetectedTorchTags, vDetectedTensorflowTags, vTagDetectors, true);
 
         // Find the tag with the corresponding id.
         for (const arucotag::ArucoTag& tTag : vDetectedArucoTags)

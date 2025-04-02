@@ -43,10 +43,12 @@ namespace tensorflowtag
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> cvBoundingBox;    // The bounding box of the detected tag.
-            double dConfidence           = 0.0;           // The detection confidence of the tag reported from the tensorflow model.
-            double dStraightLineDistance = 0.0;           // Distance between the tag and the camera.
-            double dYawAngle             = 0.0;           // This is the yaw angle so roll and pitch are ignored.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;               // The bounding box of the detected tag.
+            double dConfidence           = 0.0;                      // The detection confidence of the tag reported from the tensorflow model.
+            double dStraightLineDistance = 0.0;                      // Distance between the tag and the camera.
+            double dYawAngle             = 0.0;                      // This is the yaw angle so roll and pitch are ignored.
+            std::chrono::system_clock::time_point tmLastDetected;    // The time the tag was last detected.
+            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
 
             /******************************************************************************
              * @brief Overload the equality operator for the TensorflowTag struct.
@@ -61,7 +63,7 @@ namespace tensorflowtag
             bool operator==(const TensorflowTag& stOther) const
             {
                 return cvBoundingBox == stOther.cvBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
-                       dYawAngle == stOther.dYawAngle;
+                       dYawAngle == stOther.dYawAngle && tmLastDetected == stOther.tmLastDetected && tmCreation == stOther.tmCreation;
             }
 
             /******************************************************************************
