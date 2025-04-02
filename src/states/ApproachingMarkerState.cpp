@@ -76,8 +76,12 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
+        m_bInitialized  = false;
 
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
         if (!m_bInitialized)
         {
             Start();
@@ -108,26 +112,13 @@ namespace statemachine
         {
             // Attempt to identify the target with OpenCV.
             // While OpenCV struggles to find tags, the tags it does find are much more reliable compared to TensorFlow.
-            bDetectedTagAR = IdentifyTargetArucoMarker(m_stTargetTagAR);
+            bDetectedTagAR = IdentifyTargetMarker(m_stTargetTagAruco, m_stTargetTagTorch, m_stTargetTagTensorflow);
             if (bDetectedTagAR)
             {
                 // Save the identified tag's ID.
-                m_nTargetTagID          = m_stTargetTagAR.nID;
+                m_nTargetTagID          = m_stTargetTagAruco.nID;
                 m_bDetected             = true;
                 m_nNumDetectionAttempts = 0;
-            }
-            else
-            {
-                // If OpenCV fails to find the tag rely on the TensorFlow vision algorithms to identify it.
-                bDetectedTagTF = IdentifyTargetTensorflowMarker(m_stTargetTagTF);
-                if (bDetectedTagTF)
-                {
-                    // Save the identified tag's ID.
-                    // NOTE: Commented this out since TensorflowTag no longer has ID.
-                    // m_nTargetTagID          = m_stTargetTagTF.nID;
-                    m_bDetected             = true;
-                    m_nNumDetectionAttempts = 0;
-                }
             }
 
             // Both OpenCV & TensorFlow failed to identify a target tag.
@@ -147,7 +138,7 @@ namespace statemachine
         }
 
         // Attempt to find the target marker in OpenCV.
-        bDetectedTagAR = tagdetectutils::FindArucoTagByID(m_nTargetTagID, m_stTargetTagAR, m_vTagDetectors);
+        bDetectedTagAR = tagdetectutils::FindArucoTagByID(m_nTargetTagID, m_stTargetTagAruco, m_vTagDetectors);
         // LEAD: Commented this out since TensorflowTag no longer has ID.
         // if (!bDetectedTagAR)
         // {
@@ -183,13 +174,13 @@ namespace statemachine
 
         if (bDetectedTagAR)
         {
-            dTargetHeading  = numops::InputAngleModulus<double>(dCurrHeading + m_stTargetTagAR.dYawAngle, 0, 360);
-            dTargetDistance = m_stTargetTagAR.dStraightLineDistance;
+            dTargetHeading  = numops::InputAngleModulus<double>(dCurrHeading + m_stTargetTagAruco.dYawAngle, 0, 360);
+            dTargetDistance = m_stTargetTagAruco.dStraightLineDistance;
         }
         else if (bDetectedTagTF)
         {
-            dTargetHeading  = numops::InputAngleModulus<double>(dCurrHeading + m_stTargetTagTF.dYawAngle, 0, 360);
-            dTargetDistance = m_stTargetTagTF.dStraightLineDistance;
+            dTargetHeading  = numops::InputAngleModulus<double>(dCurrHeading + m_stTargetTagTensorflow.dYawAngle, 0, 360);
+            dTargetDistance = m_stTargetTagTensorflow.dStraightLineDistance;
         }
         // Use the last recorded heading and distance.
         else
@@ -233,6 +224,21 @@ namespace statemachine
                                                                                      dCurrHeading,
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
+
+        //////////////////////////////////////////
+        /* ---  Check if the rover is stuck --- */
+        //////////////////////////////////////////
+
+        // Check if stuck.
+        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
+        }
 
         return;
     }
@@ -330,40 +336,67 @@ namespace statemachine
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-29
      ******************************************************************************/
-    bool ApproachingMarkerState::IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget)
+    bool ApproachingMarkerState::IdentifyTargetMarker(arucotag::ArucoTag& stArucoTarget,
+                                                      torchtag::TorchTag& stTorchTarget,
+                                                      tensorflowtag::TensorflowTag& stTensorflowTarget)
     {
         // Load all detected tags in the rover's vision.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
+        std::vector<torchtag::TorchTag> vDetectedTorchTags;
         std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors);
+        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTorchTags, vDetectedTensorflowTags, m_vTagDetectors);
 
-        arucotag::ArucoTag stBestTag;
-        stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
-        stBestTag.nID                   = -1;
+        arucotag::ArucoTag stArucoBestTag;
+        stArucoBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
+        stArucoBestTag.nID                   = -1;
+
+        torchtag::TorchTag stTorchBestTag;
+        stTorchBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
+        stTorchBestTag.nID                   = -1;
 
         // Create string to store detected tags in.
         std::string szIdentifiedTags = "";
 
+        // Get the current time
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
         // Select the tag that is the closest to the rover's current position.
         for (const arucotag::ArucoTag& stCandidate : vDetectedArucoTags)
         {
-            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Hits: " + std::to_string(stCandidate.nHits) + "\n";
+            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Time Last Detected: " +
+                                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmLastDetected).count()) + "s\n";
 
-            if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance)
+            double dArea = stCandidate.cvBoundingBox->area();
+            if (dArea > stArucoBestTag.cvBoundingBox->area())
             {
-                stBestTag = stCandidate;
+                stArucoBestTag = stCandidate;
+            }
+        }
+
+        for (const torchtag::TorchTag& stCandidate : vDetectedTorchTags)
+        {
+            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Time Last Detected: " +
+                                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmLastDetected).count()) + "s\n";
+
+            double dArea = stCandidate.cvBoundingBox->area();
+            if (dArea > stTorchBestTag.cvBoundingBox->area())
+            {
+                stTorchBestTag = stCandidate;
             }
         }
 
         // A tag was found.
-        if (stBestTag.nID >= 0)
+        if (stArucoBestTag.nID >= 0)
         {
             // TODO: Change to a Debug Statement after we confirm it works.
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Detected Tags: \n{}", szIdentifiedTags);
-            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Best Tag: \n\tID: {} Hits: {}", stBestTag.nID, stBestTag.nHits);
+            LOG_INFO(logging::g_qSharedLogger,
+                     "ApproachingMarkerState: Best Tag: \n\tID: {} Seconds Since Last Detection: {}",
+                     stArucoBestTag.nID,
+                     std::chrono::duration_cast<std::chrono::seconds>(stArucoBestTag.tmLastDetected.time_since_epoch()).count());
 
             // Save it to the passed in reference.
-            stTarget = stBestTag;
+            stArucoTarget = stArucoBestTag;
             return true;
         }
         // No target tag was found.
@@ -373,52 +406,5 @@ namespace statemachine
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: No Tag Detected!");
             return false;
         }
-    }
-
-    /******************************************************************************
-     * @brief Identify a target marker in the rover's vision, using Tensorflow detection.
-     *
-     * @note If multiple markers are detected the closest one will be chosen as the target. Also all tags must
-     *      have a confidence of at least APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD.
-     *
-     * @param tTarget - Reference to store the tag identified as the target.
-     * @return true - A target marker was identified.
-     * @return false - A target marker was not identified.
-     *
-     * @author JSpencerPittman (jspencerpittman@gmail.com)
-     * @date 2024-02-29
-     ******************************************************************************/
-    bool ApproachingMarkerState::IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget)
-    {
-        // Load all detected tags in the rover's vision.
-        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors);
-
-        tensorflowtag::TensorflowTag stBestTag;
-        stBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
-        bool bTagIdentified             = false;
-        // stBestTag.nID                   = -1;
-
-        // Select the tag that is the closest to the rover's current position and above the confidence threshold.
-        for (const tensorflowtag::TensorflowTag& stCandidate : vDetectedTensorflowTags)
-        {
-            if (stCandidate.dStraightLineDistance < stBestTag.dStraightLineDistance && stCandidate.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD)
-            {
-                stBestTag = stCandidate;
-
-                // Update tag found toggle.
-                bTagIdentified = true;
-            }
-        }
-
-        // Check if a tag has been identified.
-        if (bTagIdentified)
-        {
-            // Save it to the passed in reference.
-            stTarget = stBestTag;
-        }
-
-        return bTagIdentified;
     }
 }    // namespace statemachine

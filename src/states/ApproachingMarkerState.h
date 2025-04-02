@@ -13,6 +13,7 @@
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/states/StuckDetection.hpp"
 #include "../util/vision/TagDetectionUtilty.hpp"
 #include "../vision/aruco/TagDetector.h"
 
@@ -40,16 +41,16 @@ namespace statemachine
             int m_nNumDetectionAttempts;                                  // Number of consecutive unsuccessful attempts to detect a tag.
             int m_nTargetTagID;                                           // ID of the target tag.
             bool m_bDetected;                                             // Has a target tag been detected and identified yet.
-            arucotag::ArucoTag m_stTargetTagAR;                           // Detected target tag from OpenCV.
-            tensorflowtag::TensorflowTag m_stTargetTagTF;                 // Detected target tag from Tensorflow.
+            arucotag::ArucoTag m_stTargetTagAruco;                        // Detected target tag from OpenCV.
+            torchtag::TorchTag m_stTargetTagTorch;                        // Detected target tag from Torch.
+            tensorflowtag::TensorflowTag m_stTargetTagTensorflow;         // Detected target tag from Tensorflow.
             double m_dLastTargetHeading;                                  // Last recorded heading of the target with respect to the rover's position.
             double m_dLastTargetDistance;                                 // Last recorded distance of the target with respect to the rover's position.
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;    // Vector of tag detectors to use for detection in order of highest to lowest priority.
+            statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
-            bool IdentifyTargetArucoMarker(arucotag::ArucoTag& stTarget);
-            bool IdentifyTargetTensorflowMarker(tensorflowtag::TensorflowTag& stTarget);
+            bool IdentifyTargetMarker(arucotag::ArucoTag& stArucoTarget, torchtag::TorchTag& stTorchTarget, tensorflowtag::TensorflowTag& stTensorflowTarget);
 
-        protected:
             void Start() override;
             void Exit() override;
 

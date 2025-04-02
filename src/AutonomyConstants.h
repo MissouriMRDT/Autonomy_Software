@@ -235,14 +235,13 @@ namespace constants
     // OpenCV ArUco detection config.
     const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
     const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag in meters.
-    const int ARUCO_VALIDATION_THRESHOLD                = 10;     // How many times does the tag need to be detected(hit) before being validated as an actual aruco tag.
-    const int ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD    = 5;      // How many times can an unvalidated tag be missing from frame before being forgotten.
-    const int ARUCO_VALIDATED_TAG_FORGET_THRESHOLD      = 10;     // How many times can a validated tag be missing from frame before being forgotten.
-    const double ARUCO_PIXEL_THRESHOLD                  = 175;    // Pixel value threshold for pre-process threshold mask
-    const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE        = 255;    // Pixel value to set to if pixel is within threshold
-    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST             = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
-    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA            = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
-    const cv::Mat ARUCO_EDGE_KERNEL                     = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
+    const double ARUCO_LIFETIME_THRESHOLD                      = 3;    // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double ARUCO_VALIDATED_TAG_FORGET_THRESHOLD          = 3;    // How many seconds can a validated tag be missing from frame before being forgotten.
+    const double ARUCO_PIXEL_THRESHOLD                         = 175;    // Pixel value threshold for pre-process threshold mask
+    const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE               = 255;    // Pixel value to set to if pixel is within threshold
+    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST                    = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
+    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA                   = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
+    const cv::Mat ARUCO_EDGE_KERNEL                            = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
     const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection. KCF is fast and accurate.
     const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 5.0;                            // The time in seconds to wait before considering a tracker lost.
     ///////////////////////////////////////////////////////////////////////////

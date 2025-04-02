@@ -16,6 +16,7 @@
 #include "../../util/vision/ImageOperations.hpp"
 
 /// \cond
+#include <chrono>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
@@ -44,12 +45,13 @@ namespace arucotag
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> cvBoundingBox;    // The bounding box of the detected tag.
-            int nID;                                      // ID of the tag.
-            int nHits;                                    // Total number of detections for tag id.
-            int nFramesSinceLastHit;                      // The total number of frames since a tag with this ID was last detected.
-            double dStraightLineDistance;                 // Distance between the tag and the camera.
-            double dYawAngle;                             // This is the yaw angle so roll and pitch are ignored.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;                                              // The bounding box of the detected tag.
+            int nID;                                                                                // ID of the tag.
+            std::chrono::system_clock::time_point tmLastDetected;                                   // The time the tag was last detected.
+            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
+            int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
+            double dStraightLineDistance;    // Distance between the tag and the camera.
+            double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -63,8 +65,9 @@ namespace arucotag
              ******************************************************************************/
             bool operator==(const ArucoTag& stOther) const
             {
-                return (cvBoundingBox == stOther.cvBoundingBox && nID == stOther.nID && nHits == stOther.nHits && nFramesSinceLastHit == stOther.nFramesSinceLastHit &&
-                        dStraightLineDistance == stOther.dStraightLineDistance && dYawAngle == stOther.dYawAngle);
+                return (cvBoundingBox == stOther.cvBoundingBox && nID == stOther.nID && tmLastDetected == stOther.tmLastDetected &&
+                        nFramesSinceLastHit == stOther.nFramesSinceLastHit && dStraightLineDistance == stOther.dStraightLineDistance && dYawAngle == stOther.dYawAngle &&
+                        tmLastDetected == stOther.tmLastDetected && tmCreation == stOther.tmCreation);
             }
 
             /******************************************************************************
