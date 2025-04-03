@@ -95,7 +95,7 @@ namespace geoops
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-23
      ******************************************************************************/
-    struct IMUData
+    struct GPSIMUData
     {
         public:
             // Declare struct public member variables.
@@ -110,7 +110,7 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            IMUData()
+            GPSIMUData()
             {
                 // Initialize member variables to default values.
                 dPitch   = 0.0;
@@ -128,7 +128,7 @@ namespace geoops
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2023-09-23
              ******************************************************************************/
-            IMUData(double dPitch, double dRoll, double dHeading)
+            GPSIMUData(double dPitch, double dRoll, double dHeading)
             {
                 // Initialize member variables with given values.
                 this->dPitch   = dPitch;

@@ -35,13 +35,15 @@ namespace filters
             XStateSnapshot GetInterpolatedHistory(time_point_t tmTimestamp);
 
             void PredictAccelerometer(Eigen::Vector3d eiAccelerometerOutput, time_point_t tmTimestamp);
-            void PredictGyro(Eigen::Vector3d eiGyroOutput, time_point_t tmTimestamp);
+            void PredictGyroscope(Eigen::Vector3d eiGyroscopeOutput, time_point_t tmTimestamp);
 
-            void UpdateDiffGPS(const geoops::GPSCoordinate& sDiffGPSCoordinate, time_point_t tmTimestamp);
-            void UpdateHeading(Eigen::Vector3d eiAccOutput, time_point_t tmTimestamp);
+            // TODO: Magnetometer for redundancy?
+
+            void UpdateDiffGPS(Eigen::Vector3d eiDiffGPSOutputNEDFrame, time_point_t tmTimestamp);
+            void UpdateHeading(Eigen::Vector3d dHeading, time_point_t tmTimestamp);
 
             void SetAccelerometerCovariance(Eigen::Matrix3d eiNewCovariance);
-            void SetGyroCovariance(Eigen::Matrix3d eiNewCovariance);
+            void SetGyroscopeCovariance(Eigen::Matrix3d eiNewCovariance);
             void SetDiffGPSCovariance(Eigen::Matrix3d eiNewCovariance);
             void SetHeadingCovariance(Eigen::Matrix3d eiNewCovariance);
 
@@ -55,9 +57,9 @@ namespace filters
             // Accelerometer covariance matrix (3x3)
             Eigen::Matrix3d m_eiAccelerometerCovariance;
             // Time of last gyro update
-            time_point_t m_tmLastGyroUpdate;
-            // Gyro covariance matrix (3x3)
-            Eigen::Matrix3d m_eiGyroCovariance;
+            time_point_t m_tmLastGyroscopeUpdate;
+            // Gyroscope covariance matrix (3x3)
+            Eigen::Matrix3d m_eiGyroscopeCovariance;
             // Time of last diff GPS update
             time_point_t m_tmLastDiffGPSUpdate;
             // Diff GPS covariance matrix (3x3)
@@ -70,7 +72,9 @@ namespace filters
             // TODO: Add write mutexes for all of these
 
         private:
-            static XStateSnapshot Interpolate(double dRatio, const XStateSnapshot& before, const XStateSnapshot& after);
+            static XStateSnapshot InterpolateXState(double dRatio, const XStateSnapshot& stBefore, const XStateSnapshot& stAfter);
+            Eigen::Matrix3d GetQAccelerometer(double dDt);
+            Eigen::Matrix3d GetQGyroscope(double dDt);
     };
 }    // namespace filters
 
