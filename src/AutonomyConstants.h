@@ -349,7 +349,7 @@ namespace constants
     const double SEARCH_MOTOR_POWER          = 0.2;     // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
-    const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
+    const double SEARCH_ZIGZAG_SPACING       = 4.0;     // The spacing between successive points in the zigzag (meters).
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
 
     // Navigating State.
