@@ -115,7 +115,7 @@ namespace torchtag
                 {
                     // Draw bounding box onto image.
                     cv::rectangle(cvDetectionsFrame, *stTag.pBoundingBox, cv::Scalar(255, 255, 255), 2);
-                    std::string szText  = stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100));
+                    std::string szText  = stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100)) + "%";
                     cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
                     // Draw classID background box onto image.
                     cv::rectangle(cvDetectionsFrame,
