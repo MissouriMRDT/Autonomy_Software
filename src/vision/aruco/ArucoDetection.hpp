@@ -181,7 +181,7 @@ namespace arucotag
                               cv::Scalar(0, 0, 0),
                               cv::FILLED);
                 cv::putText(cvDetectionsFrame,
-                            "TAG " + std::to_string(nIter),
+                            szText,
                             cvMarkerCorners[0] + cv::Point2f(5, cvTextSize.height * 1.25),
                             cv::FONT_HERSHEY_SIMPLEX,
                             0.75,
