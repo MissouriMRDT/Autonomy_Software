@@ -54,7 +54,7 @@ namespace tracking
 
             MultiTracker(const double dTrackingLostTimeout = 1.0, const double dIOUThreshold = 0.3);
             ~MultiTracker();
-            void AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType = TrackerType::eKCF);
+            void InitTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType = TrackerType::eKCF);
             void Update(const cv::Mat& cvFrame);
             void ClearTrackers();
 

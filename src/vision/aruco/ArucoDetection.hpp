@@ -14,6 +14,7 @@
 
 #include "../../AutonomyLogging.h"
 #include "../../util/vision/ImageOperations.hpp"
+#include "../../util/vision/TagDetectionUtilty.hpp"
 
 /// \cond
 #include <chrono>
@@ -34,57 +35,7 @@
 namespace arucotag
 {
     /******************************************************************************
-     * @brief Represents a single ArUco tag. Stores all information about a specific
-     *      tag detection.
-     *
-     *
-     * @author jspencerpittman (jspencerpittman@gmail.com)
-     * @date 2023-09-28
-     ******************************************************************************/
-    struct ArucoTag
-    {
-        public:
-            // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> cvBoundingBox;                                              // The bounding box of the detected tag.
-            int nID;                                                                                // ID of the tag.
-            std::chrono::system_clock::time_point tmLastDetected;                                   // The time the tag was last detected.
-            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
-            int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
-            double dStraightLineDistance;    // Distance between the tag and the camera.
-            double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
-
-            /******************************************************************************
-             * @brief Overload the equality operator for the ArucoTag struct.
-             *
-             * @param stOther - The other ArucoTag struct to compare to.
-             * @return true - The two ArucoTag structs are equal.
-             * @return false - The two ArucoTag structs are not equal
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2025-03-24
-             ******************************************************************************/
-            bool operator==(const ArucoTag& stOther) const
-            {
-                return (cvBoundingBox == stOther.cvBoundingBox && nID == stOther.nID && tmLastDetected == stOther.tmLastDetected &&
-                        nFramesSinceLastHit == stOther.nFramesSinceLastHit && dStraightLineDistance == stOther.dStraightLineDistance && dYawAngle == stOther.dYawAngle &&
-                        tmLastDetected == stOther.tmLastDetected && tmCreation == stOther.tmCreation);
-            }
-
-            /******************************************************************************
-             * @brief Overload the inequality operator for the ArucoTag struct.
-             *
-             * @param stOther - The other ArucoTag struct to compare to.
-             * @return true - The two ArucoTag structs are not equal.
-             * @return false - The two ArucoTag structs are equal.
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2025-03-24
-             ******************************************************************************/
-            bool operator!=(const ArucoTag& stOther) const { return !(*this == stOther); }
-    };
-
-    /******************************************************************************
-     * @brief Given an ArucoTag struct find the center point of the corners.
+     * @brief Given an tagdetectutils::ArucoTag struct find the center point of the corners.
      *
      * @param stTag - The tag to find the center of.
      * @return cv::Point2f - The resultant center point within the image.
@@ -92,7 +43,7 @@ namespace arucotag
      * @author jspencerpittman (jspencerpittman@gmail.com)
      * @date 2023-10-07
      ******************************************************************************/
-    inline cv::Point2f FindTagCenter(const ArucoTag& stTag)
+    inline cv::Point2f FindTagCenter(const tagdetectutils::ArucoTag& stTag)
     {
         // Calculate the center point of the tag.
         cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width / 2, stTag.cvBoundingBox->y + stTag.cvBoundingBox->height / 2);
@@ -150,14 +101,14 @@ namespace arucotag
      *
      * @param cvFrame - The camera frame to run ArUco detection on. Should be BGR format or grayscale.
      * @param cvArucoDetector - The configured aruco detector to use for detection.
-     * @return std::vector<ArucoTag> - The resultant vector containing the detected tags in the frame.
+     * @return std::vector<tagdetectutils::ArucoTag> - The resultant vector containing the detected tags in the frame.
      *
      * @note The given cvFrame SHOULD BE IN BGR FORMAT.
      *
      * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-09-28
      ******************************************************************************/
-    inline std::vector<ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
+    inline std::vector<tagdetectutils::ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
     {
         /// Create instance variables.
         std::vector<int> vIDs;
@@ -166,15 +117,15 @@ namespace arucotag
         // Run Aruco detection algorithm.
         cvArucoDetector.detectMarkers(cvFrame, cvMarkerCorners, vIDs, cvRejectedCandidates);
 
-        // Store all of the detected tags as ArucoTag.
-        std::vector<ArucoTag> vDetectedTags;
+        // Store all of the detected tags as tagdetectutils::ArucoTag.
+        std::vector<tagdetectutils::ArucoTag> vDetectedTags;
         vDetectedTags.reserve(vIDs.size());
 
         // Loop through each detection and build tag for it.
         for (long unsigned int unIter = 0; unIter < vIDs.size(); unIter++)
         {
             // Create and initialize new tag.
-            ArucoTag stDetectedTag;
+            tagdetectutils::ArucoTag stDetectedTag;
             stDetectedTag.nID = vIDs[unIter];
             // Copy corners.
             stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(cv::boundingRect(cvMarkerCorners[unIter]));
@@ -188,10 +139,10 @@ namespace arucotag
     }
 
     /******************************************************************************
-     * @brief Given a vector of ArucoTag structs draw each tag corner and ID onto the given image.
+     * @brief Given a vector of tagdetectutils::ArucoTag structs draw each tag corner and ID onto the given image.
      *
      * @param cvDetectionsFrame - The frame to draw overlay onto.
-     * @param vDetectedTags - The vector of ArucoTag struct used to draw tag corners and IDs onto image.
+     * @param vDetectedTags - The vector of tagdetectutils::ArucoTag struct used to draw tag corners and IDs onto image.
      *
      * @note Image must be a 1 or 3 channel image and image must match dimensions of image when used for
      *      detection of the given tags.
@@ -199,7 +150,7 @@ namespace arucotag
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2023-10-19
      ******************************************************************************/
-    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<ArucoTag>& vDetectedTags)
+    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<tagdetectutils::ArucoTag>& vDetectedTags)
     {
         // Create instance variables.
         std::vector<int> vIDs;
@@ -270,7 +221,7 @@ namespace arucotag
      * @author jspencerpittman (jspencerpittman@gmail.com)
      * @date 2023-10-05
      ******************************************************************************/
-    inline void EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, ArucoTag& stTag)
+    inline void EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, tagdetectutils::ArucoTag& stTag)
     {
         // Confirm correct coordinate system.
         if (constants::ZED_COORD_SYSTEM != sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP)
@@ -317,7 +268,7 @@ namespace arucotag
      * @author jspencerpittman (jspencerpittman@gmail.com)
      * @date 2023-10-06
      ******************************************************************************/
-    inline void EstimatePoseFromPNP(cv::Mat& cvCameraMatrix, cv::Mat& cvDistCoeffs, ArucoTag& stTag)
+    inline void EstimatePoseFromPNP(cv::Mat& cvCameraMatrix, cv::Mat& cvDistCoeffs, tagdetectutils::ArucoTag& stTag)
     {
         // rotVec is how the tag is orientated with respect to the camera. It's 3 numbers defining an axis of rotation around which we rotate the angle which is the
         // euclidean distance of the vector. transVec is the XYZ translation of the tag from the camera if you image the convergence of light as a pinhole sitting at

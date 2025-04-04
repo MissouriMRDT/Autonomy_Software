@@ -64,7 +64,7 @@ namespace tracking
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-03-15
      ******************************************************************************/
-    void MultiTracker::AddTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType)
+    void MultiTracker::InitTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType)
     {
         // Create instance variables.
         double dBestIOU    = 0.0;
