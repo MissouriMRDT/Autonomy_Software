@@ -258,14 +258,10 @@ namespace constants
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_TF              = false;                            // Whether or not to use tensorflow detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TF_MODEL    = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_DNN_CONFIDENCE    = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_MAINCAM_DNN_NMS_THRESH    = 0.4f;    // The threshold for non-max suppression filtering.
-    const bool TAGDETECT_MAINCAM_ENABLE_TORCH       = true;    // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.torchscript";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -275,14 +271,10 @@ namespace constants
     const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_TF              = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_TF_MODEL    = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_LEFTCAM_DNN_CONFIDENCE    = 0.4f;     // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_LEFTCAM_DNN_NMS_THRESH    = 0.4f;     // The threshold for non-max suppression filtering.
-    const bool TAGDETECT_LEFTCAM_ENABLE_TORCH       = false;    // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
-    const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_LEFTCAM_ENABLE_TORCH           = false;                            // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_LEFTCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
+    const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE      = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -292,14 +284,10 @@ namespace constants
     const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_TF              = false;                            // Whether or not to use DNN detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_TF_MODEL    = "../data/models/yolo_models/tag/v5n_x320_200epochs/best_edgetpu.tflite";    // The model path to use for detection.
-    const float TAGDETECT_RIGHTCAM_DNN_CONFIDENCE    = 0.4f;     // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_RIGHTCAM_DNN_NMS_THRESH    = 0.4f;     // The threshold for non-max suppression filtering.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH       = false;    // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
-    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH           = false;                            // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE      = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
@@ -324,10 +312,8 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER             = 0.2;    // The amount of power the motors use when approaching the marker.
-    const int APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT      = 5;      // How many consecutive failed attempts at detecting a tag before giving up on marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD     = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD = 0.5;    // What is the minimal confidence necessary to consider a tensorflow tag as a target.
+    const double APPROACH_MARKER_MOTOR_POWER         = 0.2;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.

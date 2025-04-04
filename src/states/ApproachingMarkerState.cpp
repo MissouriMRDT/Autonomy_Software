@@ -100,130 +100,18 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Running state-specific behavior.");
 
-        // Create instance variables.
-        bool bDetectedTagAR = false;    // Was the tag detected through OpenCV.
-        bool bDetectedTagTF = false;    // Was the tag detected through Tensorflow.
-
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
-        // If a target hasn't been identified yet attempt to find a target tag in the rover's vision.
-        if (!m_bDetected && m_nNumDetectionAttempts < constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
-        {
-            // Attempt to identify the target with OpenCV.
-            // While OpenCV struggles to find tags, the tags it does find are much more reliable compared to TensorFlow.
-            bDetectedTagAR = IdentifyTargetMarker(m_stTargetTagAruco, m_stTargetTagTorch, m_stTargetTagTensorflow);
-            if (bDetectedTagAR)
-            {
-                // Save the identified tag's ID.
-                m_nTargetTagID          = m_stTargetTagAruco.nID;
-                m_bDetected             = true;
-                m_nNumDetectionAttempts = 0;
-            }
+        // FIXME: CLAYTON WAS HERE. Remove all this to make parsing through errors during the consolidation of tag structs easier.
+        // LEAD: Rewrite after refactor is finished.
 
-            // Both OpenCV & TensorFlow failed to identify a target tag.
-            if (!m_bDetected)
-            {
-                ++m_nNumDetectionAttempts;
-            }
-
-            return;
-        }
-        // A target hasn't been identified and the amount of attempts has exceeded the limit.
-        else if (!m_bDetected)
-        {
-            // Abort approaching marker.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
-            return;
-        }
-
-        // Attempt to find the target marker in OpenCV.
-        bDetectedTagAR = tagdetectutils::FindArucoTagByID(m_nTargetTagID, m_stTargetTagAruco, m_vTagDetectors);
-        // LEAD: Commented this out since TensorflowTag no longer has ID.
-        // if (!bDetectedTagAR)
-        // {
-        //     // Attempt to find the target marker in TensorFlow.
-        //     bDetectedTagTF = tagdetectutils::FindTensorflowTagByID(m_nTargetTagID, m_stTargetTagTF, m_vTagDetectors);
-        // }
-
-        // The target marker wasn't found.
-        if (!bDetectedTagAR && !bDetectedTagTF)
-        {
-            ++m_nNumDetectionAttempts;
-        }
-        // The target marker was found.
-        else
-        {
-            m_nNumDetectionAttempts = 0;
-        }
-
-        // If we have made too many consecutive failed detection attempts
-        // inform the statemachine the marker has been lost.
-        if (m_nNumDetectionAttempts >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT)
-        {
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
-            return;
-        }
-
-        // Get the current absolute heading of the rover.
-        double dCurrHeading = stCurrentRoverPose.GetCompassHeading();
-
-        // Find the target's heading and distance with respect to the rover's current position.
-        double dTargetHeading;
-        double dTargetDistance;
-
-        if (bDetectedTagAR)
-        {
-            dTargetHeading  = numops::InputAngleModulus<double>(dCurrHeading + m_stTargetTagAruco.dYawAngle, 0, 360);
-            dTargetDistance = m_stTargetTagAruco.dStraightLineDistance;
-        }
-        else if (bDetectedTagTF)
-        {
-            dTargetHeading  = numops::InputAngleModulus<double>(dCurrHeading + m_stTargetTagTensorflow.dYawAngle, 0, 360);
-            dTargetDistance = m_stTargetTagTensorflow.dStraightLineDistance;
-        }
-        // Use the last recorded heading and distance.
-        else
-        {
-            dTargetHeading  = m_dLastTargetHeading;
-            dTargetDistance = m_dLastTargetDistance;
-        }
-        // Save the found heading and distance.
-        m_dLastTargetHeading  = dTargetHeading;
-        m_dLastTargetDistance = dTargetDistance;
-
-        // Only print out every so often.
-        static bool bAlreadyPrinted = false;
-        if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
-        {
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "ApproachingMarkerState: Rover is {} meters from the marker. Minimum Distance is {}.",
-                     dTargetDistance,
-                     constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
-            // Set toggle.
-            bAlreadyPrinted = true;
-        }
-        else if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) != 0 && bAlreadyPrinted)
-        {
-            // Reset toggle.
-            bAlreadyPrinted = false;
-        }
-
-        // If we are close enough to the target inform the state machine we have reached the marker.
-        // FIXME: This is a forced approaching marker doesn't really do much right now, the the detectors have to get within 2m of the tag to detect it anyways.
-        // if (dTargetDistance < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
-        // {
-        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
-        return;
-        // }
-
-        // Move the rover to the target's estimated position.
-        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
-                                                                                     dTargetHeading,
-                                                                                     dCurrHeading,
-                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
-        globals::g_pDriveBoard->SendDrive(stDrivePowers);
+        // // Move the rover to the target's estimated position.
+        // diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
+        //                                                                              dTargetHeading,
+        //                                                                              dCurrHeading,
+        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
+        // globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */
@@ -329,39 +217,29 @@ namespace statemachine
      *
      * @note If multiple markers are detected the closest one will be chosen as the target.
      *
-     * @param tTarget - Reference to store the tag identified as the target.
-     * @return true - A target marker was identified.
-     * @return false - A target marker was not identified.
-     *
+     * @param stArucoTarget - The detected target marker from OpenCV.
+     * @param stTorchTarget - The detected target marker from Torch.
+
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-02-29
      ******************************************************************************/
-    bool ApproachingMarkerState::IdentifyTargetMarker(arucotag::ArucoTag& stArucoTarget,
-                                                      torchtag::TorchTag& stTorchTarget,
-                                                      tensorflowtag::TensorflowTag& stTensorflowTarget)
+    void ApproachingMarkerState::IdentifyTargetMarker(tagdetectutils::ArucoTag& stArucoTarget, tagdetectutils::ArucoTag& stTorchTarget)
     {
-        // Load all detected tags in the rover's vision.
-        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-        std::vector<torchtag::TorchTag> vDetectedTorchTags;
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTorchTags, vDetectedTensorflowTags, m_vTagDetectors);
-
-        arucotag::ArucoTag stArucoBestTag;
-        stArucoBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
-        stArucoBestTag.nID                   = -1;
-
-        torchtag::TorchTag stTorchBestTag;
-        stTorchBestTag.dStraightLineDistance = std::numeric_limits<double>::max();
-        stTorchBestTag.nID                   = -1;
-
-        // Create string to store detected tags in.
+        // Create instance variables.
+        std::vector<tagdetectutils::ArucoTag> vDetectedArucoTags;
+        std::vector<tagdetectutils::ArucoTag> vDetectedTorchTags;
+        tagdetectutils::ArucoTag stArucoBestTag;
+        tagdetectutils::ArucoTag stTorchBestTag;
+        tagdetectutils::ArucoTag stTensorflowBestTag;
         std::string szIdentifiedTags = "";
 
         // Get the current time
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
-        // Select the tag that is the closest to the rover's current position.
-        for (const arucotag::ArucoTag& stCandidate : vDetectedArucoTags)
+        // Load all detected tags in the rover's vision.
+        this->LoadDetectedTags(vDetectedArucoTags, m_vTagDetectors);
+        // Find the best tag from the Aruco tags.
+        for (const tagdetectutils::ArucoTag& stCandidate : vDetectedArucoTags)
         {
             szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Time Last Detected: " +
                                 std::to_string(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmLastDetected).count()) + "s\n";
@@ -372,8 +250,8 @@ namespace statemachine
                 stArucoBestTag = stCandidate;
             }
         }
-
-        for (const torchtag::TorchTag& stCandidate : vDetectedTorchTags)
+        // Find the best tag from the Torch tags.
+        for (const tagdetectutils::ArucoTag& stCandidate : vDetectedTorchTags)
         {
             szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Time Last Detected: " +
                                 std::to_string(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmLastDetected).count()) + "s\n";
@@ -385,26 +263,55 @@ namespace statemachine
             }
         }
 
-        // A tag was found.
-        if (stArucoBestTag.nID >= 0)
-        {
-            // TODO: Change to a Debug Statement after we confirm it works.
-            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Detected Tags: \n{}", szIdentifiedTags);
-            LOG_INFO(logging::g_qSharedLogger,
-                     "ApproachingMarkerState: Best Tag: \n\tID: {} Seconds Since Last Detection: {}",
-                     stArucoBestTag.nID,
-                     std::chrono::duration_cast<std::chrono::seconds>(stArucoBestTag.tmLastDetected.time_since_epoch()).count());
+        // FIXME: CLAYTON WAS HERE. Once we have found the biggest tag we need to check a few things. These tthannnngs are different for each tag type.
+        // Aruco: Check if it's the right ID and it's lifetime and time since last detected are valid.
+        // Torch: Check if it's lifetime and time since last detected are valid.
+    }
 
-            // Save it to the passed in reference.
-            stArucoTarget = stArucoBestTag;
-            return true;
-        }
-        // No target tag was found.
-        else
+    /******************************************************************************
+     * @brief Aggregates all detected tags from each provided tag detector for both OpenCV and Tensorflow detection.
+     *
+     * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
+     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
+     *
+     * @author JSpencerPittman (jspencerpittman@gmail.com)
+     * @date 2024-03-07
+     ******************************************************************************/
+    void ApproachingMarkerState::LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags,
+                                                  const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
+    {
+        // Number of tag detectors.
+        size_t siNumTagDetectors = vTagDetectors.size();
+
+        // Initialize vectors to store detected tags temporarily.
+        std::vector<std::vector<tagdetectutils::ArucoTag>> vDetectedArucoTagBuffers(siNumTagDetectors);
+
+        // Initialize vectors to store detected tags futures.
+        std::vector<std::future<bool>> vDetectedArucoTagsFuture;
+
+        // Request tags from each detector.
+        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
-            // TODO: Change to a Debug Statement after we confirm it works.
-            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: No Tag Detected!");
-            return false;
+            // Check if this tag detector is ready.
+            if (vTagDetectors[siIdx]->GetIsReady())
+            {
+                // Request detected Aruco tags from detector.
+                vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
+            }
+        }
+
+        // Ensure all requests have been fulfilled.
+        // Then transfer tags from the buffer to vDetectedArucoTags and vDetectedTensorflowTags for the user to access.
+        for (size_t siIdx = 0; siIdx < vDetectedArucoTagsFuture.size(); ++siIdx)
+        {
+            // Wait for the request to be fulfilled.
+            vDetectedArucoTagsFuture[siIdx].get();
+
+            // Loop through the detected Aruco tags and add them to the vDetectedArucoTags vector.
+            for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+            {
+                vDetectedArucoTags.emplace_back(tTag);
+            }
         }
     }
 }    // namespace statemachine

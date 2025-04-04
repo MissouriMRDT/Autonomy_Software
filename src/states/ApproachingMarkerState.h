@@ -41,15 +41,14 @@ namespace statemachine
             int m_nNumDetectionAttempts;                                  // Number of consecutive unsuccessful attempts to detect a tag.
             int m_nTargetTagID;                                           // ID of the target tag.
             bool m_bDetected;                                             // Has a target tag been detected and identified yet.
-            arucotag::ArucoTag m_stTargetTagAruco;                        // Detected target tag from OpenCV.
-            torchtag::TorchTag m_stTargetTagTorch;                        // Detected target tag from Torch.
-            tensorflowtag::TensorflowTag m_stTargetTagTensorflow;         // Detected target tag from Tensorflow.
+            tagdetectutils::ArucoTag m_stTargetTagAruco;                  // Detected target tag from OpenCV.
             double m_dLastTargetHeading;                                  // Last recorded heading of the target with respect to the rover's position.
             double m_dLastTargetDistance;                                 // Last recorded distance of the target with respect to the rover's position.
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;    // Vector of tag detectors to use for detection in order of highest to lowest priority.
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
 
-            bool IdentifyTargetMarker(arucotag::ArucoTag& stArucoTarget, torchtag::TorchTag& stTorchTarget, tensorflowtag::TensorflowTag& stTensorflowTarget);
+            void IdentifyTargetMarker(tagdetectutils::ArucoTag& stArucoTarget, tagdetectutils::ArucoTag& stTorchTarget);
+            void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors);
 
             void Start() override;
             void Exit() override;

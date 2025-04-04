@@ -14,13 +14,7 @@
 #define TAG_DETECTION_UTILITY_HPP
 
 /// \cond
-
 #include <type_traits>
-
-#include "../../vision/aruco/ArucoDetection.hpp"
-#include "../../vision/aruco/TagDetector.h"
-#include "../../vision/aruco/TensorflowTagDetection.hpp"
-#include "../../vision/aruco/TorchTagDetection.hpp"
 
 /// \endcond
 
@@ -36,170 +30,70 @@
 namespace tagdetectutils
 {
     /******************************************************************************
-     * @brief Aggregates all detected tags from each provided tag detector for both OpenCV and Tensorflow detection.
+     * @brief Enum class to define the different tag detection methods available.
      *
-     * @note When using bUnique, if you wish to prioritize one tag detector's detections over another put that tag detector earlier in the vTagDetectors.
      *
-     * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
-     * @param vDetectedTorchTags - Reference vector that will hold all of the aggregated detected Torch tags.
-     * @param vDetectedTensorflowTags - Reference vector that will hold all of the aggregated detected Tensorflow tags.
-     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
-     * @param bUnique - Ensure vDetectedArucoTags is a unique list of tags (unique by ID).
-     *
-     * @author JSpencerPittman (jspencerpittman@gmail.com)
-     * @date 2024-03-07
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-04-03
      ******************************************************************************/
-    inline void LoadDetectedTags(std::vector<arucotag::ArucoTag>& vDetectedArucoTags,
-                                 std::vector<torchtag::TorchTag>& vDetectedTorchTags,
-                                 std::vector<tensorflowtag::TensorflowTag>& vDetectedTensorflowTags,
-                                 const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors,
-                                 bool bUnique = false)
+    enum class TagDetectionMethod
     {
-        // Number of tag detectors.
-        size_t siNumTagDetectors = vTagDetectors.size();
-
-        // Initialize vectors to store detected tags temporarily.
-        std::vector<std::vector<arucotag::ArucoTag>> vDetectedArucoTagBuffers(siNumTagDetectors);
-        std::vector<std::vector<torchtag::TorchTag>> vDetectedTorchTagBuffers(siNumTagDetectors);
-        std::vector<std::vector<tensorflowtag::TensorflowTag>> vDetectedTensorflowTagBuffers(siNumTagDetectors);
-
-        // Initialize vectors to store detected tags futures.
-        std::vector<std::future<bool>> vDetectedArucoTagsFuture;
-        std::vector<std::future<bool>> vDetectedTorchTagsFuture;
-        std::vector<std::future<bool>> vDetectedTensorflowTagsFuture;
-
-        // Request tags from each detector.
-        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
-        {
-            // Check if this tag detector is ready.
-            if (vTagDetectors[siIdx]->GetIsReady())
-            {
-                // Request detected Aruco tags from detector.
-                vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
-                // Request detected Torch tags from detector.
-                vDetectedTorchTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedTorchTags(vDetectedTorchTagBuffers[siIdx]));
-                // Request detected Tensorflow tags from detector.
-                vDetectedTensorflowTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedTensorflowTags(vDetectedTensorflowTagBuffers[siIdx]));
-            }
-        }
-
-        // Ensure all requests have been fulfilled.
-        // Then transfer tags from the buffer to vDetectedArucoTags and vDetectedTensorflowTags for the user to access.
-        for (size_t siIdx = 0; siIdx < vDetectedArucoTagsFuture.size(); ++siIdx)
-        {
-            // Wait for the request to be fulfilled.
-            vDetectedArucoTagsFuture[siIdx].get();
-            vDetectedTorchTagsFuture[siIdx].get();
-            vDetectedTensorflowTagsFuture[siIdx].get();
-
-            // Loop through the detected Aruco tags and add them to the vDetectedArucoTags vector.
-            for (const arucotag::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
-            {
-                vDetectedArucoTags.emplace_back(tTag);
-            }
-
-            // Loop through the detected Torch tags and add them to the vDetectedTorchTags vector.
-            for (const torchtag::TorchTag& tTag : vDetectedTorchTagBuffers[siIdx])
-            {
-                vDetectedTorchTags.emplace_back(tTag);
-            }
-
-            // Loop through the detected Tensorflow tags and add them to the vDetectedTensorflowTags vector.
-            for (const tensorflowtag::TensorflowTag& tTag : vDetectedTensorflowTagBuffers[siIdx])
-            {
-                vDetectedTensorflowTags.emplace_back(tTag);
-            }
-        }
-
-        if (bUnique)
-        {
-            // Remove all Aruco tags with a duplicate ID.
-            std::set<int> setIds;
-            size_t szIdx = 0;
-            while (szIdx < vDetectedArucoTags.size())
-            {
-                // Tag was detected by another tag detector.
-                if (setIds.count(vDetectedArucoTags[szIdx].nID))
-                {
-                    vDetectedArucoTags.erase(vDetectedArucoTags.begin() + szIdx);
-                }
-                else
-                {
-                    setIds.insert(vDetectedArucoTags[szIdx].nID);
-                    ++szIdx;
-                }
-            }
-        }
-    }
+        eUnknown,      // Unknown detection method.
+        eOpenCV,       // Standard OpenCV detection using the ArUco library.
+        eTorch,        // Torch detection using a YOLO model.
+        eTensorflow    // Tensorflow detection using a YOLO model.
+    };
 
     /******************************************************************************
-     * @brief Find a tag in the rover's vision with the specified ID, using OpenCV detection.
+     * @brief Represents a single ArUco tag. Combines attributes from TorchTag,
+     *        TensorflowTag, and the original ArucoTag structs.
      *
-     * @param nID - The ID of the tag being looked for.
-     * @param stIdentifiedArucoTag - Reference to save the identified tag.
-     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
-     * @return true - The tag was found.
-     * @return false - The tag was not found.
-     *
-     * @author JSpencerPittman (jspencerpittman@gmail.com)
-     * @date 2024-03-08
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-04-03
      ******************************************************************************/
-    inline bool FindArucoTagByID(int nID, arucotag::ArucoTag& stIdentifiedArucoTag, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
+    struct ArucoTag
     {
-        // Load all detected tags in the rover's vision.
-        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-        std::vector<torchtag::TorchTag> vDetectedTorchTags;
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        LoadDetectedTags(vDetectedArucoTags, vDetectedTorchTags, vDetectedTensorflowTags, vTagDetectors, true);
+        public:
+            // Declare public struct member attributes.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;                                              // The bounding box of the detected tag.
+            double dConfidence           = 0.0;                                                     // The detection confidence of the tag (from Torch/Tensorflow models).
+            double dStraightLineDistance = 0.0;                                                     // Distance between the tag and the camera.
+            double dYawAngle             = 0.0;                                                     // This is the yaw angle so roll and pitch are ignored.
+            int nID                      = -1;                                                      // The ID of the tag. This is set to -1 if the tag is not detected.
+            std::string szClassName;                                                                // The class name of the tag (used in Torch/Tensorflow models).
+            std::chrono::system_clock::time_point tmLastDetected;                                   // The time the tag was last detected.
+            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
+            TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
 
-        // Find the tag with the corresponding id.
-        for (const arucotag::ArucoTag& tTag : vDetectedArucoTags)
-        {
-            // Is this the tag being searched for.
-            if (tTag.nID == nID)
+            /******************************************************************************
+             * @brief Overload the equality operator for the ArucoTag struct.
+             *
+             * @param stOther - The other ArucoTag struct to compare to.
+             * @return true - The two ArucoTag structs are equal.
+             * @return false - The two ArucoTag structs are not equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-04-03
+             ******************************************************************************/
+            bool operator==(const ArucoTag& stOther) const
             {
-                stIdentifiedArucoTag = tTag;
-                return true;
+                return cvBoundingBox == stOther.cvBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
+                       dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmLastDetected == stOther.tmLastDetected &&
+                       tmCreation == stOther.tmCreation && eDetectionMethod == stOther.eDetectionMethod;
             }
-        }
 
-        // The tag was not found by the tag detectors.
-        return false;
-    }
-
-    // LEAD: Commented this out since TensorflowTag has no ID. Can this be removed or reimplemented in another way?
-    // /******************************************************************************
-    //  * @brief Find a tag in the rover's vision with the specified ID, using Tensorflow detection.
-    //  *
-    //  * @param nID - The ID of the tag being looked for.
-    //  * @param tIdentifiedTag - Reference to save the identified tag.
-    //  * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
-    //  * @return true - The tag was found.
-    //  * @return false - The tag was not found.
-    //  *
-    //  * @author JSpencerPittman (jspencerpittman@gmail.com)
-    //  * @date 2024-03-08
-    //  ******************************************************************************/
-    // inline bool FindTensorflowTagByID(int nID, tensorflowtag::TensorflowTag& stIdentifiedTag, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
-    // {
-    //     // Load all detected tags in the rover's vision.
-    //     std::vector<tensorflowtag::TensorflowTag> vDetectedTags;
-    //     LoadDetectedTensorflowTags(vDetectedTags, vTagDetectors, true);
-
-    //     // Find the tag with the corresponding id.
-    //     for (const tensorflowtag::TensorflowTag& tTag : vDetectedTags)
-    //     {
-    //         // Is this the tag being searched for.
-    //         if (tTag.nID == nID)
-    //         {
-    //             stIdentifiedTag = tTag;
-    //             return true;
-    //         }
-    //     }
-
-    //     // The tag was not found by the tag detectors.
-    //     return false;
-    // }
+            /******************************************************************************
+             * @brief Overload the inequality operator for the ArucoTag struct.
+             *
+             * @param stOther - The other ArucoTag struct to compare to.
+             * @return true - The two ArucoTag structs are not equal.
+             * @return false - The two ArucoTag structs are equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-04-03
+             ******************************************************************************/
+            bool operator!=(const ArucoTag& stOther) const { return !(*this == stOther); }
+    };
 }    // namespace tagdetectutils
 
 #endif

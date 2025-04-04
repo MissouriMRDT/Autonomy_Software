@@ -57,16 +57,6 @@ TagDetectionHandler::TagDetectionHandler()
                                                            constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
                                                            false);
 
-    // Check if tensorflow detection is enabled for main ZEDCam.
-    if (constants::TAGDETECT_MAINCAM_ENABLE_TF)
-    {
-        // Attempt to init tensorflow detection.
-        if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_TF_MODEL))
-        {
-            // Set tensorflow detection enabled.
-            m_pTagDetectorMainCam->EnableTensorflowDetection(constants::TAGDETECT_MAINCAM_DNN_CONFIDENCE, constants::TAGDETECT_MAINCAM_DNN_NMS_THRESH);
-        }
-    }
     // Check if torch detection is enabled for main ZEDCam.
     if (constants::TAGDETECT_MAINCAM_ENABLE_TORCH)
     {
@@ -78,16 +68,6 @@ TagDetectionHandler::TagDetectionHandler()
         }
     }
 
-    // Check if tensorflow detection is enabled for left BasicCam.
-    if (constants::TAGDETECT_LEFTCAM_ENABLE_TF)
-    {
-        // Attempt to init tensorflow detection.
-        if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_TF_MODEL))
-        {
-            // Set tensorflow detection enabled.
-            m_pTagDetectorLeftCam->EnableTensorflowDetection(constants::TAGDETECT_LEFTCAM_DNN_CONFIDENCE, constants::TAGDETECT_LEFTCAM_DNN_NMS_THRESH);
-        }
-    }
     // Check if torch detection is enabled for left BasicCam.
     if (constants::TAGDETECT_LEFTCAM_ENABLE_TORCH)
     {
@@ -99,16 +79,6 @@ TagDetectionHandler::TagDetectionHandler()
         }
     }
 
-    // Check if tensorflow detection is enabled for right BasicCam.
-    if (constants::TAGDETECT_RIGHTCAM_ENABLE_TF)
-    {
-        // Attempt to init tensorflow detection.
-        if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_TF_MODEL))
-        {
-            // Set tensorflow detection enabled.
-            m_pTagDetectorRightCam->EnableTensorflowDetection(constants::TAGDETECT_RIGHTCAM_DNN_CONFIDENCE, constants::TAGDETECT_RIGHTCAM_DNN_NMS_THRESH);
-        }
-    }
     // Check if torch detection is enabled for right BasicCam.
     if (constants::TAGDETECT_RIGHTCAM_ENABLE_TORCH)
     {

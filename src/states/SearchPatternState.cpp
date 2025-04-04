@@ -139,11 +139,11 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
-        // Get a list of the currently detected tags, and their stats.
-        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-        std::vector<torchtag::TorchTag> vDetectedTorchTags;
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTorchTags, vDetectedTensorflowTags, m_vTagDetectors, false);
+        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
+        if (m_stSearchPatternCenter.eType == geoops::WaypointType::eTagWaypoint)
+        {
+            // FIXME: CLAYTON WAS HERE. After creating a util function to check if we have detected a valid tag. If so, go into the ApproachingMarkerState.
+        }
 
         ////////////////////////////
         /* --- Detect Objects --- */
