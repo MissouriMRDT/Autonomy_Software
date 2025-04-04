@@ -46,7 +46,7 @@ namespace statemachine
             /////////////////////////////////////////
 
             // Enum for storing which search pattern type we are using.
-            enum SearchPatternType
+            enum class SearchPatternType
             {
                 eSpiral,
                 eZigZag,
@@ -58,7 +58,7 @@ namespace statemachine
             /////////////////////////////////////////
             bool m_bInitialized;
             geoops::Waypoint m_stSearchPatternCenter;
-            std::vector<TagDetector*> m_vTagDetectors;
+            std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             std::vector<geoops::Waypoint> m_vSearchPath;
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;

@@ -49,7 +49,7 @@ namespace tagdetectutils
      ******************************************************************************/
     inline void LoadDetectedTags(std::vector<arucotag::ArucoTag>& vDetectedArucoTags,
                                  std::vector<tensorflowtag::TensorflowTag>& vDetectedTensorflowTags,
-                                 const std::vector<TagDetector*>& vTagDetectors,
+                                 const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors,
                                  bool bUnique = false)
     {
         // Number of tag detectors.
@@ -130,7 +130,7 @@ namespace tagdetectutils
      * @author JSpencerPittman (jspencerpittman@gmail.com)
      * @date 2024-03-08
      ******************************************************************************/
-    inline bool FindArucoTagByID(int nID, arucotag::ArucoTag& stIdentifiedArucoTag, const std::vector<TagDetector*>& vTagDetectors)
+    inline bool FindArucoTagByID(int nID, arucotag::ArucoTag& stIdentifiedArucoTag, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
     {
         // Load all detected tags in the rover's vision.
         std::vector<arucotag::ArucoTag> vDetectedArucoTags;
@@ -165,7 +165,7 @@ namespace tagdetectutils
     //  * @author JSpencerPittman (jspencerpittman@gmail.com)
     //  * @date 2024-03-08
     //  ******************************************************************************/
-    // inline bool FindTensorflowTagByID(int nID, tensorflowtag::TensorflowTag& stIdentifiedTag, const std::vector<TagDetector*>& vTagDetectors)
+    // inline bool FindTensorflowTagByID(int nID, tensorflowtag::TensorflowTag& stIdentifiedTag, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
     // {
     //     // Load all detected tags in the rover's vision.
     //     std::vector<tensorflowtag::TensorflowTag> vDetectedTags;

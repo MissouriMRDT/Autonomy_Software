@@ -82,10 +82,10 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertCVMatToPCL(const cv::Mat& cvPointClou
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler = new CameraHandler();
+    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
 
     // Get pointer to camera.
-    ZEDCamera* pExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    std::shared_ptr<ZEDCamera> pExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Start ZED cam.
     pExampleZEDCam1->Start();
 
@@ -291,16 +291,4 @@ void RunExample()
 
     // Stop camera threads.
     globals::g_pCameraHandler->StopAllCameras();
-
-    // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
-    delete globals::g_pNavigationBoard;
-    delete network::g_pRoveCommUDPNode;
-    delete network::g_pRoveCommTCPNode;
-
-    // Set dangling pointers to null.
-    globals::g_pCameraHandler   = nullptr;
-    globals::g_pNavigationBoard = nullptr;
-    network::g_pRoveCommUDPNode = nullptr;
-    network::g_pRoveCommTCPNode = nullptr;
 }

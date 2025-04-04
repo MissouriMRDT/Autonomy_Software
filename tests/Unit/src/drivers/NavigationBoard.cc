@@ -34,7 +34,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
-        NavigationBoard* pNavBoard;
+        std::unique_ptr<NavigationBoard> m_pNavBoard;
 
     public:
         /******************************************************************************
@@ -59,7 +59,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override { pNavBoard = new NavigationBoard(); }
+        void TestSetup() override { m_pNavBoard = std::make_unique<NavigationBoard>(); }
 
         /******************************************************************************
          * @brief Teardown the Navigation Board Tests object.
@@ -67,11 +67,7 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestTeardown() override
-        {
-            delete pNavBoard;
-            pNavBoard = nullptr;
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
@@ -83,10 +79,10 @@ class NavigationBoardTests : public TestingBase<NavigationBoardTests>
  ******************************************************************************/
 TEST_F(NavigationBoardTests, DoesNotLeak)
 {
-    NavigationBoard* pTestBoard = new NavigationBoard();
-    ASSERT_NE(pTestBoard, nullptr);
-    delete pTestBoard;
-    pTestBoard = nullptr;
+    NavigationBoard* pNavBoard = new NavigationBoard();
+    ASSERT_NE(pNavBoard, nullptr);
+    delete pNavBoard;
+    pNavBoard = nullptr;
 }
 
 /******************************************************************************
@@ -98,8 +94,8 @@ TEST_F(NavigationBoardTests, DoesNotLeak)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, Leaks)
 {
-    NavigationBoard* pTestBoard = new NavigationBoard();
-    EXPECT_NE(pTestBoard, nullptr);
+    NavigationBoard* pNavBoard = new NavigationBoard();
+    EXPECT_NE(pNavBoard, nullptr);
     // Intentionally not deleting to test leak detection
 }
 
@@ -113,18 +109,18 @@ TEST_F(NavigationBoardTests, Leaks)
 TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
 {
     // The latitude, longitude, and altitude are set to the location of Missouri S&T
-    EXPECT_EQ(pNavBoard->GetGPSData().dLatitude, 37.951771);
-    EXPECT_EQ(pNavBoard->GetGPSData().dLongitude, -91.778114);
-    EXPECT_EQ(pNavBoard->GetGPSData().dAltitude, 315.0);
-    EXPECT_EQ(pNavBoard->GetHeading(), 0);
-    EXPECT_EQ(pNavBoard->GetHeadingAccuracy(), 0);
+    EXPECT_EQ(m_pNavBoard->GetGPSData().dLatitude, 37.951771);
+    EXPECT_EQ(m_pNavBoard->GetGPSData().dLongitude, -91.778114);
+    EXPECT_EQ(m_pNavBoard->GetGPSData().dAltitude, 315.0);
+    EXPECT_EQ(m_pNavBoard->GetHeading(), 0);
+    EXPECT_EQ(m_pNavBoard->GetHeadingAccuracy(), 0);
     // Not moving or rotating
-    EXPECT_EQ(pNavBoard->GetVelocity(), 0);
-    EXPECT_EQ(pNavBoard->GetAngularVelocity(), 0);
+    EXPECT_EQ(m_pNavBoard->GetVelocity(), 0);
+    EXPECT_EQ(m_pNavBoard->GetAngularVelocity(), 0);
     // Allow for small time difference due to construction
-    EXPECT_LE(pNavBoard->GetGPSLastUpdateTime(), std::chrono::seconds(1));
-    EXPECT_LE(pNavBoard->GetCompassLastUpdateTime(), std::chrono::seconds(1));
-    EXPECT_FALSE(pNavBoard->IsOutOfDate());
+    EXPECT_LE(m_pNavBoard->GetGPSLastUpdateTime(), std::chrono::seconds(1));
+    EXPECT_LE(m_pNavBoard->GetCompassLastUpdateTime(), std::chrono::seconds(1));
+    EXPECT_FALSE(m_pNavBoard->IsOutOfDate());
 }
 
 /******************************************************************************
@@ -136,7 +132,7 @@ TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
 {
-    geoops::GPSCoordinate stGPSData = pNavBoard->GetGPSData();
+    geoops::GPSCoordinate stGPSData = m_pNavBoard->GetGPSData();
     EXPECT_EQ(stGPSData.dLatitude, 37.951771);
     EXPECT_EQ(stGPSData.dLongitude, -91.778114);
     EXPECT_EQ(stGPSData.dAltitude, 315.0);
@@ -157,7 +153,7 @@ TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
  ******************************************************************************/
 TEST_F(NavigationBoardTests, GetUTMDataReturnsCorrectData)
 {
-    geoops::UTMCoordinate stUTMData = pNavBoard->GetUTMData();
+    geoops::UTMCoordinate stUTMData = m_pNavBoard->GetUTMData();
 
     // Assuming default UTM data is MST's location
     EXPECT_NEAR(stUTMData.dEasting, 607350.55, 0.01);

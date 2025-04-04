@@ -1,6 +1,6 @@
 # Image Variables
 ARG L4T_MAJOR="36"
-ARG L4T_MINOR="2"
+ARG L4T_MINOR="4"
 ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
 
@@ -9,7 +9,7 @@ FROM nvcr.io/nvidia/${L4T_BASE}:r${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH}
 
 # Install Variables
 ARG L4T_MAJOR="36"
-ARG L4T_MINOR="2"
+ARG L4T_MINOR="4"
 ARG L4T_PATCH="0"
 ARG L4T_BASE="l4t-jetpack"
  
@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libvtk9-qt-dev libusb-1.0-0-dev \
     libboost-all-dev libflann-dev libvtk9-dev libqhull-dev libopenni2-dev qtchooser qt5-qmake qtbase5-dev-tools \
-    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libcjson-dev libopenni-dev
+    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libopenni-dev libcjson-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
@@ -82,7 +82,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="4"
-ARG ZED_MINOR="1"
+ARG ZED_MINOR="2"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
@@ -100,7 +100,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/ar
     rm opencv_${OPENCV_VERSION}_arm64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.2.2"
+ARG TORCH_VERSION="2.6.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
     rm pytorch_${TORCH_VERSION}_arm64.deb
@@ -118,19 +118,19 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/ar
     rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
 
 # Install Abseil.
-ARG ABSEIL_VERSION="20230802.1"
+ARG ABSEIL_VERSION="20250127.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
     dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
     rm abseil_${ABSEIL_VERSION}_arm64.deb
 
 # Install GeographicLib
-ARG GEOLIB_VERSION="2.3"
+ARG GEOLIB_VERSION="2.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
     rm geolib_${GEOLIB_VERSION}_arm64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22"
+ARG LIBDATACHANNEL_VERSION="0.22.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
@@ -148,7 +148,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/arm64
     rm pcl_${PCL_VERSION}_arm64.deb
 
 # Install Quill
-ARG QUILL_VERSION="8.1.0"
+ARG QUILL_VERSION="8.2.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
     rm quill_${QUILL_VERSION}_arm64.deb
@@ -158,9 +158,6 @@ ARG GTEST_VERSION="1.16.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
     rm gtest_${GTEST_VERSION}_arm64.deb
-
-# Enable Make Threads
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> .bashrc
 
 # Set Fish as Default Shell
 RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish
@@ -180,4 +177,4 @@ LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.5.0"
-LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."
+LABEL org.opencontainers.image.description="Docker Image for ${L4T_BASE} ${L4T_MAJOR}.${L4T_MINOR}.${L4T_PATCH} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}."

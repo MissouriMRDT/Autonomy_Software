@@ -30,9 +30,9 @@ class ObjectDetectionHandler
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        ObjectDetector* m_pObjectDetectorMainCam;
-        ObjectDetector* m_pObjectDetectorLeftCam;
-        ObjectDetector* m_pObjectDetectorRightCam;
+        std::shared_ptr<ObjectDetector> m_pObjectDetectorMainCam;
+        std::shared_ptr<ObjectDetector> m_pObjectDetectorLeftCam;
+        std::shared_ptr<ObjectDetector> m_pObjectDetectorRightCam;
 
     public:
         /////////////////////////////////////////
@@ -59,7 +59,7 @@ class ObjectDetectionHandler
         // Accessors.
         /////////////////////////////////////////
 
-        ObjectDetector* GetObjectDetector(ObjectDetectors eDetectorName);
+        std::shared_ptr<ObjectDetector> GetObjectDetector(ObjectDetectors eDetectorName);
 };
 
 #endif

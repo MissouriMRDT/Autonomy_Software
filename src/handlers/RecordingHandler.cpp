@@ -155,7 +155,7 @@ void RecordingHandler::UpdateRecordableCameras()
     for (int nCamera = int(CameraHandler::BasicCamName::BASICCAM_START) + 1; nCamera != int(CameraHandler::BasicCamName::BASICCAM_END); ++nCamera)
     {
         // Get pointer to camera.
-        BasicCamera* pBasicCamera = globals::g_pCameraHandler->GetBasicCam(static_cast<CameraHandler::BasicCamName>(nCamera));
+        std::shared_ptr<BasicCamera> pBasicCamera = globals::g_pCameraHandler->GetBasicCam(static_cast<CameraHandler::BasicCamName>(nCamera));
         // Store camera pointer in vector so we can get images later.
         m_vBasicCameras[nCamera - 1] = pBasicCamera;
 
@@ -220,7 +220,7 @@ void RecordingHandler::UpdateRecordableCameras()
     for (int nCamera = int(CameraHandler::ZEDCamName::ZEDCAM_START) + 1; nCamera != int(CameraHandler::ZEDCamName::ZEDCAM_END); ++nCamera)
     {
         // Get pointer to camera.
-        ZEDCamera* pZEDCamera = globals::g_pCameraHandler->GetZED(static_cast<CameraHandler::ZEDCamName>(nCamera));
+        std::shared_ptr<ZEDCamera> pZEDCamera = globals::g_pCameraHandler->GetZED(static_cast<CameraHandler::ZEDCamName>(nCamera));
         // Store camera pointer in vector so we can get images later.
         m_vZEDCameras[nCamera + nIndexOffset] = pZEDCamera;
 
@@ -419,7 +419,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
     for (int nDetector = int(TagDetectionHandler::TagDetectors::TAGDETECTOR_START) + 1; nDetector != int(TagDetectionHandler::TagDetectors::TAGDETECTOR_END); ++nDetector)
     {
         // Get pointer to camera.
-        TagDetector* pTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(static_cast<TagDetectionHandler::TagDetectors>(nDetector));
+        std::shared_ptr<TagDetector> pTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(static_cast<TagDetectionHandler::TagDetectors>(nDetector));
         // Store camera pointer in vector so we can get images later.
         m_vTagDetectors[nDetector - 1] = pTagDetector;
 
@@ -446,7 +446,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
-                                  "Unable to create the VideoWriter output directory: {} for camera {}",
+                                  "Unable to create the VideoWriter output directory: {} for tag detector {}",
                                   szFilePath.string(),
                                   pTagDetector->GetCameraName());
                     }
@@ -466,7 +466,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for basic camera at path/index {}",
+                                "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
                                 pTagDetector->GetCameraName());
                 }
             }
