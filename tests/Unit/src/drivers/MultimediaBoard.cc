@@ -32,7 +32,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
-        MultimediaBoard* pMultimediaBoard;
+        std::unique_ptr<MultimediaBoard> m_pMultimediaBoard;
 
     public:
         /******************************************************************************
@@ -57,7 +57,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override { pMultimediaBoard = new MultimediaBoard(); }
+        void TestSetup() override { m_pMultimediaBoard = std::make_unique<MultimediaBoard>(); }
 
         /******************************************************************************
          * @brief Teardown the Multimedia Board Tests object.
@@ -65,11 +65,7 @@ class MultimediaBoardTests : public TestingBase<MultimediaBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestTeardown() override
-        {
-            delete pMultimediaBoard;
-            pMultimediaBoard = nullptr;
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
@@ -110,12 +106,12 @@ TEST_F(MultimediaBoardTests, Leaks)
  ******************************************************************************/
 TEST_F(MultimediaBoardTests, ConstructorInitializesCorrectly)
 {
-    EXPECT_EQ(pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eOff);
+    EXPECT_EQ(m_pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eOff);
 
     MultimediaBoard::RGB stDefaultRGB;
-    EXPECT_EQ(pMultimediaBoard->GetCustomLightingValues().dRed, stDefaultRGB.dRed);
-    EXPECT_EQ(pMultimediaBoard->GetCustomLightingValues().dGreen, stDefaultRGB.dGreen);
-    EXPECT_EQ(pMultimediaBoard->GetCustomLightingValues().dBlue, stDefaultRGB.dBlue);
+    EXPECT_EQ(m_pMultimediaBoard->GetCustomLightingValues().dRed, stDefaultRGB.dRed);
+    EXPECT_EQ(m_pMultimediaBoard->GetCustomLightingValues().dGreen, stDefaultRGB.dGreen);
+    EXPECT_EQ(m_pMultimediaBoard->GetCustomLightingValues().dBlue, stDefaultRGB.dBlue);
 }
 
 /******************************************************************************
@@ -127,14 +123,14 @@ TEST_F(MultimediaBoardTests, ConstructorInitializesCorrectly)
  ******************************************************************************/
 TEST_F(MultimediaBoardTests, SendLightingStateSetsStateCorrectly)
 {
-    pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
-    EXPECT_EQ(pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
+    m_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
+    EXPECT_EQ(m_pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eTeleOp);
 
-    pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-    EXPECT_EQ(pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+    m_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+    EXPECT_EQ(m_pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
 
-    pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-    EXPECT_EQ(pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+    m_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+    EXPECT_EQ(m_pMultimediaBoard->GetCurrentLightingState(), MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 }
 
 /******************************************************************************
@@ -147,9 +143,9 @@ TEST_F(MultimediaBoardTests, SendLightingStateSetsStateCorrectly)
 TEST_F(MultimediaBoardTests, SendRGBSetsRGBValuesCorrectly)
 {
     MultimediaBoard::RGB stCurrentRGBValues(255, 128, 64);
-    pMultimediaBoard->SendRGB(stCurrentRGBValues);
+    m_pMultimediaBoard->SendRGB(stCurrentRGBValues);
 
-    MultimediaBoard::RGB stRGBValues = pMultimediaBoard->GetCustomLightingValues();
+    MultimediaBoard::RGB stRGBValues = m_pMultimediaBoard->GetCustomLightingValues();
     EXPECT_EQ(stRGBValues.dRed, stCurrentRGBValues.dRed);
     EXPECT_EQ(stRGBValues.dGreen, stCurrentRGBValues.dGreen);
     EXPECT_EQ(stRGBValues.dBlue, stCurrentRGBValues.dBlue);

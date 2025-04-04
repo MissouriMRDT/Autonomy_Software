@@ -4,11 +4,12 @@
 cd /tmp
 
 # Install Variables
-ABSEIL_VERSION="20230802.1"
+ABSEIL_VERSION="20250127.0"
 
 # Build Arguments
 FORCE_BUILD=false
 DOWNLOAD_LATEST=false
+CHECK_PACKAGE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --download-latest|-d)
             DOWNLOAD_LATEST=true
+            shift
+            ;;
+        --check|-c)
+            CHECK_PACKAGE=true
             shift
             ;;
         *)
@@ -54,54 +59,60 @@ if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fa
     echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
     exit 0
 else
-    echo "Package version ${ABSEIL_VERSION} does not exist in the repository. Building the package."
-    echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
-    
-    # Delete Old Packages
-    rm -rf /tmp/pkg
-    rm -rf /tmp/abseil
+    if [[ "$CHECK_PACKAGE" == true ]]; then
+        echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        exit 1
+    else
+        echo "Package version ${ABSEIL_VERSION} does not exist in the repository. Building the package."
+        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        
+        # Delete Old Packages
+        rm -rf /tmp/pkg
+        rm -rf /tmp/abseil
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local
-    mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/DEBIAN
+        # Create Package Directory
+        mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local
+        mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/DEBIAN
 
-    # Create Control File
-    {
-        echo "Package: abseil-mrdt"
-        echo "Version: ${ABSEIL_VERSION}"
-        echo "Maintainer: abseil"
-        echo "Depends:"
-        echo "Architecture: arm64"
-        echo "Homepage: https://abseil.io/docs/cpp/guides/"
-        echo "Description: A prebuilt version of Abseil. Made by the Mars Rover Design Team."
-    } > /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/DEBIAN/control
+        # Create Control File
+        {
+            echo "Package: abseil-mrdt"
+            echo "Version: ${ABSEIL_VERSION}"
+            echo "Maintainer: abseil"
+            echo "Depends:"
+            echo "Architecture: arm64"
+            echo "Homepage: https://abseil.io/docs/cpp/guides/"
+            echo "Description: A prebuilt version of Abseil. Made by the Mars Rover Design Team."
+        } > /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/DEBIAN/control
 
-    # Download Abseil
-    git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git
-    mkdir -p abseil-cpp/build && cd abseil-cpp/build
+        # Download Abseil
+        git clone --depth 1 --branch ${ABSEIL_VERSION} https://github.com/abseil/abseil-cpp.git
+        mkdir -p abseil-cpp/build && cd abseil-cpp/build
 
-    # Build Abseil
-    cmake \
-    -D CMAKE_INSTALL_PREFIX=/tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local \
-    -D CMAKE_BUILD_TYPE=Release \
-    -D ABSL_ENABLE_INSTALL=ON ..
+        # Build Abseil
+        cmake \
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local \
+        -D CMAKE_BUILD_TYPE=Release \
+        -D ABSL_ENABLE_INSTALL=ON ..
 
-    # Install Abseil
-    make
-    make install
-    mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/lib
-    cp -r /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local/lib/libabsl* /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/lib/
+        # Install Abseil
+        make
+        make install
+        mkdir -p /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/lib
+        cp -r /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local/lib/libabsl* /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/lib/
 
-    # Cleanup Install
-    cd ../..
-    rm -rf abseil
+        # Cleanup Install
+        cd ../..
+        rm -rf abseil
 
-    # Create Package
-    dpkg --build /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64
+        # Create Package
+        dpkg --build /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64
 
-    # Create Package Directory
-    mkdir -p /tmp/pkg/deb
+        # Create Package Directory
+        mkdir -p /tmp/pkg/deb
 
-    # Copy Package
-    cp /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64.deb /tmp/pkg/deb/abseil_${ABSEIL_VERSION}_arm64.deb
+        # Copy Package
+        cp /tmp/pkg/abseil_${ABSEIL_VERSION}_arm64.deb /tmp/pkg/deb/abseil_${ABSEIL_VERSION}_arm64.deb
+    fi
 fi

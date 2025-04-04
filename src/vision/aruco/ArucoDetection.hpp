@@ -44,15 +44,40 @@ namespace arucotag
     {
         public:
             // Declare public struct member attributes.
-            cv::Point2f CornerTL;            // The top left corner of the bounding box.
-            cv::Point2f CornerTR;            // The top right corner of the bounding box.
-            cv::Point2f CornerBL;            // The bottom left corner of the bounding box.
-            cv::Point2f CornerBR;            // The bottom right corner of bounding box.
-            int nID;                         // ID of the tag.
-            int nHits;                       // Total number of detections for tag id.
-            int nFramesSinceLastHit;         // The total number of frames since a tag with this ID was last detected.
-            double dStraightLineDistance;    // Distance between the tag and the camera.
-            double dYawAngle;                // This is the yaw angle so roll and pitch are ignored.
+            std::shared_ptr<cv::Rect2d> cvBoundingBox;    // The bounding box of the detected tag.
+            int nID;                                      // ID of the tag.
+            int nHits;                                    // Total number of detections for tag id.
+            int nFramesSinceLastHit;                      // The total number of frames since a tag with this ID was last detected.
+            double dStraightLineDistance;                 // Distance between the tag and the camera.
+            double dYawAngle;                             // This is the yaw angle so roll and pitch are ignored.
+
+            /******************************************************************************
+             * @brief Overload the equality operator for the ArucoTag struct.
+             *
+             * @param stOther - The other ArucoTag struct to compare to.
+             * @return true - The two ArucoTag structs are equal.
+             * @return false - The two ArucoTag structs are not equal
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator==(const ArucoTag& stOther) const
+            {
+                return (cvBoundingBox == stOther.cvBoundingBox && nID == stOther.nID && nHits == stOther.nHits && nFramesSinceLastHit == stOther.nFramesSinceLastHit &&
+                        dStraightLineDistance == stOther.dStraightLineDistance && dYawAngle == stOther.dYawAngle);
+            }
+
+            /******************************************************************************
+             * @brief Overload the inequality operator for the ArucoTag struct.
+             *
+             * @param stOther - The other ArucoTag struct to compare to.
+             * @return true - The two ArucoTag structs are not equal.
+             * @return false - The two ArucoTag structs are equal.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-03-24
+             ******************************************************************************/
+            bool operator!=(const ArucoTag& stOther) const { return !(*this == stOther); }
     };
 
     /******************************************************************************
@@ -66,17 +91,9 @@ namespace arucotag
      ******************************************************************************/
     inline cv::Point2f FindTagCenter(const ArucoTag& stTag)
     {
-        // Average of the four corners
-        cv::Point2f cvCenter(0, 0);
+        // Calculate the center point of the tag.
+        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width / 2, stTag.cvBoundingBox->y + stTag.cvBoundingBox->height / 2);
 
-        // Add each tag x, y to the center x, y.
-        cvCenter.x += stTag.CornerBL.x + stTag.CornerBR.x + stTag.CornerTL.x + stTag.CornerTR.x;
-        cvCenter.y += stTag.CornerBL.y + stTag.CornerBR.y + stTag.CornerTL.y + stTag.CornerTR.y;
-        // Divide by number of corners.
-        cvCenter.x /= 4;
-        cvCenter.y /= 4;
-
-        // Return a copy of the center point of the tag.
         return cvCenter;
     }
 
@@ -157,10 +174,7 @@ namespace arucotag
             ArucoTag stDetectedTag;
             stDetectedTag.nID = vIDs[unIter];
             // Copy corners.
-            stDetectedTag.CornerTL = cvMarkerCorners[unIter][0];
-            stDetectedTag.CornerTR = cvMarkerCorners[unIter][1];
-            stDetectedTag.CornerBR = cvMarkerCorners[unIter][2];
-            stDetectedTag.CornerBL = cvMarkerCorners[unIter][3];
+            stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(cv::boundingRect(cvMarkerCorners[unIter]));
 
             // Add new tag to detected tags vector.
             vDetectedTags.push_back(stDetectedTag);
@@ -187,7 +201,6 @@ namespace arucotag
         // Create instance variables.
         std::vector<int> vIDs;
         std::vector<std::vector<cv::Point2f>> vMarkers;
-        std::vector<std::vector<cv::Point>> vPolygons;
 
         // Loop through each of the given AR tags and repackage them so that the draw function can read them.
         for (long unsigned int nIter = 0; nIter < vDetectedTags.size(); ++nIter)
@@ -197,21 +210,15 @@ namespace arucotag
 
             // Assemble vector of marker corners.
             std::vector<cv::Point2f> cvMarkerCorners;
-            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerTL);
-            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerTR);
-            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerBR);
-            cvMarkerCorners.emplace_back(vDetectedTags[nIter].CornerBL);
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x, vDetectedTags[nIter].cvBoundingBox->y));          // Top-left corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x + vDetectedTags[nIter].cvBoundingBox->width,
+                                                     vDetectedTags[nIter].cvBoundingBox->y));                                                 // Top-right corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x + vDetectedTags[nIter].cvBoundingBox->width,
+                                                     vDetectedTags[nIter].cvBoundingBox->y + vDetectedTags[nIter].cvBoundingBox->height));    // Bottom-right corner
+            cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].cvBoundingBox->x,
+                                                     vDetectedTags[nIter].cvBoundingBox->y + vDetectedTags[nIter].cvBoundingBox->height));    // Bottom-left corner
             // Append vector of marker corners.
             vMarkers.emplace_back(cvMarkerCorners);
-
-            // Polylines likes cv::Point not cv::Point2f.
-            std::vector<cv::Point> vPolygon;
-            // Clockwise order.
-            vPolygon.emplace_back(vDetectedTags[nIter].CornerTR);
-            vPolygon.emplace_back(vDetectedTags[nIter].CornerTL);
-            vPolygon.emplace_back(vDetectedTags[nIter].CornerBL);
-            vPolygon.emplace_back(vDetectedTags[nIter].CornerBR);
-            vPolygons.emplace_back(vPolygon);
         }
 
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
@@ -219,9 +226,6 @@ namespace arucotag
         {
             // Draw markers onto normal given image.
             // cv::aruco::drawDetectedMarkers(cvDetectionsFrame, vMarkers, vIDs, cv::Scalar(0, 0, 0));
-
-            // Draw markers onto normal given image.
-            cv::polylines(cvDetectionsFrame, vPolygons, true, cv::Scalar(0, 0, 0), 10);
 
             int nIter = 0;
             for (std::vector<cv::Point2f>& cvMarkerCorners : vMarkers)
@@ -326,10 +330,15 @@ namespace arucotag
 
         // Repackage tag image points into a mat.
         cv::Mat cvImgPoints(4, 1, CV_32FC3);
-        cvImgPoints.at<cv::Vec3f>(0) = cv::Vec3f{stTag.CornerTL.x, stTag.CornerTL.y, 0};    // Top-left corner.
-        cvImgPoints.at<cv::Vec3f>(1) = cv::Vec3f{stTag.CornerBL.x, stTag.CornerBL.y, 0};    // Bottom-left corner.
-        cvImgPoints.at<cv::Vec3f>(2) = cv::Vec3f{stTag.CornerTR.x, stTag.CornerTR.y, 0};    // Top-right corner.
-        cvImgPoints.at<cv::Vec3f>(3) = cv::Vec3f{stTag.CornerBR.x, stTag.CornerBR.y, 0};    // Bottom-right corner.
+        cvImgPoints.at<cv::Vec3f>(0) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x), static_cast<float>(stTag.cvBoundingBox->y), 0.0f};    // Top-left corner.
+        cvImgPoints.at<cv::Vec3f>(1) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x),
+                                                 static_cast<float>(stTag.cvBoundingBox->y + stTag.cvBoundingBox->height),
+                                                 0.0f};    // Bottom-left corner.
+        cvImgPoints.at<cv::Vec3f>(2) =
+            cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width), static_cast<float>(stTag.cvBoundingBox->y), 0.0f};    // Top-right corner.
+        cvImgPoints.at<cv::Vec3f>(3) = cv::Vec3f{static_cast<float>(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width),
+                                                 static_cast<float>(stTag.cvBoundingBox->y + stTag.cvBoundingBox->height),
+                                                 0.0f};    // Bottom-right corner.
 
         // Use solve perspective n' point algorithm to estimate pose of the tag.
         cv::solvePnP(cvObjPoints, cvImgPoints, cvCameraMatrix, cvDistCoeffs, cvRotVec, cvTransVec);

@@ -68,11 +68,6 @@ class ObjectDetectionHandlerTests : public TestingBase<ObjectDetectionHandlerTes
         void TestTeardown() override {}
 };
 
-// FIXME: Do not use "using" for namespaces, it's bad practice.
-using ::testing::_;
-using ::testing::NiceMock;
-using ::testing::Return;
-
 // /******************************************************************************
 //  * @brief Test for memory leaks
 //  *

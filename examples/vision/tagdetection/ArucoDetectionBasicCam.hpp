@@ -25,16 +25,15 @@
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler       = new CameraHandler();
-    globals::g_pTagDetectionHandler = new TagDetectionHandler();
+    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
 
     // Get pointer to camera.
-    BasicCamera* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+    std::shared_ptr<BasicCamera> ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
     // Start basic cam.
     ExampleBasicCam1->Start();
 
     // Get pointer to the tag detector for the basic cam.
-    TagDetector* ExampleTagDetector1 = new TagDetector(ExampleBasicCam1);
+    std::unique_ptr<TagDetector> ExampleTagDetector1 = std::make_unique<TagDetector>(ExampleBasicCam1);
     // Start the basic cam detector.
     ExampleTagDetector1->Start();
 
@@ -113,10 +112,6 @@ void RunExample()
     // Stop camera threads.
     globals::g_pTagDetectionHandler->StopAllDetectors();
     globals::g_pCameraHandler->StopAllCameras();
-
-    // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
-    delete globals::g_pTagDetectionHandler;
 
     // Set dangling pointers to null.
     globals::g_pCameraHandler       = nullptr;

@@ -34,10 +34,10 @@
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler = new CameraHandler();
+    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
 
     // Get reference to camera.
-    BasicCamera* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+    std::shared_ptr<BasicCamera> ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
     // Start basic cam.
     ExampleBasicCam1->Start();
 
@@ -51,8 +51,8 @@ void RunExample()
     }
 
     // Initialize a new YOLOModel object.
-    yolomodel::tensorflow::TPUInterpreter ExampleEdgeTPUModel =
-        yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco/v5n_x240/best_edgetpu.tflite", yolomodel::tensorflow::TPUInterpreter::eMax);
+    yolomodel::tensorflow::TPUInterpreter ExampleEdgeTPUModel = yolomodel::tensorflow::TPUInterpreter("../data/models/yolo_models/coco/v5n_x240/best_edgetpu.tflite",
+                                                                                                      yolomodel::tensorflow::TPUInterpreter::PerformanceModes::eMax);
     // Open and load a new YOLOModel from the given path into an EdgeTPU device.
     ExampleEdgeTPUModel.OpenAndLoad();
 
@@ -119,9 +119,4 @@ void RunExample()
     /////////////////////////////////////////
     // Stop camera threads.
     globals::g_pCameraHandler->StopAllCameras();
-
-    // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
-    // Set dangling pointers to null.
-    globals::g_pCameraHandler = nullptr;
 }

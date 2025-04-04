@@ -31,10 +31,10 @@ class TagDetectionHandler
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        TagDetector* m_pTagDetectorMainCam;
-        TagDetector* m_pTagDetectorLeftCam;
-        TagDetector* m_pTagDetectorRightCam;
-        RecordingHandler* m_pRecordingHandler;
+        std::shared_ptr<TagDetector> m_pTagDetectorMainCam;
+        std::shared_ptr<TagDetector> m_pTagDetectorLeftCam;
+        std::shared_ptr<TagDetector> m_pTagDetectorRightCam;
+        std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
         /////////////////////////////////////////
@@ -65,7 +65,7 @@ class TagDetectionHandler
         // Accessors.
         /////////////////////////////////////////
 
-        TagDetector* GetTagDetector(TagDetectors eDetectorName);
+        std::shared_ptr<TagDetector> GetTagDetector(TagDetectors eDetectorName);
 };
 
 #endif

@@ -35,7 +35,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
     protected:
         // This is where you can declare variables that are used in multiple tests.
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
-        DriveBoard* pDriveBoard;
+        std::unique_ptr<DriveBoard> m_pDriveBoard;
 
     public:
         /******************************************************************************
@@ -60,7 +60,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override { pDriveBoard = new DriveBoard(); }
+        void TestSetup() override { m_pDriveBoard = std::make_unique<DriveBoard>(); }
 
         /******************************************************************************
          * @brief Teardown the Drive Board Tests object.
@@ -68,11 +68,7 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestTeardown() override
-        {
-            delete pDriveBoard;
-            pDriveBoard = nullptr;
-        }
+        void TestTeardown() override {}
 };
 
 /******************************************************************************
@@ -110,14 +106,14 @@ TEST_F(DriveBoardTests, Leaks)
 TEST_F(DriveBoardTests, CalculateMove_ZeroSpeedZeroHeading)
 {
     // Test with eArcadeDrive
-    diffdrive::DrivePowers stArcadeDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eArcadeDrive);
+    diffdrive::DrivePowers stArcadeDriveResultPowers = m_pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eArcadeDrive);
 
     // We expect zero drive power when speed & heading are both zero.
     EXPECT_NEAR(stArcadeDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
     EXPECT_NEAR(stArcadeDriveResultPowers.dRightDrivePower, 0.0, 1e-6);
 
     // Test with eCurvatureDrive
-    diffdrive::DrivePowers stCurvatureDriveResultPowers = pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
+    diffdrive::DrivePowers stCurvatureDriveResultPowers = m_pDriveBoard->CalculateMove(0.0, 0.0, 0.0, diffdrive::DifferentialControlMethod::eCurvatureDrive);
 
     // We expect zero drive power when speed & heading are both zero.
     EXPECT_NEAR(stCurvatureDriveResultPowers.dLeftDrivePower, 0.0, 1e-6);
@@ -136,11 +132,11 @@ TEST_F(DriveBoardTests, SendDrive_UpdatesDrivePowers)
     stPowers.dLeftDrivePower  = 0.5;
     stPowers.dRightDrivePower = -0.5;
 
-    pDriveBoard->SetMaxDriveEffort(1.0);
-    pDriveBoard->SendDrive(stPowers);
+    m_pDriveBoard->SetMaxDriveEffort(1.0);
+    m_pDriveBoard->SendDrive(stPowers);
 
     // The output drive powers will changed depending on what the drive board effort limits are.
-    diffdrive::DrivePowers stCurrentPowers = pDriveBoard->GetDrivePowers();
+    diffdrive::DrivePowers stCurrentPowers = m_pDriveBoard->GetDrivePowers();
     EXPECT_DOUBLE_EQ(stCurrentPowers.dLeftDrivePower, 0.5);
     EXPECT_DOUBLE_EQ(stCurrentPowers.dRightDrivePower, -0.5);
 }
@@ -157,10 +153,10 @@ TEST_F(DriveBoardTests, SendStop_StopsTheDrive)
     stPowers.dLeftDrivePower  = 1.0;
     stPowers.dRightDrivePower = 1.0;
 
-    pDriveBoard->SendDrive(stPowers);
-    pDriveBoard->SendStop();
+    m_pDriveBoard->SendDrive(stPowers);
+    m_pDriveBoard->SendStop();
 
-    diffdrive::DrivePowers stCurrentPowers = pDriveBoard->GetDrivePowers();
+    diffdrive::DrivePowers stCurrentPowers = m_pDriveBoard->GetDrivePowers();
     EXPECT_DOUBLE_EQ(stCurrentPowers.dLeftDrivePower, 0.0);
     EXPECT_DOUBLE_EQ(stCurrentPowers.dRightDrivePower, 0.0);
 }

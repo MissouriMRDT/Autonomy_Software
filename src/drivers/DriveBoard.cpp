@@ -37,10 +37,10 @@ DriveBoard::DriveBoard()
     m_fMaxDriveEffort                = constants::DRIVE_MAX_EFFORT;
 
     // Configure PID controller for heading hold function.
-    m_pPID = new controllers::PIDController(constants::DRIVE_PID_PROPORTIONAL,
-                                            constants::DRIVE_PID_INTEGRAL,
-                                            constants::DRIVE_PID_DERIVATIVE,
-                                            constants::DRIVE_PID_FEEDFORWARD);
+    m_pPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
+                                                          constants::DRIVE_PID_INTEGRAL,
+                                                          constants::DRIVE_PID_DERIVATIVE,
+                                                          constants::DRIVE_PID_FEEDFORWARD);
     m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR);
     m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
     m_pPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
@@ -68,12 +68,6 @@ DriveBoard::~DriveBoard()
 {
     // Stop drivetrain.
     this->SendStop();
-
-    // Delete dynamically allocated memory.
-    delete m_pPID;
-
-    // Set dangling pointers to null.
-    m_pPID = nullptr;
 }
 
 /******************************************************************************
