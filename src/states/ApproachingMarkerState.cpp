@@ -35,11 +35,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nNumDetectionAttempts = 0;
-        m_nTargetTagID          = -1;
-        m_bDetected             = false;
-        m_dLastTargetHeading    = 0;
-        m_dLastTargetDistance   = 0;
+        m_nTargetTagID = -1;
 
         // Store the state that got stuck and triggered a MarkerSeen event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
@@ -227,10 +223,8 @@ namespace statemachine
     {
         // Create instance variables.
         std::vector<tagdetectutils::ArucoTag> vDetectedArucoTags;
-        std::vector<tagdetectutils::ArucoTag> vDetectedTorchTags;
         tagdetectutils::ArucoTag stArucoBestTag;
         tagdetectutils::ArucoTag stTorchBestTag;
-        tagdetectutils::ArucoTag stTensorflowBestTag;
         std::string szIdentifiedTags = "";
 
         // Get the current time
@@ -241,31 +235,43 @@ namespace statemachine
         // Find the best tag from the Aruco tags.
         for (const tagdetectutils::ArucoTag& stCandidate : vDetectedArucoTags)
         {
-            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Time Last Detected: " +
-                                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmLastDetected).count()) + "s\n";
+            // Calculate the total age of the tag.
+            double dTagTotalAge = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmCreation).count();
+            // Calculate the total tag area.
+            double dArea = stCandidate.pBoundingBox->area();
 
-            double dArea = stCandidate.cvBoundingBox->area();
-            if (dArea > stArucoBestTag.cvBoundingBox->area())
+            // Check the tag detection method type.
+            if (stCandidate.eDetectionMethod != tagdetectutils::TagDetectionMethod::eOpenCV)
             {
-                stArucoBestTag = stCandidate;
+                // Assemble the identified tags string.
+                szIdentifiedTags += "\tArUco ID: " + std::to_string(stCandidate.nID) + " Tag Age: " + std::to_string(dTagTotalAge) + "s\n";
+                // Check if the tag is best.
+                if (stCandidate.nID == m_nTargetTagID || m_nTargetTagID == -1)
+                {
+                    // Check other tag requirements.
+                    if (dArea > stArucoBestTag.pBoundingBox->area() && dTagTotalAge < constants::ARUCO_MIN_LIFETIME_THRESHOLD)
+                    {
+                        // Set the target tag to the detected tag.
+                        stArucoBestTag = stCandidate;
+                    }
+                }
+            }
+            else if (stCandidate.eDetectionMethod == tagdetectutils::TagDetectionMethod::eTorch)
+            {
+                // Assemble the identified tags string.
+                szIdentifiedTags += "\tTorch Class: " + stCandidate.szClassName + " Tag Age: " + std::to_string(dTagTotalAge) + "s\n";
+                // Check if the tag is best.
+                if (dArea > stTorchBestTag.pBoundingBox->area() && dTagTotalAge < constants::ARUCO_MIN_LIFETIME_THRESHOLD)
+                {
+                    // Set the target tag to the detected tag.
+                    stTorchBestTag = stCandidate;
+                }
             }
         }
-        // Find the best tag from the Torch tags.
-        for (const tagdetectutils::ArucoTag& stCandidate : vDetectedTorchTags)
-        {
-            szIdentifiedTags += "\tID: " + std::to_string(stCandidate.nID) + " Time Last Detected: " +
-                                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmLastDetected).count()) + "s\n";
 
-            double dArea = stCandidate.cvBoundingBox->area();
-            if (dArea > stTorchBestTag.cvBoundingBox->area())
-            {
-                stTorchBestTag = stCandidate;
-            }
-        }
-
-        // FIXME: CLAYTON WAS HERE. Once we have found the biggest tag we need to check a few things. These tthannnngs are different for each tag type.
-        // Aruco: Check if it's the right ID and it's lifetime and time since last detected are valid.
-        // Torch: Check if it's lifetime and time since last detected are valid.
+        // Set the target tag to the best tag.
+        stArucoTarget = stArucoBestTag;
+        stTorchTarget = stTorchBestTag;
     }
 
     /******************************************************************************

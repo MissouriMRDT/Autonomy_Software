@@ -34,23 +34,6 @@
 namespace torchtag
 {
     /******************************************************************************
-     * @brief Given an tagdetectutils::ArucoTag struct find the center point of the corners.
-     *
-     * @param stTag - The tag to find the center of.
-     * @return cv::Point2f - The resultant center point within the image.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-02-13
-     ******************************************************************************/
-    inline cv::Point2f FindTagCenter(const tagdetectutils::ArucoTag& stTag)
-    {
-        // Calculate the center point of the tag.
-        cv::Point2f cvCenter = cv::Point2f(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width / 2, stTag.cvBoundingBox->y + stTag.cvBoundingBox->height / 2);
-
-        return cvCenter;
-    }
-
-    /******************************************************************************
      * @brief Detect ArUco tags in the provided image using a YOLO DNN model.
      *
      * @param cvFrame - The RGB camera frame to run detection on.
@@ -89,10 +72,11 @@ namespace torchtag
             {
                 // Create and initialize new TensorflowTag.
                 tagdetectutils::ArucoTag stDetectedTag;
-                stDetectedTag.dConfidence   = stTagDetection.fConfidence;
-                stDetectedTag.cvBoundingBox = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
-                stDetectedTag.nID           = stTagDetection.nClassID;
-                stDetectedTag.szClassName   = stTagDetection.szClassName;
+                stDetectedTag.dConfidence      = stTagDetection.fConfidence;
+                stDetectedTag.pBoundingBox     = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
+                stDetectedTag.nID              = stTagDetection.nClassID;
+                stDetectedTag.szClassName      = stTagDetection.szClassName;
+                stDetectedTag.eDetectionMethod = tagdetectutils::TagDetectionMethod::eTorch;
 
                 // Add the newly detected tag to the vector.
                 vDetectedTags.emplace_back(stDetectedTag);
@@ -126,21 +110,27 @@ namespace torchtag
             // Loop through each detection.
             for (const tagdetectutils::ArucoTag& stTag : vDetectedTags)
             {
-                // Draw bounding box onto image.
-                cv::rectangle(cvDetectionsFrame, *stTag.cvBoundingBox, cv::Scalar(255, 255, 255), 2);
-                // Draw classID background box onto image.
-                cv::rectangle(cvDetectionsFrame,
-                              cv::Point(stTag.cvBoundingBox->x, stTag.cvBoundingBox->y - 20),
-                              cv::Point(stTag.cvBoundingBox->x + stTag.cvBoundingBox->width, stTag.cvBoundingBox->y),
-                              cv::Scalar(255, 255, 255),
-                              cv::FILLED);
-                // Draw class text onto image.
-                cv::putText(cvDetectionsFrame,
-                            stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100)),
-                            cv::Point(stTag.cvBoundingBox->x, stTag.cvBoundingBox->y - 5),
-                            cv::FONT_HERSHEY_SIMPLEX,
-                            0.5,
-                            cv::Scalar(0, 0, 0));
+                // Check if the tag detection type is Torch.
+                if (stTag.eDetectionMethod == tagdetectutils::TagDetectionMethod::eTorch)
+                {
+                    // Draw bounding box onto image.
+                    cv::rectangle(cvDetectionsFrame, *stTag.pBoundingBox, cv::Scalar(255, 255, 255), 2);
+                    std::string szText  = stTag.szClassName + " " + std::to_string(static_cast<int>(stTag.dConfidence * 100));
+                    cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
+                    // Draw classID background box onto image.
+                    cv::rectangle(cvDetectionsFrame,
+                                  cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y - 20),
+                                  cv::Point((*stTag.pBoundingBox).tl() + cv::Point2d(cvTextSize.width, cvTextSize.height)),
+                                  cv::Scalar(255, 255, 255),
+                                  cv::FILLED);
+                    // Draw class text onto image.
+                    cv::putText(cvDetectionsFrame,
+                                szText,
+                                cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y - 5),
+                                cv::FONT_HERSHEY_SIMPLEX,
+                                0.5,
+                                cv::Scalar(0, 0, 0));
+                }
             }
         }
         else
@@ -150,52 +140,6 @@ namespace torchtag
                       "TorchDetect: Unable to draw markers on image because it is empty or because it has {} channels. (Should be 1 or 3)",
                       cvDetectionsFrame.channels());
         }
-    }
-
-    /******************************************************************************
-     * @brief Given a tagdetectutils::ArucoTag struct find the center point of the corners.
-     *
-     * @param cvPointCloud - A point cloud image to estimate the pose of the tag.
-     * @param stTag - The tag to estimate the pose of.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-02-13
-     ******************************************************************************/
-    inline void EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, tagdetectutils::ArucoTag& stTag)
-    {
-        // Confirm correct coordinate system.
-        if (constants::ZED_COORD_SYSTEM != sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP)
-        {
-            // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger, "TensorflowDetection: Calculations won't work for anything other than ZED coordinate system == LEFT_HANDED_Y_UP");
-        }
-
-        // Find the center point of the given tag.
-        cv::Point2f cvCenter = FindTagCenter(stTag);
-
-        // Ensure the detected center is inside the domain of the point cloud.
-        if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols || cvCenter.y < 0 || cvCenter.x < 0)
-        {
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
-                      cvCenter.y,
-                      cvCenter.x,
-                      cvPointCloud.rows,
-                      cvPointCloud.cols);
-            return;
-        }
-
-        // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
-        cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);
-        float fForward         = cvCoordinate[2];    // Z
-        float fRight           = cvCoordinate[0];    // X
-        float fUp              = cvCoordinate[1];    // Y
-
-        // Calculate euclidean distance from ZED camera left eye to the point of interest
-        stTag.dStraightLineDistance = sqrt(pow(fForward, 2) + pow(fRight, 2) + pow(fUp, 2));
-
-        // Calculate the angle on plane horizontal to the viewpoint
-        stTag.dYawAngle = atan2(fRight, fForward);
     }
 }    // namespace torchtag
 

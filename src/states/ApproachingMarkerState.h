@@ -35,17 +35,11 @@ namespace statemachine
     class ApproachingMarkerState : public State
     {
         private:
-            bool m_bInitialized;
-
-            States m_eTriggeringState;                                    // The state that the rover was in before triggering the MarkerSeen event.
-            int m_nNumDetectionAttempts;                                  // Number of consecutive unsuccessful attempts to detect a tag.
-            int m_nTargetTagID;                                           // ID of the target tag.
-            bool m_bDetected;                                             // Has a target tag been detected and identified yet.
-            tagdetectutils::ArucoTag m_stTargetTagAruco;                  // Detected target tag from OpenCV.
-            double m_dLastTargetHeading;                                  // Last recorded heading of the target with respect to the rover's position.
-            double m_dLastTargetDistance;                                 // Last recorded distance of the target with respect to the rover's position.
-            std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;    // Vector of tag detectors to use for detection in order of highest to lowest priority.
+            std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            States m_eTriggeringState;
+            bool m_bInitialized;
+            int m_nTargetTagID;
 
             void IdentifyTargetMarker(tagdetectutils::ArucoTag& stArucoTarget, tagdetectutils::ArucoTag& stTorchTarget);
             void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors);

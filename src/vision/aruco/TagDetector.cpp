@@ -67,7 +67,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -129,7 +129,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>();
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -336,6 +336,7 @@ void TagDetector::ThreadedContinuousCode()
 
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+        torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -571,101 +572,40 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
 
         // Update the multi-tracker with the current frame.
         m_pMultiTracker->Update(m_cvFrame);
-
-        // Loop through the detected tags and update their time last seen.
-        for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
-        {
-            // Update the time last seen for the tag.
-            stTag.tmLastDetected = std::chrono::system_clock::now();
-        }
     }
     else
     {
-        // Reset the multi-tracker if the torch detector has detected new tags.
-        m_pMultiTracker->ClearTrackers();
-        // Clear the member variable vector of detected tags.
-        m_vDetectedArucoTags.clear();
-
         // Loop through the newly detected tags.
         for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
         {
-            // Add the newly detected tag to the the member variable vector of detected tags.
-            m_vDetectedArucoTags.push_back(stTag);
             // Add the newly detected tags to the multi-tracker.
-            m_pMultiTracker->InitTracker(m_cvFrame, stTag.cvBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
+            bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
+            // Check if the tag was matched to an existing tracker.
+            if (!bMatchedTagToExistingTracker)
+            {
+                // Add the new tag to the member variable list.
+                m_vDetectedArucoTags.push_back(stTag);
+            }
+
+            // Also update the rest of the trackers with the new image.
+            m_pMultiTracker->Update(m_cvFrame);
         }
     }
 
-    // LEAD: Putting this here for reference. This is the old code that was used to update ONLY the Aruco tags from OpenCV. We may want some of its functionality.
-    // // Sort tags from least to greatest.
-    // std::sort(vNewlyDetectedTags.begin(),
-    //           vNewlyDetectedTags.end(),
-    //           [](const tagdetectutils::ArucoTag& stTag1, const tagdetectutils::ArucoTag& stTag2) { return stTag1.nID < stTag2.nID; });
-
-    // // Get the beginning of the new tags and the current tags vector.
-    // std::vector<tagdetectutils::ArucoTag>::iterator itNewItr = vNewlyDetectedTags.begin();
-    // std::vector<tagdetectutils::ArucoTag>::iterator itOldItr = m_vDetectedArucoTags.begin();
-
-    // // Create vector for storing new tags.
-    // std::vector<tagdetectutils::ArucoTag> vNewTags;
-
-    // // Get the current time. :nerd:
-    // std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-
-    // // Here we process tags from both the newly detected and previously detected tags in the order of increasing id.
-    // while (itNewItr != vNewlyDetectedTags.end() || itOldItr != m_vDetectedArucoTags.end())
-    // {
-    //     // If the id's match then update the previously detected tag.
-    //     if (itNewItr != vNewlyDetectedTags.end() && itOldItr != m_vDetectedArucoTags.end() && itOldItr->nID == itNewItr->nID)
-    //     {
-    //         // Update data for tag.
-    //         itOldItr->dYawAngle             = itNewItr->dYawAngle;
-    //         itOldItr->dStraightLineDistance = itNewItr->dStraightLineDistance;
-    //         itOldItr->cvBoundingBox         = itNewItr->cvBoundingBox;
-
-    //         // Move to next tags.
-    //         itOldItr++;
-    //         itNewItr++;
-    //     }
-    //     // If a previously detected tag wasn't detected in the frame
-    //     else if (itOldItr != m_vDetectedArucoTags.end() && (itNewItr == vNewlyDetectedTags.end() || itOldItr->nID < itNewItr->nID))
-    //     {
-    //         // Calculate time metrics.
-    //         double dTimeSinceLastDetection = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - itOldItr->tmLastDetected).count();
-    //         double dTotalTagAge            = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - itOldItr->tmCreation).count();
-
-    //         // Check if the tag should be removed.
-    //         if (dTotalTagAge < constants::ARUCO_LIFETIME_THRESHOLD || dTimeSinceLastDetection > constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD)
-    //         {
-    //             // Remove the tag from the detected tags member variable.
-    //             itOldItr = m_vDetectedArucoTags.erase(itOldItr);
-    //         }
-    //         else
-    //         {
-    //             // Decrement the old iterator.
-    //             itOldItr++;
-    //         }
-    //     }
-    //     // A tag was detected for the first time.
-    //     else if (itNewItr != vNewlyDetectedTags.end())
-    //     {
-    //         // Set the new tags attributes for a first detection.
-    //         itNewItr->tmLastDetected = std::chrono::system_clock::now();
-
-    //         // Add tag to new tags vector.
-    //         vNewTags.push_back(*itNewItr);
-
-    //         // Increment the new iterator.
-    //         itNewItr++;
-    //     }
-    // }
-
-    // // Loop through the new tag vector.
-    // for (tagdetectutils::ArucoTag& stTag : vNewTags)
-    // {
-    //     // Add the newly detected tags to the member variable list
-    //     m_vDetectedArucoTags.push_back(stTag);
-    // }
+    // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
+    for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
+    {
+        // Check if the bounding box is 0,0,0,0.
+        if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
+        {
+            // Remove the tag from the vector.
+            itTag = m_vDetectedArucoTags.erase(itTag);
+        }
+        else
+        {
+            ++itTag;
+        }
+    }
 }
 
 /******************************************************************************

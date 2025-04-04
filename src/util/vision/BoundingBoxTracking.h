@@ -54,7 +54,7 @@ namespace tracking
 
             MultiTracker(const double dTrackingLostTimeout = 1.0, const double dIOUThreshold = 0.3);
             ~MultiTracker();
-            void InitTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType = TrackerType::eKCF);
+            bool InitTracker(const cv::Mat& cvFrame, const std::shared_ptr<cv::Rect2d> cvBoundingBox, const TrackerType eTrackerType = TrackerType::eKCF);
             void Update(const cv::Mat& cvFrame);
             void ClearTrackers();
 
@@ -81,7 +81,7 @@ namespace tracking
             /////////////////////////////////////////
             std::map<int, cv::Ptr<cv::Tracker>> m_mTrackers;
             std::map<int, std::shared_ptr<cv::Rect2d>> m_mBoundingBoxes;
-            std::map<int, std::chrono::steady_clock::time_point> m_mLastUpdateTime;
+            std::map<int, std::chrono::system_clock::time_point> m_mLastUpdateTime;
             double m_dTrackingLostThreshold;    // Time in seconds after which a tracker is considered lost.
             double m_dIOUThreshold;             // Minimum Intersection over Union required to associate a new detection with an existing tracker.
             int m_nNextId;
