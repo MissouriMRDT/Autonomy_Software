@@ -497,7 +497,7 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
     const geoops::UTMCoordinate stStartCoordinate(dEastingStart, dNorthingStart, 15, true);
 
     // Create goal coordinates for AStar
-    const std::vector<geoops::UTMCoordinate> aGoalCoordinates = {
+    const std::vector<geoops::UTMCoordinate> vGoalCoordinates = {
         geoops::UTMCoordinate(dEastingStart, dNorthingStart + 10, 15, true),         // N
         geoops::UTMCoordinate(dEastingStart + 10, dNorthingStart, 15, true),         // E
         geoops::UTMCoordinate(dEastingStart, dNorthingStart - 10, 15, true),         // S
@@ -510,7 +510,7 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
 
     // Create obstacle coordinates for AStar
     const double dObstacleSize                     = 3 * constants::ASTAR_NODE_SIZE;
-    const std::vector<geoops::Waypoint> aObstacles = {
+    const std::vector<geoops::Waypoint> vObstacles = {
         geoops::Waypoint(geoops::UTMCoordinate(dEastingStart, dNorthingStart + 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // N
         geoops::Waypoint(geoops::UTMCoordinate(dEastingStart + 5, dNorthingStart, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // E
         geoops::Waypoint(geoops::UTMCoordinate(dEastingStart, dNorthingStart - 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // S
@@ -525,10 +525,10 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
     {
         // Add obstacle to AStar
         pAStar->ClearObstacleData();
-        pAStar->UpsertObstacleData(std::vector<geoops::Waypoint>{aObstacles[siI]});
+        pAStar->UpsertObstacleData(std::vector<geoops::Waypoint>{vObstacles[siI]});
 
         // Get AStar path
-        std::vector<geoops::Waypoint> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, aGoalCoordinates[siI]);
+        std::vector<geoops::Waypoint> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, vGoalCoordinates[siI]);
 
         // Make sure AStar actually found a path
         EXPECT_TRUE(vReturnedPath.size() != 0);
@@ -537,15 +537,15 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
         for (size_t siJ = 0; siJ < vReturnedPath.size(); siJ++)
         {
             // Check to see if current coordinate is within obstacle bounds
-            EXPECT_FALSE(vReturnedPath[siJ].GetUTMCoordinate().dNorthing >= aObstacles[siI].GetUTMCoordinate().dNorthing - aObstacles[siI].dRadius &&
-                         vReturnedPath[siJ].GetUTMCoordinate().dNorthing <= aObstacles[siI].GetUTMCoordinate().dNorthing + aObstacles[siI].dRadius &&
-                         vReturnedPath[siJ].GetUTMCoordinate().dEasting >= aObstacles[siI].GetUTMCoordinate().dEasting - aObstacles[siI].dRadius &&
-                         vReturnedPath[siJ].GetUTMCoordinate().dEasting <= aObstacles[siI].GetUTMCoordinate().dEasting + aObstacles[siI].dRadius);
+            EXPECT_FALSE(vReturnedPath[siJ].GetUTMCoordinate().dNorthing >= vObstacles[siI].GetUTMCoordinate().dNorthing - vObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].GetUTMCoordinate().dNorthing <= vObstacles[siI].GetUTMCoordinate().dNorthing + vObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].GetUTMCoordinate().dEasting >= vObstacles[siI].GetUTMCoordinate().dEasting - vObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].GetUTMCoordinate().dEasting <= vObstacles[siI].GetUTMCoordinate().dEasting + vObstacles[siI].dRadius);
         }
 
         // Make sure path hit goal point
-        EXPECT_NEAR(aGoalCoordinates[siI].dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
-        EXPECT_NEAR(aGoalCoordinates[siI].dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
+        EXPECT_NEAR(vGoalCoordinates[siI].dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
+        EXPECT_NEAR(vGoalCoordinates[siI].dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
     }
 
     // Cleanup
@@ -553,6 +553,13 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
     pAStar = nullptr;
 }
 
+/******************************************************************************
+ * @brief Tests to see if AStar can path through a maze which requires lots of doubling back
+ *
+ *
+ * @author Sam Nolte (samnolte0302@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
 TEST_F(AStarPlannerTests, Maze)
 {
     // Create a new AStar object
@@ -567,7 +574,7 @@ TEST_F(AStarPlannerTests, Maze)
     const geoops::UTMCoordinate stGoalCoordinate = geoops::UTMCoordinate(dEastingStart, dNorthingStart + 10, 15, true);
 
     // Create obstacle coordinates for AStar https://imgur.com/a/pWpyLAI
-    const std::vector<geoops::Waypoint> aObstacles = {
+    const std::vector<geoops::Waypoint> vObstacles = {
         geoops::Waypoint(geoops::UTMCoordinate(50, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
         geoops::Waypoint(geoops::UTMCoordinate(50.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
         geoops::Waypoint(geoops::UTMCoordinate(51, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
@@ -698,7 +705,7 @@ TEST_F(AStarPlannerTests, Maze)
     };
 
     // Add obstacle to AStar
-    pAStar->UpsertObstacleData(aObstacles);
+    pAStar->UpsertObstacleData(vObstacles);
 
     // Make sure AStar paths
     std::vector<geoops::Waypoint> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, stGoalCoordinate);
