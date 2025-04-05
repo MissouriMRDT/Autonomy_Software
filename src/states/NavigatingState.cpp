@@ -178,7 +178,7 @@ namespace statemachine
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers over RoveComm.
-            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+            // globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
         else
         {
@@ -267,15 +267,15 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        {
-            // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-            // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-            // Don't execute the rest of the state.
-            return;
-        }
+        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        // {
+        //     // Submit logger message.
+        //     LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+        //     // Handle state transition and save the current search pattern state.
+        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+        //     // Don't execute the rest of the state.
+        //     return;
+        // }
     }
 
     /******************************************************************************
