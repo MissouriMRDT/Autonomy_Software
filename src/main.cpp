@@ -275,9 +275,9 @@ int main()
                     std::vector<tagdetectutils::ArucoTag> vLeftCamTags;
                     std::vector<tagdetectutils::ArucoTag> vRightCamTags;
                     // Get the tags from the tag detectors.
-                    std::future<bool> fuMainCamTags  = pMainDetector->RequestDetectedArucoTags(vMainCamTags);
-                    std::future<bool> fuLeftCamTags  = pLeftDetector->RequestDetectedArucoTags(vLeftCamTags);
-                    std::future<bool> fuRightCamTags = pRightDetector->RequestDetectedArucoTags(vRightCamTags);
+                    std::future<bool> fuMainCamTags = pMainDetector->RequestDetectedArucoTags(vMainCamTags);
+                    // std::future<bool> fuLeftCamTags  = pLeftDetector->RequestDetectedArucoTags(vLeftCamTags);
+                    // std::future<bool> fuRightCamTags = pRightDetector->RequestDetectedArucoTags(vRightCamTags);
                     // Get the best/valid tags from the tag detectors.
                     tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
                     std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pLeftDetector, pRightDetector};
@@ -294,7 +294,7 @@ int main()
                     }
 
                     // Wait for all the tags to be copied.
-                    if (fuMainCamTags.get() || fuLeftCamTags.get() || fuRightCamTags.get())
+                    if (fuMainCamTags.get())
                     {
                         // Submit logger message.
                         std::ostringstream ossTagsInfo;
