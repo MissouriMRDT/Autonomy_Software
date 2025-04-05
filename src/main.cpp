@@ -11,6 +11,10 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
+#include "./util/states/TagDetectionChecker.hpp"
+
+#include <sys/ioctl.h>
+#include <termios.h>
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -25,6 +29,8 @@ CHECK_IF_EXAMPLE_INCLUDED
 
 // Create a boolean used to handle a SIGINT and exit gracefully.
 volatile sig_atomic_t bMainStop = false;
+// Store original terminal settings.
+struct termios g_stOriginalTermSettings;
 
 /******************************************************************************
  * @brief Help function given to the C++ csignal standard library to run when
@@ -55,6 +61,53 @@ void SignalHandler(int nSignal)
         // Update stop signal.
         bMainStop = true;
     }
+}
+
+/******************************************************************************
+ * @brief Reset terminal mode to original settings.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+void ResetTerminalMode()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &g_stOriginalTermSettings);
+}
+
+/******************************************************************************
+ * @brief Mutator for the Non Canonical Terminal Mode private member.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+void SetNonCanonicalTerminalMode()
+{
+    struct termios stNewTermSettings;
+
+    tcgetattr(STDIN_FILENO, &g_stOriginalTermSettings);
+    std::memcpy(&stNewTermSettings, &g_stOriginalTermSettings, sizeof(struct termios));
+
+    stNewTermSettings.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &stNewTermSettings);
+
+    atexit(ResetTerminalMode);
+}
+
+/******************************************************************************
+ * @brief Check if a key has been pressed in the terminal.
+ *
+ * @return int - Number of bytes waiting in the terminal buffer.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+int CheckKeyPress()
+{
+    int nBytesWaiting;
+    ioctl(STDIN_FILENO, FIONREAD, &nBytesWaiting);
+    return nBytesWaiting;
 }
 
 /******************************************************************************
@@ -132,6 +185,8 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
         sigaction(SIGQUIT, &stSigBreak, nullptr);
+        // Set the terminal to non-canonical mode. This allows us to read a single character from the terminal without waiting for a newline.
+        SetNonCanonicalTerminalMode();
 
         // Print warnings if running in SIM mode.
         if (constants::MODE_SIM)
@@ -201,9 +256,92 @@ int main()
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
-
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+
+            // Print out the FPS stats to the console if the user presses 'f' or 'F'.
+            if (CheckKeyPress() > 0)
+            {
+                char chTerminalInput = 0;
+                read(STDIN_FILENO, &chTerminalInput, 1);
+                if (chTerminalInput == 'f' || chTerminalInput == 'F')
+                {
+                    LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
+                }
+                else if (chTerminalInput == 't' || chTerminalInput == 'T')
+                {
+                    // Create instance variables.
+                    std::vector<tagdetectutils::ArucoTag> vMainCamTags;
+                    std::vector<tagdetectutils::ArucoTag> vLeftCamTags;
+                    std::vector<tagdetectutils::ArucoTag> vRightCamTags;
+                    // Get the tags from the tag detectors.
+                    std::future<bool> fuMainCamTags  = pMainDetector->RequestDetectedArucoTags(vMainCamTags);
+                    std::future<bool> fuLeftCamTags  = pLeftDetector->RequestDetectedArucoTags(vLeftCamTags);
+                    std::future<bool> fuRightCamTags = pRightDetector->RequestDetectedArucoTags(vRightCamTags);
+                    // Get the best/valid tags from the tag detectors.
+                    tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
+                    std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pLeftDetector, pRightDetector};
+                    // Check if the next waypoint in the waypoint handler exists and had a tag ID.
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                    {
+                        // Get the best tags from the tag detectors.
+                        statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag, globals::g_pWaypointHandler->PeekNextWaypoint().nID);
+                    }
+                    else
+                    {
+                        // Get the best tags from the tag detectors.
+                        statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
+                    }
+
+                    // Wait for all the tags to be copied.
+                    if (fuMainCamTags.get() || fuLeftCamTags.get() || fuRightCamTags.get())
+                    {
+                        // Submit logger message.
+                        std::ostringstream ossTagsInfo;
+                        ossTagsInfo << "\n--------[ All Detections ]--------\n"
+                                    << "Detected Tags Info:\n"
+                                    << "MainCam Tags: " << vMainCamTags.size() << "\n"
+                                    << "LeftCam Tags: " << vLeftCamTags.size() << "\n"
+                                    << "RightCam Tags: " << vRightCamTags.size() << "\n";
+
+                        // Add a section for valid/best tags (example logic can be added here).
+
+                        ossTagsInfo << "\n--------[ Valid/Best Tags ]--------\n";
+                        if (stBestOpenCVTag.nID != -1)
+                        {
+                            ossTagsInfo << "Best OpenCV Tag ID: " << stBestOpenCVTag.nID << "\n";
+                            ossTagsInfo << "Best OpenCV Tag Distance: " << stBestOpenCVTag.dStraightLineDistance << "\n";
+                            ossTagsInfo << "Best OpenCV Tag Yaw Angle: " << stBestOpenCVTag.dYawAngle << "\n";
+                        }
+                        else
+                        {
+                            ossTagsInfo << "No valid OpenCV tags detected.\n";
+                        }
+                        if (stBestTorchTag.dConfidence != 0.0)
+                        {
+                            ossTagsInfo << "Best Torch Tag ID: " << stBestTorchTag.nID << "\n";
+                            ossTagsInfo << "Best Torch Tag Distance: " << stBestTorchTag.dStraightLineDistance << "\n";
+                            ossTagsInfo << "Best Torch Tag Yaw Angle: " << stBestTorchTag.dYawAngle << "\n";
+                        }
+                        else
+                        {
+                            ossTagsInfo << "No valid Torch tags detected.\n";
+                        }
+
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", ossTagsInfo.str());
+                    }
+                    else
+                    {
+                        // Submit logger message.
+                        LOG_WARNING(logging::g_qSharedLogger, "Failed to get tags from cameras.");
+                    }
+                }
+                else if (chTerminalInput == 'q' || chTerminalInput == 'Q')
+                {
+                    LOG_INFO(logging::g_qSharedLogger, "'Q' key pressed. Initiating shutdown...");
+                    bMainStop = true;
+                }
+            }
 
             // Update IPS tick.
             IterPerSecond.Tick();

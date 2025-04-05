@@ -244,7 +244,7 @@ namespace constants
     // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
     // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
     // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 2;      // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.2;    // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
     const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;    // The time in seconds to wait before considering a tracker lost.
     const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;    // The IOU threshold to match a new detection to an existing tracker.
     ///////////////////////////////////////////////////////////////////////////
@@ -315,8 +315,10 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER         = 0.2;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 2.0;    // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_MOTOR_POWER         = 0.15;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_VISION_DISTANCE     = 18.0;    // This is an arbitrary distance based on the aread of the tag. Used only for vision driving.
+    const double APPROACH_MARKER_LOST_GIVE_UP_TIME   = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.

@@ -42,9 +42,6 @@ namespace statemachine
             int m_nTargetTagID;
             geoops::Waypoint m_stGoalWaypoint;
 
-            void IdentifyTargetMarker(tagdetectutils::ArucoTag& stArucoTarget, tagdetectutils::ArucoTag& stTorchTarget);
-            void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors);
-
             void Start() override;
             void Exit() override;
 

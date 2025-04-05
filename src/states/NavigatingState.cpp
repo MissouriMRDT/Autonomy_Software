@@ -11,6 +11,7 @@
 #include "NavigatingState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
+#include "../util/states/TagDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -164,7 +165,7 @@ namespace statemachine
         // Check if we are at the goal waypoint.
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
-            // NOTE: Optional - Uncomment the above code and comment out the below code to use the drive board to navigate to the goal waypoint.
+            // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
             // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
             // // Calculate move from goal heading and desired speed.
@@ -233,7 +234,20 @@ namespace statemachine
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
-            // FIXME: CLAYTON WAS HERE. After creating a util function to check if we have detected a valid tag. If so, go into the ApproachingMarkerState.
+            // Create instance variables.
+            tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
+            // Identify target marker.
+            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+            // Check if either tag type is seen.
+            if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
+                // Don't execute the rest of the state.
+                return;
+            }
         }
 
         ////////////////////////////

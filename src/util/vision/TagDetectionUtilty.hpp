@@ -14,7 +14,7 @@
 #define TAG_DETECTION_UTILITY_HPP
 
 /// \cond
-#include <type_traits>
+#include <opencv2/opencv.hpp>
 
 /// \endcond
 
@@ -55,7 +55,7 @@ namespace tagdetectutils
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> pBoundingBox;                                               // The bounding box of the detected tag.
+            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();      // The bounding box of the detected tag.
             double dConfidence                               = 0.0;                                 // The detection confidence of the tag (from Torch/Tensorflow models).
             double dStraightLineDistance                     = 0.0;                                 // Distance between the tag and the camera.
             double dYawAngle                                 = 0.0;                                 // This is the yaw angle so roll and pitch are ignored.
@@ -63,6 +63,8 @@ namespace tagdetectutils
             std::string szClassName                          = "";                                  // The class name of the tag (used in Torch/Tensorflow models).
             std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
             TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
+            cv::Size cvImageResolution;                                                             // The resolution of the image used to detect the tag.
+            double dHorizontalFOV;                                                                  // The horizontal field of view of the camera used to detect the tag.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -78,7 +80,7 @@ namespace tagdetectutils
             {
                 return pBoundingBox == stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
-                       eDetectionMethod == stOther.eDetectionMethod;
+                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV;
             }
 
             /******************************************************************************
@@ -210,24 +212,34 @@ namespace tagdetectutils
     /******************************************************************************
      * @brief - Estimate the pose of a tag from a camera frame.
      *
-     * @param cvImageSize - The size of the camera frame.
-     * @param dFOV - The field of view of the camera in degrees.
-     * @param stTag -  The tag to estimate the pose of.
+     * @param stTag - The tag to estimate the pose of.
+     *
+     * @note In order for this to be accurate, the camera's horizontal field of view (HFOV) and the camera frame size must be known.
      *
      * @author sam_hajdukiewicz (samanthahajdukiewicz@gmail.com) :3
      * @date 2025-04-04
      ******************************************************************************/
-    inline void EstimatePoseFromCameraFrame(const cv::Size& cvImageSize, const double dFOV, tagdetectutils::ArucoTag& stTag)
+    inline void EstimatePoseFromCameraFrame(tagdetectutils::ArucoTag& stTag)
     {
         // Use camera field of view and camera frame size to determine tag angle in degrees from center of camera.
-        double dDegreesPerPixel = dFOV / cvImageSize.width;
+        double dDegreesPerPixel = stTag.dHorizontalFOV / stTag.cvImageResolution.width;
         // Find tag error in pixels from center of image.
-        double dTagErrorX = (stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2) - (cvImageSize.width / 2);
+        double dTagErrorX = (stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2) - (stTag.cvImageResolution.width / 2);
         // Find angle error.
         double dTagAngleX = dTagErrorX * dDegreesPerPixel;
         // Reassign yaw and distance to tag.
-        stTag.dYawAngle             = dTagAngleX;
-        stTag.dStraightLineDistance = cvImageSize.height * 0.002;
+        stTag.dYawAngle = dTagAngleX;
+
+        // Estimate the distance using the area of the tag and the horizontal field of view (HFOV).
+        // This is a rough approximation assuming the tag is square and the camera's HFOV is known.
+        double dTagArea   = stTag.pBoundingBox->area();    // Area of the tag in pixels.
+        double dImageArea = stTag.cvImageResolution.width * stTag.cvImageResolution.height;
+        // Calculate the ratio of the tag's area to the image area.
+        double dAreaRatio = dTagArea / dImageArea;
+        // Estimate the distance using the inverse square root of the area ratio.
+        // This assumes the tag's apparent size decreases with the square of the distance.
+        // This value is completely dimensionless and arbitrary, but it should be consistent between different image sizes and field of views.
+        stTag.dStraightLineDistance = 1.0 / std::sqrt(dAreaRatio);
     }
 
 }    // namespace tagdetectutils
