@@ -206,6 +206,30 @@ namespace tagdetectutils
         // Calculate the angle on plane horizontal to the viewpoint
         stTag.dYawAngle = std::atan2(dRight, dForward);
     }
+
+    /******************************************************************************
+     * @brief - Estimate the pose of a tag from a camera frame.
+     *
+     * @param cvImageSize - The size of the camera frame.
+     * @param dFOV - The field of view of the camera in degrees.
+     * @param stTag -  The tag to estimate the pose of.
+     *
+     * @author sam_hajdukiewicz (samanthahajdukiewicz@gmail.com) :3
+     * @date 2025-04-04
+     ******************************************************************************/
+    inline void EstimatePoseFromCameraFrame(const cv::Size& cvImageSize, const double dFOV, tagdetectutils::ArucoTag& stTag)
+    {
+        // Use camera field of view and camera frame size to determine tag angle in degrees from center of camera.
+        double dDegreesPerPixel = dFOV / cvImageSize.width;
+        // Find tag error in pixels from center of image.
+        double dTagErrorX = (stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2) - (cvImageSize.width / 2);
+        // Find angle error.
+        double dTagAngleX = dTagErrorX * dDegreesPerPixel;
+        // Reassign yaw and distance to tag.
+        stTag.dYawAngle             = dTagAngleX;
+        stTag.dStraightLineDistance = cvImageSize.height * 0.002;
+    }
+
 }    // namespace tagdetectutils
 
 #endif

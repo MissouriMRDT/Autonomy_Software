@@ -248,6 +248,7 @@ GROUNDCAM
 gruntfuggly
 gtest
 gthr
+hajdukiewicz
 HWDEVICE
 hyperthreaded
 IDLESTATE

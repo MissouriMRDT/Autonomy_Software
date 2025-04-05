@@ -40,6 +40,7 @@ namespace statemachine
             States m_eTriggeringState;
             bool m_bInitialized;
             int m_nTargetTagID;
+            geoops::Waypoint m_stGoalWaypoint;
 
             void IdentifyTargetMarker(tagdetectutils::ArucoTag& stArucoTarget, tagdetectutils::ArucoTag& stTorchTarget);
             void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors);

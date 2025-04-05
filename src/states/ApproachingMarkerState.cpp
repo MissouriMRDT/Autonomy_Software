@@ -35,7 +35,8 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_nTargetTagID = -1;
+        m_nTargetTagID   = -1;
+        m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
 
         // Store the state that got stuck and triggered a MarkerSeen event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
@@ -99,15 +100,64 @@ namespace statemachine
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
+        // Check Rover radius from marker waypoint.
+        geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
+        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
+            return;
+        }
+
+        // Identify target marker.
+        tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
+        this->IdentifyTargetMarker(stBestArucoTag, stBestTorchTag);
+
+        // Check if both tag types are unseen.
+        if (stBestArucoTag.nID == -1 && stBestTorchTag.nID == -1)
+        {
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
+            return;
+        }
+
+        double dHeadingSetPoint = 0.0;
+        double dDistanceFromTag = 9999;
+
+        if (stBestArucoTag.nID != -1)
+        {
+            cv::Size cvCameraResolution = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)->GetProcessFrameResolution();
+            tagdetectutils::EstimatePoseFromCameraFrame(cvCameraResolution, constants::ZED_MAINCAM_HORIZONTAL_FOV, stBestArucoTag);
+            dHeadingSetPoint = stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading();
+            dDistanceFromTag = stBestArucoTag.dStraightLineDistance;
+        }
+
+        else if (stBestTorchTag.nID != -1)
+        {
+            cv::Size cvCameraResolution = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)->GetProcessFrameResolution();
+            tagdetectutils::EstimatePoseFromCameraFrame(cvCameraResolution, constants::ZED_MAINCAM_HORIZONTAL_FOV, stBestTorchTag);
+            dHeadingSetPoint = stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading();
+            dDistanceFromTag = stBestTorchTag.dStraightLineDistance;
+        }
+
         // FIXME: CLAYTON WAS HERE. Remove all this to make parsing through errors during the consolidation of tag structs easier.
         // LEAD: Rewrite after refactor is finished.
 
-        // // Move the rover to the target's estimated position.
-        // diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
-        //                                                                              dTargetHeading,
-        //                                                                              dCurrHeading,
-        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
-        // globals::g_pDriveBoard->SendDrive(stDrivePowers);
+        // Move the rover to the target's estimated position.
+        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_MARKER_MOTOR_POWER,
+                                                                                     dHeadingSetPoint,
+                                                                                     stCurrentRoverPose.GetCompassHeading(),
+                                                                                     diffdrive::DifferentialControlMethod::eArcadeDrive);
+        globals::g_pDriveBoard->SendDrive(stDrivePowers);
+
+        // Check if tag is reached.
+        if (dDistanceFromTag < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
+            // Don't execute the rest of the state.
+            return;
+        }
 
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */
