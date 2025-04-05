@@ -13,6 +13,7 @@
 #include "../algorithms/SearchPattern.hpp"
 #include "../algorithms/kinematics/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
+#include "../util/states/TagDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -142,7 +143,20 @@ namespace statemachine
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if (m_stSearchPatternCenter.eType == geoops::WaypointType::eTagWaypoint)
         {
-            // FIXME: CLAYTON WAS HERE. After creating a util function to check if we have detected a valid tag. If so, go into the ApproachingMarkerState.
+            // Create instance variables.
+            tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
+            // Identify target marker.
+            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stSearchPatternCenter.nID);
+            // Check if either tag type is seen.
+            if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
+                // Don't execute the rest of the state.
+                return;
+            }
         }
 
         ////////////////////////////

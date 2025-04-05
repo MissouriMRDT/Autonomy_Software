@@ -249,6 +249,7 @@ gruntfuggly
 gtest
 gthr
 hajdukiewicz
+HFOV
 HWDEVICE
 hyperthreaded
 IDLESTATE

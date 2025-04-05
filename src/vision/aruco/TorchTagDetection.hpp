@@ -72,11 +72,12 @@ namespace torchtag
             {
                 // Create and initialize new TensorflowTag.
                 tagdetectutils::ArucoTag stDetectedTag;
-                stDetectedTag.dConfidence      = stTagDetection.fConfidence;
-                stDetectedTag.pBoundingBox     = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
-                stDetectedTag.nID              = stTagDetection.nClassID;
-                stDetectedTag.szClassName      = stTagDetection.szClassName;
-                stDetectedTag.eDetectionMethod = tagdetectutils::TagDetectionMethod::eTorch;
+                stDetectedTag.dConfidence       = stTagDetection.fConfidence;
+                stDetectedTag.pBoundingBox      = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
+                stDetectedTag.nID               = stTagDetection.nClassID;
+                stDetectedTag.szClassName       = stTagDetection.szClassName;
+                stDetectedTag.eDetectionMethod  = tagdetectutils::TagDetectionMethod::eTorch;
+                stDetectedTag.cvImageResolution = cvFrame.size();
 
                 // Add the newly detected tag to the vector.
                 vDetectedTags.emplace_back(stDetectedTag);

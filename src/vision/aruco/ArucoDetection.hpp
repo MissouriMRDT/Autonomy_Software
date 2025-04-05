@@ -110,9 +110,10 @@ namespace arucotag
             tagdetectutils::ArucoTag stDetectedTag;
             stDetectedTag.nID = vIDs[unIter];
             // Copy corners.
-            stDetectedTag.pBoundingBox     = std::make_shared<cv::Rect2d>(cv::boundingRect(cvMarkerCorners[unIter]));
-            stDetectedTag.eDetectionMethod = tagdetectutils::TagDetectionMethod::eOpenCV;
-            stDetectedTag.szClassName      = "OpenCVTag";
+            stDetectedTag.pBoundingBox      = std::make_shared<cv::Rect2d>(cv::boundingRect(cvMarkerCorners[unIter]));
+            stDetectedTag.eDetectionMethod  = tagdetectutils::TagDetectionMethod::eOpenCV;
+            stDetectedTag.szClassName       = "OpenCVTag";
+            stDetectedTag.cvImageResolution = cvFrame.size();
 
             // Add new tag to detected tags vector.
             vDetectedTags.push_back(stDetectedTag);

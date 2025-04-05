@@ -303,12 +303,15 @@ void TagDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
+        // Create instance variables.
+        std::vector<tagdetectutils::ArucoTag> vNewlyDetectedTags;
+
         // Run image through some pre-processing step to improve detection.
         arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
         // Detect tags in the image
-        std::vector<tagdetectutils::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
-        // Merge the newly detected tags with the pre-existing detected tags
-        this->UpdateDetectedTags(vNewlyDetectedTags);
+        std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+        // Add OpenCV tags to the list of newly detected tags.
+        vNewlyDetectedTags.insert(vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
@@ -316,23 +319,33 @@ void TagDetector::ThreadedContinuousCode()
             // Drop the Alpha channel from the image copy to preproc frame.
             cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
-            std::vector<tagdetectutils::ArucoTag> vNewlyDetectedTags =
+            std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
                 torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
-            // Merge the newly detected tags with the pre-existing detected tags
-            this->UpdateDetectedTags(vNewlyDetectedTags);
+            // Add Torch tags to the list of newly detected tags.
+            vNewlyDetectedTags.insert(vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }
 
-        // TODO: CLAYTON WAS HERE. Eventually add this back once we verify it works properly with the point cloud and can handle the edge cases from the data.
-        // // Only estimate the pose of the tags if the point cloud is available and we are using a ZED camera.
-        // if (m_bUsingZedCamera && !m_cvPointCloud.empty())
-        // {
-        //     // Estimate the positions of the tags using the point cloud
-        //     for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
-        //     {
-        //         // Use the point cloud to get the location of the tag.
-        //         arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-        //     }
-        // }
+        // Set the FOV of the camera in the tag structs for this detector's camera.
+        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+        {
+            // Set tag FOV parameter to this tag detectors camera's FOV.
+            stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+        }
+
+        // Only estimate the pose of the tags if the point cloud is available and we are using a ZED camera.
+        if (m_bUsingZedCamera && !m_cvPointCloud.empty())
+        {
+            // Estimate the positions of the tags using the point cloud
+            for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+            {
+                // Use the point cloud to get the location of the tag.
+                // tagdetectutils::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
+                tagdetectutils::EstimatePoseFromCameraFrame(stTag);
+            }
+        }
+
+        // Merge the newly detected tags with the pre-existing detected tags
+        this->UpdateDetectedTags(vNewlyDetectedTags);
 
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
