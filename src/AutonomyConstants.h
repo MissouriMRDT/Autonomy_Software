@@ -243,6 +243,7 @@ namespace constants
     extern const double ARUCO_MIN_LIFETIME_THRESHOLD;
     extern const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT;
     extern const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD;
+    extern const double ARUCO_BBOX_MIN_AREA;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
