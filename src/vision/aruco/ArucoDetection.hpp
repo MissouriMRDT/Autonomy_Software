@@ -115,6 +115,11 @@ namespace arucotag
             stDetectedTag.szClassName       = "OpenCVTag";
             stDetectedTag.cvImageResolution = cvFrame.size();
 
+            if (stDetectedTag.pBoundingBox->area() < constants::ARUCO_BBOX_MIN_AREA)
+            {
+                continue;
+            }
+
             // Add new tag to detected tags vector.
             vDetectedTags.push_back(stDetectedTag);
         }
