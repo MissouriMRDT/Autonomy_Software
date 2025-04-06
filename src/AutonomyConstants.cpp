@@ -233,9 +233,10 @@ namespace constants
     // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
     // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
     // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.2;    // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;    // The time in seconds to wait before considering a tracker lost.
-    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;    // The IOU threshold to match a new detection to an existing tracker.
+    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.1;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.05;    // The time in seconds to wait before considering a tracker lost.
+    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;     // The IOU threshold to match a new detection to an existing tracker.
+    const double ARUCO_BBOX_MIN_AREA                    = 5000;    // Minumum area of AR tag for ARUCO to start tracking
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
