@@ -478,3 +478,244 @@ TEST_F(AStarPlannerTests, UpsertObstacleData)
     pAStar->UpsertObstacleData(vGPSObstacles);
     EXPECT_EQ(pAStar->GetObstacleData().size(), 2);
 }
+
+/******************************************************************************
+ * @brief Test AStar path obstacle avoidance for cardinal and diagonal directions.
+ *
+ *
+ * @author Sam Nolte (samnolte0302@gmail.com)
+ * @date 2024-11-19
+ ******************************************************************************/
+TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
+{
+    // Create a new AStar object
+    pathplanners::AStar* pAStar = new pathplanners::AStar();
+
+    // Start coordinate for AStar
+    const double dEastingStart  = 608120.0;
+    const double dNorthingStart = 4201140.0;
+    const geoops::UTMCoordinate stStartCoordinate(dEastingStart, dNorthingStart, 15, true);
+
+    // Create goal coordinates for AStar
+    const std::vector<geoops::UTMCoordinate> vGoalCoordinates = {
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart + 10, 15, true),         // N
+        geoops::UTMCoordinate(dEastingStart + 10, dNorthingStart, 15, true),         // E
+        geoops::UTMCoordinate(dEastingStart, dNorthingStart - 10, 15, true),         // S
+        geoops::UTMCoordinate(dEastingStart - 10, dNorthingStart, 15, true),         // W
+        geoops::UTMCoordinate(dEastingStart + 10, dNorthingStart + 10, 15, true),    // NE
+        geoops::UTMCoordinate(dEastingStart + 10, dNorthingStart - 10, 15, true),    // SE
+        geoops::UTMCoordinate(dEastingStart - 10, dNorthingStart - 10, 15, true),    // SW
+        geoops::UTMCoordinate(dEastingStart - 10, dNorthingStart + 10, 15, true)     // NW
+    };
+
+    // Create obstacle coordinates for AStar
+    const double dObstacleSize                     = 3 * constants::ASTAR_NODE_SIZE;
+    const std::vector<geoops::Waypoint> vObstacles = {
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart, dNorthingStart + 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // N
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart + 5, dNorthingStart, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // E
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart, dNorthingStart - 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // S
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart - 5, dNorthingStart, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),        // W
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart + 5, dNorthingStart + 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),    // NE
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart + 5, dNorthingStart - 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),    // SE
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart - 5, dNorthingStart - 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize),    // SW
+        geoops::Waypoint(geoops::UTMCoordinate(dEastingStart - 5, dNorthingStart + 5, 15, true), geoops::WaypointType::eObstacleWaypoint, dObstacleSize)     // NW
+    };
+
+    for (size_t siI = 0; siI < 8; siI++)
+    {
+        // Add obstacle to AStar
+        pAStar->ClearObstacleData();
+        pAStar->UpsertObstacleData(std::vector<geoops::Waypoint>{vObstacles[siI]});
+
+        // Get AStar path
+        std::vector<geoops::Waypoint> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, vGoalCoordinates[siI]);
+
+        // Make sure AStar actually found a path
+        EXPECT_TRUE(vReturnedPath.size() != 0);
+
+        // Check for pathing through obstacles
+        for (size_t siJ = 0; siJ < vReturnedPath.size(); siJ++)
+        {
+            // Check to see if current coordinate is within obstacle bounds
+            EXPECT_FALSE(vReturnedPath[siJ].GetUTMCoordinate().dNorthing >= vObstacles[siI].GetUTMCoordinate().dNorthing - vObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].GetUTMCoordinate().dNorthing <= vObstacles[siI].GetUTMCoordinate().dNorthing + vObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].GetUTMCoordinate().dEasting >= vObstacles[siI].GetUTMCoordinate().dEasting - vObstacles[siI].dRadius &&
+                         vReturnedPath[siJ].GetUTMCoordinate().dEasting <= vObstacles[siI].GetUTMCoordinate().dEasting + vObstacles[siI].dRadius);
+        }
+
+        // Make sure path hit goal point
+        EXPECT_NEAR(vGoalCoordinates[siI].dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
+        EXPECT_NEAR(vGoalCoordinates[siI].dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
+    }
+
+    // Cleanup
+    delete pAStar;
+    pAStar = nullptr;
+}
+
+/******************************************************************************
+ * @brief Tests to see if AStar can path through a maze which requires lots of doubling back
+ *
+ *
+ * @author Sam Nolte (samnolte0302@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+TEST_F(AStarPlannerTests, Maze)
+{
+    // Create a new AStar object
+    pathplanners::AStar* pAStar = new pathplanners::AStar();
+
+    // Start coordinate for AStar
+    const double dEastingStart  = 50.0;
+    const double dNorthingStart = 50.0;
+    const geoops::UTMCoordinate stStartCoordinate(dEastingStart, dNorthingStart, 15, true);
+
+    // Create goal coordinates for AStar
+    const geoops::UTMCoordinate stGoalCoordinate = geoops::UTMCoordinate(dEastingStart, dNorthingStart + 10, 15, true);
+
+    // Create obstacle coordinates for AStar https://imgur.com/a/pWpyLAI
+    const std::vector<geoops::Waypoint> vObstacles = {
+        geoops::Waypoint(geoops::UTMCoordinate(50, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 50, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 51, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 53, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 54, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 55, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 56, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 56.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 56, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 55, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 54, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 53, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 51, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 50, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(46.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 49.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 51, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 53, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 54, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 55, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 53, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 53, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 54, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 55, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 55, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 56, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 55, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 55.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(53, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(52.5, 54.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 50, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 51, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(50.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(51.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(49, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 50.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 51, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 51.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 52, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 52.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 53, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(47.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+        geoops::Waypoint(geoops::UTMCoordinate(48.5, 53.5, 15, true), geoops::WaypointType::eObstacleWaypoint, 0.1),
+    };
+
+    // Add obstacle to AStar
+    pAStar->UpsertObstacleData(vObstacles);
+
+    // Make sure AStar paths
+    std::vector<geoops::Waypoint> vReturnedPath = pAStar->PlanAvoidancePath(stStartCoordinate, stGoalCoordinate);
+    EXPECT_TRUE(vReturnedPath.size() != 0);
+
+    // Make sure path hit goal point
+    EXPECT_NEAR(stGoalCoordinate.dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
+    EXPECT_NEAR(stGoalCoordinate.dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
+
+    // Cleanup
+    delete pAStar;
+    pAStar = nullptr;
+}
