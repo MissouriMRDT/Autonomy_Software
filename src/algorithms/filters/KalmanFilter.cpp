@@ -86,7 +86,7 @@ namespace filters
         XStateSnapshot stNextState{.tmTimestamp = tmTimestamp};
         auto dt = tmTimestamp - m_tmLastAccelerometerUpdate;
         // TODO: Subtract gravity from accelerometer measurement
-        }
+    }
 
     void KalmanFilter::PredictGyroscope(Eigen::Vector3d eiGyroscopeOutput, time_point_t tmTimestamp) {}
 
