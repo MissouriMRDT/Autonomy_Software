@@ -123,6 +123,7 @@ class TagDetector : public AutonomyThread<void>
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
+        std::vector<tagdetectutils::ArucoTag> m_vNewlyDetectedTags;
 
         // Detected tags storage.
 
@@ -142,8 +143,8 @@ class TagDetector : public AutonomyThread<void>
         std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFramesCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
-        std::mutex m_muArucoDataCopyMutex;
+        std::shared_mutex m_muFrameCopyMutex;
+        std::shared_mutex m_muArucoDataCopyMutex;
 };
 
 #endif

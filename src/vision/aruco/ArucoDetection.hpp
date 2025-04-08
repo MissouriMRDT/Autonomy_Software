@@ -115,11 +115,6 @@ namespace arucotag
             stDetectedTag.szClassName       = "OpenCVTag";
             stDetectedTag.cvImageResolution = cvFrame.size();
 
-            if (stDetectedTag.pBoundingBox->area() < constants::ARUCO_BBOX_MIN_AREA)
-            {
-                continue;
-            }
-
             // Add new tag to detected tags vector.
             vDetectedTags.push_back(stDetectedTag);
         }
@@ -142,56 +137,27 @@ namespace arucotag
      ******************************************************************************/
     inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<tagdetectutils::ArucoTag>& vDetectedTags)
     {
-        // Create instance variables.
-        std::vector<int> vIDs;
-        std::vector<std::vector<cv::Point2f>> vMarkers;
-
-        // Loop through each of the given AR tags and repackage them so that the draw function can read them.
-        for (long unsigned int nIter = 0; nIter < vDetectedTags.size(); ++nIter)
-        {
-            // Check if the tag detection type is OpenCV.
-            if (vDetectedTags[nIter].eDetectionMethod == tagdetectutils::TagDetectionMethod::eOpenCV)
-            {
-                // Append tag ID.
-                vIDs.emplace_back(vDetectedTags[nIter].nID);
-
-                // Assemble vector of marker corners.
-                std::vector<cv::Point2f> cvMarkerCorners;
-                cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].pBoundingBox->x, vDetectedTags[nIter].pBoundingBox->y));          // Top-left corner
-                cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].pBoundingBox->x + vDetectedTags[nIter].pBoundingBox->width,
-                                                         vDetectedTags[nIter].pBoundingBox->y));                                                // Top-right corner
-                cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].pBoundingBox->x + vDetectedTags[nIter].pBoundingBox->width,
-                                                         vDetectedTags[nIter].pBoundingBox->y + vDetectedTags[nIter].pBoundingBox->height));    // Bottom-right corner
-                cvMarkerCorners.emplace_back(cv::Point2f(vDetectedTags[nIter].pBoundingBox->x,
-                                                         vDetectedTags[nIter].pBoundingBox->y + vDetectedTags[nIter].pBoundingBox->height));    // Bottom-left corner
-                // Append vector of marker corners.
-                vMarkers.emplace_back(cvMarkerCorners);
-            }
-        }
-
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {
-            // Draw markers onto normal given image.
-            // cv::aruco::drawDetectedMarkers(cvDetectionsFrame, vMarkers, vIDs, cv::Scalar(0, 0, 0));
-
-            int nIter = 0;
-            for (std::vector<cv::Point2f>& cvMarkerCorners : vMarkers)
+            // Loop through each of the given AR tags and repackage them so that the draw function can read them.
+            for (long unsigned int nIter = 0; nIter < vDetectedTags.size(); ++nIter)
             {
-                // Draw tag ID onto image.
-                std::string szText  = "TAG " + std::to_string(vIDs[nIter++]);
-                cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
-                cv::rectangle(cvDetectionsFrame,
-                              cvMarkerCorners[0],
-                              cvMarkerCorners[0] + cv::Point2f(cvTextSize.width * 1.25, cvTextSize.height * 2),
-                              cv::Scalar(0, 0, 0),
-                              cv::FILLED);
-                cv::putText(cvDetectionsFrame,
-                            szText,
-                            cvMarkerCorners[0] + cv::Point2f(5, cvTextSize.height * 1.25),
-                            cv::FONT_HERSHEY_SIMPLEX,
-                            0.75,
-                            cv::Scalar(255, 255, 255));
+                // Check if the tag detection type is OpenCV.
+                if (vDetectedTags[nIter].eDetectionMethod == tagdetectutils::TagDetectionMethod::eOpenCV)
+                {
+                    // Draw bounding box onto image.
+                    cv::rectangle(cvDetectionsFrame, *vDetectedTags[nIter].pBoundingBox, cv::Scalar(0, 0, 0), 2);
+                    // Draw tag ID onto image.
+                    std::string szText  = "TAG " + std::to_string(vDetectedTags[nIter].nID);
+                    cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
+                    cv::rectangle(cvDetectionsFrame,
+                                  vDetectedTags[nIter].pBoundingBox->tl() - cv::Point2d(0, cvTextSize.height),
+                                  vDetectedTags[nIter].pBoundingBox->tl() + cv::Point2d(cvTextSize.width, 0),
+                                  cv::Scalar(0, 0, 0),
+                                  cv::FILLED);
+                    cv::putText(cvDetectionsFrame, szText, vDetectedTags[nIter].pBoundingBox->tl(), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(255, 255, 255));
+                }
             }
         }
         else

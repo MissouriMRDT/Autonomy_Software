@@ -294,7 +294,7 @@ void BasicCam::PooledLinearCode()
         lkFrameQueue.unlock();
 
         // Copy frame to data container.
-        *(stContainer.pFrame) = m_cvFrame.clone();
+        *stContainer.pFrame = m_cvFrame.clone();
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedFrameStatus->set_value(true);
     }

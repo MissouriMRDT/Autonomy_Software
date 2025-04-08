@@ -303,15 +303,14 @@ void TagDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Create instance variables.
-        std::vector<tagdetectutils::ArucoTag> vNewlyDetectedTags;
-
+        // Clear the list of newly detected tags.
+        m_vNewlyDetectedTags.clear();
         // Run image through some pre-processing step to improve detection.
         arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
         // Add OpenCV tags to the list of newly detected tags.
-        vNewlyDetectedTags.insert(vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
+        m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
@@ -322,34 +321,25 @@ void TagDetector::ThreadedContinuousCode()
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
                 torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
             // Add Torch tags to the list of newly detected tags.
-            vNewlyDetectedTags.insert(vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
+            m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }
 
         // Set the FOV of the camera in the tag structs for this detector's camera.
-        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+        for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
         {
             // Set tag FOV parameter to this tag detectors camera's FOV.
             stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
         }
 
-        // // Only estimate the pose of the tags if the point cloud is available and we are using a ZED camera.
-        // if (m_bUsingZedCamera && !m_cvPointCloud.empty())
-        // {
-        //     // Estimate the positions of the tags using the point cloud
-        //     for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
-        //     {
-        //         // Use the point cloud to get the location of the tag.
-        //         // tagdetectutils::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-        //         tagdetectutils::EstimatePoseFromCameraFrame(stTag);
-        //     }
-        // }
-
         // Merge the newly detected tags with the pre-existing detected tags
-        this->UpdateDetectedTags(vNewlyDetectedTags);
+        this->UpdateDetectedTags(m_vNewlyDetectedTags);
 
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+
+        cv::imshow("Tag Detector", m_cvArucoProcFrame);
+        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -384,7 +374,7 @@ void TagDetector::PooledLinearCode()
     //  Detection Overlay Frame queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
     // Check if there are unfulfilled requests.
     if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty())
     {
@@ -398,8 +388,8 @@ void TagDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case PIXEL_FORMATS::eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
-            default: *(stContainer.pFrame) = m_cvArucoProcFrame;
+            case PIXEL_FORMATS::eArucoDetection: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -410,7 +400,7 @@ void TagDetector::PooledLinearCode()
     //  ArucoTag queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::mutex> lkArucoTagQueue(m_muArucoDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkArucoTagQueue(m_muArucoDataCopyMutex);
     // Check if there are unfulfilled requests.
     if (!m_qDetectedArucoTagCopySchedule.empty())
     {
@@ -422,7 +412,7 @@ void TagDetector::PooledLinearCode()
         lkArucoTagQueue.unlock();
 
         // Copy the detected tags to the target location
-        *(stContainer.pData) = m_vDetectedArucoTags;
+        *stContainer.pData = m_vDetectedArucoTags;
 
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -630,7 +620,6 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
     for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
     {
         // Use the point cloud to get the location of the tag.
-        // tagdetectutils::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
         tagdetectutils::EstimatePoseFromCameraFrame(stTag);
     }
 }
