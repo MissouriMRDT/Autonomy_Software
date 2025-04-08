@@ -270,41 +270,33 @@ int main()
                 }
                 else if (chTerminalInput == 't' || chTerminalInput == 'T')
                 {
-                    // Create instance variables.
-                    std::vector<tagdetectutils::ArucoTag> vMainCamTags;
-                    std::vector<tagdetectutils::ArucoTag> vLeftCamTags;
-                    std::vector<tagdetectutils::ArucoTag> vRightCamTags;
                     // Get the tags from the tag detectors.
-                    std::future<bool> fuMainCamTags = pMainDetector->RequestDetectedArucoTags(vMainCamTags);
-                    // std::future<bool> fuLeftCamTags  = pLeftDetector->RequestDetectedArucoTags(vLeftCamTags);
-                    // std::future<bool> fuRightCamTags = pRightDetector->RequestDetectedArucoTags(vRightCamTags);
-                    // Get the best/valid tags from the tag detectors.
-                    tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
-                    std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pLeftDetector, pRightDetector};
-                    // Check if the next waypoint in the waypoint handler exists and had a tag ID.
-                    if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                    if (pMainDetector->GetIsReady())
                     {
-                        // Get the best tags from the tag detectors.
-                        statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag, globals::g_pWaypointHandler->PeekNextWaypoint().nID);
-                    }
-                    else
-                    {
-                        // Get the best tags from the tag detectors.
-                        statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
-                    }
+                        // Create instance variables.
+                        tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
+                        int nTagCount = 0;
 
-                    // Wait for all the tags to be copied.
-                    if (fuMainCamTags.get())
-                    {
+                        // Get the best/valid tags from the tag detectors.
+                        std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pLeftDetector, pRightDetector};
+                        // Check if the next waypoint in the waypoint handler exists and had a tag ID.
+                        if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                        {
+                            // Get the best tags from the tag detectors.
+                            nTagCount =
+                                statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag, globals::g_pWaypointHandler->PeekNextWaypoint().nID);
+                        }
+                        else
+                        {
+                            // Get the best tags from the tag detectors.
+                            nTagCount = statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
+                        }
+
                         // Submit logger message.
                         std::ostringstream ossTagsInfo;
                         ossTagsInfo << "\n--------[ All Detections ]--------\n"
                                     << "Detected Tags Info:\n"
-                                    << "MainCam Tags: " << vMainCamTags.size() << "\n"
-                                    << "LeftCam Tags: " << vLeftCamTags.size() << "\n"
-                                    << "RightCam Tags: " << vRightCamTags.size() << "\n";
-
-                        // Add a section for valid/best tags (example logic can be added here).
+                                    << "Total Tags: " << nTagCount << "\n";
 
                         ossTagsInfo << "\n--------[ Valid/Best Tags ]--------\n";
                         if (stBestOpenCVTag.nID != -1)
@@ -333,7 +325,7 @@ int main()
                     else
                     {
                         // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Failed to get tags from cameras.");
+                        LOG_WARNING(logging::g_qSharedLogger, "Tag Detector is not ready yet. Cannot get tags.");
                     }
                 }
                 else if (chTerminalInput == 'q' || chTerminalInput == 'Q')

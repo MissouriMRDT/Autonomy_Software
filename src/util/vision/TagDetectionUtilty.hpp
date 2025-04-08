@@ -55,16 +55,16 @@ namespace tagdetectutils
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();      // The bounding box of the detected tag.
-            double dConfidence                               = 0.0;                                 // The detection confidence of the tag (from Torch/Tensorflow models).
-            double dStraightLineDistance                     = 0.0;                                 // Distance between the tag and the camera.
-            double dYawAngle                                 = 0.0;                                 // This is the yaw angle so roll and pitch are ignored.
-            int nID                                          = -1;                                  // The ID of the tag. This is set to -1 if the tag is not detected.
-            std::string szClassName                          = "";                                  // The class name of the tag (used in Torch/Tensorflow models).
-            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the current time.
-            TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
-            cv::Size cvImageResolution;                                                             // The resolution of the image used to detect the tag.
-            double dHorizontalFOV;                                                                  // The horizontal field of view of the camera used to detect the tag.
+            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();    // The bounding box of the detected tag.
+            double dConfidence                               = 0.0;                               // The detection confidence of the tag (from Torch/Tensorflow models).
+            double dStraightLineDistance                     = 0.0;                               // Distance between the tag and the camera.
+            double dYawAngle                                 = 0.0;                               // This is the yaw angle so roll and pitch are ignored.
+            int nID                                          = -1;                                // The ID of the tag. This is set to -1 if the tag is not detected.
+            std::string szClassName                          = "";                                // The class name of the tag (used in Torch/Tensorflow models).
+            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::time_point::min();    // Set the time detected to the minimum time point.
+            TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;                    // The detection method used to detect the tag.
+            cv::Size cvImageResolution;                                                                         // The resolution of the image used to detect the tag.
+            double dHorizontalFOV;    // The horizontal field of view of the camera used to detect the tag.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -78,7 +78,7 @@ namespace tagdetectutils
              ******************************************************************************/
             bool operator==(const ArucoTag& stOther) const
             {
-                return pBoundingBox == stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
+                return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
                        eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV;
             }
@@ -94,6 +94,37 @@ namespace tagdetectutils
              * @date 2025-04-03
              ******************************************************************************/
             bool operator!=(const ArucoTag& stOther) const { return !(*this == stOther); }
+
+            /******************************************************************************
+             * @brief Overload the assignment operator for the ArucoTag struct to perform a deep copy.
+             *
+             * @param stOther - The other ArucoTag struct to copy from.
+             * @return ArucoTag& - A reference to the updated ArucoTag.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-04-06
+             ******************************************************************************/
+            ArucoTag& operator=(const ArucoTag& stOther)
+            {
+                // Check if the other ArucoTag is not the same as this one.
+                if (this != &stOther)
+                {
+                    // Deep copy the bounding box.
+                    *pBoundingBox = *stOther.pBoundingBox;
+
+                    // Copy other member variables.
+                    dConfidence           = stOther.dConfidence;
+                    dStraightLineDistance = stOther.dStraightLineDistance;
+                    dYawAngle             = stOther.dYawAngle;
+                    nID                   = stOther.nID;
+                    szClassName           = stOther.szClassName;
+                    tmCreation            = stOther.tmCreation;
+                    eDetectionMethod      = stOther.eDetectionMethod;
+                    cvImageResolution     = stOther.cvImageResolution;
+                    dHorizontalFOV        = stOther.dHorizontalFOV;
+                }
+                return *this;
+            }
     };
 
     /******************************************************************************
@@ -230,16 +261,8 @@ namespace tagdetectutils
         // Reassign yaw and distance to tag.
         stTag.dYawAngle = dTagAngleX;
 
-        // Estimate the distance using the area of the tag and the horizontal field of view (HFOV).
-        // This is a rough approximation assuming the tag is square and the camera's HFOV is known.
-        double dTagArea   = stTag.pBoundingBox->area();    // Area of the tag in pixels.
-        double dImageArea = stTag.cvImageResolution.width * stTag.cvImageResolution.height;
-        // Calculate the ratio of the tag's area to the image area.
-        double dAreaRatio = dTagArea / dImageArea;
-        // Estimate the distance using the inverse square root of the area ratio.
-        // This assumes the tag's apparent size decreases with the square of the distance.
-        // This value is completely dimensionless and arbitrary, but it should be consistent between different image sizes and field of views.
-        stTag.dStraightLineDistance = 1.0 / std::sqrt(dAreaRatio);
+        // For the distance, we'll just use the screen percentage of the tag.
+        stTag.dStraightLineDistance = (stTag.pBoundingBox->area() / (stTag.cvImageResolution.width * stTag.cvImageResolution.height)) * 100.0;
     }
 
 }    // namespace tagdetectutils

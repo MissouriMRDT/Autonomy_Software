@@ -120,14 +120,14 @@ namespace torchtag
                     cv::Size cvTextSize = cv::getTextSize(szText, cv::FONT_HERSHEY_SIMPLEX, 0.75, 1, nullptr);
                     // Draw classID background box onto image.
                     cv::rectangle(cvDetectionsFrame,
-                                  cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y - 20),
-                                  cv::Point((*stTag.pBoundingBox).tl() + cv::Point2d(cvTextSize.width, cvTextSize.height)),
+                                  stTag.pBoundingBox->tl() + cv::Point2d(0, stTag.pBoundingBox->height),
+                                  stTag.pBoundingBox->tl() + cv::Point2d(cvTextSize.width, stTag.pBoundingBox->height + cvTextSize.height),
                                   cv::Scalar(255, 255, 255),
                                   cv::FILLED);
                     // Draw class text onto image.
                     cv::putText(cvDetectionsFrame,
                                 szText,
-                                cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y - 5),
+                                stTag.pBoundingBox->tl() + cv::Point2d(0, stTag.pBoundingBox->height + cvTextSize.height),
                                 cv::FONT_HERSHEY_SIMPLEX,
                                 0.5,
                                 cv::Scalar(0, 0, 0));

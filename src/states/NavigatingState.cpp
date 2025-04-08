@@ -178,7 +178,7 @@ namespace statemachine
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers over RoveComm.
-            // globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
         else
         {

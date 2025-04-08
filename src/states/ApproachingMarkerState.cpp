@@ -117,11 +117,21 @@ namespace statemachine
         static std::chrono::system_clock::time_point tLastSeenTime = std::chrono::system_clock::now();
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
-            auto tCurrentTime = std::chrono::system_clock::now();
+            static bool bAlreadyPrinted = false;
+            auto tCurrentTime           = std::chrono::system_clock::now();
             if (std::chrono::duration_cast<std::chrono::seconds>(tCurrentTime - tLastSeenTime).count() > constants::APPROACH_MARKER_LOST_GIVE_UP_TIME)
             {
+                // Submit logger message.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
                 return;
+            }
+            else if (!bAlreadyPrinted)
+            {
+                bAlreadyPrinted = true;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
+                // Stop the drive.
+                globals::g_pDriveBoard->SendStop();
             }
         }
         else
@@ -154,7 +164,7 @@ namespace statemachine
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         // Check if tag is reached.
-        if (dDistanceFromTag < constants::APPROACH_MARKER_VISION_DISTANCE)
+        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE)
         {
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
@@ -168,7 +178,7 @@ namespace statemachine
         /* ---  Check if the rover is stuck --- */
         //////////////////////////////////////////
 
-        // Check if stuck.
+        // // Check if stuck.
         // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         // {
         //     // Submit logger message.
