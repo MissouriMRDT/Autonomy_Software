@@ -743,7 +743,8 @@ void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double
  ******************************************************************************/
 bool SIMZEDCam::GetCameraIsOpen()
 {
-    return m_pRGBStream->GetIsConnected() && m_pDepthImageStream->GetIsConnected() && m_pDepthMeasureStream->GetIsConnected();
+    return m_pRGBStream->GetIsConnected() && m_pDepthImageStream->GetIsConnected() && m_pDepthMeasureStream->GetIsConnected() &&
+           this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
 /******************************************************************************

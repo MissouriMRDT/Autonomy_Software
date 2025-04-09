@@ -305,10 +305,10 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER         = 0.15;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_VISION_DISTANCE     = 0.2;     // This is an arbitrary distance based on the aread of the tag. Used only for vision driving.
-    const double APPROACH_MARKER_LOST_GIVE_UP_TIME   = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
+    const double APPROACH_MARKER_MOTOR_POWER         = 0.15;     // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_VISION_DISTANCE     = 100.0;    // The screen percentage of the marker to be considered close enough. 0-100
+    const double APPROACH_MARKER_LOST_GIVE_UP_TIME   = 5.0;      // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
