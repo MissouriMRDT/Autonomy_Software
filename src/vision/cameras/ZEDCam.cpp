@@ -1828,7 +1828,7 @@ bool ZEDCam::GetCameraIsOpen()
 {
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    return m_slCamera.isOpened();
+    return m_slCamera.isOpened() && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
 /******************************************************************************

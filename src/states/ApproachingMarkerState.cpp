@@ -164,15 +164,15 @@ namespace statemachine
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
         // Check if tag is reached.
-        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE)
-        {
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
-            // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
-            // Don't execute the rest of the state.
-            return;
-        }
+        // if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE)
+        // {
+        //     // Submit logger message.
+        //     LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
+        //     // Handle state transition and save the current search pattern state.
+        //     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
+        //     // Don't execute the rest of the state.
+        //     return;
+        // }
 
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */

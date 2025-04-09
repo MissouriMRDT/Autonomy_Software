@@ -303,6 +303,14 @@ void TagDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
+        // Check if the frame is empty.
+        if (m_cvFrame.empty())
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+            return;
+        }
+
         // Clear the list of newly detected tags.
         m_vNewlyDetectedTags.clear();
         // Run image through some pre-processing step to improve detection.
