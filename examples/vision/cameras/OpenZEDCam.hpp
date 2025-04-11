@@ -49,7 +49,7 @@ const bool ENABLE_SPATIAL_MAPPING = false;
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
+    globals::g_pCameraHandler = new CameraHandler();
 
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);

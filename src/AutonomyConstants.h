@@ -316,6 +316,8 @@ namespace constants
     extern const double APPROACH_MARKER_PROXIMITY_THRESHOLD;
     extern const double APPROACH_MARKER_VISION_DISTANCE;
     extern const double APPROACH_MARKER_LOST_GIVE_UP_TIME;
+    extern const bool APPROACH_MARKER_VERIFY_POSITION;
+    extern const double APPROACH_MARKER_VERIFY_TIME;
 
     // Stuck State
     extern const double STUCK_CHECK_INTERVAL;
@@ -344,6 +346,7 @@ namespace constants
     extern const double NAVIGATING_MOTOR_POWER;
     extern const double NAVIGATING_REACHED_GOAL_RADIUS;
     extern const bool NAVIGATING_VERIFY_POSITION;
+    extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
 
     // Avoidance State.
     extern const double AVOIDANCE_STATE_MOTOR_POWER;

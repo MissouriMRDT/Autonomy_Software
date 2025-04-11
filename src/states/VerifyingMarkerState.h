@@ -12,6 +12,8 @@
 #define VERIFYING_MARKER_STATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+#include "../vision/aruco/TagDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -31,9 +33,10 @@ namespace statemachine
     class VerifyingMarkerState : public State
     {
         private:
-            std::vector<int> m_vMarkerIDs;
-            int m_nMaxMarkerIDs;
             bool m_bInitialized;
+            geoops::Waypoint m_stGoalWaypoint;
+            std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
+            std::chrono::system_clock::time_point m_tmTagVerificationStartTime;
 
         protected:
             void Start() override;
