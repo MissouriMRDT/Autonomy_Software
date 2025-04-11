@@ -26,7 +26,7 @@
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler       = std::make_shared<CameraHandler>();
+    globals::g_pCameraHandler       = new CameraHandler();
     globals::g_pTagDetectionHandler = std::make_shared<TagDetectionHandler>();
 
     // Get pointer to camera.

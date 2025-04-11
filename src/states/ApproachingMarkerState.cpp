@@ -37,7 +37,6 @@ namespace statemachine
 
         // Initialize member variables.
         m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-        m_nTargetTagID   = m_stGoalWaypoint.nID;
 
         // Store the state that got stuck and triggered a MarkerSeen event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
@@ -111,25 +110,30 @@ namespace statemachine
 
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
-        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_nTargetTagID);
+        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
 
+        // FIXME: This should return prematurely if the rover doesn't see a tag.
         // Check if both tag types are unseen.
+        static bool bAlreadyPrinted                                = false;
         static std::chrono::system_clock::time_point tLastSeenTime = std::chrono::system_clock::now();
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
-            static bool bAlreadyPrinted = false;
-            auto tCurrentTime           = std::chrono::system_clock::now();
-            if (std::chrono::duration_cast<std::chrono::seconds>(tCurrentTime - tLastSeenTime).count() > constants::APPROACH_MARKER_LOST_GIVE_UP_TIME)
+            auto tCurrentTime = std::chrono::system_clock::now();
+            if ((std::chrono::duration_cast<std::chrono::milliseconds>(tCurrentTime - tLastSeenTime).count() / 1000.0) > constants::APPROACH_MARKER_LOST_GIVE_UP_TIME)
             {
                 // Submit logger message.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
                 return;
             }
-            else if (!bAlreadyPrinted)
+            else
             {
-                bAlreadyPrinted = true;
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
+                if (!bAlreadyPrinted)
+                {
+                    bAlreadyPrinted = true;
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
+                }
+
                 // Stop the drive.
                 globals::g_pDriveBoard->SendStop();
             }
@@ -138,11 +142,13 @@ namespace statemachine
         {
             // Reset the last seen time if a tag is detected.
             tLastSeenTime = std::chrono::system_clock::now();
+            // Reset printed flag when tags are detected again
+            bAlreadyPrinted = false;
         }
 
         // Create instance variables.
-        double dHeadingSetPoint = 0.0;
-        double dDistanceFromTag = 9999;
+        static double dHeadingSetPoint = 0.0;
+        double dDistanceFromTag        = 0.0;
         // Check if we got a good OpenCV tag.
         if (stBestArucoTag.nID != -1)
         {
@@ -162,17 +168,20 @@ namespace statemachine
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
+        std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
+        std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
+        std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
 
         // Check if tag is reached.
-        // if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE)
-        // {
-        //     // Submit logger message.
-        //     LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
-        //     // Handle state transition and save the current search pattern state.
-        //     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
-        //     // Don't execute the rest of the state.
-        //     return;
-        // }
+        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE)
+        {
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
+            // Don't execute the rest of the state.
+            return;
+        }
 
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */
@@ -213,16 +222,8 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
-                // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                // Pop old waypoint out of queue.
-                globals::g_pWaypointHandler->PopNextWaypoint();
-                // Clear saved search pattern state.
-                globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
-                // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Cleared old search pattern state from saved states.");
                 // Change states.
-                eNextState = States::eIdle;
+                eNextState = States::eVerifyingMarker;
                 break;
             }
             case Event::eStart:

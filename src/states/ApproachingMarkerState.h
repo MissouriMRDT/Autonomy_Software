@@ -39,7 +39,6 @@ namespace statemachine
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             States m_eTriggeringState;
             bool m_bInitialized;
-            int m_nTargetTagID;
             geoops::Waypoint m_stGoalWaypoint;
 
             void Start() override;

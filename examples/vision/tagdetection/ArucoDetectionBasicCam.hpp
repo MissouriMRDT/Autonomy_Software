@@ -25,7 +25,7 @@
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
+    globals::g_pCameraHandler = new CameraHandler();
 
     // Get pointer to camera.
     std::shared_ptr<BasicCamera> ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
