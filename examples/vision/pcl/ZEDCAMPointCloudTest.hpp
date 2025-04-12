@@ -64,14 +64,11 @@ void RunExample()
     // Declare FPS counter.
     IPS FPS = IPS();
 
-    // ----- SLAM Setup -----
-    // Global map for accumulated point clouds.
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pclGlobalMap(new pcl::PointCloud<pcl::PointXYZ>);
     // Create a PCL visualizer.
-    pcl::visualization::PCLVisualizer::Ptr pclViewer(new pcl::visualization::PCLVisualizer("SLAM Viewer"));
-    // pclViewer->setBackgroundColor(0, 0, 0);
-    // // For timing the SLAM update (once per second)
-    // auto last_slam_time = std::chrono::steady_clock::now();
+    pcl::visualization::PCLVisualizer::Ptr pclViewer(new pcl::visualization::PCLVisualizer("Point Cloud Viewer"));
+    // Set background color and initialize camera position
+    pclViewer->setBackgroundColor(0, 0, 0);
+    pclViewer->initCameraParameters();
 
     // Loop forever, or until user hits ESC.
     while (true)
@@ -105,38 +102,45 @@ void RunExample()
             }
 
             // Convert cv::Mat point cloud (which has 3 channels: X, Y, Z) into a PCL point cloud.
-            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>());
             for (int i = 0; i < cvPointCloud1.rows; ++i)
             {
                 for (int j = 0; j < cvPointCloud1.cols; ++j)
                 {
                     // Access the 3D point stored as a cv::Vec3f.
-                    cv::Vec3f point = cvPointCloud1.at<cv::Vec3f>(i, j);
+                    cv::Vec3f cvPoint = cvPointCloud1.at<cv::Vec3f>(i, j);
 
-                    // Check that the point is valid: some sensors encode invalid points as NaN.
-                    if (std::isfinite(point[0]) && std::isfinite(point[1]) && std::isfinite(point[2]))
+                    // Stricter filtering of invalid or distant points
+                    if (std::isfinite(cvPoint[0]) && std::isfinite(cvPoint[1]) && std::isfinite(cvPoint[2]) && std::abs(cvPoint[0]) < 10.0 &&
+                        std::abs(cvPoint[1]) < 10.0 && std::abs(cvPoint[2]) < 10.0)
                     {
-                        cloud->points.push_back(pcl::PointXYZ(point[0], point[1], point[2]));
+                        pclCloud->points.push_back(pcl::PointXYZ(cvPoint[0], cvPoint[1], cvPoint[2]));
                     }
                 }
             }
 
-            // Set the PCL point cloud dimensions.
-            cloud->width    = static_cast<uint32_t>(cloud->points.size());
-            cloud->height   = 1;
-            cloud->is_dense = false;
+            // Set the PCL point pclCloud dimensions.
+            pclCloud->width    = static_cast<uint32_t>(pclCloud->points.size());
+            pclCloud->height   = 1;
+            pclCloud->is_dense = false;
 
-            // Update the PCL visualizer.
-            // If the point cloud already exists in the viewer, update it; otherwise, add it.
-            if (!pclViewer->updatePointCloud<pcl::PointXYZ>(cloud, "cloud"))
-            {
-                pclViewer->addPointCloud<pcl::PointXYZ>(cloud, "cloud");
-                // Optionally, set rendering properties (e.g., point size).
-                pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud");
-            }
+            // Optional: Apply voxel grid filter to reduce density
+            pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloudFiltered(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::VoxelGrid<pcl::PointXYZ> vg;
+            vg.setInputCloud(pclCloud);
+            vg.setLeafSize(0.01f, 0.01f, 0.01f);    // 1cm voxel size
+            vg.filter(*pclCloudFiltered);
 
-            // Refresh the visualizer to display the new frame.
-            pclViewer->spinOnce(1);
+            // Clear visualizer completely
+            pclViewer->removeAllPointClouds();
+            pclViewer->removeAllShapes();
+
+            // Add the filtered point cloud
+            pclViewer->addPointCloud<pcl::PointXYZ>(pclCloudFiltered, "cloud");
+            pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cloud");
+
+            // Use a longer spin time to ensure proper rendering
+            pclViewer->spinOnce(10);
         }
 
         // Tick FPS counter.
