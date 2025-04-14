@@ -179,7 +179,7 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             float fP = fNP / fW;
 
             // Determine offset and fine-grain correction
-            int fM       = static_cast<int>(std::floor((4.0 * (fL / fP)) - 0.5)) % 4.0;
+            int fM       = static_cast<int>(std::floor((4.0 * (fL / fP)) - 0.5)) % 4;
             float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
 
             float fDelta = 0.0f;
@@ -198,8 +198,8 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             // Check if the depth is within the bounds of the depth image
             if (fDepth < 0.0)
                 fDepth = 0.0;
-            else if (fDepth > 65535.0)
-                fDepth = 65535.0;
+            else if (fDepth > fW)
+                fDepth = fW;
 
             // Check if nY and nX are within the bounds of the depth image
             if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
@@ -243,10 +243,10 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
             double dHorizontalAngleRad = dHorizontalAngle * M_PI / 180.0;
             double dVerticalAngleRad   = dVerticalAngle * M_PI / 180.0;
 
-            // Calculate the Cartesian coordinates.
-            float fX = fDepth * sin(dHorizontalAngleRad);
+            // Calculate the Cartesian coordinates for left-handed Y-up system
+            float fX = fDepth * cos(dVerticalAngleRad) * sin(dHorizontalAngleRad);
             float fY = fDepth * sin(dVerticalAngleRad);
-            float fZ = fDepth * cos(dHorizontalAngleRad) * cos(dVerticalAngleRad);
+            float fZ = fDepth * cos(dVerticalAngleRad) * cos(dHorizontalAngleRad);
 
             // Store the decoded depth in the new cv::Mat
             cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 1.0);
@@ -286,6 +286,21 @@ void SIMZEDCam::ThreadedContinuousCode()
         std::shared_lock<std::shared_mutex> lkWebRTC3(m_muWebRTCDepthMeasureCopyMutex);
         // Decode the depth measure.
         this->DecodeDepthMeasure(m_cvDepthBuffer, m_cvDepthMeasure);
+        // Check if the depth buffer is empty.
+        if (m_cvDepthBuffer.empty())
+        {
+            // Release lock.
+            lkWebRTC3.unlock();
+            return;
+        }
+        // DEBUG: show the depth buffer.
+        cv::imshow("Depth Buffer", m_cvDepthBuffer);
+        // DEBUG: show the depth measure. we need to scale the depth measure to be in the range of 0-255.
+        cv::Mat cvDepthMeasureScaled;
+        cv::normalize(m_cvDepthMeasure, cvDepthMeasureScaled, 0, 255, cv::NORM_MINMAX);
+        cv::imshow("Depth Measure", cvDepthMeasureScaled);
+        cv::waitKey(1);
+
         // Release lock.
         lkWebRTC3.unlock();
 
