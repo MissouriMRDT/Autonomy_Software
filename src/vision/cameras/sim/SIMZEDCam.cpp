@@ -16,6 +16,7 @@
 
 /// \cond
 #include "../../../util/NumberOperations.hpp"
+#include <cmath>
 #include <nlohmann/json.hpp>
 #include <omp.h>
 
@@ -170,15 +171,15 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             cv::Vec3b cvEncodedDepth = cvDepthBuffer.at<cv::Vec3b>(nY, nX);
 
             // Extract encoded values
-            float fL  = cvEncodedDepth[2] / 255.0;
+            float fL  = cvEncodedDepth[0] / 255.0;
             float fHa = cvEncodedDepth[1] / 255.0;
-            float fHb = cvEncodedDepth[0] / 255.0;
+            float fHb = cvEncodedDepth[2] / 255.0;
 
             // Period for triangle waves
             float fP = fNP / fW;
 
             // Determine offset and fine-grain correction
-            int fM       = fmod((4.0 * (fL / fP)) - 0.5, 4.0);
+            int fM       = static_cast<int>(std::floor((4.0 * (fL / fP)) - 0.5)) % 4.0;
             float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
 
             float fDelta = 0.0f;
