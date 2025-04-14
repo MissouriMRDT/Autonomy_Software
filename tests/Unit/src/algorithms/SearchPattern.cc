@@ -10,6 +10,7 @@
 
 #include "../../../../src/algorithms/SearchPattern.hpp"
 #include "../../../../src/util/GeospatialOperations.hpp"
+#include "../../../../src/util/logging/PlotsAndGraphs.hpp"
 #include "../../../TestingBase.hh"
 
 /// \cond
@@ -382,4 +383,17 @@ TEST_F(SearchPatternTests, ZigZagPatternLimitSpacing)
     EXPECT_TRUE(IsZigZag(vSearchPatternPathUTM));
     EXPECT_TRUE(IsZigZag(vSearchPatternPath2));
     EXPECT_TRUE(IsZigZag(vSearchPatternPathUTM2));
+}
+
+TEST_F(SearchPatternTests, SnakePatternShape)
+{
+    // Create a new GPS coordinate.
+    geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
+    // Use this for generating a search pattern with default params.
+    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 10);
+
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath);
+
+    // Both paths should be zigzags.
+    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
 }
