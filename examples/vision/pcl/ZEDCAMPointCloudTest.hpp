@@ -124,19 +124,12 @@ void RunExample()
             pclCloud->height   = 1;
             pclCloud->is_dense = false;
 
-            // Optional: Apply voxel grid filter to reduce density
-            pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloudFiltered(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::VoxelGrid<pcl::PointXYZ> vg;
-            vg.setInputCloud(pclCloud);
-            vg.setLeafSize(0.01f, 0.01f, 0.01f);    // 1cm voxel size
-            vg.filter(*pclCloudFiltered);
-
             // Clear visualizer completely
             pclViewer->removeAllPointClouds();
             pclViewer->removeAllShapes();
 
             // Add the filtered point cloud
-            pclViewer->addPointCloud<pcl::PointXYZ>(pclCloudFiltered, "cloud");
+            pclViewer->addPointCloud<pcl::PointXYZ>(pclCloud, "cloud");
             pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cloud");
 
             // Use a longer spin time to ensure proper rendering
