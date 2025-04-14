@@ -510,5 +510,77 @@ namespace searchpattern
         // Return the final path.
         return vFilterWaypoints;
     }
+
+    /******************************************************************************
+     * @brief
+     *
+     * @param stCenterPoint -
+     * @param dRadius -
+     *
+     * @author Vexas5266 (wd.grove2@gmail.com)
+     * @date 2025-04-09
+     ******************************************************************************/
+    const int nMinRadiusSnake = 1;
+    const double dGridSpacing = 1;
+
+    inline std::vector<geoops::Waypoint> CalculateSnakeSearchPattern(const geoops::Waypoint& stStartCoord, const float dSquare = 10.0)
+    {
+        if (dSquare < nMinRadiusSnake)
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "Search square is less than 1{}", dSquare);
+        }
+
+        std::vector<geoops::Waypoint> stOutWaypoints;
+
+        geoops::UTMCoordinate stCurrentCoord = stStartCoord.GetUTMCoordinate();
+        stOutWaypoints.push_back(stCurrentCoord);
+
+        for (int y = 0; y <= dSquare; y += dGridSpacing)
+        {
+            if ((int) (y / dGridSpacing) % 2)
+            {
+                while (stCurrentCoord.dEasting <= (dSquare - dGridSpacing) + stStartCoord.GetUTMCoordinate().dEasting)
+                {
+                    stCurrentCoord.dEasting += dGridSpacing;
+                    stOutWaypoints.push_back(stCurrentCoord);
+                }
+                stCurrentCoord.dEasting += (dGridSpacing / 3) * 2;
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dEasting += (dGridSpacing / 3);
+                stCurrentCoord.dNorthing += (dGridSpacing / 3);
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dNorthing += (dGridSpacing / 3);
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dEasting -= (dGridSpacing / 3);
+                stCurrentCoord.dNorthing += (dGridSpacing / 3);
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dEasting -= (dGridSpacing / 3) * 2;
+                stOutWaypoints.push_back(stCurrentCoord);
+            }
+            else
+            {
+                while (stCurrentCoord.dEasting >= dGridSpacing + stStartCoord.GetUTMCoordinate().dEasting)
+                {
+                    stCurrentCoord.dEasting -= dGridSpacing;
+                    stOutWaypoints.push_back(stCurrentCoord);
+                }
+                stCurrentCoord.dEasting -= (dGridSpacing / 3) * 2;
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dEasting = (dGridSpacing / 3);
+                stCurrentCoord.dNorthing += (dGridSpacing / 3);
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dNorthing += (dGridSpacing / 3);
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dEasting += (dGridSpacing / 3);
+                stCurrentCoord.dNorthing += (dGridSpacing / 3);
+                stOutWaypoints.push_back(stCurrentCoord);
+                stCurrentCoord.dEasting += (dGridSpacing / 3) * 2;
+                stOutWaypoints.push_back(stCurrentCoord);
+            }
+        }
+
+        return stOutWaypoints;
+    }
+
 }    // namespace searchpattern
 #endif
