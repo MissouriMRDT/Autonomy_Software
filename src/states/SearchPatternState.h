@@ -49,6 +49,7 @@ namespace statemachine
             enum class SearchPatternType
             {
                 eSpiral,
+                eSnake,
                 eZigZag,
                 END
             };

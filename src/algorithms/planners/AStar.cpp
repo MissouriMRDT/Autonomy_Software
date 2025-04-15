@@ -32,8 +32,8 @@ namespace pathplanners
      * @brief Construct a new AStar::AStar object.
      *
      *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2024-02-01
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2024-11-18
      ******************************************************************************/
     AStar::AStar()
     {

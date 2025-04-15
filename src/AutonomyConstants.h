@@ -340,6 +340,7 @@ namespace constants
     extern const double SEARCH_ANGULAR_STEP_DEGREES;
     extern const double SEARCH_SPIRAL_SPACING;
     extern const double SEARCH_ZIGZAG_SPACING;
+    extern const double SEARCH_SNAKE_SLITHERS;
     extern const double SEARCH_WAYPOINT_PROXIMITY;
 
     // Navigating State.

@@ -53,8 +53,8 @@ namespace statemachine
 
         // Add the search and rover path layers to the plot.
         m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
+        m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
-        m_pRoverPathPlot->CreateDotLayer("HorizontalZigZagSearchPattern", "green");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
@@ -293,39 +293,38 @@ namespace statemachine
                     case SearchPatternType::eSpiral:
                     {
                         // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying vertical ZigZag...");
+                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying snake...");
                         // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                       m_stSearchPatternCenter.dRadius * 2,
-                                                                                       m_stSearchPatternCenter.dRadius * 2,
-                                                                                       constants::SEARCH_ZIGZAG_SPACING,
-                                                                                       true);
+                        m_vSearchPath = searchpattern::CalculateSnakeSearchPattern(m_stSearchPatternCenter.GetGPSCoordinate(),
+                                                                                   m_stSearchPatternCenter.dRadius * 2,
+                                                                                   m_stSearchPatternCenter.dRadius * 2,
+                                                                                   constants::SEARCH_ZIGZAG_SPACING,
+                                                                                   constants::SEARCH_SNAKE_SLITHERS);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
-                        m_eCurrentSearchPatternType = SearchPatternType::eZigZag;
+                        m_eCurrentSearchPatternType = SearchPatternType::eSnake;
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
+                        m_pRoverPathPlot->AddDots(m_vSearchPath, "SnakeSearchPattern");
                         break;
                     }
-                    case SearchPatternType::eZigZag:
+                    case SearchPatternType::eSnake:
                     {
                         // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Vertical ZigZag search pattern failed, trying horizontal ZigZag...");
+                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Snake search pattern failed, trying ZigZag...");
                         // Generate vertical zigzag pattern.
                         m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                                        m_stSearchPatternCenter.dRadius * 2,
                                                                                        m_stSearchPatternCenter.dRadius * 2,
-                                                                                       constants::SEARCH_ZIGZAG_SPACING,
-                                                                                       false);
+                                                                                       constants::SEARCH_ZIGZAG_SPACING);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "HorizontalZigZagSearchPattern");
+                        m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
                         break;
                     }
                     case SearchPatternType::END:
