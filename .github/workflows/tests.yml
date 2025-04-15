@@ -62,7 +62,7 @@ jobs:
           cd /opt/Autonomy_Software/
           rm -rf build && mkdir build && cd build
           cmake -DBUILD_TESTS_MODE=ON ..
-          make -j$(nproc)
+          make -j8
 
           LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
           ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
@@ -125,7 +125,7 @@ jobs:
           cd /opt/Autonomy_Software/
           rm -rf build && mkdir build && cd build
           cmake -DBUILD_TESTS_MODE=ON ..
-          make -j$(nproc)
+          make -j8
 
           LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
           ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
