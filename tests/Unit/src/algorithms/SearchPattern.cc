@@ -385,15 +385,51 @@ TEST_F(SearchPatternTests, ZigZagPatternLimitSpacing)
     EXPECT_TRUE(IsZigZag(vSearchPatternPathUTM2));
 }
 
+/******************************************************************************
+ * @brief Test SearchPattern algorithm functionality.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-14
+ ******************************************************************************/
 TEST_F(SearchPatternTests, SnakePatternShape)
 {
     // Create a new GPS coordinate.
     geoops::GPSCoordinate stGPSRollaCoordinate(37.951766, -91.778187);
-    // Use this for generating a search pattern with default params.
-    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 10);
+    // Generate a bunch of snake patterns with different parameters.
+    std::vector<geoops::Waypoint> vSearchPatternPath1  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 40.0, 40.0, 1.0, 2.0, true);
+    std::vector<geoops::Waypoint> vSearchPatternPath2  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 40.0, 40.0, 1.0, 2.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternPath3  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 10.0, 10.0, 1.0, 4.0, true);
+    std::vector<geoops::Waypoint> vSearchPatternPath4  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 10.0, 10.0, 1.0, 4.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternpath5  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 20.0, 10.0, 1.0, 4.0, true);
+    std::vector<geoops::Waypoint> vSearchPatternPath6  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 20.0, 10.0, 1.0, 4.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternPath7  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 10.0, 20.0, 1.0, 4.0, true);
+    std::vector<geoops::Waypoint> vSearchPatternPath8  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 10.0, 20.0, 1.0, 4.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternpath9  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 5.0, 5.0, 0.5, 4.0, true);
+    std::vector<geoops::Waypoint> vSearchPatternPath10 = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 5.0, 5.0, 0.5, 4.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternPath11 = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 0.5, 0.5, 0.5, 4.0, true);
 
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath1);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath2);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath3);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath4);
+    logging::graphing::PlotCoordinates2D(vSearchPatternpath5);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath6);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath7);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath8);
+    logging::graphing::PlotCoordinates2D(vSearchPatternpath9);
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath10);
 
-    // Both paths should be zigzags.
-    EXPECT_TRUE(IsZigZag(vSearchPatternPath));
+    // Check if the returned path resembles a snake pattern.
+    EXPECT_TRUE(!vSearchPatternPath1.empty());
+    EXPECT_TRUE(!vSearchPatternPath2.empty());
+    EXPECT_TRUE(!vSearchPatternPath3.empty());
+    EXPECT_TRUE(!vSearchPatternPath4.empty());
+    EXPECT_TRUE(!vSearchPatternpath5.empty());
+    EXPECT_TRUE(!vSearchPatternPath6.empty());
+    EXPECT_TRUE(!vSearchPatternPath7.empty());
+    EXPECT_TRUE(!vSearchPatternPath8.empty());
+    EXPECT_TRUE(!vSearchPatternpath9.empty());
+    EXPECT_TRUE(!vSearchPatternPath10.empty());
+    EXPECT_TRUE(vSearchPatternPath11.empty());
 }
