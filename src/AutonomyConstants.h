@@ -333,8 +333,8 @@ namespace constants
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double STUCK_CHECK_ROT_THRESH      = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double STUCK_CHECK_VEL_THRESH      = 0.2;     // Minimum velocity required to consider the rover as actively moving.
+    const double STUCK_CHECK_ROT_THRESH      = 5.0;     // Minimum angular velocity required to consider the rover as actively rotating.
+    const double STUCK_CHECK_VEL_THRESH      = 0.1;     // Minimum velocity required to consider the rover as actively moving.
     const double STUCK_SAME_POINT_PROXIMITY  = 1.0;     // Points within this proximity of another point are considered the same.
     const double STUCK_HEADING_ALIGN_TIMEOUT = 5.0;     // The timeout in seconds before the rover gives up aligning to a certain heading.
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
@@ -351,6 +351,7 @@ namespace constants
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 1.0;     // The spacing between successive points in the zigzag (meters).
+    const double SEARCH_SNAKE_SLITHERS       = 2.0;     // The number of slithers in the snake pattern.
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
 
     // Navigating State.
