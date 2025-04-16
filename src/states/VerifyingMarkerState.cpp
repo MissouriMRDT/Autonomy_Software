@@ -37,6 +37,7 @@ namespace statemachine
         // Initialize member variables.
         m_stGoalWaypoint             = globals::g_pWaypointHandler->PeekNextWaypoint();
         m_tmTagVerificationStartTime = std::chrono::system_clock::now();
+        m_tmTagLastSeenTime          = std::chrono::system_clock::now();
 
         // Get tag detectors.
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
@@ -95,21 +96,30 @@ namespace statemachine
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmTagVerificationStartTime).count() / 1000.0;
+        // Calculate the time since the last time we saw a tag.
+        double dTimeSinceLastSeen = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmTagLastSeenTime).count() / 1000.0;
 
         /*
             If we consistently detect a marker for a certain amount of time, we can assume that we are in fact in front of the marker.
-            At this point, we can also assume we are close enough for the pointcloud to be usable. So we will also double check its distance.
+            At this point, we can also assume we are close enough for the pointcloud to be usable and for aruco to pick up the tag.
         */
         // Check if ArUco tag is detected.
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
-            // No tags are detected, trigger verify failed event.
-            LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: No tags detected. Triggering verify failed event.");
-            globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
-            return;
+            // Check if the time last seen is greater than the time to give up.
+            if (dTimeSinceLastSeen > constants::APPROACH_MARKER_TAG_LOST_BUFFER_TIME)
+            {
+                // No tags are detected, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: No tags detected. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
         }
         else
         {
+            // Update time last seen.
+            m_tmTagLastSeenTime = std::chrono::system_clock::now();
+
             // Check if we have been in this state long enough to verify the marker.
             if (dElapsedTime >= constants::APPROACH_MARKER_VERIFY_TIME)
             {
@@ -159,7 +169,7 @@ namespace statemachine
                 globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
                 globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
                 // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state  and approaching marker state from saved states.");
+                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
                 // Change state.
                 eNextState = States::eIdle;
                 break;

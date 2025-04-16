@@ -218,69 +218,47 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
-    //// ArUco Vision Constants.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // OpenCV ArUco detection config.
-    const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
-    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag in meters.
-    const double ARUCO_PIXEL_THRESHOLD                         = 175;                       // Pixel value threshold for pre-process threshold mask
-    const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE               = 255;                       // Pixel value to set to if pixel is within threshold
-    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST                    = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
-    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA                   = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
-    const cv::Mat ARUCO_EDGE_KERNEL                            = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
-    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection. KCF is fast and accurate.
-    // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.1;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.05;    // The time in seconds to wait before considering a tracker lost.
-    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;     // The IOU threshold to match a new detection to an existing tracker.
-    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.01;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
-    ///////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
-    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.torchscript";    // The model path to use for detection.
+    const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 50;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_SUBPIX;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
+    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
+    const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                               // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
     const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
-    const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_TORCH           = false;                            // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
+    const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 50;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_SUBPIX;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
+    const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
+    const bool TAGDETECT_LEFTCAM_ENABLE_TORCH           = false;                              // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_LEFTCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
     const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE      = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Right ZED Camera.
     const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = false;                            // Whether or not to detector upside-down tags.
-    const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH           = false;                            // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_175epochs/best.pt";    // The model path to use for detection.
-    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE      = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
+    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 50;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_SUBPIX;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
+    const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
+    const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
+    const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH           = false;                              // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE  = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
@@ -297,6 +275,29 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// ArUco Vision Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // OpenCV ArUco detection config.
+    const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY = cv::aruco::DICT_4X4_50;    // The predefined ArUco dictionary to use for detections.
+    const float ARUCO_TAG_SIDE_LENGTH                          = 0.015f;                    // Size of the white borders around the tag in meters.
+    const double ARUCO_PIXEL_THRESHOLD                         = 175;                       // Pixel value threshold for pre-process threshold mask
+    const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE               = 255;                       // Pixel value to set to if pixel is within threshold
+    const cv::Mat ARUCO_SHARPEN_KERNEL_FAST                    = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
+    const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA                   = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
+    const cv::Mat ARUCO_EDGE_KERNEL                            = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
+    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection. KCF is fast and accurate.
+    // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
+    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
+    // NOTE: considered valid.
+    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.3;    // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;    // The time in seconds to wait before considering a tracker lost.
+    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;    // The maximum time in seconds to track a tag without new detection.
+    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;    // The IOU threshold to match a new detection to an existing tracker.
+    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.1;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -305,12 +306,13 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER         = 0.25;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_VISION_DISTANCE     = 0.1;     // The screen percentage of the marker to be considered close enough. 0-100
-    const double APPROACH_MARKER_LOST_GIVE_UP_TIME   = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_MARKER_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
-    const double APPROACH_MARKER_VERIFY_TIME         = 5.0;     // The time in seconds to watch the tag before moving on.
+    const double APPROACH_MARKER_MOTOR_POWER          = 0.15;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_VISION_DISTANCE      = 0.1;     // The screen percentage of the marker to be considered close enough. 0-100
+    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
+    const bool APPROACH_MARKER_VERIFY_POSITION        = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
+    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.
+    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.

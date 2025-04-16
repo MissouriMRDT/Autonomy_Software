@@ -37,6 +37,7 @@ namespace statemachine
             geoops::Waypoint m_stGoalWaypoint;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             std::chrono::system_clock::time_point m_tmTagVerificationStartTime;
+            std::chrono::system_clock::time_point m_tmTagLastSeenTime;
 
         protected:
             void Start() override;

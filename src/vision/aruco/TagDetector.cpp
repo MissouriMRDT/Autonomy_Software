@@ -67,7 +67,9 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::ARUCO_BBOX_TRACKER_MAX_TRACK_TIME,
+                                                               constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -571,58 +573,58 @@ void TagDetector::DisableTorchDetection()
  ******************************************************************************/
 void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
 {
-    // // Check if the given tag vector is empty
-    // if (vNewlyDetectedTags.empty())
-    // {
-    //     // Since the tags are empty that means the detector has not detected any new ground truth tags.
-    //     // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
-    //     // stored in the m_vDetectedArucoTags vector.
-    //     // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
-    //     // and it doesn't have the ability to track tags over time.
-    //     // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
-
-    //     // Update the multi-tracker with the current frame.
-    //     m_pMultiTracker->Update(m_cvFrame);
-    // }
-    // else
-    // {
-    //     // Loop through the newly detected tags.
-    //     for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
-    //     {
-    //         // Add the newly detected tags to the multi-tracker.
-    //         bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
-    //         // Check if the tag was matched to an existing tracker.
-    //         if (!bMatchedTagToExistingTracker)
-    //         {
-    //             // Add the new tag to the member variable list.
-    //             m_vDetectedArucoTags.push_back(stTag);
-    //         }
-
-    //         // Also update the rest of the trackers with the new image.
-    //         m_pMultiTracker->Update(m_cvFrame);
-    //     }
-    // }
-
-    // // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
-    // for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
-    // {
-    //     // Check if the bounding box is 0,0,0,0.
-    //     if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
-    //     {
-    //         // Remove the tag from the vector.
-    //         itTag = m_vDetectedArucoTags.erase(itTag);
-    //     }
-    //     else
-    //     {
-    //         ++itTag;
-    //     }
-    // }
-
-    m_vDetectedArucoTags.clear();
-    for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+    // Check if the given tag vector is empty
+    if (vNewlyDetectedTags.empty())
     {
-        m_vDetectedArucoTags.emplace_back(stTag);
+        // Since the tags are empty that means the detector has not detected any new ground truth tags.
+        // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
+        // stored in the m_vDetectedArucoTags vector.
+        // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
+        // and it doesn't have the ability to track tags over time.
+        // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
+
+        // Update the multi-tracker with the current frame.
+        m_pMultiTracker->Update(m_cvFrame);
     }
+    else
+    {
+        // Loop through the newly detected tags.
+        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+        {
+            // Add the newly detected tags to the multi-tracker.
+            bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
+            // Check if the tag was matched to an existing tracker.
+            if (!bMatchedTagToExistingTracker)
+            {
+                // Add the new tag to the member variable list.
+                m_vDetectedArucoTags.emplace_back(stTag);
+            }
+
+            // Also update the rest of the trackers with the new image.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+    }
+
+    // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
+    for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
+    {
+        // Check if the bounding box is 0,0,0,0.
+        if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
+        {
+            // Remove the tag from the vector.
+            itTag = m_vDetectedArucoTags.erase(itTag);
+        }
+        else
+        {
+            ++itTag;
+        }
+    }
+
+    // m_vDetectedArucoTags.clear();
+    // for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+    // {
+    //     m_vDetectedArucoTags.emplace_back(stTag);
+    // }
 
     // Estimate the positions of the tags using the point cloud
     for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)

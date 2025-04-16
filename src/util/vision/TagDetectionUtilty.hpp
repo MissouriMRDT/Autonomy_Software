@@ -55,16 +55,16 @@ namespace tagdetectutils
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();    // The bounding box of the detected tag.
-            double dConfidence                               = 0.0;                               // The detection confidence of the tag (from Torch/Tensorflow models).
-            double dStraightLineDistance                     = 0.0;                               // Distance between the tag and the camera.
-            double dYawAngle                                 = 0.0;                               // This is the yaw angle so roll and pitch are ignored.
-            int nID                                          = -1;                                // The ID of the tag. This is set to -1 if the tag is not detected.
-            std::string szClassName                          = "";                                // The class name of the tag (used in Torch/Tensorflow models).
-            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::time_point::min();    // Set the time detected to the minimum time point.
-            TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;                    // The detection method used to detect the tag.
-            cv::Size cvImageResolution;                                                                         // The resolution of the image used to detect the tag.
-            double dHorizontalFOV;    // The horizontal field of view of the camera used to detect the tag.
+            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();      // The bounding box of the detected tag.
+            double dConfidence                               = 0.0;                                 // The detection confidence of the tag (from Torch/Tensorflow models).
+            double dStraightLineDistance                     = 0.0;                                 // Distance between the tag and the camera.
+            double dYawAngle                                 = 0.0;                                 // This is the yaw angle so roll and pitch are ignored.
+            int nID                                          = -1;                                  // The ID of the tag. This is set to -1 if the tag is not detected.
+            std::string szClassName                          = "";                                  // The class name of the tag (used in Torch/Tensorflow models).
+            std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the minimum time point.
+            TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
+            cv::Size cvImageResolution;                                                             // The resolution of the image used to detect the tag.
+            double dHorizontalFOV;                                                                  // The horizontal field of view of the camera used to detect the tag.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -109,8 +109,8 @@ namespace tagdetectutils
                 // Check if the other ArucoTag is not the same as this one.
                 if (this != &stOther)
                 {
-                    // Deep copy the bounding box.
-                    *pBoundingBox = *stOther.pBoundingBox;
+                    // Shallow copy the bounding box.
+                    pBoundingBox = stOther.pBoundingBox;
 
                     // Copy other member variables.
                     dConfidence           = stOther.dConfidence;

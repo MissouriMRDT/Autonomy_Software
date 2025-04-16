@@ -112,9 +112,8 @@ namespace statemachine
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
 
-        // FIXME: This should return prematurely if the rover doesn't see a tag.
         // Check if both tag types are unseen.
-        static bool bAlreadyPrinted                                = false;
+        static bool bAlreadyPrintedLost                            = false;
         static std::chrono::system_clock::time_point tLastSeenTime = std::chrono::system_clock::now();
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
@@ -127,28 +126,35 @@ namespace statemachine
             }
             else
             {
-                if (!bAlreadyPrinted)
+                if (!bAlreadyPrintedLost)
                 {
-                    bAlreadyPrinted = true;
+                    bAlreadyPrintedLost = true;
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
                 }
 
                 // Stop the drive.
                 globals::g_pDriveBoard->SendStop();
+                return;
             }
         }
         else
         {
+            // Submit logger message.
+            if (bAlreadyPrintedLost)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Tags were detected again.");
+            }
+
             // Reset the last seen time if a tag is detected.
             tLastSeenTime = std::chrono::system_clock::now();
             // Reset printed flag when tags are detected again
-            bAlreadyPrinted = false;
+            bAlreadyPrintedLost = false;
         }
 
         // Create instance variables.
         static double dHeadingSetPoint = 0.0;
-        double dDistanceFromTag        = 0.0;
+        static double dDistanceFromTag = 0.0;
         // Check if we got a good OpenCV tag.
         if (stBestArucoTag.nID != -1)
         {
@@ -178,7 +184,7 @@ namespace statemachine
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
             // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             // Don't execute the rest of the state.
             return;
         }
@@ -222,8 +228,25 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling ReachedMarker event.");
-                // Change states.
-                eNextState = States::eVerifyingMarker;
+
+                // Check if verifying marker state is enabled.
+                if (constants::APPROACH_MARKER_VERIFY_POSITION)
+                {
+                    // Change states.
+                    eNextState = States::eVerifyingMarker;
+                }
+                else
+                {
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                    // Pop old waypoint out of queue.
+                    globals::g_pWaypointHandler->PopNextWaypoint();
+                    // Clear saved search pattern state.
+                    globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
+                    globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                }
                 break;
             }
             case Event::eStart:

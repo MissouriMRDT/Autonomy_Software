@@ -123,10 +123,10 @@ class TagDetector : public AutonomyThread<void>
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
-        std::vector<tagdetectutils::ArucoTag> m_vNewlyDetectedTags;
 
         // Detected tags storage.
 
+        std::vector<tagdetectutils::ArucoTag> m_vNewlyDetectedTags;
         std::vector<tagdetectutils::ArucoTag> m_vDetectedArucoTags;
 
         // Create frames for storing images and point clouds.
