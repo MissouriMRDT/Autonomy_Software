@@ -29,15 +29,17 @@ namespace tracking
      * @brief Construct a new Multi Tracker object.
      *
      * @param dTrackingLostThreshold - The time in seconds after which a tracker is considered lost (default is 1.0).
+     * @param dMaxTrackingTime - The maximum time in seconds a tracker can be lost before being removed (default is 3.0).
      * @param dIOUThreshold - The minimum Intersection over Union (IoU) required to associate a new detection with an existing tracker (default is 0.3).
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-03-15
      ******************************************************************************/
-    MultiTracker::MultiTracker(const double dTrackingLostThreshold, const double dIOUThreshold)
+    MultiTracker::MultiTracker(const double dTrackingLostThreshold, const double dMaxTrackingTime, const double dIOUThreshold)
     {
         // Initialize member variables.
         m_dTrackingLostThreshold = dTrackingLostThreshold;
+        m_dMaxTrackingTime       = dMaxTrackingTime;
         m_dIOUThreshold          = dIOUThreshold;
         m_nNextId                = 0;
     }
@@ -97,6 +99,8 @@ namespace tracking
             cvTracker->init(cvFrame, *m_mBoundingBoxes[nBestTrackerID]);
             // Update the last update time for the tracker.
             m_mLastUpdateTime[nBestTrackerID] = std::chrono::system_clock::now();
+            // Update the time since the last ground truth detection.
+            m_mTimeSinceLastGroundTruthDetection[nBestTrackerID] = std::chrono::system_clock::now();
             // Set the matched tracker flag.
             bMatchedOldTracker = true;
         }
@@ -106,9 +110,10 @@ namespace tracking
             cv::Ptr<cv::Tracker> cvTracker = this->CreateTracker(eTrackerType);
             cvTracker->init(cvFrame, *cvBoundingBox);
             // Add the new tracker to the maps.
-            m_mTrackers[m_nNextId]       = cvTracker;
-            m_mBoundingBoxes[m_nNextId]  = cvBoundingBox;
-            m_mLastUpdateTime[m_nNextId] = std::chrono::system_clock::now();
+            m_mTrackers[m_nNextId]                          = cvTracker;
+            m_mBoundingBoxes[m_nNextId]                     = cvBoundingBox;
+            m_mLastUpdateTime[m_nNextId]                    = std::chrono::system_clock::now();
+            m_mTimeSinceLastGroundTruthDetection[m_nNextId] = std::chrono::system_clock::now();
             m_nNextId++;
         }
 
@@ -161,8 +166,10 @@ namespace tracking
                 else
                 {
                     // If the tracker fails to update, we need to check if it has been lost for too long.
-                    double dElapsed = std::chrono::duration<double>(tmCurrentTime - m_mLastUpdateTime[nID]).count();
-                    if (dElapsed > m_dTrackingLostThreshold)
+                    double dTimeElapsedSinceGoodTrack = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_mLastUpdateTime[nID]).count() / 1000.0;
+                    double dTimeElapsedSinceLastDetection =
+                        std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_mTimeSinceLastGroundTruthDetection[nID]).count() / 1000.0;
+                    if (dTimeElapsedSinceGoodTrack > m_dTrackingLostThreshold || dTimeElapsedSinceLastDetection > m_dMaxTrackingTime)
                     {
                         vToRemove.push_back(nID);
                     }
@@ -183,6 +190,7 @@ namespace tracking
             // Remove the tracker and last update time from the maps.
             m_mTrackers.erase(nID);
             m_mLastUpdateTime.erase(nID);
+            m_mTimeSinceLastGroundTruthDetection.erase(nID);
 
             // Set the bounding box to 0,0,0,0.
             m_mBoundingBoxes[nID]->x      = 0;
@@ -206,6 +214,7 @@ namespace tracking
     {
         m_mTrackers.clear();
         m_mLastUpdateTime.clear();
+        m_mTimeSinceLastGroundTruthDetection.clear();
 
         // Set the bounding boxes to 0,0,0,0.
         for (const std::pair<int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
@@ -233,6 +242,19 @@ namespace tracking
     }
 
     /******************************************************************************
+     * @brief Set the maximum tracking time for a tracker.
+     *
+     * @param dMaxTime - The maximum time in seconds a tracker can be lost before being removed.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-04-15
+     ******************************************************************************/
+    void MultiTracker::SetMaxTrackingTime(const double dMaxTime)
+    {
+        m_dMaxTrackingTime = dMaxTime;
+    }
+
+    /******************************************************************************
      * @brief Get the timeout for when a tracker is considered lost.
      *
      * @return double - The time in seconds after which a tracker is considered lost.
@@ -243,6 +265,19 @@ namespace tracking
     double MultiTracker::GetTrackerLostTimeout() const
     {
         return m_dTrackingLostThreshold;
+    }
+
+    /******************************************************************************
+     * @brief Get the maximum tracking time for a tracker.
+     *
+     * @return double - The maximum time in seconds a tracker can be lost before being removed.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-04-15
+     ******************************************************************************/
+    double MultiTracker::GetMaxTrackingTime() const
+    {
+        return m_dMaxTrackingTime;
     }
 
     /******************************************************************************

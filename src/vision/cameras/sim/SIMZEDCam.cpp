@@ -293,13 +293,13 @@ void SIMZEDCam::ThreadedContinuousCode()
             lkWebRTC3.unlock();
             return;
         }
-        // DEBUG: show the depth buffer.
-        cv::imshow("Depth Buffer", m_cvDepthBuffer);
-        // DEBUG: show the depth measure. we need to scale the depth measure to be in the range of 0-255.
-        cv::Mat cvDepthMeasureScaled;
-        cv::normalize(m_cvDepthMeasure, cvDepthMeasureScaled, 0, 255, cv::NORM_MINMAX);
-        cv::imshow("Depth Measure", cvDepthMeasureScaled);
-        cv::waitKey(1);
+        // // DEBUG: show the depth buffer.
+        // cv::imshow("Depth Buffer", m_cvDepthBuffer);
+        // // DEBUG: show the depth measure. we need to scale the depth measure to be in the range of 0-255.
+        // cv::Mat cvDepthMeasureScaled;
+        // cv::normalize(m_cvDepthMeasure, cvDepthMeasureScaled, 0, 255, cv::NORM_MINMAX);
+        // cv::imshow("Depth Measure", cvDepthMeasureScaled);
+        // cv::waitKey(1);
 
         // Release lock.
         lkWebRTC3.unlock();

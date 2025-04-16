@@ -225,28 +225,6 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
-    //// ArUco Vision Constants.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // OpenCV ArUco detection config.
-    extern const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY;
-    extern const float ARUCO_TAG_SIDE_LENGTH;
-    extern const double ARUCO_PIXEL_THRESHOLD;
-    extern const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE;
-    extern const cv::Mat ARUCO_SHARPEN_KERNEL_FAST;
-    extern const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA;
-    extern const cv::Mat ARUCO_EDGE_KERNEL;
-    extern const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE;
-    // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    extern const double ARUCO_MIN_LIFETIME_THRESHOLD;
-    extern const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT;
-    extern const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD;
-    extern const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE;
-    ///////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -304,6 +282,29 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// ArUco Vision Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // OpenCV ArUco detection config.
+    extern const cv::aruco::PredefinedDictionaryType ARUCO_DICTIONARY;
+    extern const float ARUCO_TAG_SIDE_LENGTH;
+    extern const double ARUCO_PIXEL_THRESHOLD;
+    extern const double ARUCO_PIXEL_THRESHOLD_MAX_VALUE;
+    extern const cv::Mat ARUCO_SHARPEN_KERNEL_FAST;
+    extern const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA;
+    extern const cv::Mat ARUCO_EDGE_KERNEL;
+    extern const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE;
+    // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
+    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
+    // NOTE: considered valid.
+    extern const double ARUCO_MIN_LIFETIME_THRESHOLD;
+    extern const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT;
+    extern const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME;
+    extern const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD;
+    extern const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE;
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -318,6 +319,7 @@ namespace constants
     extern const double APPROACH_MARKER_LOST_GIVE_UP_TIME;
     extern const bool APPROACH_MARKER_VERIFY_POSITION;
     extern const double APPROACH_MARKER_VERIFY_TIME;
+    extern const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME;
 
     // Stuck State
     extern const double STUCK_CHECK_INTERVAL;

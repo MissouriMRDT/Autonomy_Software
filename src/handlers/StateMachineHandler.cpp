@@ -348,6 +348,9 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
     // Acquire write lock for handling events.
     std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
 
+    // Stop the drive.
+    globals::g_pDriveBoard->SendStop();
+
     // Check if the current state is not null and the state machine is running.
     if (m_pCurrentState != nullptr && this->GetThreadState() == AutonomyThreadState::eRunning)
     {

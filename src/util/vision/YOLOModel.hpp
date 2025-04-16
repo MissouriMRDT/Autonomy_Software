@@ -789,6 +789,8 @@ namespace yolomodel
                         {
                             m_vClassLabels.push_back(item.value());
                         }
+                        // Submit the config json as a debug message.
+                        LOG_DEBUG(logging::g_qSharedLogger, "Model config: {}", jConfig.dump(4));
 
                         // Check if the model is empty.
                         if (m_trModel.get_methods().empty())
