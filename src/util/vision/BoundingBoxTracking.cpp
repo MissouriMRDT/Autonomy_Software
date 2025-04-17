@@ -163,16 +163,14 @@ namespace tracking
                     m_mBoundingBoxes[nID]->height = cvBoundingBox.height;
                     m_mLastUpdateTime[nID]        = tmCurrentTime;
                 }
-                else
+
+                // If the tracker fails to update, we need to check if it has been lost for too long.
+                double dTimeElapsedSinceGoodTrack = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_mLastUpdateTime[nID]).count() / 1000.0;
+                double dTimeElapsedSinceLastDetection =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_mTimeSinceLastGroundTruthDetection[nID]).count() / 1000.0;
+                if (dTimeElapsedSinceGoodTrack > m_dTrackingLostThreshold || dTimeElapsedSinceLastDetection > m_dMaxTrackingTime)
                 {
-                    // If the tracker fails to update, we need to check if it has been lost for too long.
-                    double dTimeElapsedSinceGoodTrack = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_mLastUpdateTime[nID]).count() / 1000.0;
-                    double dTimeElapsedSinceLastDetection =
-                        std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_mTimeSinceLastGroundTruthDetection[nID]).count() / 1000.0;
-                    if (dTimeElapsedSinceGoodTrack > m_dTrackingLostThreshold || dTimeElapsedSinceLastDetection > m_dMaxTrackingTime)
-                    {
-                        vToRemove.push_back(nID);
-                    }
+                    vToRemove.push_back(nID);
                 }
             }
             catch (const std::exception& stdException)

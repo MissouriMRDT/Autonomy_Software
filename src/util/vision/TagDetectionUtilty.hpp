@@ -13,6 +13,9 @@
 #ifndef TAG_DETECTION_UTILITY_HPP
 #define TAG_DETECTION_UTILITY_HPP
 
+#include "../../AutonomyConstants.h"
+#include "../../AutonomyLogging.h"
+
 /// \cond
 #include <opencv2/opencv.hpp>
 
