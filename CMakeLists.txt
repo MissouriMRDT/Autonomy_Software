@@ -344,7 +344,8 @@ if (BUILD_TESTS_MODE)
     file(GLOB_RECURSE Util_SRC              CONFIGURE_DEPENDS  "src/util/*.cpp")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
-    file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")   
+    file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")
+    file(GLOB         Constants_SRC         CONFIGURE_DEPENDS  "src/AutonomyConstants.cpp")   
 
     list(LENGTH UTests_SRC UnitTests_LEN)
     list(LENGTH ITests_SRC IntegrationTests_LEN)
@@ -353,7 +354,7 @@ if (BUILD_TESTS_MODE)
     message("--   Current Timestamp: ${CURRENT_TIMESTAMP}")
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC} ${Constants_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${UTests_SRC})
@@ -366,7 +367,7 @@ if (BUILD_TESTS_MODE)
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC} ${Constants_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${ITests_SRC})

@@ -27,7 +27,7 @@ void RunExample()
 {
     // Initialize and start handlers.
     globals::g_pCameraHandler       = new CameraHandler();
-    globals::g_pTagDetectionHandler = std::make_shared<TagDetectionHandler>();
+    globals::g_pTagDetectionHandler = new TagDetectionHandler();
 
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
@@ -44,7 +44,7 @@ void RunExample()
     cv::Mat cvDetectionsFrame1;
     cv::cuda::GpuMat cvGPUNormalFrame1;
     // Declare vector to store tag detections in.
-    std::vector<arucotag::ArucoTag> vTagDetections1;
+    std::vector<tagdetectutils::ArucoTag> vTagDetections1;
 
     // Declare FPS counter.
     IPS FPS = IPS();

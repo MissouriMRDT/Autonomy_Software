@@ -652,3 +652,4 @@ ZEDCAMERA
 ZEDSDK
 zlabel
 zstd
+ztickformat

@@ -41,7 +41,7 @@ void RunExample()
     cv::Mat cvNormalFrame1;
     cv::Mat cvDetectionsFrame1;
     // Declare vector to store tag detections in.
-    std::vector<arucotag::ArucoTag> vTagDetections1;
+    std::vector<tagdetectutils::ArucoTag> vTagDetections1;
 
     // Declare FPS counter.
     IPS FPS = IPS();
