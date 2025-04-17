@@ -30,10 +30,10 @@ namespace tracking
     // Enum class to define the different types of trackers available in OpenCV.
     enum class TrackerType
     {
-        eMIL,       // Multi Instance Learning
-        eKCF,       // Kernelized Correlation Filter
-        eGOTURN,    // Generic Object Tracking Using Regression Networks
-        eCSRT       // Discriminative Correlation Filter with Channel and Spatial Reliability
+        eMIL,    // Multi Instance Learning
+        eKCF,    // Kernelized Correlation Filter
+        // eGOTURN,    // Generic Object Tracking Using Regression Networks. // FIXME: Need to download the model.
+        eCSRT    // Discriminative Correlation Filter with Channel and Spatial Reliability
     };
 
     /******************************************************************************
