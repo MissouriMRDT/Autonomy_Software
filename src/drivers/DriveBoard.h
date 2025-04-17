@@ -82,7 +82,7 @@ class DriveBoard
                                              const double dGoalHeading,
                                              const double dActualHeading,
                                              const diffdrive::DifferentialControlMethod eKinematicsMethod);
-        void SendDrive(diffdrive::DrivePowers& stDrivePowers);
+        void SendDrive(const diffdrive::DrivePowers& stDrivePowers);
         void SendStop();
 
         /////////////////////////////////////////
