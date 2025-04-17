@@ -599,10 +599,24 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                 // Add the new tag to the member variable list.
                 m_vDetectedArucoTags.emplace_back(stTag);
             }
-
-            // Also update the rest of the trackers with the new image.
-            m_pMultiTracker->Update(m_cvFrame);
+            else
+            {
+                // Find the tag with the same bounding box pointer and update the ID and confidence.
+                for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
+                {
+                    // Check if the bounding box pointers are the same.
+                    if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
+                    {
+                        // Update the ID and confidence of the existing tag.
+                        stExistingTag.nID         = stTag.nID;
+                        stExistingTag.dConfidence = stTag.dConfidence;
+                    }
+                }
+            }
         }
+
+        // Update the multi-tracker with the current frame.
+        m_pMultiTracker->Update(m_cvFrame);
     }
 
     // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
