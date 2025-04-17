@@ -111,7 +111,7 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-void DriveBoard::SendDrive(diffdrive::DrivePowers& stDrivePowers)
+void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
 {
     // Create instance variables.
     float fDriveBoardLeftPower  = 0.0;
