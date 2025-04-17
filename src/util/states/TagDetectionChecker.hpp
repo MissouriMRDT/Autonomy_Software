@@ -108,7 +108,7 @@ namespace statemachine
         for (const tagdetectutils::ArucoTag& stCandidate : vDetectedArucoTags)
         {
             // Calculate the total age of the tag.
-            double dTagTotalAge = std::fabs(std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - stCandidate.tmCreation).count());
+            double dTagTotalAge = std::fabs(std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - stCandidate.tmCreation).count() / 1000.0);
             // Calculate the total tag area.
             double dArea = stCandidate.pBoundingBox->area();
             // Calculate what percentage of the screen the tag takes up.

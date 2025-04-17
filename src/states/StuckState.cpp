@@ -148,7 +148,7 @@ namespace statemachine
                     else
                     {
                         // Calculate time elapsed since realignment was started.
-                        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmAlignStartTime).count();
+                        double dTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmAlignStartTime).count() / 1000.0;
                         // Calculate the goal realignment heading.
                         double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES, 0, 360);
                         // Calculate total rotation degrees so far.
@@ -210,7 +210,7 @@ namespace statemachine
                     else
                     {
                         // Calculate time elapsed since realignment was started.
-                        double dTimeElapsed = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmAlignStartTime).count();
+                        double dTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmAlignStartTime).count() / 1000.0;
                         // Calculate the goal realignment heading.
                         double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES, 0, 360);
                         // Calculate total rotation degrees so far.
