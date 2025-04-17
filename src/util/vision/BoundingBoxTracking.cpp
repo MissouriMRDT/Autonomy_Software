@@ -309,19 +309,29 @@ namespace tracking
      ******************************************************************************/
     cv::Ptr<cv::Tracker> MultiTracker::CreateTracker(const TrackerType eType)
     {
-        // Create a tracker based on the specified type.
-        switch (eType)
+        // Catch OpenCV exceptions.
+        try
         {
-            case TrackerType::eMIL: return cv::TrackerMIL::create(); break;
-            case TrackerType::eKCF: return cv::TrackerKCF::create(); break;
-            case TrackerType::eGOTURN: return cv::TrackerGOTURN::create(); break;
-            case TrackerType::eCSRT: return cv::TrackerCSRT::create(); break;
-            default:
-                // Submit a warning message if the tracker type is unknown.
-                LOG_WARNING(logging::g_qSharedLogger, "Unknown tracker type specified. Defaulting to KCF.");
-                // Return a default tracker (KCF) if the type is unknown.
-                return cv::TrackerKCF::create();
-                break;
+            // Create a tracker based on the specified type.
+            switch (eType)
+            {
+                case TrackerType::eMIL: return cv::TrackerMIL::create(); break;
+                case TrackerType::eKCF: return cv::TrackerKCF::create(); break;
+                case TrackerType::eCSRT: return cv::TrackerCSRT::create(); break;
+                default:
+                    // Submit a warning message if the tracker type is unknown.
+                    LOG_WARNING(logging::g_qSharedLogger, "Unknown tracker type specified. Defaulting to KCF.");
+                    // Return a default tracker (KCF) if the type is unknown.
+                    return cv::TrackerKCF::create();
+                    break;
+            }
+        }
+        catch (const std::exception& stdException)
+        {
+            // Submit a warning message if an exception occurs.
+            LOG_ERROR(logging::g_qSharedLogger, "Exception in tracker creation: {}", stdException.what());
+            // Return a default tracker (KCF) if an exception occurs.
+            return cv::TrackerKCF::create();
         }
     }
 }    // namespace tracking

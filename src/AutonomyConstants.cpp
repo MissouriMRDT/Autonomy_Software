@@ -286,15 +286,15 @@ namespace constants
     const cv::Mat ARUCO_SHARPEN_KERNEL_FAST                    = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
     const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA                   = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
     const cv::Mat ARUCO_EDGE_KERNEL                            = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
-    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection. KCF is fast and accurate.
+    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE        = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection.
     // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
     // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
     // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.3;    // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;    // The time in seconds to wait before considering a tracker lost.
-    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;    // The maximum time in seconds to track a tag without new detection.
-    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;    // The IOU threshold to match a new detection to an existing tracker.
-    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.1;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
+    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.3;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;     // The time in seconds to wait before considering a tracker lost.
+    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;     // The maximum time in seconds to track a tag without new detection.
+    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;     // The IOU threshold to match a new detection to an existing tracker.
+    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.05;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

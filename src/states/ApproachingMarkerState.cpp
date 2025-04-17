@@ -104,6 +104,8 @@ namespace statemachine
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
         if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
         {
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover is too far from the original waypoint!");
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
@@ -133,9 +135,9 @@ namespace statemachine
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
                 }
 
-                // Stop the drive.
-                globals::g_pDriveBoard->SendStop();
-                return;
+                // // Stop the drive.
+                // globals::g_pDriveBoard->SendStop();
+                // return;
             }
         }
         else
@@ -174,15 +176,16 @@ namespace statemachine
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
-        std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
-        std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
-        std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
+        // std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
+        // std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
+        // std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
 
         // Check if tag is reached.
-        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE)
+        double dAngularError = numops::AngularDifference(dHeadingSetPoint, stCurrentRoverPose.GetCompassHeading());
+        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE && dAngularError < 5.0)
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
+            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             // Don't execute the rest of the state.
