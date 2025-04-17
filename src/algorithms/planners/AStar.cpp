@@ -211,7 +211,7 @@ namespace pathplanners
                 // If successor distance to goal is less than the node size, stop search.
                 double dDeltaGoalEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
                 double dDeltaGoalNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-                bAtGoal                   = dDeltaGoalEasting <= 10 && dDeltaGoalNorthing <= 10;
+                bAtGoal                   = dDeltaGoalEasting <= 0.1 && dDeltaGoalNorthing <= 0.1;
 
                 // Construct and return path if we have reached the goal.
                 if (bAtGoal)
