@@ -854,6 +854,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool
                     bAlreadyPrinted = true;
                 }
             }
+
         }
     }
 
