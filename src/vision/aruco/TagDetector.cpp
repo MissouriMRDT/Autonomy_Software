@@ -348,8 +348,8 @@ void TagDetector::ThreadedContinuousCode()
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
-        cv::imshow("Tag Detector", m_cvArucoProcFrame);
-        cv::waitKey(1);
+        // cv::imshow("Tag Detector", m_cvArucoProcFrame);
+        // cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 

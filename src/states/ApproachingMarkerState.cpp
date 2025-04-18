@@ -135,9 +135,9 @@ namespace statemachine
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
                 }
 
-                // // Stop the drive.
-                // globals::g_pDriveBoard->SendStop();
-                // return;
+                // Stop the drive.
+                globals::g_pDriveBoard->SendStop();
+                return;
             }
         }
         else
