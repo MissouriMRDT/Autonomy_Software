@@ -42,11 +42,14 @@ CameraHandler::CameraHandler()
                                               constants::ZED_MAINCAM_FUSION_MASTER,
                                               constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                                               constants::ZED_MAINCAM_SERIAL);
+        
+        // Always enable positional tracking.
+        m_pMainCam->EnablePositionalTracking();
 
         // Additional setup for main ZED camera.
         if (constants::ZED_MAINCAM_EXPORT_SPATIAL_MAP)
         {
-            m_pMainCam->EnablePositionalTracking();
+            m_pMainCam->EnableSpatialMapping();
         }
         if (constants::ZED_MAINCAM_EXPORT_SVO_RECORDING)
         {
@@ -82,14 +85,17 @@ CameraHandler::CameraHandler()
                                           constants::ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS,
                                           constants::ZED_LEFTCAM_SERIAL);
 
+    // Always enable positional tracking.
+    m_pLeftCam->EnablePositionalTracking();
+
     // Additional setup for left ZED camera.
     if (constants::ZED_LEFTCAM_EXPORT_SPATIAL_MAP)
     {
-        m_pMainCam->EnablePositionalTracking();
+        m_pLeftCam->EnableSpatialMapping();
     }
     if (constants::ZED_LEFTCAM_EXPORT_SVO_RECORDING)
     {
-        m_pMainCam->EnableSpatialMapping();
+        m_pLeftCam->EnableSpatialMapping();
     }
 
     // Initialize right ZED camera.
@@ -108,14 +114,17 @@ CameraHandler::CameraHandler()
                                            constants::ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS,
                                            constants::ZED_RIGHTCAM_SERIAL);
 
+    // Always enable positional tracking.
+    m_pRightCam->EnablePositionalTracking();
+
     // Additional setup for right ZED camera.
     if (constants::ZED_RIGHTCAM_EXPORT_SPATIAL_MAP)
     {
-        m_pMainCam->EnablePositionalTracking();
+        m_pRightCam->EnableSpatialMapping();
     }
     if (constants::ZED_RIGHTCAM_EXPORT_SVO_RECORDING)
     {
-        m_pMainCam->EnableSpatialMapping();
+        m_pRightCam->EnableSpatialMapping();
     }
 
     // Initialize ground eye.
