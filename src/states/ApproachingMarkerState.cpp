@@ -176,9 +176,9 @@ namespace statemachine
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
-        // std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
-        // std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
-        // std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
+        std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
+        std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
+        std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
 
         // Check if tag is reached.
         double dAngularError = numops::AngularDifference(dHeadingSetPoint, stCurrentRoverPose.GetCompassHeading());
