@@ -230,7 +230,7 @@ namespace constants
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                               // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs_2/best.torchscript";    // The model path to use for detection.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs_3/best.torchscript";    // The model path to use for detection.
     const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
