@@ -56,12 +56,46 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_IPS                              = IPS();
 
     // Setup aruco detector params.
-    m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
-    m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
-    m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
-    m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
-    m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
-    m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
+    m_cvArucoDetectionParams = cv::aruco::DetectorParameters();
+    // m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
+    // m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
+    // m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
+    // m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
+    // m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
+
+    // Adaptive threshold parameters - adjusted for desert lighting
+    m_cvArucoDetectionParams.adaptiveThreshWinSizeMin  = 7;
+    m_cvArucoDetectionParams.adaptiveThreshWinSizeMax  = 31;
+    m_cvArucoDetectionParams.adaptiveThreshWinSizeStep = 4;
+    m_cvArucoDetectionParams.adaptiveThreshConstant    = 9;
+    // Marker size parameters - optimized for 720p
+    m_cvArucoDetectionParams.minMarkerPerimeterRate      = 0.02;
+    m_cvArucoDetectionParams.maxMarkerPerimeterRate      = 4.0;
+    m_cvArucoDetectionParams.polygonalApproxAccuracyRate = 0.02;
+    // Corner parameters - increased for dust resistance
+    m_cvArucoDetectionParams.minCornerDistanceRate = 0.07;
+    m_cvArucoDetectionParams.minDistanceToBorder   = 5;
+    m_cvArucoDetectionParams.minMarkerDistanceRate = 0.15;
+    // Corner refinement parameters - enhanced for accuracy
+    m_cvArucoDetectionParams.cornerRefinementMethod         = cv::aruco::CORNER_REFINE_SUBPIX;
+    m_cvArucoDetectionParams.cornerRefinementWinSize        = 7;
+    m_cvArucoDetectionParams.relativeCornerRefinmentWinSize = 0.4f;
+    m_cvArucoDetectionParams.cornerRefinementMaxIterations  = 50;
+    m_cvArucoDetectionParams.cornerRefinementMinAccuracy    = 0.08;
+    // Border parameters - increased for reliability
+    m_cvArucoDetectionParams.markerBorderBits                      = 2;
+    m_cvArucoDetectionParams.perspectiveRemovePixelPerCell         = 6;
+    m_cvArucoDetectionParams.perspectiveRemoveIgnoredMarginPerCell = 0.2;
+    // Error handling parameters - more tolerant for dusty conditions
+    m_cvArucoDetectionParams.maxErroneousBitsInBorderRate = 0.45;
+    m_cvArucoDetectionParams.minOtsuStdDev                = 3.5;
+    m_cvArucoDetectionParams.errorCorrectionRate          = 0.7;
+    // Advanced detection options
+    m_cvArucoDetectionParams.detectInvertedMarker            = true;
+    m_cvArucoDetectionParams.useAruco3Detection              = true;
+    m_cvArucoDetectionParams.minSideLengthCanonicalImg       = 32;
+    m_cvArucoDetectionParams.minMarkerLengthRatioOriginalImg = 0.1;
+
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
