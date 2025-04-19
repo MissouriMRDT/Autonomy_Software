@@ -36,57 +36,40 @@ jobs:
         run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Extract branch name
+        id: extract_branch
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
 
       - name: Update Branch
         run: |
           cd /opt/Autonomy_Software/
           git fetch --force --recurse-submodules
           branch=${{ steps.extract_branch.outputs.branch }}
-          echo $branch
           git reset --hard origin/$branch
           git checkout $branch
           git pull --ff-only
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Build and Run Tests if they exist
+      - name: Build and Run Tests with CTest
         run: |
           DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
-          
-          # Check if the directory exists
-          if [ -d "$DIRECTORY" ]; then
-            echo "The directory $DIRECTORY exists."
-            
-            # Build Tests
-            cd /opt/Autonomy_Software/
-            if [ -d "build" ]; then rm -Rf build; fi
-            mkdir build
-            cd build
-            cmake -DBUILD_TESTS_MODE=ON ..
-            make
-      
-            # Check if the built test file exists
-            TEST_BINARY="/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
-            if [ -f "$TEST_BINARY" ]; then
-              cd /opt/Autonomy_Software/build
-              ./Autonomy_Software_${{ matrix.type }}Tests
-            else
-              echo "No ${{ matrix.type }} Tests Exist."
-            fi
-      
-          else
-            echo "The directory $DIRECTORY does not exist. Skipping the rest of the GitHub Action."
+          if [ ! -d "$DIRECTORY" ]; then
+            echo "No ${{ matrix.type }} tests found. Skipping."
             exit 0
           fi
 
+          cd /opt/Autonomy_Software/
+          rm -rf build && mkdir build && cd build
+          cmake -DBUILD_TESTS_MODE=ON ..
+          make -j8
+
+          LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
+          ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
+
       - name: Cleanup Action Environment
         if: always()
-        run: |
-          cd /opt
-          rm -rf /opt/Autonomy_Software
+        run: rm -rf /opt/Autonomy_Software
 
   build-and-test-arm64:
     strategy:
@@ -116,54 +99,37 @@ jobs:
         run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Extract branch name
+        id: extract_branch
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
 
       - name: Update Branch
         run: |
           cd /opt/Autonomy_Software/
           git fetch --force --recurse-submodules
           branch=${{ steps.extract_branch.outputs.branch }}
-          echo $branch
           git reset --hard origin/$branch
           git checkout $branch
           git pull --ff-only
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Build and Run Tests if they exist
+      - name: Build and Run Tests with CTest
         run: |
           DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
-          
-          # Check if the directory exists
-          if [ -d "$DIRECTORY" ]; then
-            echo "The directory $DIRECTORY exists."
-            
-            # Build Tests
-            cd /opt/Autonomy_Software/
-            if [ -d "build" ]; then rm -Rf build; fi
-            mkdir build
-            cd build
-            cmake -DBUILD_TESTS_MODE=ON ..
-            make
-      
-            # Check if the built test file exists
-            TEST_BINARY="/opt/Autonomy_Software/build/Autonomy_Software_${{ matrix.type }}Tests"
-            if [ -f "$TEST_BINARY" ]; then
-              cd /opt/Autonomy_Software/build
-              ./Autonomy_Software_${{ matrix.type }}Tests
-            else
-              echo "No ${{ matrix.type }} Tests Exist."
-            fi
-      
-          else
-            echo "The directory $DIRECTORY does not exist. Skipping the rest of the GitHub Action."
+          if [ ! -d "$DIRECTORY" ]; then
+            echo "No ${{ matrix.type }} tests found. Skipping."
             exit 0
           fi
 
+          cd /opt/Autonomy_Software/
+          rm -rf build && mkdir build && cd build
+          cmake -DBUILD_TESTS_MODE=ON ..
+          make -j8
+
+          LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
+          ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
+
       - name: Cleanup Action Environment
         if: always()
-        run: |
-          cd /opt
-          rm -rf /opt/Autonomy_Software
+        run: rm -rf /opt/Autonomy_Software
