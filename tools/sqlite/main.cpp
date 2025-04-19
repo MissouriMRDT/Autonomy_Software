@@ -2,7 +2,7 @@
 #include <sqlite3.h>
 #include <string>
 
-const char* DB_PATH = "../../data/LiDAR/sqlite/urc.db";
+const char* DB_PATH = "../../data/LiDAR/sqlite/MDRS.db";
 
 /******************************************************************************
  * @brief Creates a SQLite database at the specified path.
