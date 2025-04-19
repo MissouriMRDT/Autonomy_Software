@@ -53,7 +53,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
     libboost-all-dev libflann-dev libvtk9-dev libvtk9-qt-dev libqhull-dev libopenni-dev libopenni2-dev \
     qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libqt5opengl5-dev qttools5-dev qttools5-dev-tools \
-    libcjson-dev libpcap-dev
+    libcjson-dev libpcap-dev sqlite3 libsqlite3-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
