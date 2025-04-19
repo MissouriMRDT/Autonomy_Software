@@ -46,6 +46,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          token: ${{ secrets.USGS_ACCESS_TOKEN }}
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -66,6 +67,8 @@ jobs:
           git pull --ff-only
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
+        env:
+          GITHUB_TOKEN: ${{ secrets.USGS_ACCESS_TOKEN }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
