@@ -148,7 +148,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/arm64
     rm pcl_${PCL_VERSION}_arm64.deb
 
 # Install Quill
-ARG QUILL_VERSION="9.0.0"
+ARG QUILL_VERSION="9.0.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
     rm quill_${QUILL_VERSION}_arm64.deb
