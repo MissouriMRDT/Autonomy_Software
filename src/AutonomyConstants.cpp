@@ -154,7 +154,7 @@ namespace constants
     const sl::UNIT FUSION_MEASUREMENT_UNITS         = ZED_MEASURE_UNITS;    // The base measurement unit to use for depth and other measurements.
     const sl::COORDINATE_SYSTEM FUSION_COORD_SYSTEM = ZED_COORD_SYSTEM;     // Coordinate system to use for measurements.
     const bool FUSION_SDK_VERBOSE                   = false;                // Enable verbose output from the internal fusion library in the ZEDSDK.
-    const bool FUSION_ENABLE_GNSS_FUSION            = false;                 // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
+    const bool FUSION_ENABLE_GNSS_FUSION            = false;                // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
 
     // BasicCam Basic Config.
     const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD = cv::InterpolationFlags::INTER_LINEAR;    // The algorithm used to fill in pixels when resizing.
@@ -230,9 +230,9 @@ namespace constants
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                               // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs_2/best.torchscript";    // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE  = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     // Left ZED Camera.
     const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
