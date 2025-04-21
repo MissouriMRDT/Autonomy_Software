@@ -264,76 +264,80 @@ int main()
                 if (nBytesRead <= 0)
                 {
                     LOG_WARNING(logging::g_qSharedLogger, "Failed to read from terminal input.");
-                    continue;
                 }
-                if (chTerminalInput == 'f' || chTerminalInput == 'F')
+                else
                 {
-                    LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
-                }
-                else if (chTerminalInput == 't' || chTerminalInput == 'T')
-                {
-                    // Get the tags from the tag detectors.
-                    if (pMainDetector->GetIsReady())
+                    if (chTerminalInput == 'f' || chTerminalInput == 'F')
                     {
-                        // Create instance variables.
-                        tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
-                        int nTagCount = 0;
-
-                        // Get the best/valid tags from the tag detectors.
-                        std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pGroundDetector};
-                        // Check if the next waypoint in the waypoint handler exists and had a tag ID.
-                        if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
-                        {
-                            // Get the best tags from the tag detectors.
-                            nTagCount =
-                                statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag, globals::g_pWaypointHandler->PeekNextWaypoint().nID);
-                        }
-                        else
-                        {
-                            // Get the best tags from the tag detectors.
-                            nTagCount = statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
-                        }
-
-                        // Submit logger message.
-                        std::ostringstream ossTagsInfo;
-                        ossTagsInfo << "\n--------[ All Detections ]--------\n"
-                                    << "Detected Tags Info:\n"
-                                    << "Total Tags: " << nTagCount << "\n";
-
-                        ossTagsInfo << "\n--------[ Valid/Best Tags ]--------\n";
-                        if (stBestOpenCVTag.nID != -1)
-                        {
-                            ossTagsInfo << "Best OpenCV Tag ID: " << stBestOpenCVTag.nID << "\n";
-                            ossTagsInfo << "Best OpenCV Tag Distance: " << stBestOpenCVTag.dStraightLineDistance << "\n";
-                            ossTagsInfo << "Best OpenCV Tag Yaw Angle: " << stBestOpenCVTag.dYawAngle << "\n";
-                        }
-                        else
-                        {
-                            ossTagsInfo << "No valid OpenCV tags detected.\n";
-                        }
-                        if (stBestTorchTag.dConfidence != 0.0)
-                        {
-                            ossTagsInfo << "Best Torch Tag ID: " << stBestTorchTag.nID << "\n";
-                            ossTagsInfo << "Best Torch Tag Distance: " << stBestTorchTag.dStraightLineDistance << "\n";
-                            ossTagsInfo << "Best Torch Tag Yaw Angle: " << stBestTorchTag.dYawAngle << "\n";
-                        }
-                        else
-                        {
-                            ossTagsInfo << "No valid Torch tags detected.\n";
-                        }
-
-                        LOG_NOTICE(logging::g_qSharedLogger, "{}", ossTagsInfo.str());
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
                     }
-                    else
+                    else if (chTerminalInput == 't' || chTerminalInput == 'T')
                     {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger, "Tag Detector is not ready yet. Cannot get tags.");
+                        // Get the tags from the tag detectors.
+                        if (pMainDetector->GetIsReady())
+                        {
+                            // Create instance variables.
+                            tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
+                            int nTagCount = 0;
+
+                            // Get the best/valid tags from the tag detectors.
+                            std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pGroundDetector};
+                            // Check if the next waypoint in the waypoint handler exists and had a tag ID.
+                            if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                            {
+                                // Get the best tags from the tag detectors.
+                                nTagCount = statemachine::IdentifyTargetMarker(vTagDetectors,
+                                                                               stBestOpenCVTag,
+                                                                               stBestTorchTag,
+                                                                               globals::g_pWaypointHandler->PeekNextWaypoint().nID);
+                            }
+                            else
+                            {
+                                // Get the best tags from the tag detectors.
+                                nTagCount = statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
+                            }
+
+                            // Submit logger message.
+                            std::ostringstream ossTagsInfo;
+                            ossTagsInfo << "\n--------[ All Detections ]--------\n"
+                                        << "Detected Tags Info:\n"
+                                        << "Total Tags: " << nTagCount << "\n";
+
+                            ossTagsInfo << "\n--------[ Valid/Best Tags ]--------\n";
+                            if (stBestOpenCVTag.nID != -1)
+                            {
+                                ossTagsInfo << "Best OpenCV Tag ID: " << stBestOpenCVTag.nID << "\n";
+                                ossTagsInfo << "Best OpenCV Tag Distance: " << stBestOpenCVTag.dStraightLineDistance << "\n";
+                                ossTagsInfo << "Best OpenCV Tag Yaw Angle: " << stBestOpenCVTag.dYawAngle << "\n";
+                            }
+                            else
+                            {
+                                ossTagsInfo << "No valid OpenCV tags detected.\n";
+                            }
+                            if (stBestTorchTag.dConfidence != 0.0)
+                            {
+                                ossTagsInfo << "Best Torch Tag ID: " << stBestTorchTag.nID << "\n";
+                                ossTagsInfo << "Best Torch Tag Distance: " << stBestTorchTag.dStraightLineDistance << "\n";
+                                ossTagsInfo << "Best Torch Tag Yaw Angle: " << stBestTorchTag.dYawAngle << "\n";
+                            }
+                            else
+                            {
+                                ossTagsInfo << "No valid Torch tags detected.\n";
+                            }
+
+                            LOG_NOTICE(logging::g_qSharedLogger, "{}", ossTagsInfo.str());
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger, "Tag Detector is not ready yet. Cannot get tags.");
+                        }
                     }
-                }
-                else if (chTerminalInput == 'q' || chTerminalInput == 'Q')
-                {
-                    LOG_INFO(logging::g_qSharedLogger, "'Q' key pressed. Initiating shutdown...");
-                    bMainStop = true;
+                    else if (chTerminalInput == 'q' || chTerminalInput == 'Q')
+                    {
+                        LOG_INFO(logging::g_qSharedLogger, "'Q' key pressed. Initiating shutdown...");
+                        bMainStop = true;
+                    }
                 }
             }
 
