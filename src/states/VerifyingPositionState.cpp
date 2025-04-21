@@ -33,8 +33,6 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Scheduling next run of state logic.");
 
-        m_vCheckPoints.reserve(m_nMaxDataPoints);
-
         m_tmVerifyStartTime = std::chrono::system_clock::now();
     }
 
@@ -64,10 +62,8 @@ namespace statemachine
     VerifyingPositionState::VerifyingPositionState() : State(States::eVerifyingPosition)
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
-
-        m_nMaxDataPoints = 100;
-
-        m_bInitialized   = false;
+        // Initialize member variables.
+        m_bInitialized = false;
 
         if (!m_bInitialized)
         {
@@ -87,53 +83,50 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
 
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        double dTimeElapsed                                 = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmVerifyStartTime).count();
+        double dTimeElapsed                                 = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmVerifyStartTime).count() / 1000.0;
 
-        if (dTimeElapsed >= 30.0)
+        if (dTimeElapsed <= constants::NAVIGATING_VERIFY_SAMPLE_TIME)
         {
-            if (int(m_vCheckPoints.size()) < m_nMaxDataPoints)
+            if (!globals::g_pNavigationBoard->IsOutOfDate())
             {
-                if (!globals::g_pNavigationBoard->IsOutOfDate())
-                {
-                    m_vCheckPoints.push_back(globals::g_pNavigationBoard->GetGPSData());
-                }
+                m_vCheckPoints.emplace_back(globals::g_pNavigationBoard->GetGPSData());
+            }
+        }
+        else
+        {
+            // Realign the ZED
+            globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam,
+                                                                geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()),
+                                                                globals::g_pNavigationBoard->GetHeading());
+
+            // Create Average GPS Coordinate
+            geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();
+
+            // Calculate Sum of GPS Coordinates
+            for (geoops::GPSCoordinate& stPoint : m_vCheckPoints)
+            {
+                stAverage.dLatitude += stPoint.dLatitude;
+                stAverage.dLongitude += stPoint.dLongitude;
+            }
+
+            // Calculate Average GPS Coordinate
+            stAverage.dLatitude /= m_vCheckPoints.size();
+            stAverage.dLongitude /= m_vCheckPoints.size();
+
+            // Calculate distance and bearing from goal waypoint.
+            geoops::GeoMeasurement stGoalWaypointMeasurement =
+                geoops::CalculateGeoMeasurement(stAverage, globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate());
+
+            // Check if the rover is within the goal waypoint's tolerance.
+            if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+            {
+                // Trigger event to transition to next state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed, false);
             }
             else
             {
-                // Realign the ZED
-                globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam,
-                                                                    geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()),
-                                                                    globals::g_pNavigationBoard->GetHeading());
-
-                // Create Average GPS Coordinate
-                geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();
-
-                // Calculate Sum of GPS Coordinates
-                for (geoops::GPSCoordinate& stPoint : m_vCheckPoints)
-                {
-                    stAverage.dLatitude += stPoint.dLatitude;
-                    stAverage.dLongitude += stPoint.dLongitude;
-                }
-
-                // Calculate Average GPS Coordinate
-                stAverage.dLatitude /= m_vCheckPoints.size();
-                stAverage.dLongitude /= m_vCheckPoints.size();
-
-                // Calculate distance and bearing from goal waypoint.
-                geoops::GeoMeasurement stGoalWaypointMeasurement =
-                    geoops::CalculateGeoMeasurement(stAverage, globals::g_pWaypointHandler->PeekNextWaypoint().GetGPSCoordinate());
-
-                // Check if the rover is within the goal waypoint's tolerance.
-                if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
-                {
-                    // Trigger event to transition to next state.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed, false);
-                }
-                else
-                {
-                    // Trigger event to transition to next state.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete, false);
-                }
+                // Trigger event to transition to next state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete, false);
             }
         }
     }
@@ -179,8 +172,8 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingPositionState: Handling Verifying Failed event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Change state.
-                eNextState = States::eNavigating;
+                // Recall the previous state. This should always be navigation, but we use previous state to be safe.
+                eNextState = globals::g_pStateMachineHandler->GetPreviousState();
                 break;
             }
             case Event::eAbort:

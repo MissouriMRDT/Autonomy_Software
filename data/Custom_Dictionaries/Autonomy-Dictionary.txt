@@ -248,6 +248,8 @@ GROUNDCAM
 gruntfuggly
 gtest
 gthr
+hajdukiewicz
+HFOV
 HWDEVICE
 hyperthreaded
 IDLESTATE
@@ -561,6 +563,7 @@ Struct
 structs
 STUCKSTATE
 Styleguides
+SUBPIX
 Subteam
 Subteams
 superres
@@ -649,3 +652,4 @@ ZEDCAMERA
 ZEDSDK
 zlabel
 zstd
+ztickformat
