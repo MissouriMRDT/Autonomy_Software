@@ -121,10 +121,10 @@ void RunExample()
 
             // Apply a voxel grid filter to downsample the point cloud
             pcl::PointCloud<pcl::PointXYZ>::Ptr pclFilteredCloud(new pcl::PointCloud<pcl::PointXYZ>());
-            pcl::VoxelGrid<pcl::PointXYZ> voxelGrid;
-            voxelGrid.setInputCloud(pclCloud);
-            voxelGrid.setLeafSize(1.0f, 1.0f, 1.0f);    // Adjust leaf size as needed
-            voxelGrid.filter(*pclFilteredCloud);
+            pcl::VoxelGrid<pcl::PointXYZ> pclVoxelGrid;
+            pclVoxelGrid.setInputCloud(pclCloud);
+            pclVoxelGrid.setLeafSize(1.0f, 1.0f, 1.0f);    // Adjust leaf size as needed
+            pclVoxelGrid.filter(*pclFilteredCloud);
 
             // Set the PCL point pclFilteredCloud dimensions.
             pclFilteredCloud->width    = static_cast<uint32_t>(pclFilteredCloud->points.size());

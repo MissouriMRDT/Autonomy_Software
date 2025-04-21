@@ -88,7 +88,7 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author sam_hajdukiewicz (samanthahajdukiewicz@gmail.com) :3
+     * @author sam_hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void ApproachingMarkerState::Run()
@@ -118,8 +118,8 @@ namespace statemachine
         static std::chrono::system_clock::time_point tLastSeenTime = std::chrono::system_clock::now();
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
-            auto tCurrentTime = std::chrono::system_clock::now();
-            if ((std::chrono::duration_cast<std::chrono::milliseconds>(tCurrentTime - tLastSeenTime).count() / 1000.0) > constants::APPROACH_MARKER_LOST_GIVE_UP_TIME)
+            std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+            if ((std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - tLastSeenTime).count() / 1000.0) > constants::APPROACH_MARKER_LOST_GIVE_UP_TIME)
             {
                 // Submit logger message.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
@@ -192,7 +192,7 @@ namespace statemachine
         }
 
         //////////////////////////////////////////
-        /* ---  Check if the rover is stuck --- */
+        // ---  Check if the rover is stuck --- //
         //////////////////////////////////////////
 
         // // Check if stuck.
