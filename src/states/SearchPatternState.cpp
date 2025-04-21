@@ -13,6 +13,7 @@
 #include "../algorithms/SearchPattern.hpp"
 #include "../algorithms/kinematics/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
+#include "../util/states/TagDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -59,8 +60,7 @@ namespace statemachine
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
 
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
     }
 
     /******************************************************************************
@@ -139,37 +139,21 @@ namespace statemachine
         /* --- Detect Tags --- */
         /////////////////////////
 
-        // Get a list of the currently detected tags, and their stats.
-        std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-        std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-        tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
-
-        // Check if we have detected any tags.
-        if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
+        if (m_stSearchPatternCenter.eType == geoops::WaypointType::eTagWaypoint)
         {
-            // Check if any of the tags have a detection counter or confidence greater than the threshold.
-            if (std::any_of(vDetectedArucoTags.begin(),
-                            vDetectedArucoTags.end(),
-                            [this](arucotag::ArucoTag& stTag)
-                            {
-                                // If the Tag ID given by the user in the waypoint is less than 0, then we don't care about the ID.
-                                if (m_stSearchPatternCenter.nID < 0)
-                                {
-                                    return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT;
-                                }
-                                else
-                                {
-                                    return (stTag.nID == m_stSearchPatternCenter.nID && stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT);
-                                }
-                            }) ||
-                std::any_of(vDetectedTensorflowTags.begin(),
-                            vDetectedTensorflowTags.end(),
-                            [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))
+            // Create instance variables.
+            tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
+            // Identify target marker.
+            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stSearchPatternCenter.nID);
+            // Check if either tag type is seen.
+            if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
             {
                 // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
-                // Handle state transition.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+                // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
+                // Don't execute the rest of the state.
                 return;
             }
         }
@@ -191,22 +175,22 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
-            // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
-            m_nSearchPathIdx += 1;
-            // Check path index is within bounds.
-            if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
-            {
-                m_nSearchPathIdx = m_vSearchPath.size() - 1;
-            }
-            // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-            // Don't execute the rest of the state.
-            return;
-        }
+        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        // {
+        //     // Submit logger message.
+        //     LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
+        //     // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
+        //     m_nSearchPathIdx += 1;
+        //     // Check path index is within bounds.
+        //     if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
+        //     {
+        //         m_nSearchPathIdx = m_vSearchPath.size() - 1;
+        //     }
+        //     // Handle state transition and save the current search pattern state.
+        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+        //     // Don't execute the rest of the state.
+        //     return;
+        // }
 
         ///////////////////////////////////
         /* --- Follow Search Pattern --- */

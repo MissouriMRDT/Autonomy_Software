@@ -99,7 +99,7 @@ namespace statemachine
 
         // Calculate time elapsed.
         double dTotalTimeElapsed          = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStartReversingTime).count();
-        double dTimeElapsedSinceLastMeter = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmTimeSinceLastMeter).count();
+        double dTimeElapsedSinceLastMeter = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmTimeSinceLastMeter).count() / 1000.0;
         // Check if rover has reversed the desired distance or timeout has been reached.
         if (stMeasurement.dDistanceMeters >= constants::REVERSE_DISTANCE)
         {

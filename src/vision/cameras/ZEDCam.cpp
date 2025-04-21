@@ -715,11 +715,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
-                case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case PIXEL_FORMATS::eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
-                default: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case PIXEL_FORMATS::eBGRA: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case PIXEL_FORMATS::eDepthMeasure: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case PIXEL_FORMATS::eDepthImage: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case PIXEL_FORMATS::eXYZBGRA: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
             // Signal future that the frame has been successfully retrieved.
@@ -754,11 +754,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case PIXEL_FORMATS::eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case PIXEL_FORMATS::eBGRA: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case PIXEL_FORMATS::eDepthMeasure: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case PIXEL_FORMATS::eDepthImage: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case PIXEL_FORMATS::eXYZBGRA: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
             // Signal future that the frame has been successfully retrieved.
@@ -821,7 +821,7 @@ void ZEDCam::PooledLinearCode()
         // }
 
         // Copy pose.
-        *(stContainer.pData) = stPose;
+        *stContainer.pData = stPose;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -848,7 +848,7 @@ void ZEDCam::PooledLinearCode()
         lkGeoPoseQueue.unlock();
 
         // Copy pose.
-        *(stContainer.pData) = sl::GeoPose(m_slFusionGeoPose);
+        *stContainer.pData = sl::GeoPose(m_slFusionGeoPose);
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -875,7 +875,7 @@ void ZEDCam::PooledLinearCode()
         lkPlaneQueue.unlock();
 
         // Copy pose.
-        *(stContainer.pData) = sl::Plane(m_slFloorPlane);
+        *stContainer.pData = sl::Plane(m_slFloorPlane);
     }
     else
     {
@@ -899,7 +899,7 @@ void ZEDCam::PooledLinearCode()
         lkObjectDataQueue.unlock();
 
         // Make copy of object vector. (Apparently the assignment operator actually does a deep copy)
-        *(stContainer.pData) = m_slDetectedObjects.object_list;
+        *stContainer.pData = m_slDetectedObjects.object_list;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -926,7 +926,7 @@ void ZEDCam::PooledLinearCode()
         lkObjectBatchedDataQueue.unlock();
 
         // Make copy of object vector. (Apparently the assignment operator actually does a deep copy)
-        *(stContainer.pData) = m_slDetectedObjectsBatched;
+        *stContainer.pData = m_slDetectedObjectsBatched;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -1828,7 +1828,7 @@ bool ZEDCam::GetCameraIsOpen()
 {
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    return m_slCamera.isOpened();
+    return this->GetThreadState() == AutonomyThreadState::eRunning && m_slCamera.isOpened();
 }
 
 /******************************************************************************

@@ -82,7 +82,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertCVMatToPCL(const cv::Mat& cvPointClou
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
+    globals::g_pCameraHandler = new CameraHandler();
 
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> pExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);

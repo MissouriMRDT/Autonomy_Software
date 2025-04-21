@@ -208,7 +208,7 @@ std::future<bool> SIMBasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 bool SIMBasicCam::GetCameraIsOpen()
 {
     // Get camera status from OpenCV.
-    return m_cvCamera.isOpened();
+    return m_cvCamera.isOpened() && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
 /******************************************************************************

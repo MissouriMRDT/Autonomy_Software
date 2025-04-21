@@ -170,12 +170,12 @@ namespace searchpattern
                 if (bZigNotZag)
                 {
                     // Zig.
-                    dCurrentX = dStartingX + (dWidth / 2);
+                    dCurrentX = dStartingX + bCalcSpacing;
                 }
                 else
                 {
                     // Zag.
-                    dCurrentX = dStartingX - (dWidth / 2);
+                    dCurrentX = dStartingX - bCalcSpacing;
                 }
             }
             else
@@ -184,12 +184,12 @@ namespace searchpattern
                 if (bZigNotZag)
                 {
                     // Zig.
-                    dCurrentY = dStartingY + (dHeight / 2);
+                    dCurrentY = dStartingY + bCalcSpacing;
                 }
                 else
                 {
                     // Zag.
-                    dCurrentY = dStartingY - (dHeight / 2);
+                    dCurrentY = dStartingY - bCalcSpacing;
                 }
             }
 
