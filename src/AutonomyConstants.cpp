@@ -178,34 +178,6 @@ namespace constants
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one. 31237348
 
-    // Left ZED Camera.
-    const int ZED_LEFTCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the leftcam images to.
-    const int ZED_LEFTCAM_RESOLUTIONY           = 720;                        // The vertical pixel resolution to resize the leftcam images to.
-    const int ZED_LEFTCAM_FPS                   = 60;                         // The FPS to use for the leftcam.
-    const int ZED_LEFTCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_LEFTCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_LEFTCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the leftcam to an SVO file.
-    const bool ZED_LEFTCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
-    const bool ZED_LEFTCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_LEFTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_LEFTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 15723847
-
-    // Right ZED Camera.
-    const int ZED_RIGHTCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the rightcam images to.
-    const int ZED_RIGHTCAM_RESOLUTIONY           = 720;                        // The vertical pixel resolution to resize the rightcam images to.
-    const int ZED_RIGHTCAM_FPS                   = 60;                         // The FPS to use for the rightcam.
-    const int ZED_RIGHTCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
-    const int ZED_RIGHTCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_RIGHTCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the rightcam to an SVO file.
-    const bool ZED_RIGHTCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
-    const bool ZED_RIGHTCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
-    const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_RIGHTCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS   = 5;        // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    const int ZED_RIGHTCAM_SERIAL                    = 0;        // The serial number of the camera. Set to 0 to open the next available one. 0
-
     // Ground Basic Cam.
     const int BASICCAM_GROUNDCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.
     const int BASICCAM_GROUNDCAM_RESOLUTIONY             = 720;     // The vertical pixel resolution to resize the basiccam images to.
@@ -223,42 +195,31 @@ namespace constants
 
     // Main ZED Camera.
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 50;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_SUBPIX;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
-    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
-    const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
-    const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                               // Whether or not to use pytorch detection on top of ArUco.
+    const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_MAINCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
+    const bool TAGDETECT_MAINCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
+    const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
+    const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
     const std::string TAGDETECT_MAINCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
     const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
 
-    // Left ZED Camera.
-    const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER  = 50;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_SUBPIX;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
-    const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
-    const int TAGDETECT_LEFTCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_TORCH           = false;                              // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_LEFTCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE      = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
-
-    // Right ZED Camera.
-    const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER  = 50;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_SUBPIX;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER = true;                               // Whether or not to detector upside-down tags.
-    const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS      = 1;                                  // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION   = true;                               // Whether or not to use the newer and faster Aruco detection strategy.
-    const int TAGDETECT_RIGHTCAM_MAX_FPS                 = 30;                                 // The max iterations per second of the tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH           = false;                              // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE  = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
+    // Ground Basic Cam.
+    const int TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
+    const int TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
+    const bool TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
+    const int TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
+    const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
+    const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING        = false;                            // Whether or not to use the tracking algorithm to track tags.
+    const int TAGDETECT_GROUNDCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
+    const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
+    const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
@@ -290,11 +251,11 @@ namespace constants
     // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
     // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
     // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.3;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;     // The time in seconds to wait before considering a tracker lost.
-    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;     // The maximum time in seconds to track a tag without new detection.
-    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;     // The IOU threshold to match a new detection to an existing tracker.
-    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.05;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
+    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.3;      // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
+    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
+    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
+    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

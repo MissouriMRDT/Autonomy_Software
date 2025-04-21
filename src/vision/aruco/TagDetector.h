@@ -54,6 +54,7 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableTracking                    = false,
                     const int nDetectorMaxFPS                     = 30,
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
@@ -64,6 +65,7 @@ class TagDetector : public AutonomyThread<void>
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableTracking                    = false,
                     const int nDetectorMaxFPS                     = 30,
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
@@ -120,6 +122,7 @@ class TagDetector : public AutonomyThread<void>
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         bool m_bCameraIsOpened;
+        bool m_bEnableTracking;
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
