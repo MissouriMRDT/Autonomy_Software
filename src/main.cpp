@@ -221,14 +221,11 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        std::shared_ptr<ZEDCamera> pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        std::shared_ptr<ZEDCamera> pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
-        std::shared_ptr<ZEDCamera> pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
-        std::shared_ptr<BasicCamera> pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
-        std::shared_ptr<TagDetector> pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        std::shared_ptr<TagDetector> pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
-        std::shared_ptr<TagDetector> pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
-        IPS IterPerSecond                           = IPS();
+        std::shared_ptr<ZEDCamera> pMainCam          = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        std::shared_ptr<BasicCamera> pGroundCam      = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        std::shared_ptr<TagDetector> pMainDetector   = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        std::shared_ptr<TagDetector> pGroundDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam);
+        IPS IterPerSecond                            = IPS();
 
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
@@ -245,12 +242,9 @@ int main()
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
             szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "GroundDetector FPS: " + std::to_string(pGroundDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
@@ -278,7 +272,7 @@ int main()
                         int nTagCount = 0;
 
                         // Get the best/valid tags from the tag detectors.
-                        std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pLeftDetector, pRightDetector};
+                        std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pGroundDetector};
                         // Check if the next waypoint in the waypoint handler exists and had a tag ID.
                         if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
                         {

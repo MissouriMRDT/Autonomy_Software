@@ -22,6 +22,7 @@
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param bEnableTracking - Whether or not to enable tracking of detected tags.
  * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
  * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
@@ -37,6 +38,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const bool bEnableTracking,
                          const int nDetectorMaxFPS,
                          const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
@@ -47,6 +49,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_pCamera                          = pBasicCam;
     m_bTorchInitialized                = false;
     m_bTorchEnabled                    = false;
+    m_bEnableTracking                  = bEnableTracking;
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
@@ -56,46 +59,12 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_IPS                              = IPS();
 
     // Setup aruco detector params.
-    m_cvArucoDetectionParams = cv::aruco::DetectorParameters();
-    // m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
-    // m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
-    // m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
-    // m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
-    // m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
-
-    // Adaptive threshold parameters - adjusted for desert lighting
-    m_cvArucoDetectionParams.adaptiveThreshWinSizeMin  = 7;
-    m_cvArucoDetectionParams.adaptiveThreshWinSizeMax  = 31;
-    m_cvArucoDetectionParams.adaptiveThreshWinSizeStep = 4;
-    m_cvArucoDetectionParams.adaptiveThreshConstant    = 9;
-    // Marker size parameters - optimized for 720p
-    m_cvArucoDetectionParams.minMarkerPerimeterRate      = 0.02;
-    m_cvArucoDetectionParams.maxMarkerPerimeterRate      = 4.0;
-    m_cvArucoDetectionParams.polygonalApproxAccuracyRate = 0.02;
-    // Corner parameters - increased for dust resistance
-    m_cvArucoDetectionParams.minCornerDistanceRate = 0.07;
-    m_cvArucoDetectionParams.minDistanceToBorder   = 5;
-    m_cvArucoDetectionParams.minMarkerDistanceRate = 0.15;
-    // Corner refinement parameters - enhanced for accuracy
-    m_cvArucoDetectionParams.cornerRefinementMethod         = cv::aruco::CORNER_REFINE_SUBPIX;
-    m_cvArucoDetectionParams.cornerRefinementWinSize        = 7;
-    m_cvArucoDetectionParams.relativeCornerRefinmentWinSize = 0.4f;
-    m_cvArucoDetectionParams.cornerRefinementMaxIterations  = 50;
-    m_cvArucoDetectionParams.cornerRefinementMinAccuracy    = 0.08;
-    // Border parameters - increased for reliability
-    m_cvArucoDetectionParams.markerBorderBits                      = 2;
-    m_cvArucoDetectionParams.perspectiveRemovePixelPerCell         = 6;
-    m_cvArucoDetectionParams.perspectiveRemoveIgnoredMarginPerCell = 0.2;
-    // Error handling parameters - more tolerant for dusty conditions
-    m_cvArucoDetectionParams.maxErroneousBitsInBorderRate = 0.45;
-    m_cvArucoDetectionParams.minOtsuStdDev                = 3.5;
-    m_cvArucoDetectionParams.errorCorrectionRate          = 0.7;
-    // Advanced detection options
-    m_cvArucoDetectionParams.detectInvertedMarker            = true;
-    m_cvArucoDetectionParams.useAruco3Detection              = true;
-    m_cvArucoDetectionParams.minSideLengthCanonicalImg       = 32;
-    m_cvArucoDetectionParams.minMarkerLengthRatioOriginalImg = 0.1;
-
+    m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
+    m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
+    m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
+    m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
+    m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
+    m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
@@ -121,6 +90,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param bEnableTracking - Whether or not to enable tracking of detected tags.
  * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
  * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
@@ -136,6 +106,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const bool bEnableTracking,
                          const int nDetectorMaxFPS,
                          const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
@@ -146,6 +117,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_bTorchInitialized                = false;
     m_bTorchEnabled                    = false;
     m_bUsingZedCamera                  = true;    // Toggle ZED functions on.
+    m_bEnableTracking                  = bEnableTracking;
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
@@ -154,47 +126,12 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_IPS                              = IPS();
 
     // Setup aruco detector params.
-    m_cvArucoDetectionParams = cv::aruco::DetectorParameters();
-    // m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
-    // m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
-    // m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
-    // m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
-    // m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
-    // Get aruco dictionary and initialize aruco detector.
-    // Adaptive threshold parameters - adjusted for desert lighting
-    m_cvArucoDetectionParams.adaptiveThreshWinSizeMin  = 7;
-    m_cvArucoDetectionParams.adaptiveThreshWinSizeMax  = 31;
-    m_cvArucoDetectionParams.adaptiveThreshWinSizeStep = 4;
-    m_cvArucoDetectionParams.adaptiveThreshConstant    = 9;
-    // Marker size parameters - optimized for 720p
-    m_cvArucoDetectionParams.minMarkerPerimeterRate      = 0.02;
-    m_cvArucoDetectionParams.maxMarkerPerimeterRate      = 4.0;
-    m_cvArucoDetectionParams.polygonalApproxAccuracyRate = 0.02;
-    // Corner parameters - increased for dust resistance
-    m_cvArucoDetectionParams.minCornerDistanceRate = 0.07;
-    m_cvArucoDetectionParams.minDistanceToBorder   = 5;
-    m_cvArucoDetectionParams.minMarkerDistanceRate = 0.15;
-    // Corner refinement parameters - enhanced for accuracy
-    m_cvArucoDetectionParams.cornerRefinementMethod         = cv::aruco::CORNER_REFINE_SUBPIX;
-    m_cvArucoDetectionParams.cornerRefinementWinSize        = 7;
-    m_cvArucoDetectionParams.relativeCornerRefinmentWinSize = 0.4f;
-    m_cvArucoDetectionParams.cornerRefinementMaxIterations  = 50;
-    m_cvArucoDetectionParams.cornerRefinementMinAccuracy    = 0.08;
-    // Border parameters - increased for reliability
-    m_cvArucoDetectionParams.markerBorderBits                      = 2;
-    m_cvArucoDetectionParams.perspectiveRemovePixelPerCell         = 6;
-    m_cvArucoDetectionParams.perspectiveRemoveIgnoredMarginPerCell = 0.2;
-    // Error handling parameters - more tolerant for dusty conditions
-    m_cvArucoDetectionParams.maxErroneousBitsInBorderRate = 0.45;
-    m_cvArucoDetectionParams.minOtsuStdDev                = 3.5;
-    m_cvArucoDetectionParams.errorCorrectionRate          = 0.7;
-    // Advanced detection options
-    m_cvArucoDetectionParams.detectInvertedMarker            = true;
-    m_cvArucoDetectionParams.useAruco3Detection              = true;
-    m_cvArucoDetectionParams.minSideLengthCanonicalImg       = 32;
-    m_cvArucoDetectionParams.minMarkerLengthRatioOriginalImg = 0.1;
-    m_cvTagDictionary                                        = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
-    m_cvArucoDetector                                        = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+    m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
+    m_cvArucoDetectionParams.cornerRefinementMaxIterations = nArucoCornerRefinementMaxIterations;
+    m_cvArucoDetectionParams.cornerRefinementMethod        = nArucoCornerRefinementMethod;
+    m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
+    m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
+    m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
     m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
@@ -382,7 +319,10 @@ void TagDetector::ThreadedContinuousCode()
         // Clear the list of newly detected tags.
         m_vNewlyDetectedTags.clear();
         // Run image through some pre-processing step to improve detection.
-        arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
+        // NOTE: I disabled this since it was just converting to grayscale and isn't strictly necessary. - Clayton
+        // arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
+        // Copy the camera frame to the pre-processing frame.
+        m_cvArucoProcFrame = m_cvFrame.clone();
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
         // Add OpenCV tags to the list of newly detected tags.
@@ -414,8 +354,10 @@ void TagDetector::ThreadedContinuousCode()
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
-        // cv::imshow("Tag Detector", m_cvArucoProcFrame);
-        // cv::waitKey(1);
+        // Name the window the name of the camera.
+        std::string szWindowName = m_szCameraName + " Tag Detector";
+        cv::imshow(szWindowName, m_cvArucoProcFrame);
+        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -639,71 +581,83 @@ void TagDetector::DisableTorchDetection()
  ******************************************************************************/
 void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
 {
-    // // Check if the given tag vector is empty
-    // if (vNewlyDetectedTags.empty())
-    // {
-    //     // Since the tags are empty that means the detector has not detected any new ground truth tags.
-    //     // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
-    //     // stored in the m_vDetectedArucoTags vector.
-    //     // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
-    //     // and it doesn't have the ability to track tags over time.
-    //     // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
-
-    //     // Update the multi-tracker with the current frame.
-    //     m_pMultiTracker->Update(m_cvFrame);
-    // }
-    // else
-    // {
-    //     // Loop through the newly detected tags.
-    //     for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
-    //     {
-    //         // Add the newly detected tags to the multi-tracker.
-    //         bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
-    //         // Check if the tag was matched to an existing tracker.
-    //         if (!bMatchedTagToExistingTracker)
-    //         {
-    //             // Add the new tag to the member variable list.
-    //             m_vDetectedArucoTags.emplace_back(stTag);
-    //         }
-    //         else
-    //         {
-    //             // Find the tag with the same bounding box pointer and update the ID and confidence.
-    //             for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
-    //             {
-    //                 // Check if the bounding box pointers are the same.
-    //                 if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
-    //                 {
-    //                     // Update the ID and confidence of the existing tag.
-    //                     stExistingTag.nID         = stTag.nID;
-    //                     stExistingTag.dConfidence = stTag.dConfidence;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     // Update the multi-tracker with the current frame.
-    //     m_pMultiTracker->Update(m_cvFrame);
-    // }
-
-    // // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
-    // for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
-    // {
-    //     // Check if the bounding box is 0,0,0,0.
-    //     if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
-    //     {
-    //         // Remove the tag from the vector.
-    //         itTag = m_vDetectedArucoTags.erase(itTag);
-    //     }
-    //     else
-    //     {
-    //         ++itTag;
-    //     }
-    // }
-
-    m_vDetectedArucoTags.clear();
-    for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+    // Check if tracking is enabled.
+    if (m_bEnableTracking)
     {
-        m_vDetectedArucoTags.emplace_back(stTag);
+        // Check if the given tag vector is empty
+        if (vNewlyDetectedTags.empty())
+        {
+            // Since the tags are empty that means the detector has not detected any new ground truth tags.
+            // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
+            // stored in the m_vDetectedArucoTags vector.
+            // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
+            // and it doesn't have the ability to track tags over time.
+            // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+        else
+        {
+            // Loop through the newly detected tags.
+            for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+            {
+                // Add the newly detected tags to the multi-tracker.
+                bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
+                // Check if the tag was matched to an existing tracker.
+                if (!bMatchedTagToExistingTracker)
+                {
+                    // Add the new tag to the member variable list.
+                    m_vDetectedArucoTags.emplace_back(stTag);
+                }
+                else
+                {
+                    // Find the tag with the same bounding box pointer and update the ID and confidence.
+                    for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
+                    {
+                        // Check if the bounding box pointers are the same.
+                        if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
+                        {
+                            // Update the ID and confidence of the existing tag.
+                            stExistingTag.nID         = stTag.nID;
+                            stExistingTag.dConfidence = stTag.dConfidence;
+                        }
+                    }
+                }
+            }
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+
+        // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
+        for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
+        {
+            // Check if the bounding box is 0,0,0,0.
+            if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
+            {
+                // Remove the tag from the vector.
+                itTag = m_vDetectedArucoTags.erase(itTag);
+            }
+            else
+            {
+                ++itTag;
+            }
+        }
+    }
+    else
+    {
+        // If tracking is not enabled, we will just clear the detected tags and add the new ones.
+        m_vDetectedArucoTags.clear();
+        // Loop through the newly detected tags and add them to the detected tags vector.
+        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+        {
+            // Set the tag creation time to 0. The tags aren't being tracked, so we can't really tell their age.
+            stTag.tmCreation = std::chrono::system_clock::time_point::min();
+
+            // Add the new tag to the member variable list.
+            m_vDetectedArucoTags.emplace_back(stTag);
+        }
     }
 
     // Estimate the positions of the tags using the point cloud

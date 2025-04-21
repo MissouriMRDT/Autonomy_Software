@@ -58,7 +58,7 @@ namespace arucotag
 
         // Grayscale.
         cv::cvtColor(cvInputFrame, cvOutputFrame, cv::COLOR_BGR2GRAY);
-        cv::filter2D(cvOutputFrame, cvOutputFrame, -1, constants::ARUCO_EDGE_KERNEL);
+        // cv::filter2D(cvOutputFrame, cvOutputFrame, -1, constants::ARUCO_EDGE_KERNEL);
         // Reduce number of colors/gradients in the image.
         // imgops::ColorReduce(cvOutputFrame);
         // Denoise (Looks like bilateral filter is req. for ArUco, check speed since docs say it's slow)

@@ -185,34 +185,6 @@ namespace constants
     extern const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_MAINCAM_SERIAL;
 
-    // Left ZED Camera.
-    extern const int ZED_LEFTCAM_RESOLUTIONX;
-    extern const int ZED_LEFTCAM_RESOLUTIONY;
-    extern const int ZED_LEFTCAM_FPS;
-    extern const int ZED_LEFTCAM_HORIZONTAL_FOV;
-    extern const int ZED_LEFTCAM_VERTICAL_FOV;
-    extern const bool ZED_LEFTCAM_EXPORT_SVO_RECORDING;
-    extern const bool ZED_LEFTCAM_EXPORT_SPATIAL_MAP;
-    extern const bool ZED_LEFTCAM_USE_GPU_MAT;
-    extern const bool ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH;
-    extern const bool ZED_LEFTCAM_FUSION_MASTER;
-    extern const int ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS;
-    extern const int ZED_LEFTCAM_SERIAL;
-
-    // Right ZED Camera.
-    extern const int ZED_RIGHTCAM_RESOLUTIONX;
-    extern const int ZED_RIGHTCAM_RESOLUTIONY;
-    extern const int ZED_RIGHTCAM_FPS;
-    extern const int ZED_RIGHTCAM_HORIZONTAL_FOV;
-    extern const int ZED_RIGHTCAM_VERTICAL_FOV;
-    extern const bool ZED_RIGHTCAM_EXPORT_SVO_RECORDING;
-    extern const bool ZED_RIGHTCAM_EXPORT_SPATIAL_MAP;
-    extern const bool ZED_RIGHTCAM_USE_GPU_MAT;
-    extern const bool ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH;
-    extern const bool ZED_RIGHTCAM_FUSION_MASTER;
-    extern const int ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS;
-    extern const int ZED_RIGHTCAM_SERIAL;
-
     // Ground Basic Cam.
     extern const int BASICCAM_GROUNDCAM_RESOLUTIONX;
     extern const int BASICCAM_GROUNDCAM_RESOLUTIONY;
@@ -235,37 +207,26 @@ namespace constants
     extern const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER;
     extern const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS;
     extern const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION;
+    extern const bool TAGDETECT_MAINCAM_ENABLE_TRACKING;
     extern const int TAGDETECT_MAINCAM_MAX_FPS;
     extern const bool TAGDETECT_MAINCAM_ENABLE_TORCH;
     extern const std::string TAGDETECT_MAINCAM_TORCH_MODEL;
     extern const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH;
 
-    // Left ZED Camera.
-    extern const int TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS;
-    extern const int TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER;
-    extern const int TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD;
-    extern const bool TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER;
-    extern const int TAGDETECT_LEFTCAM_MARKER_BORDER_BITS;
-    extern const bool TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION;
-    extern const int TAGDETECT_LEFTCAM_MAX_FPS;
-    extern const bool TAGDETECT_LEFTCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_LEFTCAM_TORCH_MODEL;
-    extern const float TAGDETECT_LEFTCAM_TORCH_CONFIDENCE;
-    extern const float TAGDETECT_LEFTCAM_TORCH_NMS_THRESH;
-
-    // Right ZED Camera.
-    extern const int TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS;
-    extern const int TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER;
-    extern const int TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD;
-    extern const bool TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER;
-    extern const int TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS;
-    extern const bool TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION;
-    extern const int TAGDETECT_RIGHTCAM_MAX_FPS;
-    extern const bool TAGDETECT_RIGHTCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_RIGHTCAM_TORCH_MODEL;
-    extern const float TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE;
-    extern const float TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH;
+    // Ground Basic Cam.
+    extern const int TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS;
+    extern const int TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER;
+    extern const int TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD;
+    extern const bool TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER;
+    extern const int TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS;
+    extern const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION;
+    extern const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING;
+    extern const int TAGDETECT_GROUNDCAM_MAX_FPS;
+    extern const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH;
+    extern const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL;
+    extern const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE;
+    extern const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH;
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
@@ -298,10 +259,10 @@ namespace constants
     // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
     // NOTE: considered valid.
     extern const double ARUCO_MIN_LIFETIME_THRESHOLD;
+    extern const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE;
     extern const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT;
     extern const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME;
     extern const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD;
-    extern const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

@@ -31,8 +31,6 @@ class ObjectDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ObjectDetector> m_pObjectDetectorMainCam;
-        std::shared_ptr<ObjectDetector> m_pObjectDetectorLeftCam;
-        std::shared_ptr<ObjectDetector> m_pObjectDetectorRightCam;
 
     public:
         /////////////////////////////////////////
@@ -41,9 +39,7 @@ class ObjectDetectionHandler
 
         enum class ObjectDetectors    // Enum for different cameras that detectors are being ran on.
         {
-            eHeadMainCam,
-            eFrameLeftCam,
-            eFrameRightCam
+            eHeadMainCam
         };
 
         /////////////////////////////////////////
