@@ -109,7 +109,7 @@ TEST_F(AStarPlannerTests, Leaks)
 TEST_F(AStarPlannerTests, PlanAvoidancePathWaypoints)
 {
     // Create a new AStar object.
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     size_t siTestValuesLength                   = 8;
 
@@ -168,7 +168,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathWaypoints)
 TEST_F(AStarPlannerTests, PlanAvoidancePathUTMCoordinates)
 {
     // Create a new AStar object.
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     size_t siTestValuesLength                   = 8;
 
@@ -227,7 +227,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathUTMCoordinates)
 TEST_F(AStarPlannerTests, PlanAvoidancePathGPSCoordinates)
 {
     // Create a new AStar object.
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     size_t siTestValuesLength                   = 8;
 
@@ -292,7 +292,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathGPSCoordinates)
 TEST_F(AStarPlannerTests, PlanAvoidancePathStartEndBlocked)
 {
     // Create a new AStar object.
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     // Create start coordinate for AStar.
     const double dEastingStart          = 608120.0;
@@ -330,8 +330,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathStartEndBlocked)
 TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
 {
     // Create a new AStar object.
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
-
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
     size_t siTestValuesLength                   = 8;
 
     // Create start coordinate for AStar.
@@ -347,7 +346,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
     // Start planning avoidance path in a separate thread.
     std::thread tPathThread([&] { pAStar->PlanAvoidancePath(stStart, stEnd); });
     // Sleep for a short time to allow the path to start generating.
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     // Cancel the path generation.
     pAStar->CancelPathGeneration();
     // Join the thread.
@@ -373,7 +372,7 @@ TEST_F(AStarPlannerTests, PlanAvoidancePathCancel)
 TEST_F(AStarPlannerTests, ObstacleInitialization)
 {
     // Create a new AStar object.
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     // Create obstacle for AStar initialization.
     const geoops::UTMCoordinate stObstacleCenter = geoops::UTMCoordinate(608120, 4201140, 15);
@@ -420,7 +419,7 @@ TEST_F(AStarPlannerTests, ObstacleInitialization)
 TEST_F(AStarPlannerTests, UpsertObstacleData)
 {
     // Create a new AStar object
-    std::shared_ptr<pathplanners::AStar> pAStar = std::make_shared<pathplanners::AStar>();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     // Test single Waypoint obstacle
     const geoops::UTMCoordinate stObstacle1UTM(608120, 4201140, 15);
@@ -489,7 +488,7 @@ TEST_F(AStarPlannerTests, UpsertObstacleData)
 TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
 {
     // Create a new AStar object
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     // Start coordinate for AStar
     const double dEastingStart  = 608120.0;
@@ -547,10 +546,6 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
         EXPECT_NEAR(vGoalCoordinates[siI].dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
         EXPECT_NEAR(vGoalCoordinates[siI].dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
     }
-
-    // Cleanup
-    delete pAStar;
-    pAStar = nullptr;
 }
 
 /******************************************************************************
@@ -563,7 +558,7 @@ TEST_F(AStarPlannerTests, AvoidObstaclesWhilePathing)
 TEST_F(AStarPlannerTests, Maze)
 {
     // Create a new AStar object
-    pathplanners::AStar* pAStar = new pathplanners::AStar();
+    std::unique_ptr<pathplanners::AStar> pAStar = std::make_unique<pathplanners::AStar>();
 
     // Start coordinate for AStar
     const double dEastingStart  = 50.0;
@@ -714,8 +709,4 @@ TEST_F(AStarPlannerTests, Maze)
     // Make sure path hit goal point
     EXPECT_NEAR(stGoalCoordinate.dEasting, vReturnedPath.back().GetUTMCoordinate().dEasting, 0.1);
     EXPECT_NEAR(stGoalCoordinate.dNorthing, vReturnedPath.back().GetUTMCoordinate().dNorthing, 0.1);
-
-    // Cleanup
-    delete pAStar;
-    pAStar = nullptr;
 }
