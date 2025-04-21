@@ -260,7 +260,12 @@ int main()
             if (CheckKeyPress() > 0)
             {
                 char chTerminalInput = 0;
-                read(STDIN_FILENO, &chTerminalInput, 1);
+                ssize_t nBytesRead   = read(STDIN_FILENO, &chTerminalInput, 1);
+                if (nBytesRead <= 0)
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "Failed to read from terminal input.");
+                    continue;
+                }
                 if (chTerminalInput == 'f' || chTerminalInput == 'F')
                 {
                     LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
