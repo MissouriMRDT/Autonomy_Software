@@ -67,7 +67,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
     m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
-    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
+    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_16UC1);
     m_cvDepthBuffer  = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
@@ -155,8 +155,8 @@ void SIMZEDCam::SetCallbacks()
 void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDepthMeasure)
 {
     // Declare instance variables.
-    float fW  = 65536.0;
-    float fNP = 512.0;
+    float fW  = 65536.0f;
+    float fNP = 512.0f;
 
 // TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
 // This is a parallel for loop that decodes the depth measure from the encoded depth buffer.
@@ -171,33 +171,33 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             cv::Vec3b cvEncodedDepth = cvDepthBuffer.at<cv::Vec3b>(nY, nX);
 
             // Extract encoded values
-            float fL  = cvEncodedDepth[0] / 255.0;
-            float fHa = cvEncodedDepth[1] / 255.0;
-            float fHb = cvEncodedDepth[2] / 255.0;
+            float fL  = cvEncodedDepth[0] / 255.0f;
+            float fHa = cvEncodedDepth[1] / 255.0f;
+            float fHb = cvEncodedDepth[2] / 255.0f;
 
             // Period for triangle waves
             float fP = fNP / fW;
 
             // Determine offset and fine-grain correction
-            int fM       = static_cast<int>(std::floor((4.0 * (fL / fP)) - 0.5)) % 4;
-            float fL0    = fL - fmod(fL - (fP / 8.0), fP) + ((fP / 4.0) * fM) - (fP / 8.0);
+            int fM       = static_cast<int>(std::floor((4.0f * (fL / fP)) - 0.5f)) % 4;
+            float fL0    = fL - fmod(fL - (fP / 8.0f), fP) + ((fP / 4.0f) * fM) - (fP / 8.0f);
 
             float fDelta = 0.0f;
             if (fM == 0)
-                fDelta = (fP / 2.0) * fHa;
+                fDelta = (fP / 2.0f) * fHa;
             else if (fM == 1)
-                fDelta = (fP / 2.0) * fHb;
+                fDelta = (fP / 2.0f) * fHb;
             else if (fM == 2)
-                fDelta = (fP / 2.0) * (1.0 - fHa);
+                fDelta = (fP / 2.0f) * (1.0f - fHa);
             else if (fM == 3)
-                fDelta = (fP / 2.0) * (1.0 - fHb);
+                fDelta = (fP / 2.0f) * (1.0f - fHb);
 
             // Combine to compute the original depth
             float fDepth = fW * (fL0 + fDelta);
 
             // Check if the depth is within the bounds of the depth image
-            if (fDepth < 0.0)
-                fDepth = 0.0;
+            if (fDepth < 0.0f)
+                fDepth = 0.0f;
             else if (fDepth > fW)
                 fDepth = fW;
 
@@ -205,7 +205,7 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
             {
                 // Store the decoded depth in the new cv::Mat. Convert cm to m.
-                cvDepthMeasure.at<float>(nY, nX) = static_cast<float>(fDepth / 100.0);
+                cvDepthMeasure.at<uint16_t>(nY, nX) = static_cast<uint16_t>(fDepth);
             }
         }
     }
@@ -223,33 +223,40 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
  ******************************************************************************/
 void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
 {
+    // Calculate focal lengths from FOV.
+    const double dRadPerDeg = M_PI / 180.0;
+    const double dFx        = (cvDepthMeasure.cols / 2.0) / tan(m_dPropHorizontalFOV * dRadPerDeg / 2.0);
+    const double dFy        = (cvDepthMeasure.rows / 2.0) / tan(m_dPropVerticalFOV * dRadPerDeg / 2.0);
+    // Image center.
+    const double dCx = cvDepthMeasure.cols / 2.0;
+    const double dCy = cvDepthMeasure.rows / 2.0;
+
 // TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
 // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
 #pragma omp parallel for collapse(2)
 
-    // Use the decoded depth measure to create a point cloud.
+    // Iterate over each pixel in the cvDepthMeasure image
     for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
     {
         for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
         {
-            // Get the depth value.
-            float fDepth = cvDepthMeasure.at<float>(nY, nX);
+            // Get depth value
+            float fDepth = static_cast<float>(cvDepthMeasure.at<uint16_t>(nY, nX));
 
-            // Get the horizontal and vertical angles.
-            double dHorizontalAngle = (nX - cvDepthMeasure.cols / 2.0) * m_dPropHorizontalFOV / cvDepthMeasure.cols;
-            double dVerticalAngle   = (nY - cvDepthMeasure.rows / 2.0) * m_dPropVerticalFOV / cvDepthMeasure.rows;
+            // Skip invalid depth values
+            if (fDepth <= 0)
+            {
+                cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
+                continue;
+            }
 
-            // Convert angles to radians.
-            double dHorizontalAngleRad = dHorizontalAngle * M_PI / 180.0;
-            double dVerticalAngleRad   = dVerticalAngle * M_PI / 180.0;
+            // Convert from pixel coordinates to 3D coordinates
+            float fX = static_cast<float>((nX - dCx) * fDepth / dFx);
+            float fY = static_cast<float>((nY - dCy) * fDepth / dFy);
+            float fZ = fDepth;
 
-            // Calculate the Cartesian coordinates for left-handed Y-up system
-            float fX = fDepth * cos(dVerticalAngleRad) * sin(dHorizontalAngleRad);
-            float fY = fDepth * sin(dVerticalAngleRad);
-            float fZ = fDepth * cos(dVerticalAngleRad) * cos(dHorizontalAngleRad);
-
-            // Store the decoded depth in the new cv::Mat
-            cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 1.0);
+            // Store point (XYZ + intensity, using Y channel for intensity)
+            cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
         }
     }
 }
@@ -293,13 +300,21 @@ void SIMZEDCam::ThreadedContinuousCode()
             lkWebRTC3.unlock();
             return;
         }
-        // // DEBUG: show the depth buffer.
-        // cv::imshow("Depth Buffer", m_cvDepthBuffer);
-        // // DEBUG: show the depth measure. we need to scale the depth measure to be in the range of 0-255.
-        // cv::Mat cvDepthMeasureScaled;
-        // cv::normalize(m_cvDepthMeasure, cvDepthMeasureScaled, 0, 255, cv::NORM_MINMAX);
-        // cv::imshow("Depth Measure", cvDepthMeasureScaled);
-        // cv::waitKey(1);
+
+        // Make a copy of the depth measure for display.
+        cv::Mat cvDepthMeasureCopy = m_cvDepthMeasure.clone();
+        // The depth measure is a 16bit image, and we want to display it so we need to convert it to 8bit
+        cv::Mat depth8;
+        double minVal, maxVal;
+        cv::minMaxLoc(cvDepthMeasureCopy, &minVal, &maxVal);            // Get min/max for proper scaling
+        cvDepthMeasureCopy.convertTo(depth8, CV_8U, 255.0 / maxVal);    // Scale to 0–255
+        // Optional: apply a colormap to enhance visibility
+        cv::Mat depthColor;
+        cv::applyColorMap(depth8, depthColor, cv::COLORMAP_JET);
+        // Show results
+        cv::imshow("Depth Grayscale", depth8);
+        cv::imshow("Depth Color", depthColor);
+        cv::waitKey(1);    // Wait for a key press for 1 ms
 
         // Release lock.
         lkWebRTC3.unlock();

@@ -15,15 +15,11 @@
 #include "../../../src/AutonomyNetworking.h"
 #include "../../../src/util/ExampleChecker.h"
 
-// Standard includes
+/// \cond
 #include <chrono>
 #include <future>
-
-// Include OpenCV headers.
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/opencv.hpp>
-
-// Include PCL headers.
 #include <pcl/common/transforms.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/impl/point_types.hpp>
@@ -33,6 +29,8 @@
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
+
+/// \endcond
 
 /******************************************************************************
  * @brief Main example function.
@@ -65,12 +63,6 @@ void RunExample()
     // Declare FPS counter.
     IPS FPS = IPS();
 
-    // Create a PCL visualizer.
-    pcl::visualization::PCLVisualizer::Ptr pclViewer(new pcl::visualization::PCLVisualizer("Point Cloud Viewer"));
-    // Set background color and initialize camera position
-    pclViewer->setBackgroundColor(0, 0, 0);
-    pclViewer->initCameraParameters();
-
     // Loop forever, or until user hits ESC.
     while (true)
     {
@@ -102,47 +94,69 @@ void RunExample()
                 cvGPUPointCloud1.download(cvPointCloud1);
             }
 
-            // Convert cv::Mat point cloud (which has 3 channels: X, Y, Z) into a PCL point cloud.
-            pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>());
-            for (int i = 0; i < cvPointCloud1.rows; ++i)
-            {
-                for (int j = 0; j < cvPointCloud1.cols; ++j)
-                {
-                    // Access the 3D point stored as a cv::Vec3f.
-                    cv::Vec3f cvPoint = cvPointCloud1.at<cv::Vec3f>(i, j);
+            // Use PCL to visualize the point cloud.
+            static pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>());
+            static pcl::PointCloud<pcl::PointXYZ>::Ptr pclFilteredPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
+            static pcl::PointCloud<pcl::PointXYZ>::Ptr pclDownsampledPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
+            static pcl::visualization::PCLVisualizer::Ptr pclViewer;
 
-                    // Stricter filtering of invalid or distant points
-                    if (std::isfinite(cvPoint[0]) && std::isfinite(cvPoint[1]) && std::isfinite(cvPoint[2]))
+            // Initialize the PCL viewer on the first run
+            if (!pclViewer)
+            {
+                pclViewer.reset(new pcl::visualization::PCLVisualizer("Depth Point Cloud"));
+                pclViewer->setBackgroundColor(0, 0, 0);
+                pclViewer->addPointCloud<pcl::PointXYZ>(pclDownsampledPointCloud, "depth_cloud");
+                pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "depth_cloud");
+                pclViewer->addCoordinateSystem(1000.0);
+                pclViewer->initCameraParameters();
+            }
+
+            // Convert the OpenCV point cloud to PCL format.
+            pclCloud->width    = cvPointCloud1.cols;
+            pclCloud->height   = cvPointCloud1.rows;
+            pclCloud->is_dense = false;
+            pclCloud->points.resize(pclCloud->width * pclCloud->height);
+
+            // Copy points from OpenCV format to PCL format.
+            for (int nY = 0; nY < cvPointCloud1.rows; ++nY)
+            {
+                for (int nX = 0; nX < cvPointCloud1.cols; ++nX)
+                {
+                    cv::Vec4f cvPoint = cvPointCloud1.at<cv::Vec4f>(nY, nX);
+                    size_t siIDx      = nY * cvPointCloud1.cols + nX;
+
+                    // Only add points with valid depth.
+                    if (cvPoint[2] > 0)
                     {
-                        pclCloud->points.push_back(pcl::PointXYZ(cvPoint[0], cvPoint[1], cvPoint[2]));
+                        pclCloud->points[siIDx].x = cvPoint[0];
+                        pclCloud->points[siIDx].y = cvPoint[1];
+                        pclCloud->points[siIDx].z = cvPoint[2];
+                    }
+                    else
+                    {
+                        // For invalid points, set to NaN.
+                        pclCloud->points[siIDx].x = std::numeric_limits<float>::quiet_NaN();
+                        pclCloud->points[siIDx].y = std::numeric_limits<float>::quiet_NaN();
+                        pclCloud->points[siIDx].z = std::numeric_limits<float>::quiet_NaN();
                     }
                 }
             }
 
-            // Apply a voxel grid filter to downsample the point cloud
-            pcl::PointCloud<pcl::PointXYZ>::Ptr pclFilteredCloud(new pcl::PointCloud<pcl::PointXYZ>());
+            // Remove NaN points to clean up the cloud
+            std::vector<int> vIndices;
+            pcl::removeNaNFromPointCloud(*pclCloud, *pclFilteredPointCloud, vIndices);
+            std::cout << "Point cloud filtered: " << pclFilteredPointCloud->points.size() << " valid points." << std::endl;
+
+            // Downsample the point cloud for better visualization performance
             pcl::VoxelGrid<pcl::PointXYZ> pclVoxelGrid;
-            pclVoxelGrid.setInputCloud(pclCloud);
-            pclVoxelGrid.setLeafSize(1.0f, 1.0f, 1.0f);    // Adjust leaf size as needed
-            pclVoxelGrid.filter(*pclFilteredCloud);
+            pclVoxelGrid.setInputCloud(pclFilteredPointCloud);
+            pclVoxelGrid.setLeafSize(5.0f, 5.0f, 5.0f);
+            pclVoxelGrid.filter(*pclDownsampledPointCloud);
+            std::cout << "Point cloud downsampled to " << pclDownsampledPointCloud->points.size() << " points." << std::endl;
 
-            // Set the PCL point pclFilteredCloud dimensions.
-            pclFilteredCloud->width    = static_cast<uint32_t>(pclFilteredCloud->points.size());
-            pclFilteredCloud->height   = 1;
-            pclFilteredCloud->is_dense = false;
-
-            // Clear visualizer completely
-            pclViewer->removeAllPointClouds();
-            pclViewer->removeAllShapes();
-
-            // Add the filtered point cloud
-            pclViewer->addPointCloud<pcl::PointXYZ>(pclFilteredCloud, "cloud");
-            pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cloud");
-
-            // Use a longer spin time to ensure proper rendering
+            // Update the point cloud in the viewer
+            pclViewer->updatePointCloud(pclDownsampledPointCloud, "depth_cloud");
             pclViewer->spinOnce(10);
-            // Export the point cloud to a ply.
-            // pcl::io::savePLYFile("point_cloud.ply", *pclFilteredCloud);
         }
 
         // Tick FPS counter.
