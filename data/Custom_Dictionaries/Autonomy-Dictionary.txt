@@ -113,6 +113,7 @@ deleter
 Denoise
 Depacketization
 Depacketizer
+DEPTHMEASUREENCODEDECODE
 depthobject
 deque
 Desaturate
@@ -128,6 +129,7 @@ dockerfiles
 dorny
 DOTA
 Downsample
+downsampled
 doxdocgen
 Doxyfile
 Doxygen
@@ -267,6 +269,7 @@ imgsz
 imread
 imshow
 IMUDATA
+imwrite
 INCREMENTIKPOSITION
 INCREMENTINDIVIDUALTARGETANGLES
 INCREMENTJOINTTARGETANGLE
@@ -309,6 +312,7 @@ keyscan
 ladspa
 latlng
 latlon
+LBUTTONDOWN
 ldconfig
 LEDPATTERNS
 LEDRGB
@@ -650,6 +654,7 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zerolatency
 zlabel
 zstd
 ztickformat
