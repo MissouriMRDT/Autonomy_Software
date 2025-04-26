@@ -145,18 +145,14 @@ void RunExample()
             // Remove NaN points to clean up the cloud
             std::vector<int> vIndices;
             pcl::removeNaNFromPointCloud(*pclCloud, *pclFilteredPointCloud, vIndices);
-            std::cout << "Point cloud filtered: " << pclFilteredPointCloud->points.size() << " valid points." << std::endl;
-
             // Downsample the point cloud for better visualization performance
             pcl::VoxelGrid<pcl::PointXYZ> pclVoxelGrid;
             pclVoxelGrid.setInputCloud(pclFilteredPointCloud);
             pclVoxelGrid.setLeafSize(5.0f, 5.0f, 5.0f);
             pclVoxelGrid.filter(*pclDownsampledPointCloud);
-            std::cout << "Point cloud downsampled to " << pclDownsampledPointCloud->points.size() << " points." << std::endl;
-
             // Update the point cloud in the viewer
             pclViewer->updatePointCloud(pclDownsampledPointCloud, "depth_cloud");
-            pclViewer->spinOnce(10);
+            pclViewer->spinOnce(100);
         }
 
         // Tick FPS counter.

@@ -155,7 +155,7 @@ void SIMZEDCam::SetCallbacks()
 void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDepthMeasure)
 {
     // Declare instance variables.
-    float fW  = 65536.0f;
+    float fW  = 2001.0f;
     float fNP = 512.0f;
 
 // TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
@@ -300,22 +300,6 @@ void SIMZEDCam::ThreadedContinuousCode()
             lkWebRTC3.unlock();
             return;
         }
-
-        // Make a copy of the depth measure for display.
-        cv::Mat cvDepthMeasureCopy = m_cvDepthMeasure.clone();
-        // The depth measure is a 16bit image, and we want to display it so we need to convert it to 8bit
-        cv::Mat depth8;
-        double minVal, maxVal;
-        cv::minMaxLoc(cvDepthMeasureCopy, &minVal, &maxVal);            // Get min/max for proper scaling
-        cvDepthMeasureCopy.convertTo(depth8, CV_8U, 255.0 / maxVal);    // Scale to 0–255
-        // Optional: apply a colormap to enhance visibility
-        cv::Mat depthColor;
-        cv::applyColorMap(depth8, depthColor, cv::COLORMAP_JET);
-        // Show results
-        cv::imshow("Depth Grayscale", depth8);
-        cv::imshow("Depth Color", depthColor);
-        cv::waitKey(1);    // Wait for a key press for 1 ms
-
         // Release lock.
         lkWebRTC3.unlock();
 

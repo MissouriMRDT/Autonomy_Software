@@ -666,6 +666,22 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
         // Use the point cloud to get the location of the tag.
         tagdetectutils::EstimatePoseFromCameraFrame(stTag);
     }
+
+    // Check if the point cloud is empty.
+    if (!m_cvPointCloud.empty())
+    {
+        // Loop through the tags and use their center point to lookup their distance in the point cloud.
+        for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+        {
+            // Calculate the center point of the tag.
+            cv::Point2f stTagCenter(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2.0f, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2.0f);
+
+            // Get the distance of the tag from the m_cvPointCloud. We'll need to use pythagorean theorem to get the distance.
+            cv::Vec3f stTagDistance = m_cvPointCloud.at<cv::Vec3f>(stTagCenter);
+            // Calculate the distance of the tag from the camera.
+            stTag.dStraightLineDistance = std::sqrt(stTagDistance[0] * stTagDistance[0] + stTagDistance[1] * stTagDistance[1] + stTagDistance[2] * stTagDistance[2]);
+        }
+    }
 }
 
 /******************************************************************************
