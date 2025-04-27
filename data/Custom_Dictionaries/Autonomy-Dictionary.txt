@@ -234,6 +234,12 @@ gcov
 gcovr
 geekyeggo
 geolib
+geoloc
+geolocalization
+Geolocate
+GEOLOCATE
+geolocated
+Geolocated
 geoops
 Geospatial
 gfortran

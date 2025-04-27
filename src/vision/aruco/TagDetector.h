@@ -132,6 +132,9 @@ class TagDetector : public AutonomyThread<void>
         std::vector<tagdetectutils::ArucoTag> m_vNewlyDetectedTags;
         std::vector<tagdetectutils::ArucoTag> m_vDetectedArucoTags;
 
+        // Rover position for tag geolocalization.
+        geoops::RoverPose m_stRoverPose;
+
         // Create frames for storing images and point clouds.
 
         cv::Mat m_cvFrame;

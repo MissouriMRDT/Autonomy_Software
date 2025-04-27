@@ -68,6 +68,7 @@ namespace tagdetectutils
             TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
             cv::Size cvImageResolution;                                                             // The resolution of the image used to detect the tag.
             double dHorizontalFOV;                                                                  // The horizontal field of view of the camera used to detect the tag.
+            geoops::Waypoint stGeolocatedPosition;                                                  // The geolocated position of the tag.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -83,7 +84,8 @@ namespace tagdetectutils
             {
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
-                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV;
+                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV &&
+                       stGeolocatedPosition == stOther.stGeolocatedPosition;
             }
 
             /******************************************************************************
@@ -125,6 +127,7 @@ namespace tagdetectutils
                     eDetectionMethod      = stOther.eDetectionMethod;
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
+                    stGeolocatedPosition  = stOther.stGeolocatedPosition;
                 }
                 return *this;
             }
