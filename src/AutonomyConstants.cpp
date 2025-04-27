@@ -269,7 +269,7 @@ namespace constants
     // Approaching Marker State
     const double APPROACH_MARKER_MOTOR_POWER          = 0.15;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_VISION_DISTANCE      = 0.1;     // The screen percentage of the marker to be considered close enough. 0-100
+    const double APPROACH_MARKER_VISION_DISTANCE      = 1.5;     // The distance in meters that the rover should stop approaching the marker when using vision.
     const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
     const bool APPROACH_MARKER_VERIFY_POSITION        = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
     const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.

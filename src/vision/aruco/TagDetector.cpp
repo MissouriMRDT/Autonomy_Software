@@ -9,6 +9,8 @@
  ******************************************************************************/
 
 #include "TagDetector.h"
+#include "../../AutonomyGlobals.h"
+#include "../../util/vision/Geolocate.hpp"
 #include "../../util/vision/ImageOperations.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TorchTagDetection.hpp"
@@ -57,6 +59,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_szCameraName                     = std::dynamic_pointer_cast<BasicCamera>(pBasicCam)->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
+    m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -124,6 +127,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_szCameraName                     = pZEDCam->GetCameraModel() + "_" + std::to_string(pZEDCam->GetCameraSerial());
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
+    m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -660,26 +664,35 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
         }
     }
 
-    // Estimate the positions of the tags using the point cloud
-    for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
-    {
-        // Use the point cloud to get the location of the tag.
-        tagdetectutils::EstimatePoseFromCameraFrame(stTag);
-    }
+    // // Estimate the positions of the tags using the point cloud
+    // for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+    // {
+    //     // Use the point cloud to get the location of the tag.
+    //     tagdetectutils::EstimatePoseFromCameraFrame(stTag);
+    // }
 
     // Check if the point cloud is empty.
     if (!m_cvPointCloud.empty())
     {
+        // Get the rover pose from the waypoint handler.
+        m_stRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         // Loop through the tags and use their center point to lookup their distance in the point cloud.
         for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
         {
-            // Calculate the center point of the tag.
-            cv::Point2f stTagCenter(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2.0f, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2.0f);
-
-            // Get the distance of the tag from the m_cvPointCloud. We'll need to use pythagorean theorem to get the distance.
-            cv::Vec3f stTagDistance = m_cvPointCloud.at<cv::Vec3f>(stTagCenter);
-            // Calculate the distance of the tag from the camera.
-            stTag.dStraightLineDistance = std::sqrt(stTagDistance[0] * stTagDistance[0] + stTagDistance[1] * stTagDistance[1] + stTagDistance[2] * stTagDistance[2]);
+            // Use either width of height for the neighborhood size.
+            int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+            // Geolocate the tag in the point cloud.
+            stTag.stGeolocatedPosition = geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
+            // Calculate the geo measurement and print the distance to the tag.
+            geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stTag.stGeolocatedPosition.GetUTMCoordinate());
+            // Set the straight line distance to the tag.
+            stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Tag ID: {}, Distance: {:.2f} m, Azimuth: {:.2f} degrees",
+                       stTag.nID,
+                       stMeasurement.dDistanceMeters,
+                       stMeasurement.dStartRelativeBearing);
         }
     }
 }

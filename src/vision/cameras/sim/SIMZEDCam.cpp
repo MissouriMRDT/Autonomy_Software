@@ -205,7 +205,7 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
             {
                 // Store the decoded depth in the new cv::Mat. Convert cm to m.
-                cvDepthMeasure.at<uint16_t>(nY, nX) = static_cast<uint16_t>(fDepth);
+                cvDepthMeasure.at<uint16_t>(nY, nX) = static_cast<uint16_t>(fDepth / 100.0f);
             }
         }
     }
