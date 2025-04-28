@@ -109,6 +109,7 @@ namespace statemachine
             return;
         }
 
+        // TODO: Rework this logic to use the absolute position of the tag if available.
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
@@ -159,14 +160,38 @@ namespace statemachine
         // Check if we got a good OpenCV tag.
         if (stBestArucoTag.nID != -1)
         {
-            dHeadingSetPoint = numops::InputAngleModulus(stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 359.9);
             dDistanceFromTag = stBestArucoTag.dStraightLineDistance;
+            // Check if the tag has an absolute coordinate populated.
+            if (stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+            {
+                // Calculate the geomeasurement to the tag.
+                geoops::GeoMeasurement stTagMeasurement =
+                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate());
+                // Update static variables.
+                dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+            }
+            else
+            {
+                dHeadingSetPoint = numops::InputAngleModulus(stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 359.9);
+            }
         }
         // Check if we got a good Torch tag.
         else if (stBestTorchTag.dConfidence != 0.0)
         {
-            dHeadingSetPoint = numops::InputAngleModulus(stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 359.9);
             dDistanceFromTag = stBestTorchTag.dStraightLineDistance;
+            // Check if the tag has an absolute coordinate populated.
+            if (stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+            {
+                // Calculate the geomeasurement to the tag.
+                geoops::GeoMeasurement stTagMeasurement =
+                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate());
+                // Update static variables.
+                dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+            }
+            else
+            {
+                dHeadingSetPoint = numops::InputAngleModulus(stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 359.9);
+            }
         }
 
         // Move the rover to the target's estimated position.
@@ -180,8 +205,7 @@ namespace statemachine
         std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
 
         // Check if tag is reached.
-        double dAngularError = numops::AngularDifference(dHeadingSetPoint, stCurrentRoverPose.GetCompassHeading());
-        if (dDistanceFromTag < constants::APPROACH_MARKER_VISION_DISTANCE && dAngularError < 5.0)
+        if (dDistanceFromTag < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");

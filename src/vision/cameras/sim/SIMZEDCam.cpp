@@ -67,7 +67,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
     m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
-    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_16UC1);
+    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
     m_cvDepthBuffer  = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
@@ -205,7 +205,7 @@ void SIMZEDCam::DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDept
             if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
             {
                 // Store the decoded depth in the new cv::Mat. Convert cm to m.
-                cvDepthMeasure.at<uint16_t>(nY, nX) = static_cast<uint16_t>(fDepth / 100.0f);
+                cvDepthMeasure.at<float>(nY, nX) = fDepth / 1000.0f;
             }
         }
     }
@@ -241,7 +241,7 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
         for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
         {
             // Get depth value
-            float fDepth = static_cast<float>(cvDepthMeasure.at<uint16_t>(nY, nX));
+            float fDepth = cvDepthMeasure.at<float>(nY, nX);
 
             // Skip invalid depth values
             if (fDepth <= 0)
