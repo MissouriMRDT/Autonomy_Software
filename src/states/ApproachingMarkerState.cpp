@@ -119,7 +119,7 @@ namespace statemachine
             return;
         }
 
-        // TODO: Rework this logic to use the absolute position of the tag if available.
+        // TODO: Rework this logic to not expire prematurely if we have a good geolocated tag.
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
