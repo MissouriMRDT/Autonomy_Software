@@ -13,6 +13,7 @@
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../util/vision/TagDetectionUtilty.hpp"
 #include "../vision/aruco/TagDetector.h"
@@ -40,6 +41,7 @@ namespace statemachine
             States m_eTriggeringState;
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
+            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
             void Start() override;
             void Exit() override;

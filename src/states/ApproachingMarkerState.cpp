@@ -41,6 +41,11 @@ namespace statemachine
         // Store the state that got stuck and triggered a MarkerSeen event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
+        // Add the search and rover path layers to the plot.
+        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
+        m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
+
         // Get tag detectors.
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
@@ -72,12 +77,14 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized  = false;
+        m_bInitialized   = false;
 
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
+        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingMarkerRoverPath");
+
         if (!m_bInitialized)
         {
             Start();
@@ -98,6 +105,9 @@ namespace statemachine
 
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+
+        // Add the current rover pose to the path plot.
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         // Check Rover radius from marker waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
@@ -169,6 +179,8 @@ namespace statemachine
                     geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate());
                 // Update static variables.
                 dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+                // Add the most recent geolocated tag to the plot.
+                m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
             }
             else
             {
@@ -187,6 +199,8 @@ namespace statemachine
                     geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate());
                 // Update static variables.
                 dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+                // Add the most recent geolocated tag to the plot.
+                m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
             }
             else
             {
@@ -209,6 +223,18 @@ namespace statemachine
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
+            // Check if the OpenCV tag has a good absolute position.
+            if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+            {
+                // Add the tag to the path plot.
+                m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
+            }
+            // Check if the torch tag has a good absolute position.
+            if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+            {
+                // Add the tag to the path plot.
+                m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
+            }
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             // Don't execute the rest of the state.
