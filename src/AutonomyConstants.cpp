@@ -70,8 +70,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Power constants.
-    const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
-    const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
+    const float DRIVE_MAX_POWER = 0.35;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
+    const float DRIVE_MIN_POWER = -0.35;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
     // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
     const float DRIVE_MAX_EFFORT = DRIVE_MAX_POWER;    // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
     const float DRIVE_MIN_EFFORT = DRIVE_MIN_POWER;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
@@ -170,7 +170,7 @@ namespace constants
     const int ZED_MAINCAM_FPS                   = 60;                         // The FPS to use for the maincam.
     const int ZED_MAINCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
     const int ZED_MAINCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the leftcam to an SVO file.
+    const bool ZED_MAINCAM_EXPORT_SVO_RECORDING = true;                      // Whether or not to record the leftcam to an SVO file.
     const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_MAINCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
@@ -218,7 +218,7 @@ namespace constants
     const int TAGDETECT_GROUNDCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
     const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE  = 0.8f;    // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
@@ -267,11 +267,11 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER          = 0.15;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_MOTOR_POWER          = 0.35;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_VISION_DISTANCE      = 1.5;     // The distance in meters that the rover should stop approaching the marker when using vision.
+    const double APPROACH_MARKER_VISION_DISTANCE      = 2.0;     // The distance in meters that the rover should stop approaching the marker when using vision.
     const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_MARKER_VERIFY_POSITION        = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
+    const bool APPROACH_MARKER_VERIFY_POSITION        = false;    // Whether or not the rover should sit and watch the tag for a while before moving on.
     const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.
     const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
 
@@ -292,7 +292,7 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;    // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER          = 0.2;     // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER          = 0.4;     // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 4.0;     // The spacing between successive points in the zigzag (meters).
@@ -300,7 +300,7 @@ namespace constants
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER         = 0.4;      // The speed to drive at when navigating.
+    const double NAVIGATING_MOTOR_POWER         = 0.6;      // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;      // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION       = false;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.

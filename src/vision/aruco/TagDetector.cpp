@@ -336,7 +336,7 @@ void TagDetector::ThreadedContinuousCode()
         if (m_bTorchEnabled)
         {
             // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
+            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2BGR);
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
                 torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
@@ -359,9 +359,9 @@ void TagDetector::ThreadedContinuousCode()
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
         // Name the window the name of the camera.
-        std::string szWindowName = m_szCameraName + " Tag Detector";
-        cv::imshow(szWindowName, m_cvArucoProcFrame);
-        cv::waitKey(1);
+        // std::string szWindowName = m_szCameraName + " Tag Detector";
+        // cv::imshow(szWindowName, m_cvArucoProcFrame);
+        // cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -687,12 +687,12 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
             geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stTag.stGeolocatedPosition.GetUTMCoordinate());
             // Set the straight line distance to the tag.
             stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
-            // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger,
-                       "Tag ID: {}, Distance: {:.2f} m, Azimuth: {:.2f} degrees",
-                       stTag.nID,
-                       stMeasurement.dDistanceMeters,
-                       stMeasurement.dStartRelativeBearing);
+            // // Submit logger message.
+            // LOG_NOTICE(logging::g_qSharedLogger,
+            //            "Tag ID: {}, Distance: {:.2f} m, Azimuth: {:.2f} degrees",
+            //            stTag.nID,
+            //            stMeasurement.dDistanceMeters,
+            //            stMeasurement.dStartRelativeBearing);
         }
     }
 }

@@ -181,7 +181,7 @@ namespace statemachine
 
         // Check if tag is reached.
         double dAngularError = numops::AngularDifference(dHeadingSetPoint, stCurrentRoverPose.GetCompassHeading());
-        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE && dAngularError < 5.0)
+        if (dDistanceFromTag < constants::APPROACH_MARKER_VISION_DISTANCE && dAngularError < 5.0)
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
@@ -247,7 +247,9 @@ namespace statemachine
                     globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
                     globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
                     // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                    LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                    // Change state.
+                    eNextState = States::eIdle;
                 }
                 break;
             }
