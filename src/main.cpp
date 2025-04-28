@@ -148,6 +148,7 @@ int main()
     // Start RoveComm instances bound on ports.
     network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
     network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+
     // Check if RoveComm was successfully initialized.
     if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
     {

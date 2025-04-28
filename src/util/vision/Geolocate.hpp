@@ -14,6 +14,7 @@
 
 #include "../../AutonomyLogging.h"
 #include "../GeospatialOperations.hpp"
+#include "../NumberOperations.hpp"
 
 /// \cond
 #include <algorithm>
@@ -108,8 +109,10 @@ namespace geoloc
         float fAvgY = std::accumulate(vY.begin(), vY.end(), 0.0f) / vY.size();
         float fAvgZ = std::accumulate(vZ.begin(), vZ.end(), 0.0f) / vZ.size();
 
+        // Adjust rover degree heading to match unit circle 0 position.
+        double dAdjustedHeading = numops::InputAngleModulus(stRoverPose.GetCompassHeading() + 90.0, 0.0, 359.9);
         // Convert camera heading to radians. (0 = North, CW positive)
-        double dHeadingRad = stRoverPose.GetCompassHeading() * M_PI / 180.0;
+        double dHeadingRad = dAdjustedHeading * M_PI / 180.0;
 
         // Get the rover's current UTM position.
         const geoops::UTMCoordinate& stRoverUTM = stRoverPose.GetUTMCoordinate();
