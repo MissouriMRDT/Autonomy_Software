@@ -98,8 +98,7 @@ namespace geoloc
         // If no valid points found in the neighborhood.
         if (vX.empty())
         {
-            LOG_ERROR(logging::g_qSharedLogger, "GeolocateBox: No valid points found in neighborhood around pixel ({}, {})", cvPixel.x, cvPixel.y);
-
+            LOG_DEBUG(logging::g_qSharedLogger, "GeolocateBox: No valid points found in neighborhood around pixel ({}, {})", cvPixel.x, cvPixel.y);
             // Return a waypoint with default values.
             return geoops::Waypoint();
         }

@@ -55,6 +55,7 @@ namespace statemachine
         m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
+        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
@@ -151,6 +152,20 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+
+                // Check if the OpenCV tag has a good absolute position.
+                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+                // Check if the torch tag has a good absolute position.
+                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 // Don't execute the rest of the state.

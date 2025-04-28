@@ -66,9 +66,9 @@ namespace tagdetectutils
             std::string szClassName                          = "";                                  // The class name of the tag (used in Torch/Tensorflow models).
             std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the minimum time point.
             TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
-            cv::Size cvImageResolution;                                                             // The resolution of the image used to detect the tag.
-            double dHorizontalFOV;                                                                  // The horizontal field of view of the camera used to detect the tag.
-            geoops::Waypoint stGeolocatedPosition;                                                  // The geolocated position of the tag.
+            cv::Size cvImageResolution                       = cv::Size(0, 0);                      // The resolution of the image used to detect the tag.
+            double dHorizontalFOV                            = 0.0;                                 // The horizontal field of view of the camera used to detect the tag.
+            geoops::Waypoint stGeolocatedPosition            = geoops::Waypoint();                  // The geolocated position of the tag.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.

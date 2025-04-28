@@ -240,6 +240,7 @@ Geolocate
 GEOLOCATE
 geolocated
 Geolocated
+geomeasurement
 geoops
 Geospatial
 gfortran
