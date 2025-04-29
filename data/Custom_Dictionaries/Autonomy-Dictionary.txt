@@ -242,6 +242,7 @@ geolocated
 Geolocated
 geomeasurement
 geoops
+geoposition
 Geospatial
 gfortran
 gmock
