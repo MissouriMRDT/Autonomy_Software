@@ -359,9 +359,9 @@ void TagDetector::ThreadedContinuousCode()
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
         // Name the window the name of the camera.
-        std::string szWindowName = m_szCameraName + " Tag Detector";
-        cv::imshow(szWindowName, m_cvArucoProcFrame);
-        cv::waitKey(1);
+        // std::string szWindowName = m_szCameraName + " Tag Detector";
+        // cv::imshow(szWindowName, m_cvArucoProcFrame);
+        // cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 

@@ -119,7 +119,6 @@ namespace statemachine
             return;
         }
 
-        // TODO: Rework this logic to not expire prematurely if we have a good geolocated tag.
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
@@ -143,11 +142,25 @@ namespace statemachine
                     bAlreadyPrintedLost = true;
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
-                }
 
-                // Stop the drive.
-                globals::g_pDriveBoard->SendStop();
-                return;
+                    // If either of the tags are good and have a valid geoposition, don't stop the drive, we can keep driving to it.
+                    if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: OpenCV tag is geolocated.");
+                        return;
+                    }
+                    if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Torch tag is geolocated.");
+                        return;
+                    }
+
+                    // Stop the drive.
+                    globals::g_pDriveBoard->SendStop();
+                    return;
+                }
             }
         }
         else
