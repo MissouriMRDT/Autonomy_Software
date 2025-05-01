@@ -290,13 +290,13 @@ void TagDetector::ThreadedContinuousCode()
         else
         {
             // Grab frames from camera.
-            fuPointCloudCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
             // Wait for point cloud to be retrieved.
-            if (!fuPointCloudCopyStatus.get())
+            if (!fuRegularFrameCopyStatus.get())
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from BasicCam!");
+                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
             }
             else
             {
@@ -359,9 +359,9 @@ void TagDetector::ThreadedContinuousCode()
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
         // Name the window the name of the camera.
-        // std::string szWindowName = m_szCameraName + " Tag Detector";
-        // cv::imshow(szWindowName, m_cvArucoProcFrame);
-        // cv::waitKey(1);
+        std::string szWindowName = m_szCameraName + " Tag Detector";
+        cv::imshow(szWindowName, m_cvArucoProcFrame);
+        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -691,10 +691,10 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
     }
     else
     {
-        // Estimate the positions of the tags using the point cloud
+        // Estimate the positions of the tags using some basic trig.
         for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
         {
-            // Use the point cloud to get the location of the tag.
+            // Use some trig to get the location of the tag.
             tagdetectutils::EstimatePoseFromCameraFrame(stTag);
         }
     }

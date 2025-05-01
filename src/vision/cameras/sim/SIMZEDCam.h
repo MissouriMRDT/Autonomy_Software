@@ -82,7 +82,7 @@ class SIMZEDCam : public ZEDCamera
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         void SetCallbacks();
-        void DecodeDepthMeasure(const cv::Mat& cvDepthBuffer, cv::Mat& cvDepthMeasure);
+        void EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure);
         void CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud);
 
         /////////////////////////////////////////
@@ -98,8 +98,6 @@ class SIMZEDCam : public ZEDCamera
 
         std::unique_ptr<WebRTC> m_pRGBStream;
         std::unique_ptr<WebRTC> m_pDepthImageStream;
-        std::unique_ptr<WebRTC> m_pDepthMeasureStream;
-        std::unique_ptr<WebRTC> m_pPointCloudStream;
 
         // Pose tracking offsets. (ZEDSDK is broken and can't handle large translations internally as it uses float32.)
 
@@ -118,8 +116,8 @@ class SIMZEDCam : public ZEDCamera
         // Mats for storing frames.
 
         cv::Mat m_cvFrame;
+        cv::Mat m_cvDepthImageBuffer;
         cv::Mat m_cvDepthImage;
-        cv::Mat m_cvDepthBuffer;
         cv::Mat m_cvDepthMeasure;
         cv::Mat m_cvPointCloud;
 
@@ -130,8 +128,6 @@ class SIMZEDCam : public ZEDCamera
 
         std::shared_mutex m_muWebRTCRGBImageCopyMutex;
         std::shared_mutex m_muWebRTCDepthImageCopyMutex;
-        std::shared_mutex m_muWebRTCDepthMeasureCopyMutex;
-        std::shared_mutex m_muWebRTCPointCloudCopyMutex;
 
         // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats in PoolLinearCode.
         std::shared_mutex m_muPoseCopyMutex;
