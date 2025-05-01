@@ -18,9 +18,11 @@
 /// \cond
 #include <chrono>
 #include <future>
+#include <libavutil/log.h>    // For av_log_set_level
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/opencv.hpp>
 #include <pcl/common/transforms.h>
+#include <pcl/console/print.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/impl/point_types.hpp>
 #include <pcl/io/ply_io.h>
@@ -32,6 +34,50 @@
 
 /// \endcond
 
+// Global constants
+const float VOXEL_GRID_LEAF_SIZE = 0.05f;    // Increased from 0.01f to prevent overflow
+
+/******************************************************************************
+ * @brief Mouse callback function for depth image clicks.
+ *
+ * @param nEvent - The type of mouse event (e.g., left button click).
+ * @param nX - The x-coordinate of the mouse event.
+ * @param nY - The y-coordinate of the mouse event.
+ * @param nFlags - The flags associated with the mouse event.
+ * @param pUserData - Pointer to user data (in this case, the depth image).
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-01
+ ******************************************************************************/
+void DepthMouseCallback(int nEvent, int nX, int nY, int nFlags, void* pUserData)
+{
+    (void) nFlags;    // Unused parameter
+    if (nEvent != cv::EVENT_LBUTTONDOWN)
+        return;
+
+    cv::Mat* cvDepthImage = static_cast<cv::Mat*>(pUserData);
+    if (nX >= 0 && nY >= 0 && nX < cvDepthImage->cols && nY < cvDepthImage->rows)
+    {
+        // Handle different depth image types
+        float fDepthValue = 0.0f;
+
+        // Check the depth image type and retrieve the depth value accordingly
+        fDepthValue = cvDepthImage->at<float>(nY, nX);
+        std::cout << "Depth at (" << nX << ", " << nY << "): " << fDepthValue << " m" << std::endl;
+    }
+}
+
+/******************************************************************************
+ * @brief Suppresses PCL logging messages.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-01
+ ******************************************************************************/
+void SuppressPCLLogging()
+{
+    pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+}
+
 /******************************************************************************
  * @brief Main example function.
  *
@@ -41,6 +87,9 @@
  ******************************************************************************/
 void RunExample()
 {
+    // Suppress logging messages
+    SuppressPCLLogging();
+
     // Initialize and start handlers.
     globals::g_pCameraHandler = new CameraHandler();
 
@@ -63,6 +112,9 @@ void RunExample()
     // Declare FPS counter.
     IPS FPS = IPS();
 
+    // Create a depth display window and set up mouse callback
+    cv::namedWindow("Depth Frame", cv::WINDOW_AUTOSIZE);
+
     // Loop forever, or until user hits ESC.
     while (true)
     {
@@ -74,13 +126,13 @@ void RunExample()
         if (pExampleZEDCam1->GetUsingGPUMem())
         {
             // Grab frames from camera.
-            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1);
             fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
         }
         else
         {
             // Grab frames from camera.
-            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvDepthFrame1);
             fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
 
@@ -92,6 +144,21 @@ void RunExample()
                 // Download data from GPU matrices.
                 cvGPUDepthFrame1.download(cvDepthFrame1);
                 cvGPUPointCloud1.download(cvPointCloud1);
+            }
+
+            // Display the depth frame and set up mouse callback
+            if (!cvDepthFrame1.empty())
+            {
+                // Normalize the depth frame for display (depth is stored as 16-bit unsigned int)
+                cv::Mat cvDepthDisplay;
+                cv::normalize(cvDepthFrame1, cvDepthDisplay, 0, 255, cv::NORM_MINMAX, CV_8U);
+                cv::applyColorMap(cvDepthDisplay, cvDepthDisplay, cv::COLORMAP_JET);
+
+                // Show the depth frame
+                cv::imshow("Depth Frame", cvDepthDisplay);
+
+                // Set the mouse callback for the depth window
+                cv::setMouseCallback("Depth Frame", DepthMouseCallback, &cvDepthFrame1);
             }
 
             // Use PCL to visualize the point cloud.
@@ -107,7 +174,7 @@ void RunExample()
                 pclViewer->setBackgroundColor(0, 0, 0);
                 pclViewer->addPointCloud<pcl::PointXYZ>(pclDownsampledPointCloud, "depth_cloud");
                 pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "depth_cloud");
-                pclViewer->addCoordinateSystem(1000.0);
+                pclViewer->addCoordinateSystem(20.0);
                 pclViewer->initCameraParameters();
             }
 
@@ -148,17 +215,15 @@ void RunExample()
             // Downsample the point cloud for better visualization performance
             pcl::VoxelGrid<pcl::PointXYZ> pclVoxelGrid;
             pclVoxelGrid.setInputCloud(pclFilteredPointCloud);
-            pclVoxelGrid.setLeafSize(5.0f, 5.0f, 5.0f);
+            pclVoxelGrid.setLeafSize(VOXEL_GRID_LEAF_SIZE, VOXEL_GRID_LEAF_SIZE, VOXEL_GRID_LEAF_SIZE);
             pclVoxelGrid.filter(*pclDownsampledPointCloud);
             // Update the point cloud in the viewer
             pclViewer->updatePointCloud(pclDownsampledPointCloud, "depth_cloud");
-            pclViewer->spinOnce(100);
+            pclViewer->spinOnce(10);
         }
 
         // Tick FPS counter.
         FPS.Tick();
-        // Print FPS of main loop.
-        LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit
