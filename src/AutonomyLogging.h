@@ -256,19 +256,30 @@ namespace logging
              *          malformed log outputs.
              *
              * @see quill::ConsoleSink
+             * @see quill::ConsoleSinkConfig
              * @see quill::PatternFormatter
              *
              * @author Eli Byrd (edbgkk@mst.edu)
              * @date 2024-08-16
              ******************************************************************************/
-            MRDTConsoleSink(const quill::ConsoleSink::Colours& qColors,                                          // Custom Colors Import
-                            const quill::ConsoleSink::ColourMode& qColorMode,
-                            const std::string& szFormatPattern,                                                  // Custom Format Pattern
-                            const std::string& szTimeFormat,                                                     // Custom Time Format
-                            quill::Timezone qTimestampTimezone = quill::Timezone::LocalTime,                     // Timezone
-                            const std::string& szStream        = "stdout"                                        // Stream
+            MRDTConsoleSink(const quill::ConsoleSinkConfig::Colours& qColors,                   // Custom Colors Import
+                            const quill::ConsoleSinkConfig::ColourMode& qColorMode,
+                            const std::string& szFormatPattern,                                 // Custom Format Pattern
+                            const std::string& szTimeFormat,                                    // Custom Time Format
+                            quill::Timezone qTimestampTimezone = quill::Timezone::LocalTime,    // Timezone
+                            const std::string& szStream        = "stdout"                       // Stream
                             ) :
-                quill::ConsoleSink(qColors, qColorMode, szStream),                                               // Pass Parameters into quill::ConsoleSink
+                quill::ConsoleSink(
+                    [&]
+                    {
+                        // Configure ConsoleSinkConfig in a lambda to inline
+                        quill::ConsoleSinkConfig qConsoleConfig;
+                        qConsoleConfig.set_stream(szStream);
+                        qConsoleConfig.set_colour_mode(qColorMode);
+                        qConsoleConfig.set_colours(qColors);
+                        qConsoleConfig.set_override_pattern_formatter_options(quill::PatternFormatterOptions(szFormatPattern, szTimeFormat, qTimestampTimezone));
+                        return qConsoleConfig;
+                    }()),
                 qFormatter(quill::PatternFormatterOptions(szFormatPattern, szTimeFormat, qTimestampTimezone))    // Pass Parameters into qFormatter type
             {}
 

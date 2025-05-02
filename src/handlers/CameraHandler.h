@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef CAMERA_HANDLER_H
@@ -37,11 +37,9 @@ class CameraHandler
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        ZEDCamera* m_pMainCam;
-        ZEDCamera* m_pLeftCam;
-        ZEDCamera* m_pRightCam;
-        BasicCamera* m_pGroundCam;
-        RecordingHandler* m_pRecordingHandler;
+        std::shared_ptr<ZEDCamera> m_pMainCam;
+        std::shared_ptr<BasicCamera> m_pGroundCam;
+        std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
         /////////////////////////////////////////
@@ -52,8 +50,6 @@ class CameraHandler
         {
             ZEDCAM_START,
             eHeadMainCam,
-            eFrameLeftCam,
-            eFrameRightCam,
             ZEDCAM_END
         };
 
@@ -79,8 +75,8 @@ class CameraHandler
         // Accessors.
         /////////////////////////////////////////
 
-        ZEDCamera* GetZED(ZEDCamName eCameraName);
-        BasicCamera* GetBasicCam(BasicCamName eCameraName);
+        std::shared_ptr<ZEDCamera> GetZED(ZEDCamName eCameraName);
+        std::shared_ptr<BasicCamera> GetBasicCam(BasicCamName eCameraName);
 };
 
 #endif

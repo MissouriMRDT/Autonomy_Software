@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-23
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef OBJECT_DETECTION_HANDLER_H
@@ -30,9 +30,7 @@ class ObjectDetectionHandler
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        ObjectDetector* m_pObjectDetectorMainCam;
-        ObjectDetector* m_pObjectDetectorLeftCam;
-        ObjectDetector* m_pObjectDetectorRightCam;
+        std::shared_ptr<ObjectDetector> m_pObjectDetectorMainCam;
 
     public:
         /////////////////////////////////////////
@@ -41,9 +39,7 @@ class ObjectDetectionHandler
 
         enum class ObjectDetectors    // Enum for different cameras that detectors are being ran on.
         {
-            eHeadMainCam,
-            eFrameLeftCam,
-            eFrameRightCam
+            eHeadMainCam
         };
 
         /////////////////////////////////////////
@@ -59,7 +55,7 @@ class ObjectDetectionHandler
         // Accessors.
         /////////////////////////////////////////
 
-        ObjectDetector* GetObjectDetector(ObjectDetectors eDetectorName);
+        std::shared_ptr<ObjectDetector> GetObjectDetector(ObjectDetectors eDetectorName);
 };
 
 #endif

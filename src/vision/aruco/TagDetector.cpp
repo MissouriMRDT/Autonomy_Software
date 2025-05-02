@@ -10,6 +10,8 @@
 
 #include "TagDetector.h"
 #include "../../util/vision/ImageOperations.hpp"
+#include "./ArucoDetection.hpp"
+#include "./TorchTagDetection.hpp"
 
 /******************************************************************************
  * @brief Construct a new TagDetector object.
@@ -20,6 +22,7 @@
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param bEnableTracking - Whether or not to enable tracking of detected tags.
  * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
  * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
@@ -29,26 +32,29 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-10
  ******************************************************************************/
-TagDetector::TagDetector(BasicCamera* pBasicCam,
+TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
                          const int nArucoCornerRefinementMaxIterations,
                          const int nArucoCornerRefinementMethod,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const bool bEnableTracking,
                          const int nDetectorMaxFPS,
                          const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
                          const bool bUsingGpuMats)
+
 {
     // Initialize member variables.
     m_pCamera                          = pBasicCam;
-    m_bTensorflowInitialized           = false;
-    m_bTensorflowEnabled               = false;
+    m_bTorchInitialized                = false;
+    m_bTorchEnabled                    = false;
+    m_bEnableTracking                  = bEnableTracking;
     m_bUsingZedCamera                  = false;    // Toggle ZED functions off.
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
-    m_szCameraName                     = dynamic_cast<BasicCamera*>(pBasicCam)->GetCameraLocation();
+    m_szCameraName                     = std::dynamic_pointer_cast<BasicCamera>(pBasicCam)->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
 
@@ -62,6 +68,11 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
     // Get aruco dictionary and initialize aruco detector.
     m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Create a multi-tracker for tracking multiple tags from the torch detectors.
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::ARUCO_BBOX_TRACKER_MAX_TRACK_TIME,
+                                                               constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -79,6 +90,7 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
  * @param nArucoMarkerBorderBits - The number of border unit squares around the marker.
  * @param bArucoDetectInvertedMarkers - Enable or disable upside-down marker detection.
  * @param bUseAruco3Detection - Whether or not to use the newer/faster method of detection. Experimental.
+ * @param bEnableTracking - Whether or not to enable tracking of detected tags.
  * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
  * @param bEnableRecordingFlag - Whether or not this TagDetector's overlay output should be recorded.
  * @param nNumDetectedTagsRetrievalThreads - The number of threads to use when fulfilling
@@ -88,12 +100,13 @@ TagDetector::TagDetector(BasicCamera* pBasicCam,
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-TagDetector::TagDetector(ZEDCamera* pZEDCam,
+TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
                          const int nArucoCornerRefinementMaxIterations,
                          const int nArucoCornerRefinementMethod,
                          const int nArucoMarkerBorderBits,
                          const bool bArucoDetectInvertedMarkers,
                          const bool bUseAruco3Detection,
+                         const bool bEnableTracking,
                          const int nDetectorMaxFPS,
                          const bool bEnableRecordingFlag,
                          const int nNumDetectedTagsRetrievalThreads,
@@ -101,9 +114,10 @@ TagDetector::TagDetector(ZEDCamera* pZEDCam,
 {
     // Initialize member variables.
     m_pCamera                          = pZEDCam;
-    m_bTensorflowInitialized           = false;
-    m_bTensorflowEnabled               = false;
+    m_bTorchInitialized                = false;
+    m_bTorchEnabled                    = false;
     m_bUsingZedCamera                  = true;    // Toggle ZED functions on.
+    m_bEnableTracking                  = bEnableTracking;
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
@@ -118,9 +132,9 @@ TagDetector::TagDetector(ZEDCamera* pZEDCam,
     m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
     m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
     m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
-    // Get aruco dictionary and initialize aruco detector.
-    m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
-    m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
+
+    // Create a multi-tracker for tracking multiple tags from the torch detectors.
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -161,7 +175,7 @@ void TagDetector::ThreadedContinuousCode()
     if (m_bUsingZedCamera)
     {
         // Check if camera is NOT open.
-        if (!dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraIsOpen())
+        if (!std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
@@ -174,8 +188,9 @@ void TagDetector::ThreadedContinuousCode()
 
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
-                             "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted!",
-                             dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraSerial());
+                             "TagDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted! "
+                             "This tag detector will now stop.",
+                             std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
             }
         }
         else
@@ -187,7 +202,7 @@ void TagDetector::ThreadedContinuousCode()
     else
     {
         // Check if camera is NOT open.
-        if (!dynamic_cast<BasicCamera*>(m_pCamera)->GetCameraIsOpen())
+        if (!std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
@@ -201,7 +216,7 @@ void TagDetector::ThreadedContinuousCode()
                 // Submit logger message.
                 LOG_CRITICAL(logging::g_qSharedLogger,
                              "TagDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
-                             dynamic_cast<BasicCamera*>(m_pCamera)->GetCameraLocation());
+                             std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
             }
         }
         else
@@ -225,9 +240,9 @@ void TagDetector::ThreadedContinuousCode()
             if (m_bUsingGpuMats)
             {
                 // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-                fuPointCloudCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
                 // Get the regular RGB image from the camera.
-                fuRegularFrameCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
 
                 // Wait for point cloud to be retrieved.
                 if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
@@ -247,8 +262,8 @@ void TagDetector::ThreadedContinuousCode()
             else
             {
                 // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = dynamic_cast<ZEDCamera*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
                 // Wait for point cloud to be retrieved.
                 if (!fuPointCloudCopyStatus.get())
@@ -271,7 +286,7 @@ void TagDetector::ThreadedContinuousCode()
         else
         {
             // Grab frames from camera.
-            fuPointCloudCopyStatus = dynamic_cast<BasicCamera*>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            fuPointCloudCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
             // Wait for point cloud to be retrieved.
             if (!fuPointCloudCopyStatus.get())
@@ -293,52 +308,65 @@ void TagDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Run image through some pre-processing step to improve detection.
-        arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
-        // Detect tags in the image
-        std::vector<arucotag::ArucoTag> vNewlyDetectedTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
-
-        // Only estimate the pose of the tags if the point cloud is available and we are using a ZED camera.
-        if (m_bUsingZedCamera && !m_cvPointCloud.empty())
+        // Check if the frame is empty.
+        if (m_cvFrame.empty())
         {
-            // Estimate the positions of the tags using the point cloud
-            for (arucotag::ArucoTag& stTag : vNewlyDetectedTags)
-            {
-                // Use the point cloud to get the location of the tag.
-                arucotag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-            }
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+            return;
         }
-        // Merge the newly detected tags with the pre-existing detected tags
-        this->UpdateDetectedTags(vNewlyDetectedTags);
-        // Draw tag overlays onto normal image.
-        arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
 
-        // Check if tensorflow detection if turned on.
-        if (m_bTensorflowEnabled)
+        // Clear the list of newly detected tags.
+        m_vNewlyDetectedTags.clear();
+        // Run image through some pre-processing step to improve detection.
+        // NOTE: I disabled this since it was just converting to grayscale and isn't strictly necessary. - Clayton
+        // arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
+        // Copy the camera frame to the pre-processing frame.
+        m_cvArucoProcFrame = m_cvFrame.clone();
+        // Detect tags in the image
+        std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+        // Add OpenCV tags to the list of newly detected tags.
+        m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
+
+        // Check if torch detection if turned on.
+        if (m_bTorchEnabled)
         {
             // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTensorflowProcFrame, cv::COLOR_BGRA2RGB);
+            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
-            m_vDetectedTensorTags = tensorflowtag::Detect(m_cvTensorflowProcFrame, *m_pTensorflowDetector, m_fMinObjectConfidence, m_fNMSThreshold);
-            // Estimate the positions of the tags using the point cloud
-            for (tensorflowtag::TensorflowTag& stTag : m_vDetectedTensorTags)
-            {
-                // Use the point cloud to get the location of the tag.
-                tensorflowtag::EstimatePoseFromPointCloud(m_cvPointCloud, stTag);
-            }
-            // Draw tag overlays onto normal image.
-            tensorflowtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedTensorTags);
+            std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
+                torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            // Add Torch tags to the list of newly detected tags.
+            m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }
 
+        // Set the FOV of the camera in the tag structs for this detector's camera.
+        for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
+        {
+            // Set tag FOV parameter to this tag detectors camera's FOV.
+            stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+        }
+
+        // Merge the newly detected tags with the pre-existing detected tags
+        this->UpdateDetectedTags(m_vNewlyDetectedTags);
+
+        // Draw tag overlays onto normal image.
+        arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+        torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+
+        // Name the window the name of the camera.
+        std::string szWindowName = m_szCameraName + " Tag Detector";
+        cv::imshow(szWindowName, m_cvArucoProcFrame);
+        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected tag copy queue is empty.
-    if (!m_qDetectedArucoTagCopySchedule.empty() || !m_qDetectedTensorflowTagCopySchedule.empty() || !m_qDetectedTagDrawnOverlayFrames.empty())
+    if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty() || !m_qDetectedArucoTagCopySchedule.empty())
     {
-        size_t siQueueLength = m_qDetectedArucoTagCopySchedule.size() + m_qDetectedTensorflowTagCopySchedule.size() + m_qDetectedTagDrawnOverlayFrames.size();
+        size_t siQueueLength = m_qDetectedTagDrawnOverlayFramesCopySchedule.size() + m_qDetectedArucoTagCopySchedule.size();
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
         // Wait for thread pool to finish.
@@ -364,22 +392,22 @@ void TagDetector::PooledLinearCode()
     //  Detection Overlay Frame queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
     // Check if there are unfulfilled requests.
-    if (!m_qDetectedTagDrawnOverlayFrames.empty())
+    if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedTagDrawnOverlayFrames.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedTagDrawnOverlayFramesCopySchedule.front();
         // Pop out of queue.
-        m_qDetectedTagDrawnOverlayFrames.pop();
+        m_qDetectedTagDrawnOverlayFramesCopySchedule.pop();
         // Release lock.
         lkTagOverlayFrameQueue.unlock();
 
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case PIXEL_FORMATS::eArucoDetection: *(stContainer.pFrame) = m_cvArucoProcFrame; break;
-            default: *(stContainer.pFrame) = m_cvArucoProcFrame;
+            case PIXEL_FORMATS::eArucoDetection: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -390,41 +418,19 @@ void TagDetector::PooledLinearCode()
     //  ArucoTag queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::mutex> lkArucoTagQueue(m_muArucoDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkArucoTagQueue(m_muArucoDataCopyMutex);
     // Check if there are unfulfilled requests.
     if (!m_qDetectedArucoTagCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<arucotag::ArucoTag>> stContainer = m_qDetectedArucoTagCopySchedule.front();
+        containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>> stContainer = m_qDetectedArucoTagCopySchedule.front();
         // Pop out of queue.
         m_qDetectedArucoTagCopySchedule.pop();
         // Release lock.
         lkArucoTagQueue.unlock();
 
         // Copy the detected tags to the target location
-        *(stContainer.pData) = m_vDetectedArucoTags;
-
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
-    }
-
-    /////////////////////////////
-    //  TensorflowTag queue.
-    /////////////////////////////
-    // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::mutex> lkTensorflowTagQueue(m_muTensorflowDataCopyMutex);
-    // Check if there are unfulfilled requests.
-    if (!m_qDetectedTensorflowTagCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>> stContainer = m_qDetectedTensorflowTagCopySchedule.front();
-        // Pop out of queue.
-        m_qDetectedTensorflowTagCopySchedule.pop();
-        // Release lock.
-        lkTensorflowTagQueue.unlock();
-
-        // Copy the detected tags to the target location
-        *(stContainer.pData) = m_vDetectedTensorTags;
+        *stContainer.pData = m_vDetectedArucoTags;
 
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -450,7 +456,7 @@ std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
-    m_qDetectedTagDrawnOverlayFrames.push(stContainer);
+    m_qDetectedTagDrawnOverlayFramesCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
@@ -469,10 +475,10 @@ std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
-std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags)
+std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags)
 {
     // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<std::vector<arucotag::ArucoTag>> stContainer(vArucoTags);
+    containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>> stContainer(vArucoTags);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
@@ -486,201 +492,179 @@ std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<arucotag::Ar
 }
 
 /******************************************************************************
- * @brief Request the most up to date vector of detected tags from our custom tensorflow
- *      model.
- *
- * @param vTensorflowTags - The vector the detected tensorflow tags will be saved to.
- * @return std::future<bool> - The future that should be waited on before using the passed in tag vector.
- *                      Future will be true or false based on whether or not the tags were successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
- ******************************************************************************/
-std::future<bool> TagDetector::RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags)
-{
-    // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>> stContainer(vTensorflowTags);
-
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append detected tag fetch container to the schedule queue.
-    m_qDetectedTensorflowTagCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedDataStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Attempt to open the next available TPU hardware and load model at the given
+ * @brief Attempt to open the next available Torch hardware and load model at the given
  *      path onto the device.
  *
  * @param szModelPath - The absolute path to the model to open.
- * @param ePerformanceMode - The performance mode to launch the TPU device in.
- * @return true - Model was opened and loaded successfully onto the TPU device.
+ * @param eDevice - The hardware device to launch the Torch model on.
+ * @return true - Model was opened and loaded successfully onto the Torch device.
  * @return false - Something went wrong, model/device not opened.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-03-31
+ * @date 2025-03-06
  ******************************************************************************/
-bool TagDetector::InitTensorflowDetection(const std::string szModelPath, yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode)
+bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
 {
     // Initialize a new YOLOModel object.
-    m_pTensorflowDetector = std::make_shared<yolomodel::tensorflow::TPUInterpreter>(szModelPath, ePerformanceMode);
-    // Open and load a new YOLOModel from the given path into an EdgeTPU device.
-    TfLiteStatus tfReturnStatus = m_pTensorflowDetector->OpenAndLoad();
+    m_pTorchDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
 
     // Check if device/model was opened without issue.
-    if (tfReturnStatus == TfLiteStatus::kTfLiteOk)
+    if (m_pTorchDetector->IsReadyForInference())
     {
         // Update member variable.
-        m_bTensorflowInitialized = true;
+        m_bTorchInitialized = true;
         // Return status.
         return true;
     }
     else
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Tensorflow detection for TagDetector.");
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Torch detection for TagDetector.");
         // Update member variable.
-        m_bTensorflowInitialized = false;
-        // Close hardware.
-        m_pTensorflowDetector->CloseHardware();
+        m_bTorchInitialized = false;
         // Return status.
         return false;
     }
 }
 
 /******************************************************************************
- * @brief Turn on tensorflow detection with given parameters.
+ * @brief Turn on torch detection with given parameters.
  *
  * @param fMinObjectConfidence - The lower limit of detection confidence.
  * @param fNMSThreshold - The overlap thresh for NMS algorithm.
  *
- * @note Tensorflow model must be initialized first with the InitTensorflowDetection() method.
- *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-03-31
+ * @date 2025-03-06
  ******************************************************************************/
-void TagDetector::EnableTensorflowDetection(const float fMinObjectConfidence, const float fNMSThreshold)
+void TagDetector::EnableTorchDetection(const float fMinObjectConfidence, const float fNMSThreshold)
 {
     // Update member variables.
-    m_fMinObjectConfidence = fMinObjectConfidence;
-    m_fNMSThreshold        = fNMSThreshold;
+    m_fTorchMinObjectConfidence = fMinObjectConfidence;
+    m_fTorchNMSThreshold        = fNMSThreshold;
 
-    // Check if tensorflow model has been initialized.
-    if (m_bTensorflowInitialized)
+    // Check if torch model has been initialized.
+    if (m_bTorchInitialized)
     {
         // Update member variable.
-        m_bTensorflowEnabled = true;
+        m_bTorchEnabled = true;
     }
     else
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Tried to enable tensorflow detection for TagDetector but it has not been initialized yet!");
+        LOG_WARNING(logging::g_qSharedLogger, "Tried to enable torch detection for TagDetector but it has not been initialized yet!");
         // Update member variable.
-        m_bTensorflowEnabled = false;
+        m_bTorchEnabled = false;
     }
 }
 
 /******************************************************************************
- * @brief Set flag to stop tag detection with the tensorflow model.
+ * @brief Set flag to stop tag detection with the torch model.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-03-31
+ * @date 2025-03-06
  ******************************************************************************/
-void TagDetector::DisableTensorflowDetection()
+void TagDetector::DisableTorchDetection()
 {
     // Update member variables.
-    m_bTensorflowEnabled = false;
+    m_bTorchEnabled = false;
 }
 
 /******************************************************************************
- * @brief Updates the detected aruco tags including forgetting tags that haven't been seen for long enough.
- *      If a new tag is spotted: add it to the detected tags vector
- *      If a tag has been spotted again: update the tags distance and angle
- *      If a tag hasn't been seen for a while: remove it from the vector
+ * @brief Updates the detected torch tags including tracking the detected tags over time
+ *        and removing tags that haven't been seen for long enough.
  *
- * @param vNewlyDetectedTags - Input vector of ArucoTag structs containing the tag info.
+ * @param vNewlyDetectedTags - Input vector of TorchTag structs containing the tag info.
  *
- * @author jspencerpittman (jspencerpittman@gmail.com)
- * @date 2023-10-06
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-15
  ******************************************************************************/
-void TagDetector::UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags)
+void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
 {
-    // Sort tags from least to greatest.
-    std::sort(vNewlyDetectedTags.begin(),
-              vNewlyDetectedTags.end(),
-              [](const arucotag::ArucoTag& stTag1, const arucotag::ArucoTag& stTag2) { return stTag1.nID < stTag2.nID; });
-
-    // Get the beginning of the new tags and the current tags vector.
-    std::vector<arucotag::ArucoTag>::iterator itNewItr = vNewlyDetectedTags.begin();
-    std::vector<arucotag::ArucoTag>::iterator itOldItr = m_vDetectedArucoTags.begin();
-
-    // Create vector for storing new tags.
-    std::vector<arucotag::ArucoTag> vNewTags;
-
-    // Here we process tags from both the newly detected and previously detected tags in the order of increasing id.
-    while (itNewItr != vNewlyDetectedTags.end() || itOldItr != m_vDetectedArucoTags.end())
+    // Check if tracking is enabled.
+    if (m_bEnableTracking)
     {
-        // If the id's match then update the previously detected tag.
-        if (itNewItr != vNewlyDetectedTags.end() && itOldItr != m_vDetectedArucoTags.end() && itOldItr->nID == itNewItr->nID)
+        // Check if the given tag vector is empty
+        if (vNewlyDetectedTags.empty())
         {
-            // Update data for tag.
-            itOldItr->dYawAngle             = itNewItr->dYawAngle;
-            itOldItr->dStraightLineDistance = itNewItr->dStraightLineDistance;
-            itOldItr->CornerTL              = itNewItr->CornerTL;
-            itOldItr->CornerTR              = itNewItr->CornerTR;
-            itOldItr->CornerBR              = itNewItr->CornerBR;
-            itOldItr->CornerBL              = itNewItr->CornerBL;
-            itOldItr->nFramesSinceLastHit   = 0;
-            itOldItr->nHits                 = std::max(itOldItr->nHits + 1, constants::ARUCO_VALIDATION_THRESHOLD);
+            // Since the tags are empty that means the detector has not detected any new ground truth tags.
+            // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
+            // stored in the m_vDetectedArucoTags vector.
+            // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
+            // and it doesn't have the ability to track tags over time.
+            // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
 
-            // Move to next tags.
-            itOldItr++;
-            itNewItr++;
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
         }
-        // If a previously detected tag wasn't detected in the frame
-        else if (itOldItr != m_vDetectedArucoTags.end() && (itNewItr == vNewlyDetectedTags.end() || itOldItr->nID < itNewItr->nID))
+        else
         {
-            // Increment hit counter.
-            itOldItr->nFramesSinceLastHit++;
-
-            // Check if the tag should be removed.
-            if ((itOldItr->nHits >= constants::ARUCO_VALIDATION_THRESHOLD && itOldItr->nFramesSinceLastHit >= constants::ARUCO_VALIDATED_TAG_FORGET_THRESHOLD) ||
-                !(itOldItr->nHits >= constants::ARUCO_VALIDATION_THRESHOLD && itOldItr->nFramesSinceLastHit >= constants::ARUCO_UNVALIDATED_TAG_FORGET_THRESHOLD))
+            // Loop through the newly detected tags.
+            for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
             {
-                // Remove the tag from the detected tags member variable.
-                itOldItr = m_vDetectedArucoTags.erase(itOldItr);
+                // Add the newly detected tags to the multi-tracker.
+                bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
+                // Check if the tag was matched to an existing tracker.
+                if (!bMatchedTagToExistingTracker)
+                {
+                    // Add the new tag to the member variable list.
+                    m_vDetectedArucoTags.emplace_back(stTag);
+                }
+                else
+                {
+                    // Find the tag with the same bounding box pointer and update the ID and confidence.
+                    for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
+                    {
+                        // Check if the bounding box pointers are the same.
+                        if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
+                        {
+                            // Update the ID and confidence of the existing tag.
+                            stExistingTag.nID         = stTag.nID;
+                            stExistingTag.dConfidence = stTag.dConfidence;
+                        }
+                    }
+                }
+            }
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+
+        // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
+        for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
+        {
+            // Check if the bounding box is 0,0,0,0.
+            if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
+            {
+                // Remove the tag from the vector.
+                itTag = m_vDetectedArucoTags.erase(itTag);
             }
             else
             {
-                // Decrement the old iterator.
-                itOldItr++;
+                ++itTag;
             }
         }
-        // A tag was detected for the first time.
-        else if (itNewItr != vNewlyDetectedTags.end())
+    }
+    else
+    {
+        // If tracking is not enabled, we will just clear the detected tags and add the new ones.
+        m_vDetectedArucoTags.clear();
+        // Loop through the newly detected tags and add them to the detected tags vector.
+        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
         {
-            // Set the new tags attributes for a first detection.
-            itNewItr->nHits               = 1;
-            itNewItr->nFramesSinceLastHit = 0;
+            // Set the tag creation time to 0. The tags aren't being tracked, so we can't really tell their age.
+            stTag.tmCreation = std::chrono::system_clock::time_point::min();
 
-            // Add tag to new tags vector.
-            vNewTags.push_back(*itNewItr);
-
-            // Increment the new iterator.
-            itNewItr++;
+            // Add the new tag to the member variable list.
+            m_vDetectedArucoTags.emplace_back(stTag);
         }
     }
 
-    // Loop through the new tag vector.
-    for (arucotag::ArucoTag& stTag : vNewTags)
+    // Estimate the positions of the tags using the point cloud
+    for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
     {
-        // Add the newly detected tags to the member variable list
-        m_vDetectedArucoTags.push_back(stTag);
+        // Use the point cloud to get the location of the tag.
+        tagdetectutils::EstimatePoseFromCameraFrame(stTag);
     }
 }
 
@@ -732,7 +716,7 @@ bool TagDetector::GetIsReady()
         if (m_bUsingZedCamera)
         {
             // Check if camera is NOT open.
-            if (dynamic_cast<ZEDCamera*>(m_pCamera)->GetCameraIsOpen())
+            if (std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
             {
                 // Set camera opened toggle.
                 bDetectorIsReady = true;
@@ -741,7 +725,7 @@ bool TagDetector::GetIsReady()
         else
         {
             // Check if camera is NOT open.
-            if (dynamic_cast<BasicCamera*>(m_pCamera)->GetCameraIsOpen())
+            if (std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
             {
                 // Set camera opened toggle.
                 bDetectorIsReady = true;
@@ -808,11 +792,11 @@ cv::Size TagDetector::GetProcessFrameResolution() const
     if (m_bUsingZedCamera)
     {
         // Concatenate camera model name and serial number.
-        return dynamic_cast<ZEDCamera*>(m_pCamera)->GetPropResolution();
+        return std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetPropResolution();
     }
     else
     {
         // Concatenate camera path or index.
-        return dynamic_cast<BasicCamera*>(m_pCamera)->GetPropResolution();
+        return std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetPropResolution();
     }
 }

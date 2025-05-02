@@ -43,6 +43,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const double dPropHorizontalFOV,
                const double dPropVerticalFOV,
                const bool bEnableRecordingFlag,
+               const bool bExportSVORecordingFlag,
                const float fMinSenseDistance,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
@@ -65,13 +66,12 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_bCameraIsFusionMaster = bEnableFusionMaster;
-    m_dPoseOffsetX          = 0.0;
-    m_dPoseOffsetY          = 0.0;
-    m_dPoseOffsetZ          = 0.0;
-    m_dPoseOffsetXO         = 0.0;
-    m_dPoseOffsetYO         = 0.0;
-    m_dPoseOffsetZO         = 0.0;
+    m_dPoseOffsetX  = 0.0;
+    m_dPoseOffsetY  = 0.0;
+    m_dPoseOffsetZ  = 0.0;
+    m_dPoseOffsetXO = 0.0;
+    m_dPoseOffsetYO = 0.0;
+    m_dPoseOffsetZO = 0.0;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -153,7 +153,7 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         // Update camera model.
         m_slCameraModel = m_slCamera.getCameraInformation().camera_model;
         // Check if the camera should record and output an SVO file.
-        if (m_bEnableRecordingFlag)
+        if (bExportSVORecordingFlag)
         {
             // Now that camera is opened get camera name and construct path.
             std::string szSVOFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/" + this->GetCameraModel() + "_" +
@@ -715,11 +715,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
-                case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
-                case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
-                case PIXEL_FORMATS::eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
-                default: *(stContainer.pFrame) = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case PIXEL_FORMATS::eBGRA: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
+                case PIXEL_FORMATS::eDepthMeasure: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slDepthMeasure); break;
+                case PIXEL_FORMATS::eDepthImage: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slDepthImage); break;
+                case PIXEL_FORMATS::eXYZBGRA: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slPointCloud); break;
+                default: *stContainer.pFrame = imgops::ConvertSLMatToCVMat(m_slFrame); break;
             }
 
             // Signal future that the frame has been successfully retrieved.
@@ -754,11 +754,11 @@ void ZEDCam::PooledLinearCode()
             // Determine which frame should be copied.
             switch (stContainer.eFrameType)
             {
-                case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
-                case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
-                case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
-                case PIXEL_FORMATS::eXYZBGRA: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
-                default: *(stContainer.pFrame) = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case PIXEL_FORMATS::eBGRA: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
+                case PIXEL_FORMATS::eDepthMeasure: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slDepthMeasure); break;
+                case PIXEL_FORMATS::eDepthImage: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slDepthImage); break;
+                case PIXEL_FORMATS::eXYZBGRA: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slPointCloud); break;
+                default: *stContainer.pFrame = imgops::ConvertSLMatToGPUMat(m_slFrame); break;
             }
 
             // Signal future that the frame has been successfully retrieved.
@@ -821,7 +821,7 @@ void ZEDCam::PooledLinearCode()
         // }
 
         // Copy pose.
-        *(stContainer.pData) = stPose;
+        *stContainer.pData = stPose;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -848,7 +848,7 @@ void ZEDCam::PooledLinearCode()
         lkGeoPoseQueue.unlock();
 
         // Copy pose.
-        *(stContainer.pData) = sl::GeoPose(m_slFusionGeoPose);
+        *stContainer.pData = sl::GeoPose(m_slFusionGeoPose);
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -875,7 +875,7 @@ void ZEDCam::PooledLinearCode()
         lkPlaneQueue.unlock();
 
         // Copy pose.
-        *(stContainer.pData) = sl::Plane(m_slFloorPlane);
+        *stContainer.pData = sl::Plane(m_slFloorPlane);
     }
     else
     {
@@ -899,7 +899,7 @@ void ZEDCam::PooledLinearCode()
         lkObjectDataQueue.unlock();
 
         // Make copy of object vector. (Apparently the assignment operator actually does a deep copy)
-        *(stContainer.pData) = m_slDetectedObjects.object_list;
+        *stContainer.pData = m_slDetectedObjects.object_list;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -926,7 +926,7 @@ void ZEDCam::PooledLinearCode()
         lkObjectBatchedDataQueue.unlock();
 
         // Make copy of object vector. (Apparently the assignment operator actually does a deep copy)
-        *(stContainer.pData) = m_slDetectedObjectsBatched;
+        *stContainer.pData = m_slDetectedObjectsBatched;
 
         // Signal future that the data has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -1248,10 +1248,11 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
         slCustomBox.probability      = stObjectData.fConfidence;
         slCustomBox.is_grounded      = stObjectData.bObjectRemainsOnFloorPlane;
         // Repackage object corner data.
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerTL.nX, stObjectData.CornerTL.nY));
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerTR.nX, stObjectData.CornerTR.nY));
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerBL.nX, stObjectData.CornerBL.nY));
-        vCorners.emplace_back(sl::uint2(stObjectData.CornerBR.nX, stObjectData.CornerBR.nY));
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x, stObjectData.cvBoundingBox.y));                                        // Top-left corner
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x + stObjectData.cvBoundingBox.width, stObjectData.cvBoundingBox.y));     // Top-right corner
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x, stObjectData.cvBoundingBox.y + stObjectData.cvBoundingBox.height));    // Bottom-left corner
+        vCorners.emplace_back(sl::uint2(stObjectData.cvBoundingBox.x + stObjectData.cvBoundingBox.width,
+                                        stObjectData.cvBoundingBox.y + stObjectData.cvBoundingBox.height));                                  // Bottom-right corner
         slCustomBox.bounding_box_2d = vCorners;
 
         // Append repackaged object to vector.
@@ -1827,7 +1828,7 @@ bool ZEDCam::GetCameraIsOpen()
 {
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    return m_slCamera.isOpened();
+    return this->GetThreadState() == AutonomyThreadState::eRunning && m_slCamera.isOpened();
 }
 
 /******************************************************************************

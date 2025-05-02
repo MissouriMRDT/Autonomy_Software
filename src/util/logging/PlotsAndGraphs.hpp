@@ -99,6 +99,14 @@ namespace logging
             mtPlot->title(szPlotTitle);
             mtAxes->xlabel("Easting");
             mtAxes->ylabel("Northing");
+            // Set axis options.
+            mtAxes->grid(true);
+            mtAxes->xtickangle(45);
+            mtAxes->axis(matplot::square);
+            mtAxes->xtickformat("%.0f");    // No decimal places for x-axis
+            mtAxes->ytickformat("%.0f");    // No decimal places for y-axis
+            // Set the hold to false.
+            mtAxes->hold(false);
 
             // Calculate and annotate distances between points
             for (size_t i = 1; i < vCoordinates.size(); ++i)
@@ -174,6 +182,14 @@ namespace logging
             mtPlot->title(szPlotTitle);
             mtAxes->xlabel("Latitude");
             mtAxes->ylabel("Longitude");
+            // Set axis options.
+            mtAxes->grid(true);
+            mtAxes->xtickangle(45);
+            mtAxes->axis(matplot::square);
+            mtAxes->xtickformat("%.0f");    // No decimal places for x-axis
+            mtAxes->ytickformat("%.0f");    // No decimal places for y-axis
+            // Set the hold to false.
+            mtAxes->hold(false);
 
             // Calculate and annotate distances between points
             for (size_t i = 1; i < vCoordinates.size(); ++i)
@@ -248,6 +264,14 @@ namespace logging
             mtPlot->title(szPlotTitle);
             mtAxes->xlabel("Easting");
             mtAxes->ylabel("Northing");
+            // Set axis options.
+            mtAxes->grid(true);
+            mtAxes->xtickangle(45);
+            mtAxes->axis(matplot::square);
+            mtAxes->xtickformat("%.0f");    // No decimal places for x-axis
+            mtAxes->ytickformat("%.0f");    // No decimal places for y-axis
+            // Set the hold to false.
+            mtAxes->hold(false);
 
             // Calculate and annotate distances between points.
             for (size_t i = 1; i < vWaypoints.size(); ++i)
@@ -325,6 +349,15 @@ namespace logging
             mtAxes->xlabel("Easting");
             mtAxes->ylabel("Northing");
             mtAxes->zlabel("Altitude");
+            // Set axis options.
+            mtAxes->grid(true);
+            mtAxes->xtickangle(45);
+            mtAxes->axis(matplot::square);
+            mtAxes->xtickformat("%.0f");    // No decimal places for x-axis
+            mtAxes->ytickformat("%.0f");    // No decimal places for y-axis
+            mtAxes->ztickformat("%.0f");    // No decimal places for z-axis
+            // Set the hold to false.
+            mtAxes->hold(false);
 
             // Close the plot.
             mtPlot->save(szFileName + ".png");
@@ -393,6 +426,15 @@ namespace logging
             mtAxes->xlabel("Latitude");
             mtAxes->ylabel("Longitude");
             mtAxes->zlabel("Altitude");
+            // Set axis options.
+            mtAxes->grid(true);
+            mtAxes->xtickangle(45);
+            mtAxes->axis(matplot::square);
+            mtAxes->xtickformat("%.0f");    // No decimal places for x-axis
+            mtAxes->ytickformat("%.0f");    // No decimal places for y-axis
+            mtAxes->ztickformat("%.0f");    // No decimal places for z-axis
+            // Set the hold to false.
+            mtAxes->hold(false);
 
             // Close the plot.
             mtPlot->save(szFileName + ".png");
@@ -461,6 +503,15 @@ namespace logging
             mtAxes->xlabel("Easting");
             mtAxes->ylabel("Northing");
             mtAxes->zlabel("Altitude");
+            // Set axis options.
+            mtAxes->grid(true);
+            mtAxes->xtickangle(45);
+            mtAxes->axis(matplot::square);
+            mtAxes->xtickformat("%.0f");    // No decimal places for x-axis
+            mtAxes->ytickformat("%.0f");    // No decimal places for y-axis
+            mtAxes->ztickformat("%.0f");    // No decimal places for z-axis
+            // Set the hold to false.
+            mtAxes->hold(false);
 
             // Close the plot.
             mtPlot->save(szFileName + ".png");

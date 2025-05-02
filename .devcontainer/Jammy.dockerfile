@@ -1,19 +1,17 @@
 # Image Variables
 ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="12"
-ARG CUDA_MINOR="2"
-ARG CUDA_PATCH="2"
-ARG CUDNN_VERSION="8"
+ARG CUDA_MINOR="6"
+ARG CUDA_PATCH="3"
 
 # Base Image
-FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn${CUDNN_VERSION}-devel-ubuntu${UBUNTU_MAJOR}.04
+FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-cudnn-devel-ubuntu${UBUNTU_MAJOR}.04
 
 # Install Variables
 ARG UBUNTU_MAJOR="22"
 ARG CUDA_MAJOR="12"
-ARG CUDA_MINOR="2"
-ARG CUDA_PATCH="2"
-ARG CUDNN_VERSION="8"
+ARG CUDA_MINOR="6"
+ARG CUDA_PATCH="3"
 
 # Set Non-Interactive Mode
 ARG DEBIAN_FRONTEND=noninteractive
@@ -30,6 +28,9 @@ RUN echo "${TZ}" > /etc/localtime && \
 # Set CUDA Version
 RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/cuda/version.txt
 
+# Set the default shell to bash with pipefail option. This ensures that the shell exits immediately if any command exits with a non-zero status.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Add APT Repo for PCIe drivers.
 RUN apt update && apt install -y wget gnupg && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
@@ -43,13 +44,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     build-essential gdb less udev zstd sudo libgomp1 python-is-python3 \
     cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
-    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev \
+    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev libusb-1.0-0-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     valgrind doxygen graphviz htop nano fortune fortunes gnuplot-nox \
     vim-common gasket-dkms nlohmann-json3-dev gcovr lcov curl \
     libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
-    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
+    libboost-all-dev libflann-dev libvtk9-dev libvtk9-qt-dev libqhull-dev libopenni-dev libopenni2-dev \
+    qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libqt5opengl5-dev qttools5-dev qttools5-dev-tools \
+    libcjson-dev libpcap-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
@@ -100,7 +104,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.2.2"
+ARG TORCH_VERSION="2.6.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
@@ -118,19 +122,19 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/am
     rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
 # Install Abseil.
-ARG ABSEIL_VERSION="20230802.1"
+ARG ABSEIL_VERSION="20250127.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
     dpkg -i abseil_${ABSEIL_VERSION}_amd64.deb && \
     rm abseil_${ABSEIL_VERSION}_amd64.deb
 
 # Install GeographicLib
-ARG GEOLIB_VERSION="2.3"
+ARG GEOLIB_VERSION="2.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/amd64/geolib_${GEOLIB_VERSION}_amd64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22"
+ARG LIBDATACHANNEL_VERSION="0.22.5"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
@@ -141,8 +145,14 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotpl
     dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb && \
     rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
 
+# Install PointCloudLibrary
+ARG PCL_VERSION="1.15.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64/pcl_${PCL_VERSION}_amd64.deb && \
+    dpkg -i pcl_${PCL_VERSION}_amd64.deb && \
+    rm pcl_${PCL_VERSION}_amd64.deb
+
 # Install Quill
-ARG QUILL_VERSION="8.1.0"
+ARG QUILL_VERSION="9.0.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb
@@ -152,9 +162,6 @@ ARG GTEST_VERSION="1.16.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
-
-# Enable Make Threads
-RUN echo 'export MAKEFLAGS=-j$(($(grep -c "^processor" /proc/cpuinfo) - 1))' >> /root/.bashrc
 
 # Fix Perl Locale Error
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -180,4 +187,4 @@ LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.5.0"
-LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION} and Google Test ${GTEST_VERSION}."
+LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}."

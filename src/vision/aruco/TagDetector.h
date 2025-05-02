@@ -14,8 +14,9 @@
 
 #include "../../interfaces/BasicCamera.hpp"
 #include "../../interfaces/ZEDCamera.hpp"
-#include "./ArucoDetection.hpp"
-#include "./TensorflowTagDetection.hpp"
+#include "../../util/vision/BoundingBoxTracking.h"
+#include "../../util/vision/TagDetectionUtilty.hpp"
+#include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
 #include <future>
@@ -45,41 +46,42 @@ class TagDetector : public AutonomyThread<void>
 {
     public:
         /////////////////////////////////////////
-        // Declare public methods and member variables.
+        // Declare public methods.
         /////////////////////////////////////////
-        TagDetector(BasicCamera* pBasicCam,
+        TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
                     const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableTracking                    = false,
                     const int nDetectorMaxFPS                     = 30,
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
-        TagDetector(ZEDCamera* pZEDCam,
+        TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
                     const int nArucoCornerRefinementMaxIterations = 30,
                     const int nArucoCornerRefinementMethod        = cv::aruco::CORNER_REFINE_NONE,
                     const int nArucoMarkerBorderBits              = 1,
                     const bool bArucoDetectInvertedMarkers        = false,
                     const bool bUseAruco3Detection                = false,
+                    const bool bEnableTracking                    = false,
                     const int nDetectorMaxFPS                     = 30,
                     const bool bEnableRecordingFlag               = false,
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
         ~TagDetector();
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestDetectedArucoTags(std::vector<arucotag::ArucoTag>& vArucoTags);
-        std::future<bool> RequestDetectedTensorflowTags(std::vector<tensorflowtag::TensorflowTag>& vTensorflowTags);
-        bool InitTensorflowDetection(const std::string szModelPath,
-                                     yolomodel::tensorflow::TPUInterpreter::PerformanceModes ePerformanceMode = yolomodel::tensorflow::TPUInterpreter::eMax);
+        std::future<bool> RequestDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags);
+        bool InitTorchDetection(const std::string& szModelPath,
+                                yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
 
         /////////////////////////////////////////
         // Mutators.
         /////////////////////////////////////////
 
-        void EnableTensorflowDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
-        void DisableTensorflowDetection();
+        void EnableTorchDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
+        void DisableTorchDetection();
         void SetDetectorFPS(const int nRecordingFPS);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
 
@@ -88,7 +90,6 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
 
         bool GetIsReady();
-        bool GetTensorflowDetectionEnabled() const;
         int GetDetectorFPS() const;
         bool GetEnableRecordingFlag() const;
         std::string GetCameraName();
@@ -101,52 +102,52 @@ class TagDetector : public AutonomyThread<void>
 
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
-        void UpdateDetectedTags(std::vector<arucotag::ArucoTag>& vNewlyDetectedTags);
+        void UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags);
 
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
         // Class member variables.
 
-        Camera<cv::Mat>* m_pCamera;
+        std::shared_ptr<Camera<cv::Mat>> m_pCamera;
         cv::aruco::ArucoDetector m_cvArucoDetector;
         cv::aruco::DetectorParameters m_cvArucoDetectionParams;
         cv::aruco::Dictionary m_cvTagDictionary;
-        std::shared_ptr<yolomodel::tensorflow::TPUInterpreter> m_pTensorflowDetector;
-        std::atomic<float> m_fMinObjectConfidence;
-        std::atomic<float> m_fNMSThreshold;
-        std::atomic_bool m_bTensorflowInitialized;
-        std::atomic_bool m_bTensorflowEnabled;
+        std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> m_pTorchDetector;
+        std::atomic<float> m_fTorchMinObjectConfidence;
+        std::atomic<float> m_fTorchNMSThreshold;
+        std::atomic_bool m_bTorchInitialized;
+        std::atomic_bool m_bTorchEnabled;
+        std::shared_ptr<tracking::MultiTracker> m_pMultiTracker;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         bool m_bCameraIsOpened;
+        bool m_bEnableTracking;
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
 
         // Detected tags storage.
 
-        std::vector<arucotag::ArucoTag> m_vDetectedArucoTags;
-        std::vector<tensorflowtag::TensorflowTag> m_vDetectedTensorTags;
+        std::vector<tagdetectutils::ArucoTag> m_vNewlyDetectedTags;
+        std::vector<tagdetectutils::ArucoTag> m_vDetectedArucoTags;
 
         // Create frames for storing images and point clouds.
 
         cv::Mat m_cvFrame;
         cv::cuda::GpuMat m_cvGPUFrame;
         cv::Mat m_cvArucoProcFrame;
-        cv::Mat m_cvTensorflowProcFrame;
+        cv::Mat m_cvTorchProcFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
 
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFrames;
-        std::queue<containers::DataFetchContainer<std::vector<arucotag::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<tensorflowtag::TensorflowTag>>> m_qDetectedTensorflowTagCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFramesCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
-        std::mutex m_muArucoDataCopyMutex;
-        std::mutex m_muTensorflowDataCopyMutex;
+        std::shared_mutex m_muFrameCopyMutex;
+        std::shared_mutex m_muArucoDataCopyMutex;
 };
 
 #endif
