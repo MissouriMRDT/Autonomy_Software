@@ -15,6 +15,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include "../GeospatialOperations.hpp"
 
 /// \cond
 #include <opencv2/opencv.hpp>

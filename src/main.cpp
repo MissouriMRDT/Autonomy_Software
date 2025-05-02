@@ -272,6 +272,19 @@ int main()
                     {
                         LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
                     }
+                    else if (chTerminalInput == 'p' || chTerminalInput == 'P')
+                    {
+                        // Get the rover pose from the waypoint handler.
+                        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+                        // Assemble a string to print containing data about the rover pose.
+                        std::string szRoverPoseInfo = "\n--------[ Rover Pose Info ]--------\n";
+                        szRoverPoseInfo += "Easting: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dEasting) + "\n";
+                        szRoverPoseInfo += "Northing: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dNorthing) + "\n";
+                        szRoverPoseInfo += "Altitude: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dAltitude) + "\n";
+                        szRoverPoseInfo += "Compass: " + std::to_string(stCurrentRoverPose.GetCompassHeading()) + "\n";
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szRoverPoseInfo);
+                    }
                     else if (chTerminalInput == 't' || chTerminalInput == 'T')
                     {
                         // Get the tags from the tag detectors.
