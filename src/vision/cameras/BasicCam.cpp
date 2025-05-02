@@ -5,7 +5,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-19
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "BasicCam.h"
@@ -294,7 +294,7 @@ void BasicCam::PooledLinearCode()
         lkFrameQueue.unlock();
 
         // Copy frame to data container.
-        *(stContainer.pFrame) = m_cvFrame.clone();
+        *stContainer.pFrame = m_cvFrame.clone();
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedFrameStatus->set_value(true);
     }
@@ -344,7 +344,7 @@ std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 bool BasicCam::GetCameraIsOpen()
 {
     // Get camera status from OpenCV.
-    return m_cvCamera.isOpened();
+    return this->GetThreadState() == AutonomyThreadState::eRunning && m_cvCamera.isOpened();
 }
 
 /******************************************************************************

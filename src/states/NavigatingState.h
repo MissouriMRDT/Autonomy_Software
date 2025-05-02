@@ -43,9 +43,12 @@ namespace statemachine
             bool m_bFetchNewWaypoint;
             geoops::Waypoint m_stGoalWaypoint;
             bool m_bInitialized;
-            std::vector<TagDetector*> m_vTagDetectors;
+            std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
+            std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
+            std::unique_ptr<pathplanners::AStar> m_pAStarPlanner;
+            std::vector<geoops::Waypoint> m_vPathCoordinates;
 
         protected:
             /////////////////////////////////////////

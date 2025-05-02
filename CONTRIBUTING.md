@@ -91,6 +91,7 @@ Once a pull request is opened, it will be automatically assigned to a member of 
 
 To mark sections of code for later review, we use keywords that can be compiled into a to-do list in the TODO extension tab. Here's a list of commonly used keywords:
 
+- `// NOTE:` – Something programmers should notice.
 - `// * @todo` or `// @todo` – Marks sections of code for future implementation.
 - `// TODO:` – Generic to-do items.
 - `// BUG:` – Known issues or bugs.
@@ -165,7 +166,9 @@ The table below lists various other common types and their corresponding prefixe
 | Struct              | `st`    | `StructName stExampleUseOfStruct`      |
 | Future              | `fu`    | `future<void> fuExampleUseOfFuture`    |
 | Promise             | `pm`    | `promise<void> pmExampleUseOfPromise`  |
+| Map                 | `m`     | `map<int, int> mExampleUseOfMap`       |
 | Unordered Map       | `um`    | `unordered_map<int, int> umExampleUseOfUnorderedMap` |
+| Set                 | `s`    | `set<int> sExampleUseOfSet`          |
 | Functions           | `fn`    | `function<void> fnExampleUseOfFunction`   |
 
 ---
@@ -182,10 +185,12 @@ External libraries and their corresponding type prefixes are listed below:
 | GeographicLib  | `ge`   | `GeographicLib::Geodesic geExampleGeographicType` |
 | Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
 | Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
+| Torch          | `tr`   | `torch::Tensor trExampleTorchType` |
 | WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
 | JSON           | `jsn`  | `nlohmann::json jsnExampleJSONType` |
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |
 | Matplot        | `mt`   | `axes_handle mtExampleMatplot`   |
+| PCL            | `pcl`  | `PointXYZ pclExamplePCLType`     |
 
 ---
 

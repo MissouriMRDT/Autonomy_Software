@@ -568,6 +568,7 @@ namespace geoops
              * @param eType - The waypoint type. Navigation, Intermediate, Tag, Object, etc.
              * @param dRadius - The size of the waypoint. This is mainly only useful for objects or when
              *              you want the rover to just go to a general area.
+             * @param nID - The unique identifier for this waypoint or a ARTag ID.
              *
              * @note This will also store the equivalent UTM coordinate.
              *
@@ -595,6 +596,7 @@ namespace geoops
              * @param eType - The waypoint type. Navigation, Intermediate, Tag, Object, etc.
              * @param dRadius - The size of the waypoint. This is mainly only useful for objects or when
              *              you want the rover to just go to a general area.
+             * @param nID - The unique identifier for this waypoint or a ARTag ID.
              *
              * @note This will also store the equivalent GPS coordinate.
              *

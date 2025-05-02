@@ -49,6 +49,7 @@ enum class PIXEL_FORMATS
     eArucoDetection,
     eDepthDetection,
     eTensorflowDetection,
+    eTorchDetection,
     eUNKNOWN
 };
 

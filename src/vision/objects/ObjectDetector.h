@@ -39,8 +39,8 @@ class ObjectDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        ObjectDetector(BasicCamera* pBasicCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        ObjectDetector(ZEDCamera* pZEDCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
+        ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
         std::future<bool> RequestDepthDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedDepthObjects(std::vector<depthobject::DepthObject>& vDepthObjects);
@@ -53,7 +53,7 @@ class ObjectDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Class member variables.
 
-        Camera<cv::Mat>* m_pCamera;
+        std::shared_ptr<Camera<cv::Mat>> m_pCamera;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         int m_nNumDetectedObjectsRetrievalThreads;

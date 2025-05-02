@@ -35,7 +35,7 @@ done
 valgrind_cmd+=" $executable_path"
 
 # Run the Valgrind command
-timeout --signal=SIGINT 60s $valgrind_cmd
+timeout --signal=SIGINT 360s $valgrind_cmd
 
 exit_code=$?
 

@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-07
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef TAG_DETECTION_HANDLER_H
@@ -31,10 +31,9 @@ class TagDetectionHandler
         // Declare private class member variables.
         /////////////////////////////////////////
 
-        TagDetector* m_pTagDetectorMainCam;
-        TagDetector* m_pTagDetectorLeftCam;
-        TagDetector* m_pTagDetectorRightCam;
-        RecordingHandler* m_pRecordingHandler;
+        std::shared_ptr<TagDetector> m_pTagDetectorMainCam;
+        std::shared_ptr<TagDetector> m_pTagDetectorGroundCam;
+        std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
         /////////////////////////////////////////
@@ -45,8 +44,7 @@ class TagDetectionHandler
         {
             TAGDETECTOR_START,
             eHeadMainCam,
-            eFrameLeftCam,
-            eFrameRightCam,
+            eGroundCam,
             TAGDETECTOR_END
         };
 
@@ -65,7 +63,7 @@ class TagDetectionHandler
         // Accessors.
         /////////////////////////////////////////
 
-        TagDetector* GetTagDetector(TagDetectors eDetectorName);
+        std::shared_ptr<TagDetector> GetTagDetector(TagDetectors eDetectorName);
 };
 
 #endif

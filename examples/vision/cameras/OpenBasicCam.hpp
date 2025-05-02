@@ -38,7 +38,7 @@ void RunExample()
     globals::g_pCameraHandler = new CameraHandler();
 
     // Get reference to camera.
-    BasicCamera* ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+    std::shared_ptr<BasicCamera> ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
     // Start basic cam.
     ExampleBasicCam1->Start();
 
@@ -116,9 +116,4 @@ void RunExample()
     /////////////////////////////////////////
     // Stop camera threads.
     globals::g_pCameraHandler->StopAllCameras();
-
-    // Delete dynamically allocated objects.
-    delete globals::g_pCameraHandler;
-    // Set dangling pointers to null.
-    globals::g_pCameraHandler = nullptr;
 }

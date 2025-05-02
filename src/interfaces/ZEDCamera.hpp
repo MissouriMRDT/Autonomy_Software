@@ -51,29 +51,9 @@ class ZEDCamera : public Camera<cv::Mat>
                 // Declare and define private struct member variables.
                 std::string szObjectUUID = sl::generate_unique_id().get();    // This will automatically generate a guaranteed unique id so the object is traceable.
 
-                // Declare a private struct for holding point data.
-                /******************************************************************************
-                 * @brief This struct is internal to the ZedObjectData struct is used to store
-                 *      an X and Y value for the corners of a bounding box.
-                 *
-                 *
-                 * @author clayjay3 (claytonraycowen@gmail.com)
-                 * @date 2023-08-29
-                 ******************************************************************************/
-                struct Corner
-                {
-                    public:
-                        // Declare public struct member variables.
-                        unsigned int nX;
-                        unsigned int nY;
-                };
-
             public:
                 // Declare and define public struct member variables.
-                Corner CornerTL;      // The top left corner of the bounding box.
-                Corner CornerTR;      // The top right corner of the bounding box.
-                Corner CornerBL;      // The bottom left corner of the bounding box.
-                Corner CornerBR;      // The bottom right corner of bounding box.
+                cv::Rect2d cvBoundingBox;    // The bounding box of the object in the image.
                 int nClassNumber;     // This info is passed through from your detection algorithm and will improve tracking be ensure the type of object remains the
                 float fConfidence;    // This info is passed through from your detection algorithm and will help improve tracking by throwing out bad detections.
                 // Whether of not this object remains on the floor plane. This parameter can't be changed for a given object tracking ID, it's advised to set it by class

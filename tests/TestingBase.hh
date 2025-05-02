@@ -106,13 +106,13 @@ class TestingBase : public ::testing::Test
             // Initialize RoveComm.
             if (network::g_pRoveCommUDPNode == nullptr)
             {
-                network::g_pRoveCommUDPNode   = new rovecomm::RoveCommUDP();
+                network::g_pRoveCommUDPNode   = std::make_shared<rovecomm::RoveCommUDP>();
                 network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
             }
 
             if (network::g_pRoveCommTCPNode == nullptr)
             {
-                network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
+                network::g_pRoveCommTCPNode = std::make_shared<rovecomm::RoveCommTCP>();
                 network::g_bRoveCommTCPStatus =
                     network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
             }

@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../../src/algorithms/controllers/PIDController.h"
@@ -110,7 +110,7 @@ TEST_F(PIDControllerTests, Leaks)
 TEST_F(PIDControllerTests, ProportionalControl)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(1.0, 0.0, 0.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
@@ -124,16 +124,10 @@ TEST_F(PIDControllerTests, ProportionalControl)
         // Calculate drive powers.
         double dOutput = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
         dOutput        = pPIDController->Calculate(aActualInput[nIter]);
-        dOutput        = pPIDController->Calculate();
 
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -146,13 +140,13 @@ TEST_F(PIDControllerTests, ProportionalControl)
 TEST_F(PIDControllerTests, IntegralControl)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 1.0, 0.0);
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(0.0, 1.0, 0.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
     const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
     const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
-    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, -2.0, -7.0, -8.0};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, -1.0, -4.0, -5.5};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
@@ -160,16 +154,10 @@ TEST_F(PIDControllerTests, IntegralControl)
         // Calculate drive powers a few times.
         double dOutput = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
         dOutput        = pPIDController->Calculate(aActualInput[nIter]);
-        dOutput        = pPIDController->Calculate();
 
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -182,13 +170,13 @@ TEST_F(PIDControllerTests, IntegralControl)
 TEST_F(PIDControllerTests, DerivativeControl)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(0.0, 0.0, 1.0);
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(0.0, 0.0, 1.0);
 
     // Create array for storing input and expect output values.
     const int nTestValuesLength                     = 5;
     const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
     const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
-    const double aExpectedOutput[nTestValuesLength] = {0.0, -1.0, -1.0, -1.0, 53.0};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, 1.0, 1.0, -2.5};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
@@ -204,11 +192,146 @@ TEST_F(PIDControllerTests, DerivativeControl)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
+}
 
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
+/******************************************************************************
+ * @brief Test PIDController max integral effort.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(PIDControllerTests, MaxIEffort)
+{
+    // Create a new PIDController object.
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(0.0, 1.0, 0.0);
+    pPIDController->SetMaxIntegralEffort(1.0);
+    pPIDController->SetIntegral(1.0);
+
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                     = 5;
+    const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
+    const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, 0.0, -1.0, -1.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Get last iterator index.
+        int nLastIter;
+        ((nIter - 1) <= 0) ? nLastIter = 0 : nLastIter = (nIter - 1);
+
+        // Calculate drive powers a few times.
+        double dOutput = pPIDController->Calculate(aActualInput[nLastIter], aSetpointInput[nLastIter]);
+        dOutput        = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
+    }
+}
+
+/******************************************************************************
+ * @brief Test PIDController ramp rate.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(PIDControllerTests, MaxRampRate)
+{
+    // Create a new PIDController object.
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(1.0, 0.0, 0.0);
+    pPIDController->SetOutputRampRate(0.01);
+
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                     = 5;
+    const double aActualInput[nTestValuesLength]    = {1.0, 1.0, 2.0, 3.0, 50.0};
+    const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, 1.0};
+    const double aExpectedOutput[nTestValuesLength] = {-1.0, -0.99, -0.99, -1.01, -1.03};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Get last iterator index.
+        int nLastIter;
+        ((nIter - 1) <= 0) ? nLastIter = 0 : nLastIter = (nIter - 1);
+
+        // Calculate drive powers a few times.
+        double dOutput = pPIDController->Calculate(aActualInput[nLastIter], aSetpointInput[nLastIter]);
+        dOutput        = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
+    }
+}
+
+/******************************************************************************
+ * @brief Test PIDController output filter.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-04
+ ******************************************************************************/
+TEST_F(PIDControllerTests, OutputFilter)
+{
+    // Create a new PIDController object.
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(1.0, 0.0, 0.0);
+    pPIDController->SetOutputFilter(0.1);
+
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                     = 5;
+    const double aActualInput[nTestValuesLength]    = {1.0, 1.0, 2.0, 3.0, 50.0};
+    const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, 1.0};
+    const double aExpectedOutput[nTestValuesLength] = {-1.0, -0.1, -0.90, -1.89, -44.29};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Get last iterator index.
+        int nLastIter;
+        ((nIter - 1) <= 0) ? nLastIter = 0 : nLastIter = (nIter - 1);
+
+        // Calculate drive powers a few times.
+        double dOutput = pPIDController->Calculate(aActualInput[nLastIter], aSetpointInput[nLastIter]);
+        dOutput        = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
+    }
+}
+
+/******************************************************************************
+ * @brief Test PIDController gains sign check.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-02
+ ******************************************************************************/
+TEST_F(PIDControllerTests, CheckGainSigns)
+{
+    // Create a new PIDController object.
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(-1.0, -1.0, -1.0);
+
+    // Create array for storing input and expect output values.
+    const int nTestValuesLength                     = 5;
+    const double aActualInput[nTestValuesLength]    = {0.0, 1.0, 2.0, 3.0, -50.0};
+    const double aSetpointInput[nTestValuesLength]  = {0.0, 1.0, 1.0, 1.0, -49.5};
+    const double aExpectedOutput[nTestValuesLength] = {0.0, 0.0, 2.0, 1.0, -9.0};
+
+    // Loop through each value and compare inputs and outputs.
+    for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
+    {
+        // Get last iterator index.
+        int nLastIter;
+        ((nIter - 1) <= 0) ? nLastIter = 0 : nLastIter = (nIter - 1);
+
+        // Calculate drive powers a few times.
+        double dOutput = pPIDController->Calculate(aActualInput[nLastIter], aSetpointInput[nLastIter]);
+        dOutput        = pPIDController->Calculate(aActualInput[nIter], aSetpointInput[nIter]);
+
+        // Check that the expected output values were calculated.
+        EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
+    }
 }
 
 /******************************************************************************
@@ -221,7 +344,7 @@ TEST_F(PIDControllerTests, DerivativeControl)
 TEST_F(PIDControllerTests, ControllerLimits)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(1.0, 0.0, 0.0);
     // Set controller limits.
     pPIDController->SetMaxSetpointDifference(0.1);
     pPIDController->SetMaxIntegralEffort(1);
@@ -243,11 +366,6 @@ TEST_F(PIDControllerTests, ControllerLimits)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -260,7 +378,7 @@ TEST_F(PIDControllerTests, ControllerLimits)
 TEST_F(PIDControllerTests, ContinuousInput)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(1.0, 0.0, 0.0);
     // Enable continuous input.
     pPIDController->EnableContinuousInput(-180.0, 180.0);
 
@@ -297,11 +415,6 @@ TEST_F(PIDControllerTests, ContinuousInput)
         // Check that the expected output values were calculated.
         EXPECT_NEAR(dOutput, aExpectedOutput2[nIter], 0.01);    // Left output check.
     }
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }
 
 /******************************************************************************
@@ -314,7 +427,7 @@ TEST_F(PIDControllerTests, ContinuousInput)
 TEST_F(PIDControllerTests, MutatorsAndAccessors)
 {
     // Create a new PIDController object.
-    controllers::PIDController* pPIDController = new controllers::PIDController(1.0, 0.0, 0.0);
+    std::unique_ptr<controllers::PIDController> pPIDController = std::make_unique<controllers::PIDController>(1.0, 0.0, 0.0);
 
     ////////////////////////////////////////////////////////////////////////////
     // Test mutators and then see if accessors return the same values.
@@ -356,9 +469,4 @@ TEST_F(PIDControllerTests, MutatorsAndAccessors)
     // No accessors for these.
     pPIDController->SetOutputLimits(11.0, 12.0);
     pPIDController->SetOutputLimits(13.0);
-
-    // Delete object.
-    delete pPIDController;
-    // Point to null.
-    pPIDController = nullptr;
 }

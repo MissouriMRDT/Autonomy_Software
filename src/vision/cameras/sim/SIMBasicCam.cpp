@@ -5,7 +5,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "SIMBasicCam.h"
@@ -208,7 +208,7 @@ std::future<bool> SIMBasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 bool SIMBasicCam::GetCameraIsOpen()
 {
     // Get camera status from OpenCV.
-    return m_cvCamera.isOpened();
+    return m_cvCamera.isOpened() && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
 /******************************************************************************

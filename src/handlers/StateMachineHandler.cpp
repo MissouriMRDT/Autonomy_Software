@@ -149,6 +149,15 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
         // Set atomic toggle saying we are done switching states.
         m_bSwitchingStates = false;
     }
+
+    // Send current robot state over RoveComm.
+    rovecomm::RoveCommPacket<uint8_t> stPacket;
+    stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_ID;
+    stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_COUNT;
+    stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("CURRENTSTATE")->second.DATA_TYPE;
+    stPacket.vData.emplace_back(static_cast<uint8_t>(this->GetCurrentState()));
+    // Send drive command over RoveComm to drive board to all subscribers.
+    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
 }
 
 /******************************************************************************
@@ -339,6 +348,9 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
     // Acquire write lock for handling events.
     std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
 
+    // Stop the drive.
+    globals::g_pDriveBoard->SendStop();
+
     // Check if the current state is not null and the state machine is running.
     if (m_pCurrentState != nullptr && this->GetThreadState() == AutonomyThreadState::eRunning)
     {
@@ -427,7 +439,7 @@ statemachine::States StateMachineHandler::GetPreviousState() const
 void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading)
 {
     // Get main ZEDCam.
-    ZEDCamera* pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
+    std::shared_ptr<ZEDCamera> pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
 
     // Check if main ZEDCam is opened and positional tracking is enabled.
     if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())

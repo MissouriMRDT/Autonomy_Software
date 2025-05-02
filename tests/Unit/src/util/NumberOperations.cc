@@ -5,7 +5,7 @@
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-08-17
  *
- * @copyright Copyright MRDT 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
 #include "../../../../src/util/NumberOperations.hpp"
@@ -190,7 +190,7 @@ TEST_F(NumOpsTests, AngularDifference)
     const int nTestValuesLength                   = 8;
     const double aFirstValues[nTestValuesLength]  = {0.0, 330.0, 30.0, 270.0, 60.0, 0.0, 170.0, 60.0};
     const double aSecondValues[nTestValuesLength] = {0.0, 30.0, 330.0, 180.0, 120.0, 360.0, 190.0, 90.0};
-    const double aOutput[nTestValuesLength]       = {0.0, 60.0, -60.0, 90.0, 60.0, 0.0, 20.0, 30.0};
+    const double aOutput[nTestValuesLength]       = {0.0, 60.0, -60.0, -90.0, 60.0, 0.0, 20.0, 30.0};
 
     // Loop through each value and compare inputs and outputs.
     for (int nIter = 0; nIter < nTestValuesLength; ++nIter)
