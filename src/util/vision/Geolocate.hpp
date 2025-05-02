@@ -110,7 +110,7 @@ namespace geoloc
         float fAvgZ = std::accumulate(vZ.begin(), vZ.end(), 0.0f) / vZ.size();
 
         // Adjust rover degree heading to match unit circle 0 position.
-        double dAdjustedHeading = numops::InputAngleModulus(stRoverPose.GetCompassHeading() + 90.0, 0.0, 359.9);
+        double dAdjustedHeading = numops::InputAngleModulus((stRoverPose.GetCompassHeading() * -1.0) + 90.0, 0.0, 360.0);
         // Convert camera heading to radians. (0 = North, CW positive)
         double dHeadingRad = dAdjustedHeading * M_PI / 180.0;
 
