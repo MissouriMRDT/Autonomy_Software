@@ -24,7 +24,22 @@
 /// \endcond
 
 // @todo replace with actual structure for Obstacle data
-template<typename O>    // Placeholder template until I create an Obstacle struct
+struct O
+{
+        double dHorizontalFOV;
+};    // Placeholder template until I create an Obstacle struct
+
+/******************************************************************************
+ * @brief Run FastSAM obstacle detection & camera pose estimation in multithreaded environment.
+ *      Given a camera, detection will be run continuously on the camera frames.
+ *
+ * What are the threads doing?
+ * Ask src/vision/aruco/TagDetector.h, I stole it from there.
+ *
+ *
+ * @author Donovan Bale (donovan@balehaus.org)
+ * @date 2025-05-02
+ ******************************************************************************/
 class ObstacleDetector : public AutonomyThread<void>
 {
     public:
@@ -32,10 +47,17 @@ class ObstacleDetector : public AutonomyThread<void>
         // Declare public methods.
         ////////////////////////////////////////
         ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
-                         const int nDetectorMaxFPS       = 30,
-                         const bool bEnableRecordingFlag = false,
-                         const bool bUsingGpuMats        = false);
-        ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam, const int nDetectorMaxFPS = 30, const bool bEnableRecordingFlag = false, const bool bUsingGpuMats = false);
+                         const int nDetectorMaxFPS                      = 30,
+                         const bool bEnable_tracking                    = false,
+                         const bool bEnableRecordingFlag                = false,
+                         const int nNumDetectedObstacleRetrievalThreads = 5,
+                         const bool bUsingGpuMats                       = false);
+        ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam,
+                         const int nDetectorMaxFPS                      = 30,
+                         const bool bEnable_tracking                    = false,
+                         const bool bEnableRecordingFlag                = false,
+                         const int nNumDetectedObstacleRetrievalThreads = 5,
+                         const bool bUsingGpuMats                       = false);
         ~ObstacleDetector();
 
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
@@ -86,8 +108,9 @@ class ObstacleDetector : public AutonomyThread<void>
         std::shared_ptr<tracking::MultiTracker> m_pMultiTracker;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
+        bool m_bCameraIsOpened;
         bool m_bEnableTracking;
-        int n_mNumDetectedTagsRetrievalThreads;
+        int m_nNumDetectedObstacleRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
 
