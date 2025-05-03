@@ -70,11 +70,12 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Power constants.
-    const float DRIVE_MAX_POWER = 0.4;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
-    const float DRIVE_MIN_POWER = -0.4;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
+    // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
+    const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
+    const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
     // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
-    const float DRIVE_MAX_EFFORT = DRIVE_MAX_POWER;    // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
-    const float DRIVE_MIN_EFFORT = DRIVE_MIN_POWER;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MAX_EFFORT = 0.4;     // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MIN_EFFORT = -0.4;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL      = 0.015;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -217,7 +218,7 @@ namespace constants
     const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
     const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING        = false;                            // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_GROUNDCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH           = false;                             // Whether or not to use pytorch detection on top of ArUco.
+    const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH           = false;                            // Whether or not to use pytorch detection on top of ArUco.
     const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL =
         "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";        // The model path to use for detection.
     const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable AR tag detection.

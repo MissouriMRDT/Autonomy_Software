@@ -200,9 +200,12 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     // Acquire write lock for writing to max effort member variables.
     std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
 
+    // Clamp the multiplier to the range [0, 1].
+    float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
+
     // Update member variables.
-    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fMaxDriveEffortMultiplier;
-    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fMaxDriveEffortMultiplier;
+    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
+    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
 }
 
 /******************************************************************************

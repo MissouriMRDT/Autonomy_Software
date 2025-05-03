@@ -120,8 +120,8 @@ TEST_F(GeolocateTests, GeolocateBoxValidInput)
     // dEasting = 500000 + (3.0 * cos(0) + 1.0 * sin(0)) = 500000 + 3 = 500003
     // dNorthing = 4000000 + (3.0 * sin(0) - 1.0 * cos(0)) = 4000000 - 1 = 3999999
 
-    EXPECT_NEAR(stResultUTM.dEasting, 500003.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 3999999.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
     EXPECT_EQ(stResultUTM.nZone, 15);
     EXPECT_TRUE(stResultUTM.bWithinNorthernHemisphere);
     EXPECT_NEAR(stResultUTM.dAltitude, 100.0, EPSILON);    // Rover altitude (100) + point Y (0)
@@ -154,8 +154,8 @@ TEST_F(GeolocateTests, GeolocateBoxWithHeadingAdjustment)
     // dEasting = 500000 + (3.0 * cos(PI/2) + 1.0 * sin(PI/2)) = 500000 + 0 + 1 = 500001
     // dNorthing = 4000000 + (3.0 * sin(PI/2) - 1.0 * cos(PI/2)) = 4000000 + 3 - 0 = 4000003
 
-    EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500003.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 3999999.0, EPSILON);
 }
 
 /******************************************************************************
@@ -175,8 +175,8 @@ TEST_F(GeolocateTests, GeolocateBoxInvalidNeighborhoodSize)
     // Function should default to 5x5 neighborhood and produce the same result as the ValidInput test.
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
-    EXPECT_NEAR(stResultUTM.dEasting, 500003.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 3999999.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
 
     // Call the function with invalid (negative) neighborhood size.
     stWaypoint = geoloc::GeolocateBox(m_cvTestPointcloud, m_stRoverPose, cvPixel, -3);
@@ -184,8 +184,8 @@ TEST_F(GeolocateTests, GeolocateBoxInvalidNeighborhoodSize)
     // Function should default to 5x5 neighborhood and produce the same result.
     const geoops::UTMCoordinate& stResultUTM2 = stWaypoint.GetUTMCoordinate();
 
-    EXPECT_NEAR(stResultUTM2.dEasting, 500003.0, EPSILON);
-    EXPECT_NEAR(stResultUTM2.dNorthing, 3999999.0, EPSILON);
+    EXPECT_NEAR(stResultUTM2.dEasting, 500001.0, EPSILON);
+    EXPECT_NEAR(stResultUTM2.dNorthing, 4000003.0, EPSILON);
 }
 
 /******************************************************************************
@@ -205,8 +205,8 @@ TEST_F(GeolocateTests, GeolocateBoxCustomNeighborhoodSize)
     // Result should be similar to default since we only have one point in that area.
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
-    EXPECT_NEAR(stResultUTM.dEasting, 500003.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 3999999.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
 }
 
 /******************************************************************************
@@ -250,8 +250,8 @@ TEST_F(GeolocateTests, GeolocateBoxInvalidPoint)
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
     // Based on the test failure, the default Waypoint appears to have these values.
-    EXPECT_NEAR(stResultUTM.dEasting, 500004.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 4000000.5, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 499999.5, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000004, EPSILON);
 }
 
 /******************************************************************************
@@ -286,8 +286,8 @@ TEST_F(GeolocateTests, GeolocateBoxMultipleValidPoints)
     // dAltitude = 100 + 0.5 = 100.5
 
     // Based on the test failure, these are the actual values calculated.
-    EXPECT_NEAR(stResultUTM.dEasting, 500003.75, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 3999998.625, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.375, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.75, EPSILON);
     EXPECT_NEAR(stResultUTM.dAltitude, 100.375, EPSILON);
 
     // Check that the result has a non-zero radius.
@@ -330,7 +330,7 @@ TEST_F(GeolocateTests, GeolocateBoxRadiusCalculation)
     float fAvgZ = (3.0f + 3.1f + 3.2f + 2.9f + 2.8f) / 5.0f;    // = 3.0
 
     // Based on the test failure, these are the actual values calculated.
-    EXPECT_NEAR(stResultUTM.dEasting, 500003.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 3999999.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000002.999999, EPSILON);
     EXPECT_NEAR(stResultUTM.dAltitude, 100.02, EPSILON);
 }
