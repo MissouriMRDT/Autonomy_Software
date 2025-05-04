@@ -116,6 +116,22 @@ namespace statemachine
         }
         else
         {
+            // Check the tags distance.
+            if (stBestArucoTag.nID != -1 && stBestArucoTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+            {
+                // Tag is too far away, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: ArUco tag detected but too far away. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+            else if (stBestTorchTag.dConfidence > 0.0 && stBestTorchTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+            {
+                // Tag is too far away, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Torch tag detected but too far away. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+
             // Update time last seen.
             m_tmTagLastSeenTime = std::chrono::system_clock::now();
 

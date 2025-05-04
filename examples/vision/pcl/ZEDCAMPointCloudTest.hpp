@@ -68,6 +68,36 @@ void DepthMouseCallback(int nEvent, int nX, int nY, int nFlags, void* pUserData)
 }
 
 /******************************************************************************
+ * @brief Mouse callback function for point cloud clicks.
+ *
+ * @param nEvent - The type of mouse event (e.g., left button click).
+ * @param nX - The x-coordinate of the mouse event.
+ * @param nY - The y-coordinate of the mouse event.
+ * @param nFlags - The flags associated with the mouse event.
+ * @param pUserData - Pointer to user data (in this case, the point cloud).
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-03
+ ******************************************************************************/
+void PointCloudMouseCallback(int nEvent, int nX, int nY, int nFlags, void* pUserData)
+{
+    (void) nFlags;    // Unused parameter
+    if (nEvent != cv::EVENT_LBUTTONDOWN)
+        return;
+
+    cv::Mat* cvPointCloud = static_cast<cv::Mat*>(pUserData);
+    if (nX >= 0 && nY >= 0 && nX < cvPointCloud->cols && nY < cvPointCloud->rows)
+    {
+        // Handle different point cloud types
+        cv::Vec4f cvPoint = cvPointCloud->at<cv::Vec4f>(nY, nX);
+        std::cout << "Point at (" << nX << ", " << nY << "): "
+                  << "X: " << cvPoint[0] << ", "
+                  << "Y: " << cvPoint[1] << ", "
+                  << "Z: " << cvPoint[2] << std::endl;
+    }
+}
+
+/******************************************************************************
  * @brief Suppresses PCL logging messages.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -159,6 +189,7 @@ void RunExample()
 
                 // Set the mouse callback for the depth window
                 cv::setMouseCallback("Depth Frame", DepthMouseCallback, &cvDepthFrame1);
+                cv::setMouseCallback("Depth Frame", PointCloudMouseCallback, &cvPointCloud1);
             }
 
             // Use PCL to visualize the point cloud.

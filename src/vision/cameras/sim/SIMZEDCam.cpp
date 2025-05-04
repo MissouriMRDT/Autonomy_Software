@@ -90,9 +90,15 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
  ******************************************************************************/
 SIMZEDCam::~SIMZEDCam()
 {
-    // Destroy the WebRTC connections.
-    m_pRGBStream.reset();
-    m_pDepthImageStream.reset();
+    // Close the WebRTC connections.
+    if (m_pRGBStream)
+    {
+        m_pRGBStream->CloseConnection();
+    }
+    if (m_pDepthImageStream)
+    {
+        m_pDepthImageStream->CloseConnection();
+    }
 
     // Stop threaded code.
     this->RequestStop();
@@ -207,27 +213,27 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
 // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
 #pragma omp parallel for collapse(2)
 
-    // Iterate over each pixel in the cvDepthMeasure image
+    // Iterate over each pixel in the cvDepthMeasure image.
     for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
     {
         for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
         {
-            // Get depth value
+            // Get depth value.
             float fDepth = cvDepthMeasure.at<float>(nY, nX);
 
-            // Skip invalid depth values
+            // Skip invalid depth values.
             if (fDepth <= 0)
             {
                 cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
                 continue;
             }
 
-            // Convert from pixel coordinates to 3D coordinates
+            // Convert from pixel coordinates to 3D coordinates.
             float fX = static_cast<float>((nX - dCx) * fDepth / dFx);
-            float fY = static_cast<float>((nY - dCy) * fDepth / dFy);
+            float fY = static_cast<float>((dCy - nY) * fDepth / dFy);
             float fZ = fDepth;
 
-            // Store point (XYZ + intensity, using Y channel for intensity)
+            // Store point. (XYZ + intensity, using Y channel for intensity)
             cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
         }
     }

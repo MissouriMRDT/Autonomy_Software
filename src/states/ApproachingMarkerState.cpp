@@ -114,7 +114,10 @@ namespace statemachine
         if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
         {
             // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover is too far from the original waypoint!");
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "ApproachingMarkerState: Rover is too far from the original waypoint! Waypoint radius is {} meters, current distance is {} meters.",
+                        m_stGoalWaypoint.dRadius,
+                        stCurrentMeasurement.dDistanceMeters);
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
@@ -227,12 +230,36 @@ namespace statemachine
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
-        std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
-        std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
-        std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
+
+        // Static variable to track last log time.
+        static std::chrono::system_clock::time_point tmLastLogTime = std::chrono::system_clock::now();
+        std::chrono::system_clock::time_point tmCurrentTime        = std::chrono::system_clock::now();
+        // Only log once per second.
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - tmLastLogTime).count() >= 1)
+        {
+            // Update the last log time.
+            tmLastLogTime = tmCurrentTime;
+
+            if (stBestArucoTag.nID != -1)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "ApproachingMarkerState: OpenCV Tag ID: {}, Distance: {:.2f} m, Heading: {:.2f} deg",
+                           stBestArucoTag.nID,
+                           dDistanceFromTag,
+                           dHeadingSetPoint);
+            }
+            else if (stBestTorchTag.dConfidence != 0.0)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "ApproachingMarkerState: Torch Tag Confidence: {:.2f}, Distance: {:.2f} m, Heading: {:.2f} deg",
+                           stBestTorchTag.dConfidence,
+                           dDistanceFromTag,
+                           dHeadingSetPoint);
+            }
+        }
 
         // Check if tag is reached.
-        if (dDistanceFromTag < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+        if (dDistanceFromTag != 0.0 && dDistanceFromTag < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
@@ -258,16 +285,16 @@ namespace statemachine
         // ---  Check if the rover is stuck --- //
         //////////////////////////////////////////
 
-        // // Check if stuck.
-        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        // {
-        //     // Submit logger message.
-        //     LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-        //     // Handle state transition and save the current search pattern state.
-        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-        //     // Don't execute the rest of the state.
-        //     return;
-        // }
+        // Check if stuck.
+        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
+        }
 
         return;
     }

@@ -33,13 +33,6 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "IdleState: Scheduling next run of state logic.");
 
-        // Add the search and rover path layers to the plot.
-        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
-
-        // Get the start rover pose.
-        m_stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-
         // Get tag detectors.
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
@@ -70,8 +63,7 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized   = false;
-        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("IdleStateRoverView");
+        m_bInitialized = false;
 
         if (!m_bInitialized)
         {
@@ -92,27 +84,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
         // Create instance variables.
-        geoops::RoverPose stCurrentRoverPose;
-
-        // Get the current rover gps position.
-        stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-
-        // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
-
-        // Identify target marker.
-        tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
-        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag);
-
-        // Clear the current plot and add the detected tags to the plot.
-        if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-        {
-            m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-        }
-        if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-        {
-            m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-        }
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Calculate distance from current position to position when idle state was entered.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());

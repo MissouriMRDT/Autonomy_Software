@@ -710,7 +710,6 @@ namespace logging
                 {
                     // Create instance variables.
                     std::vector<std::string> vLayerNames;
-                    bool bHasStuffToPlot = false;
 
                     // Clear the plot.
                     m_mtRoverPathAxes->clear();
@@ -739,8 +738,6 @@ namespace logging
                             m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
                             // Set the hold to true.
                             m_mtRoverPathAxes->hold(true);
-                            // Set the flag to true.
-                            bHasStuffToPlot = true;
                         }
                     }
 
@@ -771,30 +768,24 @@ namespace logging
                             mtLineHandle->marker_face(stdLayer.second.second);
                             // Set the hold to true.
                             m_mtRoverPathAxes->hold(true);
-                            // Set the flag to true.
-                            bHasStuffToPlot = true;
                         }
                     }
 
-                    // Make sure there is something to plot, otherwise we'll get some errors from GNUPlot.
-                    if (!bHasStuffToPlot)
-                    {
-                        // Update legend names.
-                        m_mtRoverPathAxes->legend(vLayerNames);
-                        matplot::legend_handle mtLegend = m_mtRoverPathAxes->legend();
-                        mtLegend->font_size(8);
-                        mtLegend->num_columns(2);
-                        // Set axis options.
-                        m_mtRoverPathAxes->grid(true);
-                        m_mtRoverPathAxes->xtickangle(45);
-                        m_mtRoverPathAxes->axis(matplot::square);
-                        m_mtRoverPathAxes->xtickformat("%.0f");    // No decimal places for x-axis
-                        m_mtRoverPathAxes->ytickformat("%.0f");    // No decimal places for y-axis
-                        // Set the hold to false.
-                        m_mtRoverPathAxes->hold(false);
-                        // Plot the path.
-                        m_mtRoverPathPlot->draw();
-                    }
+                    // Update legend names.
+                    m_mtRoverPathAxes->legend(vLayerNames);
+                    matplot::legend_handle mtLegend = m_mtRoverPathAxes->legend();
+                    mtLegend->font_size(8);
+                    mtLegend->num_columns(2);
+                    // Set axis options.
+                    m_mtRoverPathAxes->grid(true);
+                    m_mtRoverPathAxes->xtickangle(45);
+                    m_mtRoverPathAxes->axis(matplot::square);
+                    m_mtRoverPathAxes->xtickformat("%.0f");    // No decimal places for x-axis
+                    m_mtRoverPathAxes->ytickformat("%.0f");    // No decimal places for y-axis
+                    // Set the hold to false.
+                    m_mtRoverPathAxes->hold(false);
+                    // Plot the path.
+                    m_mtRoverPathPlot->draw();
                 }
 
                 /******************************************************************************
