@@ -170,12 +170,12 @@ void RunExample()
         uint16_t unDepth = static_cast<uint16_t>(RNG.uniform(5000, 60000));
 
         // Define triangle vertices.
-        cv::Point vertices[3] = {cv::Point(nCenterX, nCenterY - nSize / 2),
-                                 cv::Point(nCenterX - nSize / 2, nCenterY + nSize / 2),
-                                 cv::Point(nCenterX + nSize / 2, nCenterY + nSize / 2)};
+        cv::Point aVertices[3] = {cv::Point(nCenterX, nCenterY - nSize / 2),
+                                  cv::Point(nCenterX - nSize / 2, nCenterY + nSize / 2),
+                                  cv::Point(nCenterX + nSize / 2, nCenterY + nSize / 2)};
 
         // Fill the triangle.
-        cv::fillConvexPoly(cvDepthMeasure, vertices, 3, cv::Scalar(unDepth));
+        cv::fillConvexPoly(cvDepthMeasure, aVertices, 3, cv::Scalar(unDepth));
     }
 
     ///////////////////////////////////////////////////////
