@@ -268,7 +268,18 @@ int main()
                 }
                 else
                 {
-                    if (chTerminalInput == 'f' || chTerminalInput == 'F')
+                    if (chTerminalInput == 'h' || chTerminalInput == 'H')
+                    {
+                        // Print help message to console.
+                        LOG_NOTICE(logging::g_qSharedLogger,
+                                   "\n--------[ Autonomy Software Help ]--------\n"
+                                   "Press 'f' or 'F' to print FPS stats to the log file.\n"
+                                   "Press 'p' or 'P' to print rover pose info to the log file.\n"
+                                   "Press 't' or 'T' to print tag detection info to the log file.\n"
+                                   "Press 'q' or 'Q' to quit the program.\n"
+                                   "-------------------------------------------\n");
+                    }
+                    else if (chTerminalInput == 'f' || chTerminalInput == 'F')
                     {
                         LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
                     }
@@ -379,41 +390,45 @@ int main()
             slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
         }
 
-        // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
-        network::g_bRoveCommUDPStatus = false;
-        network::g_bRoveCommTCPStatus = false;
-
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
-        // Even though smart pointers should handle lifetime, explicitly reset to ensure cleanup in proper order, this also prevents the main thread
-        // from exiting and killing quill loggers since they are used in some of the destructors.
+        // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
-        delete globals::g_pDriveBoard;
-        delete globals::g_pMultimediaBoard;
-        delete globals::g_pNavigationBoard;
-
-        // Finally, stop RoveComm.
-        LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
-        delete network::g_pRoveCommUDPNode;
-        delete network::g_pRoveCommTCPNode;
-
         // Set all pointers to nullptr to prevent dangling pointers.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
         globals::g_pWaypointHandler     = nullptr;
-        globals::g_pDriveBoard          = nullptr;
-        globals::g_pMultimediaBoard     = nullptr;
-        globals::g_pNavigationBoard     = nullptr;
-        network::g_pRoveCommUDPNode     = nullptr;
-        network::g_pRoveCommTCPNode     = nullptr;
     }
+
+    // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+    network::g_bRoveCommUDPStatus = false;
+    network::g_bRoveCommTCPStatus = false;
+
+    // Cleanup driver objects.
+    delete globals::g_pDriveBoard;
+    delete globals::g_pMultimediaBoard;
+    delete globals::g_pNavigationBoard;
+
+    // Finally, stop RoveComm.
+    LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
+    network::g_pRoveCommUDPNode->CloseUDPSocket();
+    network::g_pRoveCommTCPNode->CloseTCPSocket();
+    delete network::g_pRoveCommUDPNode;
+    delete network::g_pRoveCommTCPNode;
+
+    // Set all pointers to nullptr to prevent dangling pointers.
+    globals::g_pDriveBoard      = nullptr;
+    globals::g_pMultimediaBoard = nullptr;
+    globals::g_pNavigationBoard = nullptr;
+    network::g_pRoveCommUDPNode = nullptr;
+    network::g_pRoveCommTCPNode = nullptr;
 
     // Submit logger message that program is done cleaning up and is now exiting.
     LOG_INFO(logging::g_qSharedLogger, "Clean up finished. Exiting...");

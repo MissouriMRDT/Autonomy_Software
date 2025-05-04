@@ -60,35 +60,7 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
  ******************************************************************************/
 WebRTC::~WebRTC()
 {
-    // Check if the smart pointers are valid before calling any methods.
-    if (m_pVideoTrack1)
-    {
-        m_pVideoTrack1->close();
-    }
-    if (m_pPeerConnection)
-    {
-        m_pPeerConnection->close();
-    }
-    if (m_pDataChannel)
-    {
-        m_pDataChannel->close();
-    }
-    if (m_pWebSocket)
-    {
-        m_pWebSocket->close();
-    }
-
-    // Wait for all connections to close.
-    while ((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed()))
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    // Manually destroy the smart pointers.
-    m_pVideoTrack1.reset();
-    m_pPeerConnection.reset();
-    m_pDataChannel.reset();
-    m_pWebSocket.reset();
+    this->CloseConnection();
 
     // Free the codec context.
     if (m_pSWSContext)
@@ -113,6 +85,46 @@ WebRTC::~WebRTC()
     m_pFrame          = nullptr;
     m_pPacket         = nullptr;
     m_pSWSContext     = nullptr;
+}
+
+/******************************************************************************
+ * @brief Close the WebRTC connection.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-03
+ ******************************************************************************/
+void WebRTC::CloseConnection()
+{
+    // Reset the callbacks to prevent any further processing.
+    m_pWebSocket->resetCallbacks();
+    m_pPeerConnection->resetCallbacks();
+    m_pDataChannel->resetCallbacks();
+    m_pVideoTrack1->resetCallbacks();
+
+    // Close the WebRTC connections.
+    if (m_pVideoTrack1)
+    {
+        m_pVideoTrack1->close();
+    }
+    if (m_pDataChannel)
+    {
+        m_pDataChannel->close();
+    }
+    if (m_pPeerConnection)
+    {
+        m_pPeerConnection->close();
+    }
+    if (m_pWebSocket)
+    {
+        m_pWebSocket->close();
+    }
+
+    // Wait for all connections to close.
+    while ((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed()))
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 }
 
 /******************************************************************************

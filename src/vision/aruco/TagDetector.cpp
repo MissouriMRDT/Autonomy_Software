@@ -351,17 +351,12 @@ void TagDetector::ThreadedContinuousCode()
             stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
         }
 
-        // Merge the newly detected tags with the pre-existing detected tags
+        // Merge the newly detected tags with the pre-existing detected tags.
         this->UpdateDetectedTags(m_vNewlyDetectedTags);
 
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
-
-        // Name the window the name of the camera.
-        // std::string szWindowName = m_szCameraName + " Tag Detector";
-        // cv::imshow(szWindowName, m_cvArucoProcFrame);
-        // cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -686,6 +681,8 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                 geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stTag.stGeolocatedPosition.GetUTMCoordinate());
                 // Set the straight line distance to the tag.
                 stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                // Use the rover heading and the azimuth angle to calculate the relative heading to the tag.
+                stTag.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
             }
         }
     }

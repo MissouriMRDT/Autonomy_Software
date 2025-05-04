@@ -42,7 +42,6 @@ namespace statemachine
             geoops::RoverPose m_stStartRoverPose;
             bool m_bInitialized;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
-            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:
             void Start() override;
