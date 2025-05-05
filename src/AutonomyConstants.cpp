@@ -302,7 +302,7 @@ namespace constants
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER         = 0.6;      // The speed to drive at when navigating.
+    const double NAVIGATING_MOTOR_POWER         = 0.4;      // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;      // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION       = false;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
