@@ -81,8 +81,9 @@ class DriveBoard
         diffdrive::DrivePowers CalculateMove(const double dGoalSpeed,
                                              const double dGoalHeading,
                                              const double dActualHeading,
-                                             const diffdrive::DifferentialControlMethod eKinematicsMethod);
-        void SendDrive(diffdrive::DrivePowers& stDrivePowers);
+                                             const diffdrive::DifferentialControlMethod eKinematicsMethod = diffdrive::DifferentialControlMethod::eArcadeDrive,
+                                             const bool bAlwaysProgressForward                            = false);
+        void SendDrive(const diffdrive::DrivePowers& stDrivePowers);
         void SendStop();
 
         /////////////////////////////////////////

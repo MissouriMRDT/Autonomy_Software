@@ -11,6 +11,13 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
+#include "./util/states/TagDetectionChecker.hpp"
+
+/// \cond
+#include <sys/ioctl.h>
+#include <termios.h>
+
+/// \endcond
 
 // Check if any file from the example directory has been included.
 // If not included, define empty run example function and set bRunExampleFlag
@@ -25,6 +32,8 @@ CHECK_IF_EXAMPLE_INCLUDED
 
 // Create a boolean used to handle a SIGINT and exit gracefully.
 volatile sig_atomic_t bMainStop = false;
+// Store original terminal settings.
+struct termios g_stOriginalTermSettings;
 
 /******************************************************************************
  * @brief Help function given to the C++ csignal standard library to run when
@@ -55,6 +64,53 @@ void SignalHandler(int nSignal)
         // Update stop signal.
         bMainStop = true;
     }
+}
+
+/******************************************************************************
+ * @brief Reset terminal mode to original settings.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+void ResetTerminalMode()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &g_stOriginalTermSettings);
+}
+
+/******************************************************************************
+ * @brief Mutator for the Non Canonical Terminal Mode private member.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+void SetNonCanonicalTerminalMode()
+{
+    struct termios stNewTermSettings;
+
+    tcgetattr(STDIN_FILENO, &g_stOriginalTermSettings);
+    std::memcpy(&stNewTermSettings, &g_stOriginalTermSettings, sizeof(struct termios));
+
+    stNewTermSettings.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &stNewTermSettings);
+
+    atexit(ResetTerminalMode);
+}
+
+/******************************************************************************
+ * @brief Check if a key has been pressed in the terminal.
+ *
+ * @return int - Number of bytes waiting in the terminal buffer.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-04-04
+ ******************************************************************************/
+int CheckKeyPress()
+{
+    int nBytesWaiting;
+    ioctl(STDIN_FILENO, FIONREAD, &nBytesWaiting);
+    return nBytesWaiting;
 }
 
 /******************************************************************************
@@ -92,6 +148,7 @@ int main()
     // Start RoveComm instances bound on ports.
     network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
     network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+
     // Check if RoveComm was successfully initialized.
     if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
     {
@@ -132,6 +189,8 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
         sigaction(SIGQUIT, &stSigBreak, nullptr);
+        // Set the terminal to non-canonical mode. This allows us to read a single character from the terminal without waiting for a newline.
+        SetNonCanonicalTerminalMode();
 
         // Print warnings if running in SIM mode.
         if (constants::MODE_SIM)
@@ -166,14 +225,11 @@ int main()
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        std::shared_ptr<ZEDCamera> pMainCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        std::shared_ptr<ZEDCamera> pLeftCam         = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam);
-        std::shared_ptr<ZEDCamera> pRightCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam);
-        std::shared_ptr<BasicCamera> pGroundCam     = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
-        std::shared_ptr<TagDetector> pMainDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        std::shared_ptr<TagDetector> pLeftDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam);
-        std::shared_ptr<TagDetector> pRightDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam);
-        IPS IterPerSecond                           = IPS();
+        std::shared_ptr<ZEDCamera> pMainCam          = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        std::shared_ptr<BasicCamera> pGroundCam      = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+        std::shared_ptr<TagDetector> pMainDetector   = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        std::shared_ptr<TagDetector> pGroundDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam);
+        IPS IterPerSecond                            = IPS();
 
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
@@ -190,20 +246,125 @@ int main()
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
             szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftCam FPS: " + std::to_string(pLeftCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightCam FPS: " + std::to_string(pRightCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "LeftDetector FPS: " + std::to_string(pLeftDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RightDetector FPS: " + std::to_string(pRightDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "GroundDetector FPS: " + std::to_string(pGroundDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
             szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
-
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+
+            // Print out the FPS stats to the console if the user presses 'f' or 'F'.
+            if (CheckKeyPress() > 0)
+            {
+                char chTerminalInput = 0;
+                ssize_t nBytesRead   = read(STDIN_FILENO, &chTerminalInput, 1);
+                if (nBytesRead <= 0)
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "Failed to read from terminal input.");
+                }
+                else
+                {
+                    if (chTerminalInput == 'h' || chTerminalInput == 'H')
+                    {
+                        // Print help message to console.
+                        LOG_NOTICE(logging::g_qSharedLogger,
+                                   "\n--------[ Autonomy Software Help ]--------\n"
+                                   "Press 'f' or 'F' to print FPS stats to the log file.\n"
+                                   "Press 'p' or 'P' to print rover pose info to the log file.\n"
+                                   "Press 't' or 'T' to print tag detection info to the log file.\n"
+                                   "Press 'q' or 'Q' to quit the program.\n"
+                                   "-------------------------------------------\n");
+                    }
+                    else if (chTerminalInput == 'f' || chTerminalInput == 'F')
+                    {
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
+                    }
+                    else if (chTerminalInput == 'p' || chTerminalInput == 'P')
+                    {
+                        // Get the rover pose from the waypoint handler.
+                        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+                        // Assemble a string to print containing data about the rover pose.
+                        std::string szRoverPoseInfo = "\n--------[ Rover Pose Info ]--------\n";
+                        szRoverPoseInfo += "Easting: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dEasting) + "\n";
+                        szRoverPoseInfo += "Northing: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dNorthing) + "\n";
+                        szRoverPoseInfo += "Altitude: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dAltitude) + "\n";
+                        szRoverPoseInfo += "Compass: " + std::to_string(stCurrentRoverPose.GetCompassHeading()) + "\n";
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szRoverPoseInfo);
+                    }
+                    else if (chTerminalInput == 't' || chTerminalInput == 'T')
+                    {
+                        // Get the tags from the tag detectors.
+                        if (pMainDetector->GetIsReady())
+                        {
+                            // Create instance variables.
+                            tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
+                            int nTagCount = 0;
+
+                            // Get the best/valid tags from the tag detectors.
+                            std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pGroundDetector};
+                            // Check if the next waypoint in the waypoint handler exists and had a tag ID.
+                            if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                            {
+                                // Get the best tags from the tag detectors.
+                                nTagCount = statemachine::IdentifyTargetMarker(vTagDetectors,
+                                                                               stBestOpenCVTag,
+                                                                               stBestTorchTag,
+                                                                               globals::g_pWaypointHandler->PeekNextWaypoint().nID);
+                            }
+                            else
+                            {
+                                // Get the best tags from the tag detectors.
+                                nTagCount = statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
+                            }
+
+                            // Submit logger message.
+                            std::ostringstream ossTagsInfo;
+                            ossTagsInfo << "\n--------[ All Detections ]--------\n"
+                                        << "Detected Tags Info:\n"
+                                        << "Total Tags: " << nTagCount << "\n";
+
+                            ossTagsInfo << "\n--------[ Valid/Best Tags ]--------\n";
+                            if (stBestOpenCVTag.nID != -1)
+                            {
+                                ossTagsInfo << "Best OpenCV Tag ID: " << stBestOpenCVTag.nID << "\n";
+                                ossTagsInfo << "Best OpenCV Tag Distance: " << stBestOpenCVTag.dStraightLineDistance << "\n";
+                                ossTagsInfo << "Best OpenCV Tag Yaw Angle: " << stBestOpenCVTag.dYawAngle << "\n";
+                            }
+                            else
+                            {
+                                ossTagsInfo << "No valid OpenCV tags detected.\n";
+                            }
+                            if (stBestTorchTag.dConfidence != 0.0)
+                            {
+                                ossTagsInfo << "Best Torch Tag ID: " << stBestTorchTag.nID << "\n";
+                                ossTagsInfo << "Best Torch Tag Distance: " << stBestTorchTag.dStraightLineDistance << "\n";
+                                ossTagsInfo << "Best Torch Tag Yaw Angle: " << stBestTorchTag.dYawAngle << "\n";
+                            }
+                            else
+                            {
+                                ossTagsInfo << "No valid Torch tags detected.\n";
+                            }
+
+                            LOG_NOTICE(logging::g_qSharedLogger, "{}", ossTagsInfo.str());
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger, "Tag Detector is not ready yet. Cannot get tags.");
+                        }
+                    }
+                    else if (chTerminalInput == 'q' || chTerminalInput == 'Q')
+                    {
+                        LOG_INFO(logging::g_qSharedLogger, "'Q' key pressed. Initiating shutdown...");
+                        bMainStop = true;
+                    }
+                }
+            }
 
             // Update IPS tick.
             IterPerSecond.Tick();
@@ -229,41 +390,45 @@ int main()
             slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
         }
 
-        // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
-        network::g_bRoveCommUDPStatus = false;
-        network::g_bRoveCommTCPStatus = false;
-
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
-        // Even though smart pointers should handle lifetime, explicitly reset to ensure cleanup in proper order, this also prevents the main thread
-        // from exiting and killing quill loggers since they are used in some of the destructors.
+        // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
-        delete globals::g_pDriveBoard;
-        delete globals::g_pMultimediaBoard;
-        delete globals::g_pNavigationBoard;
-
-        // Finally, stop RoveComm.
-        LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
-        delete network::g_pRoveCommUDPNode;
-        delete network::g_pRoveCommTCPNode;
-
         // Set all pointers to nullptr to prevent dangling pointers.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
         globals::g_pWaypointHandler     = nullptr;
-        globals::g_pDriveBoard          = nullptr;
-        globals::g_pMultimediaBoard     = nullptr;
-        globals::g_pNavigationBoard     = nullptr;
-        network::g_pRoveCommUDPNode     = nullptr;
-        network::g_pRoveCommTCPNode     = nullptr;
     }
+
+    // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+    network::g_bRoveCommUDPStatus = false;
+    network::g_bRoveCommTCPStatus = false;
+
+    // Cleanup driver objects.
+    delete globals::g_pDriveBoard;
+    delete globals::g_pMultimediaBoard;
+    delete globals::g_pNavigationBoard;
+
+    // Finally, stop RoveComm.
+    LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
+    network::g_pRoveCommUDPNode->CloseUDPSocket();
+    network::g_pRoveCommTCPNode->CloseTCPSocket();
+    delete network::g_pRoveCommUDPNode;
+    delete network::g_pRoveCommTCPNode;
+
+    // Set all pointers to nullptr to prevent dangling pointers.
+    globals::g_pDriveBoard      = nullptr;
+    globals::g_pMultimediaBoard = nullptr;
+    globals::g_pNavigationBoard = nullptr;
+    network::g_pRoveCommUDPNode = nullptr;
+    network::g_pRoveCommTCPNode = nullptr;
 
     // Submit logger message that program is done cleaning up and is now exiting.
     LOG_INFO(logging::g_qSharedLogger, "Clean up finished. Exiting...");

@@ -48,6 +48,7 @@ class WebRTC
         /////////////////////////////////////////
         WebRTC(const std::string& szSignallingServerURL, const std::string& szStreamerID);
         ~WebRTC();
+        void CloseConnection();
 
         // Setter for the frame received callback.
         void SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameReceivedCallback, const AVPixelFormat eOutputPixelFormat = AV_PIX_FMT_BGR24);

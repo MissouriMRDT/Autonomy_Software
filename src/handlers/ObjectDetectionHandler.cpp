@@ -25,16 +25,6 @@ ObjectDetectionHandler::ObjectDetectionHandler()
     m_pObjectDetectorMainCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam),
                                                                 constants::OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                                                 constants::ZED_MAINCAM_USE_GPU_MAT);
-
-    // Initialize detector for left aruco BasicCam.
-    m_pObjectDetectorLeftCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam),
-                                                                constants::OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
-                                                                constants::ZED_LEFTCAM_USE_GPU_MAT);
-
-    // Initialize detector for right aruco BasicCam.
-    m_pObjectDetectorRightCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam),
-                                                                 constants::OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
-                                                                 constants::ZED_RIGHTCAM_USE_GPU_MAT);
 }
 
 /******************************************************************************
@@ -61,10 +51,6 @@ void ObjectDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pObjectDetectorMainCam->Start();
-
-    // Start the left and right aruco eyes.
-    m_pObjectDetectorLeftCam->Start();
-    m_pObjectDetectorRightCam->Start();
 }
 
 /******************************************************************************
@@ -79,12 +65,6 @@ void ObjectDetectionHandler::StopAllDetectors()
     // Stop ZED maincam detector.
     m_pObjectDetectorMainCam->RequestStop();
     m_pObjectDetectorMainCam->Join();
-
-    // Stop BasicCam left aruco eye detector.
-    m_pObjectDetectorLeftCam->RequestStop();
-    m_pObjectDetectorRightCam->RequestStop();
-    m_pObjectDetectorLeftCam->Join();
-    m_pObjectDetectorRightCam->Join();
 }
 
 /******************************************************************************
@@ -102,8 +82,6 @@ std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(Object
     switch (eDetectorName)
     {
         case ObjectDetectors::eHeadMainCam: return m_pObjectDetectorMainCam; break;
-        case ObjectDetectors::eFrameLeftCam: return m_pObjectDetectorLeftCam; break;
-        case ObjectDetectors::eFrameRightCam: return m_pObjectDetectorRightCam; break;
         default: return m_pObjectDetectorMainCam; break;
     }
 }

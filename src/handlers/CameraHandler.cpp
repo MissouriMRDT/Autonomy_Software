@@ -43,12 +43,11 @@ CameraHandler::CameraHandler()
                                               constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                                               constants::ZED_MAINCAM_SERIAL);
 
+        // Always enable positional tracking.
+        m_pMainCam->EnablePositionalTracking();
+
         // Additional setup for main ZED camera.
         if (constants::ZED_MAINCAM_EXPORT_SPATIAL_MAP)
-        {
-            m_pMainCam->EnablePositionalTracking();
-        }
-        if (constants::ZED_MAINCAM_EXPORT_SVO_RECORDING)
         {
             m_pMainCam->EnableSpatialMapping();
         }
@@ -64,58 +63,6 @@ CameraHandler::CameraHandler()
                                                  constants::ZED_MAINCAM_ENABLE_RECORDING,
                                                  constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                                                  constants::ZED_MAINCAM_SERIAL);
-    }
-
-    // Initialize left ZED camera.
-    m_pLeftCam = std::make_shared<ZEDCam>(constants::ZED_LEFTCAM_RESOLUTIONX,
-                                          constants::ZED_LEFTCAM_RESOLUTIONY,
-                                          constants::ZED_LEFTCAM_FPS,
-                                          constants::ZED_LEFTCAM_HORIZONTAL_FOV,
-                                          constants::ZED_LEFTCAM_VERTICAL_FOV,
-                                          constants::ZED_LEFTCAM_ENABLE_RECORDING,
-                                          constants::ZED_LEFTCAM_EXPORT_SVO_RECORDING,
-                                          constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-                                          constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-                                          constants::ZED_LEFTCAM_USE_GPU_MAT,
-                                          constants::ZED_LEFTCAM_USE_HALF_PRECISION_DEPTH,
-                                          constants::ZED_LEFTCAM_FUSION_MASTER,
-                                          constants::ZED_LEFTCAM_FRAME_RETRIEVAL_THREADS,
-                                          constants::ZED_LEFTCAM_SERIAL);
-
-    // Additional setup for left ZED camera.
-    if (constants::ZED_LEFTCAM_EXPORT_SPATIAL_MAP)
-    {
-        m_pMainCam->EnablePositionalTracking();
-    }
-    if (constants::ZED_LEFTCAM_EXPORT_SVO_RECORDING)
-    {
-        m_pMainCam->EnableSpatialMapping();
-    }
-
-    // Initialize right ZED camera.
-    m_pRightCam = std::make_shared<ZEDCam>(constants::ZED_RIGHTCAM_RESOLUTIONX,
-                                           constants::ZED_RIGHTCAM_RESOLUTIONY,
-                                           constants::ZED_RIGHTCAM_FPS,
-                                           constants::ZED_RIGHTCAM_HORIZONTAL_FOV,
-                                           constants::ZED_RIGHTCAM_VERTICAL_FOV,
-                                           constants::ZED_RIGHTCAM_ENABLE_RECORDING,
-                                           constants::ZED_RIGHTCAM_EXPORT_SVO_RECORDING,
-                                           constants::ZED_DEFAULT_MINIMUM_DISTANCE,
-                                           constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
-                                           constants::ZED_RIGHTCAM_USE_GPU_MAT,
-                                           constants::ZED_RIGHTCAM_USE_HALF_PRECISION_DEPTH,
-                                           constants::ZED_RIGHTCAM_FUSION_MASTER,
-                                           constants::ZED_RIGHTCAM_FRAME_RETRIEVAL_THREADS,
-                                           constants::ZED_RIGHTCAM_SERIAL);
-
-    // Additional setup for right ZED camera.
-    if (constants::ZED_RIGHTCAM_EXPORT_SPATIAL_MAP)
-    {
-        m_pMainCam->EnablePositionalTracking();
-    }
-    if (constants::ZED_RIGHTCAM_EXPORT_SVO_RECORDING)
-    {
-        m_pMainCam->EnableSpatialMapping();
     }
 
     // Initialize ground eye.
@@ -157,8 +104,6 @@ void CameraHandler::StartAllCameras()
 {
     // Start ZED cams.
     m_pMainCam->Start();
-    m_pLeftCam->Start();
-    m_pRightCam->Start();
 
     // Start basic cams.
     m_pGroundCam->Start();
@@ -192,11 +137,7 @@ void CameraHandler::StopAllCameras()
 
     // Stop ZED cams.
     m_pMainCam->RequestStop();
-    m_pLeftCam->RequestStop();
-    m_pRightCam->RequestStop();
     m_pMainCam->Join();
-    m_pLeftCam->Join();
-    m_pRightCam->Join();
 
     // Stop basic cams.
     m_pGroundCam->RequestStop();
@@ -231,9 +172,7 @@ std::shared_ptr<ZEDCamera> CameraHandler::GetZED(ZEDCamName eCameraName)
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case ZEDCamName::eHeadMainCam: return m_pMainCam; break;       // Return the ZEDCam in the autonomy head.
-        case ZEDCamName::eFrameLeftCam: return m_pLeftCam; break;      // Return the ZEDCam on the left side of the rover frame.
-        case ZEDCamName::eFrameRightCam: return m_pRightCam; break;    // Return the ZEDCam on the right side of the rover frame.
+        case ZEDCamName::eHeadMainCam: return m_pMainCam; break;    // Return the ZEDCam in the autonomy head.
         default: return m_pMainCam; break;
     }
 }

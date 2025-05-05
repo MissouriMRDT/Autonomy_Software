@@ -92,7 +92,7 @@ namespace logging
         std::filesystem::path szFullOutputPath = szFilePath / szFilename;
 
         // Set Console Color Profile
-        quill::ConsoleSink::Colours qColors;
+        quill::ConsoleSinkConfig::Colours qColors;
         qColors.apply_default_colours();
         qColors.assign_colour_to_log_level(quill::LogLevel::TraceL3, constants::szTraceL3Color);
         qColors.assign_colour_to_log_level(quill::LogLevel::TraceL2, constants::szTraceL2Color);
@@ -139,11 +139,11 @@ namespace logging
         );
 
         std::shared_ptr<quill::Sink> qConsoleSink =
-            quill::Frontend::create_or_get_sink<MRDTConsoleSink>("ConsoleSink",                                // Log Name
-                                                                 qColors,                                      // Log Custom Colors
-                                                                 quill::ConsoleSink::ColourMode::Automatic,    // Detect is console supports colors.
-                                                                 szConsolePattern,                             // Log Output Pattern
-                                                                 szTimestampPattern                            // Log Timestamp Pattern
+            quill::Frontend::create_or_get_sink<MRDTConsoleSink>("ConsoleSink",                                      // Log Name
+                                                                 qColors,                                            // Log Custom Colors
+                                                                 quill::ConsoleSinkConfig::ColourMode::Automatic,    // Detect is console supports colors.
+                                                                 szConsolePattern,                                   // Log Output Pattern
+                                                                 szTimestampPattern                                  // Log Timestamp Pattern
             );
 
         std::shared_ptr<quill::Sink> qMRDTRoveCommSink = quill::Frontend::create_or_get_sink<MRDTRoveCommSink>("MRDTRoveCommSink",           // Log Name

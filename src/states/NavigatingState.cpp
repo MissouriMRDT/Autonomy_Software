@@ -11,6 +11,7 @@
 #include "NavigatingState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
+#include "../util/states/TagDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -36,14 +37,14 @@ namespace statemachine
         // Initialize member variables.
         m_bFetchNewWaypoint = true;
         m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameLeftCam),
-                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eFrameRightCam)};
+                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
 
         // Create rover path layers.
         m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         m_pRoverPathPlot->CreatePathLayer("AStarPath", "-m");
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
+        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
     }
 
     /******************************************************************************
@@ -164,10 +165,10 @@ namespace statemachine
         // Check if we are at the goal waypoint.
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
-            // NOTE: Optional - Uncomment the above code and comment out the below code to use the drive board to navigate to the goal waypoint.
+            // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
             // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // // Calculate move from goal heading and desired speed.
+            // Calculate move from goal heading and desired speed.
             // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
             //                                                                              stDriveVector.dThetaHeading,
             //                                                                              stCurrentRoverPose.GetCompassHeading(),
@@ -233,39 +234,33 @@ namespace statemachine
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
-            // Get a list of the currently detected tags, and their stats.
-            std::vector<arucotag::ArucoTag> vDetectedArucoTags;
-            std::vector<tensorflowtag::TensorflowTag> vDetectedTensorflowTags;
-            tagdetectutils::LoadDetectedTags(vDetectedArucoTags, vDetectedTensorflowTags, m_vTagDetectors, false);
-
-            // Check if we have detected any tags.
-            if (vDetectedArucoTags.size() || vDetectedTensorflowTags.size())
+            // Create instance variables.
+            tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
+            // Identify target marker.
+            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+            // Check if either tag type is seen.
+            if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
             {
-                // Check if any of the tags have a detection counter or confidence greater than the threshold.
-                if (std::any_of(vDetectedArucoTags.begin(),
-                                vDetectedArucoTags.end(),
-                                [this](arucotag::ArucoTag& stTag)
-                                {
-                                    // If the Tag ID given by the user in the waypoint is less than 0, then we don't care about the ID.
-                                    if (m_stGoalWaypoint.nID < 0)
-                                    {
-                                        return stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT;
-                                    }
-                                    else
-                                    {
-                                        return (stTag.nID == m_stGoalWaypoint.nID && stTag.nHits >= constants::APPROACH_MARKER_DETECT_ATTEMPTS_LIMIT);
-                                    }
-                                }) ||
-                    std::any_of(vDetectedTensorflowTags.begin(),
-                                vDetectedTensorflowTags.end(),
-                                [](tensorflowtag::TensorflowTag& stTag) { return stTag.dConfidence >= constants::APPROACH_MARKER_TF_CONFIDENCE_THRESHOLD; }))
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+
+                // Check if the OpenCV tag has a good absolute position.
+                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
                 {
-                    // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Marker seen!");
-                    // Handle state transition.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen);
-                    return;
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
                 }
+                // Check if the torch tag has a good absolute position.
+                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
+                // Don't execute the rest of the state.
+                return;
             }
         }
 
@@ -273,13 +268,13 @@ namespace statemachine
         /* --- Detect Objects --- */
         ////////////////////////////
 
-        // TODO: Add object detection to SearchPattern state
+        // TODO: Add object detection to Navigating state
 
         //////////////////////////////
         /* --- Detect Obstacles --- */
         //////////////////////////////
 
-        // TODO: Add obstacle detection to SearchPattern state
+        // TODO: Add obstacle detection to Navigating state
 
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */

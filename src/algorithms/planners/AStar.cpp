@@ -32,8 +32,8 @@ namespace pathplanners
      * @brief Construct a new AStar::AStar object.
      *
      *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2024-02-01
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2024-11-18
      ******************************************************************************/
     AStar::AStar()
     {
@@ -88,7 +88,7 @@ namespace pathplanners
 
         // Submit log message.
         LOG_NOTICE(logging::g_qSharedLogger,
-                   "ASTAR has started planning a path up to {} meters long with a node spacing of {} meters.",
+                   "ASTAR has started planning a path up to {} meters long with a node spacing of {} meters. Please wait...",
                    constants::ASTAR_MAX_SEARCH_GRID,
                    constants::ASTAR_NODE_SIZE);
         // Update path plan start time.
@@ -206,29 +206,12 @@ namespace pathplanners
             for (size_t i = 0; i < vSuccessors.size(); i++)
             {
                 // Vars for distance evaluation.
-                bool bAtGoal          = false;
-                double dDeltaEasting  = 0;
-                double dDeltaNorthing = 0;
+                bool bAtGoal = false;
 
                 // If successor distance to goal is less than the node size, stop search.
-                // Try to calculate GeoMeasurement:
-                geoops::GeoMeasurement stDistanceToGoal = geoops::CalculateGeoMeasurement(vSuccessors[i].stNodeLocation, m_stGoalNode.stNodeLocation);
-                bool bGeoSuccess                        = stDistanceToGoal.dDistanceMeters > 0.01;
-
-                // If this succeeds, use the GeoMeasurement distance.
-                if (bGeoSuccess)
-                {
-                    // Round the calculated distance to the nearest half meter.
-                    stDistanceToGoal.dDistanceMeters = std::round(stDistanceToGoal.dDistanceMeters * 2) / 2;
-                    bAtGoal                          = stDistanceToGoal.dDistanceMeters < constants::ASTAR_NODE_SIZE;
-                }
-                // Otherwise manually check for goal boundaries:
-                else
-                {
-                    dDeltaEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
-                    dDeltaNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
-                    bAtGoal        = dDeltaEasting < constants::ASTAR_NODE_SIZE && dDeltaNorthing < constants::ASTAR_NODE_SIZE;
-                }
+                double dDeltaGoalEasting  = std::abs(vSuccessors[i].stNodeLocation.dEasting - m_stGoalNode.stNodeLocation.dEasting);
+                double dDeltaGoalNorthing = std::abs(vSuccessors[i].stNodeLocation.dNorthing - m_stGoalNode.stNodeLocation.dNorthing);
+                bAtGoal                   = dDeltaGoalEasting <= 0.1 && dDeltaGoalNorthing <= 0.1;
 
                 // Construct and return path if we have reached the goal.
                 if (bAtGoal)
@@ -253,49 +236,50 @@ namespace pathplanners
                 // Create and format lookup string.
                 std::string szSuccessorLookup = UTMCoordinateToString(vSuccessors[i].stNodeLocation);
 
+                ///////////////////////////////////////////////////////////////
                 // Compute dKg, dKh, and dKf for successor.
-                // Calculate successor previous path cost.
-                vSuccessors[i].dKg = stNextParent.dKg + constants::ASTAR_NODE_SIZE;
+                ///////////////////////////////////////////////////////////////
 
-                // Calculate successor future path cost through geo measurement if successful:
-                if (bGeoSuccess)
-                {
-                    vSuccessors[i].dKh = stDistanceToGoal.dDistanceMeters;
-                }
-                // Otherwise calculate euclidean distance manually.
-                else
-                {
-                    vSuccessors[i].dKh = std::sqrt(std::pow(dDeltaEasting, 2) + std::pow(dDeltaNorthing, 2));
-                }
+                // Calculate the cost of the path from parent node to the successor node.
+                double dDeltaParentEasting  = vSuccessors[i].stNodeLocation.dEasting - stNextParent.stNodeLocation.dEasting;
+                double dDeltaParentNorthing = vSuccessors[i].stNodeLocation.dNorthing - stNextParent.stNodeLocation.dNorthing;
+                vSuccessors[i].dKg          = stNextParent.dKg + std::sqrt(std::pow(dDeltaParentEasting, 2) + std::pow(dDeltaParentNorthing, 2));
+
+                // Calculate heuristic value using the Euclidean distance to the goal node.
+                vSuccessors[i].dKh = std::sqrt(std::pow(dDeltaGoalEasting, 2) + std::pow(dDeltaGoalNorthing, 2));
 
                 // f = g + h
                 vSuccessors[i].dKf = vSuccessors[i].dKg + vSuccessors[i].dKh;
 
-                // If a node with the same position as successor is in the open list and has a lower dKf, skip this successor.
-                if (umOpenListLookup.count(szSuccessorLookup))
-                {
-                    if (umOpenListLookup[szSuccessorLookup] <= vSuccessors[i].dKf)
-                    {
-                        continue;
-                    }
-                }
-
-                // If a node with the same position as successor is in the closed list and has a lower dKf, skip this successor.
+                // Check if this node is already in the closed list.
                 if (umClosedList.count(szSuccessorLookup))
                 {
-                    if (umClosedList[szSuccessorLookup] <= vSuccessors[i].dKf)
-                    {
-                        continue;
-                    }
+                    // Standard A* approach: Skip nodes in closed list entirely.
+                    continue;
                 }
 
-                // Otherwise add successor node to open list.
-                // Add lookup string and dKf value to lookup map.
+                // Check if this node is already in the open list.
+                if (umOpenListLookup.count(szSuccessorLookup))
+                {
+                    // If we found a better path to this node, update it.
+                    if (vSuccessors[i].dKf < umOpenListLookup[szSuccessorLookup])
+                    {
+                        // Update the open list lookup with the new, better cost.
+                        umOpenListLookup[szSuccessorLookup] = vSuccessors[i].dKf;
+
+                        // Note: The node in the heap will be updated when it's eventually processed.
+                        // This avoids the expensive operation of finding and updating the heap mid-execution.
+                    }
+
+                    // Skip adding this node to open list, as it's already there.
+                    continue;
+                }
+
+                // Add the successor to the open list
                 umOpenListLookup.emplace(std::make_pair(szSuccessorLookup, vSuccessors[i].dKf));
-                // Push to heap.
                 vOpenList.push_back(vSuccessors[i]);
                 std::push_heap(vOpenList.begin(), vOpenList.end(), std::greater<nodes::AStarNode>());
-            }    // End For (each successor).
+            }
 
             // Create and format lookup string.
             std::string szParentLookup = UTMCoordinateToString(stNextParent.stNodeLocation);
