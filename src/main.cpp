@@ -148,6 +148,7 @@ int main()
     // Start RoveComm instances bound on ports.
     network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
     network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+
     // Check if RoveComm was successfully initialized.
     if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
     {
@@ -267,9 +268,33 @@ int main()
                 }
                 else
                 {
-                    if (chTerminalInput == 'f' || chTerminalInput == 'F')
+                    if (chTerminalInput == 'h' || chTerminalInput == 'H')
+                    {
+                        // Print help message to console.
+                        LOG_NOTICE(logging::g_qSharedLogger,
+                                   "\n--------[ Autonomy Software Help ]--------\n"
+                                   "Press 'f' or 'F' to print FPS stats to the log file.\n"
+                                   "Press 'p' or 'P' to print rover pose info to the log file.\n"
+                                   "Press 't' or 'T' to print tag detection info to the log file.\n"
+                                   "Press 'q' or 'Q' to quit the program.\n"
+                                   "-------------------------------------------\n");
+                    }
+                    else if (chTerminalInput == 'f' || chTerminalInput == 'F')
                     {
                         LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
+                    }
+                    else if (chTerminalInput == 'p' || chTerminalInput == 'P')
+                    {
+                        // Get the rover pose from the waypoint handler.
+                        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+                        // Assemble a string to print containing data about the rover pose.
+                        std::string szRoverPoseInfo = "\n--------[ Rover Pose Info ]--------\n";
+                        szRoverPoseInfo += "Easting: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dEasting) + "\n";
+                        szRoverPoseInfo += "Northing: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dNorthing) + "\n";
+                        szRoverPoseInfo += "Altitude: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dAltitude) + "\n";
+                        szRoverPoseInfo += "Compass: " + std::to_string(stCurrentRoverPose.GetCompassHeading()) + "\n";
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szRoverPoseInfo);
                     }
                     else if (chTerminalInput == 't' || chTerminalInput == 'T')
                     {
@@ -365,41 +390,45 @@ int main()
             slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
         }
 
-        // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
-        network::g_bRoveCommUDPStatus = false;
-        network::g_bRoveCommTCPStatus = false;
-
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
-        // Even though smart pointers should handle lifetime, explicitly reset to ensure cleanup in proper order, this also prevents the main thread
-        // from exiting and killing quill loggers since they are used in some of the destructors.
+        // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
-        delete globals::g_pDriveBoard;
-        delete globals::g_pMultimediaBoard;
-        delete globals::g_pNavigationBoard;
-
-        // Finally, stop RoveComm.
-        LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
-        delete network::g_pRoveCommUDPNode;
-        delete network::g_pRoveCommTCPNode;
-
         // Set all pointers to nullptr to prevent dangling pointers.
         globals::g_pStateMachineHandler = nullptr;
         globals::g_pTagDetectionHandler = nullptr;
         globals::g_pCameraHandler       = nullptr;
         globals::g_pWaypointHandler     = nullptr;
-        globals::g_pDriveBoard          = nullptr;
-        globals::g_pMultimediaBoard     = nullptr;
-        globals::g_pNavigationBoard     = nullptr;
-        network::g_pRoveCommUDPNode     = nullptr;
-        network::g_pRoveCommTCPNode     = nullptr;
     }
+
+    // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
+    network::g_bRoveCommUDPStatus = false;
+    network::g_bRoveCommTCPStatus = false;
+
+    // Cleanup driver objects.
+    delete globals::g_pDriveBoard;
+    delete globals::g_pMultimediaBoard;
+    delete globals::g_pNavigationBoard;
+
+    // Finally, stop RoveComm.
+    LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
+    network::g_pRoveCommUDPNode->CloseUDPSocket();
+    network::g_pRoveCommTCPNode->CloseTCPSocket();
+    delete network::g_pRoveCommUDPNode;
+    delete network::g_pRoveCommTCPNode;
+
+    // Set all pointers to nullptr to prevent dangling pointers.
+    globals::g_pDriveBoard      = nullptr;
+    globals::g_pMultimediaBoard = nullptr;
+    globals::g_pNavigationBoard = nullptr;
+    network::g_pRoveCommUDPNode = nullptr;
+    network::g_pRoveCommTCPNode = nullptr;
 
     // Submit logger message that program is done cleaning up and is now exiting.
     LOG_INFO(logging::g_qSharedLogger, "Clean up finished. Exiting...");

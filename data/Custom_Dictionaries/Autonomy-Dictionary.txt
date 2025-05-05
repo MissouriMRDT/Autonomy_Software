@@ -113,6 +113,7 @@ deleter
 Denoise
 Depacketization
 Depacketizer
+DEPTHMEASUREENCODEDECODE
 depthobject
 deque
 Desaturate
@@ -128,6 +129,7 @@ dockerfiles
 dorny
 DOTA
 Downsample
+downsampled
 doxdocgen
 Doxyfile
 Doxygen
@@ -232,7 +234,15 @@ gcov
 gcovr
 geekyeggo
 geolib
+geoloc
+geolocalization
+Geolocate
+GEOLOCATE
+geolocated
+Geolocated
+geomeasurement
 geoops
+geoposition
 Geospatial
 gfortran
 gmock
@@ -267,6 +277,7 @@ imgsz
 imread
 imshow
 IMUDATA
+imwrite
 INCREMENTIKPOSITION
 INCREMENTINDIVIDUALTARGETANGLES
 INCREMENTJOINTTARGETANGLE
@@ -309,6 +320,7 @@ keyscan
 ladspa
 latlng
 latlon
+LBUTTONDOWN
 ldconfig
 LEDPATTERNS
 LEDRGB
@@ -491,6 +503,7 @@ Rdtsc
 REACHEDGOAL
 recvmmsg
 REELN
+Reproject
 reprojection
 REQUESTHUMIDITY
 REQUESTRAMANREADING
@@ -650,6 +663,7 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zerolatency
 zlabel
 zstd
 ztickformat

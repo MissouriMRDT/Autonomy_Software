@@ -276,7 +276,6 @@ namespace constants
     // Approaching Marker State
     extern const double APPROACH_MARKER_MOTOR_POWER;
     extern const double APPROACH_MARKER_PROXIMITY_THRESHOLD;
-    extern const double APPROACH_MARKER_VISION_DISTANCE;
     extern const double APPROACH_MARKER_LOST_GIVE_UP_TIME;
     extern const bool APPROACH_MARKER_VERIFY_POSITION;
     extern const double APPROACH_MARKER_VERIFY_TIME;
