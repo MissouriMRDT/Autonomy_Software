@@ -44,6 +44,7 @@ namespace statemachine
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         m_pRoverPathPlot->CreatePathLayer("AStarPath", "-m");
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
+        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
     }
 
     /******************************************************************************
@@ -167,7 +168,7 @@ namespace statemachine
             // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
             // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // // Calculate move from goal heading and desired speed.
+            // Calculate move from goal heading and desired speed.
             // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
             //                                                                              stDriveVector.dThetaHeading,
             //                                                                              stCurrentRoverPose.GetCompassHeading(),
@@ -242,6 +243,20 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+
+                // Check if the OpenCV tag has a good absolute position.
+                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+                // Check if the torch tag has a good absolute position.
+                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 // Don't execute the rest of the state.
@@ -266,15 +281,15 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        // {
-        //     // Submit logger message.
-        //     LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-        //     // Handle state transition and save the current search pattern state.
-        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-        //     // Don't execute the rest of the state.
-        //     return;
-        // }
+        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
+        }
     }
 
     /******************************************************************************

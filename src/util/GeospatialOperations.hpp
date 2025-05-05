@@ -89,55 +89,6 @@ namespace geoops
     };
 
     /******************************************************************************
-     * @brief This struct stores/contains information about orientation.
-     *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-09-23
-     ******************************************************************************/
-    struct IMUData
-    {
-        public:
-            // Declare struct public member variables.
-            double dPitch;
-            double dRoll;
-            double dHeading;
-
-            /******************************************************************************
-             * @brief Construct a new IMUData object.
-             *
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2023-09-23
-             ******************************************************************************/
-            IMUData()
-            {
-                // Initialize member variables to default values.
-                dPitch   = 0.0;
-                dRoll    = 0.0;
-                dHeading = 0.0;
-            }
-
-            /******************************************************************************
-             * @brief Construct a new IMUData object.
-             *
-             * @param dPitch - The pitch of the navboard in degrees.
-             * @param dRoll - The roll of the navboard in degrees.
-             * @param dHeading - The bearing/yaw of the navboard in degrees.
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2023-09-23
-             ******************************************************************************/
-            IMUData(double dPitch, double dRoll, double dHeading)
-            {
-                // Initialize member variables with given values.
-                this->dPitch   = dPitch;
-                this->dRoll    = dRoll;
-                this->dHeading = dHeading;
-            }
-    };
-
-    /******************************************************************************
      * @brief This struct stores/contains information about a GPS data.
      *
      *
@@ -733,6 +684,16 @@ namespace geoops
              * @date 2024-04-08
              ******************************************************************************/
             const geoops::UTMCoordinate& GetUTMCoordinate() const { return stRoverPosition.GetUTMCoordinate(); }
+
+            /******************************************************************************
+             * @brief Accessor for the Waypoint private member.
+             *
+             * @return const geoops::Waypoint& - The waypoint of the rover pose.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-04-27
+             ******************************************************************************/
+            const geoops::Waypoint& GetWaypoint() const { return stRoverPosition; }
 
             /******************************************************************************
              * @brief Accessor for the Compass Heading private member.

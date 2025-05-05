@@ -13,6 +13,8 @@
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/logging/PathTracer2D.hpp"
+#include "../vision/aruco/TagDetector.h"
 
 /// \cond
 #include <tuple>
@@ -37,12 +39,9 @@ namespace statemachine
     class IdleState : public State
     {
         private:
-            time_t m_tIdleTime;
-            bool m_bRealigned;
             geoops::RoverPose m_stStartRoverPose;
-            std::vector<std::tuple<double, double>> m_vRoverPosition;
-            int m_nMaxDataPoints;
             bool m_bInitialized;
+            std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
 
         protected:
             void Start() override;

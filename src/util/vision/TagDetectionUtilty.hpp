@@ -15,6 +15,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include "../GeospatialOperations.hpp"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -66,8 +67,9 @@ namespace tagdetectutils
             std::string szClassName                          = "";                                  // The class name of the tag (used in Torch/Tensorflow models).
             std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the minimum time point.
             TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
-            cv::Size cvImageResolution;                                                             // The resolution of the image used to detect the tag.
-            double dHorizontalFOV;                                                                  // The horizontal field of view of the camera used to detect the tag.
+            cv::Size cvImageResolution                       = cv::Size(0, 0);                      // The resolution of the image used to detect the tag.
+            double dHorizontalFOV                            = 0.0;                                 // The horizontal field of view of the camera used to detect the tag.
+            geoops::Waypoint stGeolocatedPosition            = geoops::Waypoint();                  // The geolocated position of the tag.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -83,7 +85,8 @@ namespace tagdetectutils
             {
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
-                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV;
+                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV &&
+                       stGeolocatedPosition == stOther.stGeolocatedPosition;
             }
 
             /******************************************************************************
@@ -125,6 +128,7 @@ namespace tagdetectutils
                     eDetectionMethod      = stOther.eDetectionMethod;
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
+                    stGeolocatedPosition  = stOther.stGeolocatedPosition;
                 }
                 return *this;
             }
@@ -145,52 +149,6 @@ namespace tagdetectutils
         cv::Point2f cvCenter = cv::Point2f(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2);
 
         return cvCenter;
-    }
-
-    /******************************************************************************
-     * @brief Given a tagdetectutils::ArucoTag struct find the center point of the corners.
-     *
-     * @param cvPointCloud - A point cloud image to estimate the pose of the tag.
-     * @param stTag - The tag to estimate the pose of.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-02-13
-     ******************************************************************************/
-    inline void EstimatePoseFromPointCloud(const cv::Mat& cvPointCloud, tagdetectutils::ArucoTag& stTag)
-    {
-        // Confirm correct coordinate system.
-        if (constants::ZED_COORD_SYSTEM != sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP)
-        {
-            // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger, "TensorflowDetection: Calculations won't work for anything other than ZED coordinate system == LEFT_HANDED_Y_UP");
-        }
-
-        // Find the center point of the given tag.
-        cv::Point2f cvCenter = FindTagCenter(stTag);
-
-        // Ensure the detected center is inside the domain of the point cloud.
-        if (cvCenter.y > cvPointCloud.rows || cvCenter.x > cvPointCloud.cols || cvCenter.y < 0 || cvCenter.x < 0)
-        {
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "Detected tag center ({}, {}) out of point cloud's domain ({},{})",
-                      cvCenter.y,
-                      cvCenter.x,
-                      cvPointCloud.rows,
-                      cvPointCloud.cols);
-            return;
-        }
-
-        // Get tag center point location relative to the camera. Point cloud location stores float x, y, z, BGRA.
-        cv::Vec4f cvCoordinate = cvPointCloud.at<cv::Vec4f>(cvCenter.y, cvCenter.x);
-        float fForward         = cvCoordinate[2];    // Z
-        float fRight           = cvCoordinate[0];    // X
-        float fUp              = cvCoordinate[1];    // Y
-
-        // Calculate euclidean distance from ZED camera left eye to the point of interest
-        stTag.dStraightLineDistance = sqrt(pow(fForward, 2) + pow(fRight, 2) + pow(fUp, 2));
-
-        // Calculate the angle on plane horizontal to the viewpoint
-        stTag.dYawAngle = atan2(fRight, fForward);
     }
 
     /******************************************************************************

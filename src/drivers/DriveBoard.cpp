@@ -78,6 +78,7 @@ DriveBoard::~DriveBoard()
  * @param dGoalHeading - The angle to drive towards. (0 - 360) 0 is North.
  * @param dActualHeading - The real angle that the Rover is current facing.
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
+ * @param bAlwaysProgressForward - If true, the rover will always move forward or backward. Point turns will not be allowed.
  * @return diffdrive::DrivePowers - A struct containing two values. (left power, right power)
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -86,7 +87,8 @@ DriveBoard::~DriveBoard()
 diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
                                                  const double dGoalHeading,
                                                  const double dActualHeading,
-                                                 const diffdrive::DifferentialControlMethod eKinematicsMethod)
+                                                 const diffdrive::DifferentialControlMethod eKinematicsMethod,
+                                                 const bool bAlwaysProgressForward)
 {
     // Calculate the drive powers from the current heading, goal heading, and goal speed.
     m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed,
@@ -94,6 +96,7 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
                                                                 dActualHeading,
                                                                 eKinematicsMethod,
                                                                 *m_pPID,
+                                                                bAlwaysProgressForward,
                                                                 constants::DRIVE_SQUARE_CONTROL_INPUTS,
                                                                 constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED);
 
@@ -197,9 +200,12 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     // Acquire write lock for writing to max effort member variables.
     std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
 
+    // Clamp the multiplier to the range [0, 1].
+    float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
+
     // Update member variables.
-    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fMaxDriveEffortMultiplier;
-    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fMaxDriveEffortMultiplier;
+    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
+    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
 }
 
 /******************************************************************************

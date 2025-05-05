@@ -9,6 +9,8 @@
  ******************************************************************************/
 
 #include "TagDetector.h"
+#include "../../AutonomyGlobals.h"
+#include "../../util/vision/Geolocate.hpp"
 #include "../../util/vision/ImageOperations.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TorchTagDetection.hpp"
@@ -57,6 +59,7 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_szCameraName                     = std::dynamic_pointer_cast<BasicCamera>(pBasicCam)->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
+    m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -124,6 +127,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_szCameraName                     = pZEDCam->GetCameraModel() + "_" + std::to_string(pZEDCam->GetCameraSerial());
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
+    m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -286,13 +290,13 @@ void TagDetector::ThreadedContinuousCode()
         else
         {
             // Grab frames from camera.
-            fuPointCloudCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
             // Wait for point cloud to be retrieved.
-            if (!fuPointCloudCopyStatus.get())
+            if (!fuRegularFrameCopyStatus.get())
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from BasicCam!");
+                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
             }
             else
             {
@@ -347,17 +351,12 @@ void TagDetector::ThreadedContinuousCode()
             stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
         }
 
-        // Merge the newly detected tags with the pre-existing detected tags
+        // Merge the newly detected tags with the pre-existing detected tags.
         this->UpdateDetectedTags(m_vNewlyDetectedTags);
 
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
-
-        // Name the window the name of the camera.
-        std::string szWindowName = m_szCameraName + " Tag Detector";
-        cv::imshow(szWindowName, m_cvArucoProcFrame);
-        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -660,11 +659,41 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
         }
     }
 
-    // Estimate the positions of the tags using the point cloud
-    for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+    // Check if we are using a ZED camera.
+    if (m_bUsingZedCamera)
     {
-        // Use the point cloud to get the location of the tag.
-        tagdetectutils::EstimatePoseFromCameraFrame(stTag);
+        // Check if the point cloud is empty.
+        if (!m_cvPointCloud.empty())
+        {
+            // Get the rover pose from the waypoint handler.
+            m_stRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            // Loop through the tags and use their center point to lookup their distance in the point cloud.
+            for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+            {
+                // Use either width of height for the neighborhood size.
+                int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+                // Geolocate the tag in the point cloud.
+                stTag.stGeolocatedPosition =
+                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
+                // Since this is a tag detection, set the tag's waypoint type appropriately.
+                stTag.stGeolocatedPosition.eType = geoops::WaypointType::eTagWaypoint;
+                // Calculate the geo measurement and print the distance to the tag.
+                geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stTag.stGeolocatedPosition.GetUTMCoordinate());
+                // Set the straight line distance to the tag.
+                stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                // Use the rover heading and the azimuth angle to calculate the relative heading to the tag.
+                stTag.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+            }
+        }
+    }
+    else
+    {
+        // Estimate the positions of the tags using some basic trig.
+        for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+        {
+            // Use some trig to get the location of the tag.
+            tagdetectutils::EstimatePoseFromCameraFrame(stTag);
+        }
     }
 }
 
