@@ -255,9 +255,10 @@ namespace diffdrive
             case DifferentialControlMethod::eArcadeDrive:
             {
                 // Check if the rover should always move forward.
-                if (bAlwaysProgressForward)
+                if (!bAlwaysProgressForward)
                 {
-                    // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
+                    // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
+                    // constant speed.
                     dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
                 }
                 // Calculate drive power with inverse kinematics.
@@ -267,17 +268,11 @@ namespace diffdrive
             case DifferentialControlMethod::eCurvatureDrive:
             {
                 // Check if the rover should always move forward.
-                if (bAlwaysProgressForward)
+                if (!bAlwaysProgressForward)
                 {
-                    // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
-                    if (bCurvatureDriveAllowTurningWhileStopped)
-                    {
-                        dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
-                    }
-                    else
-                    {
-                        dGoalSpeed *= 1.3 - std::pow(dTurnOutput, 2);
-                    }
+                    // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
+                    // constant speed.
+                    dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
                 }
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateCurvatureDrive(dGoalSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
@@ -291,7 +286,6 @@ namespace diffdrive
             }
         }
 
-        // std::cout << stOutputPowers.dLeftDrivePower << " " << stOutputPowers.dRightDrivePower << std::endl;
         // Return result powers.
         return stOutputPowers;
     }

@@ -96,27 +96,25 @@ WebRTC::~WebRTC()
  ******************************************************************************/
 void WebRTC::CloseConnection()
 {
-    // Reset the callbacks to prevent any further processing.
-    m_pWebSocket->resetCallbacks();
-    m_pPeerConnection->resetCallbacks();
-    m_pDataChannel->resetCallbacks();
-    m_pVideoTrack1->resetCallbacks();
-
     // Close the WebRTC connections.
     if (m_pVideoTrack1)
     {
+        m_pVideoTrack1->resetCallbacks();
         m_pVideoTrack1->close();
     }
     if (m_pDataChannel)
     {
+        m_pDataChannel->resetCallbacks();
         m_pDataChannel->close();
     }
     if (m_pPeerConnection)
     {
+        m_pPeerConnection->resetCallbacks();
         m_pPeerConnection->close();
     }
     if (m_pWebSocket)
     {
+        m_pWebSocket->resetCallbacks();
         m_pWebSocket->close();
     }
 
