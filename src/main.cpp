@@ -239,12 +239,27 @@ int main()
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
 
+        // Create a vector of ints to store the FPS values for each thread.
+        std::vector<int> vThreadFPSValues;
+
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
         */
         while (!bMainStop)
         {
+            // Add each threads FPS value to the vector.
+            vThreadFPSValues.clear();
+            vThreadFPSValues.push_back(static_cast<int>(IterPerSecond.GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(pMainCam->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(pGroundCam->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(pMainTagDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(pGroundDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(pMainObjectDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<int>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
+
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
@@ -370,6 +385,38 @@ int main()
                         bMainStop = true;
                     }
                 }
+            }
+
+            /////////////////////////////////////////
+            // Send thread stats over RoveComm.
+            /////////////////////////////////////////
+            // Check if rovecomm is initialized and running.
+            if (network::g_pRoveCommUDPNode)
+            {
+                // Construct a RoveComm packet with the drive data.
+                rovecomm::RoveCommPacket<float> stPacket;
+                stPacket.unDataId    = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
+                // Create a static variable to act a counter/iterator for the FPS value to use.
+                static int nThreadFPSIndex = 0;
+                // Check if the index is within bounds of the vector.
+                if (nThreadFPSIndex < static_cast<int>(vThreadFPSValues.size()))
+                {
+                    // First push back the thread enum identifier cast to an int.
+                    stPacket.vData.push_back(nThreadFPSIndex);
+                    // Add the current FPS value to the packet data.
+                    stPacket.vData.push_back(static_cast<float>(vThreadFPSValues[nThreadFPSIndex]));
+                    // Increment the index for the next iteration.
+                    nThreadFPSIndex++;
+                }
+                else
+                {
+                    // Reset the index if it exceeds the vector size.
+                    nThreadFPSIndex = 0;
+                }
+                // Send the packet over RoveComm UDP.
+                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
             }
 
             // Update IPS tick.
