@@ -168,7 +168,7 @@ namespace statemachine
             // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
             // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // Calculate move from goal heading and desired speed.
+            // // Calculate move from goal heading and desired speed.
             // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
             //                                                                              stDriveVector.dThetaHeading,
             //                                                                              stCurrentRoverPose.GetCompassHeading(),
