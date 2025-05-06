@@ -1,18 +1,18 @@
 /******************************************************************************
- * @brief This file contains the tagdetectutils::ArucoTagDetection class which is used to detect
- *      and store information about tags using a PyTorch model.
+ * @brief This file contains the implementation of the TorchObjectDetection class, which is used to detect
+ *     and store information about objects using a PyTorch model.
  *
- * @file tagdetectutils::ArucoTagDetection.hpp
+ * @file TorchObjectDetection.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-02-13
+ * @date 2025-05-05
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef TORCH_TAG_DETECTION_HPP
-#define TORCH_TAG_DETECTION_HPP
+#ifndef TORCH_OBJECT_DETECTION_HPP
+#define TORCH_OBJECT_DETECTION_HPP
 
-#include "../../util/vision/TagDetectionUtilty.hpp"
+#include "../../util/vision/ObjectDetectionUtility.hpp"
 #include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
@@ -21,31 +21,19 @@
 /// \endcond
 
 /******************************************************************************
- * @brief Namespace containing functions related to torch tag detections
- *      operations on images using PyTorch.
+ * @brief Namespace containing functions related to torch object detections
+ *    operations on images using PyTorch.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-02-13
+ * @date 2025-05-05
  ******************************************************************************/
-namespace torchtag
+namespace torchobject
 {
-    /******************************************************************************
-     * @brief Detect ArUco tags in the provided image using a YOLO DNN model.
-     *
-     * @param cvFrame - The RGB camera frame to run detection on.
-     * @param tfPyTorchDetector - The PyTorch model interpreter to run inference on.
-     * @param fMinObjectConfidence - The minimum confidence required for an object to be considered a valid detection.
-     * @param fNMSThreshold - The threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
-     * @return std::vector<tagdetectutils::ArucoTag> - The resultant vector containing the detected tags in the frame.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-02-13
-     ******************************************************************************/
-    inline std::vector<tagdetectutils::ArucoTag> Detect(const cv::Mat& cvFrame,
-                                                        yolomodel::pytorch::PyTorchInterpreter& tfPyTorchDetector,
-                                                        const float fMinObjectConfidence = 0.40f,
-                                                        const float fNMSThreshold        = 0.60f)
+    inline std::vector<objectdetectutils::Object> Detect(const cv::Mat& cvFrame,
+                                                         yolomodel::pytorch::PyTorchInterpreter& tfPyTorchDetector,
+                                                         const float fMinObjectConfidence = 0.40f,
+                                                         const float fNMSThreshold        = 0.60f)
     {
         // Check if the input frame is in RGB format.
         if (cvFrame.channels() != 3)
@@ -56,7 +44,7 @@ namespace torchtag
         }
 
         // Declare instance variables.
-        std::vector<tagdetectutils::ArucoTag> vDetectedTags;
+        std::vector<objectdetectutils::Object> vDetectedTags;
 
         // Check if the PyTorch interpreter hardware is opened and the model is loaded.
         if (tfPyTorchDetector.IsReadyForInference())
@@ -68,12 +56,11 @@ namespace torchtag
             for (const yolomodel::Detection& stTagDetection : vOutputTensorTags)
             {
                 // Create and initialize new TensorflowTag.
-                tagdetectutils::ArucoTag stDetectedTag;
+                objectdetectutils::Object stDetectedTag;
                 stDetectedTag.dConfidence       = stTagDetection.fConfidence;
                 stDetectedTag.pBoundingBox      = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);
-                stDetectedTag.nID               = stTagDetection.nClassID;
                 stDetectedTag.szClassName       = stTagDetection.szClassName;
-                stDetectedTag.eDetectionMethod  = tagdetectutils::TagDetectionMethod::eTorch;
+                stDetectedTag.eDetectionMethod  = objectdetectutils::ObjectDetectionMethod::eTorch;
                 stDetectedTag.cvImageResolution = cvFrame.size();
 
                 // Add the newly detected tag to the vector.
@@ -92,24 +79,24 @@ namespace torchtag
     }
 
     /******************************************************************************
-     * @brief Given a vector of tagdetectutils::ArucoTag structs draw each tag corner and confidence onto the given image.
+     * @brief Given a vector of objectdetectutils::Object structs draw each tag corner and confidence onto the given image.
      *
      * @param cvDetectionsFrame - The frame to draw overlay onto.
-     * @param vDetectedTags - The vector of tagdetectutils::ArucoTag structs used to draw tag corners and confidences onto image.
+     * @param vDetectedTags - The vector of objectdetectutils::Object structs used to draw tag corners and confidences onto image.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-02-13
      ******************************************************************************/
-    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<tagdetectutils::ArucoTag>& vDetectedTags)
+    inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<objectdetectutils::Object>& vDetectedTags)
     {
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {
             // Loop through each detection.
-            for (const tagdetectutils::ArucoTag& stTag : vDetectedTags)
+            for (const objectdetectutils::Object& stTag : vDetectedTags)
             {
                 // Check if the tag detection type is Torch.
-                if (stTag.eDetectionMethod == tagdetectutils::TagDetectionMethod::eTorch)
+                if (stTag.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch)
                 {
                     // Draw bounding box onto image.
                     cv::rectangle(cvDetectionsFrame, *stTag.pBoundingBox, cv::Scalar(255, 255, 255), 2);
@@ -139,6 +126,6 @@ namespace torchtag
                       cvDetectionsFrame.channels());
         }
     }
-}    // namespace torchtag
+}    // namespace torchobject
 
 #endif

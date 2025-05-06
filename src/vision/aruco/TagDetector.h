@@ -82,7 +82,7 @@ class TagDetector : public AutonomyThread<void>
 
         void EnableTorchDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
         void DisableTorchDetection();
-        void SetDetectorFPS(const int nRecordingFPS);
+        void SetDetectorMaxFPS(const int nRecordingFPS);
         void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
 
         /////////////////////////////////////////
@@ -90,7 +90,7 @@ class TagDetector : public AutonomyThread<void>
         /////////////////////////////////////////
 
         bool GetIsReady();
-        int GetDetectorFPS() const;
+        int GetDetectorMaxFPS() const;
         bool GetEnableRecordingFlag() const;
         std::string GetCameraName();
         cv::Size GetProcessFrameResolution() const;
