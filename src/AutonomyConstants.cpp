@@ -100,14 +100,12 @@ namespace constants
     const int RECORDER_FPS = 15;    // The FPS all recordings should run at.
     // Camera recording toggles.
     const bool ZED_MAINCAM_ENABLE_RECORDING        = true;    // Whether or not to record the main ZED camera.
-    const bool ZED_LEFTCAM_ENABLE_RECORDING        = true;    // Whether or not to record the left ZED camera.
-    const bool ZED_RIGHTCAM_ENABLE_RECORDING       = true;    // Whether or not to record the right ZED camera.
     const bool BASICCAM_GROUNDCAM_ENABLE_RECORDING = true;    // Whether or not to record the ground USB camera.
     // TagDetector recording toggles.
     const bool TAGDETECT_MAINCAM_ENABLE_RECORDING   = true;    // Whether or not to record the main ZED camera tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING   = true;    // Whether or not to record the left ZED camera tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the right ZED camera tag detector.
     const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING = true;    // Whether of not to record the ground USB camera tag detector.
+    // ObjectDetector recording toggles.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING = true;    // Whether or not to record the main ZED camera object detector.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -191,6 +189,21 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// Bounding Box Tracking Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // NOTE: These next two constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
+    // NOTE: before considering a tracker lost. ARUCO_BBOX_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
+    // NOTE: considered valid.
+    const double BBOX_MIN_LIFETIME_THRESHOLD      = 0.15;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
+    const double BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
+    const double BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
+    const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
+    const tracking::TrackerType BBOX_TRACKER_TYPE = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -229,13 +242,15 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track tags.
+    const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the tag detector.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection on top of ArUco.
+    const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
+        "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";    // The model path to use for detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                             // The minimum confidence to consider a viable AR tag detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                             // The threshold for non-max suppression filtering.
 
-    // Left Side Cam.
-    const int OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
-
-    // Right Side Cam.
-    const int OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -250,15 +265,6 @@ namespace constants
     const cv::Mat ARUCO_SHARPEN_KERNEL_FAST                    = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
     const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA                   = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
     const cv::Mat ARUCO_EDGE_KERNEL                            = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
-    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE        = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection.
-    // NOTE: These next two constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.15;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
-    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
-    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
-    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -309,14 +315,6 @@ namespace constants
 
     // Avoidance State.
     const double AVOIDANCE_STATE_MOTOR_POWER = 0.3;    // Drive speed of avoidance state
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
-    //// Tag Detection Handler Adjustments.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // High Level Functionality Adjustments.
 
     ///////////////////////////////////////////////////////////////////////////
 

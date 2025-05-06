@@ -124,7 +124,7 @@ namespace statemachine
                 if (stCandidate.nID == nTargetTagID || nTargetTagID == -1)
                 {
                     // Check if the tag meets the requirements.
-                    if (dAreaPercentage < constants::ARUCO_BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::ARUCO_MIN_LIFETIME_THRESHOLD)
+                    if (dAreaPercentage < constants::BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::BBOX_MIN_LIFETIME_THRESHOLD)
                     {
                         continue;
                     }
@@ -143,7 +143,7 @@ namespace statemachine
                 szIdentifiedTags += "\tTorch Class: " + stCandidate.szClassName + " Tag Age: " + std::to_string(dTagTotalAge) +
                                     "s Tag Screen Percentage: " + std::to_string(dAreaPercentage) + "%\n";
                 // Check if the tag meets the requirements.
-                if (dAreaPercentage < constants::ARUCO_BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::ARUCO_MIN_LIFETIME_THRESHOLD)
+                if (dAreaPercentage < constants::BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::BBOX_MIN_LIFETIME_THRESHOLD)
                 {
                     continue;
                 }
