@@ -80,7 +80,7 @@ void ObjectDetectionHandler::StartAllDetectors()
 void ObjectDetectionHandler::StartRecording()
 {
     // Start recording for all detectors.
-    m_pObjectDetectorMainCam->Start();
+    m_pRecordingHandler->Start();
 }
 
 /******************************************************************************

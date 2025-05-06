@@ -131,6 +131,14 @@ void RecordingHandler::ThreadedContinuousCode()
             this->RequestAndWriteTagDetectorFrames();
             break;
 
+        // Record video feeds from the ObjectDetectionHandler.
+        case RecordingMode::eObjectDetectionHandler:
+            // Update recordable detectors.
+            this->UpdateRecordableObjectDetectors();
+            // Grab and write overlay frames to VideoWriters.
+            this->RequestAndWriteObjectDetectorFrames();
+            break;
+
         // Shutdown recording handler.
         default:
             // Submit logger message.
@@ -573,9 +581,9 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
                 std::filesystem::path szFilenameWithExtension;
-                szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                   // Main location for all recordings.
-                szFilePath += logging::g_szProgramStartTimeString + "/tagdetector";     // Folder for each program run.
-                szFilenameWithExtension = pObjectDetector->GetCameraName() + ".mkv";    // Folder for each camera index or name.
+                szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                     // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/objectdetector";    // Folder for each program run.
+                szFilenameWithExtension = pObjectDetector->GetCameraName() + ".mkv";      // Folder for each camera index or name.
 
                 // Check if directory exists.
                 if (!std::filesystem::exists(szFilePath))
