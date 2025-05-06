@@ -176,8 +176,9 @@ namespace controllers
 
             // Apply an exponential weight factor that decreases as we predict further into the future.
             double dTimeWeight = std::exp(-2.5 * static_cast<double>(nIter));
-            // Limit the cross track error steering angle to -+ 90 degrees.
-            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -90.0, 90.0);
+            // Add velocity-dependent gain scaling
+            double velocityFactor = std::max(0.1, dMaxSpeed);    // Prevent division by zero
+            dCrossTrackError      = std::clamp(m_dControlGain * dCrossTrackError / velocityFactor, -30.0, 30.0);
             // Calculate the steering angle using lateral and heading errors, weighted by the time step.
             dSteeringAngle += dTimeWeight * (dCrossTrackError - dHeadingError);
 
