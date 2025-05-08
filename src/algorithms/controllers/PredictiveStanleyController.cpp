@@ -145,6 +145,8 @@ namespace controllers
 
             // Compute the heading error. This is the difference between the heading of the rover and the heading or curvature of the path.
             double dHeadingError = numops::AngularDifference(m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex], dPredictedTheta);
+            std::cout << m_nCurrentReferencePathTargetIndex << std::endl;
+            std::cout << m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex] << " " << dPredictedTheta << " " << dHeadingError << std::endl;
 
             /*
                 Compute the cross track error. This is the distance between the predicted position and the closest point on the path. The sign of the cross track error
@@ -175,10 +177,9 @@ namespace controllers
             double dCrossTrackError = nCrossTrackErrorSign * dLateralDistance;
 
             // Apply an exponential weight factor that decreases as we predict further into the future.
-            double dTimeWeight = std::exp(-2.5 * static_cast<double>(nIter));
-            // Add velocity-dependent gain scaling
-            double velocityFactor = std::max(0.1, dMaxSpeed);    // Prevent division by zero
-            dCrossTrackError      = std::clamp(m_dControlGain * dCrossTrackError / velocityFactor, -30.0, 30.0);
+            double dTimeWeight = std::exp(-1.5 * static_cast<double>(nIter));
+            // Limit the cross track error steering angle.
+            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
             // Calculate the steering angle using lateral and heading errors, weighted by the time step.
             dSteeringAngle += dTimeWeight * (dCrossTrackError - dHeadingError);
 
