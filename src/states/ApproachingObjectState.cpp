@@ -2,7 +2,7 @@
  * @brief Approaching Object State Implementation for Autonomy State Machine.
  *
  * @file ApproachingObjectState.cpp
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2024-03-03
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
@@ -14,7 +14,7 @@
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2024-01-17
  ******************************************************************************/
 namespace statemachine
@@ -24,13 +24,24 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void ApproachingObjectState::Start()
     {
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Scheduling next run of state logic.");
+
+        // Initialize member variables.
+        m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+
+        // Store the state that got stuck and triggered a MarkerSeen event.
+        m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
+
+        // Add the search and rover path layers to the plot.
+        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "orange");
+        m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
 
         m_nNumDetectionAttempts = 0;
     }
@@ -53,14 +64,20 @@ namespace statemachine
      * @brief Construct a new State object.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     ApproachingObjectState::ApproachingObjectState() : State(States::eApproachingObject)
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized = false;
+        m_bInitialized   = false;
+
+        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
+        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingMarkerRoverPath");
 
         if (!m_bInitialized)
         {
@@ -72,13 +89,37 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void ApproachingObjectState::Run()
     {
-        // TODO: Implement the behavior specific to the Approaching Object state.
+        // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
+
+        // Get the current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+
+        // Add the current rover pose to the path plot.
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+
+        // Check Rover radius from object waypoint.
+        geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
+        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "ApproachingObjectState: Rover is too far from the original waypoint! Waypoint radius is {} meters, current distance is {} meters.",
+                        m_stGoalWaypoint.dRadius,
+                        stCurrentMeasurement.dDistanceMeters);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
+            return;
+        }
+
+        // TODO: Implement object detection logic here.
+        // Identify target object.
+
+        // Check if object is unseen.
     }
 
     /******************************************************************************
