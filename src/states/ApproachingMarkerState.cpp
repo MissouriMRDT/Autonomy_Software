@@ -118,7 +118,7 @@ namespace statemachine
                         "ApproachingMarkerState: Rover is too far from the original waypoint! Waypoint radius is {} meters, current distance is {} meters.",
                         m_stGoalWaypoint.dRadius,
                         stCurrentMeasurement.dDistanceMeters);
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen, true);
             return;
         }
 
@@ -275,6 +275,11 @@ namespace statemachine
                 // Add the tag to the path plot.
                 m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
             }
+
+            // Reset the tag heading and distance.
+            dHeadingSetPoint = 0.0;
+            dDistanceFromTag = 0.0;
+
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             // Don't execute the rest of the state.

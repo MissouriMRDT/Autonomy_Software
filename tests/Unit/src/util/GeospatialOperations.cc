@@ -177,6 +177,10 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementGPS)
     geoops::GPSCoordinate stGPSSDELC2(37.951670, -91.778537);
     geoops::GPSCoordinate stGPSSDELC3(37.950635, -91.782465);
 
+    // Store some as Waypoints.
+    geoops::Waypoint stWaypoint1(stGPSSDELC1);
+    geoops::Waypoint stWaypoint2(stGPSSDELC2);
+
     // Convert UTM coordinates to GPS coordinate.
     geoops::GPSCoordinate stGPSRollaCoordinate = geoops::ConvertUTMToGPS(stUTMRollaCoordinate);
     geoops::GPSCoordinate stGPSMDRSCoordinate  = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
@@ -200,6 +204,13 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementGPS)
     // Check distance calculation.
     EXPECT_NEAR(stMeasurement.dDistanceMeters, 387.05, 0.02);
     EXPECT_NEAR(stMeasurement.dArcLengthDegrees, 0.003, 0.002);
+    EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 180.0, 0.02);
+
+    // Calculate meter distance between the first two Waypoints.
+    stMeasurement = geoops::CalculateGeoMeasurement(stWaypoint1, stWaypoint2);
+    // Check distance calculation.
+    EXPECT_NEAR(stMeasurement.dDistanceMeters, 26.94, 0.02);
+    EXPECT_NEAR(stMeasurement.dArcLengthDegrees, 0.00024, 0.00002);
     EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 180.0, 0.02);
 }
 

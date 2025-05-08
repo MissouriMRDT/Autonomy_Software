@@ -381,116 +381,6 @@ namespace geoops
     }
 
     /******************************************************************************
-     * @brief The shortest path between two points on an ellipsoid at (lat1, lon1) and (lat2, lon2) is called the geodesic.
-     *      Given those two points create an ellipsoid with earth's characteristics and find the distance between them.
-     *
-     * @param stCoord1 - The first GPS coordinate.
-     * @param stCoord2 - The second GPS coordinate.
-     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
-     *
-     * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2023-10-13
-     ******************************************************************************/
-    inline GeoMeasurement CalculateGeoMeasurement(const GPSCoordinate& stCoord1, const GPSCoordinate& stCoord2)
-    {
-        // Create instance variables.
-        GeoMeasurement stMeasurements;
-
-        // Construct a geodesic with earth characteristics. (Radius and flattening)
-        // The WGS84 standard is widely used and aligns with Google Maps.
-        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
-
-        // Solve the inverse geodesic for distance and arc length degrees at the center of the globe, and relative bearings.
-        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude,
-                                                              stCoord1.dLongitude,
-                                                              stCoord2.dLatitude,
-                                                              stCoord2.dLongitude,
-                                                              stMeasurements.dDistanceMeters,
-                                                              stMeasurements.dStartRelativeBearing,
-                                                              stMeasurements.dEndRelativeBearing);
-
-        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
-        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
-        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
-        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
-        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
-        // Ensure the result angle is positive.
-        if (stMeasurements.dStartRelativeBearing < 0)
-        {
-            // Add 360 degrees.
-            stMeasurements.dStartRelativeBearing += 360;
-        }
-        // Ensure the result angle is positive.
-        if (stMeasurements.dEndRelativeBearing < 0)
-        {
-            // Add 360 degrees.
-            stMeasurements.dEndRelativeBearing += 360;
-        }
-
-        // Return result distance.
-        return stMeasurements;
-    }
-
-    /******************************************************************************
-     * @brief The shortest path between two points on an ellipsoid at (easting1, northing1) and (easting2, northing2) is called the geodesic.
-     *      Given those two points create an ellipsoid with earth's characteristics and find the distance between them.
-     *
-     * @param stCoord1 - The first UTM coordinate.
-     * @param stCoord2 - The second UTM coordinate.
-     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
-     *
-     * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2024-01-14
-     ******************************************************************************/
-    inline GeoMeasurement CalculateGeoMeasurement(const UTMCoordinate& stCoord1, const UTMCoordinate& stCoord2)
-    {
-        // Create instance variables.
-        GeoMeasurement stMeasurements;
-
-        // Construct a geodesic with earth characteristics. (Radius and flattening)
-        // The WGS84 standard is widely used and aligns with Google Maps.
-        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
-
-        // Convert the given UTM coords into GPS coords for temporary use.
-        GPSCoordinate stGPSCoord1 = ConvertUTMToGPS(stCoord1);
-        GPSCoordinate stGPSCoord2 = ConvertUTMToGPS(stCoord2);
-
-        // Solve the inverse geodesic.
-        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stGPSCoord1.dLatitude,
-                                                              stGPSCoord1.dLongitude,
-                                                              stGPSCoord2.dLatitude,
-                                                              stGPSCoord2.dLongitude,
-                                                              stMeasurements.dDistanceMeters,
-                                                              stMeasurements.dStartRelativeBearing,
-                                                              stMeasurements.dEndRelativeBearing);
-
-        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
-        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
-        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
-        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
-        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
-        // Ensure the result angle is positive.
-        if (stMeasurements.dStartRelativeBearing < 0)
-        {
-            // Add 360 degrees.
-            stMeasurements.dStartRelativeBearing += 360;
-        }
-        // Ensure the result angle is positive.
-        if (stMeasurements.dEndRelativeBearing < 0)
-        {
-            // Add 360 degrees.
-            stMeasurements.dEndRelativeBearing += 360;
-        }
-
-        // Return result distance.
-        return stMeasurements;
-    }
-
-    /******************************************************************************
      * @brief This struct is used by the WaypointHandler class to store location, size,
      *      and type information about a given location of interest of waypoint.
      *
@@ -615,6 +505,166 @@ namespace geoops
              ******************************************************************************/
             bool operator!=(const Waypoint& stOtherWaypoint) const { return !this->operator==(stOtherWaypoint); }
     };
+
+    /******************************************************************************
+     * @brief The shortest path between two points on an ellipsoid at (lat1, lon1) and (lat2, lon2) is called the geodesic.
+     *      Given those two points create an ellipsoid with earth's characteristics and find the distance between them.
+     *
+     * @param stCoord1 - The first GPS coordinate.
+     * @param stCoord2 - The second GPS coordinate.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
+     *
+     * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2023-10-13
+     ******************************************************************************/
+    inline GeoMeasurement CalculateGeoMeasurement(const GPSCoordinate& stCoord1, const GPSCoordinate& stCoord2)
+    {
+        // Create instance variables.
+        GeoMeasurement stMeasurements;
+
+        // Construct a geodesic with earth characteristics. (Radius and flattening)
+        // The WGS84 standard is widely used and aligns with Google Maps.
+        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
+
+        // Solve the inverse geodesic for distance and arc length degrees at the center of the globe, and relative bearings.
+        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stCoord1.dLatitude,
+                                                              stCoord1.dLongitude,
+                                                              stCoord2.dLatitude,
+                                                              stCoord2.dLongitude,
+                                                              stMeasurements.dDistanceMeters,
+                                                              stMeasurements.dStartRelativeBearing,
+                                                              stMeasurements.dEndRelativeBearing);
+
+        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
+        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
+        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
+        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
+        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
+        // Ensure the result angle is positive.
+        if (stMeasurements.dStartRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dStartRelativeBearing += 360;
+        }
+        // Ensure the result angle is positive.
+        if (stMeasurements.dEndRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dEndRelativeBearing += 360;
+        }
+
+        // Return result distance.
+        return stMeasurements;
+    }
+
+    /******************************************************************************
+     * @brief The shortest path between two points on an ellipsoid at (easting1, northing1) and (easting2, northing2) is called the geodesic.
+     *      Given those two points create an ellipsoid with earth's characteristics and find the distance between them.
+     *
+     * @param stCoord1 - The first UTM coordinate.
+     * @param stCoord2 - The second UTM coordinate.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
+     *
+     * @see https://geographiclib.sourceforge.io/C++/doc/classGeographicLib_1_1Geodesic.html#ae66c9cecfcbbcb1da52cb408e69f65de
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-01-14
+     ******************************************************************************/
+    inline GeoMeasurement CalculateGeoMeasurement(const UTMCoordinate& stCoord1, const UTMCoordinate& stCoord2)
+    {
+        // Create instance variables.
+        GeoMeasurement stMeasurements;
+
+        // Construct a geodesic with earth characteristics. (Radius and flattening)
+        // The WGS84 standard is widely used and aligns with Google Maps.
+        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
+
+        // Convert the given UTM coords into GPS coords for temporary use.
+        GPSCoordinate stGPSCoord1 = ConvertUTMToGPS(stCoord1);
+        GPSCoordinate stGPSCoord2 = ConvertUTMToGPS(stCoord2);
+
+        // Solve the inverse geodesic.
+        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stGPSCoord1.dLatitude,
+                                                              stGPSCoord1.dLongitude,
+                                                              stGPSCoord2.dLatitude,
+                                                              stGPSCoord2.dLongitude,
+                                                              stMeasurements.dDistanceMeters,
+                                                              stMeasurements.dStartRelativeBearing,
+                                                              stMeasurements.dEndRelativeBearing);
+
+        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
+        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
+        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
+        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
+        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
+        // Ensure the result angle is positive.
+        if (stMeasurements.dStartRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dStartRelativeBearing += 360;
+        }
+        // Ensure the result angle is positive.
+        if (stMeasurements.dEndRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dEndRelativeBearing += 360;
+        }
+
+        // Return result distance.
+        return stMeasurements;
+    }
+
+    /******************************************************************************
+     * @brief The shortest path between two waypoints on an ellipsoid at (lat1, lon1) and (lat2, lon2) is called the geodesic.
+     *
+     * @param stWaypoint1 - The first waypoint.
+     * @param stWaypoint2 - The second waypoint.
+     * @return GeoMeasurement - Struct containing the distance in meters and arc length degrees, plus the bearing relative to the first point and second point.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-05-06
+     ******************************************************************************/
+    inline GeoMeasurement CalculateGeoMeasurement(const geoops::Waypoint& stWaypoint1, const geoops::Waypoint& stWaypoint2)
+    {
+        // Create instance variables.
+        GeoMeasurement stMeasurements;
+
+        // Construct a geodesic with earth characteristics. (Radius and flattening)
+        // The WGS84 standard is widely used and aligns with Google Maps.
+        GeographicLib::Geodesic geGeodesic = GeographicLib::Geodesic::WGS84();
+
+        // Solve the inverse geodesic.
+        stMeasurements.dArcLengthDegrees = geGeodesic.Inverse(stWaypoint1.GetGPSCoordinate().dLatitude,
+                                                              stWaypoint1.GetGPSCoordinate().dLongitude,
+                                                              stWaypoint2.GetGPSCoordinate().dLatitude,
+                                                              stWaypoint2.GetGPSCoordinate().dLongitude,
+                                                              stMeasurements.dDistanceMeters,
+                                                              stMeasurements.dStartRelativeBearing,
+                                                              stMeasurements.dEndRelativeBearing);
+
+        // NOTE: Regarding azi1 vs azi2, azi1 is the direction measured at point 1 (your navigation aid) to point 2. azi2 is the direction measured at point 2 (your
+        // location) away from point 1. (If you want the direction to point 1, add ±180° to azi2.)
+        // Map the -180, 180 range of the azimuths to 0, 360, with both points zeroed at North.
+        stMeasurements.dStartRelativeBearing = std::fmod((stMeasurements.dStartRelativeBearing + 360), 360);
+        stMeasurements.dEndRelativeBearing   = std::fmod((stMeasurements.dEndRelativeBearing + 180), 360);
+        // Ensure the result angle is positive.
+        if (stMeasurements.dStartRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dStartRelativeBearing += 360;
+        }
+        // Ensure the result angle is positive.
+        if (stMeasurements.dEndRelativeBearing < 0)
+        {
+            // Add 360 degrees.
+            stMeasurements.dEndRelativeBearing += 360;
+        }
+
+        // Return result distance.
+        return stMeasurements;
+    }
 
     /******************************************************************************
      * @brief This struct is used by the WaypointHandler to provide an easy way to store
