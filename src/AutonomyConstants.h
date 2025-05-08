@@ -285,6 +285,14 @@ namespace constants
     extern const double APPROACH_MARKER_VERIFY_TIME;
     extern const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME;
 
+    // Approaching Object State
+    extern const double APPROACH_OBJECT_MOTOR_POWER;
+    extern const double APPROACH_OBJECT_PROXIMITY_THRESHOLD;
+    extern const double APPROACH_OBJECT_LOST_GIVE_UP_TIME;
+    extern const bool APPROACH_OBJECT_VERIFY_POSITION;
+    extern const double APPROACH_OBJECT_VERIFY_TIME;
+    extern const double APPROACH_OBJECT_TAG_LOST_BUFFER_TIME;
+
     // Stuck State
     extern const double STUCK_CHECK_INTERVAL;
     extern const unsigned int STUCK_CHECK_ATTEMPTS;
