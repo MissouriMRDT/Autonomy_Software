@@ -286,7 +286,7 @@ namespace constants
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double STUCK_CHECK_ROT_THRESH      = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double STUCK_CHECK_ROT_THRESH      = 4.0;     // Minimum angular velocity required to consider the rover as actively rotating.
     const double STUCK_CHECK_VEL_THRESH      = 0.2;     // Minimum velocity required to consider the rover as actively moving.
     const double STUCK_SAME_POINT_PROXIMITY  = 1.0;     // Points within this proximity of another point are considered the same.
     const double STUCK_HEADING_ALIGN_TIMEOUT = 5.0;     // The timeout in seconds before the rover gives up aligning to a certain heading.
@@ -323,10 +323,10 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.4;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 2.0;     // Determines how reactive the rover is to crosstrack error adjustments.
     const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;     // Distance from position sensor to the center of the front axle in meters.
-    const double STANLEY_STEERING_ANGLE_LIMIT    = 40.0;    // The maximum steering angle in degrees.
-    const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
+    const double STANLEY_STEERING_ANGLE_LIMIT    = 30.0;    // The maximum steering angle in degrees.
+    const int STANLEY_PREDICTION_HORIZON         = 1;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 
     // ASTAR config.
