@@ -47,6 +47,14 @@ namespace objectdetectutils
         eTorch,      // Torch detection using a YOLO model.
     };
 
+    /******************************************************************************
+     * @brief Represents a single detected object. Combines attributes from TorchObject
+     *        and TensorflowObject structs.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-05-09
+     ******************************************************************************/
     struct Object
     {
         public:

@@ -156,7 +156,7 @@ namespace controllers
             double dForwardVectorX = m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dEasting - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dForwardVectorY =
                 m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dNorthing - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Compute the norm and unit vector for the path siSegment.
+            // Compute the norm and unit vector for the path segment.
             double dForwardNorm = sqrt(dForwardVectorX * dForwardVectorX + dForwardVectorY * dForwardVectorY);
             double dFwdUnitX    = dForwardVectorX / dForwardNorm;
             double dFwdUnitY    = dForwardVectorY / dForwardNorm;

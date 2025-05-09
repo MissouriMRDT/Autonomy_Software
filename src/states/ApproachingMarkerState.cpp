@@ -47,8 +47,7 @@ namespace statemachine
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
 
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -118,7 +117,7 @@ namespace statemachine
                         "ApproachingMarkerState: Rover is too far from the original waypoint! Waypoint radius is {} meters, current distance is {} meters.",
                         m_stGoalWaypoint.dRadius,
                         stCurrentMeasurement.dDistanceMeters);
-            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen, true);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
 
@@ -339,8 +338,7 @@ namespace statemachine
                     // Pop old waypoint out of queue.
                     globals::g_pWaypointHandler->PopNextWaypoint();
                     // Clear saved search pattern state.
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                    globals::g_pStateMachineHandler->ClearSavedStates();
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
                     // Change state.

@@ -34,8 +34,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "IdleState: Scheduling next run of state logic.");
 
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************

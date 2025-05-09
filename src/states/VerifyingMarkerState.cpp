@@ -40,8 +40,7 @@ namespace statemachine
         m_tmTagLastSeenTime          = std::chrono::system_clock::now();
 
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -183,7 +182,7 @@ namespace statemachine
                 // Clear saved states.
                 globals::g_pStateMachineHandler->ClearSavedStates();
                 // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old saved states.");
                 // Change state.
                 eNextState = States::eIdle;
                 break;
