@@ -30,8 +30,20 @@
  ******************************************************************************/
 namespace torchobject
 {
+    /******************************************************************************
+     * @brief Detects objects in the given image using a PyTorch model.
+     *
+     * @param cvFrame - The image to detect objects in.
+     * @param trPyTorchDetector - The PyTorch model to use for detection.
+     * @param fMinObjectConfidence - The minimum confidence threshold for detected objects.
+     * @param fNMSThreshold - The non-maximum suppression threshold for detected objects.
+     * @return std::vector<objectdetectutils::Object> - A vector of detected objects.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-05-09
+     ******************************************************************************/
     inline std::vector<objectdetectutils::Object> Detect(const cv::Mat& cvFrame,
-                                                         yolomodel::pytorch::PyTorchInterpreter& tfPyTorchDetector,
+                                                         yolomodel::pytorch::PyTorchInterpreter& trPyTorchDetector,
                                                          const float fMinObjectConfidence = 0.40f,
                                                          const float fNMSThreshold        = 0.60f)
     {
@@ -47,10 +59,10 @@ namespace torchobject
         std::vector<objectdetectutils::Object> vDetectedTags;
 
         // Check if the PyTorch interpreter hardware is opened and the model is loaded.
-        if (tfPyTorchDetector.IsReadyForInference())
+        if (trPyTorchDetector.IsReadyForInference())
         {
             // Run inference on YOLO model with current image.
-            std::vector<yolomodel::Detection> vOutputTensorTags = tfPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
+            std::vector<yolomodel::Detection> vOutputTensorTags = trPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
 
             // Repackage detections into tensorflow tags.
             for (const yolomodel::Detection& stTagDetection : vOutputTensorTags)
