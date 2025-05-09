@@ -114,6 +114,12 @@ namespace statemachine
             // Calculate what percentage of the screen the tag takes up.
             double dAreaPercentage = (dArea / (stCandidate.cvImageResolution.width * stCandidate.cvImageResolution.height)) * 100.0;
 
+            // If the distance of the tag is not greater than 0, skip it.
+            if (stCandidate.dStraightLineDistance <= 0.0)
+            {
+                continue;
+            }
+
             // Check the tag detection method type.
             if (stCandidate.eDetectionMethod == tagdetectutils::TagDetectionMethod::eOpenCV)
             {
