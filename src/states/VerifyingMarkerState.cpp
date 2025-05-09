@@ -180,9 +180,8 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
-                // Clear saved search pattern state.
-                globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
-                globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                // Clear saved states.
+                globals::g_pStateMachineHandler->ClearSavedStates();
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
                 // Change state.

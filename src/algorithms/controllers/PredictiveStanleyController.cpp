@@ -10,6 +10,7 @@
 
 #include "PredictiveStanleyController.h"
 #include "../../AutonomyConstants.h"
+#include "../../util/planners/PathPostProcessing.hpp"
 
 /// \cond
 
@@ -145,8 +146,6 @@ namespace controllers
 
             // Compute the heading error. This is the difference between the heading of the rover and the heading or curvature of the path.
             double dHeadingError = numops::AngularDifference(m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex], dPredictedTheta);
-            std::cout << m_nCurrentReferencePathTargetIndex << std::endl;
-            std::cout << m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex] << " " << dPredictedTheta << " " << dHeadingError << std::endl;
 
             /*
                 Compute the cross track error. This is the distance between the predicted position and the closest point on the path. The sign of the cross track error
@@ -157,7 +156,7 @@ namespace controllers
             double dForwardVectorX = m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dEasting - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dForwardVectorY =
                 m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dNorthing - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Compute the norm and unit vector for the path segment.
+            // Compute the norm and unit vector for the path siSegment.
             double dForwardNorm = sqrt(dForwardVectorX * dForwardVectorX + dForwardVectorY * dForwardVectorY);
             double dFwdUnitX    = dForwardVectorX / dForwardNorm;
             double dFwdUnitY    = dForwardVectorY / dForwardNorm;
@@ -206,15 +205,17 @@ namespace controllers
         // Create instance variables.
         double dCurvature = 0.0;
 
+        // Apply path smoothing first.
+        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
+
         // Loop through the reference path and calculate the curvature at each point.
-        for (size_t nIter = 0; nIter < vReferencePath.size(); ++nIter)
+        for (size_t nIter = 0; nIter < vSmoothedPath.size(); ++nIter)
         {
             // Calculate the curvature at this point.
-            if (nIter > 0 && nIter < vReferencePath.size() - 1)
+            if (nIter > 0 && nIter < vSmoothedPath.size() - 1)
             {
                 // Calculate the curvature.
-                dCurvature =
-                    geoops::CalculateGeoMeasurement(vReferencePath[nIter - 1].GetUTMCoordinate(), vReferencePath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
+                dCurvature = geoops::CalculateGeoMeasurement(vSmoothedPath[nIter - 1].GetUTMCoordinate(), vSmoothedPath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
 
                 // If this is the second iteration, then also set the curvature of the previous point.
                 if (nIter == 1)
@@ -232,7 +233,7 @@ namespace controllers
         // Reset the bicycle model.
         m_BicycleModel.ResetState();
         // Set the reference path.
-        m_vReferencePath = vReferencePath;
+        m_vReferencePath = vSmoothedPath;
     }
 
     /******************************************************************************
@@ -248,17 +249,17 @@ namespace controllers
         // Create instance variables.
         double dCurvature = 0.0;
 
-        // Clear the current reference path.
-        m_vReferencePath.clear();
+        // Apply path smoothing first.
+        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
 
         // Loop through the reference path and calculate the curvature at each point.
-        for (size_t nIter = 0; nIter < vReferencePath.size(); ++nIter)
+        for (size_t nIter = 0; nIter < vSmoothedPath.size(); ++nIter)
         {
             // Calculate the curvature at this point.
-            if (nIter > 0 && nIter < vReferencePath.size() - 1)
+            if (nIter > 0 && nIter < vSmoothedPath.size() - 1)
             {
                 // Calculate the curvature.
-                dCurvature = geoops::CalculateGeoMeasurement(vReferencePath[nIter - 1], vReferencePath[nIter]).dStartRelativeBearing;
+                dCurvature = geoops::CalculateGeoMeasurement(vSmoothedPath[nIter - 1].GetUTMCoordinate(), vSmoothedPath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
 
                 // If this is the second iteration, then also set the curvature of the previous point.
                 if (nIter == 1)
@@ -269,14 +270,14 @@ namespace controllers
 
             // Store the waypoint and curvature.
             m_vReferencePathCurvature.push_back(dCurvature);
-            // Convert the UTM coordinate to a waypoint.
-            m_vReferencePath.push_back(geoops::Waypoint(vReferencePath[nIter]));
         }
 
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
         // Reset the bicycle model.
         m_BicycleModel.ResetState();
+        // Set the reference path.
+        m_vReferencePath = vSmoothedPath;
     }
 
     /******************************************************************************
@@ -292,17 +293,17 @@ namespace controllers
         // Create instance variables.
         double dCurvature = 0.0;
 
-        // Clear the current reference path.
-        m_vReferencePath.clear();
+        // Apply path smoothing first.
+        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
 
         // Loop through the reference path and calculate the curvature at each point.
-        for (size_t nIter = 0; nIter < vReferencePath.size(); ++nIter)
+        for (size_t nIter = 0; nIter < vSmoothedPath.size(); ++nIter)
         {
             // Calculate the curvature at this point.
-            if (nIter > 0 && nIter < vReferencePath.size() - 1)
+            if (nIter > 0 && nIter < vSmoothedPath.size() - 1)
             {
                 // Calculate the curvature.
-                dCurvature = geoops::CalculateGeoMeasurement(vReferencePath[nIter - 1], vReferencePath[nIter]).dStartRelativeBearing;
+                dCurvature = geoops::CalculateGeoMeasurement(vSmoothedPath[nIter - 1].GetUTMCoordinate(), vSmoothedPath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
 
                 // If this is the second iteration, then also set the curvature of the previous point.
                 if (nIter == 1)
@@ -313,14 +314,14 @@ namespace controllers
 
             // Store the waypoint and curvature.
             m_vReferencePathCurvature.push_back(dCurvature);
-            // Convert the GPS coordinate to a waypoint.
-            m_vReferencePath.push_back(geoops::Waypoint(vReferencePath[nIter]));
         }
 
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
         // Reset the bicycle model.
         m_BicycleModel.ResetState();
+        // Set the reference path.
+        m_vReferencePath = vSmoothedPath;
     }
 
     /******************************************************************************
