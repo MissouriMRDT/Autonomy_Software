@@ -15,6 +15,8 @@
 #include "../util/GeospatialOperations.hpp"
 #include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
+#include "../util/vision/ObjectDetectionUtility.hpp"
+#include "../vision/objects/ObjectDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -34,12 +36,12 @@ namespace statemachine
     class ApproachingObjectState : public State
     {
         private:
+            std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             States m_eTriggeringState;
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
-            int m_nNumDetectionAttempts;
 
         protected:
             void Start() override;
