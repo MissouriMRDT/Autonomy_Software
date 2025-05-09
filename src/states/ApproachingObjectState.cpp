@@ -9,7 +9,10 @@
  ******************************************************************************/
 
 #include "ApproachingObjectState.h"
+#include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
+#include "../AutonomyNetworking.h"
+#include "../util/states/ObjectDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -43,7 +46,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
 
-        m_nNumDetectionAttempts = 0;
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -118,6 +121,7 @@ namespace statemachine
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject);
 
         // Check if object is unseen.
         static bool bAlreadyPrintedLost                            = false;
@@ -184,7 +188,7 @@ namespace statemachine
                 // Update static variables.
                 dHeadingSetPoint = stObjectMeasurement.dStartRelativeBearing;
                 // Add the most recent geolocated object to the path plot.
-                m_pRoverPathPlot->AddPathPoint(stBestObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
+                m_pRoverPathPlot->AddDot(stBestObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
             }
             else
             {
@@ -247,7 +251,7 @@ namespace statemachine
         if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: Rover has become stuck!");
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
             // Don't execute the rest of the state.
@@ -269,7 +273,7 @@ namespace statemachine
     States ApproachingObjectState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState       = States::eIdle;
+        States eNextState       = States::eApproachingObject;
         bool bCompleteStateExit = true;
 
         switch (eEvent)
@@ -292,8 +296,7 @@ namespace statemachine
                     // Pop old waypoint out of queue.
                     globals::g_pWaypointHandler->PopNextWaypoint();
                     // Clear saved search pattern state.
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingObject);
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                    globals::g_pStateMachineHandler->ClearSavedStates();
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: Cleared old search pattern state and approaching object state from saved states.");
                     // Change state.

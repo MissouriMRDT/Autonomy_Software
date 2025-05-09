@@ -88,7 +88,6 @@ namespace statemachine
      ******************************************************************************/
     void VerifyingObjectState::Run()
     {
-        // TODO: Implement the behavior specific to the VerifyingObject state
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
         // Identify target object.
@@ -178,7 +177,7 @@ namespace statemachine
                 // Clear saved states.
                 globals::g_pStateMachineHandler->ClearSavedStates();
                 // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingObjectState: Cleared old search pattern state and approaching object state from saved states.");
+                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingObjectState: Cleared old saved states.");
                 // Change state.
                 eNextState = States::eIdle;
                 break;
