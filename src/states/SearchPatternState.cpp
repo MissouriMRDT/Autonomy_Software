@@ -151,7 +151,7 @@ namespace statemachine
             if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
             {
                 // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+                LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target marker!");
 
                 // Check if the OpenCV tag has a good absolute position.
                 if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)

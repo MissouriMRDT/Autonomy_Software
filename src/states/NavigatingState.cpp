@@ -43,6 +43,7 @@ namespace statemachine
         m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         m_pRoverPathPlot->CreatePathLayer("AStarPath", "-m");
+        m_pRoverPathPlot->CreateDotLayer("SmoothPath", "b", false);
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
     }
@@ -167,16 +168,16 @@ namespace statemachine
         {
             // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
-            // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // // Calculate move from goal heading and desired speed.
-            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-            //                                                                              stDriveVector.dThetaHeading,
-            //                                                                              stCurrentRoverPose.GetCompassHeading(),
-            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
+            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
+            // Calculate move from goal heading and desired speed.
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                         stDriveVector.dThetaHeading,
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
+            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+            //                                                                              stCurrentRoverPose.GetCompassHeading(),
+            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
@@ -391,9 +392,12 @@ namespace statemachine
                     m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
                 // Set the path of the stanley controller.
                 m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                // Get the smoothed path for plotting.
+                std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
                 // Update our plot with the new path.
                 m_pRoverPathPlot->ClearLayer("AStarPath");
                 m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
+                m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
                 m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
 
                 // Send multimedia command to update state display.
