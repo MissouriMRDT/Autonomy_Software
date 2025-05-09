@@ -36,8 +36,7 @@ namespace statemachine
 
         // Initialize member variables.
         m_bFetchNewWaypoint = true;
-        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
 
         // Create rover path layers.
         m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");

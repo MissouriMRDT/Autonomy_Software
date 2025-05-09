@@ -222,21 +222,6 @@ namespace constants
     const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
 
-    // Ground Basic Cam.
-    const int TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
-    const int TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING        = false;                            // Whether or not to use the tracking algorithm to track tags.
-    const int TAGDETECT_GROUNDCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH           = false;                            // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL =
-        "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";        // The model path to use for detection.
-    const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
-
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
@@ -247,9 +232,9 @@ namespace constants
     const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the tag detector.
     const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection on top of ArUco.
     const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
-        "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";    // The model path to use for detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                             // The minimum confidence to consider a viable AR tag detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                             // The threshold for non-max suppression filtering.
+        "../data/models/yolo_models/mallet/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                       // The minimum confidence to consider a viable AR tag detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                       // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
 
