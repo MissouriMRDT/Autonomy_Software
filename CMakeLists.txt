@@ -36,7 +36,7 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warni
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -48,7 +48,7 @@ option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 
 ## Enable or Disable Tests Mode
-option(BUILD_TESTS_MODE "Enable Tests Mode" ON)
+option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
 
 ## Enable or Disable Examples Mode
 option(BUILD_EXAMPLES_MODE "Enable Examples Mode" OFF)
