@@ -39,34 +39,34 @@ namespace statemachine
      ******************************************************************************/
     inline void LoadDetectedObjects(std::vector<objectdetectutils::Object>& vDetectedObjects, const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors)
     {
-        // Number of tag detectors.
+        // Number of object detectors.
         size_t siNumObjectDetectors = vObjectDetectors.size();
 
-        // Initialize vectors to store detected tags temporarily.
+        // Initialize vectors to store detected objects temporarily.
         std::vector<std::vector<objectdetectutils::Object>> vDetectedObjectBuffers(siNumObjectDetectors);
 
-        // Initialize vectors to store detected tags futures.
+        // Initialize vectors to store detected objects futures.
         std::vector<std::future<bool>> vDetectedObjectsFuture;
 
-        // Request tags from each detector.
+        // Request objects from each detector.
         for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
         {
-            // Check if this tag detector is ready.
+            // Check if this object detector is ready.
             if (vObjectDetectors[siIdx]->GetIsReady())
             {
-                // Request detected Aruco tags from detector.
+                // Request detected objects from detector.
                 vDetectedObjectsFuture.emplace_back(vObjectDetectors[siIdx]->RequestDetectedObjects(vDetectedObjectBuffers[siIdx]));
             }
         }
 
         // Ensure all requests have been fulfilled.
-        // Then transfer tags from the buffer to vDetectedObjects and vDetectedTensorflowTags for the user to access.
+        // Then transfer objects from the buffer to vDetectedObjects for the user to access.
         for (size_t siIdx = 0; siIdx < vDetectedObjectsFuture.size(); ++siIdx)
         {
             // Wait for the request to be fulfilled.
             vDetectedObjectsFuture[siIdx].get();
 
-            // Loop through the detected Aruco tags and add them to the vDetectedObjects vector.
+            // Loop through the detected objects and add them to the vDetectedObjects vector.
             for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
             {
                 vDetectedObjects.emplace_back(tObject);
@@ -75,22 +75,19 @@ namespace statemachine
     }
 
     /******************************************************************************
-     * @brief Identify a target marker in the rover's vision, using OpenCV detection.
+     * @brief Identify a target object in the rover's vision, using Torch detection.
      *
-     * @note If multiple markers are detected the closest one will be chosen as the target.
+     * @note If multiple objects are detected the closest one will be chosen as the target.
      *
-     * @param vTagDetectors - The vector of tag detectors to use for detection.
-     * @param stArucoTarget - The detected target marker from OpenCV.
-     * @param nTargetTagID - The ID of the target tag to identify. If -1, the closest tag will be chosen.
-     * @return int - The total number of tags currently detected.
+     * @param vObjectDetectors - The vector of object detectors to use for detection.
+     * @param stObjectTarget - The detected object marker from Torch.
+     * @return int - The total number of objects currently detected.
      *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-04-04
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-05-09
      ******************************************************************************/
-    // TODO: ask about nTargetTagID
-    inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors,
-                                    objectdetectutils::Object& stObjectTarget,
-                                    const int nTargetTagID = -1)
+
+    inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors, objectdetectutils::Object& stObjectTarget)
     {
         // Create instance variables.
         std::vector<objectdetectutils::Object> vDetectedObjects;
@@ -100,29 +97,28 @@ namespace statemachine
         // Get the current time
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
-        // Load all detected tags in the rover's vision.
+        // Load all detected objects in the rover's vision.
         LoadDetectedObjects(vDetectedObjects, vObjectDetectors);
-        // Find the best tag from the Aruco tags.
+        // Find the best object.
         for (const objectdetectutils::Object& stCandidate : vDetectedObjects)
         {
-            // Calculate the total age of the tag.
+            // Calculate the total age of the object.
             double dObjectTotalAge = std::fabs(std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - stCandidate.tmCreation).count() / 1000.0);
-            // Calculate the total tag area.
+            // Calculate the total object area.
             double dArea = stCandidate.pBoundingBox->area();
-            // Calculate what percentage of the screen the tag takes up.
+            // Calculate what percentage of the screen the object takes up.
             double dAreaPercentage = (dArea / (stCandidate.cvImageResolution.width * stCandidate.cvImageResolution.height)) * 100.0;
 
-            // If the distance of the tag is not greater than 0, skip it.
+            // If the distance of the object is not greater than 0, skip it.
             if (stCandidate.dStraightLineDistance <= 0.0)
             {
                 continue;
             }
 
-            // TODO: ask about eTorch
             //  Check the object detection method type.
             if (stCandidate.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch)
             {
-                // Assemble the identified tags string.
+                // Assemble the identified objects string.
                 szIdentifiedObjects += "\tObject Class: " + stCandidate.szClassName + " Object Age: " + std::to_string(dObjectTotalAge) +
                                        "s Object Screen Percentage: " + std::to_string(dAreaPercentage) + "%\n";
                 // Check if the object meets the requirements.
@@ -131,7 +127,7 @@ namespace statemachine
                     continue;
                 }
 
-                // Check other tag requirements.
+                // Check other object requirements.
                 if (dArea > stBestObject.pBoundingBox->area())
                 {
                     // Set the target object to the detected object.
@@ -140,7 +136,7 @@ namespace statemachine
             }
         }
 
-        // Only print the identified tags if there are any.
+        // Only print the identified objects if there are any.
         if (stBestObject.dConfidence != 0.0)
         {
             // Submit logger message.

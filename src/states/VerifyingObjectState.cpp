@@ -11,6 +11,7 @@
 #include "VerifyingObjectState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
+#include "../util/states/ObjectDetectionChecker.hpp"
 
 // #include "../util/states/ObjectDetectionChecker.hpp"
 
@@ -40,9 +41,8 @@ namespace statemachine
         m_tmObjectVerificationStartTime = std::chrono::system_clock::now();
         m_tmObjectLastSeenTime          = std::chrono::system_clock::now();
 
-        // TODO: DO THIS ONCE ObjectDetectionChecker.hpp IS MADE
-        // Get tag detectors.
-        m_vObjectDetectors = {};
+        // Get object detectors.
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -89,12 +89,11 @@ namespace statemachine
     void VerifyingObjectState::Run()
     {
         // TODO: Implement the behavior specific to the VerifyingObject state
-        // TODO: Uncomment out commented lines once ObjectDetectionChecker.hpp is made
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
-        // statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject);
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
@@ -117,6 +116,30 @@ namespace statemachine
                 return;
             }
         }
+        else
+        {
+            // Check the object distance.
+            if (stBestObject.dConfidence > 0.0 && stBestObject.dStraightLineDistance > constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD)
+            {
+                // Object is too far away, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Object detected but too far away. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+
+            // Update time last seen.
+            m_tmObjectLastSeenTime = std::chrono::system_clock::now();
+
+            // Check if we have been in this state long enough to verify the object.
+            if (dElapsedTime >= constants::APPROACH_OBJECT_VERIFY_TIME)
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Object verified. Triggering verify complete event.");
+                // Trigger verify complete event.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete);
+                return;
+            }
+        }
     }
 
     /******************************************************************************
@@ -125,7 +148,7 @@ namespace statemachine
      * @param eEvent - The event to trigger.
      * @return std::shared_ptr<State> - The next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     States VerifyingObjectState::TriggerEvent(Event eEvent)
@@ -152,6 +175,10 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
+                // Clear saved states.
+                globals::g_pStateMachineHandler->ClearSavedStates();
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingObjectState: Cleared old search pattern state and approaching object state from saved states.");
                 // Change state.
                 eNextState = States::eIdle;
                 break;
