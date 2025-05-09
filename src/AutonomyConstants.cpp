@@ -283,6 +283,14 @@ namespace constants
     const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.
     const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
 
+    // Approaching Object State
+    const double APPROACH_OBJECT_MOTOR_POWER         = 0.35;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
+    const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
+    const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;     // The time in seconds to watch the tag before moving on.
+    const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
+
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
