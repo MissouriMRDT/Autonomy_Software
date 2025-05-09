@@ -225,20 +225,6 @@ namespace constants
     extern const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH;
 
-    // Ground Basic Cam.
-    extern const int TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS;
-    extern const int TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER;
-    extern const int TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD;
-    extern const bool TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER;
-    extern const int TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS;
-    extern const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION;
-    extern const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING;
-    extern const int TAGDETECT_GROUNDCAM_MAX_FPS;
-    extern const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL;
-    extern const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE;
-    extern const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH;
-
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////

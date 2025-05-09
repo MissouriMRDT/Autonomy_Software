@@ -11,6 +11,7 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
+#include "./util/states/ObjectDetectionChecker.hpp"
 #include "./util/states/TagDetectionChecker.hpp"
 
 /// \cond
@@ -229,9 +230,7 @@ int main()
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
         std::shared_ptr<ZEDCamera> pMainCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        std::shared_ptr<BasicCamera> pGroundCam       = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
         std::shared_ptr<TagDetector> pMainTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        std::shared_ptr<TagDetector> pGroundDetector  = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam);
         std::shared_ptr<ObjectDetector> pMainObjectDetector =
             globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
         IPS IterPerSecond = IPS();
@@ -252,9 +251,7 @@ int main()
             vThreadFPSValues.clear();
             vThreadFPSValues.push_back(static_cast<int>(IterPerSecond.GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<int>(pMainCam->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(pGroundCam->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<int>(pMainTagDetector->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(pGroundDetector->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<int>(pMainObjectDetector->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<int>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<int>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
@@ -266,9 +263,7 @@ int main()
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
             szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainTagDetector FPS: " + std::to_string(pMainTagDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "GroundDetector FPS: " + std::to_string(pGroundDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainObjectDetector FPS: " + std::to_string(pMainObjectDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
@@ -297,6 +292,7 @@ int main()
                                    "Press 'f' or 'F' to print FPS stats to the log file.\n"
                                    "Press 'p' or 'P' to print rover pose info to the log file.\n"
                                    "Press 't' or 'T' to print tag detection info to the log file.\n"
+                                   "Press 'm' or 'M' to print object detection info to the log file.\n"
                                    "Press 'q' or 'Q' to quit the program.\n"
                                    "-------------------------------------------\n");
                     }
@@ -327,7 +323,7 @@ int main()
                             int nTagCount = 0;
 
                             // Get the best/valid tags from the tag detectors.
-                            std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainTagDetector, pGroundDetector};
+                            std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainTagDetector};
                             // Check if the next waypoint in the waypoint handler exists and had a tag ID.
                             if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
                             {
@@ -377,6 +373,45 @@ int main()
                         {
                             // Submit logger message.
                             LOG_WARNING(logging::g_qSharedLogger, "Tag Detector is not ready yet. Cannot get tags.");
+                        }
+                    }
+                    else if (chTerminalInput == 'm' || chTerminalInput == 'M')
+                    {
+                        // Get the tags from the tag detectors.
+                        if (pMainObjectDetector->GetIsReady())
+                        {
+                            // Create instance variables.
+                            objectdetectutils::Object stBestTorchObject;
+                            int nObjectCount = 0;
+
+                            // Get the best/valid tags from the tag detectors.
+                            std::vector<std::shared_ptr<ObjectDetector>> vTagDetectors = {pMainObjectDetector};
+                            // Get the best tags from the tag detectors.
+                            nObjectCount = statemachine::IdentifyTargetObject(vTagDetectors, stBestTorchObject);
+
+                            // Submit logger message.
+                            std::ostringstream ossTagsInfo;
+                            ossTagsInfo << "\n--------[ All Detections ]--------\n"
+                                        << "Detected Object Info:\n"
+                                        << "Total Object: " << nObjectCount << "\n";
+
+                            ossTagsInfo << "\n--------[ Valid/Best Objects ]--------\n";
+                            if (stBestTorchObject.dConfidence != 0.0)
+                            {
+                                ossTagsInfo << "Best Torch Object Distance: " << stBestTorchObject.dStraightLineDistance << "\n";
+                                ossTagsInfo << "Best Torch Object Yaw Angle: " << stBestTorchObject.dYawAngle << "\n";
+                            }
+                            else
+                            {
+                                ossTagsInfo << "No valid Torch tags detected.\n";
+                            }
+
+                            LOG_NOTICE(logging::g_qSharedLogger, "{}", ossTagsInfo.str());
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger, "Object Detector is not ready yet. Cannot get objects.");
                         }
                     }
                     else if (chTerminalInput == 'q' || chTerminalInput == 'Q')
