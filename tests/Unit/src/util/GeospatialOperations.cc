@@ -258,8 +258,8 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementWaypoint)
     geoops::UTMCoordinate stUTMMDRSCoordinate(519116.71, 3807223.16, 12, true);
 
     // Convert GPS coordinates to Waypoint.
-    geoops::Waypoint stWaypoint1(stGPSRollaCoordinate);
-    geoops::Waypoint stWaypoint2(stGPSMDRSCoordinate);
+    geoops::Waypoint stWaypoint1(stUTMRollaCoordinate);
+    geoops::Waypoint stWaypoint2(stUTMMDRSCoordinate);
 
     // Calculate meter distance between the first two GPS points.
     geoops::GeoMeasurement stMeasurement1 = geoops::CalculateGeoMeasurement(stUTMRollaCoordinate, stUTMMDRSCoordinate);
