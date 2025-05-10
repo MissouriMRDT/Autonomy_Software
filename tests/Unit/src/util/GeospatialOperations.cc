@@ -232,13 +232,24 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementUTM)
     geoops::GPSCoordinate stGPSRollaCoordinate = geoops::ConvertUTMToGPS(stUTMRollaCoordinate);
     geoops::GPSCoordinate stGPSMDRSCoordinate  = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
 
+    // Convert GPS coordinates to Waypoint.
+    geoops::Waypoint stWaypoint1(stGPSRollaCoordinate);
+    geoops::Waypoint stWaypoint2(stGPSMDRSCoordinate);
+
     // Calculate meter distance between the first two GPS points.
     geoops::GeoMeasurement stMeasurement1 = geoops::CalculateGeoMeasurement(stGPSRollaCoordinate, stGPSMDRSCoordinate);
     // Calculate meter distance between the first two GPS points.
     geoops::GeoMeasurement stMeasurement2 = geoops::CalculateGeoMeasurement(stUTMRollaCoordinate, stUTMMDRSCoordinate);
+    // Calculate meter distance between the first two Waypoints.
+    geoops::GeoMeasurement stMeasurement3 = geoops::CalculateGeoMeasurement(stWaypoint1, stWaypoint2);
+
     // Check function calculations.
     EXPECT_EQ(stMeasurement1.dDistanceMeters, stMeasurement2.dDistanceMeters);
     EXPECT_EQ(stMeasurement1.dArcLengthDegrees, stMeasurement2.dArcLengthDegrees);
     EXPECT_EQ(stMeasurement1.dStartRelativeBearing, stMeasurement2.dStartRelativeBearing);
     EXPECT_EQ(stMeasurement1.dEndRelativeBearing, stMeasurement2.dEndRelativeBearing);
+    EXPECT_EQ(stMeasurement1.dDistanceMeters, stMeasurement3.dDistanceMeters);
+    EXPECT_EQ(stMeasurement1.dArcLengthDegrees, stMeasurement3.dArcLengthDegrees);
+    EXPECT_EQ(stMeasurement1.dStartRelativeBearing, stMeasurement3.dStartRelativeBearing);
+    EXPECT_EQ(stMeasurement1.dEndRelativeBearing, stMeasurement3.dEndRelativeBearing);
 }

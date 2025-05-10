@@ -42,8 +42,8 @@ namespace statemachine
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
         // Add the search and rover path layers to the plot.
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "orange");
-        m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
+        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "blue");
+        m_pRoverPathPlot->CreateDotLayer("FinalObject", "green");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
 
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
