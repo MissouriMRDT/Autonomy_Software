@@ -34,7 +34,7 @@ RUN apt update && apt install -y wget && \
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    build-essential gfortran cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
+    build-essential cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
     libswresample-dev libcanberra-gtk3-module zstd less libx264-dev libdrm-dev python-is-python3 \
     libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools libssl-dev \
     libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
