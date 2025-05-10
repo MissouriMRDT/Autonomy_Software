@@ -154,6 +154,17 @@ TEST_F(PredictiveStanleyControllerTests, SetReferencePath)
     std::vector<geoops::Waypoint> vPath = {geoops::GPSCoordinate(0.0, 0.0), geoops::GPSCoordinate(1.0, 1.0), geoops::GPSCoordinate(2.0, 2.0)};
     Controller.SetReferencePath(vPath);
     EXPECT_EQ(Controller.GetReferencePath().size(), vPath.size());
+
+    // Create a very complex path with a lot of waypoints.
+    std::vector<geoops::Waypoint> vComplexPath;
+    for (int i = 0; i < 1000; i++)
+    {
+        vComplexPath.push_back(geoops::GPSCoordinate(i * 0.1, i * 0.1));
+    }
+    Controller.SetReferencePath(vComplexPath);
+
+    // We apply B-spline path fitting to the complex path internally, so just check that the size of the given path is greater than the size of the resulting path.
+    EXPECT_TRUE(Controller.GetReferencePath().size() < vComplexPath.size());
 }
 
 /******************************************************************************

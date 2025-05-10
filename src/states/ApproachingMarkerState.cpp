@@ -143,7 +143,7 @@ namespace statemachine
                 {
                     bAlreadyPrintedLost = true;
                     // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
+                    LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
 
                     // If either of the tags are good and have a valid geoposition, don't stop the drive, we can keep driving to it.
                     if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
