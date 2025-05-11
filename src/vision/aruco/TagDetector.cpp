@@ -336,7 +336,7 @@ void TagDetector::ThreadedContinuousCode()
         if (m_bTorchEnabled)
         {
             // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
+            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2BGR);
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
                 torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);

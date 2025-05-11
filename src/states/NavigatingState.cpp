@@ -170,16 +170,16 @@ namespace statemachine
         {
             // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
-            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // Calculate move from goal heading and desired speed.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                         stDriveVector.dThetaHeading,
-                                                                                         stCurrentRoverPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
-            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+            // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
+            // // Calculate move from goal heading and desired speed.
+            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+            //                                                                              stDriveVector.dThetaHeading,
             //                                                                              stCurrentRoverPose.GetCompassHeading(),
             //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
+                                                                                         stCurrentRoverPose.GetCompassHeading(),
+                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
@@ -309,15 +309,15 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        {
-            // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-            // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-            // Don't execute the rest of the state.
-            return;
-        }
+        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        // {
+        //     // Submit logger message.
+        //     LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+        //     // Handle state transition and save the current search pattern state.
+        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+        //     // Don't execute the rest of the state.
+        //     return;
+        // }
     }
 
     /******************************************************************************
