@@ -47,8 +47,7 @@ namespace statemachine
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
 
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -144,7 +143,7 @@ namespace statemachine
                 {
                     bAlreadyPrintedLost = true;
                     // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
+                    LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
 
                     // If either of the tags are good and have a valid geoposition, don't stop the drive, we can keep driving to it.
                     if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
@@ -275,6 +274,11 @@ namespace statemachine
                 // Add the tag to the path plot.
                 m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
             }
+
+            // Reset the tag heading and distance.
+            dHeadingSetPoint = 0.0;
+            dDistanceFromTag = 0.0;
+
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             // Don't execute the rest of the state.
@@ -289,7 +293,7 @@ namespace statemachine
         if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
+            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has become stuck!");
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
             // Don't execute the rest of the state.
@@ -334,8 +338,7 @@ namespace statemachine
                     // Pop old waypoint out of queue.
                     globals::g_pWaypointHandler->PopNextWaypoint();
                     // Clear saved search pattern state.
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                    globals::g_pStateMachineHandler->ClearSavedStates();
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
                     // Change state.

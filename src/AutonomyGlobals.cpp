@@ -33,6 +33,9 @@ namespace globals
     // Tag Detection Handler:
     TagDetectionHandler* g_pTagDetectionHandler;
 
+    // Object Detection Handler:
+    ObjectDetectionHandler* g_pObjectDetectionHandler;
+
     // State Machine Handler:
     StateMachineHandler* g_pStateMachineHandler;
 

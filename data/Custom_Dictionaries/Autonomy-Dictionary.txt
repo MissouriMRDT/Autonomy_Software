@@ -57,6 +57,7 @@ CALIB
 CALIBRATEENCODER
 CAMERAUNAVAILABLE
 carryforward
+Catmull
 CELLCRITICAL
 CELLUNDERVOLTAGE
 CELLVOLTAGE
@@ -465,6 +466,7 @@ numpy
 nvcr
 OBJDETECTION
 OBJECTDETECT
+OBJECTDETECTOR
 Objectness
 odometry
 openal
@@ -596,10 +598,12 @@ tensorflowtag
 tensorflowyolo
 tflite
 Tgsnwcv
+THREADFPS
 threadpool
 timestamping
 timestep
 TOGGLESTREAM
+torchobject
 torchscript
 torchtag
 tparam
