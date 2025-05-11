@@ -144,11 +144,12 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
     stPacket.vData.emplace_back(fDriveBoardLeftPower);
     stPacket.vData.emplace_back(fDriveBoardRightPower);
-    // Check if we should send packets to the SIM or board.
-    const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
+        // Check if we should send packets to the SIM or board.
+        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+        // Send packet.
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
     // Submit logger message.

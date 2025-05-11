@@ -13,6 +13,7 @@
 #include "../algorithms/SearchPattern.hpp"
 #include "../algorithms/kinematics/DifferentialDrive.hpp"
 #include "../interfaces/State.hpp"
+#include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
 
 /******************************************************************************
@@ -56,12 +57,13 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
+        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "red");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
 
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -151,7 +153,7 @@ namespace statemachine
             if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
             {
                 // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+                LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target marker!");
 
                 // Check if the OpenCV tag has a good absolute position.
                 if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
@@ -177,7 +179,32 @@ namespace statemachine
         /* --- Detect Objects --- */
         ////////////////////////////
 
-        // TODO: Add object detection to SearchPattern state
+        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
+        if (m_stSearchPatternCenter.eType == geoops::WaypointType::eObjectWaypoint)
+        {
+            // Create instance variables.
+            objectdetectutils::Object stBestTorchObject;
+            // Identify target object.
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject);
+            // Check if either tag type is seen.
+            if (stBestTorchObject.dConfidence != 0.0)
+            {
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
+
+                // Check if the torch tag has a good absolute position.
+                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
+                }
+
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
+                // Don't execute the rest of the state.
+                return;
+            }
+        }
 
         //////////////////////////////
         /* --- Detect Obstacles --- */
