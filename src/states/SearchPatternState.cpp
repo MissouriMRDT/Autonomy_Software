@@ -217,22 +217,22 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
-            // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
-            m_nSearchPathIdx += 1;
-            // Check path index is within bounds.
-            if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
-            {
-                m_nSearchPathIdx = m_vSearchPath.size() - 1;
-            }
-            // Handle state transition and save the current search pattern state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-            // Don't execute the rest of the state.
-            return;
-        }
+        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        // {
+        //     // Submit logger message.
+        //     LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
+        //     // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
+        //     m_nSearchPathIdx += 1;
+        //     // Check path index is within bounds.
+        //     if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
+        //     {
+        //         m_nSearchPathIdx = m_vSearchPath.size() - 1;
+        //     }
+        //     // Handle state transition and save the current search pattern state.
+        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+        //     // Don't execute the rest of the state.
+        //     return;
+        // }
 
         ///////////////////////////////////
         /* --- Follow Search Pattern --- */
