@@ -422,37 +422,37 @@ int main()
                 }
             }
 
-            // /////////////////////////////////////////
-            // // Send thread stats over RoveComm.
-            // /////////////////////////////////////////
-            // // Check if rovecomm is initialized and running.
-            // if (network::g_pRoveCommUDPNode)
-            // {
-            //     // Construct a RoveComm packet with the drive data.
-            //     rovecomm::RoveCommPacket<float> stPacket;
-            //     stPacket.unDataId    = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_ID;
-            //     stPacket.unDataCount = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
-            //     stPacket.eDataType   = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
-            //     // Create a static variable to act a counter/iterator for the FPS value to use.
-            //     static int nThreadFPSIndex = 0;
-            //     // Check if the index is within bounds of the vector.
-            //     if (nThreadFPSIndex < static_cast<int>(vThreadFPSValues.size()))
-            //     {
-            //         // First push back the thread enum identifier cast to an int.
-            //         stPacket.vData.push_back(nThreadFPSIndex);
-            //         // Add the current FPS value to the packet data.
-            //         stPacket.vData.push_back(static_cast<float>(vThreadFPSValues[nThreadFPSIndex]));
-            //         // Increment the index for the next iteration.
-            //         nThreadFPSIndex++;
-            //     }
-            //     else
-            //     {
-            //         // Reset the index if it exceeds the vector size.
-            //         nThreadFPSIndex = 0;
-            //     }
-            //     // Send the packet over RoveComm UDP.
-            //     network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
-            // }
+            /////////////////////////////////////////
+            // Send thread stats over RoveComm.
+            /////////////////////////////////////////
+            // Check if rovecomm is initialized and running.
+            if (network::g_pRoveCommUDPNode)
+            {
+                // Construct a RoveComm packet with the drive data.
+                rovecomm::RoveCommPacket<float> stPacket;
+                stPacket.unDataId    = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
+                // Create a static variable to act a counter/iterator for the FPS value to use.
+                static int nThreadFPSIndex = 0;
+                // Check if the index is within bounds of the vector.
+                if (nThreadFPSIndex < static_cast<int>(vThreadFPSValues.size()))
+                {
+                    // First push back the thread enum identifier cast to an int.
+                    stPacket.vData.push_back(nThreadFPSIndex);
+                    // Add the current FPS value to the packet data.
+                    stPacket.vData.push_back(static_cast<float>(vThreadFPSValues[nThreadFPSIndex]));
+                    // Increment the index for the next iteration.
+                    nThreadFPSIndex++;
+                }
+                else
+                {
+                    // Reset the index if it exceeds the vector size.
+                    nThreadFPSIndex = 0;
+                }
+                // Send the packet over RoveComm UDP.
+                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
+            }
 
             // Update IPS tick.
             IterPerSecond.Tick();

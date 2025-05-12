@@ -270,6 +270,7 @@ namespace constants
     extern const bool APPROACH_MARKER_VERIFY_POSITION;
     extern const double APPROACH_MARKER_VERIFY_TIME;
     extern const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME;
+    extern const bool APPROACH_MARKER_ENABLE_STUCK_DETECT;
 
     // Approaching Object State
     extern const double APPROACH_OBJECT_MOTOR_POWER;
@@ -278,6 +279,7 @@ namespace constants
     extern const bool APPROACH_OBJECT_VERIFY_POSITION;
     extern const double APPROACH_OBJECT_VERIFY_TIME;
     extern const double APPROACH_OBJECT_LOST_BUFFER_TIME;
+    extern const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT;
 
     // Stuck State
     extern const double STUCK_CHECK_INTERVAL;
@@ -302,12 +304,14 @@ namespace constants
     extern const double SEARCH_ZIGZAG_SPACING;
     extern const double SEARCH_SNAKE_SLITHERS;
     extern const double SEARCH_WAYPOINT_PROXIMITY;
+    extern const bool SEARCH_ENABLE_STUCK_DETECT;
 
     // Navigating State.
     extern const double NAVIGATING_MOTOR_POWER;
     extern const double NAVIGATING_REACHED_GOAL_RADIUS;
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
+    extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
 
     // Avoidance State.
     extern const double AVOIDANCE_STATE_MOTOR_POWER;
