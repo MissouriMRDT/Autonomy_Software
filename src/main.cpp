@@ -239,7 +239,7 @@ int main()
         globals::g_pStateMachineHandler->StartStateMachine();
 
         // Create a vector of ints to store the FPS values for each thread.
-        std::vector<int> vThreadFPSValues;
+        std::vector<uint32_t> vThreadFPSValues;
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -249,13 +249,13 @@ int main()
         {
             // Add each threads FPS value to the vector.
             vThreadFPSValues.clear();
-            vThreadFPSValues.push_back(static_cast<int>(IterPerSecond.GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(pMainCam->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(pMainTagDetector->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(pMainObjectDetector->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
-            vThreadFPSValues.push_back(static_cast<int>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(IterPerSecond.GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainCam->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainTagDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainObjectDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
 
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
@@ -429,17 +429,17 @@ int main()
             if (network::g_pRoveCommUDPNode)
             {
                 // Construct a RoveComm packet with the drive data.
-                rovecomm::RoveCommPacket<float> stPacket;
-                stPacket.unDataId    = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_ID;
-                stPacket.unDataCount = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
-                stPacket.eDataType   = manifest::Core::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
+                rovecomm::RoveCommPacket<uint32_t> stPacket;
+                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
                 // Create a static variable to act a counter/iterator for the FPS value to use.
-                static int nThreadFPSIndex = 0;
+                static uint32_t nThreadFPSIndex = 0;
                 // Check if the index is within bounds of the vector.
-                if (nThreadFPSIndex < static_cast<int>(vThreadFPSValues.size()))
+                if (nThreadFPSIndex < static_cast<uint32_t>(vThreadFPSValues.size()))
                 {
                     // First push back the thread enum identifier cast to an int.
-                    stPacket.vData.push_back(nThreadFPSIndex);
+                    stPacket.vData.push_back(nThreadFPSIndex + 1);
                     // Add the current FPS value to the packet data.
                     stPacket.vData.push_back(static_cast<float>(vThreadFPSValues[nThreadFPSIndex]));
                     // Increment the index for the next iteration.
