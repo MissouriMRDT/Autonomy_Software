@@ -290,12 +290,11 @@ void ObjectDetector::ThreadedContinuousCode()
         m_vNewlyDetectedObjects.clear();
         // Copy the camera frame to the pre-processing frame and overlay frame.
         m_cvTorchOverlayFrame = m_cvFrame.clone();
+        m_cvTorchProcFrame    = m_cvFrame.clone();
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
         {
-            // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect objects in the image.
             std::vector<objectdetectutils::Object> vNewTorchObjects =
                 torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);

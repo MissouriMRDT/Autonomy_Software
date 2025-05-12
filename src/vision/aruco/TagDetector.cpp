@@ -327,6 +327,7 @@ void TagDetector::ThreadedContinuousCode()
         // arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
         // Copy the camera frame to the pre-processing frame.
         m_cvArucoProcFrame = m_cvFrame.clone();
+        m_cvTorchProcFrame = m_cvFrame.clone();
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
         // Add OpenCV tags to the list of newly detected tags.
@@ -335,8 +336,6 @@ void TagDetector::ThreadedContinuousCode()
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
         {
-            // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
                 torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
