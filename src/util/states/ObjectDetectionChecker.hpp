@@ -81,13 +81,15 @@ namespace statemachine
      *
      * @param vObjectDetectors - The vector of object detectors to use for detection.
      * @param stObjectTarget - The detected object marker from Torch.
+     * @param eDesiredDetectionType - The desired detection type to check for.
      * @return int - The total number of objects currently detected.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-05-09
      ******************************************************************************/
-
-    inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors, objectdetectutils::Object& stObjectTarget)
+    inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors,
+                                    objectdetectutils::Object& stObjectTarget,
+                                    const objectdetectutils::ObjectDetectionType eDesiredDetectionType = objectdetectutils::ObjectDetectionType::eUnknown)
     {
         // Create instance variables.
         std::vector<objectdetectutils::Object> vDetectedObjects;
@@ -116,7 +118,8 @@ namespace statemachine
             }
 
             //  Check the object detection method type.
-            if (stCandidate.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch)
+            if (stCandidate.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch &&
+                (stCandidate.eDetectionType == eDesiredDetectionType || stCandidate.eDetectionType == objectdetectutils::ObjectDetectionType::eUnknown))
             {
                 // Assemble the identified objects string.
                 szIdentifiedObjects += "\tObject Class: " + stCandidate.szClassName + " Object Age: " + std::to_string(dObjectTotalAge) +
