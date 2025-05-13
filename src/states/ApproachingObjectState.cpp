@@ -121,7 +121,7 @@ namespace statemachine
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
-        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, static_cast<objectdetectutils::ObjectDetectionType>(m_stGoalWaypoint.nID));
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
 
         // Check if object is unseen.
         static bool bAlreadyPrintedLost                            = false;

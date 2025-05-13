@@ -197,7 +197,19 @@ class WaypointHandler
             (void) stdAddr;
 
             // Create instance variables.
-            double dRadius = stPacket.vData[2];
+            geoops::WaypointType eWaypointType = geoops::WaypointType::eObjectWaypoint;
+            double dObjectID                   = stPacket.vData[2];
+            double dRadius                     = stPacket.vData[3];
+
+            // Parse the object ID from the RoveComm packet to a waypoint type.
+            if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYDETECTIONTYPES::MALLET))
+            {
+                eWaypointType = geoops::WaypointType::eMalletWaypoint;
+            }
+            else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYDETECTIONTYPES::WATERBOTTLE))
+            {
+                eWaypointType = geoops::WaypointType::eWaterBottleWaypoint;
+            }
 
             // Limit the radius to 0-40.
             if (dRadius < 0)
@@ -214,7 +226,7 @@ class WaypointHandler
             }
 
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint, dRadius);
+            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), eWaypointType, dRadius);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -225,9 +237,10 @@ class WaypointHandler
 
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
+                     "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, id: {}, radius: {}) to WaypointHandler queue.",
                      stPacket.vData[0],
                      stPacket.vData[1],
+                     dObjectID,
                      dRadius);
         };
 
