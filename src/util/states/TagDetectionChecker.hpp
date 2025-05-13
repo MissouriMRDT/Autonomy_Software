@@ -91,7 +91,7 @@ namespace statemachine
     inline int IdentifyTargetMarker(const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors,
                                     tagdetectutils::ArucoTag& stArucoTarget,
                                     tagdetectutils::ArucoTag& stTorchTarget,
-                                    const int nTargetTagID = -1)
+                                    const int nTargetTagID = static_cast<int>(manifest::Autonomy::AUTONOMYDETECTIONTYPES::ANY))
     {
         // Create instance variables.
         std::vector<tagdetectutils::ArucoTag> vDetectedArucoTags;
@@ -127,7 +127,7 @@ namespace statemachine
                 szIdentifiedTags += "\tArUco ID: " + std::to_string(stCandidate.nID) + " Tag Age: " + std::to_string(dTagTotalAge) +
                                     "s Tag Screen Percentage: " + std::to_string(dAreaPercentage) + "%\n";
                 // Check if the tag is best.
-                if (stCandidate.nID == nTargetTagID || nTargetTagID == -1)
+                if (stCandidate.nID == nTargetTagID || static_cast<int>(manifest::Autonomy::AUTONOMYDETECTIONTYPES::ANY))
                 {
                     // Check if the tag meets the requirements.
                     if (dAreaPercentage < constants::BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::BBOX_MIN_LIFETIME_THRESHOLD)
