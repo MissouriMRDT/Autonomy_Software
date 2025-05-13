@@ -322,9 +322,6 @@ void TagDetector::ThreadedContinuousCode()
 
         // Clear the list of newly detected tags.
         m_vNewlyDetectedTags.clear();
-        // Run image through some pre-processing step to improve detection.
-        // NOTE: I disabled this since it was just converting to grayscale and isn't strictly necessary. - Clayton
-        // arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
         // Copy the camera frame to the pre-processing frame.
         m_cvArucoProcFrame = m_cvFrame.clone();
         // Detect tags in the image
@@ -335,11 +332,9 @@ void TagDetector::ThreadedContinuousCode()
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
         {
-            // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
-                torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+                torchtag::Detect(m_cvArucoProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
             // Add Torch tags to the list of newly detected tags.
             m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }

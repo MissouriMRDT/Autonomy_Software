@@ -182,6 +182,16 @@ namespace statemachine
                 eNextState = States::eIdle;
                 break;
             }
+            case Event::eVerifyingFailed:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Failed event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Recall the previous state.
+                eNextState = globals::g_pStateMachineHandler->GetPreviousState();
+                break;
+            }
             case Event::eAbort:
             {
                 // Submit logger message.
