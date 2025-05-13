@@ -57,7 +57,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "red");
+        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
@@ -193,7 +193,7 @@ namespace statemachine
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
 
                 // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
                 {
                     // Add the tag to the path plot.
                     m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
@@ -217,7 +217,8 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        if (constants::SEARCH_ENABLE_STUCK_DETECT &&
+            m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");

@@ -248,7 +248,8 @@ namespace statemachine
         //////////////////////////////////////////
 
         // Check if stuck.
-        if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        if (constants::APPROACH_OBJECT_ENABLE_STUCK_DETECT &&
+            m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: Rover has become stuck!");
