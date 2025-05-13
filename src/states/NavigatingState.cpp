@@ -277,7 +277,7 @@ namespace statemachine
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.
-            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject);
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, static_cast<objectdetectutils::ObjectDetectionType>(m_stGoalWaypoint.nID));
             // Check if either tag type is seen.
             if (stBestTorchObject.dConfidence != 0.0)
             {
@@ -285,7 +285,7 @@ namespace statemachine
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
 
                 // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
                 {
                     // Add the tag to the path plot.
                     m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");

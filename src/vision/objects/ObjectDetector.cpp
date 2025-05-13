@@ -761,8 +761,19 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 // Geolocate the object in the point cloud.
                 stObject.stGeolocatedPosition =
                     geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
+
                 // Since this is a object detection, set the object's waypoint type appropriately.
                 stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;
+                // Depending on the class name of the model, set the object type.
+                if (stObject.szClassName == "mallet")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eMallet;
+                }
+                else if (stObject.szClassName == "bottles")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eWaterBottle;
+                }
+
                 // Calculate the geo measurement and print the distance to the object.
                 geoops::GeoMeasurement stMeasurement =
                     geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
