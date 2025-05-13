@@ -99,8 +99,8 @@ namespace objectdetectutils
             {
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
-                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV &&
-                       stGeolocatedPosition == stOther.stGeolocatedPosition;
+                       eDetectionMethod == stOther.eDetectionMethod && eDetectionType == stOther.eDetectionType && cvImageResolution == stOther.cvImageResolution &&
+                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition;
             }
 
             /******************************************************************************
@@ -139,6 +139,7 @@ namespace objectdetectutils
                     szClassName           = stOther.szClassName;
                     tmCreation            = stOther.tmCreation;
                     eDetectionMethod      = stOther.eDetectionMethod;
+                    eDetectionType        = stOther.eDetectionType;
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;

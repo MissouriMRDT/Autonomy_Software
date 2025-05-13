@@ -645,6 +645,7 @@ videotoolbox
 VIDEOWRITER
 VIOGPS
 Watchpoints
+WATERBOTTLE
 Webots
 WEBRTC
 Wextra

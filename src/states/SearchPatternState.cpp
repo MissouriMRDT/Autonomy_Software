@@ -185,7 +185,7 @@ namespace statemachine
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.
-            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, static_cast<objectdetectutils::ObjectDetectionType>(m_stSearchPatternCenter.nID));
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, m_stSearchPatternCenter.eType);
             // Check if either tag type is seen.
             if (stBestTorchObject.dConfidence != 0.0)
             {

@@ -89,7 +89,7 @@ namespace statemachine
      ******************************************************************************/
     inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors,
                                     objectdetectutils::Object& stObjectTarget,
-                                    const objectdetectutils::ObjectDetectionType eDesiredDetectionType = objectdetectutils::ObjectDetectionType::eUnknown)
+                                    const geoops::WaypointType& eDesiredDetectionType = geoops::WaypointType::eUNKNOWN)
     {
         // Create instance variables.
         std::vector<objectdetectutils::Object> vDetectedObjects;
@@ -117,9 +117,33 @@ namespace statemachine
                 continue;
             }
 
+            // Determine the desired detection type.
+            switch (eDesiredDetectionType)
+            {
+                case geoops::WaypointType::eMalletWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eMallet)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                case geoops::WaypointType::eWaterBottleWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+
             //  Check the object detection method type.
-            if (stCandidate.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch &&
-                (stCandidate.eDetectionType == eDesiredDetectionType || stCandidate.eDetectionType == objectdetectutils::ObjectDetectionType::eUnknown))
+            if (stCandidate.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch)
             {
                 // Assemble the identified objects string.
                 szIdentifiedObjects += "\tObject Class: " + stCandidate.szClassName + " Object Age: " + std::to_string(dObjectTotalAge) +
