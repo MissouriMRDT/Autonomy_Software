@@ -289,8 +289,7 @@ void ObjectDetector::ThreadedContinuousCode()
         // Clear the list of newly detected objects.
         m_vNewlyDetectedObjects.clear();
         // Copy the camera frame to the pre-processing frame and overlay frame.
-        m_cvTorchOverlayFrame = m_cvFrame.clone();
-        m_cvTorchProcFrame    = m_cvFrame.clone();
+        m_cvTorchProcFrame = m_cvFrame.clone();
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
@@ -313,7 +312,7 @@ void ObjectDetector::ThreadedContinuousCode()
         this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
 
         // Draw object overlays onto normal image.
-        torchobject::DrawDetections(m_cvTorchOverlayFrame, m_vDetectedObjects);
+        torchobject::DrawDetections(m_cvTorchProcFrame, m_vDetectedObjects);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
