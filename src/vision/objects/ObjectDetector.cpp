@@ -313,6 +313,9 @@ void ObjectDetector::ThreadedContinuousCode()
 
         // Draw object overlays onto normal image.
         torchobject::DrawDetections(m_cvTorchProcFrame, m_vDetectedObjects);
+
+        cv::imshow("Object Detector", m_cvTorchProcFrame);
+        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
