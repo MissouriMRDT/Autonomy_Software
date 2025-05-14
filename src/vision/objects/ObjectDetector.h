@@ -117,6 +117,7 @@ class ObjectDetector : public AutonomyThread<void>
 
         cv::Mat m_cvFrame;
         cv::cuda::GpuMat m_cvGPUFrame;
+        cv::Mat m_cvTorchOverlayFrame;
         cv::Mat m_cvTorchProcFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;

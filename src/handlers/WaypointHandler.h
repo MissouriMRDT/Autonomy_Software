@@ -202,11 +202,11 @@ class WaypointHandler
             double dRadius                     = stPacket.vData[3];
 
             // Parse the object ID from the RoveComm packet to a waypoint type.
-            if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYDETECTIONTYPES::MALLET))
+            if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::MALLET))
             {
                 eWaypointType = geoops::WaypointType::eMalletWaypoint;
             }
-            else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYDETECTIONTYPES::WATERBOTTLE))
+            else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::WATERBOTTLE))
             {
                 eWaypointType = geoops::WaypointType::eWaterBottleWaypoint;
             }
