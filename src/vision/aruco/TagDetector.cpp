@@ -352,6 +352,9 @@ void TagDetector::ThreadedContinuousCode()
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+
+        cv::imshow("Tag Detector", m_cvArucoProcFrame);
+        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
