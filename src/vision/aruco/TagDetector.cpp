@@ -254,8 +254,18 @@ void TagDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+
+                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
+                    if (constants::MODE_SIM)
+                    {
+                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
+                    }
+                    else
+                    {
+                        // Drop the Alpha channel from the image copy to preproc frame.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    }
                 }
                 else
                 {
@@ -282,8 +292,17 @@ void TagDetector::ThreadedContinuousCode()
                 }
                 else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
                 {
-                    // Drop the Alpha channel from the image. This is necessary for the Aruco detection.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
+                    if (constants::MODE_SIM)
+                    {
+                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
+                    }
+                    else
+                    {
+                        // Drop the Alpha channel from the image copy to preproc frame.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    }
                 }
             }
         }
@@ -303,8 +322,17 @@ void TagDetector::ThreadedContinuousCode()
                 // Check if the camera image is a >3 channel image.
                 if (m_cvFrame.channels() > 3)
                 {
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
+                    if (constants::MODE_SIM)
+                    {
+                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
+                    }
+                    else
+                    {
+                        // Drop the Alpha channel from the image copy to preproc frame.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    }
                 }
             }
         }
@@ -352,9 +380,6 @@ void TagDetector::ThreadedContinuousCode()
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
-
-        cv::imshow("Tag Detector", m_cvArucoProcFrame);
-        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
