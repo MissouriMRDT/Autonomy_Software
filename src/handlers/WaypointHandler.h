@@ -210,6 +210,10 @@ class WaypointHandler
             {
                 eWaypointType = geoops::WaypointType::eWaterBottleWaypoint;
             }
+            else
+            {
+                eWaypointType = geoops::WaypointType::eObjectWaypoint;
+            }
 
             // Limit the radius to 0-40.
             if (dRadius < 0)
