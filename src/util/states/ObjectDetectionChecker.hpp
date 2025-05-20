@@ -136,6 +136,15 @@ namespace statemachine
                     }
                     break;
                 }
+                case geoops::WaypointType::eObjectWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eMallet &&
+                        stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle)
+                    {
+                        continue;
+                    }
+                    break;
+                }
                 default:
                 {
                     break;
