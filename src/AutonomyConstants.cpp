@@ -228,12 +228,12 @@ namespace constants
 
     // Main ZED Camera.
     const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track tags.
-    const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the tag detector.
-    const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection on top of ArUco.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
+    const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
     const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
         "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.4f;                                  // The minimum confidence to consider a viable AR tag detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable object detection.
     const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
@@ -270,13 +270,13 @@ namespace constants
     const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
 
     // Approaching Object State
-    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_OBJECT_VERIFY_POSITION       = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
-    const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;      // The time in seconds to watch the tag before moving on.
-    const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;      // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
-    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
+    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
+    const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
+    const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
+    const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;     // The time in seconds to watch the object before moving on.
+    const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;    // The time in seconds to wait before considering the object lost. This is used to prevent false negatives.
+    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when approaching an object.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
