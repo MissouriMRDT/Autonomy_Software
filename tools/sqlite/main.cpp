@@ -58,7 +58,8 @@ int CreateTables()
 
     const std::string rawPointsTable       = R"(
         CREATE TABLE IF NOT EXISTS RawPoints (
-            Id TEXT PRIMARY KEY,
+            id_sz TEXT PRIMARY KEY,
+            id_key INTEGER NOT NULL UNIQUE,
             Easting REAL NOT NULL,
             Northing REAL NOT NULL,
             Altitude REAL NOT NULL,
@@ -77,16 +78,20 @@ int CreateTables()
 
     const std::string groundPointsTable    = R"(
         CREATE TABLE IF NOT EXISTS GroundPoints (
-            PointId TEXT PRIMARY KEY,
+            id_sz TEXT PRIMARY KEY,
+            id_key INTEGER NOT NULL UNIQUE,
             Roughness REAL,
-            FOREIGN KEY (PointId) REFERENCES RawPoints(Id)
+            FOREIGN KEY (id_sz) REFERENCES RawPoints(id_sz),
+            FOREIGN KEY (id_key) REFERENCES RawPoints(id_key)
         );
     )";
 
     const std::string nonGroundPointsTable = R"(
         CREATE TABLE IF NOT EXISTS NonGroundPoints (
-            PointId TEXT PRIMARY KEY,
-            FOREIGN KEY (PointId) REFERENCES RawPoints(Id)
+            id_sz TEXT PRIMARY KEY,
+            id_key INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY (id_sz) REFERENCES RawPoints(id_sz),
+            FOREIGN KEY (id_key) REFERENCES RawPoints(id_key)
         );
     )";
 
@@ -321,23 +326,23 @@ int main()
     if (CreateTables() != 0)
         return -1;
 
-    std::cout << "\nSTATE OF RawPoints BEFORE INSERT" << std::endl;
-    PrintRawPoints();
+    // std::cout << "\nSTATE OF RawPoints BEFORE INSERT" << std::endl;
+    // PrintRawPoints();
 
-    std::cout << "\nInserting RawPoints..." << std::endl;
-    InsertRawPoints();
+    // std::cout << "\nInserting RawPoints..." << std::endl;
+    // InsertRawPoints();
 
-    std::cout << "\nSTATE OF RawPoints AFTER INSERT" << std::endl;
-    PrintRawPoints();
+    // std::cout << "\nSTATE OF RawPoints AFTER INSERT" << std::endl;
+    // PrintRawPoints();
 
-    std::cout << "\nDeleting point '500001_4100001'..." << std::endl;
-    DeleteRawPointById("500001_4100001");
+    // std::cout << "\nDeleting point '500001_4100001'..." << std::endl;
+    // DeleteRawPointById("500001_4100001");
 
-    std::cout << "\nSTATE OF RawPoints AFTER DELETE" << std::endl;
-    PrintRawPoints();
+    // std::cout << "\nSTATE OF RawPoints AFTER DELETE" << std::endl;
+    // PrintRawPoints();
 
-    std::cout << "\nQuerying GroundPoints Table..." << std::endl;
-    SelectFromTable("GroundPoints");
+    // std::cout << "\nQuerying GroundPoints Table..." << std::endl;
+    // SelectFromTable("GroundPoints");
 
     std::cout << "\nDatabase and operations completed successfully." << std::endl;
     return 0;
