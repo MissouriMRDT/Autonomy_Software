@@ -57,7 +57,9 @@ class LiDARHandler
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-05-20
          ******************************************************************************/
-        LiDARHandler() = default;
+        LiDARHandler()                                      = default;
+        LiDARHandler(const LiDARHandler& pOther)            = delete;
+        LiDARHandler& operator=(const LiDARHandler& pOther) = delete;
         ~LiDARHandler();
 
         ////////////////////////////////////
