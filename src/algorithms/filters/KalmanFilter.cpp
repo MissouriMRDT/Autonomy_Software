@@ -4,67 +4,120 @@
 
 namespace filters
 {
+    /******************************************************************************
+     * @brief Linear interpolate between two state snapshots. This function does not clamp.
+     *
+     * @param dRatio - A value 0.0 to 1.0
+     * @param stBefore - Lower bound.
+     * @param stAfter - Upper bound.
+     * @return KalmanFilter::XStateSnapshot - A mix between the two states.
+     *
+     * @author Adam
+     * @date 2025-05-20
+     ******************************************************************************/
     KalmanFilter::XStateSnapshot KalmanFilter::InterpolateXState(double dRatio, const KalmanFilter::XStateSnapshot& stBefore, const KalmanFilter::XStateSnapshot& stAfter)
     {
         dRatio = std::clamp(dRatio, 0.0, 1.0);
-        return KalmanFilter::XStateSnapshot{.eiPosition  = (1 - dRatio) * stBefore.eiPosition + dRatio * stAfter.eiPosition,
-                                            .eiVelocity  = (1 - dRatio) * stBefore.eiVelocity + dRatio * stAfter.eiVelocity,
-                                            .eiRotation  = (1 - dRatio) * stBefore.eiRotation + dRatio * stAfter.eiRotation,
-                                            .tmTimestamp = stBefore.tmTimestamp +
-                                                           std::chrono::duration_cast<std::chrono::nanoseconds>(dRatio * (stAfter.tmTimestamp - stBefore.tmTimestamp))};
+        XStateSnapshot stInterpolated;
+        stInterpolated.eiPosition  = (1 - dRatio) * stBefore.eiPosition + dRatio * stAfter.eiPosition,
+        stInterpolated.eiVelocity  = (1 - dRatio) * stBefore.eiVelocity + dRatio * stAfter.eiVelocity,
+        stInterpolated.eiRotation  = (1 - dRatio) * stBefore.eiRotation + dRatio * stAfter.eiRotation,
+        stInterpolated.tmTimestamp = stBefore.tmTimestamp + std::chrono::duration_cast<std::chrono::nanoseconds>(dRatio * (stAfter.tmTimestamp - stBefore.tmTimestamp));
+        return stInterpolated;
     }
 
-    KalmanFilter::XStateSnapshot KalmanFilter::GetCurrentState()
+    /******************************************************************************
+     * @brief Set the initial guess for the Kalman Filter. The filter cannot make predictions
+     * about future state until a UTM coordinate has been provided to serve as the origin.
+     *
+     * @param stOrigin - The UTM coordinate to use as the origin.
+     *
+     * @author Adam
+     * @date 2025-05-21
+     ******************************************************************************/
+    void KalmanFilter::SetInitialGuess(const geoops::UTMCoordinate& stOrigin)
     {
-        // If there's no value, just return some default initialized value like NavigationBoard does
-        if (m_liXStateHistory.empty())
+        m_stInitialGuess   = stOrigin;
+        m_bHasInitialGuess = true;
+    }
+
+    const geoops::UTMCoordinate& KalmanFilter::GetInitialGuess() const
+    {
+        if (!m_bHasInitialGuess)
         {
+            LOG_WARNING(logging::g_qSharedLogger, "KalmanFilter is has not yet been given an initial guess.");
+        }
+        // Initial guess defaults to geoops::UTMCoordinate()
+        return m_stInitialGuess;
+    }
+
+    KalmanFilter::XStateSnapshot KalmanFilter::GetCurrentState() const
+    {
+        // If there's no value, just return some default initialized value like NavigationBoard does.
+        if (!m_bHasInitialGuess)
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "KalmanFilter is has not yet been given an initial guess.");
             return XStateSnapshot();
         }
 
         return m_liXStateHistory.back();
     }
 
-    KalmanFilter::XStateSnapshot KalmanFilter::GetInterpolatedHistory(time_point_t tmTimestamp)
+    /******************************************************************************
+     * @brief Look up a past state estimate at the given time, interpolated between estimates at the
+     * nearest recorded times.
+     *
+     * @param tmTimestamp - The time at which the estimate was made.
+     * @return KalmanFilter::XStateSnapshot - An estimate interpolated between recorded values.
+     * If tmTimestamp is after the most recent estimate, the most recent estimate is returned.
+     * If tmTimestamp is before the oldest estimate, the oldest estimate is returned.
+     *
+     * @author Adam
+     * @date 2025-05-21
+     ******************************************************************************/
+    KalmanFilter::XStateSnapshot KalmanFilter::GetInterpolatedHistory(time_point_t tmTimestamp) const
     {
-        // If there's no value, just return some default initialized value like NavigationBoard does
-        if (m_liXStateHistory.empty())
+        // If there's no value, just return some default initialized value like NavigationBoard does.
+        if (!m_bHasInitialGuess)
         {
+            LOG_WARNING(logging::g_qSharedLogger, "KalmanFilter is has not yet been given an initial guess.");
             return XStateSnapshot();
         }
 
-        // If given timestamp is after the most recent time, just return the most recent state
-        // Possibly interpolate this one forwards in the future
+        // If given timestamp is after the most recent time, just return the most recent state.
+        // TODO: Possibly interpolate this one forwards in the future
         if (tmTimestamp >= m_liXStateHistory.back().tmTimestamp)
         {
             return m_liXStateHistory.back();
         }
-        // Otherwise, it is guaranteed that there is at least one state after the given timestamp
+        // Otherwise, it is guaranteed that there is at least one state after the given timestamp.
 
-        // Find the first state before the given timestamp
+        // Find the first state before the given timestamp.
         time_point_t tmFirstBefore, tmFirstAfter;
         auto stdBegin = m_liXStateHistory.rbegin();
         auto stdEnd   = m_liXStateHistory.rend();
-        // Search from end
+        // Search from end (newest estimates are at end).
         auto stdBefore = std::find(stdBegin, stdEnd, [&tmTimestamp](const XStateSnapshot& stdEntry) { return stdEntry.tmTimestamp < tmTimestamp; });
-        // There is a state before the given timestamp
+        // There is a state before the given timestamp:
         if (stdBefore != stdEnd)
         {
-            // It is guaranteed that there is at least one state after the given timestamp
+            // It is guaranteed that there is at least one state after the given timestamp.
             auto stdAfter = stdBefore - 1;
             //
             std::chrono::duration<double> tmDtCurrent = tmTimestamp - stdBefore->tmTimestamp;
             std::chrono::duration<double> tmDtTotal   = stdAfter->tmTimestamp - stdBefore->tmTimestamp;
-            //
+            // Interpolate between stBefore and stAfter by dRatio.
             double dRatio = tmDtCurrent / tmDtTotal;
-            // Clamp just to be safe
+            // Clamp just to be safe.
             dRatio = std::clamp(dRatio, 0.0, 1.0);
-            return KalmanFilter::XStateSnapshot{.eiPosition  = (1 - dRatio) * stdBefore->eiPosition + dRatio * stdAfter->eiPosition,
-                                                .eiVelocity  = (1 - dRatio) * stdBefore->eiVelocity + dRatio * stdAfter->eiVelocity,
-                                                .eiRotation  = (1 - dRatio) * stdBefore->eiRotation + dRatio * stdAfter->eiRotation,
-                                                .tmTimestamp = tmTimestamp};
+            XStateSnapshot stInterpolated;
+            stInterpolated.eiPosition  = (1 - dRatio) * stdBefore->eiPosition + dRatio * stdAfter->eiPosition;
+            stInterpolated.eiVelocity  = (1 - dRatio) * stdBefore->eiVelocity + dRatio * stdAfter->eiVelocity;
+            stInterpolated.eiRotation  = (1 - dRatio) * stdBefore->eiRotation + dRatio * stdAfter->eiRotation;
+            stInterpolated.tmTimestamp = tmTimestamp;
+            return stInterpolated;
         }
-        // There is no state before the given time stamp, so just return the oldest state
+        // There is no state before the given time stamp, so just return the oldest state:
         else
         {
             return m_liXStateHistory.front();
@@ -92,7 +145,7 @@ namespace filters
 
     // Direct measurement of the state space
     // See https://en.wikipedia.org/wiki/Kalman_filter#Update
-    void KalmanFilter::UpdateDiffGPS(Eigen::Vector3d eiDiffGPSOutputNEDFrame, time_point_t tmTimestamp) {}
+    void KalmanFilter::UpdateGPS(Eigen::Vector3d eiGPSOutputNEDFrame, time_point_t tmTimestamp) {}
 
     void KalmanFilter::UpdateHeading(Eigen::Vector3d eiAccOutput, time_point_t tmTimestamp) {}
 
@@ -100,15 +153,15 @@ namespace filters
 
     void KalmanFilter::SetGyroscopeCovariance(Eigen::Matrix3d eiNewCovariance) {}
 
-    void KalmanFilter::SetDiffGPSCovariance(Eigen::Matrix3d eiNewCovariance) {}
+    void KalmanFilter::SetGPSCovariance(Eigen::Matrix3d eiNewCovariance) {}
 
     void KalmanFilter::SetHeadingCovariance(Eigen::Matrix3d eiNewCovariance) {}
 
-    // Returns the covariance of process noise from noisy accelerometer input
+    // Returns the covariance of process noise from noisy accelerometer input.
     Eigen::Matrix3d KalmanFilter::GetQAccelerometer(double dDt)
     {
         // For an error in acceleration, velocity will vary by 1t and position will vary by (1/2)t^2
-        // Rotation is not affected by these variations
+        // Rotation is not affected by these variations.
         Eigen::Matrix3d eiG{
             {0.5 * dDt * dDt, 0.5 * dDt * dDt, 0.5 * dDt * dDt},    // Position
             {dDt, dDt, dDt},                                        // Velocity
@@ -118,7 +171,7 @@ namespace filters
         return eiQ;
     }
 
-    // Returns the covariance of process noise from noisy gyroscope input
+    // Returns the covariance of process noise from noisy gyroscope input.
     Eigen::Matrix3d KalmanFilter::GetQGyroscope(double dDt)
     {
         Eigen::Matrix3d eiG{{0, 0, 0}, {0, 0, 0}, {dDt, dDt, dDt}};

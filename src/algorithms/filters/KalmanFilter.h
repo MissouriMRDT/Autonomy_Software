@@ -14,60 +14,66 @@ namespace filters
 {
     /******************************************************************************
      * @brief Kalman Filter for combining positional, velocital, and rotational data sources.
+     * The Kalman Filter fuses the ZED's accelerometer data with position/heading measurements
+     * from differential GPS to produce a combined estimated state that is more resilient to error.
      *
      *
-     * @author Dr. Gant, translated by Adam
+     * @author Dr. Gant, translated by Adam, written on Sam's computer
      * @date 2025-04-01
      ******************************************************************************/
     class KalmanFilter
     {
         public:
+            /******************************************************************************
+             * @brief A snapshot of the position, velocity, and rotation of the rover at the given time.
+             *
+             *
+             * @author Adam
+             * @date 2025-05-20
+             ******************************************************************************/
             struct XStateSnapshot
             {
-                    Eigen::Vector3d eiPosition;
-                    Eigen::Vector3d eiVelocity;
-                    Eigen::Vector3d eiRotation;
-                    // Eigen::Matrix3d eiXStateMatrix;    // [...p; ...v; ...r]
-                    time_point_t tmTimestamp;
+                    Eigen::Vector3d eiPosition;    // X, Y, Z
+                    Eigen::Vector3d eiVelocity;    // Vx, Vy, Vz
+                    Eigen::Vector3d eiRotation;    // Rx, Ry, Rz
+                    time_point_t tmTimestamp;      // The time at which this data state was recorded.
+                                                   // Eigen::Matrix3d eiXStateMatrix;    // [...p; ...v; ...r]
             };
 
-            XStateSnapshot GetCurrentState();
-            XStateSnapshot GetInterpolatedHistory(time_point_t tmTimestamp);
+            void SetInitialGuess(const geoops::UTMCoordinate& stOrigin);
+            const geoops::UTMCoordinate& GetInitialGuess() const;
+
+            XStateSnapshot GetCurrentState() const;
+            XStateSnapshot GetInterpolatedHistory(time_point_t tmTimestamp) const;
 
             void PredictAccelerometer(Eigen::Vector3d eiAccelerometerOutput, time_point_t tmTimestamp);
             void PredictGyroscope(Eigen::Vector3d eiGyroscopeOutput, time_point_t tmTimestamp);
 
             // TODO: Magnetometer for redundancy?
 
-            void UpdateDiffGPS(Eigen::Vector3d eiDiffGPSOutputNEDFrame, time_point_t tmTimestamp);
+            void IngestGPSData(const geoops::UTMCoordinate& stMeasurement);
+            void UpdateGPS(Eigen::Vector3d eiGPSOutputNEDFrame, time_point_t tmTimestamp);
             void UpdateHeading(Eigen::Vector3d dHeading, time_point_t tmTimestamp);
 
             void SetAccelerometerCovariance(Eigen::Matrix3d eiNewCovariance);
             void SetGyroscopeCovariance(Eigen::Matrix3d eiNewCovariance);
-            void SetDiffGPSCovariance(Eigen::Matrix3d eiNewCovariance);
+            void SetGPSCovariance(Eigen::Matrix3d eiNewCovariance);
             void SetHeadingCovariance(Eigen::Matrix3d eiNewCovariance);
 
         private:
-            // History for the last 10 seconds or so idk
-            std::list<XStateSnapshot> m_liXStateHistory;
-            // P - Current filter covariance matrix (9x9)
-            Eigen::Matrix<double, 9, 9> m_eiPCovariance;
-            // Time of last accelerometer update
-            time_point_t m_tmLastAccelerometerUpdate;
-            // Accelerometer covariance matrix (3x3)
-            Eigen::Matrix3d m_eiAccelerometerCovariance;
-            // Time of last gyro update
-            time_point_t m_tmLastGyroscopeUpdate;
-            // Gyroscope covariance matrix (3x3)
-            Eigen::Matrix3d m_eiGyroscopeCovariance;
-            // Time of last diff GPS update
-            time_point_t m_tmLastDiffGPSUpdate;
-            // Diff GPS covariance matrix (3x3)
-            Eigen::Matrix3d m_eiDiffGPSCovariance;
-            // Time of last heading update
-            time_point_t m_tmLastHeadingUpdate;
-            // Heading covariance matrix (3x3)
-            Eigen::Matrix3d m_eiHeadingCovariance;
+            bool m_bHasInitialGuess = false;                                      // Whether an initial state has been provided and the Kalman Filter thus initialized.
+            geoops::UTMCoordinate m_stInitialGuess;                               // The absolute coordinate to serve as the origin.
+            std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
+            std::list<XStateSnapshot> m_liXStateHistory;    // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
+            Eigen::Matrix<double, 9, 9> m_eiPCovariance;    // P - Current filter covariance matrix. (9x9)
+            time_point_t m_tmLastAccelerometerUpdate;       // Time of last accelerometer update.
+            Eigen::Matrix3d m_eiAccelerometerCovariance;    // Accelerometer covariance matrix. (3x3)
+            time_point_t m_tmLastGyroscopeUpdate;           // Time of last gyro update.
+            Eigen::Matrix3d m_eiGyroscopeCovariance;        // Gyroscope covariance matrix. (3x3)
+            time_point_t m_tmLastGPSUpdate;                 // Time of last diff GPS update.
+            Eigen::Matrix3d m_eiGPSCovariance;              // Diff GPS covariance matrix. (3x3)
+            time_point_t m_tmLastHeadingUpdate;             // Time of last heading update.
+            Eigen::Matrix3d m_eiHeadingCovariance;          // Heading covariance matrix. (3x3)
 
             // TODO: Add write mutexes for all of these
 
