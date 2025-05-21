@@ -254,18 +254,6 @@ void TagDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
-
-                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
-                    if (constants::MODE_SIM)
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
-                    }
-                    else
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                    }
                 }
                 else
                 {
@@ -290,20 +278,6 @@ void TagDetector::ThreadedContinuousCode()
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
                 }
-                else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
-                {
-                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
-                    if (constants::MODE_SIM)
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
-                    }
-                    else
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                    }
-                }
             }
         }
         else
@@ -316,24 +290,6 @@ void TagDetector::ThreadedContinuousCode()
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
-            }
-            else
-            {
-                // Check if the camera image is a >3 channel image.
-                if (m_cvFrame.channels() > 3)
-                {
-                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
-                    if (constants::MODE_SIM)
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
-                    }
-                    else
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                    }
-                }
             }
         }
 
@@ -350,8 +306,10 @@ void TagDetector::ThreadedContinuousCode()
 
         // Clear the list of newly detected tags.
         m_vNewlyDetectedTags.clear();
-        // Copy the camera frame to the pre-processing frame.
+        // Clone frames.
         m_cvArucoProcFrame = m_cvFrame.clone();
+        // Copy the camera frame to the pre-processing frame.
+        cv::cvtColor(m_cvArucoProcFrame, m_cvArucoProcFrame, cv::COLOR_BGRA2BGR);
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
         // Add OpenCV tags to the list of newly detected tags.

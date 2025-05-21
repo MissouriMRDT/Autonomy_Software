@@ -196,35 +196,35 @@ namespace statemachine
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is marker.
                 case geoops::WaypointType::eTagWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eObjectWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eMalletWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eWaterBottleWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 default: break;
             }
