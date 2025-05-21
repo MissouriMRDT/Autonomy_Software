@@ -48,6 +48,10 @@ jobs:
           git reset --hard ${{ github.event.pull_request.head.sha }}
           git checkout ${{ github.event.pull_request.head.sha }}
           # git pull --ff-only
+
+          git config --file .gitmodules submodule.data/LiDAR.url https://x-access-token:${{ secrets.USGS_ACCESS_TOKEN }}@github.com/MissouriMRDT/USGS_Data.git
+          git submodule sync --recursive
+
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
         env:
