@@ -48,6 +48,20 @@ namespace objectdetectutils
     };
 
     /******************************************************************************
+     * @brief Enum class to define the different object detection types available.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-05-13
+     ******************************************************************************/
+    enum class ObjectDetectionType
+    {
+        eUnknown,       // Unknown detection type.
+        eMallet,        // Detection is a mallet.
+        eWaterBottle    // Detection is a water bottle.
+    };
+
+    /******************************************************************************
      * @brief Represents a single detected object. Combines attributes from TorchObject
      *        and TensorflowObject structs.
      *
@@ -66,6 +80,7 @@ namespace objectdetectutils
             std::string szClassName                          = "";     // The class name of the object (used in Torch/Tensorflow models).
             std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the minimum time point.
             ObjectDetectionMethod eDetectionMethod           = ObjectDetectionMethod::eUnknown;     // The detection method used to detect the object.
+            ObjectDetectionType eDetectionType               = ObjectDetectionType::eUnknown;       // The detection type used to detect the object.
             cv::Size cvImageResolution                       = cv::Size(0, 0);                      // The resolution of the image used to detect the object.
             double dHorizontalFOV                            = 0.0;                   // The horizontal field of view of the camera used to detect the object.
             geoops::Waypoint stGeolocatedPosition            = geoops::Waypoint();    // The geolocated position of the object.
@@ -84,8 +99,8 @@ namespace objectdetectutils
             {
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
-                       eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV &&
-                       stGeolocatedPosition == stOther.stGeolocatedPosition;
+                       eDetectionMethod == stOther.eDetectionMethod && eDetectionType == stOther.eDetectionType && cvImageResolution == stOther.cvImageResolution &&
+                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition;
             }
 
             /******************************************************************************
@@ -124,6 +139,7 @@ namespace objectdetectutils
                     szClassName           = stOther.szClassName;
                     tmCreation            = stOther.tmCreation;
                     eDetectionMethod      = stOther.eDetectionMethod;
+                    eDetectionType        = stOther.eDetectionType;
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;

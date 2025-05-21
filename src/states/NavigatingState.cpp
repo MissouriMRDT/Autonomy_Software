@@ -196,35 +196,35 @@ namespace statemachine
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is marker.
                 case geoops::WaypointType::eTagWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eObjectWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eMalletWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eWaterBottleWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 default: break;
             }
@@ -272,12 +272,14 @@ namespace statemachine
         ////////////////////////////
 
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
-        if (m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
+        if ((m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eMalletWaypoint ||
+             m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint) &&
+            stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.
-            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject);
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, m_stGoalWaypoint.eType);
             // Check if either tag type is seen.
             if (stBestTorchObject.dConfidence != 0.0)
             {
@@ -285,7 +287,7 @@ namespace statemachine
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
 
                 // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
                 {
                     // Add the tag to the path plot.
                     m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
