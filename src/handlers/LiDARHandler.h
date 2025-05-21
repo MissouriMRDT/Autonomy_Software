@@ -72,8 +72,8 @@ class LiDARHandler
         ////////////////////////////////////
         // Private Members
         ////////////////////////////////////
-        sqlite3* m_sqlDatabase       = nullptr;
-        sqlite3_stmt* m_sqlStatement = nullptr;
+        sqlite3* m_pSQLDatabase       = nullptr;
+        sqlite3_stmt* m_pSQLStatement = nullptr;
 
         ////////////////////////////////////
         // Private Methods

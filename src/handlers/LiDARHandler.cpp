@@ -46,9 +46,9 @@ LiDARHandler::~LiDARHandler()
 bool LiDARHandler::Initialize(const std::string& szDBPath)
 {
     // Attempt to open the SQLite database, if it fails, print the error message and return false
-    if (sqlite3_open(szDBPath.c_str(), &m_sqlDatabase) != SQLITE_OK)
+    if (sqlite3_open(szDBPath.c_str(), &m_pSQLDatabase) != SQLITE_OK)
     {
-        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to open database: {}", sqlite3_errmsg(m_sqlDatabase));
+        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to open database: {}", sqlite3_errmsg(m_pSQLDatabase));
         return false;
     }
 
@@ -88,9 +88,9 @@ bool LiDARHandler::PrepareNearbyStatement()
      )";
 
     // Prepare the SQL statement, if it fails, print the error message and return false
-    if (sqlite3_prepare_v2(m_sqlDatabase, szSQLStatement, -1, &m_sqlStatement, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(m_pSQLDatabase, szSQLStatement, -1, &m_pSQLStatement, nullptr) != SQLITE_OK)
     {
-        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to prepare SQL statement: {}", sqlite3_errmsg(m_sqlDatabase));
+        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to prepare SQL statement: {}", sqlite3_errmsg(m_pSQLDatabase));
         return false;
     }
 
@@ -126,42 +126,42 @@ bool LiDARHandler::PrepareNearbyStatement()
 std::vector<LiDARHandler::PointRow> LiDARHandler::GetNearbyPoints(double dEasting, double dNorthing, double dRadiusMeters)
 {
     // Create a vector to hold the results
-    std::vector<PointRow> results;
+    std::vector<PointRow> vResults;
 
     // Reset the prepared statement and clear any previous bindings
-    sqlite3_reset(m_sqlStatement);
-    sqlite3_clear_bindings(m_sqlStatement);
+    sqlite3_reset(m_pSQLStatement);
+    sqlite3_clear_bindings(m_pSQLStatement);
 
     // Bind the parameters to the SQL statement
-    sqlite3_bind_double(m_sqlStatement, 1, dEasting);
-    sqlite3_bind_double(m_sqlStatement, 2, dRadiusMeters);
-    sqlite3_bind_double(m_sqlStatement, 3, dEasting);
-    sqlite3_bind_double(m_sqlStatement, 4, dRadiusMeters);
-    sqlite3_bind_double(m_sqlStatement, 5, dNorthing);
-    sqlite3_bind_double(m_sqlStatement, 6, dRadiusMeters);
-    sqlite3_bind_double(m_sqlStatement, 7, dNorthing);
-    sqlite3_bind_double(m_sqlStatement, 8, dRadiusMeters);
+    sqlite3_bind_double(m_pSQLStatement, 1, dEasting);
+    sqlite3_bind_double(m_pSQLStatement, 2, dRadiusMeters);
+    sqlite3_bind_double(m_pSQLStatement, 3, dEasting);
+    sqlite3_bind_double(m_pSQLStatement, 4, dRadiusMeters);
+    sqlite3_bind_double(m_pSQLStatement, 5, dNorthing);
+    sqlite3_bind_double(m_pSQLStatement, 6, dRadiusMeters);
+    sqlite3_bind_double(m_pSQLStatement, 7, dNorthing);
+    sqlite3_bind_double(m_pSQLStatement, 8, dRadiusMeters);
 
     // Execute the SQL statement and iterate through the results
-    while (sqlite3_step(m_sqlStatement) == SQLITE_ROW)
+    while (sqlite3_step(m_pSQLStatement) == SQLITE_ROW)
     {
         // Create a new PointRow object
-        PointRow row;
+        PointRow stRow;
 
         // Populate the PointRow object with data from the current row
-        row.nId              = sqlite3_column_int(m_sqlStatement, 0);
-        row.dEasting         = sqlite3_column_double(m_sqlStatement, 1);
-        row.dNorthing        = sqlite3_column_double(m_sqlStatement, 2);
-        row.dAltitude        = sqlite3_column_double(m_sqlStatement, 3);
-        row.szZone           = reinterpret_cast<const char*>(sqlite3_column_text(m_sqlStatement, 4));
-        row.szClassification = reinterpret_cast<const char*>(sqlite3_column_text(m_sqlStatement, 5));
+        stRow.nId              = sqlite3_column_int(m_pSQLStatement, 0);
+        stRow.dEasting         = sqlite3_column_double(m_pSQLStatement, 1);
+        stRow.dNorthing        = sqlite3_column_double(m_pSQLStatement, 2);
+        stRow.dAltitude        = sqlite3_column_double(m_pSQLStatement, 3);
+        stRow.szZone           = reinterpret_cast<const char*>(sqlite3_column_text(m_pSQLStatement, 4));
+        stRow.szClassification = reinterpret_cast<const char*>(sqlite3_column_text(m_pSQLStatement, 5));
 
         // Add the populated PointRow object to the results vector
-        results.push_back(row);
+        vResults.push_back(stRow);
     }
 
     // Return the resulting vector of points
-    return results;
+    return vResults;
 }
 
 /******************************************************************************
@@ -183,16 +183,16 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetNearbyPoints(double dEastin
 void LiDARHandler::Finalize()
 {
     // Check if the statement is prepared and finalize it
-    if (m_sqlStatement)
+    if (m_pSQLStatement)
     {
-        sqlite3_finalize(m_sqlStatement);
-        m_sqlStatement = nullptr;
+        sqlite3_finalize(m_pSQLStatement);
+        m_pSQLStatement = nullptr;
     }
 
     // Check if the database is open and close it
-    if (m_sqlDatabase)
+    if (m_pSQLDatabase)
     {
-        sqlite3_close(m_sqlDatabase);
-        m_sqlDatabase = nullptr;
+        sqlite3_close(m_pSQLDatabase);
+        m_pSQLDatabase = nullptr;
     }
 }

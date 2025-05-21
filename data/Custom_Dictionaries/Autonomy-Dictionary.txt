@@ -261,8 +261,8 @@ gruntfuggly
 gtest
 gthr
 hajdukiewicz
-HFOV
 hemi
+HFOV
 HWDEVICE
 hyperthreaded
 IDLESTATE
@@ -313,6 +313,7 @@ jetpack
 Jetson
 Jfffff
 Jhhh
+jidicula
 jspencerpittman
 Jter
 jthread
