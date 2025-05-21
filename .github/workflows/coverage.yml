@@ -29,7 +29,6 @@ jobs:
         with:
           submodules: recursive
           ref: ${{ github.event.pull_request.head.sha }}
-          token: ${{ secrets.USGS_ACCESS_TOKEN }}
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -50,8 +49,6 @@ jobs:
           # git pull --ff-only
           git submodule update --force --recursive --init
           git config --global --add safe.directory /opt/Autonomy_Software/external
-        env:
-          GITHUB_TOKEN: ${{ secrets.USGS_ACCESS_TOKEN }}
 
       - name: Configure and Build
         run: |
