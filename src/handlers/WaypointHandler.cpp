@@ -855,6 +855,10 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool
                 }
             }
         }
+        else
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "Positional tracking is not enabled.");
+        }
     }
 
     // Submit a debug print for the current rover pose.

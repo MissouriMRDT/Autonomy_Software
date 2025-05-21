@@ -220,6 +220,8 @@ void ObjectDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
+                    // Drop alpha channel.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
                 }
                 else
                 {
@@ -276,8 +278,7 @@ void ObjectDetector::ThreadedContinuousCode()
         m_cvTorchOverlayFrame = m_cvFrame.clone();
         m_cvTorchProcFrame    = m_cvFrame.clone();
         // Copy the camera frame to the pre-processing frame and overlay frame.
-        cv::cvtColor(m_cvTorchOverlayFrame, m_cvTorchOverlayFrame, cv::COLOR_BGRA2BGR);
-        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
+        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
