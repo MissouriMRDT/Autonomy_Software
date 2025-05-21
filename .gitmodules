@@ -6,4 +6,4 @@
 	url = https://github.com/MissouriMRDT/RoveComm_CPP.git
 [submodule "data/LiDAR"]
 	path = data/LiDAR
-	url = git@github.com:MissouriMRDT/USGS_Data.git
+	url = https://github.com/MissouriMRDT/USGS_Data.git
