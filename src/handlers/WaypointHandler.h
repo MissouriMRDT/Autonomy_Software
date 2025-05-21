@@ -127,10 +127,10 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1]);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
+                       stPacket.vData[0],
+                       stPacket.vData[1]);
         };
 
         /******************************************************************************
@@ -175,12 +175,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1],
-                     nMarkerID,
-                     dRadius);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       nMarkerID,
+                       dRadius);
         };
 
         /******************************************************************************
@@ -240,12 +240,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, id: {}, radius: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1],
-                     dObjectID,
-                     dRadius);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, id: {}, radius: {}) to WaypointHandler queue.",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       dObjectID,
+                       dRadius);
         };
 
         /******************************************************************************
@@ -289,12 +289,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue. Total Obstacles: {}",
-                     stPacket.vData[0],
-                     stPacket.vData[1],
-                     dRadius,
-                     m_vPermanentObstacles.size());
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue. Total Obstacles: {}",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       dRadius,
+                       m_vPermanentObstacles.size());
         };
 
         /******************************************************************************
@@ -319,7 +319,7 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
         };
 
         /******************************************************************************
@@ -344,7 +344,7 @@ class WaypointHandler
             lkObstaclesLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Obstacles packet: Cleared permanent obstacles list.");
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Obstacles packet: Cleared permanent obstacles list.");
         };
 };
 

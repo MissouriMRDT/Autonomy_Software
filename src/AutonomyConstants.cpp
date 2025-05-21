@@ -78,12 +78,12 @@ namespace constants
     const float DRIVE_MIN_EFFORT = -0.5;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL      = 0.015;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL          = 0.002;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE        = 0.005;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_PROPORTIONAL      = 0.008;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL          = 0.001;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE        = 0.004;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_FEEDFORWARD       = 0.0;      // The feedforward for the controller used to predict control output.
     const double DRIVE_PID_MAX_ERROR         = 180.0;    // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.3;      // The max effort the I term is allowed to contribute. 0 = Disable.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.2;      // The max effort the I term is allowed to contribute. 0 = Disable.
     const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;     // The max ramp rate of the output of the PID controller. 0 = Disable.
     const double DRIVE_PID_OUTPUT_FILTER     = 0.1;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point. 0 = Disable.
     const double DRIVE_PID_TOLERANCE         = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint. 0 = Disable.

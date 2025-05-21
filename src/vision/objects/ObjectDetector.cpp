@@ -220,18 +220,6 @@ void ObjectDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
-
-                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
-                    if (constants::MODE_SIM)
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
-                    }
-                    else
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                    }
                 }
                 else
                 {
@@ -256,20 +244,6 @@ void ObjectDetector::ThreadedContinuousCode()
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
                 }
-                else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
-                {
-                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
-                    if (constants::MODE_SIM)
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
-                    }
-                    else
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                    }
-                }
             }
         }
         else
@@ -282,24 +256,6 @@ void ObjectDetector::ThreadedContinuousCode()
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
-            }
-            else
-            {
-                // Check if the camera image is a >3 channel image.
-                if (m_cvFrame.channels() > 3)
-                {
-                    // If SIM mode is not enabled, then we don't need to swap color channels. The ZED gives us RGB.
-                    if (constants::MODE_SIM)
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame and swap color channels.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_RGBA2BGR);
-                    }
-                    else
-                    {
-                        // Drop the Alpha channel from the image copy to preproc frame.
-                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                    }
-                }
             }
         }
 
@@ -316,9 +272,12 @@ void ObjectDetector::ThreadedContinuousCode()
 
         // Clear the list of newly detected objects.
         m_vNewlyDetectedObjects.clear();
-        // Copy the camera frame to the pre-processing frame and overlay frame.
+        // Clone frames.
         m_cvTorchOverlayFrame = m_cvFrame.clone();
-        cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
+        m_cvTorchProcFrame    = m_cvFrame.clone();
+        // Copy the camera frame to the pre-processing frame and overlay frame.
+        cv::cvtColor(m_cvTorchOverlayFrame, m_cvTorchOverlayFrame, cv::COLOR_BGRA2BGR);
+        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
