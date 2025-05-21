@@ -78,12 +78,12 @@ namespace constants
     const float DRIVE_MIN_EFFORT = -0.5;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL      = 0.015;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL          = 0.002;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE        = 0.005;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_PROPORTIONAL      = 0.008;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL          = 0.001;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE        = 0.004;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_FEEDFORWARD       = 0.0;      // The feedforward for the controller used to predict control output.
     const double DRIVE_PID_MAX_ERROR         = 180.0;    // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.3;      // The max effort the I term is allowed to contribute. 0 = Disable.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.2;      // The max effort the I term is allowed to contribute. 0 = Disable.
     const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;     // The max ramp rate of the output of the PID controller. 0 = Disable.
     const double DRIVE_PID_OUTPUT_FILTER     = 0.1;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point. 0 = Disable.
     const double DRIVE_PID_TOLERANCE         = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint. 0 = Disable.
@@ -219,7 +219,7 @@ namespace constants
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
     const std::string TAGDETECT_MAINCAM_TORCH_MODEL =
         "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";      // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE = 0.7f;                                  // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
@@ -228,13 +228,13 @@ namespace constants
 
     // Main ZED Camera.
     const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track tags.
-    const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the tag detector.
-    const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection on top of ArUco.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
+    const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
     const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
-        "../data/models/yolo_models/mallet/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                       // The minimum confidence to consider a viable AR tag detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                       // The threshold for non-max suppression filtering.
+        "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -270,13 +270,13 @@ namespace constants
     const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
 
     // Approaching Object State
-    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_OBJECT_VERIFY_POSITION       = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
-    const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;      // The time in seconds to watch the tag before moving on.
-    const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;      // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
-    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
+    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
+    const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
+    const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
+    const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;     // The time in seconds to watch the object before moving on.
+    const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;    // The time in seconds to wait before considering the object lost. This is used to prevent false negatives.
+    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when approaching an object.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.

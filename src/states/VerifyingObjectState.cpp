@@ -92,7 +92,7 @@ namespace statemachine
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
-        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject);
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
