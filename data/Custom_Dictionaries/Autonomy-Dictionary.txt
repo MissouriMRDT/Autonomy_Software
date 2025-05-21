@@ -25,6 +25,7 @@ APPROACHINGOBJECTSTATE
 APRILTAG
 Aruco
 arucotag
+ASPRS
 ASTAR
 AUGERAXIS
 AUGERGIMBALINCREMENT
@@ -248,6 +249,7 @@ GROUNDCAM
 gruntfuggly
 gtest
 gthr
+hemi
 HWDEVICE
 hyperthreaded
 IDLESTATE
@@ -305,6 +307,7 @@ Kernelized
 keyrings
 keyscan
 ladspa
+LASF
 latlng
 latlon
 ldconfig
@@ -377,6 +380,7 @@ libshine
 libsnappy
 libsoxr
 libspeex
+libsqlite
 libsrt
 libssh
 libsvtav
@@ -400,10 +404,13 @@ libxvidcore
 libzimg
 libzmq
 libzvbi
+LIDARHANDLER
+LIDARLOADER
 localtime
 LOGNAME
 LPOVERLAPPED
 lpthread
+lsqlite
 lzma
 m_muWebRTCRGBImageCopyMutex
 MAINCAM
@@ -606,6 +613,7 @@ UNVALIDATED
 upsample
 Upsampled
 usbutils
+USGS
 Utilty
 UTMERKNS
 UTMMDRS

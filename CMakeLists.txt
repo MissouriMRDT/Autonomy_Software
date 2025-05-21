@@ -285,7 +285,6 @@ endif()
 file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp")
 file(GLOB_RECURSE Examples_SRC  CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB_RECURSE External_SRC  CONFIGURE_DEPENDS  "external/src/*.cpp")
-file(GLOB_RECURSE Tools_SRC     CONFIGURE_DEPENDS  "tools/*.cpp")
 
 if (BUILD_EXAMPLES_MODE)
     add_executable(${EXE_NAME} ${External_SRC} ${SRC} ${Examples_SRC} ${Tools_SRC})
@@ -323,6 +322,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${MPI_LIBRARIES}
                         ${PCL_LIBRARIES}
                         gcov
+                        sqlite3
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 
@@ -342,6 +342,7 @@ if (BUILD_TESTS_MODE)
     file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
     file(GLOB_RECURSE Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
     file(GLOB_RECURSE Util_SRC              CONFIGURE_DEPENDS  "src/util/*.cpp")
+    file(GLOB         LiDARHandler_SRC      CONFIGURE_DEPENDS  "src/handlers/LiDARHandler.cpp")
     file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
     file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
     file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")   
@@ -353,7 +354,7 @@ if (BUILD_TESTS_MODE)
     message("--   Current Timestamp: ${CURRENT_TIMESTAMP}")
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${LiDARHandler_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${UTests_SRC})
@@ -366,7 +367,7 @@ if (BUILD_TESTS_MODE)
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${LiDARHandler_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${ITests_SRC})
