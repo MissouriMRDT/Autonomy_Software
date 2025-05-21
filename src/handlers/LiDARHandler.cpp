@@ -4,9 +4,12 @@
  * @file LiDARHandler.cpp
  * @author Eli Byrd
  * @date 2025-05-20
+ *
+ * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
 #include "LiDARHandler.h"
+#include "../AutonomyLogging.h"
 #include <cmath>
 #include <iostream>
 
@@ -45,7 +48,7 @@ bool LiDARHandler::Initialize(const std::string& szDBPath)
     // Attempt to open the SQLite database, if it fails, print the error message and return false
     if (sqlite3_open(szDBPath.c_str(), &m_sqlDatabase) != SQLITE_OK)
     {
-        std::cerr << "Failed to open database: " << sqlite3_errmsg(m_sqlDatabase) << "\n";
+        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to open database: {}", sqlite3_errmsg(m_sqlDatabase));
         return false;
     }
 
@@ -87,7 +90,7 @@ bool LiDARHandler::PrepareNearbyStatement()
     // Prepare the SQL statement, if it fails, print the error message and return false
     if (sqlite3_prepare_v2(m_sqlDatabase, szSQLStatement, -1, &m_sqlStatement, nullptr) != SQLITE_OK)
     {
-        std::cerr << "Failed to prepare nearby query: " << sqlite3_errmsg(m_sqlDatabase) << "\n";
+        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to prepare SQL statement: {}", sqlite3_errmsg(m_sqlDatabase));
         return false;
     }
 
@@ -146,12 +149,12 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetNearbyPoints(double dEastin
         PointRow row;
 
         // Populate the PointRow object with data from the current row
-        row.id             = sqlite3_column_int(m_sqlStatement, 0);
-        row.easting        = sqlite3_column_double(m_sqlStatement, 1);
-        row.northing       = sqlite3_column_double(m_sqlStatement, 2);
-        row.altitude       = sqlite3_column_double(m_sqlStatement, 3);
-        row.zone           = reinterpret_cast<const char*>(sqlite3_column_text(m_sqlStatement, 4));
-        row.classification = reinterpret_cast<const char*>(sqlite3_column_text(m_sqlStatement, 5));
+        row.nId              = sqlite3_column_int(m_sqlStatement, 0);
+        row.dEasting         = sqlite3_column_double(m_sqlStatement, 1);
+        row.dNorthing        = sqlite3_column_double(m_sqlStatement, 2);
+        row.dAltitude        = sqlite3_column_double(m_sqlStatement, 3);
+        row.szZone           = reinterpret_cast<const char*>(sqlite3_column_text(m_sqlStatement, 4));
+        row.szClassification = reinterpret_cast<const char*>(sqlite3_column_text(m_sqlStatement, 5));
 
         // Add the populated PointRow object to the results vector
         results.push_back(row);

@@ -8,6 +8,8 @@
  * @file LiDARHandler.h
  * @author Eli Byrd
  * @date 2025-05-20
+ *
+ * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
 #ifndef LIDARHANDLER_H
@@ -37,12 +39,12 @@ class LiDARHandler
          ******************************************************************************/
         struct PointRow
         {
-                int id;
-                double easting;
-                double northing;
-                double altitude;
-                std::string zone;
-                std::string classification;
+                int nId;
+                double dEasting;
+                double dNorthing;
+                double dAltitude;
+                std::string szZone;
+                std::string szClassification;
         };
 
         ////////////////////////////////////
