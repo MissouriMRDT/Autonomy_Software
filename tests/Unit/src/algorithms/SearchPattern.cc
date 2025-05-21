@@ -301,7 +301,12 @@ TEST_F(SearchPatternTests, ZigZagPatternShapeUTMHorizontal)
     geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
 
     // Use this for generating a search pattern with default params.
-    std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 1.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternPath  = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 2.0, false);
+    std::vector<geoops::Waypoint> vSearchPatternPath2 = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 2.0, true);
+
+    // Plot
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath, "ZigZagPath1");
+    logging::graphing::PlotCoordinates2D(vSearchPatternPath2, "ZigZagPath2");
 
     // Check if the returned path resembles an outward spiral pattern.
     EXPECT_TRUE(IsZigZag(vSearchPatternPath));

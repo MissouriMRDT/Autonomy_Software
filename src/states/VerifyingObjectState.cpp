@@ -2,7 +2,7 @@
  * @brief Verifying Object State Implementation for Autonomy State Machine.
  *
  * @file VerifyingObjectState.cpp
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2024-03-03
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
@@ -11,11 +11,14 @@
 #include "VerifyingObjectState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
+#include "../util/states/ObjectDetectionChecker.hpp"
+
+// #include "../util/states/ObjectDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2024-01-17
  ******************************************************************************/
 namespace statemachine
@@ -25,7 +28,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void VerifyingObjectState::Start()
@@ -33,9 +36,13 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Scheduling next run of state logic.");
 
-        m_nMaxObjectIDs = 50;
+        // Initialize member variables.
+        m_stGoalWaypoint                = globals::g_pWaypointHandler->PeekNextWaypoint();
+        m_tmObjectVerificationStartTime = std::chrono::system_clock::now();
+        m_tmObjectLastSeenTime          = std::chrono::system_clock::now();
 
-        m_vObjectIDs.reserve(m_nMaxObjectIDs);
+        // Get object detectors.
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -43,15 +50,13 @@ namespace statemachine
      *        the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void VerifyingObjectState::Exit()
     {
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Exiting state.");
-
-        m_vObjectIDs.clear();
     }
 
     /******************************************************************************
@@ -78,13 +83,62 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void VerifyingObjectState::Run()
     {
-        // TODO: Implement the behavior specific to the VerifyingObject state
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
+
+        // Identify target object.
+        objectdetectutils::Object stBestObject;
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject);
+        // Calculate how long we've been in this state.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
+        // Calculate the time since the last time we saw an object.
+        double dTimeSinceLastSeen = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectLastSeenTime).count() / 1000.0;
+
+        /*
+            If we consistently detect an object for a certain amount of time, we can assume that we are in fact in front of the object.
+            At this point, we can also assume we are close enough for the pointcloud to be usable and pick up the object.
+        */
+        // Check if object is detected.
+        if (stBestObject.dConfidence == 0.0)
+        {
+            // Check if the time last seen is greater than the time to give up.
+            if (dTimeSinceLastSeen > constants::APPROACH_OBJECT_LOST_BUFFER_TIME)
+            {
+                // No objects are detected, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: No objects detected. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+        }
+        else
+        {
+            // Check the object distance.
+            if (stBestObject.dConfidence > 0.0 && stBestObject.dStraightLineDistance > constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD)
+            {
+                // Object is too far away, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Object detected but too far away. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+
+            // Update time last seen.
+            m_tmObjectLastSeenTime = std::chrono::system_clock::now();
+
+            // Check if we have been in this state long enough to verify the object.
+            if (dElapsedTime >= constants::APPROACH_OBJECT_VERIFY_TIME)
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Object verified. Triggering verify complete event.");
+                // Trigger verify complete event.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete);
+                return;
+            }
+        }
     }
 
     /******************************************************************************
@@ -93,7 +147,7 @@ namespace statemachine
      * @param eEvent - The event to trigger.
      * @return std::shared_ptr<State> - The next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     States VerifyingObjectState::TriggerEvent(Event eEvent)
@@ -120,8 +174,22 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
+                // Clear saved states.
+                globals::g_pStateMachineHandler->ClearSavedStates();
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingObjectState: Cleared old saved states.");
                 // Change state.
                 eNextState = States::eIdle;
+                break;
+            }
+            case Event::eVerifyingFailed:
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Failed event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Recall the previous state.
+                eNextState = globals::g_pStateMachineHandler->GetPreviousState();
                 break;
             }
             case Event::eAbort:

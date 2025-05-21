@@ -12,6 +12,7 @@
 #define OBJECT_DETECTION_HANDLER_H
 
 #include "../vision/objects/ObjectDetector.h"
+#include "RecordingHandler.h"
 
 /******************************************************************************
  * @brief The ObjectDetectionHandler class is responsible for managing all of the
@@ -31,8 +32,7 @@ class ObjectDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ObjectDetector> m_pObjectDetectorMainCam;
-        std::shared_ptr<ObjectDetector> m_pObjectDetectorLeftCam;
-        std::shared_ptr<ObjectDetector> m_pObjectDetectorRightCam;
+        std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
         /////////////////////////////////////////
@@ -41,9 +41,9 @@ class ObjectDetectionHandler
 
         enum class ObjectDetectors    // Enum for different cameras that detectors are being ran on.
         {
+            OBJECTDETECTOR_START,
             eHeadMainCam,
-            eFrameLeftCam,
-            eFrameRightCam
+            OBJECTDETECTOR_END
         };
 
         /////////////////////////////////////////
@@ -53,7 +53,9 @@ class ObjectDetectionHandler
         ObjectDetectionHandler();
         ~ObjectDetectionHandler();
         void StartAllDetectors();
+        void StartRecording();
         void StopAllDetectors();
+        void StopRecording();
 
         /////////////////////////////////////////
         // Accessors.

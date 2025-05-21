@@ -23,18 +23,25 @@ ObjectDetectionHandler::ObjectDetectionHandler()
 {
     // Initialize detector for main ZEDCam.
     m_pObjectDetectorMainCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam),
+                                                                constants::OBJECTDETECT_MAINCAM_ENABLE_TRACKING,
+                                                                constants::OBJECTDETECT_MAINCAM_MAX_FPS,
+                                                                constants::OBJECTDETECT_MAINCAM_ENABLE_RECORDING,
                                                                 constants::OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                                                 constants::ZED_MAINCAM_USE_GPU_MAT);
 
-    // Initialize detector for left aruco BasicCam.
-    m_pObjectDetectorLeftCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam),
-                                                                constants::OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
-                                                                constants::ZED_LEFTCAM_USE_GPU_MAT);
+    // Check if torch detection is enabled for main ZEDCam.
+    if (constants::OBJECTDETECT_MAINCAM_ENABLE_TORCH)
+    {
+        // Attempt to init torch detection.
+        if (m_pObjectDetectorMainCam->InitTorchDetection(constants::OBJECTDETECT_MAINCAM_TORCH_MODEL))
+        {
+            // Set torch detection enabled.
+            m_pObjectDetectorMainCam->EnableTorchDetection(constants::OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE, constants::OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH);
+        }
+    }
 
-    // Initialize detector for right aruco BasicCam.
-    m_pObjectDetectorRightCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam),
-                                                                 constants::OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
-                                                                 constants::ZED_RIGHTCAM_USE_GPU_MAT);
+    // Initialize recording handler for detectors.
+    m_pRecordingHandler = std::make_unique<RecordingHandler>(RecordingHandler::RecordingMode::eObjectDetectionHandler);
 }
 
 /******************************************************************************
@@ -61,10 +68,19 @@ void ObjectDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pObjectDetectorMainCam->Start();
+}
 
-    // Start the left and right aruco eyes.
-    m_pObjectDetectorLeftCam->Start();
-    m_pObjectDetectorRightCam->Start();
+/******************************************************************************
+ * @brief Signal the RecordingHandler to start recording feeds from the detectors.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+void ObjectDetectionHandler::StartRecording()
+{
+    // Start recording for all detectors.
+    m_pRecordingHandler->Start();
 }
 
 /******************************************************************************
@@ -76,15 +92,27 @@ void ObjectDetectionHandler::StartAllDetectors()
  ******************************************************************************/
 void ObjectDetectionHandler::StopAllDetectors()
 {
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
+
     // Stop ZED maincam detector.
     m_pObjectDetectorMainCam->RequestStop();
     m_pObjectDetectorMainCam->Join();
+}
 
-    // Stop BasicCam left aruco eye detector.
-    m_pObjectDetectorLeftCam->RequestStop();
-    m_pObjectDetectorRightCam->RequestStop();
-    m_pObjectDetectorLeftCam->Join();
-    m_pObjectDetectorRightCam->Join();
+/******************************************************************************
+ * @brief  Signal the RecordingHandler to stop recording feeds from the detectors.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+void ObjectDetectionHandler::StopRecording()
+{
+    // Stop recording handler.
+    m_pRecordingHandler->RequestStop();
+    m_pRecordingHandler->Join();
 }
 
 /******************************************************************************
@@ -102,8 +130,6 @@ std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(Object
     switch (eDetectorName)
     {
         case ObjectDetectors::eHeadMainCam: return m_pObjectDetectorMainCam; break;
-        case ObjectDetectors::eFrameLeftCam: return m_pObjectDetectorLeftCam; break;
-        case ObjectDetectors::eFrameRightCam: return m_pObjectDetectorRightCam; break;
         default: return m_pObjectDetectorMainCam; break;
     }
 }

@@ -38,8 +38,6 @@ class CameraHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ZEDCamera> m_pMainCam;
-        std::shared_ptr<ZEDCamera> m_pLeftCam;
-        std::shared_ptr<ZEDCamera> m_pRightCam;
         std::shared_ptr<BasicCamera> m_pGroundCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
@@ -52,8 +50,6 @@ class CameraHandler
         {
             ZEDCAM_START,
             eHeadMainCam,
-            eFrameLeftCam,
-            eFrameRightCam,
             ZEDCAM_END
         };
 

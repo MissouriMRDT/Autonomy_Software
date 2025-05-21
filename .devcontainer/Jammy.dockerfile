@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     build-essential gdb less udev zstd sudo libgomp1 python-is-python3 \
     cmake git libgtk2.0-dev pkg-config libx264-dev libdrm-dev ssh \
     libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev tzdata net-tools \
-    yasm libatlas-base-dev gfortran libpq-dev libpostproc-dev libusb-1.0-0-dev \
+    yasm libatlas-base-dev libpq-dev libpostproc-dev libusb-1.0-0-dev \
     libxine2-dev libglew-dev libtiff5-dev zlib1g-dev cowsay lolcat locales usbutils \
     libeigen3-dev python3-dev python3-pip python3-numpy libx11-dev xauth libssl-dev \
     valgrind doxygen graphviz htop nano fortune fortunes gnuplot-nox \
@@ -152,7 +152,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64
     rm pcl_${PCL_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="8.2.0"
+ARG QUILL_VERSION="9.0.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb

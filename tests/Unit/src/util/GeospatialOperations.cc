@@ -177,6 +177,10 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementGPS)
     geoops::GPSCoordinate stGPSSDELC2(37.951670, -91.778537);
     geoops::GPSCoordinate stGPSSDELC3(37.950635, -91.782465);
 
+    // Store some as Waypoints.
+    geoops::Waypoint stWaypoint1(stGPSSDELC1);
+    geoops::Waypoint stWaypoint2(stGPSSDELC2);
+
     // Convert UTM coordinates to GPS coordinate.
     geoops::GPSCoordinate stGPSRollaCoordinate = geoops::ConvertUTMToGPS(stUTMRollaCoordinate);
     geoops::GPSCoordinate stGPSMDRSCoordinate  = geoops::ConvertUTMToGPS(stUTMMDRSCoordinate);
@@ -200,6 +204,13 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementGPS)
     // Check distance calculation.
     EXPECT_NEAR(stMeasurement.dDistanceMeters, 387.05, 0.02);
     EXPECT_NEAR(stMeasurement.dArcLengthDegrees, 0.003, 0.002);
+    EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 180.0, 0.02);
+
+    // Calculate meter distance between the first two Waypoints.
+    stMeasurement = geoops::CalculateGeoMeasurement(stWaypoint1, stWaypoint2);
+    // Check distance calculation.
+    EXPECT_NEAR(stMeasurement.dDistanceMeters, 26.94, 0.02);
+    EXPECT_NEAR(stMeasurement.dArcLengthDegrees, 0.00024, 0.00002);
     EXPECT_NEAR(std::abs(stMeasurement.dStartRelativeBearing - stMeasurement.dEndRelativeBearing), 180.0, 0.02);
 }
 
@@ -225,6 +236,36 @@ TEST_F(GeoOpsTests, CalculateGeoMeasurementUTM)
     geoops::GeoMeasurement stMeasurement1 = geoops::CalculateGeoMeasurement(stGPSRollaCoordinate, stGPSMDRSCoordinate);
     // Calculate meter distance between the first two GPS points.
     geoops::GeoMeasurement stMeasurement2 = geoops::CalculateGeoMeasurement(stUTMRollaCoordinate, stUTMMDRSCoordinate);
+
+    // Check function calculations.
+    EXPECT_EQ(stMeasurement1.dDistanceMeters, stMeasurement2.dDistanceMeters);
+    EXPECT_EQ(stMeasurement1.dArcLengthDegrees, stMeasurement2.dArcLengthDegrees);
+    EXPECT_EQ(stMeasurement1.dStartRelativeBearing, stMeasurement2.dStartRelativeBearing);
+    EXPECT_EQ(stMeasurement1.dEndRelativeBearing, stMeasurement2.dEndRelativeBearing);
+}
+
+/******************************************************************************
+ * @brief Test the functionality of the CalculateGeoMeasurement function with waypoint structs.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-10
+ ******************************************************************************/
+TEST_F(GeoOpsTests, CalculateGeoMeasurementWaypoint)
+{
+    // Initialize coordinates.
+    geoops::UTMCoordinate stUTMRollaCoordinate(607344.14, 4201167.33, 15, true);
+    geoops::UTMCoordinate stUTMMDRSCoordinate(519116.71, 3807223.16, 12, true);
+
+    // Convert GPS coordinates to Waypoint.
+    geoops::Waypoint stWaypoint1(stUTMRollaCoordinate);
+    geoops::Waypoint stWaypoint2(stUTMMDRSCoordinate);
+
+    // Calculate meter distance between the first two GPS points.
+    geoops::GeoMeasurement stMeasurement1 = geoops::CalculateGeoMeasurement(stUTMRollaCoordinate, stUTMMDRSCoordinate);
+    // Calculate meter distance between the first two Waypoints.
+    geoops::GeoMeasurement stMeasurement2 = geoops::CalculateGeoMeasurement(stWaypoint1, stWaypoint2);
+
     // Check function calculations.
     EXPECT_EQ(stMeasurement1.dDistanceMeters, stMeasurement2.dDistanceMeters);
     EXPECT_EQ(stMeasurement1.dArcLengthDegrees, stMeasurement2.dArcLengthDegrees);

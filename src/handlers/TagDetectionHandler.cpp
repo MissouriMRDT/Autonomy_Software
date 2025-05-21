@@ -28,45 +28,12 @@ TagDetectionHandler::TagDetectionHandler()
                                                           constants::TAGDETECT_MAINCAM_MARKER_BORDER_BITS,
                                                           constants::TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER,
                                                           constants::TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION,
+                                                          constants::TAGDETECT_MAINCAM_ENABLE_TRACKING,
                                                           constants::TAGDETECT_MAINCAM_MAX_FPS,
                                                           constants::TAGDETECT_MAINCAM_ENABLE_RECORDING,
                                                           constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                                           constants::ZED_MAINCAM_USE_GPU_MAT);
 
-    // Initialize detector for left aruco ZEDCam.
-    m_pTagDetectorLeftCam = std::make_shared<TagDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameLeftCam),
-                                                          constants::TAGDETECT_LEFTCAM_CORNER_REFINE_MAX_ITER,
-                                                          constants::TAGDETECT_LEFTCAM_CORNER_REFINE_METHOD,
-                                                          constants::TAGDETECT_LEFTCAM_MARKER_BORDER_BITS,
-                                                          constants::TAGDETECT_LEFTCAM_DETECT_INVERTED_MARKER,
-                                                          constants::TAGDETECT_LEFTCAM_USE_ARUCO3_DETECTION,
-                                                          constants::TAGDETECT_LEFTCAM_MAX_FPS,
-                                                          constants::TAGDETECT_LEFTCAM_ENABLE_RECORDING,
-                                                          constants::TAGDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS,
-                                                          false);
-
-    // Initialize detector for right aruco ZEDCam.
-    m_pTagDetectorRightCam = std::make_shared<TagDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eFrameRightCam),
-                                                           constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_MAX_ITER,
-                                                           constants::TAGDETECT_RIGHTCAM_CORNER_REFINE_METHOD,
-                                                           constants::TAGDETECT_RIGHTCAM_MARKER_BORDER_BITS,
-                                                           constants::TAGDETECT_RIGHTCAM_DETECT_INVERTED_MARKER,
-                                                           constants::TAGDETECT_RIGHTCAM_USE_ARUCO3_DETECTION,
-                                                           constants::TAGDETECT_RIGHTCAM_MAX_FPS,
-                                                           constants::TAGDETECT_RIGHTCAM_ENABLE_RECORDING,
-                                                           constants::TAGDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS,
-                                                           false);
-
-    // Check if tensorflow detection is enabled for main ZEDCam.
-    if (constants::TAGDETECT_MAINCAM_ENABLE_TF)
-    {
-        // Attempt to init tensorflow detection.
-        if (m_pTagDetectorMainCam->InitTensorflowDetection(constants::TAGDETECT_MAINCAM_TF_MODEL))
-        {
-            // Set tensorflow detection enabled.
-            m_pTagDetectorMainCam->EnableTensorflowDetection(constants::TAGDETECT_MAINCAM_DNN_CONFIDENCE, constants::TAGDETECT_MAINCAM_DNN_NMS_THRESH);
-        }
-    }
     // Check if torch detection is enabled for main ZEDCam.
     if (constants::TAGDETECT_MAINCAM_ENABLE_TORCH)
     {
@@ -75,48 +42,6 @@ TagDetectionHandler::TagDetectionHandler()
         {
             // Set torch detection enabled.
             m_pTagDetectorMainCam->EnableTorchDetection(constants::TAGDETECT_MAINCAM_TORCH_CONFIDENCE, constants::TAGDETECT_MAINCAM_TORCH_NMS_THRESH);
-        }
-    }
-
-    // Check if tensorflow detection is enabled for left BasicCam.
-    if (constants::TAGDETECT_LEFTCAM_ENABLE_TF)
-    {
-        // Attempt to init tensorflow detection.
-        if (m_pTagDetectorLeftCam->InitTensorflowDetection(constants::TAGDETECT_LEFTCAM_TF_MODEL))
-        {
-            // Set tensorflow detection enabled.
-            m_pTagDetectorLeftCam->EnableTensorflowDetection(constants::TAGDETECT_LEFTCAM_DNN_CONFIDENCE, constants::TAGDETECT_LEFTCAM_DNN_NMS_THRESH);
-        }
-    }
-    // Check if torch detection is enabled for left BasicCam.
-    if (constants::TAGDETECT_LEFTCAM_ENABLE_TORCH)
-    {
-        // Attempt to init torch detection.
-        if (m_pTagDetectorLeftCam->InitTorchDetection(constants::TAGDETECT_LEFTCAM_TORCH_MODEL))
-        {
-            // Set torch detection enabled.
-            m_pTagDetectorLeftCam->EnableTorchDetection(constants::TAGDETECT_LEFTCAM_TORCH_CONFIDENCE, constants::TAGDETECT_LEFTCAM_TORCH_NMS_THRESH);
-        }
-    }
-
-    // Check if tensorflow detection is enabled for right BasicCam.
-    if (constants::TAGDETECT_RIGHTCAM_ENABLE_TF)
-    {
-        // Attempt to init tensorflow detection.
-        if (m_pTagDetectorRightCam->InitTensorflowDetection(constants::TAGDETECT_RIGHTCAM_TF_MODEL))
-        {
-            // Set tensorflow detection enabled.
-            m_pTagDetectorRightCam->EnableTensorflowDetection(constants::TAGDETECT_RIGHTCAM_DNN_CONFIDENCE, constants::TAGDETECT_RIGHTCAM_DNN_NMS_THRESH);
-        }
-    }
-    // Check if torch detection is enabled for right BasicCam.
-    if (constants::TAGDETECT_RIGHTCAM_ENABLE_TORCH)
-    {
-        // Attempt to init torch detection.
-        if (m_pTagDetectorRightCam->InitTorchDetection(constants::TAGDETECT_RIGHTCAM_TORCH_MODEL))
-        {
-            // Set torch detection enabled.
-            m_pTagDetectorRightCam->EnableTorchDetection(constants::TAGDETECT_RIGHTCAM_TORCH_CONFIDENCE, constants::TAGDETECT_RIGHTCAM_TORCH_NMS_THRESH);
         }
     }
 
@@ -148,10 +73,6 @@ void TagDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pTagDetectorMainCam->Start();
-    m_pTagDetectorLeftCam->Start();
-    m_pTagDetectorRightCam->Start();
-
-    // Start the BasicCam aruco eyes.
 }
 
 /******************************************************************************
@@ -182,13 +103,7 @@ void TagDetectionHandler::StopAllDetectors()
 
     // Stop ZED detectors.
     m_pTagDetectorMainCam->RequestStop();
-    m_pTagDetectorLeftCam->RequestStop();
-    m_pTagDetectorRightCam->RequestStop();
     m_pTagDetectorMainCam->Join();
-    m_pTagDetectorLeftCam->Join();
-    m_pTagDetectorRightCam->Join();
-
-    // Stop BasicCam aruco eye detectors.
 }
 
 /******************************************************************************
@@ -220,8 +135,6 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
     switch (eDetectorName)
     {
         case TagDetectors::eHeadMainCam: return m_pTagDetectorMainCam; break;
-        case TagDetectors::eFrameLeftCam: return m_pTagDetectorLeftCam; break;
-        case TagDetectors::eFrameRightCam: return m_pTagDetectorRightCam; break;
         default: return m_pTagDetectorMainCam; break;
     }
 }

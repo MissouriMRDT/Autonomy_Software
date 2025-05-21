@@ -2,7 +2,7 @@
  * @brief Approaching Object State Implementation for Autonomy State Machine.
  *
  * @file ApproachingObjectState.h
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2024-03-03
  *
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
@@ -12,6 +12,11 @@
 #define APPROACHING_OBJECT_STATE_H
 
 #include "../interfaces/State.hpp"
+#include "../util/GeospatialOperations.hpp"
+#include "../util/logging/PathTracer2D.hpp"
+#include "../util/states/StuckDetection.hpp"
+#include "../util/vision/ObjectDetectionUtility.hpp"
+#include "../vision/objects/ObjectDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -25,14 +30,18 @@ namespace statemachine
      * @brief The ApproachingObjectState class implements the Approaching Object
      *        state for the Autonomy State Machine.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     class ApproachingObjectState : public State
     {
         private:
-            int m_nNumDetectionAttempts;
+            std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
+            statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            States m_eTriggeringState;
             bool m_bInitialized;
+            geoops::Waypoint m_stGoalWaypoint;
+            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:
             void Start() override;

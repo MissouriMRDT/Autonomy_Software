@@ -25,7 +25,7 @@
 void RunExample()
 {
     // Initialize and start handlers.
-    globals::g_pCameraHandler = std::make_shared<CameraHandler>();
+    globals::g_pCameraHandler = new CameraHandler();
 
     // Get pointer to camera.
     std::shared_ptr<BasicCamera> ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
@@ -41,7 +41,7 @@ void RunExample()
     cv::Mat cvNormalFrame1;
     cv::Mat cvDetectionsFrame1;
     // Declare vector to store tag detections in.
-    std::vector<arucotag::ArucoTag> vTagDetections1;
+    std::vector<tagdetectutils::ArucoTag> vTagDetections1;
 
     // Declare FPS counter.
     IPS FPS = IPS();

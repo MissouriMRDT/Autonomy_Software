@@ -58,6 +58,7 @@ CALIB
 CALIBRATEENCODER
 CAMERAUNAVAILABLE
 carryforward
+Catmull
 CELLCRITICAL
 CELLUNDERVOLTAGE
 CELLVOLTAGE
@@ -114,6 +115,7 @@ deleter
 Denoise
 Depacketization
 Depacketizer
+DEPTHMEASUREENCODEDECODE
 depthobject
 deque
 Desaturate
@@ -129,6 +131,7 @@ dockerfiles
 dorny
 DOTA
 Downsample
+downsampled
 doxdocgen
 Doxyfile
 Doxygen
@@ -233,7 +236,15 @@ gcov
 gcovr
 geekyeggo
 geolib
+geoloc
+geolocalization
+Geolocate
+GEOLOCATE
+geolocated
+Geolocated
+geomeasurement
 geoops
+geoposition
 Geospatial
 gfortran
 gmock
@@ -249,6 +260,8 @@ GROUNDCAM
 gruntfuggly
 gtest
 gthr
+hajdukiewicz
+HFOV
 hemi
 HWDEVICE
 hyperthreaded
@@ -267,6 +280,7 @@ imgsz
 imread
 imshow
 IMUDATA
+imwrite
 INCREMENTIKPOSITION
 INCREMENTINDIVIDUALTARGETANGLES
 INCREMENTJOINTTARGETANGLE
@@ -310,6 +324,7 @@ ladspa
 LASF
 latlng
 latlon
+LBUTTONDOWN
 ldconfig
 LEDPATTERNS
 LEDRGB
@@ -459,6 +474,7 @@ numpy
 nvcr
 OBJDETECTION
 OBJECTDETECT
+OBJECTDETECTOR
 Objectness
 odometry
 openal
@@ -497,6 +513,7 @@ Rdtsc
 REACHEDGOAL
 recvmmsg
 REELN
+Reproject
 reprojection
 REQUESTHUMIDITY
 REQUESTRAMANREADING
@@ -569,6 +586,7 @@ Struct
 structs
 STUCKSTATE
 Styleguides
+SUBPIX
 Subteam
 Subteams
 superres
@@ -588,10 +606,12 @@ tensorflowtag
 tensorflowyolo
 tflite
 Tgsnwcv
+THREADFPS
 threadpool
 timestamping
 timestep
 TOGGLESTREAM
+torchobject
 torchscript
 torchtag
 tparam
@@ -656,5 +676,7 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zerolatency
 zlabel
 zstd
+ztickformat
