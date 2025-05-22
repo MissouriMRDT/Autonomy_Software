@@ -752,7 +752,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool
     bool bVIOGPSFused                          = false;
     static bool bAlreadyPrinted                = false;
 
-    if (bVIOHeading || bVIOTracking)
+    if ((bVIOHeading || bVIOTracking) && !constants::MODE_SIM)
     {
         // Check if the main ZED camera is opened and the fusion module is initialized.
         if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
