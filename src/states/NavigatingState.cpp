@@ -226,7 +226,15 @@ namespace statemachine
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
                     return;
                 }
-                default: break;
+                default:
+                {
+                    // This waypoint type is not supported.
+                    LOG_ERROR(logging::g_qSharedLogger, "NavigatingState: Unknown waypoint type!");
+                    // Handle event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort, true);
+                    // Don't execute the rest of the state.
+                    return;
+                }
             }
         }
 
