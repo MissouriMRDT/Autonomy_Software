@@ -1,141 +1,315 @@
 /******************************************************************************
- * @brief Implements the ObjectDetector class.
+ * @brief This code will run continuously in a separate thread. New frames from
+ *     the given camera are grabbed and the objects for the camera image are detected,
+ *     filtered, and stored. Then any requests for the current objects are fulfilled.
  *
  * @file ObjectDetector.cpp
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-23
+ * @date 2025-05-05
  *
- * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
-#include "ObjectDetector.h"
-#include "../../util/vision/ImageOperations.hpp"
+#include "./ObjectDetector.h"
+#include "../../AutonomyGlobals.h"
+#include "../../util/vision/Geolocate.hpp"
+#include "./TorchObjectDetection.hpp"
+
+/// \cond
+
+/// \endcond
 
 /******************************************************************************
- * @brief Construct a new ObjectDetector object.
+ * @brief Construct a new Object Detector:: Object Detector object.
  *
- * @param pBasicCam - A pointer to the BasicCam camera to get frames from for detection.
+ * @param pBasicCam - A pointer to the BasicCam to use for detection.
+ * @param bEnableTracking - Whether or not to enable tracking of detected objects.
+ * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
+ * @param bEnableRecordingFlag - Whether or not this ObjectDetector's overlay output should be recorded.
  * @param nNumDetectedObjectsRetrievalThreads - The number of threads to use when fulfilling
- *                                           requests for the detected depth objects. Default is 5.
+ *                                           requests for the detected objects. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-10
+ * @date 2025-05-05
  ******************************************************************************/
-ObjectDetector::ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
+ObjectDetector::ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam,
+                               const bool bEnableTracking,
+                               const int nDetectorMaxFPS,
+                               const bool bEnableRecordingFlag,
+                               const int nNumDetectedObjectsRetrievalThreads,
+                               const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                             = pBasicCam;
+    m_bEnableTracking                     = bEnableTracking;
     m_bUsingZedCamera                     = false;    // Toggle ZED functions off.
+    m_bEnableRecordingFlag                = bEnableRecordingFlag;
     m_nNumDetectedObjectsRetrievalThreads = nNumDetectedObjectsRetrievalThreads;
     m_bUsingGpuMats                       = bUsingGpuMats;
-    m_IPS                                 = IPS();
+    m_bTorchInitialized                   = false;
+    m_bTorchEnabled                       = false;
+    m_bCameraIsOpened                     = false;
+    m_szCameraName                        = pBasicCam->GetCameraLocation();
+    m_stRoverPose                         = geoops::RoverPose();
+
+    // Create a multi-tracker for tracking multiple objects from the torch detectors.
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_MAX_TRACK_TIME,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+
+    // Set max IPS of main thread.
+    this->SetMainThreadIPSLimit(nDetectorMaxFPS);
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "ObjectDetector created for camera at path/index: {}", m_szCameraName);
 }
 
 /******************************************************************************
- * @brief Construct a new ObjectDetector object.
+ * @brief Construct a new Object Detector:: Object Detector object.
  *
- * @param pZEDCam - A pointer to the ZEDCam camera to get frames from for detection. Override for ZED camera.
+ * @param pZEDCam - A pointer to the ZEDCamera to use for detection.
+ * @param bEnableTracking - Whether or not to enable tracking of detected objects.
+ * @param nDetectorMaxFPS - The max FPS limit the detector can run at.
+ * @param bEnableRecordingFlag - Whether or not this ObjectDetector's overlay output should be recorded.
  * @param nNumDetectedObjectsRetrievalThreads - The number of threads to use when fulfilling
- *                                           requests for the detected depth objects. Default is 5.
+ *                                           requests for the detected objects. Default is 5.
  * @param bUsingGpuMats - Whether or not the given camera name will be using GpuMats.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
+ * @date 2025-05-05
  ******************************************************************************/
-ObjectDetector::ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam, const int nNumDetectedObjectsRetrievalThreads, const bool bUsingGpuMats)
+ObjectDetector::ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam,
+                               const bool bEnableTracking,
+                               const int nDetectorMaxFPS,
+                               const bool bEnableRecordingFlag,
+                               const int nNumDetectedObjectsRetrievalThreads,
+                               const bool bUsingGpuMats)
 {
     // Initialize member variables.
     m_pCamera                             = pZEDCam;
-    m_bUsingZedCamera                     = true;    // Toggle ZED functions off.
+    m_bEnableTracking                     = bEnableTracking;
+    m_bUsingZedCamera                     = true;    // Toggle ZED functions on.
+    m_bEnableRecordingFlag                = bEnableRecordingFlag;
     m_nNumDetectedObjectsRetrievalThreads = nNumDetectedObjectsRetrievalThreads;
     m_bUsingGpuMats                       = bUsingGpuMats;
+    m_bTorchInitialized                   = false;
+    m_bTorchEnabled                       = false;
+    m_bCameraIsOpened                     = false;
+    m_szCameraName                        = pZEDCam->GetCameraModel() + "_" + std::to_string(pZEDCam->GetCameraSerial());
+    m_stRoverPose                         = geoops::RoverPose();
+
+    // Create a multi-tracker for tracking multiple objects from the torch detectors.
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+
+    // Set max IPS of main thread.
+    this->SetMainThreadIPSLimit(nDetectorMaxFPS);
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "ObjectDetector created for camera: {}", m_szCameraName);
 }
 
 /******************************************************************************
- * @brief This code will run continuously in a separate thread. New frames from
- *      the given camera are grabbed and the objects for the camera image are detected,
- *      filtered, and stored. Then any requests for the current objects are fulfilled.
+ * @brief Destroy the Object Detector:: Object Detector object.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
+ * @date 2025-05-05
+ ******************************************************************************/
+ObjectDetector::~ObjectDetector()
+{
+    // Stop threaded code.
+    this->RequestStop();
+    this->Join();
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "ObjectDetector for camera {} has been destroyed.", this->GetCameraName());
+}
+
+/******************************************************************************
+ * @brief This method will run continuously in a separate thread. New frames from
+ *      the given camera are grabbed and the objects for the camera image are detected
+ *      using the PyTorch interpreter. The detected objects are then filtered and stored.
+ *      Then any requests for the current objects are fulfilled via a call and join of the
+ *      thread pooled code.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
  ******************************************************************************/
 void ObjectDetector::ThreadedContinuousCode()
 {
-    // Create future for indicating when the frame has been copied.
-    std::future<bool> fuNormalFrame;
-    std::future<bool> fuDepthMeasureCopyStatus;
-
-    // Check if the camera is setup to use CPU or GPU mats.
+    // Check if using ZEDCam or BasicCam.
     if (m_bUsingZedCamera)
     {
-        // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
-        if (m_bUsingGpuMats)
+        // Check if camera is NOT open.
+        if (!std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
         {
-            // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-            fuNormalFrame            = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUNormalFrame);
-            fuDepthMeasureCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestDepthCopy(m_cvGPUDepthMeasure);
+            // Set camera opened toggle.
+            m_bCameraIsOpened = false;
 
-            // Wait for requested frames to be retrieved.
-            if (fuDepthMeasureCopyStatus.get() && fuNormalFrame.get())
+            // If camera's not open on first iteration of thread, it's probably not present, so stop.
+            if (this->GetThreadState() == AutonomyThreadState::eStarting)
             {
-                // Download mat from GPU memory.
-                m_cvGPUNormalFrame.download(m_cvNormalFrame);
-                m_cvGPUDepthMeasure.download(m_cvDepthMeasure);
-            }
-            else
-            {
+                // Shutdown threads for this ZEDCam.
+                this->RequestStop();
+
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get normal frame or depth measure from ZEDCam!");
+                LOG_CRITICAL(logging::g_qSharedLogger,
+                             "ObjectDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted! "
+                             "This object detector will now stop.",
+                             std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
             }
         }
         else
         {
-            // Grabs normal frame and depth measure from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-            fuNormalFrame            = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
-            fuDepthMeasureCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestDepthCopy(m_cvDepthMeasure);
-
-            // Wait for requested frames to be retrieved.
-            if (!fuDepthMeasureCopyStatus.get() || !fuNormalFrame.get())
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get normal frame or depth measure from ZEDCam!");
-            }
+            // Set camera opened toggle.
+            m_bCameraIsOpened = true;
         }
     }
     else
     {
-        // Grab frames from camera.
-        fuNormalFrame = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvNormalFrame);
-
-        // Wait for requested frames to be retrieved.
-        if (!fuNormalFrame.get())
+        // Check if camera is NOT open.
+        if (!std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
         {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get requested frames from BasicCam!");
+            // Set camera opened toggle.
+            m_bCameraIsOpened = false;
+
+            // If camera's not open on first iteration of thread, it's probably not present, so stop.
+            if (this->GetThreadState() == AutonomyThreadState::eStarting)
+            {
+                // Shutdown threads for this BasicCam.
+                this->RequestStop();
+
+                // Submit logger message.
+                LOG_CRITICAL(logging::g_qSharedLogger,
+                             "ObjectDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
+                             std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
+            }
+        }
+        else
+        {
+            // Set camera opened toggle.
+            m_bCameraIsOpened = true;
         }
     }
 
-    /////////////////////////////////////////
-    // Call detection methods and inference.
-    /////////////////////////////////////////
+    // Check if camera is opened.
+    if (m_bCameraIsOpened)
+    {
+        // Create future for indicating when the frame has been copied.
+        std::future<bool> fuPointCloudCopyStatus;
+        std::future<bool> fuRegularFrameCopyStatus;
 
-    // TODO: Implement when ready, commented out to suppress warnings.
-    // Merge the newly detected objects with the pre-existing detected objects
-    // this->UpdateDetectedObjects(vNewlyDetectedObjects);
+        // Check if the camera is setup to use CPU or GPU mats.
+        if (m_bUsingZedCamera)
+        {
+            // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
+            if (m_bUsingGpuMats)
+            {
+                // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
+                fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                // Get the regular RGB image from the camera.
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
 
-    // Call FPS tick.
-    m_IPS.Tick();
-    /////////////////////////////////////////////////////////////////////////////////////
+                // Wait for point cloud to be retrieved.
+                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
+                {
+                    // Download mat from GPU memory.
+                    m_cvGPUPointCloud.download(m_cvPointCloud);
+                    m_cvGPUFrame.download(m_cvFrame);
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
+                }
+            }
+            else
+            {
+                // Grabs point cloud from ZEDCam.
+                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+
+                // Wait for point cloud to be retrieved.
+                if (!fuPointCloudCopyStatus.get())
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
+                }
+                if (!fuRegularFrameCopyStatus.get())
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
+                }
+            }
+        }
+        else
+        {
+            // Grab frames from camera.
+            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+
+            // Wait for point cloud to be retrieved.
+            if (!fuRegularFrameCopyStatus.get())
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
+            }
+        }
+
+        /////////////////////////////////////////
+        // Actual detection logic goes here.
+        /////////////////////////////////////////
+        // Check if the frame is empty.
+        if (m_cvFrame.empty())
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+            return;
+        }
+
+        // Clear the list of newly detected objects.
+        m_vNewlyDetectedObjects.clear();
+        // Clone frames.
+        m_cvTorchOverlayFrame = m_cvFrame.clone();
+        m_cvTorchProcFrame    = m_cvFrame.clone();
+        // Copy the camera frame to the pre-processing frame and overlay frame.
+        cv::cvtColor(m_cvTorchOverlayFrame, m_cvTorchOverlayFrame, cv::COLOR_BGRA2BGR);
+        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
+
+        // Check if torch detection if turned on.
+        if (m_bTorchEnabled)
+        {
+            // Detect objects in the image.
+            std::vector<objectdetectutils::Object> vNewTorchObjects =
+                torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            // Add Torch objects to the list of newly detected objects.
+            m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+        }
+
+        // Set the FOV of the camera in the object structs for this detector's camera.
+        for (objectdetectutils::Object& stObject : m_vNewlyDetectedObjects)
+        {
+            // Set object FOV parameter to this object detectors camera's FOV.
+            stObject.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+        }
+
+        // Merge the newly detected objects with the pre-existing detected objects.
+        this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
+
+        // Draw object overlays onto normal image.
+        torchobject::DrawDetections(m_cvTorchOverlayFrame, m_vDetectedObjects);
+        /////////////////////////////////////////////////////////////////////////////////////
+    }
 
     // Acquire a shared_lock on the detected objects copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected object copy queue is empty.
-    if (!m_qDetectedDepthObjectCopySchedule.empty() || !m_qDetectedTensorflowObjectCopySchedule.empty() || !m_qDetectedObjectDrawnOverlayFrames.empty())
+    if (!m_qDetectedObjectDrawnOverlayFramesCopySchedule.empty() || !m_qDetectedObjectCopySchedule.empty())
     {
-        size_t siQueueLength =
-            std::max({m_qDetectedDepthObjectCopySchedule.size(), m_qDetectedTensorflowObjectCopySchedule.size(), m_qDetectedObjectDrawnOverlayFrames.size()});
+        size_t siQueueLength = m_qDetectedObjectDrawnOverlayFramesCopySchedule.size() + m_qDetectedObjectCopySchedule.size();
         // Start the thread pool to store multiple copies of the detected objects to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedObjectsRetrievalThreads);
         // Wait for thread pool to finish.
@@ -146,14 +320,13 @@ void ObjectDetector::ThreadedContinuousCode()
 }
 
 /******************************************************************************
- * @brief This method holds the code that is ran in the thread pool started by
- *      the ThreadedLinearCode() method. It copies the data from the different
- *      data objects to references of the same type stored in a queue filled by the
- *      Request methods.
+ * @brief This method will run in a thread pool. It will be called by the main thread
+ *      and will run the code within the PooledLinearCode() method. This is meant to be
+ *      used as an internal utility of the child class to further improve parallelization.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-08
+ * @date 2025-05-05
  ******************************************************************************/
 void ObjectDetector::PooledLinearCode()
 {
@@ -161,23 +334,22 @@ void ObjectDetector::PooledLinearCode()
     //  Detection Overlay Frame queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::mutex> lkObjectOverlayFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectOverlayFrameQueue(m_muFrameCopyMutex);
     // Check if there are unfulfilled requests.
-    if (!m_qDetectedObjectDrawnOverlayFrames.empty())
+    if (!m_qDetectedObjectDrawnOverlayFramesCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedObjectDrawnOverlayFrames.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedObjectDrawnOverlayFramesCopySchedule.front();
         // Pop out of queue.
-        m_qDetectedObjectDrawnOverlayFrames.pop();
+        m_qDetectedObjectDrawnOverlayFramesCopySchedule.pop();
         // Release lock.
         lkObjectOverlayFrameQueue.unlock();
 
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case PIXEL_FORMATS::eDepthDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
-            case PIXEL_FORMATS::eTensorflowDetection: *(stContainer.pFrame) = m_cvProcFrame; break;
-            default: *(stContainer.pFrame) = m_cvProcFrame;
+            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvTorchOverlayFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvTorchOverlayFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -185,44 +357,22 @@ void ObjectDetector::PooledLinearCode()
     }
 
     /////////////////////////////
-    //  DepthObject queue.
+    //  Object queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::mutex> lkDepthObjectQueue(m_muDepthDataCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectQueue(m_muArucoDataCopyMutex);
     // Check if there are unfulfilled requests.
-    if (!m_qDetectedDepthObjectCopySchedule.empty())
+    if (!m_qDetectedObjectCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<depthobject::DepthObject>> stContainer = m_qDetectedDepthObjectCopySchedule.front();
+        containers::DataFetchContainer<std::vector<objectdetectutils::Object>> stContainer = m_qDetectedObjectCopySchedule.front();
         // Pop out of queue.
-        m_qDetectedDepthObjectCopySchedule.pop();
+        m_qDetectedObjectCopySchedule.pop();
         // Release lock.
-        lkDepthObjectQueue.unlock();
+        lkObjectQueue.unlock();
 
         // Copy the detected objects to the target location
-        *(stContainer.pData) = m_vDetectedDepthObjects;
-
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
-    }
-
-    /////////////////////////////
-    //  TensorflowObject queue.
-    /////////////////////////////
-    // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::mutex> lkTensorflowObjectQueue(m_muTensorflowDataCopyMutex);
-    // Check if there are unfulfilled requests.
-    if (!m_qDetectedTensorflowObjectCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<tensorflowobject::TensorflowObject>> stContainer = m_qDetectedTensorflowObjectCopySchedule.front();
-        // Pop out of queue.
-        m_qDetectedTensorflowObjectCopySchedule.pop();
-        // Release lock.
-        lkTensorflowObjectQueue.unlock();
-
-        // Copy the detected objects to the target location
-        *(stContainer.pData) = m_vDetectedTensorObjects;
+        *stContainer.pData = m_vDetectedObjects;
 
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -230,25 +380,24 @@ void ObjectDetector::PooledLinearCode()
 }
 
 /******************************************************************************
- * @brief Request a copy of a frame containing the object detection overlays from the
- *      depth library.
+ * @brief Request a copy of the frame containing the detected objects from all
+ *      detection methods drawn onto the frame.
  *
- * @param cvFrame - The frame to copy the detection overlay image to.
- * @return std::future<bool> - The future that should be waited on before using the passed in frame.
- *                      Future will be true or false based on whether or not the frame was successfully retrieved.
+ * @param cvFrame - The cv::Mat frame to copy the detection overlay image to.
+ * @return std::future<bool> - The future that will be set to true when the frame is copied.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-11
+ * @date 2025-05-05
  ******************************************************************************/
-std::future<bool> ObjectDetector::RequestDepthDetectionOverlayFrame(cv::Mat& cvFrame)
+std::future<bool> ObjectDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
 {
     // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eDepthDetection);
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eObjectDetection);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
-    m_qDetectedObjectDrawnOverlayFrames.push(stContainer);
+    m_qDetectedObjectDrawnOverlayFramesCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
@@ -257,52 +406,24 @@ std::future<bool> ObjectDetector::RequestDepthDetectionOverlayFrame(cv::Mat& cvF
 }
 
 /******************************************************************************
- * @brief Request a copy of a frame containing the object detection overlays from the
- *      tensorflow model.
+ * @brief Request a copy of the most update to date vector of the detected objects
+ *    from all detection methods.
  *
- * @param cvFrame - The frame to copy the detection overlay image to.
- * @return std::future<bool> - The future that should be waited on before using the passed in frame.
- *                      Future will be true or false based on whether or not the frame was successfully retrieved.
+ * @param vObjects - The vector of detected objects to copy the detected objects to.
+ * @return std::future<bool> - The future that will be set to true when the objects are copied.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-11
+ * @date 2025-05-05
  ******************************************************************************/
-std::future<bool> ObjectDetector::RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame)
+std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetectutils::Object>& vObjects)
 {
     // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eTensorflowDetection);
+    containers::DataFetchContainer<std::vector<objectdetectutils::Object>> stContainer(vObjects);
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
-    m_qDetectedObjectDrawnOverlayFrames.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Request the most up to date vector of detected objects from OpenCV's Depth
- *      algorithm.
- *
- * @param vDepthObjects - The vector the detected depth objects will be saved to.
- * @return std::future<bool> - The future that should be waited on before using the passed in object vector.
- *                      Future will be true or false based on whether or not the objects were successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
- ******************************************************************************/
-std::future<bool> ObjectDetector::RequestDetectedDepthObjects(std::vector<depthobject::DepthObject>& vDepthObjects)
-{
-    // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<std::vector<depthobject::DepthObject>> stContainer(vDepthObjects);
-
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append detected object fetch container to the schedule queue.
-    m_qDetectedDepthObjectCopySchedule.push(stContainer);
+    m_qDetectedObjectCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
@@ -311,78 +432,353 @@ std::future<bool> ObjectDetector::RequestDetectedDepthObjects(std::vector<deptho
 }
 
 /******************************************************************************
- * @brief Request the most up to date vector of detected objects from our custom tensorflow
- *      model.
+ * @brief Initialize the PyTorch interpreter for object detection.
  *
- * @param vTensorflowObjects - The vector the detected tensorflow objects will be saved to.
- * @return std::future<bool> - The future that should be waited on before using the passed in object vector.
- *                      Future will be true or false based on whether or not the objects were successfully retrieved.
+ * @param szModelPath - The path to the PyTorch model file.
+ * @param eDevice - The hardware device to use for inference (e.g., CPU or GPU).
+ * @return true - Model was opened and loaded successfully onto the torch device.
+ * @return false - Model was not opened and loaded successfully onto the torch device.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-07
+ * @date 2025-05-05
  ******************************************************************************/
-std::future<bool> ObjectDetector::RequestDetectedTensorflowObjects(std::vector<tensorflowobject::TensorflowObject>& vTensorflowObjects)
+bool ObjectDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
 {
-    // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<std::vector<tensorflowobject::TensorflowObject>> stContainer(vTensorflowObjects);
+    // Initialize a new YOLOModel object.
+    m_pTorchDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
 
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append detected object fetch container to the schedule queue.
-    m_qDetectedTensorflowObjectCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedDataStatus->get_future();
+    // Check if device/model was opened without issue.
+    if (m_pTorchDetector->IsReadyForInference())
+    {
+        // Update member variable.
+        m_bTorchInitialized = true;
+        // Return status.
+        return true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Torch detection for ObjectDetector.");
+        // Update member variable.
+        m_bTorchInitialized = false;
+        // Return status.
+        return false;
+    }
 }
 
-// TODO: Implement when ready, commented out to suppress warnings.
-// /******************************************************************************
-//  * @brief Updates the detected depth objects including forgetting objects that haven't been seen for long enough.
-//  *      If a new object is spotted: add it to the detected objects vector
-//  *      If a object has been spotted again: update the objects distance and angle
-//  *      If a object hasn't been seen for a while: remove it from the vector
-//  *
-//  * @param vNewlyDetectedObjects - Input vector of DepthObject structs containing the object info.
-//  *
-//  * @author jspencerpittman (jspencerpittman@gmail.com)
-//  * @date 2023-10-06
-//  ******************************************************************************/
-// void ObjectDetector::UpdateDetectedObjects(std::vector<depthobject::DepthObject>& vNewlyDetectedObjects)
-// {
-//     // Put tag filter info here.
-//     // Add new tags to member variable.
-// }
-
-// TODO: Implement when ready, commented out to suppress warnings.
-// /******************************************************************************
-//  * @brief Updates the detected tensorflow objects including forgetting objects that haven't been seen for long enough.
-//  *      If a new object is spotted: add it to the detected objects vector
-//  *      If a object has been spotted again: update the objects distance and angle
-//  *      If a object hasn't been seen for a while: remove it from the vector
-//  *
-//  * @param vNewlyDetectedObjects - Input vector of TensorflowObject structs containing the object info.
-//  *
-//  * @author clayjay3 (claytonraycowen@gmail.com)
-//  * @date 2023-10-07
-//  ******************************************************************************/
-// void ObjectDetector::UpdateDetectedObjects(std::vector<tensorflowobject::TensorflowObject>& vNewlyDetectedObjects)
-// {
-//     // Put tag filter info here.
-//     // Add new tags to member variable.
-// }
-
 /******************************************************************************
- * @brief Accessor for the Frame I P S private member.
+ * @brief Enable the PyTorch detection method for this ObjectDetector.
  *
- * @return IPS& - The detector objects iteration per second counter.
+ * @param fMinObjectConfidence - The minimum confidence threshold for detected objects.
+ * @param fNMSThreshold - The non-maximum suppression threshold for filtering overlapping detections.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-10
+ * @date 2025-05-05
  ******************************************************************************/
-IPS& ObjectDetector::GetIPS()
+void ObjectDetector::EnableTorchDetection(const float fMinObjectConfidence, const float fNMSThreshold)
 {
-    // Return Iterations Per Second counter.
-    return m_IPS;
+    // Update member variables.
+    m_fTorchMinObjectConfidence = fMinObjectConfidence;
+    m_fTorchNMSThreshold        = fNMSThreshold;
+
+    // Check if torch model has been initialized.
+    if (m_bTorchInitialized)
+    {
+        // Update member variable.
+        m_bTorchEnabled = true;
+    }
+    else
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Tried to enable torch detection for ObjectDetector but it has not been initialized yet!");
+        // Update member variable.
+        m_bTorchEnabled = false;
+    }
+}
+
+/******************************************************************************
+ * @brief Set the flag to enable or disable object detection with the torch model.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+void ObjectDetector::DisableTorchDetection()
+{
+    // Update member variable.
+    m_bTorchEnabled = false;
+}
+
+/******************************************************************************
+ * @brief Set the max FPS of the detector.
+ *
+ * @param nRecordingFPS - The max FPS of the detector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+void ObjectDetector::SetDetectorMaxFPS(const int nRecordingFPS)
+{
+    // Set the max iterations per second of the main thread.
+    this->SetMainThreadIPSLimit(nRecordingFPS);
+}
+
+/******************************************************************************
+ * @brief Set the flag to enable or disable recording of the overlay output.
+ *
+ * @param bEnableRecordingFlag - The flag to enable or disable recording of the overlay output.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+void ObjectDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
+{
+    // Update member variable.
+    m_bEnableRecordingFlag = bEnableRecordingFlag;
+}
+
+/******************************************************************************
+ * @brief Check if the ObjectDetector is ready to be used.
+ *
+ * @return true - The ObjectDetector is ready to be used.
+ * @return false - The ObjectDetector is not ready to be used.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+bool ObjectDetector::GetIsReady()
+{
+    // Create instance variables.
+    bool bDetectorIsReady = false;
+
+    // Check if this detectors thread is currently running.
+    if (this->GetThreadState() == AutonomyThreadState::eRunning)
+    {
+        // Check if using ZEDCam or BasicCam.
+        if (m_bUsingZedCamera)
+        {
+            // Check if camera is NOT open.
+            if (std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
+            {
+                // Set camera opened toggle.
+                bDetectorIsReady = true;
+            }
+        }
+        else
+        {
+            // Check if camera is NOT open.
+            if (std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
+            {
+                // Set camera opened toggle.
+                bDetectorIsReady = true;
+            }
+        }
+    }
+
+    // Return if this detector is ready or not.
+    return bDetectorIsReady;
+}
+
+/******************************************************************************
+ * @brief Get the max FPS of the detector.
+ *
+ * @return int - The max FPS of the detector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+int ObjectDetector::GetDetectorMaxFPS() const
+{
+    // Return the max FPS of the detector.
+    return this->GetMainThreadMaxIPS();
+}
+
+/******************************************************************************
+ * @brief Get the flag to enable or disable recording of the overlay output.
+ *
+ * @return true - The flag to enable or disable recording of the overlay output.
+ * @return false - The flag to enable or disable recording of the overlay output.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+bool ObjectDetector::GetEnableRecordingFlag() const
+{
+    // Return the enable recording flag.
+    return m_bEnableRecordingFlag;
+}
+
+/******************************************************************************
+ * @brief Get the camera name.
+ *
+ * @return std::string - The camera name.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+std::string ObjectDetector::GetCameraName()
+{
+    // Return the camera name.
+    return m_szCameraName;
+}
+
+/******************************************************************************
+ * @brief Get the process frame resolution.
+ *
+ * @return cv::Size - The process frame resolution.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+cv::Size ObjectDetector::GetProcessFrameResolution() const
+{
+    // Check if using a ZED camera.
+    if (m_bUsingZedCamera)
+    {
+        // Concatenate camera model name and serial number.
+        return std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetPropResolution();
+    }
+    else
+    {
+        // Concatenate camera path or index.
+        return std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetPropResolution();
+    }
+}
+
+/******************************************************************************
+ * @brief Update the detected objects with the newly detected objects.
+ *
+ * @param vNewlyDetectedObjects - The vector of newly detected objects to update the detected objects with.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects)
+{
+    // Check if tracking is enabled.
+    if (m_bEnableTracking)
+    {
+        // Check if the given object vector is empty
+        if (vNewlyDetectedObjects.empty())
+        {
+            // Since the objects are empty that means the detector has not detected any new ground truth objects.
+            // In this case we will fallback to relying on the multi-tracker to track the objects and just update the objects
+            // stored in the m_vDetectedObjects vector.
+            // This is necessary because the torch detector is not perfect and may not detect all objects in the frame
+            // and it doesn't have the ability to track objects over time.
+            // We will use the multi-tracker to track the objects over time and update the bounding box data for the objects.
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+        else
+        {
+            // Loop through the newly detected objects.
+            for (objectdetectutils::Object& stObject : vNewlyDetectedObjects)
+            {
+                // Add the newly detected objects to the multi-tracker.
+                bool bMatchedObjectToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stObject.pBoundingBox, constants::BBOX_TRACKER_TYPE);
+                // Check if the object was matched to an existing tracker.
+                if (!bMatchedObjectToExistingTracker)
+                {
+                    // Add the new object to the member variable list.
+                    m_vDetectedObjects.emplace_back(stObject);
+                }
+                else
+                {
+                    // Find the object with the same bounding box pointer and update the ID and confidence.
+                    for (objectdetectutils::Object& stExistingObject : m_vDetectedObjects)
+                    {
+                        // Check if the bounding box pointers are the same.
+                        if (stObject.pBoundingBox == stExistingObject.pBoundingBox)
+                        {
+                            // Update the ID and confidence of the existing object.
+                            stExistingObject.dConfidence = stObject.dConfidence;
+                        }
+                    }
+                }
+            }
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+
+        // Loop through the detected objects and check if there are any we need to remove, and also update the time last seen.
+        for (std::vector<objectdetectutils::Object>::iterator itObject = m_vDetectedObjects.begin(); itObject != m_vDetectedObjects.end();)
+        {
+            // Check if the bounding box is 0,0,0,0.
+            if (itObject->pBoundingBox->x == 0 && itObject->pBoundingBox->y == 0 && itObject->pBoundingBox->width == 0 && itObject->pBoundingBox->height == 0)
+            {
+                // Remove the object from the vector.
+                itObject = m_vDetectedObjects.erase(itObject);
+            }
+            else
+            {
+                ++itObject;
+            }
+        }
+    }
+    else
+    {
+        // If tracking is not enabled, we will just clear the detected objects and add the new ones.
+        m_vDetectedObjects.clear();
+        // Loop through the newly detected objects and add them to the detected objects vector.
+        for (objectdetectutils::Object& stObject : vNewlyDetectedObjects)
+        {
+            // Set the object creation time to 0. The objects aren't being tracked, so we can't really tell their age.
+            stObject.tmCreation = std::chrono::system_clock::time_point::min();
+
+            // Add the new object to the member variable list.
+            m_vDetectedObjects.emplace_back(stObject);
+        }
+    }
+
+    // Check if we are using a ZED camera.
+    if (m_bUsingZedCamera)
+    {
+        // Check if the point cloud is empty.
+        if (!m_cvPointCloud.empty())
+        {
+            // Get the rover pose from the waypoint handler.
+            m_stRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            // Loop through the objects and use their center point to lookup their distance in the point cloud.
+            for (objectdetectutils::Object& stObject : m_vDetectedObjects)
+            {
+                // Use either width of height for the neighborhood size.
+                int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
+                // Geolocate the object in the point cloud.
+                stObject.stGeolocatedPosition =
+                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
+
+                // Since this is a object detection, set the object's waypoint type appropriately.
+                stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;
+                // Depending on the class name of the model, set the object type.
+                if (stObject.szClassName == "mallet")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eMallet;
+                }
+                else if (stObject.szClassName == "bottles")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eWaterBottle;
+                }
+
+                // Calculate the geo measurement and print the distance to the object.
+                geoops::GeoMeasurement stMeasurement =
+                    geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
+                // Set the straight line distance to the object.
+                stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
+                stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+            }
+        }
+    }
+    else
+    {
+        // Estimate the positions of the objects using some basic trig.
+        for (objectdetectutils::Object& stObject : m_vDetectedObjects)
+        {
+            // Use some trig to get the location of the object.
+            objectdetectutils::EstimatePoseFromCameraFrame(stObject);
+        }
+    }
 }

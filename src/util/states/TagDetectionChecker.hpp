@@ -91,7 +91,7 @@ namespace statemachine
     inline int IdentifyTargetMarker(const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors,
                                     tagdetectutils::ArucoTag& stArucoTarget,
                                     tagdetectutils::ArucoTag& stTorchTarget,
-                                    const int nTargetTagID = -1)
+                                    const int nTargetTagID = static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ANY))
     {
         // Create instance variables.
         std::vector<tagdetectutils::ArucoTag> vDetectedArucoTags;
@@ -114,6 +114,12 @@ namespace statemachine
             // Calculate what percentage of the screen the tag takes up.
             double dAreaPercentage = (dArea / (stCandidate.cvImageResolution.width * stCandidate.cvImageResolution.height)) * 100.0;
 
+            // If the distance of the tag is not greater than 0, skip it.
+            if (stCandidate.dStraightLineDistance <= 0.0)
+            {
+                continue;
+            }
+
             // Check the tag detection method type.
             if (stCandidate.eDetectionMethod == tagdetectutils::TagDetectionMethod::eOpenCV)
             {
@@ -121,10 +127,10 @@ namespace statemachine
                 szIdentifiedTags += "\tArUco ID: " + std::to_string(stCandidate.nID) + " Tag Age: " + std::to_string(dTagTotalAge) +
                                     "s Tag Screen Percentage: " + std::to_string(dAreaPercentage) + "%\n";
                 // Check if the tag is best.
-                if (stCandidate.nID == nTargetTagID || nTargetTagID == -1)
+                if (stCandidate.nID == nTargetTagID || static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ANY))
                 {
                     // Check if the tag meets the requirements.
-                    if (dAreaPercentage < constants::ARUCO_BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::ARUCO_MIN_LIFETIME_THRESHOLD)
+                    if (dAreaPercentage < constants::BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::BBOX_MIN_LIFETIME_THRESHOLD)
                     {
                         continue;
                     }
@@ -143,7 +149,7 @@ namespace statemachine
                 szIdentifiedTags += "\tTorch Class: " + stCandidate.szClassName + " Tag Age: " + std::to_string(dTagTotalAge) +
                                     "s Tag Screen Percentage: " + std::to_string(dAreaPercentage) + "%\n";
                 // Check if the tag meets the requirements.
-                if (dAreaPercentage < constants::ARUCO_BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::ARUCO_MIN_LIFETIME_THRESHOLD)
+                if (dAreaPercentage < constants::BBOX_MIN_SCREEN_PERCENTAGE || dTagTotalAge < constants::BBOX_MIN_LIFETIME_THRESHOLD)
                 {
                     continue;
                 }

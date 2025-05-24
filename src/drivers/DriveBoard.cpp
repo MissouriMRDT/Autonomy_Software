@@ -126,12 +126,9 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
         // Limit input values.
         double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
         double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
-        // Remap -1.0 - 1.0 range to drive power range defined in constants. This is so that the driveboard/rovecomm can understand our input.
-        fDriveBoardLeftPower  = numops::MapRange(float(dLeftSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
-        fDriveBoardRightPower = numops::MapRange(float(dRightSpeed), -1.0f, 1.0f, m_fMinDriveEffort, m_fMaxDriveEffort);
         // Limit the power to max and min effort defined in constants.
-        fDriveBoardLeftPower  = std::clamp(float(fDriveBoardLeftPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-        fDriveBoardRightPower = std::clamp(float(fDriveBoardRightPower), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+        fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+        fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
         // Update member variables with new target speeds.
         m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
         m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
@@ -144,11 +141,12 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
     stPacket.vData.emplace_back(fDriveBoardLeftPower);
     stPacket.vData.emplace_back(fDriveBoardRightPower);
-    // Check if we should send packets to the SIM or board.
-    const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
+        // Check if we should send packets to the SIM or board.
+        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+        // Send packet.
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
     // Submit logger message.

@@ -374,11 +374,31 @@ if (BUILD_TESTS_MODE)
         message("No Integration Tests!")
     endif()
 
+    # Add these near your other options
+    set(COVERAGE_EXCLUDES "external/;examples/;tests/;tools/;src/states/;src/handlers/;src/interfaces;src/vision" CACHE STRING "Directories to exclude from coverage")
+
+    # Then modify the run_coverage target to use these variables
     if (BUILD_CODE_COVERAGE AND BUILD_COVERAGE_WATCH)
+        # Create separate exclude arguments for gcovr
+        set(GCOVR_EXCLUDE_ARGS "")
+        foreach(EXCLUDE_DIR ${COVERAGE_EXCLUDES})
+            list(APPEND GCOVR_EXCLUDE_ARGS --exclude)
+            list(APPEND GCOVR_EXCLUDE_ARGS ".*/${EXCLUDE_DIR}.*")
+        endforeach()
+        
+        # Build lcov exclude arguments properly
+        set(LCOV_EXCLUDE_ARGS "--remove")
+        list(APPEND LCOV_EXCLUDE_ARGS "coverage_raw.info")
+        list(APPEND LCOV_EXCLUDE_ARGS "/usr/include/*")
+        foreach(EXCLUDE_DIR ${COVERAGE_EXCLUDES})
+            list(APPEND LCOV_EXCLUDE_ARGS "*/${EXCLUDE_DIR}/*")
+        endforeach()
+
         add_custom_target(run_coverage ALL
             COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-            COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
-            COMMAND lcov -c -d . -o coverage.info
+            COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml ${GCOVR_EXCLUDE_ARGS}
+            COMMAND lcov -c -d . -o coverage_raw.info
+            COMMAND lcov ${LCOV_EXCLUDE_ARGS} -o coverage.info
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMENT "Running tests and generating coverage reports..."
             VERBATIM

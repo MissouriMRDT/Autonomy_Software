@@ -47,6 +47,8 @@ enum class PIXEL_FORMATS
     eSRGB,
     eLAB,
     eArucoDetection,
+    eObjectDetection,
+    eObstacleDetection,
     eDepthDetection,
     eTensorflowDetection,
     eTorchDetection,

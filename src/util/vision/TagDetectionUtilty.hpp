@@ -25,11 +25,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
- * @brief Namespace containing functions to assist in tag detection.
+ * @brief Namespace containing function to assist in tag detection.
  *
  *
- * @author Jason Pittman (jspencerpittman@gmail.com)
- * @date 2024-10-07
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
  ******************************************************************************/
 namespace tagdetectutils
 {
@@ -143,7 +143,7 @@ namespace tagdetectutils
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-02-13
      ******************************************************************************/
-    inline cv::Point2f FindTagCenter(const tagdetectutils::ArucoTag& stTag)
+    inline cv::Point2f FindTagCenter(const ArucoTag& stTag)
     {
         // Calculate the center point of the tag.
         cv::Point2f cvCenter = cv::Point2f(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2);
@@ -161,7 +161,7 @@ namespace tagdetectutils
      * @author jspencerpittman (jspencerpittman@gmail.com)
      * @date 2023-10-06
      ******************************************************************************/
-    inline void EstimatePoseFromPNP(cv::Mat& cvCameraMatrix, cv::Mat& cvDistCoeffs, tagdetectutils::ArucoTag& stTag)
+    inline void EstimatePoseFromPNP(cv::Mat& cvCameraMatrix, cv::Mat& cvDistCoeffs, ArucoTag& stTag)
     {
         // rotVec is how the tag is orientated with respect to the camera. It's 3 numbers defining an axis of rotation around which we rotate the angle which is the
         // euclidean distance of the vector. transVec is the XYZ translation of the tag from the camera if you image the convergence of light as a pinhole sitting at
@@ -211,7 +211,7 @@ namespace tagdetectutils
      * @author sam_hajdukiewicz (samanthahajdukiewicz@gmail.com) :3
      * @date 2025-04-04
      ******************************************************************************/
-    inline void EstimatePoseFromCameraFrame(tagdetectutils::ArucoTag& stTag)
+    inline void EstimatePoseFromCameraFrame(ArucoTag& stTag)
     {
         // Use camera field of view and camera frame size to determine tag angle in degrees from center of camera.
         double dDegreesPerPixel = stTag.dHorizontalFOV / stTag.cvImageResolution.width;

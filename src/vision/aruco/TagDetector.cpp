@@ -11,7 +11,6 @@
 #include "TagDetector.h"
 #include "../../AutonomyGlobals.h"
 #include "../../util/vision/Geolocate.hpp"
-#include "../../util/vision/ImageOperations.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TorchTagDetection.hpp"
 
@@ -56,9 +55,8 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
-    m_szCameraName                     = std::dynamic_pointer_cast<BasicCamera>(pBasicCam)->GetCameraLocation();
+    m_szCameraName                     = pBasicCam->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
-    m_IPS                              = IPS();
     m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
@@ -73,9 +71,9 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT,
-                                                               constants::ARUCO_BBOX_TRACKER_MAX_TRACK_TIME,
-                                                               constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_MAX_TRACK_TIME,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -138,7 +136,9 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -161,7 +161,7 @@ TagDetector::~TagDetector()
     this->Join();
 
     // Submit logger message.
-    LOG_INFO(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully destroyed.", this->GetCameraName());
+    LOG_INFO(logging::g_qSharedLogger, "TagDetector for camera {} has been successfully destroyed.", this->GetCameraName());
 }
 
 /******************************************************************************
@@ -254,8 +254,6 @@ void TagDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
                 }
                 else
                 {
@@ -280,11 +278,6 @@ void TagDetector::ThreadedContinuousCode()
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
                 }
-                else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
-                {
-                    // Drop the Alpha channel from the image. This is necessary for the Aruco detection.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-                }
             }
         }
         else
@@ -297,15 +290,6 @@ void TagDetector::ThreadedContinuousCode()
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
-            }
-            else
-            {
-                // Check if the camera image is a >3 channel image.
-                if (m_cvFrame.channels() > 3)
-                {
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-                }
             }
         }
 
@@ -322,11 +306,10 @@ void TagDetector::ThreadedContinuousCode()
 
         // Clear the list of newly detected tags.
         m_vNewlyDetectedTags.clear();
-        // Run image through some pre-processing step to improve detection.
-        // NOTE: I disabled this since it was just converting to grayscale and isn't strictly necessary. - Clayton
-        // arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
-        // Copy the camera frame to the pre-processing frame.
+        // Clone frames.
         m_cvArucoProcFrame = m_cvFrame.clone();
+        // Copy the camera frame to the pre-processing frame.
+        cv::cvtColor(m_cvArucoProcFrame, m_cvArucoProcFrame, cv::COLOR_BGRA2BGR);
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
         // Add OpenCV tags to the list of newly detected tags.
@@ -335,11 +318,9 @@ void TagDetector::ThreadedContinuousCode()
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
         {
-            // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
-                torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+                torchtag::Detect(m_cvArucoProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
             // Add Torch tags to the list of newly detected tags.
             m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }
@@ -570,6 +551,139 @@ void TagDetector::DisableTorchDetection()
 }
 
 /******************************************************************************
+ * @brief Mutator for the desired max FPS for this detector.
+ *
+ * @param nRecordingFPS - The max frames per second to detect tags at.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-22
+ ******************************************************************************/
+void TagDetector::SetDetectorMaxFPS(const int nRecordingFPS)
+{
+    // Set the max iterations per second of the recording handler.
+    this->SetMainThreadIPSLimit(nRecordingFPS);
+}
+
+/******************************************************************************
+ * @brief Mutator for the Enable Recording Flag private member
+ *
+ * @param bEnableRecordingFlag - Whether or not recording should be enabled for this detector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void TagDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
+{
+    m_bEnableRecordingFlag = bEnableRecordingFlag;
+}
+
+/******************************************************************************
+ * @brief Accessor for the status of this TagDetector.
+ *
+ * @return true - The detector is running and detecting tags from the camera.
+ * @return false - The detector thread and/or camera is not running/opened.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-04
+ ******************************************************************************/
+bool TagDetector::GetIsReady()
+{
+    // Create instance variables.
+    bool bDetectorIsReady = false;
+
+    // Check if this detectors thread is currently running.
+    if (this->GetThreadState() == AutonomyThreadState::eRunning)
+    {
+        // Check if using ZEDCam or BasicCam.
+        if (m_bUsingZedCamera)
+        {
+            // Check if camera is NOT open.
+            if (std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
+            {
+                // Set camera opened toggle.
+                bDetectorIsReady = true;
+            }
+        }
+        else
+        {
+            // Check if camera is NOT open.
+            if (std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
+            {
+                // Set camera opened toggle.
+                bDetectorIsReady = true;
+            }
+        }
+    }
+
+    // Return if this detector is ready or not.
+    return bDetectorIsReady;
+}
+
+/******************************************************************************
+ * @brief Accessor for the desired max FPS for this detector.
+ *
+ * @return int - The max frames per second the detector can run at.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-22
+ ******************************************************************************/
+int TagDetector::GetDetectorMaxFPS() const
+{
+    // Return member variable value.
+    return this->GetMainThreadMaxIPS();
+}
+
+/******************************************************************************
+ * @brief Accessor for the Enable Recording Flag private member.
+ *
+ * @return true - Recording for this detector has been requested/flagged.
+ * @return false - This detector should not be recorded.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+bool TagDetector::GetEnableRecordingFlag() const
+{
+    return m_bEnableRecordingFlag;
+}
+
+/******************************************************************************
+ * @brief Accessor for the camera name or path that this TagDetector is tied to.
+ *
+ * @return std::string - The name/path/index of the camera used by this TagDetector.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+std::string TagDetector::GetCameraName()
+{
+    return m_szCameraName;
+}
+
+/******************************************************************************
+ * @brief Accessor for the resolution of the process image used for tag detection.
+ *
+ * @return cv::Size - The resolution stored in an OpenCV cv::Size.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+cv::Size TagDetector::GetProcessFrameResolution() const
+{
+    // Check if using a ZED camera.
+    if (m_bUsingZedCamera)
+    {
+        // Concatenate camera model name and serial number.
+        return std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetPropResolution();
+    }
+    else
+    {
+        // Concatenate camera path or index.
+        return std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetPropResolution();
+    }
+}
+
+/******************************************************************************
  * @brief Updates the detected torch tags including tracking the detected tags over time
  *        and removing tags that haven't been seen for long enough.
  *
@@ -602,7 +716,7 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
             for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
             {
                 // Add the newly detected tags to the multi-tracker.
-                bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
+                bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::BBOX_TRACKER_TYPE);
                 // Check if the tag was matched to an existing tracker.
                 if (!bMatchedTagToExistingTracker)
                 {
@@ -673,16 +787,28 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
                 // Geolocate the tag in the point cloud.
-                stTag.stGeolocatedPosition =
+                geoops::Waypoint stGeolocation =
                     geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
                 // Since this is a tag detection, set the tag's waypoint type appropriately.
-                stTag.stGeolocatedPosition.eType = geoops::WaypointType::eTagWaypoint;
-                // Calculate the geo measurement and print the distance to the tag.
-                geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stTag.stGeolocatedPosition.GetUTMCoordinate());
-                // Set the straight line distance to the tag.
-                stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
-                // Use the rover heading and the azimuth angle to calculate the relative heading to the tag.
-                stTag.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
+
+                // Check if the geolocation is valid.
+                if (stGeolocation != geoops::Waypoint())
+                {
+                    // Calculate the geo measurement and print the distance to the tag.
+                    geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
+
+                    // Check that the distance is in a reasonable range.
+                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    {
+                        // Set the tag's geolocation.
+                        stTag.stGeolocatedPosition = stGeolocation;
+                        // Use the rover heading and the azimuth angle to calculate the relative heading to the tag.
+                        stTag.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                        // Set the straight line distance to the tag.
+                        stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                    }
+                }
             }
         }
     }
@@ -694,138 +820,5 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
             // Use some trig to get the location of the tag.
             tagdetectutils::EstimatePoseFromCameraFrame(stTag);
         }
-    }
-}
-
-/******************************************************************************
- * @brief Mutator for the desired max FPS for this detector.
- *
- * @param nRecordingFPS - The max frames per second to detect tags at.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-22
- ******************************************************************************/
-void TagDetector::SetDetectorFPS(const int nRecordingFPS)
-{
-    // Set the max iterations per second of the recording handler.
-    this->SetMainThreadIPSLimit(nRecordingFPS);
-}
-
-/******************************************************************************
- * @brief Mutator for the Enable Recording Flag private member
- *
- * @param bEnableRecordingFlag - Whether or not recording should be enabled for this detector.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-12-31
- ******************************************************************************/
-void TagDetector::SetEnableRecordingFlag(const bool bEnableRecordingFlag)
-{
-    m_bEnableRecordingFlag = bEnableRecordingFlag;
-}
-
-/******************************************************************************
- * @brief Accessor for the status of this TagDetector.
- *
- * @return true - The detector is running and detecting tags from the camera.
- * @return false - The detector thread and/or camera is not running/opened.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-04
- ******************************************************************************/
-bool TagDetector::GetIsReady()
-{
-    // Create instance variables.
-    bool bDetectorIsReady = false;
-
-    // Check if this detectors thread is currently running.
-    if (this->GetThreadState() == AutonomyThreadState::eRunning)
-    {
-        // Check if using ZEDCam or BasicCam.
-        if (m_bUsingZedCamera)
-        {
-            // Check if camera is NOT open.
-            if (std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraIsOpen())
-            {
-                // Set camera opened toggle.
-                bDetectorIsReady = true;
-            }
-        }
-        else
-        {
-            // Check if camera is NOT open.
-            if (std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraIsOpen())
-            {
-                // Set camera opened toggle.
-                bDetectorIsReady = true;
-            }
-        }
-    }
-
-    // Return if this detector is ready or not.
-    return bDetectorIsReady;
-}
-
-/******************************************************************************
- * @brief Accessor for the desired max FPS for this detector.
- *
- * @return int - The max frames per second the detector can run at.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-22
- ******************************************************************************/
-int TagDetector::GetDetectorFPS() const
-{
-    // Return member variable value.
-    return this->GetMainThreadMaxIPS();
-}
-
-/******************************************************************************
- * @brief Accessor for the Enable Recording Flag private member.
- *
- * @return true - Recording for this detector has been requested/flagged.
- * @return false - This detector should not be recorded.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-12-31
- ******************************************************************************/
-bool TagDetector::GetEnableRecordingFlag() const
-{
-    return m_bEnableRecordingFlag;
-}
-
-/******************************************************************************
- * @brief Accessor for the camera name or path that this TagDetector is tied to.
- *
- * @return std::string - The name/path/index of the camera used by this TagDetector.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-01
- ******************************************************************************/
-std::string TagDetector::GetCameraName()
-{
-    return m_szCameraName;
-}
-
-/******************************************************************************
- * @brief Accessor for the resolution of the process image used for tag detection.
- *
- * @return cv::Size - The resolution stored in an OpenCV cv::Size.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-01
- ******************************************************************************/
-cv::Size TagDetector::GetProcessFrameResolution() const
-{
-    // Check if using a ZED camera.
-    if (m_bUsingZedCamera)
-    {
-        // Concatenate camera model name and serial number.
-        return std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetPropResolution();
-    }
-    else
-    {
-        // Concatenate camera path or index.
-        return std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetPropResolution();
     }
 }

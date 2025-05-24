@@ -11,6 +11,7 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
+#include "./util/states/ObjectDetectionChecker.hpp"
 #include "./util/states/TagDetectionChecker.hpp"
 
 /// \cond
@@ -209,30 +210,36 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pCameraHandler       = new CameraHandler();
-        globals::g_pWaypointHandler     = new WaypointHandler();
-        globals::g_pTagDetectionHandler = new TagDetectionHandler();
-        globals::g_pStateMachineHandler = new StateMachineHandler();
+        globals::g_pCameraHandler          = new CameraHandler();
+        globals::g_pWaypointHandler        = new WaypointHandler();
+        globals::g_pTagDetectionHandler    = new TagDetectionHandler();
+        globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
+        globals::g_pStateMachineHandler    = new StateMachineHandler();
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
+        globals::g_pObjectDetectionHandler->StartAllDetectors();
         // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
+        globals::g_pObjectDetectionHandler->StartRecording();
 
         /////////////////////////////////////////
         // Declare local variables used in main loop.
         /////////////////////////////////////////
         // Get Camera and Tag detector pointers .
-        std::shared_ptr<ZEDCamera> pMainCam          = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        std::shared_ptr<BasicCamera> pGroundCam      = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
-        std::shared_ptr<TagDetector> pMainDetector   = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
-        std::shared_ptr<TagDetector> pGroundDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam);
-        IPS IterPerSecond                            = IPS();
+        std::shared_ptr<ZEDCamera> pMainCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        std::shared_ptr<TagDetector> pMainTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
+        std::shared_ptr<ObjectDetector> pMainObjectDetector =
+            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
+        IPS IterPerSecond = IPS();
 
         // Now that cameras and detectors are configured start state machine.
         globals::g_pStateMachineHandler->StartStateMachine();
+
+        // Create a vector of ints to store the FPS values for each thread.
+        std::vector<uint32_t> vThreadFPSValues;
 
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
@@ -240,15 +247,24 @@ int main()
         */
         while (!bMainStop)
         {
+            // Add each threads FPS value to the vector.
+            vThreadFPSValues.clear();
+            vThreadFPSValues.push_back(static_cast<uint32_t>(IterPerSecond.GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainCam->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainTagDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainObjectDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
+
             // Create a string to append FPS values to.
             std::string szMainInfo = "";
             // Get FPS of all cameras and detectors and construct the info into a string.
             szMainInfo += "\n--------[ Threads FPS ]--------\n";
             szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "GroundCam FPS: " + std::to_string(pGroundCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "MainDetector FPS: " + std::to_string(pMainDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "GroundDetector FPS: " + std::to_string(pGroundDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainTagDetector FPS: " + std::to_string(pMainTagDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainObjectDetector FPS: " + std::to_string(pMainObjectDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
@@ -276,6 +292,7 @@ int main()
                                    "Press 'f' or 'F' to print FPS stats to the log file.\n"
                                    "Press 'p' or 'P' to print rover pose info to the log file.\n"
                                    "Press 't' or 'T' to print tag detection info to the log file.\n"
+                                   "Press 'm' or 'M' to print object detection info to the log file.\n"
                                    "Press 'q' or 'Q' to quit the program.\n"
                                    "-------------------------------------------\n");
                     }
@@ -299,14 +316,14 @@ int main()
                     else if (chTerminalInput == 't' || chTerminalInput == 'T')
                     {
                         // Get the tags from the tag detectors.
-                        if (pMainDetector->GetIsReady())
+                        if (pMainTagDetector->GetIsReady())
                         {
                             // Create instance variables.
                             tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
                             int nTagCount = 0;
 
                             // Get the best/valid tags from the tag detectors.
-                            std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainDetector, pGroundDetector};
+                            std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainTagDetector};
                             // Check if the next waypoint in the waypoint handler exists and had a tag ID.
                             if (globals::g_pWaypointHandler->GetWaypointCount() > 0)
                             {
@@ -358,12 +375,83 @@ int main()
                             LOG_WARNING(logging::g_qSharedLogger, "Tag Detector is not ready yet. Cannot get tags.");
                         }
                     }
+                    else if (chTerminalInput == 'm' || chTerminalInput == 'M')
+                    {
+                        // Get the tags from the tag detectors.
+                        if (pMainObjectDetector->GetIsReady())
+                        {
+                            // Create instance variables.
+                            objectdetectutils::Object stBestTorchObject;
+                            int nObjectCount = 0;
+
+                            // Get the best/valid tags from the tag detectors.
+                            std::vector<std::shared_ptr<ObjectDetector>> vTagDetectors = {pMainObjectDetector};
+                            // Get the best tags from the tag detectors.
+                            nObjectCount = statemachine::IdentifyTargetObject(vTagDetectors, stBestTorchObject);
+
+                            // Submit logger message.
+                            std::ostringstream ossTagsInfo;
+                            ossTagsInfo << "\n--------[ All Detections ]--------\n"
+                                        << "Detected Object Info:\n"
+                                        << "Total Object: " << nObjectCount << "\n";
+
+                            ossTagsInfo << "\n--------[ Valid/Best Objects ]--------\n";
+                            if (stBestTorchObject.dConfidence != 0.0)
+                            {
+                                ossTagsInfo << "Best Torch Object Distance: " << stBestTorchObject.dStraightLineDistance << "\n";
+                                ossTagsInfo << "Best Torch Object Yaw Angle: " << stBestTorchObject.dYawAngle << "\n";
+                            }
+                            else
+                            {
+                                ossTagsInfo << "No valid Torch objects detected.\n";
+                            }
+
+                            LOG_NOTICE(logging::g_qSharedLogger, "{}", ossTagsInfo.str());
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger, "Object Detector is not ready yet. Cannot get objects.");
+                        }
+                    }
                     else if (chTerminalInput == 'q' || chTerminalInput == 'Q')
                     {
                         LOG_INFO(logging::g_qSharedLogger, "'Q' key pressed. Initiating shutdown...");
                         bMainStop = true;
                     }
                 }
+            }
+
+            /////////////////////////////////////////
+            // Send thread stats over RoveComm.
+            /////////////////////////////////////////
+            // Check if rovecomm is initialized and running.
+            if (network::g_pRoveCommUDPNode)
+            {
+                // Construct a RoveComm packet with the drive data.
+                rovecomm::RoveCommPacket<uint32_t> stPacket;
+                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_ID;
+                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
+                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
+                // Create a static variable to act a counter/iterator for the FPS value to use.
+                static uint32_t nThreadFPSIndex = 0;
+                // Check if the index is within bounds of the vector.
+                if (nThreadFPSIndex < static_cast<uint32_t>(vThreadFPSValues.size()))
+                {
+                    // First push back the thread enum identifier cast to an int.
+                    stPacket.vData.push_back(nThreadFPSIndex + 1);
+                    // Add the current FPS value to the packet data.
+                    stPacket.vData.push_back(static_cast<float>(vThreadFPSValues[nThreadFPSIndex]));
+                    // Increment the index for the next iteration.
+                    nThreadFPSIndex++;
+                }
+                else
+                {
+                    // Reset the index if it exceeds the vector size.
+                    nThreadFPSIndex = 0;
+                }
+                // Send the packet over RoveComm UDP.
+                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
             }
 
             // Update IPS tick.
@@ -392,19 +480,22 @@ int main()
 
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
+        globals::g_pObjectDetectionHandler->StopAllDetectors();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
         // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
+        delete globals::g_pObjectDetectionHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
-        globals::g_pStateMachineHandler = nullptr;
-        globals::g_pTagDetectionHandler = nullptr;
-        globals::g_pCameraHandler       = nullptr;
-        globals::g_pWaypointHandler     = nullptr;
+        globals::g_pStateMachineHandler    = nullptr;
+        globals::g_pObjectDetectionHandler = nullptr;
+        globals::g_pTagDetectionHandler    = nullptr;
+        globals::g_pCameraHandler          = nullptr;
+        globals::g_pWaypointHandler        = nullptr;
     }
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.

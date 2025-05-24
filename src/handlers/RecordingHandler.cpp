@@ -62,6 +62,18 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vFrameFutures.resize(m_nTotalVideoFeeds);
             break;
 
+        // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
+        case RecordingMode::eObjectDetectionHandler:
+            // Initialize member variables.
+            m_nTotalVideoFeeds = int(ObjectDetectionHandler::ObjectDetectors::OBJECTDETECTOR_END) - 1;
+            // Resize member vectors to match number of total video feeds to record.
+            m_vObjectDetectors.resize(m_nTotalVideoFeeds);
+            m_vCameraWriters.resize(m_nTotalVideoFeeds);
+            m_vRecordingToggles.resize(m_nTotalVideoFeeds);
+            m_vFrames.resize(m_nTotalVideoFeeds);
+            m_vFrameFutures.resize(m_nTotalVideoFeeds);
+            break;
+
         default:
             // Do nothing.
             break;
@@ -117,6 +129,14 @@ void RecordingHandler::ThreadedContinuousCode()
             this->UpdateRecordableTagDetectors();
             // Grab and write overlay frames to VideoWriters.
             this->RequestAndWriteTagDetectorFrames();
+            break;
+
+        // Record video feeds from the ObjectDetectionHandler.
+        case RecordingMode::eObjectDetectionHandler:
+            // Update recordable detectors.
+            this->UpdateRecordableObjectDetectors();
+            // Grab and write overlay frames to VideoWriters.
+            this->RequestAndWriteObjectDetectorFrames();
             break;
 
         // Shutdown recording handler.
@@ -505,6 +525,133 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
     {
         // Check if recording for the camera at this index is enabled and tag detector is not null.
         if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
+        {
+            // Wait for future to be fulfilled.
+            if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+            {
+                // Check if this is a grayscale or color image.
+                if (m_vFrames[nIter].channels() == 1)
+                {
+                    // Convert frame from 1 channel grayscale to 3 channel BGR.
+                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                }
+                // Check if this has an alpha channel.
+                else if (m_vFrames[nIter].channels() == 4)
+                {
+                    // Convert from from 4 channels to 3 channels.
+                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                }
+
+                // Write frame to OpenCV video writer.
+                m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+            }
+        }
+    }
+}
+
+/******************************************************************************
+ * @brief This method is used internally by the class to update the number of ObjectDetectors
+ *      that have recording enabled from the camera handler.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-12-31
+ ******************************************************************************/
+void RecordingHandler::UpdateRecordableObjectDetectors()
+{
+    // Loop through all Basic cameras from the CameraHandler.
+    for (int nDetector = int(ObjectDetectionHandler::ObjectDetectors::OBJECTDETECTOR_START) + 1;
+         nDetector != int(ObjectDetectionHandler::ObjectDetectors::OBJECTDETECTOR_END);
+         ++nDetector)
+    {
+        // Get pointer to camera.
+        std::shared_ptr<ObjectDetector> pObjectDetector =
+            globals::g_pObjectDetectionHandler->GetObjectDetector(static_cast<ObjectDetectionHandler::ObjectDetectors>(nDetector));
+        // Store camera pointer in vector so we can get images later.
+        m_vObjectDetectors[nDetector - 1] = pObjectDetector;
+
+        // Check if recording for this camera is enabled.
+        if (pObjectDetector->GetEnableRecordingFlag() && pObjectDetector->GetIsReady())
+        {
+            // Set recording toggle.
+            m_vRecordingToggles[nDetector - 1] = true;
+            // Setup VideoWriter if needed.
+            if (!m_vCameraWriters[nDetector - 1].isOpened())
+            {
+                // Assemble filepath string.
+                std::filesystem::path szFilePath;
+                std::filesystem::path szFilenameWithExtension;
+                szFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE;                     // Main location for all recordings.
+                szFilePath += logging::g_szProgramStartTimeString + "/objectdetector";    // Folder for each program run.
+                szFilenameWithExtension = pObjectDetector->GetCameraName() + ".mkv";      // Folder for each camera index or name.
+
+                // Check if directory exists.
+                if (!std::filesystem::exists(szFilePath))
+                {
+                    // Create directory.
+                    if (!std::filesystem::create_directories(szFilePath))
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger,
+                                  "Unable to create the VideoWriter output directory: {} for tag detector {}",
+                                  szFilePath.string(),
+                                  pObjectDetector->GetCameraName());
+                    }
+                }
+
+                // Construct the full output path.
+                std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
+
+                // Open writer.
+                bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
+                                                                          cv::VideoWriter::fourcc('H', '2', '6', '4'),
+                                                                          constants::RECORDER_FPS,
+                                                                          pObjectDetector->GetProcessFrameResolution());
+
+                // Check writer opened status.
+                if (!bWriterOpened)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
+                                pObjectDetector->GetCameraName());
+                }
+            }
+        }
+        else
+        {
+            // Set recording toggle.
+            m_vRecordingToggles[nDetector - 1] = false;
+        }
+    }
+}
+
+/******************************************************************************
+ * @brief This method is used internally by the RecordingHandler to request and write
+ *      frames to from the ObjectDetectors stored in the member variable vectors.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-01
+ ******************************************************************************/
+void RecordingHandler::RequestAndWriteObjectDetectorFrames()
+{
+    // Loop through total number of cameras and request frames.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
+        if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
+        {
+            // Request frame.
+            m_vFrameFutures[nIter] = m_vObjectDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
+        }
+    }
+
+    // Loop through cameras and wait for frame requests to be fulfilled.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled and tag detector is not null.
+        if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
         {
             // Wait for future to be fulfilled.
             if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
