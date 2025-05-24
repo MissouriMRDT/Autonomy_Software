@@ -12,6 +12,8 @@
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
 #include "../algorithms/kinematics/DifferentialDrive.hpp"
+#include "../handlers/WaypointHandler.h"
+#include "../util/GeospatialOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -111,6 +113,39 @@ namespace statemachine
             LOG_NOTICE(logging::g_qSharedLogger,
                        "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
                        std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
+            // // Handing unstuck event. Destroy this unstuck state.
+            // globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
+            //
+            //
+            //
+            //
+            // Testing stuff: comment out code below
+            //
+            //
+            //
+            //
+            // Test: Add -99 nav waypoint to go around obstacle
+            // Set the angle of where the new right nav point is placed in degrees.
+            double dNewAngle = numops::InputAngleModulus<double>(stCurrentRoverPose.GetCompassHeading() + constants::STUCK_TURN_ANGLE, 0, 360);
+            // Convert new angle to radians.
+            dNewAngle *= M_PI / 180.0;
+            // Calculate our current distance from where we got stuck.
+            double dDistanceFromStuckPoint = geoops::CalculateGeoMeasurement(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()).dDistanceMeters;
+            // Calculate the northings and eastings for the new nav waypoint.
+            geoops::UTMCoordinate stNewNavPosition = geoops::ConvertGPSToUTM(m_stOriginalPosition);
+            stNewNavPosition.dNorthing += 5 * std::cos(dNewAngle) * dDistanceFromStuckPoint;
+            stNewNavPosition.dEasting += 5 * std::sin(dNewAngle) * dDistanceFromStuckPoint;
+            // Create new waypoint to the right of our obstacle to navigate around it.
+            geoops::Waypoint stRightNav(stNewNavPosition);
+            // Mark as intermediate point (do not flash green).
+            stRightNav.nID = -99;
+            // Add the new waypoint to the front of the queue to navigate to.
+            globals::g_pWaypointHandler->PushWaypoint(stRightNav);
+            LOG_NOTICE(logging::g_qSharedLogger, "meow meow");
+            //
+            //
+            //
+            //
             // Handing unstuck event. Destroy this unstuck state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
         }

@@ -318,6 +318,7 @@ namespace statemachine
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            m_bFetchNewWaypoint = true;
             // Don't execute the rest of the state.
             return;
         }

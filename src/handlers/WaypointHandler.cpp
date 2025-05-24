@@ -529,6 +529,23 @@ geoops::Waypoint WaypointHandler::PopNextWaypoint()
 }
 
 /******************************************************************************
+ * @brief Append a waypoint to the front of the WaypointHandler's list.
+ *
+ * @param stWaypoint - The WaypointHandler::geoops::Waypoint struct containing information about the waypoint to
+ *                  store in the handler.
+ *
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+ * @date 2025-05-23
+ ******************************************************************************/
+void WaypointHandler::PushWaypoint(const geoops::Waypoint& stWaypoint)
+{
+    // Acquire a write lock on the waypoint vector.
+    std::unique_lock<std::shared_mutex> lkWaypointListLock(m_muWaypointsMutex);
+    // Add waypoint to front of member variable vector.
+    m_vWaypointList.insert(m_vWaypointList.begin(), stWaypoint);
+}
+
+/******************************************************************************
  * @brief Returns an immutable reference to the geoops::Waypoint struct at the front of
  *      the list without removing it.
  *

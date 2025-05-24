@@ -32,6 +32,7 @@
 class WaypointHandler
 {
     public:
+        using woid = geoops::Waypoint;
         /////////////////////////////////////////
         // Declare public member variables.
         /////////////////////////////////////////
@@ -63,6 +64,8 @@ class WaypointHandler
         void ClearWaypoints();
         void ClearPaths();
         void ClearObstacles();
+        void PushWaypoint(const geoops::Waypoint& stWaypoint);
+        woid PopNextWaypoint();
 
         /////////////////////////////////////////
         // Setters.
@@ -71,7 +74,6 @@ class WaypointHandler
         /////////////////////////////////////////
         // Getters.
         /////////////////////////////////////////
-        geoops::Waypoint PopNextWaypoint();
         const geoops::Waypoint PeekNextWaypoint();
         const geoops::Waypoint RetrieveWaypointAtIndex(const long unsigned int nIndex);
         const std::vector<geoops::Waypoint> RetrievePath(const std::string& szPathName);
