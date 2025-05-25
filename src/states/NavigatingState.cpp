@@ -194,8 +194,21 @@ namespace statemachine
                 // Goal waypoint is navigation.
                 case geoops::WaypointType::eNavigationWaypoint:
                 {
-                    // We are at the goal, signal event.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
+                    // Continuously navigate to the next waypoint if our current waypoint ID is set to -99.
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 1 && m_stGoalWaypoint.nID == -99)
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
+                        // Pop the next waypoint.
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                        // Trigger new waypoint event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+                    }
+                    else
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
+                    }
                     return;
                 }
                 // Goal waypoint is marker.
@@ -360,38 +373,23 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-
-                // Continuously navigate to the next waypoint if our current waypoint ID is set to -99.
-                if (globals::g_pWaypointHandler->GetWaypointCount() > 1 && m_stGoalWaypoint.nID == -99)
+                // Check constants to see if we should go into verifying position or just trigger reached marker.
+                if (constants::NAVIGATING_VERIFY_POSITION)
                 {
-                    // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
-                    // Pop the next waypoint.
-                    globals::g_pWaypointHandler->PopNextWaypoint();
-                    // Trigger new waypoint event.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                    // Change state.
+                    eNextState = States::eVerifyingPosition;
                 }
                 else
                 {
-                    // Check constants to see if we should go into verifying position or just trigger reached marker.
-                    if (constants::NAVIGATING_VERIFY_POSITION)
-                    {
-                        // Send multimedia command to update state display.
-                        globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                        // Change state.
-                        eNextState = States::eVerifyingPosition;
-                    }
-                    else
-                    {
-                        // Send multimedia command to update state display.
-                        globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                        // Pop the next waypoint.
-                        globals::g_pWaypointHandler->PopNextWaypoint();
-                        // Change state.
-                        eNextState = States::eIdle;
-                    }
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                    // Pop the next waypoint.
+                    globals::g_pWaypointHandler->PopNextWaypoint();
+                    // Change state.
+                    eNextState = States::eIdle;
                 }
-
                 break;
             }
             case Event::eReachedMarker:
