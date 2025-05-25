@@ -40,11 +40,11 @@ namespace filters
                                                    // Eigen::Matrix3d eiXStateMatrix;    // [...p; ...v; ...r]
             };
 
-            void SetInitialGuess(const geoops::UTMCoordinate& stOrigin);
-            const geoops::UTMCoordinate& GetInitialGuess() const;
+            void SetInitialGuess(const geoops::UTMCoordinate& stOrigin, const double dHeading);
 
             XStateSnapshot GetCurrentState() const;
             XStateSnapshot GetInterpolatedHistory(time_point_t tmTimestamp) const;
+            geoops::RoverPose GetCurrentPose() const;
 
             void PredictAccelerometer(Eigen::Vector3d eiAccelerometerOutput, time_point_t tmTimestamp);
             void PredictGyroscope(Eigen::Vector3d eiGyroscopeOutput, time_point_t tmTimestamp);
@@ -62,7 +62,7 @@ namespace filters
 
         private:
             bool m_bHasInitialGuess = false;                                      // Whether an initial state has been provided and the Kalman Filter thus initialized.
-            geoops::UTMCoordinate m_stInitialGuess;                               // The absolute coordinate to serve as the origin.
+            geoops::RoverPose m_stInitialGuess;                                   // The absolute coordinate to serve as the origin.
             std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
             std::list<XStateSnapshot> m_liXStateHistory;    // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
             Eigen::Matrix<double, 9, 9> m_eiPCovariance;    // P - Current filter covariance matrix. (9x9)
