@@ -133,9 +133,10 @@ class WaypointHandler
 
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger,
-                       "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
+                       "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}, id: {}) to WaypointHandler queue.",
                        stPacket.vData[0],
-                       stPacket.vData[1]);
+                       stPacket.vData[1],
+                       stPacket.vData[2]);
         };
 
         /******************************************************************************

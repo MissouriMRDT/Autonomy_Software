@@ -194,8 +194,22 @@ namespace statemachine
                 // Goal waypoint is navigation.
                 case geoops::WaypointType::eNavigationWaypoint:
                 {
-                    // We are at the goal, signal event.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
+                    // Continuously navigate to the next waypoint if our current waypoint ID is set to -99.
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 1 &&
+                        m_stGoalWaypoint.nID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::CONTINUOUSNAVIGATE))
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
+                        // Pop the next waypoint.
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                        // Trigger new waypoint event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+                    }
+                    else
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
+                    }
                     return;
                 }
                 // Goal waypoint is marker.
@@ -361,38 +375,23 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-
-                // Continuously navigate to the next waypoint if our current waypoint ID is set to -99.
-                if (globals::g_pWaypointHandler->GetWaypointCount() > 1 && m_stGoalWaypoint.nID == -99)
+                // Check constants to see if we should go into verifying position or just trigger reached marker.
+                if (constants::NAVIGATING_VERIFY_POSITION)
                 {
-                    // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
-                    // Pop the next waypoint.
-                    globals::g_pWaypointHandler->PopNextWaypoint();
-                    // Trigger new waypoint event.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                    // Change state.
+                    eNextState = States::eVerifyingPosition;
                 }
                 else
                 {
-                    // Check constants to see if we should go into verifying position or just trigger reached marker.
-                    if (constants::NAVIGATING_VERIFY_POSITION)
-                    {
-                        // Send multimedia command to update state display.
-                        globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                        // Change state.
-                        eNextState = States::eVerifyingPosition;
-                    }
-                    else
-                    {
-                        // Send multimedia command to update state display.
-                        globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
-                        // Pop the next waypoint.
-                        globals::g_pWaypointHandler->PopNextWaypoint();
-                        // Change state.
-                        eNextState = States::eIdle;
-                    }
+                    // Send multimedia command to update state display.
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+                    // Pop the next waypoint.
+                    globals::g_pWaypointHandler->PopNextWaypoint();
+                    // Change state.
+                    eNextState = States::eIdle;
                 }
-
                 break;
             }
             case Event::eReachedMarker:
@@ -434,24 +433,24 @@ namespace statemachine
                     // Add starting point and goal point to path plot.
                     m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
                     m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
-                }
 
-                // Get all obstacles from the obstacle handler.
-                std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                // Add obstacles to the A* planner.
-                m_pAStarPlanner->UpsertObstacleData(vObstacles);
-                // Set A* planner start and goal.
-                m_vPathCoordinates =
-                    m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-                // Set the path of the stanley controller.
-                m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                // Get the smoothed path for plotting.
-                std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
-                // Update our plot with the new path.
-                m_pRoverPathPlot->ClearLayer("AStarPath");
-                m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
-                m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
-                m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+                    // Get all obstacles from the obstacle handler.
+                    std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+                    // Add obstacles to the A* planner.
+                    m_pAStarPlanner->UpsertObstacleData(vObstacles);
+                    // Set A* planner start and goal.
+                    m_vPathCoordinates =
+                        m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+                    // Set the path of the stanley controller.
+                    m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                    // Get the smoothed path for plotting.
+                    std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
+                    // Update our plot with the new path.
+                    m_pRoverPathPlot->ClearLayer("AStarPath");
+                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
+                    m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
+                    m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+                }
 
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
