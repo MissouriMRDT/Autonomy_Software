@@ -195,11 +195,31 @@ namespace statemachine
                 case geoops::WaypointType::eNavigationWaypoint:
                 {
                     // Continuously navigate to the next waypoint if our current waypoint ID is set to -99.
-                    if (globals::g_pWaypointHandler->GetWaypointCount() > 1 &&
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 0 &&
                         m_stGoalWaypoint.nID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::CONTINUOUSNAVIGATE))
                     {
                         // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
+                        LOG_INFO(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
+                        // Pop the next waypoint.
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                        // Trigger new waypoint event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+                    }
+                    // We are at a StuckState waypoint.
+                    else if (globals::g_pWaypointHandler->GetWaypointCount() > 0 && StuckState::IsStuckWaypoint(m_stGoalWaypoint.nID))
+                    {
+                        if (StuckState::IsStuckWaypointGoal(m_stGoalWaypoint.nID))
+                        {
+                            // Submit logger message.
+                            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Reached StuckState endpoint. Canceling further StuckState execution.");
+                            // Reset any currently executing StuckStates.
+                            globals::g_pStateMachineHandler->ClearSavedState(statemachine::States::eStuck);
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Reached StuckState navigation point.");
+                        }
                         // Pop the next waypoint.
                         globals::g_pWaypointHandler->PopNextWaypoint();
                         // Trigger new waypoint event.

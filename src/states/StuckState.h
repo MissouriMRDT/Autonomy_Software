@@ -52,36 +52,35 @@ namespace statemachine
             enum class StuckLeg
             {
                 eUnsticking,
-                eRight,
-                eLeft,
-                eReturn
+                eGoingRight,
+                eGoingLeft,
+                eReturning
             };
-
-            enum class StuckWaypointType
-            {
-                eRightIntermediate = -91,
-                eRightGoal         = -92,
-                eLeftIntermediate  = -93,
-                eLeftGoal          = -94
-            }
 
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bInitialized;
-            States m_eTriggeringState;                                   // The state that the rover got stuck in before triggering a stuck event.
-            AttemptType m_eAttemptType;                                  // Current attempt we are on for a given position.
             StuckLeg m_eStuckLeg;                                        // Current stage of attempting to drive around an obstacle.
-            geoops::GPSCoordinate m_stOriginalPosition;                  // Original position where rover was reported stuck.
-            double m_dOriginalHeading;                                   // Original heading the rover was at when reported stuck.
+            geoops::GPSCoordinate m_stOriginalPosition;                  // Original position where rover was first reported stuck.
+            double m_dOriginalHeading;                                   // Original heading the rover was at when first reported stuck.
+            geoops::GPSCoordinate m_stObstaclePosition;                  // Position where rover was reported stuck for this StuckState run.
+            double m_dObstacleHeading;                                   // Heading the rover was at when reported stuck for this StuckState run.
+            geoops::GPSCoordinate m_stHomePosition;                      // Position the rover ends up after getting unstuck for the first time.
+            std::vector<geoops::Waypoint> m_vRightPath, m_vLeftPath;     // Routes for the right and left legs.
+            std::chrono::system_clock::time_point m_tmStuckStartTime;    // The timestamp storing when the rover started this StuckState run.
+
+            // Unsticking state variables.
+            AttemptType m_eAttemptType;                                  // Current attempt we are on for a given position.
             bool m_bIsCurrentlyAligning;                                 // Is the rover currently trying to align with a target heading.
-            std::chrono::system_clock::time_point m_tmStuckStartTime;    // The timestamp storing when the rover starting stuck state.
             std::chrono::system_clock::time_point m_tmAlignStartTime;    // The timestamp storing when the rover starting realigning.
 
             /////////////////////////////////////////
             // Declare private class methods.
             /////////////////////////////////////////
             bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition);
+            void TryUnsticking();
+            void GeneratePaths();
 
         protected:
             /////////////////////////////////////////
@@ -97,6 +96,9 @@ namespace statemachine
             StuckState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;
+
+            static bool IsStuckWaypoint(int nID);
+            static bool IsStuckWaypointGoal(int nID);
     };
 }    // namespace statemachine
 

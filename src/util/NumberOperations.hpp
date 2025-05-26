@@ -42,27 +42,9 @@ namespace numops
     {
         public:
             // Declare public struct member variables.
-            T tX;
-            T tY;
-            T tZ;
-
-            /******************************************************************************
-             * @brief Construct a new Coordinate Point object.
-             *
-             * @param tX - The X location of the point coordinate.
-             * @param tY - The Y location of the point coordinate.
-             * @param tZ - The Z location of the point coordinate.
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2024-04-21
-             ******************************************************************************/
-            CoordinatePoint(const T tX = 0.0, const T tY = 0.0, const T tZ = 0.0)
-            {
-                // Initialize member variables.
-                this->tX = tX;
-                this->tY = tY;
-                this->tZ = tZ;
-            }
+            T tX = 0;
+            T tY = 0;
+            T tZ = 0;
     };
 
     /******************************************************************************

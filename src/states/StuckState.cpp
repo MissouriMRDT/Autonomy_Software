@@ -29,7 +29,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), OcelotEmpire (hobbz.pi@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void StuckState::Start()
@@ -37,30 +37,29 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "StuckState: Scheduling next run of state logic.");
 
+        // Store the postion and heading where the rover got stuck.
+        geoops::RoverPose stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        m_stObstaclePosition               = stStartRoverPose.GetGPSCoordinate();
+        m_dObstacleHeading                 = stStartRoverPose.GetCompassHeading();
+
         // Check if this is the first time we are entering StuckState
         if (!m_bInitialized)
         {
-            // Initialize member variables.
-            m_dOriginalHeading     = 0;
-            m_bIsCurrentlyAligning = false;
-            m_eAttemptType         = AttemptType::eReverseCurrentHeading;
-            m_eStuckLeg            = StuckLeg::eUnsticking;
+            m_stOriginalPosition = m_stObstaclePosition;
+            m_dOriginalHeading   = m_dObstacleHeading;
+            m_eStuckLeg          = StuckLeg::eUnsticking;
 
-            // Store the state that got stuck and triggered a stuck event.
-            m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
-
-            // Store the postion and heading where the rover get stuck.
-            geoops::RoverPose stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-            m_stOriginalPosition               = stStartRoverPose.GetGPSCoordinate();
-            m_dOriginalHeading                 = stStartRoverPose.GetCompassHeading();
-            // Get state start time.
-            m_tmStuckStartTime = std::chrono::system_clock::now();
-
-            // Stop drivetrain.
-            globals::g_pDriveBoard->SendStop();
+            m_bInitialized       = true;
         }
-        else
-        {}
+
+        m_bIsCurrentlyAligning = false;
+        m_eAttemptType         = AttemptType::eReverseCurrentHeading;
+
+        // Get state start time.
+        m_tmStuckStartTime = std::chrono::system_clock::now();
+
+        // Stop drivetrain.
+        globals::g_pDriveBoard->SendStop();
     }
 
     /******************************************************************************
@@ -89,19 +88,15 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", this->ToString());
 
         m_bInitialized = false;
-
-        if (!m_bInitialized)
-        {
-            Start();
-            m_bInitialized = true;
-        }
+        Start();
     }
 
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
-     * @date 2024-01-17
+     *
+     * @author OcelotEmpire (hobbz.pi@gmail.com)
+     * @date 2025-05-26
      ******************************************************************************/
     void StuckState::Run()
     {
@@ -113,14 +108,18 @@ namespace statemachine
         // Get current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
+        // First, get unstuck. Then, place waypoints to the right of the obstacle. If we get sent back into
+        // StuckState, get unstuck and place new waypoints to the left of the obstacle. If those waypoints
+        // are reached, ReachedWaypointState will clear all StuckStates. If neither route works, navigate
+        // back to the original point and go into IdleState and wait for Basestation to decide what to do.
         switch (m_eStuckLeg)
         {
             case StuckLeg::eUnsticking:
             {
-                // Check if we're still stuck
-                if (SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
+                // Check if we're still stuck.
+                if (SamePosition(m_stObstaclePosition, stCurrentRoverPose.GetGPSCoordinate()))
                 {
-                    TryUnsticking(stCurrentRoverPose);
+                    TryUnsticking();
                 }
                 else
                 {
@@ -128,61 +127,182 @@ namespace statemachine
                     LOG_NOTICE(logging::g_qSharedLogger,
                                "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
                                std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
-                    // Continue to next StuckState leg
+                    LOG_INFO(logging::g_qSharedLogger, "StuckState: Attempting to navigate to the right of the obstacle.");
+
+                    // Store the postion where the rover first got unstuck.
+                    m_stHomePosition = stCurrentRoverPose.GetGPSCoordinate();
+
+                    // Generate routes for later.
+                    GeneratePaths();
+                    // Add right path to front of waypoint queue inreverse order.
+                    for (auto stdIt = m_vRightPath.rbegin(); stdIt != m_vRightPath.rend(); ++stdIt)
+                    {
+                        globals::g_pWaypointHandler->PushWaypoint(*stdIt);
+                    }
+                    // Continue to next StuckState leg.
                     m_eStuckLeg = StuckLeg::eGoingRight;
+                    // Return to NavigatingState, but save this StuckState to come back to.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, true);
                 }
                 break;
             }
             case StuckLeg::eGoingRight:
             {
-                        }
-        }
+                // We have gotten stuck while going right. Get unstuck and try to take the left route.
+                if (SamePosition(m_stObstaclePosition, stCurrentRoverPose.GetGPSCoordinate()))
+                {
+                    TryUnsticking();
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
+                               std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
+                    LOG_INFO(logging::g_qSharedLogger, "StuckState: Attempting to navigate to the left of the obstacle.");
 
-        // Check if we are unstuck from our starting spot.
-        if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
-        {
-            // // Handing unstuck event. Destroy this unstuck state.
-            // globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
-            //
-            //
-            //
-            //
-            // Testing stuff: comment out code below
-            //
-            //
-            //
-            //
-            // Test: Add -99 nav waypoint to go around obstacle
-            // Set the angle of where the new right nav point is placed in degrees.
-            double dNewAngle = numops::InputAngleModulus<double>(stCurrentRoverPose.GetCompassHeading() + constants::STUCK_TURN_ANGLE, 0, 360);
-            // Convert new angle to radians.
-            dNewAngle *= M_PI / 180.0;
-            // Calculate our current distance from where we got stuck.
-            double dDistanceFromStuckPoint = geoops::CalculateGeoMeasurement(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()).dDistanceMeters;
-            // Calculate the northings and eastings for the new nav waypoint.
-            geoops::UTMCoordinate stNewNavPosition = geoops::ConvertGPSToUTM(m_stOriginalPosition);
-            stNewNavPosition.dNorthing += 5 * std::cos(dNewAngle) * dDistanceFromStuckPoint;
-            stNewNavPosition.dEasting += 5 * std::sin(dNewAngle) * dDistanceFromStuckPoint;
-            // Create new waypoint to the right of our obstacle to navigate around it.
-            geoops::Waypoint stRightNav(stNewNavPosition);
-            // Mark as intermediate point (do not flash green).
-            stRightNav.nID = -99;
-            // Add the new waypoint to the front of the queue to navigate to.
-            globals::g_pWaypointHandler->PushWaypoint(stRightNav);
-            LOG_NOTICE(logging::g_qSharedLogger, "meow meow");
-            //
-            //
-            //
-            //
-            // Handing unstuck event. Destroy this unstuck state.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
+                    // Check if there are waypoints left over from m_vRightPath.
+                    geoops::Waypoint stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                    // Find position of stGoalWaypoint in m_vRightPath.
+                    const auto stdGoalIt = std::find(m_vRightPath.begin(), m_vRightPath.end(), stGoalWaypoint);
+                    // Remove any points from m_vRightPath
+                    for (auto stdIt = stdGoalIt; stdIt != m_vRightPath.end(); ++stdIt)
+                    {
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                    }
+
+                    // If we were in the middle of m_vRightPath, we want to back track down the path we came from.
+                    if (stdGoalIt != m_vRightPath.end())
+                    {
+                        // Since we are backtracking, we add the portion of m_vRightPath that we have already traversed to the
+                        // beginning of m_vLeftPath in reverse order.
+                        for (auto stdIt = m_vRightPath.begin(); stdIt != stdGoalIt; ++stdIt)
+                        {
+                            m_vLeftPath.insert(m_vLeftPath.begin(), *stdIt);
+                        }
+                    }
+                    // We somehow got through the entire path but still got put into StuckState. Should be unreachable.
+                    else
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger, "StuckState: StuckState thought it already got unstuck. Restarting StuckState.");
+                        // Restart this state.
+                        m_bInitialized = false;
+                        Start();
+                        // Don't run rest of state.
+                        return;
+                    }
+
+                    // Add left path to front of waypoint queue inreverse order.
+                    for (auto stdIt = m_vLeftPath.rbegin(); stdIt != m_vLeftPath.rend(); ++stdIt)
+                    {
+                        globals::g_pWaypointHandler->PushWaypoint(*stdIt);
+                    }
+                    // Continue to next StuckState leg.
+                    m_eStuckLeg = StuckLeg::eGoingLeft;
+                    // Return to NavigatingState, but save this StuckState to come back to.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, true);
+                }
+                break;
+            }
+            case StuckLeg::eGoingLeft:
+            {
+                // We have gotten stuck while going left. Get unstuck and try to return to m_stHomePosition.
+                if (SamePosition(m_stObstaclePosition, stCurrentRoverPose.GetGPSCoordinate()))
+                {
+                    TryUnsticking();
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
+                               std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
+                    LOG_INFO(logging::g_qSharedLogger, "StuckState: Attempting to navigate back to the first place Rover got unstuck.");
+
+                    // Check if there are waypoints left over from m_vLeftPath.
+                    geoops::Waypoint stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                    // Find position of stGoalWaypoint in m_vLeftPath.
+                    const auto stdGoalIt = std::find(m_vLeftPath.begin(), m_vLeftPath.end(), stGoalWaypoint);
+                    // Remove any points from m_vLeftPath
+                    for (auto stdIt = stdGoalIt; stdIt != m_vLeftPath.end(); ++stdIt)
+                    {
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                    }
+
+                    // If we were in the middle of m_vLeftPath, we want to back track down the path we came from.
+                    if (stdGoalIt != m_vLeftPath.end())
+                    {
+                        // Since we are backtracking, we add the portion of m_vLeftPath that we have already traversed to the
+                        // beginning of the waypoint queue in reverse order.
+                        for (auto stdIt = m_vLeftPath.begin(); stdIt != stdGoalIt; ++stdIt)
+                        {
+                            globals::g_pWaypointHandler->PushWaypoint(*stdIt);
+                        }
+                    }
+                    // We somehow got through the entire path but still got put into StuckState. Should be unreachable.
+                    else
+                    {
+                        // Submit logger message.
+                        LOG_ERROR(logging::g_qSharedLogger, "StuckState: StuckState thought it already got unstuck. Restarting StuckState.");
+                        // Restart this state.
+                        m_bInitialized = false;
+                        Start();
+                        // Don't run rest of state.
+                        return;
+                    }
+
+                    // Continue to next StuckState leg.
+                    m_eStuckLeg = StuckLeg::eReturning;
+                    // Return to NavigatingState, but save this StuckState to come back to.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, true);
+                }
+                break;
+            }
+            case StuckLeg::eReturning:
+            {
+                // It's kind of over at this point. Try to get unstuck one last time then go into IdleState.
+                if (SamePosition(m_stObstaclePosition, stCurrentRoverPose.GetGPSCoordinate()))
+                {
+                    TryUnsticking();
+                }
+                else
+                {
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "StuckState: Rover has successfully unstuckith itself! A total of {} seconds was wasted being stuck.",
+                               std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmStuckStartTime).count());
+                    // Notify Basestation.
+                    LOG_NOTICE(logging::g_qSharedLogger, "Couldn't find a route around the obstacle. Waiting for a new command...");
+                    // Return to IdleState.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort, false);
+                }
+                break;
+            }
+            default:
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "StuckState: Unknown StuckState leg!");
+                // Return to IdleState.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eAbort, false);
+                break;
+            }
         }
-        else
-        {}
     }
 
-    void StuckState::TryUnsticking(const geoops::RoverPose& stCurrentRoverPose)
+    /******************************************************************************
+     * @brief Try to get unstuck by reversing in various directions.
+     *
+     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
+     * @date 2024-01-17
+     ******************************************************************************/
+    void StuckState::TryUnsticking()
     {
+        // Store the current postion and heading.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        // Get current time.
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
         // Perform unstuck logic.
         switch (m_eAttemptType)
         {
@@ -208,7 +328,7 @@ namespace statemachine
                     // Set aligning toggle.
                     m_bIsCurrentlyAligning = true;
                     // Update start heading.
-                    m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
+                    m_dObstacleHeading = stCurrentRoverPose.GetCompassHeading();
                     // Update start time.
                     m_tmAlignStartTime = std::chrono::system_clock::now();
                 }
@@ -217,7 +337,7 @@ namespace statemachine
                     // Calculate time elapsed since realignment was started.
                     double dTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmAlignStartTime).count() / 1000.0;
                     // Calculate the goal realignment heading.
-                    double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES, 0, 360);
+                    double dGoalHeading = numops::InputAngleModulus<double>(m_dObstacleHeading + constants::STUCK_ALIGN_DEGREES, 0, 360);
                     // Calculate total rotation degrees so far.
                     double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
 
@@ -270,7 +390,7 @@ namespace statemachine
                     // Set aligning toggle.
                     m_bIsCurrentlyAligning = true;
                     // Update start heading.
-                    m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
+                    m_dObstacleHeading = stCurrentRoverPose.GetCompassHeading();
                     // Update start time.
                     m_tmAlignStartTime = std::chrono::system_clock::now();
                 }
@@ -279,7 +399,7 @@ namespace statemachine
                     // Calculate time elapsed since realignment was started.
                     double dTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmAlignStartTime).count() / 1000.0;
                     // Calculate the goal realignment heading.
-                    double dGoalHeading = numops::InputAngleModulus<double>(m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES, 0, 360);
+                    double dGoalHeading = numops::InputAngleModulus<double>(m_dObstacleHeading - constants::STUCK_ALIGN_DEGREES, 0, 360);
                     // Calculate total rotation degrees so far.
                     double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
 
@@ -341,6 +461,43 @@ namespace statemachine
     }
 
     /******************************************************************************
+     * @brief Generate a left and a right path around the obstacle and store them.
+     *
+     *
+     * @author OcelotEmpire (hobbz.pi@gmail.com)
+     * @date 2025-05-26
+     ******************************************************************************/
+    void StuckState::GeneratePaths()
+    {
+        // X is easting, Y is altitude, Z is northing. (Minecraft coordinates)
+        std::vector<numops::CoordinatePoint<double>> vWaypointOffsetsFromObstacle{
+            {.tX = 4, .tZ = -4},     // eRightNav
+            {.tX = 4, .tZ = 4},      // eRightGoal
+            {.tX = -4, .tZ = -4},    // eLeftNav
+            {.tX = -4, .tZ = 4},     // eLeftGoal
+        };
+        // Rotate the relative offsets to the rover's frame.
+        numops::CoordinateFrameRotate3D(vWaypointOffsetsFromObstacle, 0, m_dOriginalHeading, 0);
+        // Convert to navigation waypoints
+        std::vector<geoops::Waypoint> vWaypoints;
+        vWaypoints.reserve(vWaypointOffsetsFromObstacle.size());
+        int nID = -100;
+        for (const numops::CoordinatePoint<double>& stOffset : vWaypointOffsetsFromObstacle)
+        {
+            geoops::UTMCoordinate stWaypointPos = geoops::ConvertGPSToUTM(m_stOriginalPosition);
+            stWaypointPos.dEasting += stOffset.tX;
+            stWaypointPos.dNorthing += stOffset.tZ;
+            vWaypoints.emplace_back(stWaypointPos, geoops::WaypointType::eNavigationWaypoint, 0, nID--);
+        }
+        // Set IDs of the waypoints so that NavigatingState can parse them correctly.
+        // TODO: Make this not hard coded!!!
+        assert(vWaypoints.size() == 4);
+        // Create and save paths from generated waypoints.
+        m_vRightPath = {vWaypoints[0], vWaypoints[1]};
+        m_vLeftPath  = {vWaypoints[2], vWaypoints[3]};
+    }
+
+    /******************************************************************************
      * @brief Trigger an event in the state machine. Returns the next state.
      *
      * @param eEvent - The event to trigger.
@@ -387,8 +544,8 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "StuckState: Handling Unstuck event.");
-                // Change state back to the state that originally got stuck.
-                eNextState = m_eTriggeringState;
+                // Navigate to the new waypoints on the right or left of the obstacle.
+                eNextState = States::eNavigating;
                 break;
             }
             default:
@@ -432,4 +589,17 @@ namespace statemachine
         double dDistance = geoops::CalculateGeoMeasurement(stOriginalPosition, stCurrPosition).dDistanceMeters;
         return dDistance <= constants::STUCK_SAME_POINT_PROXIMITY;
     }
+
+    // TODO: Make this not hard coded!!!
+    bool StuckState::IsStuckWaypoint(const int nID)
+    {
+        return nID <= -100 && nID > -104;
+    }
+
+    // TODO: Make this not hard coded!!!
+    bool StuckState::IsStuckWaypointGoal(const int nID)
+    {
+        return nID == -101 || nID == -103;
+    }
+
 }    // namespace statemachine
