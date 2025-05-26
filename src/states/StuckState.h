@@ -49,12 +49,29 @@ namespace statemachine
                 eGiveUp
             };
 
+            enum class StuckLeg
+            {
+                eUnsticking,
+                eRight,
+                eLeft,
+                eReturn
+            };
+
+            enum class StuckWaypointType
+            {
+                eRightIntermediate = -91,
+                eRightGoal         = -92,
+                eLeftIntermediate  = -93,
+                eLeftGoal          = -94
+            }
+
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bInitialized;
             States m_eTriggeringState;                                   // The state that the rover got stuck in before triggering a stuck event.
             AttemptType m_eAttemptType;                                  // Current attempt we are on for a given position.
+            StuckLeg m_eStuckLeg;                                        // Current stage of attempting to drive around an obstacle.
             geoops::GPSCoordinate m_stOriginalPosition;                  // Original position where rover was reported stuck.
             double m_dOriginalHeading;                                   // Original heading the rover was at when reported stuck.
             bool m_bIsCurrentlyAligning;                                 // Is the rover currently trying to align with a target heading.
