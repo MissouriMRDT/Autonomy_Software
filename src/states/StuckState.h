@@ -67,6 +67,8 @@ namespace statemachine
             geoops::GPSCoordinate m_stObstaclePosition;                  // Position where rover was reported stuck for this StuckState run.
             double m_dObstacleHeading;                                   // Heading the rover was at when reported stuck for this StuckState run.
             geoops::GPSCoordinate m_stHomePosition;                      // Position the rover ends up after getting unstuck for the first time.
+            statemachine::States m_eTriggeringState;                     // State that originally triggered StuckState.
+            bool m_bReachedGoal;                                         // Whether to return to m_eTriggeringState.
             std::vector<geoops::Waypoint> m_vRightPath, m_vLeftPath;     // Routes for the right and left legs.
             std::chrono::system_clock::time_point m_tmStuckStartTime;    // The timestamp storing when the rover started this StuckState run.
 

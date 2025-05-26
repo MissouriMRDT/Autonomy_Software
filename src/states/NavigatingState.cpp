@@ -211,19 +211,22 @@ namespace statemachine
                         if (StuckState::IsStuckWaypointGoal(m_stGoalWaypoint.nID))
                         {
                             // Submit logger message.
-                            LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Reached StuckState endpoint. Canceling further StuckState execution.");
-                            // Reset any currently executing StuckStates.
-                            globals::g_pStateMachineHandler->ClearSavedState(statemachine::States::eStuck);
+                            LOG_NOTICE(logging::g_qSharedLogger,
+                                       "NavigatingState: Reached StuckState endpoint. Returning to StuckState to resume execution of previous state.");
+                            // Pop the next waypoint.
+                            globals::g_pWaypointHandler->PopNextWaypoint();
+                            // Trigger unstuck event.
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, true);
                         }
                         else
                         {
                             // Submit logger message.
-                            LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Reached StuckState navigation point.");
+                            LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Reached StuckState navigation point. Continuing to next StuckState waypoint...");
+                            // Pop the next waypoint.
+                            globals::g_pWaypointHandler->PopNextWaypoint();
+                            // Trigger new waypoint event.
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
                         }
-                        // Pop the next waypoint.
-                        globals::g_pWaypointHandler->PopNextWaypoint();
-                        // Trigger new waypoint event.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
                     }
                     else
                     {
@@ -531,6 +534,14 @@ namespace statemachine
             case Event::eStuck:
             {
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
+                eNextState = States::eStuck;
+                break;
+            }
+            case Event::eUnstuck:
+            {
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Unstuck event.");
+                // StuckState will see that all StuckState waypoints have been removed from the waypoint queue and
+                // return execution to its previous state.
                 eNextState = States::eStuck;
                 break;
             }

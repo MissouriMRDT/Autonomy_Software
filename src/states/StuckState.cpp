@@ -48,8 +48,13 @@ namespace statemachine
             m_stOriginalPosition = m_stObstaclePosition;
             m_dOriginalHeading   = m_dObstacleHeading;
             m_eStuckLeg          = StuckLeg::eUnsticking;
+            m_bReachedGoal       = false;
 
-            m_bInitialized       = true;
+            // Store the state that got stuck and triggered a stuck event.
+            m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
+
+            // Mark state as initialized.
+            m_bInitialized = true;
         }
 
         m_bIsCurrentlyAligning = false;
@@ -181,14 +186,16 @@ namespace statemachine
                             m_vLeftPath.insert(m_vLeftPath.begin(), *stdIt);
                         }
                     }
-                    // We somehow got through the entire path but still got put into StuckState. Should be unreachable.
+                    // We have reached a StuckState goal, there will be no StuckState waypoints in the waypoint queue.
+                    // If this is the case, we can return to the previous state.
                     else
                     {
                         // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger, "StuckState: StuckState thought it already got unstuck. Restarting StuckState.");
-                        // Restart this state.
-                        m_bInitialized = false;
-                        Start();
+                        LOG_NOTICE(logging::g_qSharedLogger, "StuckState: Rover unstuck. Resuming execution of previous state.");
+                        // Flag that we have reached a StuckState goal waypoint.
+                        m_bReachedGoal = true;
+                        // Trigger unstuck event and clear this state.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
                         // Don't run rest of state.
                         return;
                     }
@@ -240,14 +247,16 @@ namespace statemachine
                             globals::g_pWaypointHandler->PushWaypoint(*stdIt);
                         }
                     }
-                    // We somehow got through the entire path but still got put into StuckState. Should be unreachable.
+                    // We have reached a StuckState goal, there will be no StuckState waypoints in the waypoint queue.
+                    // If this is the case, we can return to the previous state.
                     else
                     {
                         // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger, "StuckState: StuckState thought it already got unstuck. Restarting StuckState.");
-                        // Restart this state.
-                        m_bInitialized = false;
-                        Start();
+                        LOG_NOTICE(logging::g_qSharedLogger, "StuckState: Rover unstuck. Resuming execution of previous state.");
+                        // Flag that we have reached a StuckState goal waypoint.
+                        m_bReachedGoal = true;
+                        // Trigger unstuck event and clear this state.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eUnstuck, false);
                         // Don't run rest of state.
                         return;
                     }
@@ -503,7 +512,7 @@ namespace statemachine
      * @param eEvent - The event to trigger.
      * @return std::shared_ptr<State> - The next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu), clayjay3 (claytonraycowen@gmail.com)
+     * @author Eli Byrd (edbgkk@mst.edu), clayjay3 (claytonraycowen@gmail.com), OcelotEmpire (hobbz.pi@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     States StuckState::TriggerEvent(Event eEvent)
@@ -544,8 +553,15 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "StuckState: Handling Unstuck event.");
-                // Navigate to the new waypoints on the right or left of the obstacle.
-                eNextState = States::eNavigating;
+                if (m_bReachedGoal)
+                {
+                    // Resume the state that originally triggered StuckState.
+                    eNextState = m_eTriggeringState;
+                }
+                else
+                {
+                    eNextState = States::eNavigating;
+                }
                 break;
             }
             default:
