@@ -472,7 +472,7 @@ namespace statemachine
                 // Stop drive.
                 globals::g_pDriveBoard->SendStop();
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Set toggle.
                 m_bFetchNewWaypoint = true;
                 // Change states.
