@@ -183,12 +183,16 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Start event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 break;
             }
             case Event::eAbort:
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Abort event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Change states.
                 eNextState = States::eIdle;
                 break;
@@ -197,6 +201,8 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling ReverseComplete event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Transition back to state that triggered reversing.
                 eNextState = globals::g_pStateMachineHandler->GetPreviousState();
                 break;
@@ -205,6 +211,8 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ReversingState: Handling Stuck event.");
+                // Send multimedia command to update state display.
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Change states.
                 eNextState = States::eStuck;
                 break;
