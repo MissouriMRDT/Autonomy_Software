@@ -752,7 +752,7 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool
     bool bVIOGPSFused                          = false;
     static bool bAlreadyPrinted                = false;
 
-    if (bVIOHeading || bVIOTracking)
+    if ((bVIOHeading || bVIOTracking) && !constants::MODE_SIM)
     {
         // Check if the main ZED camera is opened and the fusion module is initialized.
         if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
@@ -854,6 +854,12 @@ geoops::RoverPose WaypointHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool
                     bAlreadyPrinted = true;
                 }
             }
+        }
+        else
+        {
+            LOG_WARNING_LIMIT(std::chrono::seconds(5),
+                              logging::g_qSharedLogger,
+                              "Positional tracking is not enabled or camera is not open! Using NavBoard GPS data for rover pose...");
         }
     }
 

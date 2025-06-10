@@ -117,7 +117,10 @@ class WaypointHandler
             (void) stdAddr;
 
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stNavWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eNavigationWaypoint);
+            geoops::Waypoint stNavWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]),
+                                           geoops::WaypointType::eNavigationWaypoint,
+                                           0.0,
+                                           stPacket.vData[2]);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -128,9 +131,10 @@ class WaypointHandler
 
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger,
-                       "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
+                       "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}, id: {}) to WaypointHandler queue.",
                        stPacket.vData[0],
-                       stPacket.vData[1]);
+                       stPacket.vData[1],
+                       stPacket.vData[2]);
         };
 
         /******************************************************************************

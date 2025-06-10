@@ -67,14 +67,15 @@ namespace logging
                     m_szPlotTitle     = szPlotTitle;
 
                     // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
-                    std::string m_szPlotSavePath = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
-                    int nFileNum                 = 0;
-                    while (std::filesystem::exists(m_szPlotSavePath + std::to_string(nFileNum) + ".png"))
+                    std::string szPlotSavePath = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
+                    m_szCurrentPlotSavePath    = logging::g_szLoggingOutputPath + "/path_plots/CurrentPlot.png";
+                    int nFileNum               = 0;
+                    while (std::filesystem::exists(szPlotSavePath + std::to_string(nFileNum) + ".png"))
                     {
                         ++nFileNum;
                     }
                     // Add the file number to the file name.
-                    m_szPlotSavePath = m_szPlotSavePath + std::to_string(nFileNum);
+                    szPlotSavePath = szPlotSavePath + std::to_string(nFileNum);
                     // Check if the final directory exists. If not then create it.
                     if (!std::filesystem::exists(logging::g_szLoggingOutputPath + "/path_plots"))
                     {
@@ -82,7 +83,7 @@ namespace logging
                     }
 
                     // Configure the matplotplusplus gnuplot backend to not display the plot, instead save it to a file.
-                    m_mtRoverPathPlot->backend()->output(m_szPlotSavePath + ".png");
+                    m_mtRoverPathPlot->backend()->output(szPlotSavePath + ".png");
 
                     // Make sure plot title is not empty.
                     if (m_szPlotTitle.empty())
@@ -697,7 +698,7 @@ namespace logging
                 std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
                 std::unordered_map<std::string, std::vector<std::tuple<double, double, double>>> m_umDotMap;
                 std::string m_szPlotTitle;
-                std::string m_szPlotSavePath;
+                std::string m_szCurrentPlotSavePath;
 
                 /******************************************************************************
                  * @brief Update the plot with the new waypoints and redraw the plot.
@@ -786,6 +787,7 @@ namespace logging
                     m_mtRoverPathAxes->hold(false);
                     // Plot the path.
                     m_mtRoverPathPlot->draw();
+                    m_mtRoverPathPlot->save(m_szCurrentPlotSavePath);
                 }
 
                 /******************************************************************************
