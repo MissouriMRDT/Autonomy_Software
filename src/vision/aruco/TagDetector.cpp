@@ -254,6 +254,8 @@ void TagDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
+                    // Drop alpha channel.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
                 }
                 else
                 {
@@ -308,8 +310,6 @@ void TagDetector::ThreadedContinuousCode()
         m_vNewlyDetectedTags.clear();
         // Clone frames.
         m_cvArucoProcFrame = m_cvFrame.clone();
-        // Copy the camera frame to the pre-processing frame.
-        cv::cvtColor(m_cvArucoProcFrame, m_cvArucoProcFrame, cv::COLOR_BGRA2BGR);
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
         // Add OpenCV tags to the list of newly detected tags.
