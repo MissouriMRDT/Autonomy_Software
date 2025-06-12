@@ -23,6 +23,7 @@ APPROACHINGMARKERSTATE
 APPROACHINGOBJECT
 APPROACHINGOBJECTSTATE
 APRILTAG
+arctan
 Aruco
 arucotag
 ASPRS
@@ -97,6 +98,7 @@ cudev
 CUDNN
 CURRENTLOG
 CURRENTSTATE
+curv
 cvflann
 cvls
 DBUILD
@@ -192,6 +194,8 @@ EESF
 EESI
 EESK
 Eigen
+eigs
+eigvalsh
 EJEE
 EJEEERPT
 EJPS
@@ -218,6 +222,8 @@ ERKSI
 ERKSL
 ESPCN
 Evironment
+executemany
+executescript
 Extention
 feedforward
 flann
@@ -245,7 +251,9 @@ Geolocated
 geomeasurement
 geoops
 geoposition
+georeference
 Geospatial
+getpid
 gfortran
 gmock
 GNSS
@@ -323,6 +331,7 @@ keyrings
 keyscan
 ladspa
 LASF
+laspy
 latlng
 latlon
 LBUTTONDOWN
@@ -422,11 +431,13 @@ libzmq
 libzvbi
 LIDARHANDLER
 LIDARLOADER
+linalg
 localtime
 LOGNAME
 LPOVERLAPPED
 lpthread
 lsqlite
+lstsq
 lzma
 m_muWebRTCRGBImageCopyMutex
 MAINCAM
@@ -464,6 +475,7 @@ navboard
 NAVIGATINGSTATE
 NAVIGATIONBOARD
 navpvt
+nbrs
 nJter
 nlohmann
 Nolte
@@ -501,6 +513,8 @@ PIXELTYPE
 PKNS
 PNSD
 pocketsphinx
+pointcloud
+popleft
 POSETRACK
 Pranswer
 pthread
@@ -509,6 +523,7 @@ pyopengl
 QPID
 Raman
 RAMANREADING
+rcond
 rdparty
 Rdtsc
 REACHEDGOAL
@@ -538,6 +553,7 @@ RKSK
 RKSO
 Rolla
 rovecomm
+rowvar
 RTCP
 rval
 ryanluker
@@ -618,6 +634,8 @@ torchtag
 tparam
 TRACEL
 transops
+trav
+Traversability
 twxs
 typeinfo
 tzdata
@@ -651,6 +669,7 @@ Vexas
 videotoolbox
 VIDEOWRITER
 VIOGPS
+vlrs
 Watchpoints
 Webots
 WEBRTC
