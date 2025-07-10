@@ -92,7 +92,7 @@ namespace statemachine
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
-        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject);
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
@@ -197,7 +197,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Change state.
                 eNextState = States::eIdle;
                 break;

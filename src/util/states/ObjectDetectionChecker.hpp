@@ -81,13 +81,15 @@ namespace statemachine
      *
      * @param vObjectDetectors - The vector of object detectors to use for detection.
      * @param stObjectTarget - The detected object marker from Torch.
+     * @param eDesiredDetectionType - The desired detection type to check for.
      * @return int - The total number of objects currently detected.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-05-09
      ******************************************************************************/
-
-    inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors, objectdetectutils::Object& stObjectTarget)
+    inline int IdentifyTargetObject(const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors,
+                                    objectdetectutils::Object& stObjectTarget,
+                                    const geoops::WaypointType& eDesiredDetectionType = geoops::WaypointType::eUNKNOWN)
     {
         // Create instance variables.
         std::vector<objectdetectutils::Object> vDetectedObjects;
@@ -113,6 +115,40 @@ namespace statemachine
             if (stCandidate.dStraightLineDistance <= 0.0)
             {
                 continue;
+            }
+
+            // Determine the desired detection type.
+            switch (eDesiredDetectionType)
+            {
+                case geoops::WaypointType::eMalletWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eMallet)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                case geoops::WaypointType::eWaterBottleWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                case geoops::WaypointType::eObjectWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eMallet &&
+                        stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
             }
 
             //  Check the object detection method type.

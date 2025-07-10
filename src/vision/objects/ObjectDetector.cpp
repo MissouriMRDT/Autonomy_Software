@@ -220,8 +220,8 @@ void ObjectDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+                    // Drop alpha channel.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
                 }
                 else
                 {
@@ -246,11 +246,6 @@ void ObjectDetector::ThreadedContinuousCode()
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
                 }
-                else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
-                {
-                    // Drop the Alpha channel from the image. This is necessary for the Aruco detection.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-                }
             }
         }
         else
@@ -263,15 +258,6 @@ void ObjectDetector::ThreadedContinuousCode()
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
-            }
-            else
-            {
-                // Check if the camera image is a >3 channel image.
-                if (m_cvFrame.channels() > 3)
-                {
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-                }
             }
         }
 
@@ -288,8 +274,11 @@ void ObjectDetector::ThreadedContinuousCode()
 
         // Clear the list of newly detected objects.
         m_vNewlyDetectedObjects.clear();
+        // Clone frames.
+        m_cvTorchOverlayFrame = m_cvFrame.clone();
+        m_cvTorchProcFrame    = m_cvFrame.clone();
         // Copy the camera frame to the pre-processing frame and overlay frame.
-        m_cvTorchProcFrame = m_cvFrame.clone();
+        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
 
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
@@ -312,7 +301,7 @@ void ObjectDetector::ThreadedContinuousCode()
         this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
 
         // Draw object overlays onto normal image.
-        torchobject::DrawDetections(m_cvTorchProcFrame, m_vDetectedObjects);
+        torchobject::DrawDetections(m_cvTorchOverlayFrame, m_vDetectedObjects);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -360,8 +349,8 @@ void ObjectDetector::PooledLinearCode()
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvTorchProcFrame.clone(); break;
-            default: *stContainer.pFrame = m_cvTorchProcFrame.clone(); break;
+            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvTorchOverlayFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvTorchOverlayFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -761,8 +750,19 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 // Geolocate the object in the point cloud.
                 stObject.stGeolocatedPosition =
                     geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
+
                 // Since this is a object detection, set the object's waypoint type appropriately.
                 stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;
+                // Depending on the class name of the model, set the object type.
+                if (stObject.szClassName == "mallet")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eMallet;
+                }
+                else if (stObject.szClassName == "bottles")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eWaterBottle;
+                }
+
                 // Calculate the geo measurement and print the distance to the object.
                 geoops::GeoMeasurement stMeasurement =
                     geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());

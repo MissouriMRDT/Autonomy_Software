@@ -117,7 +117,10 @@ class WaypointHandler
             (void) stdAddr;
 
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stNavWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eNavigationWaypoint);
+            geoops::Waypoint stNavWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]),
+                                           geoops::WaypointType::eNavigationWaypoint,
+                                           0.0,
+                                           stPacket.vData[2]);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -127,10 +130,11 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1]);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}, id: {}) to WaypointHandler queue.",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       stPacket.vData[2]);
         };
 
         /******************************************************************************
@@ -175,12 +179,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1],
-                     nMarkerID,
-                     dRadius);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       nMarkerID,
+                       dRadius);
         };
 
         /******************************************************************************
@@ -197,7 +201,23 @@ class WaypointHandler
             (void) stdAddr;
 
             // Create instance variables.
-            double dRadius = stPacket.vData[2];
+            geoops::WaypointType eWaypointType = geoops::WaypointType::eObjectWaypoint;
+            double dObjectID                   = stPacket.vData[2];
+            double dRadius                     = stPacket.vData[3];
+
+            // Parse the object ID from the RoveComm packet to a waypoint type.
+            if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::MALLET))
+            {
+                eWaypointType = geoops::WaypointType::eMalletWaypoint;
+            }
+            else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::WATERBOTTLE))
+            {
+                eWaypointType = geoops::WaypointType::eWaterBottleWaypoint;
+            }
+            else
+            {
+                eWaypointType = geoops::WaypointType::eObjectWaypoint;
+            }
 
             // Limit the radius to 0-40.
             if (dRadius < 0)
@@ -214,7 +234,7 @@ class WaypointHandler
             }
 
             // Create new waypoint struct with data from the RoveComm packet.
-            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObjectWaypoint, dRadius);
+            geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), eWaypointType, dRadius);
 
             // Acquire write lock for writing to waypoints vector.
             std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
@@ -224,11 +244,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue.",
-                     stPacket.vData[0],
-                     stPacket.vData[1],
-                     dRadius);
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, id: {}, radius: {}) to WaypointHandler queue.",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       dObjectID,
+                       dRadius);
         };
 
         /******************************************************************************
@@ -272,12 +293,12 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger,
-                     "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue. Total Obstacles: {}",
-                     stPacket.vData[0],
-                     stPacket.vData[1],
-                     dRadius,
-                     m_vPermanentObstacles.size());
+            LOG_NOTICE(logging::g_qSharedLogger,
+                       "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue. Total Obstacles: {}",
+                       stPacket.vData[0],
+                       stPacket.vData[1],
+                       dRadius,
+                       m_vPermanentObstacles.size());
         };
 
         /******************************************************************************
@@ -302,7 +323,7 @@ class WaypointHandler
             lkWaypointsLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
         };
 
         /******************************************************************************
@@ -327,7 +348,7 @@ class WaypointHandler
             lkObstaclesLock.unlock();
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Clear Obstacles packet: Cleared permanent obstacles list.");
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Obstacles packet: Cleared permanent obstacles list.");
         };
 };
 

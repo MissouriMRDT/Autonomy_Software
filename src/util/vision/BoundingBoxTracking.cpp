@@ -87,34 +87,48 @@ namespace tracking
             }
         }
 
-        // If the best IoU is above the threshold and a tracker was found, update the tracker.
-        if (dBestIOU > m_dIOUThreshold && nBestTrackerID != -1)
+        // Catch OpenCV exceptions.
+        try
         {
-            // Reinitialize the tracker with the new bounding box.
-            m_mBoundingBoxes[nBestTrackerID]->x      = cvBoundingBox->x;
-            m_mBoundingBoxes[nBestTrackerID]->y      = cvBoundingBox->y;
-            m_mBoundingBoxes[nBestTrackerID]->width  = cvBoundingBox->width;
-            m_mBoundingBoxes[nBestTrackerID]->height = cvBoundingBox->height;
-            cv::Ptr<cv::Tracker> cvTracker           = this->CreateTracker(eTrackerType);
-            cvTracker->init(cvFrame, *m_mBoundingBoxes[nBestTrackerID]);
-            // Update the last update time for the tracker.
-            m_mLastUpdateTime[nBestTrackerID] = std::chrono::system_clock::now();
-            // Update the time since the last ground truth detection.
-            m_mTimeSinceLastGroundTruthDetection[nBestTrackerID] = std::chrono::system_clock::now();
-            // Set the matched tracker flag.
-            bMatchedOldTracker = true;
+            // If the best IoU is above the threshold and a tracker was found, update the tracker.
+            if (dBestIOU > m_dIOUThreshold && nBestTrackerID != -1)
+            {
+                // Reinitialize the tracker with the new bounding box.
+                m_mBoundingBoxes[nBestTrackerID]->x      = cvBoundingBox->x;
+                m_mBoundingBoxes[nBestTrackerID]->y      = cvBoundingBox->y;
+                m_mBoundingBoxes[nBestTrackerID]->width  = cvBoundingBox->width;
+                m_mBoundingBoxes[nBestTrackerID]->height = cvBoundingBox->height;
+                cv::Ptr<cv::Tracker> cvTracker           = this->CreateTracker(eTrackerType);
+                cvTracker->init(cvFrame, *m_mBoundingBoxes[nBestTrackerID]);
+                // Update the last update time for the tracker.
+                m_mLastUpdateTime[nBestTrackerID] = std::chrono::system_clock::now();
+                // Update the time since the last ground truth detection.
+                m_mTimeSinceLastGroundTruthDetection[nBestTrackerID] = std::chrono::system_clock::now();
+                // Set the matched tracker flag.
+                bMatchedOldTracker = true;
+            }
+            else
+            {
+                // Create a new tracker and initialize it with the given frame and bounding box.
+                cv::Ptr<cv::Tracker> cvTracker = this->CreateTracker(eTrackerType);
+                cvTracker->init(cvFrame, *cvBoundingBox);
+                // Add the new tracker to the maps.
+                m_mTrackers[m_nNextId]                          = cvTracker;
+                m_mBoundingBoxes[m_nNextId]                     = cvBoundingBox;
+                m_mLastUpdateTime[m_nNextId]                    = std::chrono::system_clock::now();
+                m_mTimeSinceLastGroundTruthDetection[m_nNextId] = std::chrono::system_clock::now();
+                m_nNextId++;
+            }
         }
-        else
+        catch (const std::exception& stdException)
         {
-            // Create a new tracker and initialize it with the given frame and bounding box.
-            cv::Ptr<cv::Tracker> cvTracker = this->CreateTracker(eTrackerType);
-            cvTracker->init(cvFrame, *cvBoundingBox);
-            // Add the new tracker to the maps.
-            m_mTrackers[m_nNextId]                          = cvTracker;
-            m_mBoundingBoxes[m_nNextId]                     = cvBoundingBox;
-            m_mLastUpdateTime[m_nNextId]                    = std::chrono::system_clock::now();
-            m_mTimeSinceLastGroundTruthDetection[m_nNextId] = std::chrono::system_clock::now();
-            m_nNextId++;
+            // Submit logger message if an exception occurs.
+            LOG_ERROR(logging::g_qSharedLogger, "Exception in tracker initialization: {}", stdException.what());
+            // Set the bounding box to 0,0,0,0.
+            cvBoundingBox->x      = 0;
+            cvBoundingBox->y      = 0;
+            cvBoundingBox->width  = 0;
+            cvBoundingBox->height = 0;
         }
 
         return bMatchedOldTracker;

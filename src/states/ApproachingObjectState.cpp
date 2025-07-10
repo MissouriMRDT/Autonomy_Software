@@ -121,7 +121,7 @@ namespace statemachine
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
-        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject);
+        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
 
         // Check if object is unseen.
         static bool bAlreadyPrintedLost                            = false;
@@ -326,7 +326,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Change state.
                 eNextState = States::eIdle;
                 break;

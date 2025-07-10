@@ -180,12 +180,13 @@ namespace statemachine
         ////////////////////////////
 
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
-        if (m_stSearchPatternCenter.eType == geoops::WaypointType::eObjectWaypoint)
+        if (m_stSearchPatternCenter.eType == geoops::WaypointType::eObjectWaypoint || m_stSearchPatternCenter.eType == geoops::WaypointType::eMalletWaypoint ||
+            m_stSearchPatternCenter.eType == geoops::WaypointType::eWaterBottleWaypoint)
         {
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.
-            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject);
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, m_stSearchPatternCenter.eType);
             // Check if either tag type is seen.
             if (stBestTorchObject.dConfidence != 0.0)
             {
@@ -393,7 +394,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Stop drive.
                 globals::g_pDriveBoard->SendStop();
                 // Change state.

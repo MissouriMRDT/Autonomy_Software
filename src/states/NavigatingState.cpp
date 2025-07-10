@@ -194,39 +194,61 @@ namespace statemachine
                 // Goal waypoint is navigation.
                 case geoops::WaypointType::eNavigationWaypoint:
                 {
-                    // We are at the goal, signal event.
-                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
-                    break;
+                    // Continuously navigate to the next waypoint if our current waypoint ID is set to -99.
+                    if (globals::g_pWaypointHandler->GetWaypointCount() > 1 &&
+                        m_stGoalWaypoint.nID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::CONTINUOUSNAVIGATE))
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
+                        // Pop the next waypoint.
+                        globals::g_pWaypointHandler->PopNextWaypoint();
+                        // Trigger new waypoint event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+                    }
+                    else
+                    {
+                        // We are at the goal, signal event.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eReachedGpsCoordinate, false);
+                    }
+                    return;
                 }
                 // Goal waypoint is marker.
                 case geoops::WaypointType::eTagWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eObjectWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eMalletWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
                 // Goal waypoint is object.
                 case geoops::WaypointType::eWaterBottleWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
-                    break;
+                    return;
                 }
-                default: break;
+                default:
+                {
+                    // This waypoint type is not supported.
+                    LOG_ERROR(logging::g_qSharedLogger, "NavigatingState: Unknown waypoint type!");
+                    // Handle event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eAbort, true);
+                    // Don't execute the rest of the state.
+                    return;
+                }
             }
         }
 
@@ -272,12 +294,14 @@ namespace statemachine
         ////////////////////////////
 
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
-        if (m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
+        if ((m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eMalletWaypoint ||
+             m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint) &&
+            stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.
-            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject);
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, m_stGoalWaypoint.eType);
             // Check if either tag type is seen.
             if (stBestTorchObject.dConfidence != 0.0)
             {
@@ -285,7 +309,7 @@ namespace statemachine
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
 
                 // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
                 {
                     // Add the tag to the path plot.
                     m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
@@ -350,7 +374,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reached GPS Coordinate event.");
-
                 // Check constants to see if we should go into verifying position or just trigger reached marker.
                 if (constants::NAVIGATING_VERIFY_POSITION)
                 {
@@ -409,24 +432,24 @@ namespace statemachine
                     // Add starting point and goal point to path plot.
                     m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
                     m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
-                }
 
-                // Get all obstacles from the obstacle handler.
-                std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                // Add obstacles to the A* planner.
-                m_pAStarPlanner->UpsertObstacleData(vObstacles);
-                // Set A* planner start and goal.
-                m_vPathCoordinates =
-                    m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-                // Set the path of the stanley controller.
-                m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                // Get the smoothed path for plotting.
-                std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
-                // Update our plot with the new path.
-                m_pRoverPathPlot->ClearLayer("AStarPath");
-                m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
-                m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
-                m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+                    // Get all obstacles from the obstacle handler.
+                    std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+                    // Add obstacles to the A* planner.
+                    m_pAStarPlanner->UpsertObstacleData(vObstacles);
+                    // Set A* planner start and goal.
+                    m_vPathCoordinates =
+                        m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+                    // Set the path of the stanley controller.
+                    m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                    // Get the smoothed path for plotting.
+                    std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
+                    // Update our plot with the new path.
+                    m_pRoverPathPlot->ClearLayer("AStarPath");
+                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
+                    m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
+                    m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+                }
 
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
@@ -449,7 +472,7 @@ namespace statemachine
                 // Stop drive.
                 globals::g_pDriveBoard->SendStop();
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Set toggle.
                 m_bFetchNewWaypoint = true;
                 // Change states.
