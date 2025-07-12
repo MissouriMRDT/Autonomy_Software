@@ -6,7 +6,7 @@
  * radius from an (Easting, Northing) coordinate for real-time navigation.
  *
  * @file LiDARHandler.h
- * @author Eli Byrd
+ * @author ClayJay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
  * @date 2025-05-20
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
@@ -26,19 +26,12 @@ class LiDARHandler
 {
     public:
         ////////////////////////////////////
-        // Structures for LAS 1.4
+        // Declare the PointRow structure to hold point data.
         ////////////////////////////////////
 
-        /******************************************************************************
-         * @brief Structure representing a single parsed LiDAR point.
-         *
-         * Contains id, easting, northing, altitude, UTM zone, and classification label.
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2025-05-20
-         ******************************************************************************/
         struct PointRow
         {
+            public:
                 int nId;
                 double dEasting;
                 double dNorthing;
@@ -48,15 +41,8 @@ class LiDARHandler
         };
 
         ////////////////////////////////////
-        // Constructors and Destructors
+        // Declare class methods.
         ////////////////////////////////////
-
-        /******************************************************************************
-         * @brief Construct a new LiDAR Loader object.
-         *
-         * @author Eli Byrd (edbgkk@mst.edu)
-         * @date 2025-05-20
-         ******************************************************************************/
         LiDARHandler()                                      = default;
         LiDARHandler(const LiDARHandler& pOther)            = delete;
         LiDARHandler& operator=(const LiDARHandler& pOther) = delete;
