@@ -49,6 +49,7 @@ BASICCAM
 bazel
 Bbuild
 bitmasked
+boxstyle
 buildcache
 Buildx
 bvector
@@ -59,6 +60,7 @@ CAFFE
 CALIB
 CALIBRATEENCODER
 CAMERAUNAVAILABLE
+capstyle
 carryforward
 Catmull
 CELLCRITICAL
@@ -73,6 +75,7 @@ clayjay
 CLEAROBSTACLES
 CLEARWAYPOINTS
 CLOSEDLOOPOVERRIDE
+cmap
 cmath
 Codacy
 Codecov
@@ -80,6 +83,7 @@ codefactor
 codeql
 codezombiech
 Coeffs
+colorbar
 Colour
 COMPASSDATA
 CONTINUOUSNAVIGATE
@@ -121,6 +125,7 @@ Depacketization
 Depacketizer
 DEPTHMEASUREENCODEDECODE
 depthobject
+depthshade
 deque
 Desaturate
 devcontainer
@@ -147,6 +152,7 @@ dumpversion
 Eddb
 Eddbb
 Eddd
+edgecolor
 edgetpu
 EEEC
 EEED
@@ -227,7 +233,9 @@ Evironment
 executemany
 executescript
 Extention
+facecolor
 feedforward
+figsize
 flann
 flatbuffer
 flatbuffers
@@ -235,9 +243,11 @@ flightsticks
 fmtp
 fmtquill
 FNDA
+fontsize
 fourcc
 fprofile
 ftest
+Fugative
 funcs
 futex
 gcov
@@ -252,6 +262,7 @@ geolocated
 Geolocated
 geomeasurement
 geoops
+GEOPLANNER
 geoposition
 georeference
 Geospatial
@@ -449,6 +460,9 @@ Makefiles
 MAKEFLAGS
 MAPANGLE
 MAPRANGE
+markeredgecolor
+markeredgewidth
+markersize
 marsrover
 MATPLOT
 matplotlib
@@ -466,6 +480,7 @@ missourimrdt
 MJPEG
 MKLDNN
 MOSSE
+mplot
 MRDT
 mrdtavoidance
 msgpack
@@ -478,6 +493,7 @@ NAVIGATINGSTATE
 NAVIGATIONBOARD
 navpvt
 nbrs
+ndarray
 nJter
 nlohmann
 Nolte
@@ -631,6 +647,7 @@ threadpool
 timestamping
 timestep
 TOGGLESTREAM
+toolkits
 torchobject
 torchscript
 torchtag
@@ -668,6 +685,7 @@ VERIFYINGMARKER
 VERIFYINGMARKERSTATE
 VERIFYINGOBJECT
 VERIFYINGOBJECTSTATE
+verticalalignment
 VESC
 Vexas
 videotoolbox
@@ -685,6 +703,7 @@ wslg
 xauth
 xhost
 xlabel
+xlim
 XNNPACK
 xtickangle
 xtickformat
@@ -692,6 +711,7 @@ XYZBGRA
 XYZRGBA
 yasm
 ylabel
+ylim
 YOLO
 yolomodel
 ytickformat
@@ -703,5 +723,7 @@ ZEDCAMERA
 ZEDSDK
 zerolatency
 zlabel
+zlim
+zorder
 zstd
 ztickformat

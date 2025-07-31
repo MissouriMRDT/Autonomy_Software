@@ -2,7 +2,7 @@
  * @brief Implementation of the LiDAR runtime query interface.
  *
  * @file LiDARHandler.cpp
- * @author Eli Byrd
+ * @author ClayJay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
  * @date 2025-05-20
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
@@ -10,18 +10,31 @@
 
 #include "LiDARHandler.h"
 #include "../AutonomyLogging.h"
-#include <cmath>
-#include <iostream>
+
+/******************************************************************************
+ * @brief Construct a new LiDARHandler::LiDARHandler object.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-07-13
+ ******************************************************************************/
+LiDARHandler::LiDARHandler()
+{
+    // Initialize member variables.
+    m_pSQLDatabase  = nullptr;
+    m_pSQLStatement = nullptr;
+    m_bIsDBOpen     = false;
+}
 
 /******************************************************************************
  * @brief Destroy the LiDARHandler::LiDARHandler object.
  *
- * @author Eli Byrd (edbgkk@mst.edu)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
  * @date 2025-05-20
  ******************************************************************************/
 LiDARHandler::~LiDARHandler()
 {
-    Finalize();
+    this->CloseDB();    // Ensure the database is closed on destruction.
 }
 
 /******************************************************************************
@@ -31,168 +44,296 @@ LiDARHandler::~LiDARHandler()
  * SQL statement used to query nearby point records. It must be called before any
  * queries are made using GetNearbyPoints().
  *
- * @param dbPath Relative or absolute path to the SQLite database file. If a relative path
+ * @param szDBPath Relative or absolute path to the SQLite database file. If a relative path
  *               is provided, it must be relative to the directory from which the
  *               final executable is launched (i.e., the current working directory).
  *
- * @return bool - true if initialization and statement preparation succeed; false otherwise.
+ * @return true - If the database was successfully opened and the SQL statement prepared.
+ * @return false - If there was an error opening the database or preparing the SQL statement.
  *
  * @note If the database file cannot be found or accessed, an error message will be printed
  *       to std::cerr and this function will return false.
  *
- * @author Eli Byrd
- * @date 2025-05-20
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2025-07-13
  ******************************************************************************/
-bool LiDARHandler::Initialize(const std::string& szDBPath)
+bool LiDARHandler::OpenDB(const std::string& szDBPath)
 {
-    // Attempt to open the SQLite database, if it fails, print the error message and return false
-    if (sqlite3_open(szDBPath.c_str(), &m_pSQLDatabase) != SQLITE_OK)
+    // Acquire a write lock on the mutex to ensure thread safety.
+    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+
+    // Check if the database is already open.
+    if (m_bIsDBOpen)
     {
-        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to open database: {}", sqlite3_errmsg(m_pSQLDatabase));
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "LiDARHandler: Database is already open. Closing existing connection before opening a new one.");
+        // Release lock before calling CloseDB to avoid deadlock.
+        lkWriteLock.unlock();
+        this->CloseDB();
+        lkWriteLock.lock();
+    }
+
+    // Attempt to open the SQLite database.
+    int nReturnCode = sqlite3_open(szDBPath.c_str(), &m_pSQLDatabase);
+    if (nReturnCode != SQLITE_OK)
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to open database at '{}': {}", szDBPath, sqlite3_errmsg(m_pSQLDatabase));
+        // Return false on failure.
         return false;
     }
 
-    // Prepare the SQL statement for querying nearby points
-    return PrepareNearbyStatement();
-}
+    // Set the database open flag to true.
+    m_bIsDBOpen = true;
 
-/******************************************************************************
- * @brief Prepares the SQL statement used to query nearby LiDAR points.
- *
- * This function constructs and compiles a parameterized SQL query that retrieves
- * all point records from the `RawPoints` table within a bounding box defined by
- * a center coordinate and a search radius. The actual values for easting,
- * northing, and radius are bound later at runtime in GetNearbyPoints().
- *
- * The bounding box is defined using:
- *   - Easting BETWEEN (easting - radius) AND (easting + radius)
- *   - Northing BETWEEN (northing - radius) AND (northing + radius)
- *
- * @return true if the SQL statement is successfully prepared; false otherwise.
- *         On failure, an error message will be printed to std::cerr.
- *
- * @note This method is called automatically during Initialize().
- * @note The compiled statement is cached for repeated use.
- *
- * @author Eli Byrd
- * @date 2025-05-20
- ******************************************************************************/
-bool LiDARHandler::PrepareNearbyStatement()
-{
-    // Create the SQL statement
-    const char* szSQLStatement = R"(
-         SELECT id, Easting, Northing, Altitude, Zone, Classification
-         FROM RawPoints
-         WHERE Easting BETWEEN (? - ?) AND (? + ?)
-           AND Northing BETWEEN (? - ?) AND (? + ?);
-     )";
-
-    // Prepare the SQL statement, if it fails, print the error message and return false
-    if (sqlite3_prepare_v2(m_pSQLDatabase, szSQLStatement, -1, &m_pSQLStatement, nullptr) != SQLITE_OK)
-    {
-        LOG_CRITICAL(logging::g_qSharedLogger, "Failed to prepare SQL statement: {}", sqlite3_errmsg(m_pSQLDatabase));
-        return false;
-    }
-
-    // Return true to indicate success, statement has been prepared and stored
     return true;
 }
 
 /******************************************************************************
- * @brief Retrieves all LiDAR points within a specified radius of a given coordinate.
+ * @brief Closes the currently open LiDAR database.
  *
- * This method uses a precompiled SQL statement to query the `RawPoints` table for
- * all records whose (Easting, Northing) coordinates fall within a square bounding box
- * centered at the given input location and extended by `radiusMeters` in all directions.
+ * @return true - If the database was successfully closed.
+ * @return false - If there was an error closing the database.
  *
- * The bounding box logic is implemented in SQL using:
- *   - Easting BETWEEN (easting - radius) AND (easting + radius)
- *   - Northing BETWEEN (northing - radius) AND (northing + radius)
- *
- * @param easting The UTM easting coordinate in meters.
- * @param northing The UTM northing coordinate in meters.
- * @param radiusMeters The radius in meters to search within. Default is 5.0 meters.
- * @return std::vector<PointRow> A vector of points located within the bounding box.
- *
- * @note This performs a square bounding box query, not an exact circular distance check.
- *       If exact radial filtering is needed, post-process the returned points using
- *       Euclidean distance.
- *
- * @warning Ensure `Initialize()` has been successfully called before using this method.
- *
- * @author Eli Byrd
- * @date 2025-05-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-07-13
  ******************************************************************************/
-std::vector<LiDARHandler::PointRow> LiDARHandler::GetNearbyPoints(double dEasting, double dNorthing, double dRadiusMeters)
+bool LiDARHandler::CloseDB()
 {
-    // Create a vector to hold the results
-    std::vector<PointRow> vResults;
+    // Acquire a write lock on the mutex to ensure thread safety.
+    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
 
-    // Reset the prepared statement and clear any previous bindings
-    sqlite3_reset(m_pSQLStatement);
-    sqlite3_clear_bindings(m_pSQLStatement);
-
-    // Bind the parameters to the SQL statement
-    sqlite3_bind_double(m_pSQLStatement, 1, dEasting);
-    sqlite3_bind_double(m_pSQLStatement, 2, dRadiusMeters);
-    sqlite3_bind_double(m_pSQLStatement, 3, dEasting);
-    sqlite3_bind_double(m_pSQLStatement, 4, dRadiusMeters);
-    sqlite3_bind_double(m_pSQLStatement, 5, dNorthing);
-    sqlite3_bind_double(m_pSQLStatement, 6, dRadiusMeters);
-    sqlite3_bind_double(m_pSQLStatement, 7, dNorthing);
-    sqlite3_bind_double(m_pSQLStatement, 8, dRadiusMeters);
-
-    // Execute the SQL statement and iterate through the results
-    while (sqlite3_step(m_pSQLStatement) == SQLITE_ROW)
+    // Handle the closing of the database and sqlite statement.
+    if (m_bIsDBOpen)
     {
-        // Create a new PointRow object
+        // Finalize the prepared statement if it exists. This is necessary because
+        // failing to do so can result in memory leaks. This just frees resources.
+        if (m_pSQLStatement)
+        {
+            int nReturnCode = sqlite3_finalize(m_pSQLStatement);
+            if (nReturnCode != SQLITE_OK)
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to finalize SQL statement: {}", sqlite3_errmsg(m_pSQLDatabase));
+                // Return false on failure.
+                return false;
+            }
+            m_pSQLStatement = nullptr;    // Reset the statement pointer.
+        }
+
+        // Close the database connection.
+        int nReturnCode = sqlite3_close(m_pSQLDatabase);
+        if (nReturnCode != SQLITE_OK)
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to close database: {}", sqlite3_errmsg(m_pSQLDatabase));
+            // Return false on failure.
+            return false;
+        }
+
+        // Reset the database pointer and update the open flag.
+        m_pSQLDatabase = nullptr;    // Reset the database pointer.
+        m_bIsDBOpen    = false;      // Update the database open flag.
+    }
+
+    return true;
+}
+
+/******************************************************************************
+ * @brief Retrieves LiDAR data points from the database based on the specified filter.
+ *
+ * @param stPointFilter - The filter criteria to apply when querying LiDAR data.
+ * @return std::vector<LiDARHandler::PointRow> - A vector of PointRow structures containing the
+ *         queried LiDAR data points.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-07-13
+ ******************************************************************************/
+std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter& stPointFilter)
+{
+    // Acquire a read lock on the mutex to ensure thread safety.
+    std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
+
+    // Record the start time for performance measurement.
+    std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
+
+    if (!m_bIsDBOpen)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Database is not open.");
+        return {};
+    }
+
+    // Build dynamic WHERE clauses and binders.
+    std::vector<std::string> vClauses;
+    std::vector<std::function<void(sqlite3_stmt*, int&)>> vBinders;
+    int nParamIndex = 1;
+
+    // Spatial bounds are always present.
+    vClauses.emplace_back("idx.min_x BETWEEN ? AND ?");
+    vBinders.emplace_back(
+        [&](sqlite3_stmt* sqlSTMT, int& nIndex)
+        {
+            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dEasting - stPointFilter.dRadius);
+            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dEasting + stPointFilter.dRadius);
+        });
+    vClauses.emplace_back("idx.min_y BETWEEN ? AND ?");
+    vBinders.emplace_back(
+        [&](sqlite3_stmt* sqlSTMT, int& nIndex)
+        {
+            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dNorthing - stPointFilter.dRadius);
+            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dNorthing + stPointFilter.dRadius);
+        });
+
+    // Optional classification.
+    if (stPointFilter.szClassification && !stPointFilter.szClassification->empty())
+    {
+        vClauses.emplace_back("p.classification = ?");
+        vBinders.emplace_back([&](sqlite3_stmt* sqlSTMT, int& nIndex)
+                              { sqlite3_bind_text(sqlSTMT, nIndex++, stPointFilter.szClassification->c_str(), -1, SQLITE_STATIC); });
+    }
+
+    // Add optional filters.
+    this->AddRangeFilter(vClauses, vBinders, "p.normal_x", stPointFilter.dNormalX);
+    this->AddRangeFilter(vClauses, vBinders, "p.normal_y", stPointFilter.dNormalY);
+    this->AddRangeFilter(vClauses, vBinders, "p.normal_z", stPointFilter.dNormalZ);
+    this->AddRangeFilter(vClauses, vBinders, "p.slope", stPointFilter.dSlope);
+    this->AddRangeFilter(vClauses, vBinders, "p.rough", stPointFilter.dRoughness);
+    this->AddRangeFilter(vClauses, vBinders, "p.curvature", stPointFilter.dCurvature);
+    this->AddRangeFilter(vClauses, vBinders, "p.trav_score", stPointFilter.dTraversalScore);
+
+    // Construct final SQL query string.
+    std::ostringstream stdOSS;
+    stdOSS << "SELECT p.id, p.easting, p.northing, p.altitude, p.zone, p.classification,"
+           << " p.normal_x, p.normal_y, p.normal_z, p.slope, p.rough, p.curvature, p.trav_score"
+           << " FROM ProcessedLiDARPoints_idx AS idx"
+           << " JOIN ProcessedLiDARPoints AS p ON p.id = idx.id"
+           << " WHERE ";
+
+    // Append all clauses to the SQL query.
+    for (size_t siIter = 0; siIter < vClauses.size(); ++siIter)
+    {
+        if (siIter > 0)
+            stdOSS << " AND ";
+        stdOSS << vClauses[siIter];
+    }
+
+    // Final SQL query string.
+    const std::string szSQLQuery = stdOSS.str();
+
+    // Prepare SQL statement.
+    sqlite3_stmt* sqlSTMT = nullptr;
+    int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, szSQLQuery.c_str(), -1, &sqlSTMT, nullptr);
+    if (nRC != SQLITE_OK)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        return {};
+    }
+
+    // Bind parameters.
+    for (std::function<void(sqlite3_stmt*, int&)>& binder : vBinders)
+    {
+        binder(sqlSTMT, nParamIndex);
+    }
+
+    // Execute and collect results.
+    std::vector<PointRow> vResults;
+    while ((nRC = sqlite3_step(sqlSTMT)) == SQLITE_ROW)
+    {
         PointRow stRow;
-
-        // Populate the PointRow object with data from the current row
-        stRow.nId              = sqlite3_column_int(m_pSQLStatement, 0);
-        stRow.dEasting         = sqlite3_column_double(m_pSQLStatement, 1);
-        stRow.dNorthing        = sqlite3_column_double(m_pSQLStatement, 2);
-        stRow.dAltitude        = sqlite3_column_double(m_pSQLStatement, 3);
-        stRow.szZone           = reinterpret_cast<const char*>(sqlite3_column_text(m_pSQLStatement, 4));
-        stRow.szClassification = reinterpret_cast<const char*>(sqlite3_column_text(m_pSQLStatement, 5));
-
-        // Add the populated PointRow object to the results vector
+        stRow.nID              = sqlite3_column_int(sqlSTMT, 0);
+        stRow.dEasting         = sqlite3_column_double(sqlSTMT, 1);
+        stRow.dNorthing        = sqlite3_column_double(sqlSTMT, 2);
+        stRow.dAltitude        = sqlite3_column_double(sqlSTMT, 3);
+        stRow.szZone           = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 4));
+        stRow.szClassification = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 5));
+        stRow.dNormalX         = sqlite3_column_double(sqlSTMT, 6);
+        stRow.dNormalY         = sqlite3_column_double(sqlSTMT, 7);
+        stRow.dNormalZ         = sqlite3_column_double(sqlSTMT, 8);
+        stRow.dSlope           = sqlite3_column_double(sqlSTMT, 9);
+        stRow.dRoughness       = sqlite3_column_double(sqlSTMT, 10);
+        stRow.dCurvature       = sqlite3_column_double(sqlSTMT, 11);
+        stRow.dTraversalScore  = sqlite3_column_double(sqlSTMT, 12);
         vResults.push_back(stRow);
     }
 
-    // Return the resulting vector of points
+    // Finalize SQL statement.
+    if ((nRC = sqlite3_finalize(sqlSTMT)) != SQLITE_OK)
+    {
+        // Submit logger message.
+        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to finalize statement: {}", sqlite3_errmsg(m_pSQLDatabase));
+        // Return empty results on failure.
+        return {};
+    }
+
+    // Record the end time for performance measurement.
+    std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
+    double dQueryTime                                                     = std::chrono::duration<double>(tmEndTime - tmStartTime).count();
+
+    // If time is over 1 second log a warning.
+    if (dQueryTime > 1.0)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "LiDARHandler: Query took {:.2f} seconds to execute.", dQueryTime);
+    }
+
     return vResults;
 }
 
 /******************************************************************************
- * @brief Finalizes and closes internal SQLite resources.
+ * @brief Checks if the database is currently open.
  *
- * This method safely deallocates all SQLite resources used by the handler:
- * - Finalizes the prepared statement used for nearby queries.
- * - Closes the SQLite database connection.
+ * @return true - If the database is open.
+ * @return false - If the database is not open.
  *
- * It should be called before destroying the `LiDARHandler` instance or when
- * the handler is no longer needed. Calling this method multiple times is safe.
- *
- * @note Automatically called by the destructor, but may also be used explicitly
- *       in controlled lifetime scenarios.
- *
- * @author Eli Byrd
- * @date 2025-05-20
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-07-14
  ******************************************************************************/
-void LiDARHandler::Finalize()
+bool LiDARHandler::IsDBOpen()
 {
-    // Check if the statement is prepared and finalize it
-    if (m_pSQLStatement)
-    {
-        sqlite3_finalize(m_pSQLStatement);
-        m_pSQLStatement = nullptr;
-    }
+    // Acquire a read lock on the mutex to ensure thread safety.
+    std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
+    // Return the database open status.
+    return m_bIsDBOpen;
+}
 
-    // Check if the database is open and close it
-    if (m_pSQLDatabase)
+/******************************************************************************
+ * @brief Adds a range filter to the SQL query clauses and binders.
+ *
+ * @tparam T - The data type of the range values.
+ * @param vClauses - The vector of SQL clauses to which the range filter will be added.
+ * @param vBinders - The vector of binders for the SQL statement.
+ * @param pColumn - The name of the column to apply the range filter on.
+ * @param stdOptRange - The optional range to filter by. If it is not set, no filter will be added.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-07-14
+ ******************************************************************************/
+template<typename T>
+void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
+                                  std::vector<std::function<void(sqlite3_stmt*, int&)>>& vBinders,
+                                  const char* pColumn,
+                                  const std::optional<PointFilter::Range<T>>& stdOptRange)
+{
+    // If the range is set, add the filter clause and binder.
+    if (stdOptRange)
     {
-        sqlite3_close(m_pSQLDatabase);
-        m_pSQLDatabase = nullptr;
+        // Add the range filter clause based on the type of T.
+        if constexpr (std::is_floating_point<T>::value)
+        {
+            // Only use >= by default for floats
+            vClauses.emplace_back(std::string(pColumn) + " >= ?");
+            vBinders.emplace_back([&](sqlite3_stmt* sqlSTMT, int& nIndex) { sqlite3_bind_double(sqlSTMT, nIndex++, stdOptRange->tMin); });
+        }
+        else
+        {
+            // Use BETWEEN for ints or guaranteed bounded ranges
+            vClauses.emplace_back(std::string(pColumn) + " BETWEEN ? AND ?");
+            vBinders.emplace_back(
+                [&](sqlite3_stmt* sqlSTMT, int& nIndex)
+                {
+                    sqlite3_bind_double(sqlSTMT, nIndex++, stdOptRange->tMin);
+                    sqlite3_bind_double(sqlSTMT, nIndex++, stdOptRange->tMax);
+                });
+        }
     }
 }

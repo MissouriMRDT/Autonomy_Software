@@ -27,6 +27,9 @@ namespace globals
     // Waypoint Handler:
     WaypointHandler* g_pWaypointHandler;
 
+    // LiDAR Handler:
+    LiDARHandler* g_pLiDARHandler;
+
     // Camera Handler:
     CameraHandler* g_pCameraHandler;
 

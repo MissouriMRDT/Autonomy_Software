@@ -150,6 +150,7 @@ The table below lists various other common types and their corresponding prefixe
 | Array               | `a`     | `int aExampleArray[4]`                 |
 | Deque               | `dq`    | `deque dqExampleDeque`                 |
 | Queue               | `q`     | `queue<int> qExampleQueue`             |
+| Priority Queue      | `pq`    | `priority_queue<int> pqExamplePriorityQueue` |
 | Iterator            | `it`    | `iterator itExampleIterator`           |
 | String              | `sz`    | `string szExampleString`               |
 | Pointer             | `p`     | `string* pExamplePointer`              |
@@ -191,6 +192,8 @@ External libraries and their corresponding type prefixes are listed below:
 | FFMPEG         | `av`   | `AVPacket avExampleFFMPEGPacket` |
 | Matplot        | `mt`   | `axes_handle mtExampleMatplot`   |
 | PCL            | `pcl`  | `PointXYZ pclExamplePCLType`     |
+| SQL            | `sql`  | `sqlite sqlExampleSQLType`       |
+| Eigen          | `ei`   | `MatrixXd eiExampleEigenType`    |
 
 ---
 

@@ -48,7 +48,7 @@ option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 
 ## Enable or Disable Tests Mode
-option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
+option(BUILD_TESTS_MODE "Enable Tests Mode" ON)
 
 ## Enable or Disable Examples Mode
 option(BUILD_EXAMPLES_MODE "Enable Examples Mode" OFF)

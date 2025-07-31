@@ -16,6 +16,9 @@
 #define LIDARHANDLER_H
 
 /// \cond
+#include <functional>
+#include <optional>
+#include <shared_mutex>
 #include <sqlite3.h>
 #include <string>
 #include <vector>
@@ -26,46 +29,90 @@ class LiDARHandler
 {
     public:
         ////////////////////////////////////
-        // Declare the PointRow structure to hold point data.
+        // Declare and define structs
         ////////////////////////////////////
 
         struct PointRow
         {
             public:
-                int nId;
-                double dEasting;
-                double dNorthing;
-                double dAltitude;
-                std::string szZone;
-                std::string szClassification;
+                int nID;                         // Unique identifier for the point.
+                double dEasting;                 // Easting coordinate in meters.
+                double dNorthing;                // Northing coordinate in meters.
+                double dAltitude;                // Altitude coordinate in meters.
+                std::string szZone;              // UTM zone of the point.
+                std::string szClassification;    // Classification of the point (e.g., ground, vegetation).
+                double dNormalX;                 // X component of the normal vector.
+                double dNormalY;                 // Y component of the normal vector.
+                double dNormalZ;                 // Z component of the normal vector.
+                double dSlope;                   // Slope of the point.
+                double dRoughness;               // Roughness of the point.
+                double dCurvature;               // Curvature of the point.
+                double dTraversalScore;          // Traversal score for the point.
+        };
+
+        struct PointFilter
+        {
+            public:
+                double dEasting;                                               // Easting coordinate to filter points by.
+                double dNorthing;                                              // Northing coordinate to filter points by.
+                double dRadius;                                                // Radius in meters to filter points by.
+                std::optional<std::string> szClassification = std::nullopt;    // Optional classification to filter points by.
+
+                // Generic min/max pair for each filterable double property.
+                template<typename T>
+                struct Range
+                {
+                    public:
+                        T tMin;
+                        T tMax;
+                };
+
+                std::optional<Range<double>> dNormalX        = std::nullopt;    // Optional range for X component of the normal vector.
+                std::optional<Range<double>> dNormalY        = std::nullopt;
+                std::optional<Range<double>> dNormalZ        = std::nullopt;
+                std::optional<Range<double>> dSlope          = std::nullopt;
+                std::optional<Range<double>> dRoughness      = std::nullopt;
+                std::optional<Range<double>> dCurvature      = std::nullopt;
+                std::optional<Range<double>> dTraversalScore = std::nullopt;
         };
 
         ////////////////////////////////////
         // Declare class methods.
         ////////////////////////////////////
-        LiDARHandler()                                      = default;
+
+        LiDARHandler();
         LiDARHandler(const LiDARHandler& pOther)            = delete;
         LiDARHandler& operator=(const LiDARHandler& pOther) = delete;
         ~LiDARHandler();
+        bool OpenDB(const std::string& szDBPath);
+        bool CloseDB();
+        std::vector<PointRow> GetLiDARData(const PointFilter& stPointFilter);
 
         ////////////////////////////////////
-        // Public Methods
+        // Getters
         ////////////////////////////////////
-        bool Initialize(const std::string& szDBPath);
-        std::vector<PointRow> GetNearbyPoints(double dEasting, double dNorthing, double dRadiusMeters = 5.0);
+
+        bool IsDBOpen();
 
     private:
         ////////////////////////////////////
-        // Private Members
-        ////////////////////////////////////
-        sqlite3* m_pSQLDatabase       = nullptr;
-        sqlite3_stmt* m_pSQLStatement = nullptr;
-
-        ////////////////////////////////////
         // Private Methods
         ////////////////////////////////////
-        bool PrepareNearbyStatement();
-        void Finalize();
+
+        template<typename T>
+        void AddRangeFilter(std::vector<std::string>& vClauses,
+                            std::vector<std::function<void(sqlite3_stmt*, int&)>>& vBinders,
+                            const char* pColumn,
+                            const std::optional<PointFilter::Range<T>>& stdOptRange);
+
+        ////////////////////////////////////
+        // Private Members
+        ////////////////////////////////////
+
+        sqlite3* m_pSQLDatabase;
+        sqlite3_stmt* m_pSQLStatement;
+        bool m_bIsDBOpen;
+        std::shared_mutex m_muQueryMutex;    // Mutex for thread-safe access to the database.
 };
 
 #endif

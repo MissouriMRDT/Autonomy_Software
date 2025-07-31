@@ -8,6 +8,7 @@
  * @copyright Copyright Mars Rover Design Team 2023 - All Rights Reserved
  ******************************************************************************/
 
+#include "../examples/navigation/GetNearbyLiDAR.hpp"
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
@@ -210,11 +211,21 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pCameraHandler          = new CameraHandler();
         globals::g_pWaypointHandler        = new WaypointHandler();
+        globals::g_pLiDARHandler           = new LiDARHandler();
+        globals::g_pCameraHandler          = new CameraHandler();
         globals::g_pTagDetectionHandler    = new TagDetectionHandler();
         globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
         globals::g_pStateMachineHandler    = new StateMachineHandler();
+
+        // Open the LiDAR database.
+        if (!globals::g_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to open LiDAR database.");
+            // Stop main loop.
+            bMainStop = true;
+        }
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
@@ -484,18 +495,23 @@ int main()
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
+        // Close the LiDAR database.
+        globals::g_pLiDARHandler->CloseDB();
+
         // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pObjectDetectionHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
+        delete globals::g_pLiDARHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
         globals::g_pStateMachineHandler    = nullptr;
         globals::g_pObjectDetectionHandler = nullptr;
         globals::g_pTagDetectionHandler    = nullptr;
         globals::g_pCameraHandler          = nullptr;
         globals::g_pWaypointHandler        = nullptr;
+        globals::g_pLiDARHandler           = nullptr;
     }
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
