@@ -76,7 +76,7 @@ namespace filters
          * @author Adam
          * @date 2025-05-21
          ******************************************************************************/
-        KalmanFilter::XStateSnapshot KalmanFilter::GetInterpolatedHistory(time_point_t tmTimestamp) const
+        KalmanFilter::XStateSnapshot KalmanFilter::GetInterpolatedHistory(std::chrono::system_clock::time_point tmTimestamp) const
         {
             // If there's no value, just return some default initialized value like NavigationBoard does.
             if (!m_bHasInitialGuess)
@@ -94,7 +94,7 @@ namespace filters
             // Otherwise, it is guaranteed that there is at least one state after the given timestamp.
 
             // Find the first state before the given timestamp.
-            time_point_t tmFirstBefore, tmFirstAfter;
+            std::chrono::system_clock::time_point tmFirstBefore, tmFirstAfter;
             auto stdBegin = m_liXStateHistory.rbegin();
             auto stdEnd   = m_liXStateHistory.rend();
             // Search from end (newest estimates are at end).
@@ -135,20 +135,20 @@ namespace filters
          * @author OcelotEmpire (hobbz.pi@gmail.com)
          * @date 2025-04-02
          ******************************************************************************/
-        void KalmanFilter::PredictAccelerometer(Eigen::Vector3d eiAccelerometerOutput, time_point_t tmTimestamp)
+        void KalmanFilter::PredictAccelerometer(Eigen::Vector3d eiAccelerometerOutput, std::chrono::system_clock::time_point tmTimestamp)
         {
             XStateSnapshot stNextState{.tmTimestamp = tmTimestamp};
             auto dt = tmTimestamp - m_tmLastAccelerometerUpdate;
             // TODO: Subtract gravity from accelerometer measurement
         }
 
-        void KalmanFilter::PredictGyroscope(Eigen::Vector3d eiGyroscopeOutput, time_point_t tmTimestamp) {}
+        void KalmanFilter::PredictGyroscope(Eigen::Vector3d eiGyroscopeOutput, std::chrono::system_clock::time_point tmTimestamp) {}
 
         // Direct measurement of the state space
         // See https://en.wikipedia.org/wiki/Kalman_filter#Update
-        void KalmanFilter::UpdateGPS(Eigen::Vector3d eiGPSOutputNEDFrame, time_point_t tmTimestamp) {}
+        void KalmanFilter::UpdateGPS(Eigen::Vector3d eiGPSOutputNEDFrame, std::chrono::system_clock::time_point tmTimestamp) {}
 
-        void KalmanFilter::UpdateHeading(Eigen::Vector3d eiAccOutput, time_point_t tmTimestamp) {}
+        void KalmanFilter::UpdateHeading(Eigen::Vector3d eiAccOutput, std::chrono::system_clock::time_point tmTimestamp) {}
 
         void KalmanFilter::SetAccelerometerCovariance(Eigen::Matrix3d eiNewCovariance) {}
 
