@@ -65,7 +65,7 @@ class GeoPlannerTests : public TestingBase<GeoPlannerTests>
         {
             // Initialize the LiDARHandler for this test.
             m_pLiDARHandler = new LiDARHandler();
-            if (!m_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
+            if (!m_pLiDARHandler->OpenDB("../data/LiDAR/data/databases/Rolla.db"))
             {
                 // Submit logger message.
                 LOG_ERROR(logging::g_qSharedLogger, "Failed to open LiDAR database for GeoPlanner tests.");

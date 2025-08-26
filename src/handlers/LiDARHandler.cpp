@@ -275,6 +275,10 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "LiDARHandler: Query took {:.2f} seconds to execute.", dQueryTime);
     }
+    else
+    {
+        LOG_NOTICE(logging::g_qSharedLogger, "LiDARHandler: Query took {} seconds to execute.", dQueryTime);
+    }
 
     return vResults;
 }

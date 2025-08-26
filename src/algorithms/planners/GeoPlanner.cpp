@@ -36,13 +36,13 @@ namespace pathplanners
     GeoPlanner::GeoPlanner(double dTileSize)
     {
         // Initialize member variables.
-        m_nStartID      = -1;                                                                      // Default start ID.
-        m_nEndID        = -1;                                                                      // Default end ID.
-        m_dBeta         = 1.0;                                                                     // Default bias factor for travel scores.
-        m_dMinTravScore = 0.8;                                                                     // Default minimum travel score threshold.
-        m_dTileSize     = dTileSize;                                                               // Set the tile size.
-        m_pLiDARHandler = nullptr;                                                                 // Initialize LiDARHandler pointer to null.
-        m_pPathTracer   = std::make_unique<logging::graphing::PathTracer>("Rover Path", false);    // Initialize the path tracer for 3D visualization.
+        m_nStartID      = -1;                                                                     // Default start ID.
+        m_nEndID        = -1;                                                                     // Default end ID.
+        m_dBeta         = 1.0;                                                                    // Default bias factor for travel scores.
+        m_dMinTravScore = 0.8;                                                                    // Default minimum travel score threshold.
+        m_dTileSize     = dTileSize;                                                              // Set the tile size.
+        m_pLiDARHandler = nullptr;                                                                // Initialize LiDARHandler pointer to null.
+        m_pPathTracer   = std::make_unique<logging::graphing::PathTracer>("Rover Path", true);    // Initialize the path tracer for 3D visualization.
 
         // Set up the path tracer for 3D visualization.
         m_pPathTracer->CreateDotLayer("Terrain", "gray");
@@ -199,20 +199,29 @@ namespace pathplanners
      ******************************************************************************/
     void GeoPlanner::InitializeSearch(const geoops::UTMCoordinate& stStart, const geoops::UTMCoordinate& stEnd)
     {
+        // Create instance variables.
+        geoops::UTMCoordinate stStartCopy = stStart;
+        geoops::UTMCoordinate stEndCopy   = stEnd;
+
         // Initialize the search state.
         m_umTileMapCache.clear();    // Clear any existing tile cache.
+
+        // Set the start and end IDs based on the closest LiDAR points.
+        PlannerState stStartState = FindClosestLiDARPoint(stStartCopy);
+        PlannerState stEndState   = FindClosestLiDARPoint(stEndCopy);
+        m_nStartID                = stStartState.nID;
+        m_nEndID                  = stEndState.nID;
+        // Update the start and end UTM coord structs with the altitude from the closest found LiDAR point.
+        stStartCopy.dAltitude = stStartState.dAltitude;
+        stEndCopy.dAltitude   = stEndState.dAltitude;
 
         // Clear the graph tracer.
         m_pPathTracer->ClearLayer("Path");
         m_pPathTracer->ClearLayer("Terrain");
         m_pPathTracer->ClearLayer("StartAndEnd");
         // Add start and end points to the tracer.
-        m_pPathTracer->AddDot(stStart, "StartAndEnd", 0);
-        m_pPathTracer->AddDot(stEnd, "StartAndEnd", 0);
-
-        // Set the start and end IDs based on the closest LiDAR points.
-        m_nStartID = FindClosestLiDARPoint(stStart).nID;
-        m_nEndID   = FindClosestLiDARPoint(stEnd).nID;
+        m_pPathTracer->AddDot(stStartCopy, "StartAndEnd", 0);
+        m_pPathTracer->AddDot(stEndCopy, "StartAndEnd", 0);
 
         // Clean queues.
         while (!m_pqOpenSet.empty())
@@ -223,18 +232,18 @@ namespace pathplanners
         // Clear maps.
         m_umCosts.clear();           // Clear the cost map.
         m_umPredecessors.clear();    // Clear the predecessors map.
-        m_umClosedSet.clear();       // Clear the closed set.
+        m_usClosedSet.clear();       // Clear the closed set.
 
         // Setup costs for the start node and add it to the open set.
-        m_umCosts[m_nStartID] = 0.0;                                                               // Initialize the cost of the start node to 0.
-        m_pqOpenSet.push({m_nStartID, stStart.dEasting, stStart.dNorthing, stStart.dAltitude});    // Push the start state into the priority queue.
+        m_umCosts[m_nStartID] = 0.0;                                                                           // Initialize the cost of the start node to 0.
+        m_pqOpenSet.push({m_nStartID, stStartCopy.dEasting, stStartCopy.dNorthing, stStartCopy.dAltitude});    // Push the start state into the priority queue.
 
         // Submit logger message.
         LOG_NOTICE(
             logging::g_qSharedLogger,
             "GeoPlanner initialized search with start location of <{}>, end location of <{}>, beta: {}, search radius: {}, min traversal score: {}. Please be patient...",
-            stStart.ToString(),
-            stEnd.ToString(),
+            stStartCopy.ToString(),
+            stEndCopy.ToString(),
             m_dBeta,
             m_dSearchRadius,
             m_dMinTravScore);
@@ -257,13 +266,13 @@ namespace pathplanners
             m_pqOpenSet.pop();    // Remove it from the open set.
 
             // Check if have already visited this node.
-            if (m_umClosedSet[stCurrentState.nID])
+            if (m_usClosedSet.count(stCurrentState.nID))
             {
                 continue;    // Skip this state if it has already been processed.
             }
 
             // Mark this state as processed.
-            m_umClosedSet[stCurrentState.nID] = true;
+            m_usClosedSet.insert(stCurrentState.nID);
 
             // Check if we have reached the end node.
             if (stCurrentState.nID == m_nEndID)
@@ -287,48 +296,43 @@ namespace pathplanners
     void GeoPlanner::ProcessNeighbors(const PlannerState& stCurrentState)
     {
         // Calculate the tile X and Y min and max coordinates based on the current state.
-        int nTileXMin = int(std::floor((stCurrentState.dEasting - m_dSearchRadius) / m_dTileSize));
-        int nTileXMax = int(std::floor((stCurrentState.dEasting + m_dSearchRadius) / m_dTileSize));
-        int nTileYMin = int(std::floor((stCurrentState.dNorthing - m_dSearchRadius) / m_dTileSize));
-        int nTileYMax = int(std::floor((stCurrentState.dNorthing + m_dSearchRadius) / m_dTileSize));
+        int nTileXMin          = int(std::floor((stCurrentState.dEasting - m_dSearchRadius) / m_dTileSize));
+        int nTileXMax          = int(std::floor((stCurrentState.dEasting + m_dSearchRadius) / m_dTileSize));
+        int nTileYMin          = int(std::floor((stCurrentState.dNorthing - m_dSearchRadius) / m_dTileSize));
+        int nTileYMax          = int(std::floor((stCurrentState.dNorthing + m_dSearchRadius) / m_dTileSize));
+        double dSearchRadiusSq = m_dSearchRadius * m_dSearchRadius;
 
-        // Iterate through all tiles in the specified range.
+        // Loop through the nearby tiles that we might need to load and process.
         for (int nTileX = nTileXMin; nTileX <= nTileXMax; ++nTileX)
         {
             for (int nTileY = nTileYMin; nTileY <= nTileYMax; ++nTileY)
             {
-                // Load in the tile if it is not already loaded.
-                // Create a PlannerState for the tile center to pass to CheckAndLoadTile.
+                // Load the tile if needed.
                 double dCenterEasting  = (nTileX + 0.5) * m_dTileSize;
                 double dCenterNorthing = (nTileY + 0.5) * m_dTileSize;
                 PlannerState stTileCenter{-1, dCenterEasting, dCenterNorthing, 0.0};
                 this->CheckAndLoadTile(stTileCenter);
-            }
-        }
 
-        // Iterate through all tiles in the specified range.
-        for (int nTileX = nTileXMin; nTileX <= nTileXMax; ++nTileX)
-        {
-            for (int nTileY = nTileYMin; nTileY <= nTileYMax; ++nTileY)
-            {
-                // Get the vector of LiDAR points for the current tile.
+                // Access tile's points.
                 std::vector<LiDARHandler::PointRow>& vTilePoints = m_umTileMapCache[{nTileX, nTileY}];
 
-                // Loop through each of the points in the tile.
+                // Loop through all neighbor points.
                 for (const LiDARHandler::PointRow& stNeighborPoint : vTilePoints)
                 {
-                    // Check if we have already processed this point.
-                    if (m_umClosedSet[stNeighborPoint.nID])
+                    // Skip already visited points.
+                    if (m_usClosedSet.count(stNeighborPoint.nID))
                     {
-                        continue;    // Skip this point if it has already been processed.
+                        continue;
                     }
 
-                    // Calculate the 3D distance to the neighbor point.
-                    double dDistance = std::hypot(stCurrentState.dEasting - stNeighborPoint.dEasting, stCurrentState.dNorthing - stNeighborPoint.dNorthing);
-                    // Check if the distance is within the search radius.
-                    if (dDistance <= m_dSearchRadius)
+                    // Compute squared distance to avoid sqrt.
+                    double dx          = stCurrentState.dEasting - stNeighborPoint.dEasting;
+                    double dy          = stCurrentState.dNorthing - stNeighborPoint.dNorthing;
+                    double dDistanceSq = dx * dx + dy * dy;
+
+                    if (dDistanceSq <= dSearchRadiusSq)
                     {
-                        // Relax the edge to the neighbor point.
+                        double dDistance = std::sqrt(dDistanceSq);    // Only if passing the check.
                         this->RelaxEdge(stCurrentState, stNeighborPoint, dDistance);
                     }
                 }
@@ -358,13 +362,12 @@ namespace pathplanners
         std::unordered_map<int, double>::iterator stdIter = m_umCosts.find(stNeighborPoint.nID);
         if (stdIter == m_umCosts.end() || dAlternativeCost < stdIter->second)
         {
-            // Add alternative cost to the cost map.
-            m_umCosts[stNeighborPoint.nID] = dAlternativeCost;
-            // Update the predecessor map.
+            // Update cost and predecessor.
+            m_umCosts[stNeighborPoint.nID]        = dAlternativeCost;
             m_umPredecessors[stNeighborPoint.nID] = stCurrentState.nID;
-            // Create a new PlannerState for the neighbor point and add it to the open set.
-            PlannerState stNeighborState{stNeighborPoint.nID, stNeighborPoint.dEasting, stNeighborPoint.dNorthing, stNeighborPoint.dAltitude, dAlternativeCost};
-            m_pqOpenSet.push(stNeighborState);
+
+            // Push new state to the open set.
+            m_pqOpenSet.emplace(stNeighborPoint.nID, stNeighborPoint.dEasting, stNeighborPoint.dNorthing, stNeighborPoint.dAltitude, dAlternativeCost);
         }
     }
 
@@ -528,7 +531,7 @@ namespace pathplanners
                     int nZone                      = std::stoi(stPoint.szZone.substr(0, stPoint.szZone.size() - 1));
                     geoops::Waypoint stWaypoint(geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, nZone, bWithinNorthernHemisphere, stPoint.dAltitude),
                                                 geoops::WaypointType::eNavigationWaypoint,
-                                                0.001,
+                                                0.005,
                                                 stPoint.nID);
                     vTileWaypoints.push_back(stWaypoint);
                 }

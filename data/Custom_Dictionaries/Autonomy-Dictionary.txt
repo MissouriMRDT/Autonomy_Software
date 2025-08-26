@@ -107,6 +107,7 @@ CURRENTSTATE
 curv
 cvflann
 cvls
+DBOOST
 DBUILD
 DCMAKE
 deadband
@@ -120,6 +121,7 @@ declval
 DEEPSOURCE
 deepsourcelabs
 deleter
+DENABLE
 Denoise
 Depacketization
 Depacketizer
@@ -131,12 +133,15 @@ Desaturate
 devcontainer
 devel
 DGNSS
+DHAS
 diffdrive
 DISABLEAUTONOMY
 DISPLAYSTATE
 DJETSON
 dkms
+DNUMBER
 dockerfiles
+DOPENMS
 dorny
 DOTA
 Downsample
@@ -149,6 +154,7 @@ driveboard
 DRIVEINDIVIDUAL
 DRIVELEFTRIGHT
 dumpversion
+DWITH
 Eddb
 Eddbb
 Eddd
@@ -253,6 +259,7 @@ futex
 gcov
 gcovr
 geekyeggo
+geographiclib
 geolib
 geoloc
 geolocalization
@@ -339,6 +346,8 @@ jspencerpittman
 Jter
 jthread
 kbits
+KDTREE
+KDTREEPP
 Kernelized
 keyrings
 keyscan
@@ -396,6 +405,11 @@ libiec
 libjack
 libjpeg
 libjxl
+libkdtree
+LIBKDTREE
+LIBKDTREEPP
+libkdtreeree
+libkdttools
 liblapack
 liblapacke
 libmfx
@@ -514,6 +528,8 @@ opencontainers
 opencv
 opengl
 OPENMP
+openms
+OPENMS
 ostream
 OTSU
 Overcurrent

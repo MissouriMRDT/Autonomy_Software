@@ -169,7 +169,8 @@ The table below lists various other common types and their corresponding prefixe
 | Promise             | `pm`    | `promise<void> pmExampleUseOfPromise`  |
 | Map                 | `m`     | `map<int, int> mExampleUseOfMap`       |
 | Unordered Map       | `um`    | `unordered_map<int, int> umExampleUseOfUnorderedMap` |
-| Set                 | `s`    | `set<int> sExampleUseOfSet`          |
+| Set                 | `s`     | `set<int> sExampleUseOfSet`          |
+| Unordered Set       | `us`    | `unordered_set<int> usExampleUseOfUnorderedSet`   |
 | Functions           | `fn`    | `function<void> fnExampleUseOfFunction`   |
 
 ---
@@ -194,6 +195,7 @@ External libraries and their corresponding type prefixes are listed below:
 | PCL            | `pcl`  | `PointXYZ pclExamplePCLType`     |
 | SQL            | `sql`  | `sqlite sqlExampleSQLType`       |
 | Eigen          | `ei`   | `MatrixXd eiExampleEigenType`    |
+| LibKDTree++    | `tr`   | `KDTree trExampleKDTree`         |
 
 ---
 

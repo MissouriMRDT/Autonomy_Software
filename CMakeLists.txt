@@ -42,13 +42,13 @@ option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
 
 ## Enable or Disable Coverage Watch Mode
-option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
+option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" OFF)
 
 ## Enable or Disable Verbose Makefile
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 
 ## Enable or Disable Tests Mode
-option(BUILD_TESTS_MODE "Enable Tests Mode" ON)
+option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
 
 ## Enable or Disable Examples Mode
 option(BUILD_EXAMPLES_MODE "Enable Examples Mode" OFF)
@@ -168,6 +168,9 @@ find_package(Threads REQUIRED)
 
 ## Find OpenMP
 find_package(OpenMP REQUIRED)
+
+## Find OpenMS
+find_package(OpenMS REQUIRED)
 
 ## Find Quill
 find_package(quill REQUIRED)
@@ -302,6 +305,7 @@ endif()
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
+                        OpenMS
                         Eigen3::Eigen
                         RoveComm_CPP
                         Python3::Python

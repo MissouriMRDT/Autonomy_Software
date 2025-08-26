@@ -15,6 +15,7 @@
 #include "../../util/logging/PathTracer.hpp"
 
 /// \cond
+#include <kdtree++/kdtree.hpp>
 #include <queue>
 #include <unordered_map>
 #include <vector>
@@ -49,7 +50,7 @@ namespace pathplanners
             // Declare class methods.
             ////////////////////////////////////
 
-            GeoPlanner(double dTileSize = 50.0);
+            GeoPlanner(double dTileSize = 5.0);
             ~GeoPlanner();
             std::vector<geoops::Waypoint> PlanPath(LiDARHandler* pLiDARHandler,
                                                    const geoops::UTMCoordinate& stStart,
@@ -207,7 +208,7 @@ namespace pathplanners
             std::priority_queue<PlannerState, std::vector<PlannerState>, PlannerStateCompare> m_pqOpenSet;
             std::unordered_map<int, double> m_umCosts;        // Maps node IDs to their best known costs.
             std::unordered_map<int, int> m_umPredecessors;    // Maps node IDs to their predecessors in the path.
-            std::unordered_map<int, bool> m_umClosedSet;      // Maps node IDs to whether they have been processed.
+            std::unordered_set<int> m_usClosedSet;            // Maps node IDs to whether they have been processed.
 
             // Implicit graph representation with tiles.
             std::unordered_map<TileKey, std::vector<LiDARHandler::PointRow>, TileKeyHash, TileKeyEqual> m_umTileMapCache;    // Maps tile keys to LiDAR points.

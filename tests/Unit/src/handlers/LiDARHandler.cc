@@ -29,7 +29,7 @@ class LiDARHandlerTests : public TestingBase<LiDARHandlerTests>
 {
     protected:
         LiDARHandler m_Handler;
-        std::string m_szDbPath;
+        std::string m_szDbPath = "../data/LiDAR/data/databases/Fugitive.db";
 
     public:
         LiDARHandlerTests()           = default;
