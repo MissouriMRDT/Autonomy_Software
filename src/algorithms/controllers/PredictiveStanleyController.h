@@ -88,6 +88,12 @@ namespace controllers
 
         private:
             /////////////////////////////////////////
+            // Declare private class methods.
+            /////////////////////////////////////////
+
+            geoops::Waypoint FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const double dCurrentHeading);
+
+            /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
 
@@ -100,12 +106,6 @@ namespace controllers
             int m_nCurrentReferencePathTargetIndex;
             std::vector<double> m_vReferencePathCurvature;
             std::vector<geoops::Waypoint> m_vReferencePath;
-
-            /////////////////////////////////////////
-            // Declare private class methods.
-            /////////////////////////////////////////
-
-            geoops::Waypoint FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const double dCurrentHeading);
     };
 }    // namespace controllers
 #endif

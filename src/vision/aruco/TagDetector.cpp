@@ -9,7 +9,8 @@
  ******************************************************************************/
 
 #include "TagDetector.h"
-#include "../../util/vision/ImageOperations.hpp"
+#include "../../AutonomyGlobals.h"
+#include "../../util/vision/Geolocate.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TorchTagDetection.hpp"
 
@@ -54,9 +55,9 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_bUsingGpuMats                    = bUsingGpuMats;
     m_bCameraIsOpened                  = false;
     m_nNumDetectedTagsRetrievalThreads = nNumDetectedTagsRetrievalThreads;
-    m_szCameraName                     = std::dynamic_pointer_cast<BasicCamera>(pBasicCam)->GetCameraLocation();
+    m_szCameraName                     = pBasicCam->GetCameraLocation();
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
-    m_IPS                              = IPS();
+    m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -70,9 +71,9 @@ TagDetector::TagDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT,
-                                                               constants::ARUCO_BBOX_TRACKER_MAX_TRACK_TIME,
-                                                               constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_MAX_TRACK_TIME,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -124,6 +125,7 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_szCameraName                     = pZEDCam->GetCameraModel() + "_" + std::to_string(pZEDCam->GetCameraSerial());
     m_bEnableRecordingFlag             = bEnableRecordingFlag;
     m_IPS                              = IPS();
+    m_stRoverPose                      = geoops::RoverPose();
 
     // Setup aruco detector params.
     m_cvArucoDetectionParams                               = cv::aruco::DetectorParameters();
@@ -134,7 +136,9 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -157,7 +161,7 @@ TagDetector::~TagDetector()
     this->Join();
 
     // Submit logger message.
-    LOG_INFO(logging::g_qSharedLogger, "TagDetector for camera {} had been successfully destroyed.", this->GetCameraName());
+    LOG_INFO(logging::g_qSharedLogger, "TagDetector for camera {} has been successfully destroyed.", this->GetCameraName());
 }
 
 /******************************************************************************
@@ -250,8 +254,8 @@ void TagDetector::ThreadedContinuousCode()
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
                     m_cvGPUFrame.download(m_cvFrame);
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
+                    // Drop alpha channel.
+                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
                 }
                 else
                 {
@@ -276,32 +280,18 @@ void TagDetector::ThreadedContinuousCode()
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
                 }
-                else if (!m_cvFrame.empty() && m_cvFrame.channels() > 3)
-                {
-                    // Drop the Alpha channel from the image. This is necessary for the Aruco detection.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-                }
             }
         }
         else
         {
             // Grab frames from camera.
-            fuPointCloudCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
 
             // Wait for point cloud to be retrieved.
-            if (!fuPointCloudCopyStatus.get())
+            if (!fuRegularFrameCopyStatus.get())
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from BasicCam!");
-            }
-            else
-            {
-                // Check if the camera image is a >3 channel image.
-                if (m_cvFrame.channels() > 3)
-                {
-                    // Drop the Alpha channel from the image copy to preproc frame.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2RGB);
-                }
+                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
             }
         }
 
@@ -318,10 +308,7 @@ void TagDetector::ThreadedContinuousCode()
 
         // Clear the list of newly detected tags.
         m_vNewlyDetectedTags.clear();
-        // Run image through some pre-processing step to improve detection.
-        // NOTE: I disabled this since it was just converting to grayscale and isn't strictly necessary. - Clayton
-        // arucotag::PreprocessFrame(m_cvFrame, m_cvArucoProcFrame);
-        // Copy the camera frame to the pre-processing frame.
+        // Clone frames.
         m_cvArucoProcFrame = m_cvFrame.clone();
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
@@ -331,11 +318,9 @@ void TagDetector::ThreadedContinuousCode()
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
         {
-            // Drop the Alpha channel from the image copy to preproc frame.
-            cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
-                torchtag::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+                torchtag::Detect(m_cvArucoProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
             // Add Torch tags to the list of newly detected tags.
             m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }
@@ -347,17 +332,12 @@ void TagDetector::ThreadedContinuousCode()
             stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
         }
 
-        // Merge the newly detected tags with the pre-existing detected tags
+        // Merge the newly detected tags with the pre-existing detected tags.
         this->UpdateDetectedTags(m_vNewlyDetectedTags);
 
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
-
-        // Name the window the name of the camera.
-        std::string szWindowName = m_szCameraName + " Tag Detector";
-        cv::imshow(szWindowName, m_cvArucoProcFrame);
-        cv::waitKey(1);
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -571,104 +551,6 @@ void TagDetector::DisableTorchDetection()
 }
 
 /******************************************************************************
- * @brief Updates the detected torch tags including tracking the detected tags over time
- *        and removing tags that haven't been seen for long enough.
- *
- * @param vNewlyDetectedTags - Input vector of TorchTag structs containing the tag info.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-03-15
- ******************************************************************************/
-void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
-{
-    // Check if tracking is enabled.
-    if (m_bEnableTracking)
-    {
-        // Check if the given tag vector is empty
-        if (vNewlyDetectedTags.empty())
-        {
-            // Since the tags are empty that means the detector has not detected any new ground truth tags.
-            // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
-            // stored in the m_vDetectedArucoTags vector.
-            // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
-            // and it doesn't have the ability to track tags over time.
-            // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
-
-            // Update the multi-tracker with the current frame.
-            m_pMultiTracker->Update(m_cvFrame);
-        }
-        else
-        {
-            // Loop through the newly detected tags.
-            for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
-            {
-                // Add the newly detected tags to the multi-tracker.
-                bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::ARUCO_BBOX_TRACKER_TYPE);
-                // Check if the tag was matched to an existing tracker.
-                if (!bMatchedTagToExistingTracker)
-                {
-                    // Add the new tag to the member variable list.
-                    m_vDetectedArucoTags.emplace_back(stTag);
-                }
-                else
-                {
-                    // Find the tag with the same bounding box pointer and update the ID and confidence.
-                    for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
-                    {
-                        // Check if the bounding box pointers are the same.
-                        if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
-                        {
-                            // Update the ID and confidence of the existing tag.
-                            stExistingTag.nID         = stTag.nID;
-                            stExistingTag.dConfidence = stTag.dConfidence;
-                        }
-                    }
-                }
-            }
-
-            // Update the multi-tracker with the current frame.
-            m_pMultiTracker->Update(m_cvFrame);
-        }
-
-        // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
-        for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
-        {
-            // Check if the bounding box is 0,0,0,0.
-            if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
-            {
-                // Remove the tag from the vector.
-                itTag = m_vDetectedArucoTags.erase(itTag);
-            }
-            else
-            {
-                ++itTag;
-            }
-        }
-    }
-    else
-    {
-        // If tracking is not enabled, we will just clear the detected tags and add the new ones.
-        m_vDetectedArucoTags.clear();
-        // Loop through the newly detected tags and add them to the detected tags vector.
-        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
-        {
-            // Set the tag creation time to 0. The tags aren't being tracked, so we can't really tell their age.
-            stTag.tmCreation = std::chrono::system_clock::time_point::min();
-
-            // Add the new tag to the member variable list.
-            m_vDetectedArucoTags.emplace_back(stTag);
-        }
-    }
-
-    // Estimate the positions of the tags using the point cloud
-    for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
-    {
-        // Use the point cloud to get the location of the tag.
-        tagdetectutils::EstimatePoseFromCameraFrame(stTag);
-    }
-}
-
-/******************************************************************************
  * @brief Mutator for the desired max FPS for this detector.
  *
  * @param nRecordingFPS - The max frames per second to detect tags at.
@@ -676,7 +558,7 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-01-22
  ******************************************************************************/
-void TagDetector::SetDetectorFPS(const int nRecordingFPS)
+void TagDetector::SetDetectorMaxFPS(const int nRecordingFPS)
 {
     // Set the max iterations per second of the recording handler.
     this->SetMainThreadIPSLimit(nRecordingFPS);
@@ -745,7 +627,7 @@ bool TagDetector::GetIsReady()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-01-22
  ******************************************************************************/
-int TagDetector::GetDetectorFPS() const
+int TagDetector::GetDetectorMaxFPS() const
 {
     // Return member variable value.
     return this->GetMainThreadMaxIPS();
@@ -798,5 +680,145 @@ cv::Size TagDetector::GetProcessFrameResolution() const
     {
         // Concatenate camera path or index.
         return std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetPropResolution();
+    }
+}
+
+/******************************************************************************
+ * @brief Updates the detected torch tags including tracking the detected tags over time
+ *        and removing tags that haven't been seen for long enough.
+ *
+ * @param vNewlyDetectedTags - Input vector of TorchTag structs containing the tag info.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-03-15
+ ******************************************************************************/
+void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
+{
+    // Check if tracking is enabled.
+    if (m_bEnableTracking)
+    {
+        // Check if the given tag vector is empty
+        if (vNewlyDetectedTags.empty())
+        {
+            // Since the tags are empty that means the detector has not detected any new ground truth tags.
+            // In this case we will fallback to relying on the multi-tracker to track the tags and just update the tags
+            // stored in the m_vDetectedArucoTags vector.
+            // This is necessary because the torch detector is not perfect and may not detect all tags in the frame
+            // and it doesn't have the ability to track tags over time.
+            // We will use the multi-tracker to track the tags over time and update the bounding box data for the tags.
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+        else
+        {
+            // Loop through the newly detected tags.
+            for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+            {
+                // Add the newly detected tags to the multi-tracker.
+                bool bMatchedTagToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stTag.pBoundingBox, constants::BBOX_TRACKER_TYPE);
+                // Check if the tag was matched to an existing tracker.
+                if (!bMatchedTagToExistingTracker)
+                {
+                    // Add the new tag to the member variable list.
+                    m_vDetectedArucoTags.emplace_back(stTag);
+                }
+                else
+                {
+                    // Find the tag with the same bounding box pointer and update the ID and confidence.
+                    for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
+                    {
+                        // Check if the bounding box pointers are the same.
+                        if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
+                        {
+                            // Update the ID and confidence of the existing tag.
+                            stExistingTag.nID         = stTag.nID;
+                            stExistingTag.dConfidence = stTag.dConfidence;
+                        }
+                    }
+                }
+            }
+
+            // Update the multi-tracker with the current frame.
+            m_pMultiTracker->Update(m_cvFrame);
+        }
+
+        // Loop through the detected tags and check if there are any we need to remove, and also update the time last seen.
+        for (std::vector<tagdetectutils::ArucoTag>::iterator itTag = m_vDetectedArucoTags.begin(); itTag != m_vDetectedArucoTags.end();)
+        {
+            // Check if the bounding box is 0,0,0,0.
+            if (itTag->pBoundingBox->x == 0 && itTag->pBoundingBox->y == 0 && itTag->pBoundingBox->width == 0 && itTag->pBoundingBox->height == 0)
+            {
+                // Remove the tag from the vector.
+                itTag = m_vDetectedArucoTags.erase(itTag);
+            }
+            else
+            {
+                ++itTag;
+            }
+        }
+    }
+    else
+    {
+        // If tracking is not enabled, we will just clear the detected tags and add the new ones.
+        m_vDetectedArucoTags.clear();
+        // Loop through the newly detected tags and add them to the detected tags vector.
+        for (tagdetectutils::ArucoTag& stTag : vNewlyDetectedTags)
+        {
+            // Set the tag creation time to 0. The tags aren't being tracked, so we can't really tell their age.
+            stTag.tmCreation = std::chrono::system_clock::time_point::min();
+
+            // Add the new tag to the member variable list.
+            m_vDetectedArucoTags.emplace_back(stTag);
+        }
+    }
+
+    // Check if we are using a ZED camera.
+    if (m_bUsingZedCamera)
+    {
+        // Check if the point cloud is empty.
+        if (!m_cvPointCloud.empty())
+        {
+            // Get the rover pose from the waypoint handler.
+            m_stRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            // Loop through the tags and use their center point to lookup their distance in the point cloud.
+            for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+            {
+                // Use either width of height for the neighborhood size.
+                int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+                // Geolocate the tag in the point cloud.
+                geoops::Waypoint stGeolocation =
+                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
+                // Since this is a tag detection, set the tag's waypoint type appropriately.
+                stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
+
+                // Check if the geolocation is valid.
+                if (stGeolocation != geoops::Waypoint())
+                {
+                    // Calculate the geo measurement and print the distance to the tag.
+                    geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
+
+                    // Check that the distance is in a reasonable range.
+                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    {
+                        // Set the tag's geolocation.
+                        stTag.stGeolocatedPosition = stGeolocation;
+                        // Use the rover heading and the azimuth angle to calculate the relative heading to the tag.
+                        stTag.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                        // Set the straight line distance to the tag.
+                        stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // Estimate the positions of the tags using some basic trig.
+        for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
+        {
+            // Use some trig to get the location of the tag.
+            tagdetectutils::EstimatePoseFromCameraFrame(stTag);
+        }
     }
 }

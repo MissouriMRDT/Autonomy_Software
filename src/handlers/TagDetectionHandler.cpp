@@ -34,18 +34,6 @@ TagDetectionHandler::TagDetectionHandler()
                                                           constants::TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS,
                                                           constants::ZED_MAINCAM_USE_GPU_MAT);
 
-    // Initialize detector for BasicCam.
-    m_pTagDetectorGroundCam = std::make_shared<TagDetector>(globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam),
-                                                            constants::TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER,
-                                                            constants::TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD,
-                                                            constants::TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS,
-                                                            constants::TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER,
-                                                            constants::TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION,
-                                                            constants::TAGDETECT_GROUNDCAM_ENABLE_TRACKING,
-                                                            constants::TAGDETECT_GROUNDCAM_MAX_FPS,
-                                                            constants::TAGDETECT_GROUNDCAM_ENABLE_RECORDING,
-                                                            constants::TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS);
-
     // Check if torch detection is enabled for main ZEDCam.
     if (constants::TAGDETECT_MAINCAM_ENABLE_TORCH)
     {
@@ -54,17 +42,6 @@ TagDetectionHandler::TagDetectionHandler()
         {
             // Set torch detection enabled.
             m_pTagDetectorMainCam->EnableTorchDetection(constants::TAGDETECT_MAINCAM_TORCH_CONFIDENCE, constants::TAGDETECT_MAINCAM_TORCH_NMS_THRESH);
-        }
-    }
-
-    // Check if torch detection is enabled for BasicCam.
-    if (constants::TAGDETECT_GROUNDCAM_ENABLE_TORCH)
-    {
-        // Attempt to init torch detection.
-        if (m_pTagDetectorGroundCam->InitTorchDetection(constants::TAGDETECT_GROUNDCAM_TORCH_MODEL))
-        {
-            // Set torch detection enabled.
-            m_pTagDetectorGroundCam->EnableTorchDetection(constants::TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE, constants::TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH);
         }
     }
 
@@ -96,9 +73,6 @@ void TagDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pTagDetectorMainCam->Start();
-
-    // Start the BasicCam aruco eyes.
-    m_pTagDetectorGroundCam->Start();
 }
 
 /******************************************************************************
@@ -130,10 +104,6 @@ void TagDetectionHandler::StopAllDetectors()
     // Stop ZED detectors.
     m_pTagDetectorMainCam->RequestStop();
     m_pTagDetectorMainCam->Join();
-
-    // Stop BasicCam aruco eye detectors.
-    m_pTagDetectorGroundCam->RequestStop();
-    m_pTagDetectorGroundCam->Join();
 }
 
 /******************************************************************************
@@ -165,7 +135,6 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
     switch (eDetectorName)
     {
         case TagDetectors::eHeadMainCam: return m_pTagDetectorMainCam; break;
-        case TagDetectors::eGroundCam: return m_pTagDetectorGroundCam; break;
         default: return m_pTagDetectorMainCam; break;
     }
 }

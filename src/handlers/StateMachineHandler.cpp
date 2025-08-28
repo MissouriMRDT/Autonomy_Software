@@ -265,39 +265,43 @@ void StateMachineHandler::ThreadedContinuousCode()
     if (stNewGPSLocation.dLatitude != m_stCurrentGPSLocation.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSLocation.dLongitude &&
         stNewGPSLocation.dAltitude != m_stCurrentGPSLocation.dAltitude)
     {
-        // Check GNSS Fusion is enabled and the main ZED camera is a fusion master.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && stNewGPSLocation.bIsDifferential)
+        // Check if GNSS fusion is enabled.
+        if (constants::FUSION_ENABLE_GNSS_FUSION)
         {
-            // Check if main ZED camera is setup to use GPS fusion.
-            if (m_pMainCam->GetIsFusionMaster() && m_pMainCam->GetPositionalTrackingEnabled())
+            // Check if our GPS coordinate from NavBoard is differential.
+            if (stNewGPSLocation.bIsDifferential)
             {
-                // Update current GPS position.
-                m_stCurrentGPSLocation = stNewGPSLocation;
-                // Feed current GPS location to main ZED camera.
-                m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
-            }
+                // Check if main ZED camera is setup to use GPS fusion.
+                if (m_pMainCam->GetIsFusionMaster() && m_pMainCam->GetPositionalTrackingEnabled())
+                {
+                    // Update current GPS position.
+                    m_stCurrentGPSLocation = stNewGPSLocation;
+                    // Feed current GPS location to main ZED camera.
+                    m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
+                }
 
-            // Reset DiffGPS warning print toggle.
-            if (bAlreadyPrintedDiffGPSWarning)
+                // Reset DiffGPS warning print toggle.
+                if (bAlreadyPrintedDiffGPSWarning)
+                {
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
+
+                    // Rest toggle.
+                    bAlreadyPrintedDiffGPSWarning = false;
+                }
+            }
+            // Check if GPS coordinate from NavBoard is not differential and print warning log.
+            else if (!bAlreadyPrintedDiffGPSWarning)
             {
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger,
-                           "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
+                           "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
+                           "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
 
-                // Rest toggle.
-                bAlreadyPrintedDiffGPSWarning = false;
+                // Set already printed toggle.
+                bAlreadyPrintedDiffGPSWarning = true;
             }
-        }
-        // Check if GPS coordinate from NavBoard is not differential and print warning log.
-        else if (!bAlreadyPrintedDiffGPSWarning)
-        {
-            // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger,
-                       "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
-                       "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
-
-            // Set already printed toggle.
-            bAlreadyPrintedDiffGPSWarning = true;
         }
 
         // Realign the camera's relative position to current GPS position when in Idle. This does not affect fusion, but makes sure we can fallback to the camera pose for

@@ -35,6 +35,7 @@ AUTONOMYLOG
 AUTONOMYSTATE
 AUTONOMYTHREAD
 AUTONOMYTHREADS
+AUTONOMYWAYPOINTTYPES
 AVAILABLECAMERAS
 avcodec
 AVCOL
@@ -57,6 +58,7 @@ CALIB
 CALIBRATEENCODER
 CAMERAUNAVAILABLE
 carryforward
+Catmull
 CELLCRITICAL
 CELLUNDERVOLTAGE
 CELLVOLTAGE
@@ -78,6 +80,7 @@ codezombiech
 Coeffs
 Colour
 COMPASSDATA
+CONTINUOUSNAVIGATE
 Contoller
 cowfile
 cowsay
@@ -113,6 +116,7 @@ deleter
 Denoise
 Depacketization
 Depacketizer
+DEPTHMEASUREENCODEDECODE
 depthobject
 deque
 Desaturate
@@ -128,6 +132,7 @@ dockerfiles
 dorny
 DOTA
 Downsample
+downsampled
 doxdocgen
 Doxyfile
 Doxygen
@@ -232,7 +237,15 @@ gcov
 gcovr
 geekyeggo
 geolib
+geoloc
+geolocalization
+Geolocate
+GEOLOCATE
+geolocated
+Geolocated
+geomeasurement
 geoops
+geoposition
 Geospatial
 gfortran
 gmock
@@ -267,6 +280,7 @@ imgsz
 imread
 imshow
 IMUDATA
+imwrite
 INCREMENTIKPOSITION
 INCREMENTINDIVIDUALTARGETANGLES
 INCREMENTJOINTTARGETANGLE
@@ -309,6 +323,7 @@ keyscan
 ladspa
 latlng
 latlon
+LBUTTONDOWN
 ldconfig
 LEDPATTERNS
 LEDRGB
@@ -453,6 +468,7 @@ numpy
 nvcr
 OBJDETECTION
 OBJECTDETECT
+OBJECTDETECTOR
 Objectness
 odometry
 openal
@@ -491,6 +507,7 @@ Rdtsc
 REACHEDGOAL
 recvmmsg
 REELN
+Reproject
 reprojection
 REQUESTHUMIDITY
 REQUESTRAMANREADING
@@ -544,6 +561,7 @@ SIMBASICCAM
 SIMCAM
 SIMZED
 SIMZEDCAM
+SINCOS
 sndio
 sockaddr
 softprops
@@ -583,10 +601,12 @@ tensorflowtag
 tensorflowyolo
 tflite
 Tgsnwcv
+THREADFPS
 threadpool
 timestamping
 timestep
 TOGGLESTREAM
+torchobject
 torchscript
 torchtag
 tparam
@@ -620,11 +640,13 @@ VERIFYINGMARKER
 VERIFYINGMARKERSTATE
 VERIFYINGOBJECT
 VERIFYINGOBJECTSTATE
+VESC
 Vexas
 videotoolbox
 VIDEOWRITER
 VIOGPS
 Watchpoints
+WATERBOTTLE
 Webots
 WEBRTC
 Wextra
@@ -650,6 +672,7 @@ Zain
 ZEDCAM
 ZEDCAMERA
 ZEDSDK
+zerolatency
 zlabel
 zstd
 ztickformat

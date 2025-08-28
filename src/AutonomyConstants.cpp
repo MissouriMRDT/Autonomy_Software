@@ -70,19 +70,20 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Power constants.
+    // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
     // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
-    const float DRIVE_MAX_EFFORT = DRIVE_MAX_POWER;    // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
-    const float DRIVE_MIN_EFFORT = DRIVE_MIN_POWER;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MAX_EFFORT = 0.5;     // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MIN_EFFORT = -0.5;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL      = 0.015;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL          = 0.002;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE        = 0.005;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_PROPORTIONAL      = 0.008;    // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL          = 0.001;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE        = 0.004;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_FEEDFORWARD       = 0.0;      // The feedforward for the controller used to predict control output.
     const double DRIVE_PID_MAX_ERROR         = 180.0;    // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.3;      // The max effort the I term is allowed to contribute. 0 = Disable.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.2;      // The max effort the I term is allowed to contribute. 0 = Disable.
     const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;     // The max ramp rate of the output of the PID controller. 0 = Disable.
     const double DRIVE_PID_OUTPUT_FILTER     = 0.1;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point. 0 = Disable.
     const double DRIVE_PID_TOLERANCE         = 1.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint. 0 = Disable.
@@ -99,14 +100,12 @@ namespace constants
     const int RECORDER_FPS = 15;    // The FPS all recordings should run at.
     // Camera recording toggles.
     const bool ZED_MAINCAM_ENABLE_RECORDING        = true;    // Whether or not to record the main ZED camera.
-    const bool ZED_LEFTCAM_ENABLE_RECORDING        = true;    // Whether or not to record the left ZED camera.
-    const bool ZED_RIGHTCAM_ENABLE_RECORDING       = true;    // Whether or not to record the right ZED camera.
     const bool BASICCAM_GROUNDCAM_ENABLE_RECORDING = true;    // Whether or not to record the ground USB camera.
     // TagDetector recording toggles.
     const bool TAGDETECT_MAINCAM_ENABLE_RECORDING   = true;    // Whether or not to record the main ZED camera tag detector.
-    const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING   = true;    // Whether or not to record the left ZED camera tag detector.
-    const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING  = true;    // Whether or not to record the right ZED camera tag detector.
     const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING = true;    // Whether of not to record the ground USB camera tag detector.
+    // ObjectDetector recording toggles.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING = true;    // Whether or not to record the main ZED camera object detector.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -170,7 +169,7 @@ namespace constants
     const int ZED_MAINCAM_FPS                   = 60;                         // The FPS to use for the maincam.
     const int ZED_MAINCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
     const int ZED_MAINCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.
-    const bool ZED_MAINCAM_EXPORT_SVO_RECORDING = false;                      // Whether or not to record the leftcam to an SVO file.
+    const bool ZED_MAINCAM_EXPORT_SVO_RECORDING = true;                       // Whether or not to record the leftcam to an SVO file.
     const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_MAINCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
@@ -190,6 +189,21 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// Bounding Box Tracking Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // NOTE: These next two constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
+    // NOTE: before considering a tracker lost. ARUCO_BBOX_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
+    // NOTE: considered valid.
+    const double BBOX_MIN_LIFETIME_THRESHOLD      = 0.15;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
+    const double BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
+    const double BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
+    const double BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
+    const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
+    const tracking::TrackerType BBOX_TRACKER_TYPE = tracking::TrackerType::eCSRT;    // The type of tracker to use for the DNN detection.
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -203,36 +217,25 @@ namespace constants
     const bool TAGDETECT_MAINCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_MAINCAM_TORCH_MODEL     = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;    // The threshold for non-max suppression filtering.
-
-    // Ground Basic Cam.
-    const int TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const int TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
-    const int TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD    = cv::aruco::CORNER_REFINE_NONE;    // Algorithm used to refine tag corner pixels.
-    const bool TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
-    const int TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
-    const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING        = false;                            // Whether or not to use the tracking algorithm to track tags.
-    const int TAGDETECT_GROUNDCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
-    const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL = "../data/models/yolo_models/tag/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE  = 0.4f;    // The minimum confidence to consider a viable AR tag detection.
-    const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH  = 0.4f;    // The threshold for non-max suppression filtering.
+    const std::string TAGDETECT_MAINCAM_TORCH_MODEL =
+        "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";      // The model path to use for detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE = 0.7f;                                  // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
-    const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
+    const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
+    const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
+        "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
 
-    // Left Side Cam.
-    const int OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
-
-    // Right Side Cam.
-    const int OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS = 5;    // The number of threads allocated to the threadpool for performing data copies to other threads.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -247,15 +250,6 @@ namespace constants
     const cv::Mat ARUCO_SHARPEN_KERNEL_FAST                    = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 3, 0, 0, 0, 0);
     const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA                   = (cv::Mat_<double>(3, 3) << 0, 0, 0, 0, 9, 0, 0, 0, 0);
     const cv::Mat ARUCO_EDGE_KERNEL                            = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
-    const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE        = tracking::TrackerType::eKCF;    // The type of tracker to use for the DNN detection.
-    // NOTE: These next two constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    const double ARUCO_MIN_LIFETIME_THRESHOLD           = 0.3;      // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
-    const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
-    const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
-    const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -267,54 +261,57 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER          = 0.15;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_VISION_DISTANCE      = 0.1;     // The screen percentage of the marker to be considered close enough. 0-100
-    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 5.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_MARKER_VERIFY_POSITION        = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
-    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.
-    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
+    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
+    const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
+    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;      // The time in seconds to watch the tag before moving on.
+    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;      // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
+    const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
+
+    // Approaching Object State
+    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
+    const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
+    const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
+    const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;     // The time in seconds to watch the object before moving on.
+    const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;    // The time in seconds to wait before considering the object lost. This is used to prevent false negatives.
+    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when approaching an object.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int STUCK_CHECK_ATTEMPTS  = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double STUCK_CHECK_ROT_THRESH      = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double STUCK_CHECK_VEL_THRESH      = 0.2;     // Minimum velocity required to consider the rover as actively moving.
+    const double STUCK_CHECK_ROT_THRESH      = 1.0;     // Minimum angular velocity required to consider the rover as actively rotating.
+    const double STUCK_CHECK_VEL_THRESH      = 0.01;    // Minimum velocity required to consider the rover as actively moving.
     const double STUCK_SAME_POINT_PROXIMITY  = 1.0;     // Points within this proximity of another point are considered the same.
     const double STUCK_HEADING_ALIGN_TIMEOUT = 5.0;     // The timeout in seconds before the rover gives up aligning to a certain heading.
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_MOTOR_POWER       = 0.3;     // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;     // The distance to reverse in meters.
-    const double REVERSE_TIMEOUT_PER_METER = 5.0;     // Reverse state timeout in seconds for each meter reversed.
-    const bool REVERSE_MAINTAIN_HEADING    = true;    // Whether or not the rover should maintain heading while reversing.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_EFFORT * 0.6;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 3.0;                       // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT_PER_METER = 5.0;                       // Reverse state timeout in seconds for each meter reversed.
+    const bool REVERSE_MAINTAIN_HEADING    = true;                      // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER          = 0.2;     // The amount of power the motors use when approaching the marker.
-    const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;    // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_SPIRAL_SPACING       = 1.0;     // The spacing between successive points in the spiral (meters).
-    const double SEARCH_ZIGZAG_SPACING       = 4.0;     // The spacing between successive points in the zigzag (meters).
-    const double SEARCH_SNAKE_SLITHERS       = 2.0;     // The number of slithers in the snake pattern.
-    const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;     // How close a rover must be to a point to have it count as visited.
+    const double SEARCH_MOTOR_POWER          = DRIVE_MAX_EFFORT * 0.5;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;                      // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_SPIRAL_SPACING       = 1.0;                       // The spacing between successive points in the spiral (meters).
+    const double SEARCH_ZIGZAG_SPACING       = 4.0;                       // The spacing between successive points in the zigzag (meters).
+    const double SEARCH_SNAKE_SLITHERS       = 2.0;                       // The number of slithers in the snake pattern.
+    const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;                       // How close a rover must be to a point to have it count as visited.
+    const bool SEARCH_ENABLE_STUCK_DETECT    = false;                     // Whether or not to enable the stuck detection algorithm when searching for a marker.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER         = 0.4;      // The speed to drive at when navigating.
-    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;      // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION       = false;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.8;    // The speed to drive at when navigating.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;                       // The radius in meters that the rover should get to the goal waypoint.
+    const bool NAVIGATING_VERIFY_POSITION       = false;                     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;                      // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;                     // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
 
     // Avoidance State.
-    const double AVOIDANCE_STATE_MOTOR_POWER = 0.3;    // Drive speed of avoidance state
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
-    //// Tag Detection Handler Adjustments.
-    ///////////////////////////////////////////////////////////////////////////
-
-    // High Level Functionality Adjustments.
+    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_EFFORT * 0.3;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -323,11 +320,11 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 2.0;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.5;     // Determines how reactive the rover is to crosstrack error adjustments.
     const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;     // Distance from position sensor to the center of the front axle in meters.
-    const double STANLEY_STEERING_ANGLE_LIMIT    = 90.0;    // The maximum steering angle in degrees.
-    const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
-    const double STANLEY_PREDICTION_TIME_STEP    = 0.1;     // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
+    const double STANLEY_STEERING_ANGLE_LIMIT    = 30.0;    // The maximum steering angle in degrees.
+    const int STANLEY_PREDICTION_HORIZON         = 1;       // The number of predictions to make.
+    const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles

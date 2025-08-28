@@ -15,16 +15,14 @@
 #include "../../../src/AutonomyNetworking.h"
 #include "../../../src/util/ExampleChecker.h"
 
-// Standard includes
+/// \cond
 #include <chrono>
 #include <future>
-
-// Include OpenCV headers.
+#include <libavutil/log.h>    // For av_log_set_level
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/opencv.hpp>
-
-// Include PCL headers.
 #include <pcl/common/transforms.h>
+#include <pcl/console/print.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/impl/point_types.hpp>
 #include <pcl/io/ply_io.h>
@@ -33,6 +31,82 @@
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
+
+/// \endcond
+
+// Global constants
+const float VOXEL_GRID_LEAF_SIZE = 0.05f;    // Increased from 0.01f to prevent overflow
+
+/******************************************************************************
+ * @brief Mouse callback function for depth image clicks.
+ *
+ * @param nEvent - The type of mouse event (e.g., left button click).
+ * @param nX - The x-coordinate of the mouse event.
+ * @param nY - The y-coordinate of the mouse event.
+ * @param nFlags - The flags associated with the mouse event.
+ * @param pUserData - Pointer to user data (in this case, the depth image).
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-01
+ ******************************************************************************/
+void DepthMouseCallback(int nEvent, int nX, int nY, int nFlags, void* pUserData)
+{
+    (void) nFlags;    // Unused parameter
+    if (nEvent != cv::EVENT_LBUTTONDOWN)
+        return;
+
+    cv::Mat* cvDepthImage = static_cast<cv::Mat*>(pUserData);
+    if (nX >= 0 && nY >= 0 && nX < cvDepthImage->cols && nY < cvDepthImage->rows)
+    {
+        // Handle different depth image types
+        float fDepthValue = 0.0f;
+
+        // Check the depth image type and retrieve the depth value accordingly
+        fDepthValue = cvDepthImage->at<float>(nY, nX);
+        std::cout << "Depth at (" << nX << ", " << nY << "): " << fDepthValue << " m" << std::endl;
+    }
+}
+
+/******************************************************************************
+ * @brief Mouse callback function for point cloud clicks.
+ *
+ * @param nEvent - The type of mouse event (e.g., left button click).
+ * @param nX - The x-coordinate of the mouse event.
+ * @param nY - The y-coordinate of the mouse event.
+ * @param nFlags - The flags associated with the mouse event.
+ * @param pUserData - Pointer to user data (in this case, the point cloud).
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-03
+ ******************************************************************************/
+void PointCloudMouseCallback(int nEvent, int nX, int nY, int nFlags, void* pUserData)
+{
+    (void) nFlags;    // Unused parameter
+    if (nEvent != cv::EVENT_LBUTTONDOWN)
+        return;
+
+    cv::Mat* cvPointCloud = static_cast<cv::Mat*>(pUserData);
+    if (nX >= 0 && nY >= 0 && nX < cvPointCloud->cols && nY < cvPointCloud->rows)
+    {
+        // Handle different point cloud types
+        cv::Vec4f cvPoint = cvPointCloud->at<cv::Vec4f>(nY, nX);
+        std::cout << "Point at (" << nX << ", " << nY << "): "
+                  << "X: " << cvPoint[0] << ", "
+                  << "Y: " << cvPoint[1] << ", "
+                  << "Z: " << cvPoint[2] << std::endl;
+    }
+}
+
+/******************************************************************************
+ * @brief Suppresses PCL logging messages.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-01
+ ******************************************************************************/
+void SuppressPCLLogging()
+{
+    pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+}
 
 /******************************************************************************
  * @brief Main example function.
@@ -43,6 +117,9 @@
  ******************************************************************************/
 void RunExample()
 {
+    // Suppress logging messages
+    SuppressPCLLogging();
+
     // Initialize and start handlers.
     globals::g_pCameraHandler = new CameraHandler();
 
@@ -65,11 +142,8 @@ void RunExample()
     // Declare FPS counter.
     IPS FPS = IPS();
 
-    // Create a PCL visualizer.
-    pcl::visualization::PCLVisualizer::Ptr pclViewer(new pcl::visualization::PCLVisualizer("Point Cloud Viewer"));
-    // Set background color and initialize camera position
-    pclViewer->setBackgroundColor(0, 0, 0);
-    pclViewer->initCameraParameters();
+    // Create a depth display window and set up mouse callback
+    cv::namedWindow("Depth Frame", cv::WINDOW_AUTOSIZE);
 
     // Loop forever, or until user hits ESC.
     while (true)
@@ -82,13 +156,13 @@ void RunExample()
         if (pExampleZEDCam1->GetUsingGPUMem())
         {
             // Grab frames from camera.
-            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
+            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1);
             fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
         }
         else
         {
             // Grab frames from camera.
-            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
+            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvDepthFrame1);
             fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
 
@@ -102,53 +176,85 @@ void RunExample()
                 cvGPUPointCloud1.download(cvPointCloud1);
             }
 
-            // Convert cv::Mat point cloud (which has 3 channels: X, Y, Z) into a PCL point cloud.
-            pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>());
-            for (int i = 0; i < cvPointCloud1.rows; ++i)
+            // Display the depth frame and set up mouse callback
+            if (!cvDepthFrame1.empty())
             {
-                for (int j = 0; j < cvPointCloud1.cols; ++j)
-                {
-                    // Access the 3D point stored as a cv::Vec3f.
-                    cv::Vec3f cvPoint = cvPointCloud1.at<cv::Vec3f>(i, j);
+                // Normalize the depth frame for display (depth is stored as 16-bit unsigned int)
+                cv::Mat cvDepthDisplay;
+                cv::normalize(cvDepthFrame1, cvDepthDisplay, 0, 255, cv::NORM_MINMAX, CV_8U);
+                cv::applyColorMap(cvDepthDisplay, cvDepthDisplay, cv::COLORMAP_JET);
 
-                    // Stricter filtering of invalid or distant points
-                    if (std::isfinite(cvPoint[0]) && std::isfinite(cvPoint[1]) && std::isfinite(cvPoint[2]))
+                // Show the depth frame
+                cv::imshow("Depth Frame", cvDepthDisplay);
+
+                // Set the mouse callback for the depth window
+                cv::setMouseCallback("Depth Frame", DepthMouseCallback, &cvDepthFrame1);
+                cv::setMouseCallback("Depth Frame", PointCloudMouseCallback, &cvPointCloud1);
+            }
+
+            // Use PCL to visualize the point cloud.
+            static pcl::PointCloud<pcl::PointXYZ>::Ptr pclCloud(new pcl::PointCloud<pcl::PointXYZ>());
+            static pcl::PointCloud<pcl::PointXYZ>::Ptr pclFilteredPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
+            static pcl::PointCloud<pcl::PointXYZ>::Ptr pclDownsampledPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
+            static pcl::visualization::PCLVisualizer::Ptr pclViewer;
+
+            // Initialize the PCL viewer on the first run
+            if (!pclViewer)
+            {
+                pclViewer.reset(new pcl::visualization::PCLVisualizer("Depth Point Cloud"));
+                pclViewer->setBackgroundColor(0, 0, 0);
+                pclViewer->addPointCloud<pcl::PointXYZ>(pclDownsampledPointCloud, "depth_cloud");
+                pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "depth_cloud");
+                pclViewer->addCoordinateSystem(20.0);
+                pclViewer->initCameraParameters();
+            }
+
+            // Convert the OpenCV point cloud to PCL format.
+            pclCloud->width    = cvPointCloud1.cols;
+            pclCloud->height   = cvPointCloud1.rows;
+            pclCloud->is_dense = false;
+            pclCloud->points.resize(pclCloud->width * pclCloud->height);
+
+            // Copy points from OpenCV format to PCL format.
+            for (int nY = 0; nY < cvPointCloud1.rows; ++nY)
+            {
+                for (int nX = 0; nX < cvPointCloud1.cols; ++nX)
+                {
+                    cv::Vec4f cvPoint = cvPointCloud1.at<cv::Vec4f>(nY, nX);
+                    size_t siIDx      = nY * cvPointCloud1.cols + nX;
+
+                    // Only add points with valid depth.
+                    if (cvPoint[2] > 0)
                     {
-                        pclCloud->points.push_back(pcl::PointXYZ(cvPoint[0], cvPoint[1], cvPoint[2]));
+                        pclCloud->points[siIDx].x = cvPoint[0];
+                        pclCloud->points[siIDx].y = cvPoint[1];
+                        pclCloud->points[siIDx].z = cvPoint[2];
+                    }
+                    else
+                    {
+                        // For invalid points, set to NaN.
+                        pclCloud->points[siIDx].x = std::numeric_limits<float>::quiet_NaN();
+                        pclCloud->points[siIDx].y = std::numeric_limits<float>::quiet_NaN();
+                        pclCloud->points[siIDx].z = std::numeric_limits<float>::quiet_NaN();
                     }
                 }
             }
 
-            // Apply a voxel grid filter to downsample the point cloud
-            pcl::PointCloud<pcl::PointXYZ>::Ptr pclFilteredCloud(new pcl::PointCloud<pcl::PointXYZ>());
+            // Remove NaN points to clean up the cloud
+            std::vector<int> vIndices;
+            pcl::removeNaNFromPointCloud(*pclCloud, *pclFilteredPointCloud, vIndices);
+            // Downsample the point cloud for better visualization performance
             pcl::VoxelGrid<pcl::PointXYZ> pclVoxelGrid;
-            pclVoxelGrid.setInputCloud(pclCloud);
-            pclVoxelGrid.setLeafSize(1.0f, 1.0f, 1.0f);    // Adjust leaf size as needed
-            pclVoxelGrid.filter(*pclFilteredCloud);
-
-            // Set the PCL point pclFilteredCloud dimensions.
-            pclFilteredCloud->width    = static_cast<uint32_t>(pclFilteredCloud->points.size());
-            pclFilteredCloud->height   = 1;
-            pclFilteredCloud->is_dense = false;
-
-            // Clear visualizer completely
-            pclViewer->removeAllPointClouds();
-            pclViewer->removeAllShapes();
-
-            // Add the filtered point cloud
-            pclViewer->addPointCloud<pcl::PointXYZ>(pclFilteredCloud, "cloud");
-            pclViewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cloud");
-
-            // Use a longer spin time to ensure proper rendering
+            pclVoxelGrid.setInputCloud(pclFilteredPointCloud);
+            pclVoxelGrid.setLeafSize(VOXEL_GRID_LEAF_SIZE, VOXEL_GRID_LEAF_SIZE, VOXEL_GRID_LEAF_SIZE);
+            pclVoxelGrid.filter(*pclDownsampledPointCloud);
+            // Update the point cloud in the viewer
+            pclViewer->updatePointCloud(pclDownsampledPointCloud, "depth_cloud");
             pclViewer->spinOnce(10);
-            // Export the point cloud to a ply.
-            // pcl::io::savePLYFile("point_cloud.ply", *pclFilteredCloud);
         }
 
         // Tick FPS counter.
         FPS.Tick();
-        // Print FPS of main loop.
-        LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
 
         char chKey = cv::waitKey(1);
         if (chKey == 27)    // Press 'Esc' key to exit

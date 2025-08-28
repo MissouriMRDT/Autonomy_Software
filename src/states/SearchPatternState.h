@@ -17,6 +17,7 @@
 #include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
+#include "../vision/objects/ObjectDetector.h"
 
 /// \cond
 #include <matplot/matplot.h>
@@ -60,6 +61,7 @@ namespace statemachine
             bool m_bInitialized;
             geoops::Waypoint m_stSearchPatternCenter;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
+            std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             std::vector<geoops::Waypoint> m_vSearchPath;
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;

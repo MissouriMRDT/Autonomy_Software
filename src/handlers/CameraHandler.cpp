@@ -51,10 +51,6 @@ CameraHandler::CameraHandler()
         {
             m_pMainCam->EnableSpatialMapping();
         }
-        if (constants::ZED_MAINCAM_EXPORT_SVO_RECORDING)
-        {
-            m_pMainCam->EnableSpatialMapping();
-        }
     }
     else
     {
@@ -110,7 +106,7 @@ void CameraHandler::StartAllCameras()
     m_pMainCam->Start();
 
     // Start basic cams.
-    m_pGroundCam->Start();
+    // m_pGroundCam->Start();
 }
 
 /******************************************************************************
@@ -144,8 +140,8 @@ void CameraHandler::StopAllCameras()
     m_pMainCam->Join();
 
     // Stop basic cams.
-    m_pGroundCam->RequestStop();
-    m_pGroundCam->Join();
+    // m_pGroundCam->RequestStop();
+    // m_pGroundCam->Join();
 }
 
 /******************************************************************************

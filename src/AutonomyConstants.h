@@ -106,14 +106,12 @@ namespace constants
     extern const int RECORDER_FPS;
     // Camera recording toggles.
     extern const bool ZED_MAINCAM_ENABLE_RECORDING;
-    extern const bool ZED_LEFTCAM_ENABLE_RECORDING;
-    extern const bool ZED_RIGHTCAM_ENABLE_RECORDING;
     extern const bool BASICCAM_GROUNDCAM_ENABLE_RECORDING;
     // TagDetector recording toggles.
     extern const bool TAGDETECT_MAINCAM_ENABLE_RECORDING;
-    extern const bool TAGDETECT_LEFTCAM_ENABLE_RECORDING;
-    extern const bool TAGDETECT_RIGHTCAM_ENABLE_RECORDING;
     extern const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING;
+    // ObjectDetector recording toggles.
+    extern const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -197,6 +195,19 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// Bounding Box Tracking Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    extern const double BBOX_MIN_LIFETIME_THRESHOLD;
+    extern const double BBOX_MIN_SCREEN_PERCENTAGE;
+    extern const double BBOX_TRACKER_LOST_TIMEOUT;
+    extern const double BBOX_TRACKER_MAX_TRACK_TIME;
+    extern const double BBOX_TRACKER_IOU_MATCH_THRESHOLD;
+    extern const tracking::TrackerType BBOX_TRACKER_TYPE;
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -214,32 +225,19 @@ namespace constants
     extern const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH;
 
-    // Ground Basic Cam.
-    extern const int TAGDETECT_GROUNDCAM_DATA_RETRIEVAL_THREADS;
-    extern const int TAGDETECT_GROUNDCAM_CORNER_REFINE_MAX_ITER;
-    extern const int TAGDETECT_GROUNDCAM_CORNER_REFINE_METHOD;
-    extern const bool TAGDETECT_GROUNDCAM_DETECT_INVERTED_MARKER;
-    extern const int TAGDETECT_GROUNDCAM_MARKER_BORDER_BITS;
-    extern const bool TAGDETECT_GROUNDCAM_USE_ARUCO3_DETECTION;
-    extern const bool TAGDETECT_GROUNDCAM_ENABLE_TRACKING;
-    extern const int TAGDETECT_GROUNDCAM_MAX_FPS;
-    extern const bool TAGDETECT_GROUNDCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_GROUNDCAM_TORCH_MODEL;
-    extern const float TAGDETECT_GROUNDCAM_TORCH_CONFIDENCE;
-    extern const float TAGDETECT_GROUNDCAM_TORCH_NMS_THRESH;
-
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
     // Main ZED Camera.
     extern const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
+    extern const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING;
+    extern const int OBJECTDETECT_MAINCAM_MAX_FPS;
+    extern const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH;
+    extern const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL;
+    extern const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE;
+    extern const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH;
 
-    // Left Side Cam.
-    extern const int OBJECTDETECT_LEFTCAM_DATA_RETRIEVAL_THREADS;
-
-    // Right Side Cam.
-    extern const int OBJECTDETECT_RIGHTCAM_DATA_RETRIEVAL_THREADS;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -254,15 +252,7 @@ namespace constants
     extern const cv::Mat ARUCO_SHARPEN_KERNEL_FAST;
     extern const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA;
     extern const cv::Mat ARUCO_EDGE_KERNEL;
-    extern const tracking::TrackerType ARUCO_BBOX_TRACKER_TYPE;
-    // NOTE: These next to constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    extern const double ARUCO_MIN_LIFETIME_THRESHOLD;
-    extern const double ARUCO_BBOX_MIN_SCREEN_PERCENTAGE;
-    extern const double ARUCO_BBOX_TRACKER_LOST_TIMEOUT;
-    extern const double ARUCO_BBOX_TRACKER_MAX_TRACK_TIME;
-    extern const double ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD;
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -276,11 +266,20 @@ namespace constants
     // Approaching Marker State
     extern const double APPROACH_MARKER_MOTOR_POWER;
     extern const double APPROACH_MARKER_PROXIMITY_THRESHOLD;
-    extern const double APPROACH_MARKER_VISION_DISTANCE;
     extern const double APPROACH_MARKER_LOST_GIVE_UP_TIME;
     extern const bool APPROACH_MARKER_VERIFY_POSITION;
     extern const double APPROACH_MARKER_VERIFY_TIME;
     extern const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME;
+    extern const bool APPROACH_MARKER_ENABLE_STUCK_DETECT;
+
+    // Approaching Object State
+    extern const double APPROACH_OBJECT_MOTOR_POWER;
+    extern const double APPROACH_OBJECT_PROXIMITY_THRESHOLD;
+    extern const double APPROACH_OBJECT_LOST_GIVE_UP_TIME;
+    extern const bool APPROACH_OBJECT_VERIFY_POSITION;
+    extern const double APPROACH_OBJECT_VERIFY_TIME;
+    extern const double APPROACH_OBJECT_LOST_BUFFER_TIME;
+    extern const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT;
 
     // Stuck State
     extern const double STUCK_CHECK_INTERVAL;
@@ -305,12 +304,14 @@ namespace constants
     extern const double SEARCH_ZIGZAG_SPACING;
     extern const double SEARCH_SNAKE_SLITHERS;
     extern const double SEARCH_WAYPOINT_PROXIMITY;
+    extern const bool SEARCH_ENABLE_STUCK_DETECT;
 
     // Navigating State.
     extern const double NAVIGATING_MOTOR_POWER;
     extern const double NAVIGATING_REACHED_GOAL_RADIUS;
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
+    extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
 
     // Avoidance State.
     extern const double AVOIDANCE_STATE_MOTOR_POWER;

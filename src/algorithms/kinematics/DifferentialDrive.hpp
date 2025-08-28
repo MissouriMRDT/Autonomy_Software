@@ -223,6 +223,8 @@ namespace diffdrive
      * @param dActualHeading - The actual current heading of the robot.
      * @param eDriveMethod - The differential drive method to use for navigation. MUST NOT BE TANK.
      * @param PID - A reference to the PID controller to use for hitting the heading setpoint.
+     * @param bAlwaysProgressForward - If this is true, the kinematic model will always move forward or backward, point turns
+     *                          will not be allowed and the rover will not be able to spin one side backwards and the other side forwards.
      * @param bSquareControlInput - Can provide smoother control at goal heading.
      * @param bCurvatureDriveAllowTurningWhileStopped - Allow DifferentialControlMethod::eCurvatureDrive to turn in-place.
      * @return DrivePowers - The resultant drive powers.
@@ -237,6 +239,7 @@ namespace diffdrive
                                                       double dActualHeading,
                                                       const DifferentialControlMethod eDriveMethod,
                                                       controllers::PIDController& PID,
+                                                      const bool bAlwaysProgressForward                  = false,
                                                       const bool bSquareControlInput                     = false,
                                                       const bool bCurvatureDriveAllowTurningWhileStopped = true)
     {
@@ -251,22 +254,25 @@ namespace diffdrive
         {
             case DifferentialControlMethod::eArcadeDrive:
             {
-                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
-                dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
+                // Check if the rover should always move forward.
+                if (!bAlwaysProgressForward)
+                {
+                    // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
+                    // constant speed.
+                    dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
+                }
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, bSquareControlInput);
                 break;
             }
             case DifferentialControlMethod::eCurvatureDrive:
             {
-                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns.
-                if (bCurvatureDriveAllowTurningWhileStopped)
+                // Check if the rover should always move forward.
+                if (!bAlwaysProgressForward)
                 {
+                    // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
+                    // constant speed.
                     dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
-                }
-                else
-                {
-                    dGoalSpeed *= 1.3 - std::pow(dTurnOutput, 2);
                 }
                 // Calculate drive power with inverse kinematics.
                 stOutputPowers = CalculateCurvatureDrive(dGoalSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
@@ -280,7 +286,6 @@ namespace diffdrive
             }
         }
 
-        // std::cout << stOutputPowers.dLeftDrivePower << " " << stOutputPowers.dRightDrivePower << std::endl;
         // Return result powers.
         return stOutputPowers;
     }

@@ -40,8 +40,7 @@ namespace statemachine
         m_tmTagLastSeenTime          = std::chrono::system_clock::now();
 
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -116,6 +115,22 @@ namespace statemachine
         }
         else
         {
+            // Check the tags distance.
+            if (stBestArucoTag.nID != -1 && stBestArucoTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+            {
+                // Tag is too far away, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: ArUco tag detected but too far away. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+            else if (stBestTorchTag.dConfidence > 0.0 && stBestTorchTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+            {
+                // Tag is too far away, trigger verify failed event.
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Torch tag detected but too far away. Triggering verify failed event.");
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                return;
+            }
+
             // Update time last seen.
             m_tmTagLastSeenTime = std::chrono::system_clock::now();
 
@@ -164,11 +179,10 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
-                // Clear saved search pattern state.
-                globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
-                globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                // Clear saved states.
+                globals::g_pStateMachineHandler->ClearSavedStates();
                 // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old saved states.");
                 // Change state.
                 eNextState = States::eIdle;
                 break;
@@ -188,7 +202,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Change state.
                 eNextState = States::eIdle;
                 break;
