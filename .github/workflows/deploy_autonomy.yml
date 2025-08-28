@@ -58,7 +58,7 @@ jobs:
 
   update-versions:
     runs-on: [self-hosted, linux, X64]
-    needs: [create-release, build-and-upload]
+    needs: [create-release]
 
     steps:
       - name: Setup Action Environment
@@ -134,7 +134,7 @@ jobs:
 
   create-request:
     runs-on: ubuntu-latest
-    needs: [create-release, build-and-upload, update-versions]
+    needs: [create-release, update-versions]
 
     steps:
       - name: Checkout repository
