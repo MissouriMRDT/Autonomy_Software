@@ -338,14 +338,9 @@ if (BUILD_TESTS_MODE)
     file(GLOB         Runner_SRC            CONFIGURE_DEPENDS  "tests/main.cc")
 
     ## Find Source Files Required for Tests
-    file(GLOB_RECURSE Algorithms_SRC        CONFIGURE_DEPENDS  "src/algorithms/*.cpp")
-    file(GLOB_RECURSE Drivers_SRC           CONFIGURE_DEPENDS  "src/drivers/*.cpp")
-    file(GLOB_RECURSE Vision_SRC            CONFIGURE_DEPENDS  "src/vision/*.cpp")
-    file(GLOB_RECURSE Util_SRC              CONFIGURE_DEPENDS  "src/util/*.cpp")
-    file(GLOB         Network_SRC           CONFIGURE_DEPENDS  "src/AutonomyNetworking.cpp")
-    file(GLOB         Logging_SRC           CONFIGURE_DEPENDS  "src/AutonomyLogging.cpp")
-    file(GLOB         Globals_SRC           CONFIGURE_DEPENDS  "src/AutonomyGlobals.cpp")
-    file(GLOB         Constants_SRC         CONFIGURE_DEPENDS  "src/AutonomyConstants.cpp")   
+    file(GLOB_RECURSE TEST_SRC       CONFIGURE_DEPENDS  "src/*.cpp")
+    # Remove main.cpp from test compilation to avoid duplicate main function
+    list(REMOVE_ITEM TEST_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
     list(LENGTH UTests_SRC UnitTests_LEN)
     list(LENGTH ITests_SRC IntegrationTests_LEN)
@@ -354,7 +349,7 @@ if (BUILD_TESTS_MODE)
     message("--   Current Timestamp: ${CURRENT_TIMESTAMP}")
 
     if (UnitTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC} ${Constants_SRC})
+        add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${UTests_SRC})
@@ -367,7 +362,7 @@ if (BUILD_TESTS_MODE)
     endif()
 
     if (IntegrationTests_LEN GREATER 0)
-        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${Algorithms_SRC} ${Drivers_SRC} ${Vision_SRC} ${Util_SRC} ${Network_SRC} ${Logging_SRC} ${Globals_SRC} ${Constants_SRC})
+        add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 
         foreach(test_file ${ITests_SRC})
@@ -379,11 +374,31 @@ if (BUILD_TESTS_MODE)
         message("No Integration Tests!")
     endif()
 
+    # Add these near your other options
+    set(COVERAGE_EXCLUDES "external/;examples/;tests/;tools/;src/states/;src/handlers/;src/interfaces;src/vision" CACHE STRING "Directories to exclude from coverage")
+
+    # Then modify the run_coverage target to use these variables
     if (BUILD_CODE_COVERAGE AND BUILD_COVERAGE_WATCH)
+        # Create separate exclude arguments for gcovr
+        set(GCOVR_EXCLUDE_ARGS "")
+        foreach(EXCLUDE_DIR ${COVERAGE_EXCLUDES})
+            list(APPEND GCOVR_EXCLUDE_ARGS --exclude)
+            list(APPEND GCOVR_EXCLUDE_ARGS ".*/${EXCLUDE_DIR}.*")
+        endforeach()
+        
+        # Build lcov exclude arguments properly
+        set(LCOV_EXCLUDE_ARGS "--remove")
+        list(APPEND LCOV_EXCLUDE_ARGS "coverage_raw.info")
+        list(APPEND LCOV_EXCLUDE_ARGS "/usr/include/*")
+        foreach(EXCLUDE_DIR ${COVERAGE_EXCLUDES})
+            list(APPEND LCOV_EXCLUDE_ARGS "*/${EXCLUDE_DIR}/*")
+        endforeach()
+
         add_custom_target(run_coverage ALL
             COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-            COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml
-            COMMAND lcov -c -d . -o coverage.info
+            COMMAND gcovr --root ${CMAKE_SOURCE_DIR} --xml-pretty --output Coverage.xml ${GCOVR_EXCLUDE_ARGS}
+            COMMAND lcov -c -d . -o coverage_raw.info
+            COMMAND lcov ${LCOV_EXCLUDE_ARGS} -o coverage.info
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMENT "Running tests and generating coverage reports..."
             VERBATIM

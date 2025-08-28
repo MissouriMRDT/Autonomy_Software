@@ -15,6 +15,7 @@
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
 #include "handlers/CameraHandler.h"
+#include "handlers/ObjectDetectionHandler.h"
 #include "handlers/StateMachineHandler.h"
 #include "handlers/TagDetectionHandler.h"
 #include "handlers/WaypointHandler.h"
@@ -48,6 +49,9 @@ namespace globals
 
     // Tag Detection Handler:
     extern TagDetectionHandler* g_pTagDetectionHandler;    // Global Tag Detection Handler
+
+    // Object Detection Handler:
+    extern ObjectDetectionHandler* g_pObjectDetectionHandler;    // Global Object Detection Handler
 
     // State Machine Handler:
     extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler

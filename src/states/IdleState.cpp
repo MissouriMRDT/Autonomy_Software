@@ -10,6 +10,7 @@
 
 #include "IdleState.h"
 #include "../AutonomyGlobals.h"
+#include "../util/states/TagDetectionChecker.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -32,13 +33,8 @@ namespace statemachine
         // Schedule the next run of the state's logic
         LOG_INFO(logging::g_qSharedLogger, "IdleState: Scheduling next run of state logic.");
 
-        m_tIdleTime      = time(nullptr);
-        m_bRealigned     = false;
-        m_nMaxDataPoints = 100;
-        m_vRoverPosition.reserve(m_nMaxDataPoints);
-
-        // Get the start rover pose.
-        m_stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        // Get tag detectors.
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -53,9 +49,6 @@ namespace statemachine
     {
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "IdleState: Exiting state.");
-
-        // Clear rover position waypoints.
-        m_vRoverPosition.clear();
     }
 
     /******************************************************************************
@@ -90,12 +83,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
         // Create instance variables.
-        geoops::RoverPose stCurrentRoverPose;
-
-        // Get the current rover gps position.
-        stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
-        // Store the Rover's position.
-        m_vRoverPosition.push_back(std::make_tuple(stCurrentRoverPose.GetUTMCoordinate().dEasting, stCurrentRoverPose.GetUTMCoordinate().dNorthing));
+        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
         // Calculate distance from current position to position when idle state was entered.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
@@ -185,7 +173,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "IdleState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Ensure drive is stopped.
                 globals::g_pDriveBoard->SendStop();
                 break;

@@ -41,9 +41,13 @@ namespace statemachine
         // Store the state that got stuck and triggered a MarkerSeen event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
+        // Add the search and rover path layers to the plot.
+        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
+        m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
+
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eGroundCam)};
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
     }
 
     /******************************************************************************
@@ -72,12 +76,14 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized  = false;
+        m_bInitialized   = false;
 
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
+        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingMarkerRoverPath");
+
         if (!m_bInitialized)
         {
             Start();
@@ -99,12 +105,18 @@ namespace statemachine
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
 
+        // Add the current rover pose to the path plot.
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+
         // Check Rover radius from marker waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
         if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
         {
             // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover is too far from the original waypoint!");
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "ApproachingMarkerState: Rover is too far from the original waypoint! Waypoint radius is {} meters, current distance is {} meters.",
+                        m_stGoalWaypoint.dRadius,
+                        stCurrentMeasurement.dDistanceMeters);
             globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerUnseen);
             return;
         }
@@ -131,12 +143,26 @@ namespace statemachine
                 {
                     bAlreadyPrintedLost = true;
                     // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
-                }
+                    LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
 
-                // Stop the drive.
-                globals::g_pDriveBoard->SendStop();
-                return;
+                    // If either of the tags are good and have a valid geoposition, don't stop the drive, we can keep driving to it.
+                    if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: OpenCV tag is geolocated.");
+                        return;
+                    }
+                    if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                    {
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Torch tag is geolocated.");
+                        return;
+                    }
+
+                    // Stop the drive.
+                    globals::g_pDriveBoard->SendStop();
+                    return;
+                }
             }
         }
         else
@@ -159,14 +185,42 @@ namespace statemachine
         // Check if we got a good OpenCV tag.
         if (stBestArucoTag.nID != -1)
         {
-            dHeadingSetPoint = numops::InputAngleModulus(stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 359.9);
             dDistanceFromTag = stBestArucoTag.dStraightLineDistance;
+            // Check if the tag has an absolute coordinate populated.
+            if (stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+            {
+                // Calculate the geomeasurement to the tag.
+                geoops::GeoMeasurement stTagMeasurement =
+                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate());
+                // Update static variables.
+                dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+                // Add the most recent geolocated tag to the plot.
+                m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+            }
+            else
+            {
+                dHeadingSetPoint = numops::InputAngleModulus(stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+            }
         }
         // Check if we got a good Torch tag.
         else if (stBestTorchTag.dConfidence != 0.0)
         {
-            dHeadingSetPoint = numops::InputAngleModulus(stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 359.9);
             dDistanceFromTag = stBestTorchTag.dStraightLineDistance;
+            // Check if the tag has an absolute coordinate populated.
+            if (stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+            {
+                // Calculate the geomeasurement to the tag.
+                geoops::GeoMeasurement stTagMeasurement =
+                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate());
+                // Update static variables.
+                dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+                // Add the most recent geolocated tag to the plot.
+                m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+            }
+            else
+            {
+                dHeadingSetPoint = numops::InputAngleModulus(stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+            }
         }
 
         // Move the rover to the target's estimated position.
@@ -175,16 +229,56 @@ namespace statemachine
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
-        std::cout << "Heading Setpoint: " << dHeadingSetPoint << std::endl;
-        std::cout << "Rover Heading: " << stCurrentRoverPose.GetCompassHeading() << std::endl;
-        std::cout << "Tag Distance: " << dDistanceFromTag << std::endl;
+
+        // Static variable to track last log time.
+        static std::chrono::system_clock::time_point tmLastLogTime = std::chrono::system_clock::now();
+        std::chrono::system_clock::time_point tmCurrentTime        = std::chrono::system_clock::now();
+        // Only log once per second.
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - tmLastLogTime).count() >= 1)
+        {
+            // Update the last log time.
+            tmLastLogTime = tmCurrentTime;
+
+            if (stBestArucoTag.nID != -1)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "ApproachingMarkerState: OpenCV Tag ID: {}, Distance: {:.2f} m, Heading: {:.2f} deg",
+                           stBestArucoTag.nID,
+                           dDistanceFromTag,
+                           dHeadingSetPoint);
+            }
+            else if (stBestTorchTag.dConfidence != 0.0)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "ApproachingMarkerState: Torch Tag Confidence: {:.2f}, Distance: {:.2f} m, Heading: {:.2f} deg",
+                           stBestTorchTag.dConfidence,
+                           dDistanceFromTag,
+                           dHeadingSetPoint);
+            }
+        }
 
         // Check if tag is reached.
-        double dAngularError = numops::AngularDifference(dHeadingSetPoint, stCurrentRoverPose.GetCompassHeading());
-        if (dDistanceFromTag > constants::APPROACH_MARKER_VISION_DISTANCE && dAngularError < 5.0)
+        if (dDistanceFromTag != 0.0 && dDistanceFromTag < constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has reached the target marker!");
+            // Check if the OpenCV tag has a good absolute position.
+            if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+            {
+                // Add the tag to the path plot.
+                m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
+            }
+            // Check if the torch tag has a good absolute position.
+            if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+            {
+                // Add the tag to the path plot.
+                m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
+            }
+
+            // Reset the tag heading and distance.
+            dHeadingSetPoint = 0.0;
+            dDistanceFromTag = 0.0;
+
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             // Don't execute the rest of the state.
@@ -195,16 +289,17 @@ namespace statemachine
         // ---  Check if the rover is stuck --- //
         //////////////////////////////////////////
 
-        // // Check if stuck.
-        // if (m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
-        // {
-        //     // Submit logger message.
-        //     LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-        //     // Handle state transition and save the current search pattern state.
-        //     globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-        //     // Don't execute the rest of the state.
-        //     return;
-        // }
+        // Check if stuck.
+        if (constants::APPROACH_MARKER_ENABLE_STUCK_DETECT &&
+            m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        {
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has become stuck!");
+            // Handle state transition and save the current search pattern state.
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            // Don't execute the rest of the state.
+            return;
+        }
 
         return;
     }
@@ -244,10 +339,11 @@ namespace statemachine
                     // Pop old waypoint out of queue.
                     globals::g_pWaypointHandler->PopNextWaypoint();
                     // Clear saved search pattern state.
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eApproachingMarker);
-                    globals::g_pStateMachineHandler->ClearSavedState(States::eSearchPattern);
+                    globals::g_pStateMachineHandler->ClearSavedStates();
                     // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                    LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Cleared old search pattern state and approaching marker state from saved states.");
+                    // Change state.
+                    eNextState = States::eIdle;
                 }
                 break;
             }
@@ -272,7 +368,7 @@ namespace statemachine
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingMarkerState: Handling Abort event.");
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
                 // Change state.
                 eNextState = States::eIdle;
                 break;

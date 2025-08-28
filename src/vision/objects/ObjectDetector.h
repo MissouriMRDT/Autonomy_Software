@@ -13,8 +13,8 @@
 
 #include "../../interfaces/BasicCamera.hpp"
 #include "../../interfaces/ZEDCamera.hpp"
-#include "./DepthDetection.hpp"
-#include "./TensorflowObjectDetection.hpp"
+#include "../../util/vision/ObjectDetectionUtility.hpp"
+#include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
 #include <future>
@@ -39,56 +39,96 @@ class ObjectDetector : public AutonomyThread<void>
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
-        ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam, const int nNumDetectedObjectsRetrievalThreads = 5, const bool bUsingGpuMats = false);
-        std::future<bool> RequestDepthDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestTensorflowDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestDetectedDepthObjects(std::vector<depthobject::DepthObject>& vDepthObjects);
-        std::future<bool> RequestDetectedTensorflowObjects(std::vector<tensorflowobject::TensorflowObject>& vTensorflowObjects);
-        IPS& GetIPS();
+        ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam,
+                       const bool bEnableTracking                    = false,
+                       const int nDetectorMaxFPS                     = 30,
+                       const bool bEnableRecordingFlag               = false,
+                       const int nNumDetectedObjectsRetrievalThreads = 5,
+                       const bool bUsingGpuMats                      = false);
+        ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam,
+                       const bool bEnableTracking                    = false,
+                       const int nDetectorMaxFPS                     = 30,
+                       const bool bEnableRecordingFlag               = false,
+                       const int nNumDetectedObjectsRetrievalThreads = 5,
+                       const bool bUsingGpuMats                      = false);
+        ~ObjectDetector();
+        std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
+        std::future<bool> RequestDetectedObjects(std::vector<objectdetectutils::Object>& vObjects);
+        bool InitTorchDetection(const std::string& szModelPath,
+                                yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
+
+        /////////////////////////////////////////
+        // Mutators.
+        /////////////////////////////////////////
+
+        void EnableTorchDetection(const float fMinObjectConfidence = 0.4f, const float fNMSThreshold = 0.6f);
+        void DisableTorchDetection();
+        void SetDetectorMaxFPS(const int nRecordingFPS);
+        void SetEnableRecordingFlag(const bool bEnableRecordingFlag);
+
+        /////////////////////////////////////////
+        // Accessors.
+        /////////////////////////////////////////
+
+        bool GetIsReady();
+        int GetDetectorMaxFPS() const;
+        bool GetEnableRecordingFlag() const;
+        std::string GetCameraName();
+        cv::Size GetProcessFrameResolution() const;
 
     private:
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        void ThreadedContinuousCode() override;
+        void PooledLinearCode() override;
+        void UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects);
+
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
         // Class member variables.
 
         std::shared_ptr<Camera<cv::Mat>> m_pCamera;
+        std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> m_pTorchDetector;
+        std::atomic<float> m_fTorchMinObjectConfidence;
+        std::atomic<float> m_fTorchNMSThreshold;
+        std::atomic_bool m_bTorchInitialized;
+        std::atomic_bool m_bTorchEnabled;
+        std::shared_ptr<tracking::MultiTracker> m_pMultiTracker;
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
+        bool m_bCameraIsOpened;
+        bool m_bEnableTracking;
         int m_nNumDetectedObjectsRetrievalThreads;
-        IPS m_IPS;
+        std::string m_szCameraName;
+        std::atomic_bool m_bEnableRecordingFlag;
 
-        // Detected objects storage.
+        // Detected tags storage.
 
-        std::vector<depthobject::DepthObject> m_vDetectedDepthObjects;
-        std::vector<tensorflowobject::TensorflowObject> m_vDetectedTensorObjects;
+        std::vector<objectdetectutils::Object> m_vNewlyDetectedObjects;
+        std::vector<objectdetectutils::Object> m_vDetectedObjects;
+
+        // Rover position for tag geolocalization.
+        geoops::RoverPose m_stRoverPose;
 
         // Create frames for storing images and point clouds.
 
-        cv::Mat m_cvNormalFrame;
-        cv::Mat m_cvProcFrame;
-        cv::Mat m_cvDepthMeasure;
-        cv::cuda::GpuMat m_cvGPUNormalFrame;
-        cv::cuda::GpuMat m_cvGPUDepthMeasure;
+        cv::Mat m_cvFrame;
+        cv::cuda::GpuMat m_cvGPUFrame;
+        cv::Mat m_cvTorchOverlayFrame;
+        cv::Mat m_cvTorchProcFrame;
+        cv::Mat m_cvPointCloud;
+        cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
 
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedObjectDrawnOverlayFrames;
-        std::queue<containers::DataFetchContainer<std::vector<depthobject::DepthObject>>> m_qDetectedDepthObjectCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<tensorflowobject::TensorflowObject>>> m_qDetectedTensorflowObjectCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedObjectDrawnOverlayFramesCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<objectdetectutils::Object>>> m_qDetectedObjectCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
-        std::mutex m_muFrameCopyMutex;
-        std::mutex m_muDepthDataCopyMutex;
-        std::mutex m_muTensorflowDataCopyMutex;
-
-        /////////////////////////////////////////
-        // Declare private methods.
-        /////////////////////////////////////////
-        void ThreadedContinuousCode() override;
-        void PooledLinearCode() override;
-        void UpdateDetectedObjects(std::vector<depthobject::DepthObject>& vNewlyDetectedObjects);
-        void UpdateDetectedObjects(std::vector<tensorflowobject::TensorflowObject>& vNewlyDetectedObjects);
+        std::shared_mutex m_muFrameCopyMutex;
+        std::shared_mutex m_muArucoDataCopyMutex;
 };
 
 #endif

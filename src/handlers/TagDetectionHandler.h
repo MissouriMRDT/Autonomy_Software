@@ -32,7 +32,6 @@ class TagDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<TagDetector> m_pTagDetectorMainCam;
-        std::shared_ptr<TagDetector> m_pTagDetectorGroundCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
@@ -44,7 +43,6 @@ class TagDetectionHandler
         {
             TAGDETECTOR_START,
             eHeadMainCam,
-            eGroundCam,
             TAGDETECTOR_END
         };
 

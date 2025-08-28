@@ -18,6 +18,7 @@
 #include "../util/logging/PathTracer2D.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
+#include "../vision/objects/ObjectDetector.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -44,6 +45,7 @@ namespace statemachine
             geoops::Waypoint m_stGoalWaypoint;
             bool m_bInitialized;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
+            std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;

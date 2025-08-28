@@ -14,6 +14,7 @@
 #include "../interfaces/BasicCamera.hpp"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/cameras/ZEDCam.h"
+#include "../vision/objects/ObjectDetector.h"
 
 /// \cond
 #include <opencv2/opencv.hpp>
@@ -76,6 +77,8 @@ class RecordingHandler : public AutonomyThread<void>
         void RequestAndWriteCameraFrames();
         void UpdateRecordableTagDetectors();
         void RequestAndWriteTagDetectorFrames();
+        void UpdateRecordableObjectDetectors();
+        void RequestAndWriteObjectDetectorFrames();
 
         /////////////////////////////////////////
         // Declare private class member variables.
@@ -86,6 +89,7 @@ class RecordingHandler : public AutonomyThread<void>
         std::vector<std::shared_ptr<ZEDCamera>> m_vZEDCameras;
         std::vector<std::shared_ptr<BasicCamera>> m_vBasicCameras;
         std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
+        std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
         std::vector<cv::VideoWriter> m_vCameraWriters;
         std::vector<bool> m_vRecordingToggles;
         std::vector<cv::Mat> m_vFrames;
