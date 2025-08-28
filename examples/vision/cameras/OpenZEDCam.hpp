@@ -104,7 +104,7 @@ void RunExample()
             fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        // std::future<bool> fuPoseCopyStatus    = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuPoseCopyStatus    = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
         std::future<bool> fuSensorsCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensors);
 
         // Wait for the frames to be copied.
@@ -133,20 +133,20 @@ void RunExample()
             // Split color from point cloud.
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
-            // // Wait for the other info to be copied.
-            // if (fuPoseCopyStatus.get())
-            // {
-            //     LOG_INFO(logging::g_qConsoleLogger,
-            //              "Positional Tracking: X: {} | Y: {} | Z: {}",
-            //              stPose.stTranslation.dX,
-            //              stPose.stTranslation.dY,
-            //              stPose.stTranslation.dZ);
-            //     LOG_INFO(logging::g_qConsoleLogger,
-            //              "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}",
-            //              stPose.stEulerAngles.dXO,
-            //              stPose.stEulerAngles.dYO,
-            //              stPose.stEulerAngles.dZO);
-            // }
+            // Wait for the other info to be copied.
+            if (fuPoseCopyStatus.get())
+            {
+                LOG_INFO(logging::g_qConsoleLogger,
+                         "Positional Tracking: X: {} | Y: {} | Z: {}",
+                         stPose.stTranslation.dX,
+                         stPose.stTranslation.dY,
+                         stPose.stTranslation.dZ);
+                LOG_INFO(logging::g_qConsoleLogger,
+                         "Positional Orientation: Roll: {} | Pitch: {} | Yaw:{}",
+                         stPose.stEulerAngles.dXO,
+                         stPose.stEulerAngles.dYO,
+                         stPose.stEulerAngles.dZO);
+            }
 
             // Wait for sensors data to be copied.
             if (fuSensorsCopyStatus.get())
@@ -180,9 +180,9 @@ void RunExample()
             }
 
             // Display frames.
-            // cv::imshow("FRAME1", cvNormalFrame1);
-            // cv::imshow("DEPTH1", cvDepthFrame1);
-            // cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
+            cv::imshow("FRAME1", cvNormalFrame1);
+            cv::imshow("DEPTH1", cvDepthFrame1);
+            cv::imshow("POINT CLOUD COLOR 1", cvPointCloudColor1);
         }
 
         // Tick FPS counter.
@@ -190,9 +190,9 @@ void RunExample()
         // Print FPS of main loop.
         LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
 
-        // char chKey = cv::waitKey(1);
-        // if (chKey == 27)    // Press 'Esc' key to exit
-        //     break;
+        char chKey = cv::waitKey(1);
+        if (chKey == 27)    // Press 'Esc' key to exit
+            break;
     }
 
     // Close all OpenCV windows.
