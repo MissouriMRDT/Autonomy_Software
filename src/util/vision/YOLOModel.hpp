@@ -52,6 +52,7 @@ namespace yolomodel
             std::string szClassName;    // The class name of the object. This is dependent on the class names used when training.
             float fConfidence;          // The detection confidence of the object.
             cv::Rect cvBoundingBox;     // An object used to access the dimensions and other properties of the objects bounding box.
+            torch::Tensor trSegment;    // Optional segmentation mask for FastSAM applications. 
     };
 
     /******************************************************************************
@@ -74,6 +75,7 @@ namespace yolomodel
                                   std::vector<cv::Rect>& vBoundingBoxes,
                                   float fMinObjectConfidence,
                                   float fNMSThreshold)
+                                  torch::Tensor& trSegmentationMasks = NULL,
     {
         // Create instance variables.
         std::vector<int> vNMSValidIndices;
@@ -90,6 +92,11 @@ namespace yolomodel
             stNewDetection.nClassID      = vClassIDs[nValidIndex];
             stNewDetection.fConfidence   = vClassConfidences[nValidIndex];
             stNewDetection.cvBoundingBox = vBoundingBoxes[nValidIndex];
+
+            // If using image segmentation, get indices of 
+            if (trSegmentationMasks) {
+                stNewDetection.trSegment = trSegmentationMasks.index({0, nValidIndex, torch::index::Slice()})
+            }
 
             // Append new object detection to objects vector.
             vObjects.emplace_back(stNewDetection);
@@ -856,7 +863,7 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-06
                  ******************************************************************************/
-                std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6)
+                std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6, const bool segment = false)
                 {
                     // Force single-threaded execution (if acceptable for your workload)
                     torch::set_num_threads(1);
@@ -870,6 +877,9 @@ namespace yolomodel
                     std::vector<torch::jit::IValue> vInputs;
                     vInputs.push_back(trTensorImage);
                     torch::Tensor trOutputTensor;
+                    torch::Tensor trMaskProtos;
+                    torch::Tensor trMaskConfidences;
+                    torch::Tensor trSegmentationMasks;
                     try
                     {
                         trOutputTensor = m_trModel.forward(vInputs).toTensor();
@@ -878,6 +888,23 @@ namespace yolomodel
                     {
                         LOG_ERROR(logging::g_qSharedLogger, "Error running inference: {}", trError.what());
                         return vObjects;
+                    }
+
+                    // Optional support for image segmentation
+                    if (segment) 
+                    {
+                        // Extract Mask Protos
+                        trMaskProtos = trOutputTensor[0];
+                        
+                        // Transpose Output
+                        trOutputTensor = trOutputTensor[1];
+                        trOutputTensor.transpose(1, 2);
+
+                        // Extract Mask Confidences from BBoxes
+                        trMaskConfidences = trOutputTensor.index({torch::indexing::Slice(), torch::indexing::Slice(), torch::indexing::Slice(5, torch::indexing::None)});
+                        trOutputTensor    = trOutputTensor.index({torch::indexing::Slice(), torch::indexing::Slice(), torch::indexing::Slice(torch::indexing::None, 5)});
+
+                        trSegmentationMasks = torch::bmm(trMaskConfidences, trMaskProtos);
                     }
 
                     // Calculate the general stride sizes for YOLO based on input tensor shape.
@@ -915,7 +942,7 @@ namespace yolomodel
                     }
 
                     // Perform NMS to filter out bad/duplicate detections.
-                    NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
+                    NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold, trSegmentationMasks);
 
                     // Loop through the final detections and set the class names for each detection based on the class ID.
                     for (size_t nIter = 0; nIter < vObjects.size(); ++nIter)
