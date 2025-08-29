@@ -249,13 +249,6 @@ void ObstacleDetector::ThreadedContinuousCode()
         // Add Torch tags to the list of newly detected tags.
         m_vNewlyDetectedObstacles.insert(m_vNewlyDetectedObstacles.end(), vNewTorchObstacles.begin(), vNewTorchObstacles.end());
 
-        // Set the FOV of the camera in the tag structs for this detector's camera.
-        for (O& stTag : m_vNewlyDetectedObstacles)
-        {
-            // Set tag FOV parameter to this tag detectors camera's FOV.
-            stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
-        }
-
         // Merge the newly detected tags with the pre-existing detected tags
         this->UpdateDetectedObstacles(m_vNewlyDetectedObstacles);
 
