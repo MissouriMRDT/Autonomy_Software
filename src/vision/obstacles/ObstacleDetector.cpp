@@ -120,6 +120,31 @@ bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::
     }
 }
 
+/******************************************************************************
+ * @brief Turn on torch detection with given parameters.
+ *
+ * @param fMinObjectConfidence - The lower limit of detection confidence.
+ * @param fNMSThreshold - The overlap thresh for NMS algorithm.
+ *
+ * @author UhOhDonovan (donovan@balehaus.org)
+ * @date 2025-09-03
+ ******************************************************************************/
+void ObstacleDetector::EnableTorchDetection(const float fMinObjectConfidence, const float fNMSThreshold)
+{
+    // Update member variables.
+    m_fTorchMinObjectConfidence = fMinObjectConfidence;
+    m_fTorchNMSThreshold        = fNMSThreshold;
+
+    // Check if torch model has been initialized.
+    if (!m_bTorchInitialized)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Tried to enable torch detection for TagDetector but it has not been initialized yet!");
+        // Update member variable.
+        m_bTorchEnabled = false;
+    }
+}
+
 void ObstacleDetector::ThreadedContinuousCode()
 {
     // Check if using ZEDCam or BasicCam.
@@ -317,6 +342,55 @@ void ObstacleDetector::ThreadedContinuousCode()
         this->JoinPool();
         // Relaease lock on frame copy queue.
         lkSchedulers.unlock();
+    }
+}
+
+void ObstacleDetector::PooledLinearCode()
+{
+    /////////////////////////////
+    //  Detection Overlay Frame queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedTagCopySchedule.
+    std::unique_lock<std::shared_mutex> lkObstacleOverlayFrameQueue(m_muFrameCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qDetectedObstacleDrawnOverlayFramesCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedObstacleDrawnOverlayFramesCopySchedule.front();
+        // Pop out of queue.
+        m_qDetectedObstacleDrawnOverlayFramesCopySchedule.pop();
+        // Release lock.
+        lkObstacleOverlayFrameQueue.unlock();
+
+        // Check which frame we should copy.
+        switch (stContainer.eFrameType)
+        {
+            case PIXEL_FORMATS::eObstacleDetection: *stContainer.pFrame = m_cvTorchProcFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvTorchProcFrame.clone(); break;
+        }
+
+        stContainer.pCopiedFrameStatus->set_value(true);
+    }
+
+    /////////////////////////////
+    //  Obstacle queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedObstacleCopySchedule.
+    std::unique_lock<std::shared_mutex> lkObstacleQueue(m_muObstacleDataCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qDetectedObstacleCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::DataFetchContainer<std::vector<obstacledetectutils::Obstacle>> stContainer = m_qDetectedObstacleCopySchedule.front();
+        m_qDetectedObstacleCopySchedule.pop();
+        // Release lock.
+        lkObstacleQueue.unlock();
+
+        // Copy the detected tags to the target location
+        *stContainer.pData = m_vDetectedObstacles;
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
     }
 }
 
