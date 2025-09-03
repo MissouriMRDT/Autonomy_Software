@@ -16,7 +16,7 @@
 
 /******************************************************************************
  * @brief The ObjectDetectionHandler class is responsible for managing all of the
- *      different detectors that Autonomy_Software uses for object and obstacle detection. (excluding AR tags)
+ *      different detectors that Autonomy_Software uses for object detection. (excluding AR tags)
  *      Whether it be for simple detection using a depth measure and blobs or detection using a custom
  *      tensorflow model, the detectors are created and stored here.
  *
