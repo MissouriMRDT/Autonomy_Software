@@ -13,7 +13,6 @@
 
 ObstacleDetector::ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
                                    const int nDetectorMaxFPS                      = 30,
-                                   const bool bEnable_tracking                    = false,
                                    const bool bEnableRecordingFlag                = false,
                                    const int nNumDetectedObstacleRetrievalThreads = 5,
                                    const bool bUsingGpuMats                       = false)
@@ -22,7 +21,6 @@ ObstacleDetector::ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
     m_pCamera = pBasicCam;
     = false;
     m_bTorchEnabled                        = true;
-    m_bEnableTracking                      = bEnable_tracking;
     m_bUsingZedCamera                      = false;    // Toggle ZED functions off.
     m_bUsingGpuMats                        = bUsingGpuMats;
     m_bCameraIsOpened                      = false;
@@ -42,6 +40,38 @@ ObstacleDetector::ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
 
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "ObstacleDetector created for camera at path/index: {}", m_szCameraName);
+}
+
+ObstacleDetector::ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam,
+                                   const int nDetectorMaxFPS                      = 30,
+                                   const bool bEnableRecordingFlag                = false,
+                                   const int nNumDetectedObstacleRetrievalThreads = 5,
+                                   const bool bUsingGpuMats                       = false)
+
+{
+    // Initialize member variables.
+
+    m_pCamera                              = pZEDCam;
+    m_bTorchInitialized                    = false;
+    m_bTorchEnabled                        = true;
+    m_bEnableTracking                      = bEnable_tracking;
+    m_bUsingZedCamera                      = true;    // Toggle ZED functions on.
+    m_bUsingGpuMats                        = bUsingGpuMats;
+    m_bCameraIsOpened                      = false;
+    m_nNumDetectedObstacleRetrievalThreads = nNumDetectedObstacleRetrievalThreads;
+    m_szCameraName                         = std::dynamic_pointer_cast<BasicCamera>(pZEDCam)->GetCameraLocation();
+    m_bEnableRecordingFlag                 = bEnableRecordingFlag;
+    m_IPS                                  = IPS();
+
+    // Create a multi-tracker for tracking multiple tags from the torch detectors.
+    // @todo Replace with Obstacle Detection specific constants
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+
+    // Set max IPS of main thread.
+    this->SetMainThreadIPSLimit(nDetectorMaxFPS);
+
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "TagDetector created for camera: {}", m_szCameraName);
 }
 
 ObstacleDetector::~ObstacleDetector()
@@ -244,7 +274,7 @@ void ObstacleDetector::ThreadedContinuousCode()
         // torch detection
         // Drop the Alpha channel from the image copy to preproc frame.
         cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2RGB);
-        
+
         // Detect tags in the image.
         std::vector<obstacledetectutils::Obstacle> vDetectedObstacles;
 
