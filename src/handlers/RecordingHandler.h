@@ -44,7 +44,8 @@ class RecordingHandler : public AutonomyThread<void>
         {
             eCameraHandler,            // Record video feeds from the CameraHandler.
             eTagDetectionHandler,      // Record video feeds from the TagDetectionHandler.
-            eObjectDetectionHandler    // Record video feeds from the ObjectDetectionHandler.
+            eObjectDetectionHandler,    // Record video feeds from the ObjectDetectionHandler.
+            eObstacleDetectionHandler    // Record video feeds from the ObstacleDetectionHandler.
         };
 
         /////////////////////////////////////////
