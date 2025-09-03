@@ -14,6 +14,8 @@
 
 #include "../../interfaces/BasicCamera.hpp"
 #include "../../interfaces/ZEDCamera.hpp"
+#include "../../util/vision/BoundingBoxTracking.h"
+#include "../../util/vision/ObstacleDetectionUtility.hpp"
 #include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
@@ -22,12 +24,6 @@
 #include <vector>
 
 /// \endcond
-
-// @todo replace with actual structure for Obstacle data
-struct O
-{
-        double dHorizontalFOV;
-};    // Placeholder template until I create an Obstacle struct
 
 /******************************************************************************
  * @brief Run FastSAM obstacle detection & camera pose estimation in multithreaded environment.
@@ -61,7 +57,7 @@ class ObstacleDetector : public AutonomyThread<void>
         ~ObstacleDetector();
 
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestDetectedObstacles(std::vector<O>& vObstacles);
+        std::future<bool> RequestDetectedObstacles(std::vector<obstacledetectutils::Obstacle>& vObstacles);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
 
@@ -91,7 +87,7 @@ class ObstacleDetector : public AutonomyThread<void>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 
-        void UpdateDetectedObstacles(std::vector<O>& vObstacles);
+        void UpdateDetectedObstacles(std::vector<obstacledetectutils::Obstacle>& vNewlyDetectedObstacles);
 
         /////////////////////////////////////////
         // Declare private member variables.
@@ -116,8 +112,8 @@ class ObstacleDetector : public AutonomyThread<void>
 
         // Detected obstacle storage.
 
-        std::vector<O> m_vNewlyDetectedObstacles;
-        std::vector<O> m_vDetectedObstacles;
+        std::vector<obstacledetectutils::Obstacle> m_vNewlyDetectedObstacles;
+        std::vector<obstacledetectutils::Obstacle> m_vDetectedObstacles;
 
         // Create frames for storing images and point clouds.
 
@@ -130,7 +126,7 @@ class ObstacleDetector : public AutonomyThread<void>
         // Queues and mutexes for scheduling and copying data to other threads.
 
         std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedObstacleDrawnOverlayFramesCopySchedule;    // wtf
-        std::queue<containers::DataFetchContainer<std::vector<O>>> m_qDetectedObstacleCopySchedule;
+        std::queue<containers::DataFetchContainer<std::vector<obstacledetectutils::Obstacle>>> m_qDetectedObstacleCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
         std::shared_mutex m_muFrameCopyMutex;
         std::shared_mutex m_muObstacleDataCopyMutex;
