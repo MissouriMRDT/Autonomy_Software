@@ -44,13 +44,11 @@ class ObstacleDetector : public AutonomyThread<void>
         ////////////////////////////////////////
         ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
                          const int nDetectorMaxFPS                      = 30,
-                         const bool bEnable_tracking                    = false,
                          const bool bEnableRecordingFlag                = false,
                          const int nNumDetectedObstacleRetrievalThreads = 5,
                          const bool bUsingGpuMats                       = false);
         ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam,
                          const int nDetectorMaxFPS                      = 30,
-                         const bool bEnable_tracking                    = false,
                          const bool bEnableRecordingFlag                = false,
                          const int nNumDetectedObstacleRetrievalThreads = 5,
                          const bool bUsingGpuMats                       = false);
@@ -105,7 +103,6 @@ class ObstacleDetector : public AutonomyThread<void>
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         bool m_bCameraIsOpened;
-        bool m_bEnableTracking;
         int m_nNumDetectedObstacleRetrievalThreads;
         std::string m_szCameraName;
         std::atomic_bool m_bEnableRecordingFlag;
