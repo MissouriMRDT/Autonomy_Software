@@ -253,6 +253,18 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// Obstacle Detection Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    const int OBSTACLEDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const int OBSTACLEDETECT_MAINCAM_MAX_FPS                = 30;    // The max iterations per second of the obstacle detector.
+    // @todo Change to actual model path
+    const std::string OBSTACLEDETECT_MAINCAM_TORCH_MODEL =
+        "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float OBSTACLEDETECT_MAINCAM_TORCH_CONFIDENCE = 0.4f;                                // The minimum confidence to consider a viable obstacle detection.
+    const float OBSTACLEDETECT_MAINCAM_TORCH_NMS_THRESH = 0.2f;                                // The threshold for non-max suppression filtering.
+
+    ///////////////////////////////////////////////////////////////////////////
     //// State Constants.
     ///////////////////////////////////////////////////////////////////////////
 
