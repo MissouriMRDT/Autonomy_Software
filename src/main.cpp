@@ -210,20 +210,23 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pCameraHandler          = new CameraHandler();
-        globals::g_pWaypointHandler        = new WaypointHandler();
-        globals::g_pTagDetectionHandler    = new TagDetectionHandler();
-        globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
-        globals::g_pStateMachineHandler    = new StateMachineHandler();
+        globals::g_pCameraHandler            = new CameraHandler();
+        globals::g_pWaypointHandler          = new WaypointHandler();
+        globals::g_pTagDetectionHandler      = new TagDetectionHandler();
+        globals::g_pObjectDetectionHandler   = new ObjectDetectionHandler();
+        globals::g_pObstacleDetectionHandler = new ObstacleDetectionHandler();
+        globals::g_pStateMachineHandler      = new StateMachineHandler();
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
         globals::g_pObjectDetectionHandler->StartAllDetectors();
+        globals::g_pObstacleDetectionHandler->StartAllDetectors();
         // Enable Recording on Handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
         globals::g_pObjectDetectionHandler->StartRecording();
+        globals::g_pObstacleDetectionHandler->StartAllDetectors();
 
         /////////////////////////////////////////
         // Declare local variables used in main loop.
@@ -233,6 +236,8 @@ int main()
         std::shared_ptr<TagDetector> pMainTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
         std::shared_ptr<ObjectDetector> pMainObjectDetector =
             globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
+        std::shared_ptr<ObstacleDetector> pMainObstacleDetector =
+            g_pObstacleDetectionHandler->GetObstacleDetector(ObstacleDetectionHandler::ObstacleDetectors::eHeadMainCam);
         IPS IterPerSecond = IPS();
 
         // Now that cameras and detectors are configured start state machine.
@@ -253,6 +258,7 @@ int main()
             vThreadFPSValues.push_back(static_cast<uint32_t>(pMainCam->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(pMainTagDetector->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(pMainObjectDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pMainObstacleDetector->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
@@ -265,6 +271,7 @@ int main()
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainTagDetector FPS: " + std::to_string(pMainTagDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainObjectDetector FPS: " + std::to_string(pMainObjectDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainObstacleDetector FPS: " + std::to_string(pMainObstacleDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
@@ -482,20 +489,23 @@ int main()
         globals::g_pStateMachineHandler->StopStateMachine();
         globals::g_pObjectDetectionHandler->StopAllDetectors();
         globals::g_pTagDetectionHandler->StopAllDetectors();
+        globals::g_pObstacleDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
         // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pObjectDetectionHandler;
+        delete globals::g_pObstacleDetectionHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
-        globals::g_pStateMachineHandler    = nullptr;
-        globals::g_pObjectDetectionHandler = nullptr;
-        globals::g_pTagDetectionHandler    = nullptr;
-        globals::g_pCameraHandler          = nullptr;
-        globals::g_pWaypointHandler        = nullptr;
+        globals::g_pStateMachineHandler      = nullptr;
+        globals::g_pObjectDetectionHandler   = nullptr;
+        globals::g_pObstacleDetectionHandler = nullptr;
+        globals::g_pTagDetectionHandler      = nullptr;
+        globals::g_pCameraHandler            = nullptr;
+        globals::g_pWaypointHandler          = nullptr;
     }
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.

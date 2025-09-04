@@ -18,6 +18,7 @@
 #include "handlers/ObjectDetectionHandler.h"
 #include "handlers/StateMachineHandler.h"
 #include "handlers/TagDetectionHandler.h"
+#include "handlers/ObstacleDetectionHandler.h"
 #include "handlers/WaypointHandler.h"
 
 /// \cond
@@ -52,6 +53,9 @@ namespace globals
 
     // Object Detection Handler:
     extern ObjectDetectionHandler* g_pObjectDetectionHandler;    // Global Object Detection Handler
+
+    // Obstacle Detection Handler:
+    extern ObstacleDetectionHandler* g_pObstacleDetectionHandler; // Global Obstacle Detection Handler
 
     // State Machine Handler:
     extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler

@@ -35,6 +35,9 @@ namespace globals
 
     // Object Detection Handler:
     ObjectDetectionHandler* g_pObjectDetectionHandler;
+    
+    // Obstacle Detection Handler
+    ObstacleDetectionHandler* g_pObstacleDetectionHandler; 
 
     // State Machine Handler:
     StateMachineHandler* g_pStateMachineHandler;
