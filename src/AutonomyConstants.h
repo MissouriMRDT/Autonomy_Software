@@ -112,6 +112,8 @@ namespace constants
     extern const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING;
     // ObjectDetector recording toggles.
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING;
+    // ObstacleDetector recording toggle
+    extern const bool OBSTACLEDETECT_MAINCAM_ENABLE_RECORDING;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -252,6 +254,18 @@ namespace constants
     extern const cv::Mat ARUCO_SHARPEN_KERNEL_FAST;
     extern const cv::Mat ARUCO_SHARPEN_KERNEL_EXTRA;
     extern const cv::Mat ARUCO_EDGE_KERNEL;
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Obstacle Detection Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    extern const int OBSTACLEDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
+    extern const int OBSTACLEDETECT_MAINCAM_MAX_FPS;
+    extern const std::string OBSTACLEDETECT_MAINCAM_TORCH_MODEL;
+    extern const float OBSTACLEDETECT_MAINCAM_TORCH_CONFIDENCE;
+    extern const float OBSTACLEDETECT_MAINCAM_TORCH_NMS_THRESH;
 
     ///////////////////////////////////////////////////////////////////////////
 

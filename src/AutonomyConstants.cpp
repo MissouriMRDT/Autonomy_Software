@@ -105,7 +105,8 @@ namespace constants
     const bool TAGDETECT_MAINCAM_ENABLE_RECORDING   = true;    // Whether or not to record the main ZED camera tag detector.
     const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING = true;    // Whether of not to record the ground USB camera tag detector.
     // ObjectDetector recording toggles.
-    const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING = true;    // Whether or not to record the main ZED camera object detector.
+    const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING   = true;    // Whether or not to record the main ZED camera object detector.
+    const bool OBSTACLEDETECT_MAINCAM_ENABLE_RECORDING = true;    // Whether or not to record the main ZED camera obstacle detector.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
