@@ -58,6 +58,7 @@ class ObstacleDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectedObstacles(std::vector<obstacledetectutils::Obstacle>& vObstacles);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
+        void EnableTorchDetection(const float fMinObjectConfidence, const float fNMSThreshold);
 
         ///////////////////////////////////////
         // Mutators.
@@ -97,6 +98,7 @@ class ObstacleDetector : public AutonomyThread<void>
 
         std::atomic<float> m_fTorchMinObjectConfidence;
         std::atomic<float> m_fTorchIOUThreshold;
+        std::atomic<float> m_fTorchNMSThreshold;
         std::atomic_bool m_bTorchInitialized;
         std::atomic_bool m_bTorchEnabled;
         std::shared_ptr<tracking::MultiTracker> m_pMultiTracker;
@@ -111,6 +113,9 @@ class ObstacleDetector : public AutonomyThread<void>
 
         std::vector<obstacledetectutils::Obstacle> m_vNewlyDetectedObstacles;
         std::vector<obstacledetectutils::Obstacle> m_vDetectedObstacles;
+
+        // Rover position for obstacle geolocation
+        geoops::RoverPose m_stRoverPose;
 
         // Create frames for storing images and point clouds.
 

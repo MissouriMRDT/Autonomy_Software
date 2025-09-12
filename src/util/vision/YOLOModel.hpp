@@ -52,7 +52,7 @@ namespace yolomodel
             std::string szClassName;    // The class name of the object. This is dependent on the class names used when training.
             float fConfidence;          // The detection confidence of the object.
             cv::Rect cvBoundingBox;     // An object used to access the dimensions and other properties of the objects bounding box.
-            torch::Tensor trSegment;    // Optional segmentation mask for FastSAM applications. 
+            torch::Tensor trSegment;    // Optional segmentation mask for FastSAM applications.
     };
 
     /******************************************************************************
@@ -74,8 +74,8 @@ namespace yolomodel
                                   std::vector<float>& vClassConfidences,
                                   std::vector<cv::Rect>& vBoundingBoxes,
                                   float fMinObjectConfidence,
-                                  float fNMSThreshold)
-                                  torch::Tensor& trSegmentationMasks = NULL,
+                                  float fNMSThreshold,
+                                  torch::Tensor trSegmentationMasks = {})
     {
         // Create instance variables.
         std::vector<int> vNMSValidIndices;
@@ -93,9 +93,10 @@ namespace yolomodel
             stNewDetection.fConfidence   = vClassConfidences[nValidIndex];
             stNewDetection.cvBoundingBox = vBoundingBoxes[nValidIndex];
 
-            // If using image segmentation, get indices of 
-            if (trSegmentationMasks) {
-                stNewDetection.trSegment = trSegmentationMasks.index({0, nValidIndex, torch::index::Slice()})
+            // If using image segmentation, get indices of
+            if (trSegmentationMasks.defined())
+            {
+                stNewDetection.trSegment = trSegmentationMasks.index({0, nValidIndex, torch::indexing::Slice()});
             }
 
             // Append new object detection to objects vector.
@@ -863,7 +864,10 @@ namespace yolomodel
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-06
                  ******************************************************************************/
-                std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6, const bool segment = false)
+                std::vector<Detection> Inference(const cv::Mat& cvInputFrame,
+                                                 const float fMinObjectConfidence = 0.85,
+                                                 const float fNMSThreshold        = 0.6,
+                                                 const bool segment               = false)
                 {
                     // Force single-threaded execution (if acceptable for your workload)
                     torch::set_num_threads(1);
@@ -891,11 +895,11 @@ namespace yolomodel
                     }
 
                     // Optional support for image segmentation
-                    if (segment) 
+                    if (segment)
                     {
                         // Extract Mask Protos
                         trMaskProtos = trOutputTensor[0];
-                        
+
                         // Transpose Output
                         trOutputTensor = trOutputTensor[1];
                         trOutputTensor.transpose(1, 2);

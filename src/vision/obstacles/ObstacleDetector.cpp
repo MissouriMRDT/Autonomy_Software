@@ -8,18 +8,19 @@
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
-#include "../../util/vision/ImageOperations.hpp"
 #include "ObstacleDetector.h"
+#include "../../AutonomyGlobals.h"
+#include "../../util/vision/Geolocate.hpp"
+#include "../../util/vision/ImageOperations.hpp"
 
 ObstacleDetector::ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
-                                   const int nDetectorMaxFPS                      = 30,
-                                   const bool bEnableRecordingFlag                = false,
-                                   const int nNumDetectedObstacleRetrievalThreads = 5,
-                                   const bool bUsingGpuMats                       = false)
+                                   const int nDetectorMaxFPS,
+                                   const bool bEnableRecordingFlag,
+                                   const int nNumDetectedObstacleRetrievalThreads,
+                                   const bool bUsingGpuMats)
 {
     // Initialize member variables
-    m_pCamera = pBasicCam;
-    = false;
+    m_pCamera                              = pBasicCam;
     m_bTorchEnabled                        = true;
     m_bUsingZedCamera                      = false;    // Toggle ZED functions off.
     m_bUsingGpuMats                        = bUsingGpuMats;
@@ -31,9 +32,9 @@ ObstacleDetector::ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
 
     // Create a multi-tracker for tracking multiple obstacles from the torch detectors.
     // @todo Replace with Obstacle Detection specific constants
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT,
-                                                               constants::ARUCO_BBOX_TRACKER_MAX_TRACK_TIME,
-                                                               constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
+                                                               constants::BBOX_TRACKER_MAX_TRACK_TIME,
+                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -43,10 +44,10 @@ ObstacleDetector::ObstacleDetector(std::shared_ptr<BasicCamera> pBasicCam,
 }
 
 ObstacleDetector::ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam,
-                                   const int nDetectorMaxFPS                      = 30,
-                                   const bool bEnableRecordingFlag                = false,
-                                   const int nNumDetectedObstacleRetrievalThreads = 5,
-                                   const bool bUsingGpuMats                       = false)
+                                   const int nDetectorMaxFPS,
+                                   const bool bEnableRecordingFlag,
+                                   const int nNumDetectedObstacleRetrievalThreads,
+                                   const bool bUsingGpuMats)
 
 {
     // Initialize member variables.
@@ -54,7 +55,6 @@ ObstacleDetector::ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_pCamera                              = pZEDCam;
     m_bTorchInitialized                    = false;
     m_bTorchEnabled                        = true;
-    m_bEnableTracking                      = bEnable_tracking;
     m_bUsingZedCamera                      = true;    // Toggle ZED functions on.
     m_bUsingGpuMats                        = bUsingGpuMats;
     m_bCameraIsOpened                      = false;
@@ -64,8 +64,7 @@ ObstacleDetector::ObstacleDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_IPS                                  = IPS();
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
-    // @todo Replace with Obstacle Detection specific constants
-    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::ARUCO_BBOX_TRACKER_LOST_TIMEOUT, constants::ARUCO_BBOX_TRACKER_IOU_MATCH_THRESHOLD);
+    m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT, constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
@@ -96,7 +95,7 @@ ObstacleDetector::~ObstacleDetector()
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-03-06
  ******************************************************************************/
-bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
+bool ObstacleDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
 {
     // Initialize a new YOLOModel object.
     m_pTorchDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
@@ -105,7 +104,7 @@ bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::
     if (m_pTorchDetector->IsReadyForInference())
     {
         // Update member variable.
-        = true;
+        m_bTorchInitialized = true;
         // Return status.
         return true;
     }
@@ -114,7 +113,7 @@ bool TagDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to initialize Torch detection for TagDetector.");
         // Update member variable.
-        = false;
+        m_bTorchInitialized = false;
         // Return status.
         return false;
     }
@@ -303,20 +302,23 @@ void ObstacleDetector::ThreadedContinuousCode()
         // Detect tags in the image.
         std::vector<obstacledetectutils::Obstacle> vDetectedObstacles;
 
-        if (m_pTorchDetector->IsReadyForInference)
+        if (m_pTorchDetector->IsReadyForInference())
         {
-            std::vector<yolomodel::Detection> vOutputObstacles = m_pTorchDetector->Inference(m_cvTorchProcFrame, segment = true);
+            std::vector<yolomodel::Detection> vOutputObstacles = m_pTorchDetector->Inference(m_cvTorchProcFrame, 0.85, 0.6, true);
             for (const yolomodel::Detection& stObstacleDetection : vOutputObstacles)
             {
-                obstacledetectutils::stDetectedObstacle;
-                stDetectedObstacle.dConfidence       = stTagDetection.fConfidence;
-                stDetectedObstacle.pBoundingBox      = std::make_shared<cv::Rect2d>(stObjectDetection.cvBoundingBox);
-                stDetectedObstacle.pSegmentMask      = std::make_shared<torch::tensor>(stObjectDetection.trSegment);
-                stDetectedObstacle.nID               = stTagDetection.nClassID;
-                stDetectedObstacle.eDetectionMethod  = tagdetectutils::TagDetectionMethod::eTorch;
-                stDetectedObstacle.cvImageResolution = cvFrame.size();
+                torch::Tensor trContiguous = stObstacleDetection.trSegment.contiguous();
 
-                vDetectedObstacles.emplace_back(stDetectedTag);
+                cv::Mat cvMask(trContiguous.size(0), trContiguous.size(1), CV_32FC1, trContiguous.data_ptr<float>());
+
+                obstacledetectutils::Obstacle stDetectedObstacle;
+                stDetectedObstacle.dConfidence       = stObstacleDetection.fConfidence;
+                stDetectedObstacle.pBoundingBox      = std::make_shared<cv::Rect2d>(stObstacleDetection.cvBoundingBox);
+                stDetectedObstacle.pSegmentMask      = std::make_shared<cv::Mat>(cvMask);
+                stDetectedObstacle.nID               = stObstacleDetection.nClassID;
+                stDetectedObstacle.cvImageResolution = m_cvFrame.size();
+
+                vDetectedObstacles.emplace_back(stDetectedObstacle);
             }
         }
 
@@ -394,9 +396,22 @@ void ObstacleDetector::PooledLinearCode()
     }
 }
 
+/******************************************************************************
+ * @brief Accessor for the camera name or path that this ObstacleDetector is tied to.
+ *
+ * @return std::string - The name/path/index of the camera used by this ObstacleDetector.
+ *
+ * @author UhOhDonovan (donovan@balehaus.org)
+ * @date 2025-09-12
+ ******************************************************************************/
+std::string ObstacleDetector::GetCameraName()
+{
+    return m_szCameraName;
+}
+
 void ObstacleDetector::UpdateDetectedObstacles(std::vector<obstacledetectutils::Obstacle>& vNewlyDetectedObstacles)
 {
-    if (vObstacles.empty())
+    if (vNewlyDetectedObstacles.empty())
     {
         // I DON'T KNOW IF I NEED THIS OR NOT
         m_pMultiTracker->Update(m_cvFrame);
@@ -405,7 +420,7 @@ void ObstacleDetector::UpdateDetectedObstacles(std::vector<obstacledetectutils::
     {
         for (obstacledetectutils::Obstacle& stNewDetection : vNewlyDetectedObstacles)
         {
-            bool bMatchedObstacleToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stNewDetection.cvBoundingBox, constants::BBOX_TRACKER_TYPE);
+            bool bMatchedObstacleToExistingTracker = m_pMultiTracker->InitTracker(m_cvFrame, stNewDetection.pBoundingBox, constants::BBOX_TRACKER_TYPE);
             if (!bMatchedObstacleToExistingTracker)
             {
                 m_vDetectedObstacles.emplace_back(stNewDetection);
@@ -429,11 +444,11 @@ void ObstacleDetector::UpdateDetectedObstacles(std::vector<obstacledetectutils::
     {
         if (itObstacle->pBoundingBox->x == 0 && itObstacle->pBoundingBox->y == 0 && itObstacle->pBoundingBox->width == 0 && itObstacle->pBoundingBox->height == 0)
         {
-            itTag = m_vDetectedArucoTags.erase(itTag);
+            itObstacle = m_vDetectedObstacles.erase(itObstacle);
         }
         else
         {
-            ++itTag;
+            ++itObstacle;
         }
     }
 
@@ -446,11 +461,11 @@ void ObstacleDetector::UpdateDetectedObstacles(std::vector<obstacledetectutils::
             for (obstacledetectutils::Obstacle& stObstacle : m_vDetectedObstacles)
             {
                 // Use either width of height for the neighborhood size.
-                int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+                int nNeighborhoodSize = std::min(stObstacle.pBoundingBox->width, stObstacle.pBoundingBox->height);
                 // Geolocate the obstacle in the point cloud.
                 // @todo Geolocate the obstacle based on the segmentation mask
                 geoops::Waypoint stGeolocation =
-                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
+                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stObstacle.pBoundingBox->x, stObstacle.pBoundingBox->y), nNeighborhoodSize);
                 // Since this is a obstacle detection, set the obstacle's waypoint type appropriately.
                 stGeolocation.eType = geoops::WaypointType::eObstacleWaypoint;
 

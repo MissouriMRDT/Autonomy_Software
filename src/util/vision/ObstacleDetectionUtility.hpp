@@ -17,7 +17,7 @@ namespace obstacledetectutils
     {
         public:
             std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();
-            std::shared_ptr<torch::Tensor> pSegmentMask      = std::make_shared<torch::Tensor>();
+            std::shared_ptr<cv::Mat> pSegmentMask            = std::make_shared<cv::Mat>();
             double dConfidence                               = 0.0;
             double dStraightLineDistance                     = 0.0;
             double dYawAngle                                 = 0.0;
@@ -31,7 +31,7 @@ namespace obstacledetectutils
             {
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && tmCreation == stOther.tmCreation && cvImageResolution == stOther.cvImageResolution &&
-                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition && *pSegmentMask == *stOther.pSegmentMask;
+                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition && pSegmentMask == stOther.pSegmentMask;
             }
 
             bool operator!=(const Obstacle& stOther) const { return !(*this == stOther); }
@@ -43,7 +43,6 @@ namespace obstacledetectutils
                     // Shallow copy
                     pBoundingBox          = stOther.pBoundingBox;
                     pSegmentMask          = stOther.pSegmentMask;
-
                     dConfidence           = stOther.dConfidence;
                     dStraightLineDistance = stOther.dStraightLineDistance;
                     dYawAngle             = stOther.dYawAngle;
@@ -53,12 +52,11 @@ namespace obstacledetectutils
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;
                 }
-                return *this
+                return *this;
             }
+    };
 
-    }
-
-    inline void EstimatePoseFromCameraFrame(ArucoTag& stObstacle)
+    inline void EstimatePoseFromCameraFrame(Obstacle& stObstacle)
     {
         // Use camera field of view and camera frame size to determine tag angle in degrees from center of camera.
         double dDegreesPerPixel = stObstacle.dHorizontalFOV / stObstacle.cvImageResolution.width;
