@@ -237,7 +237,7 @@ int main()
         std::shared_ptr<ObjectDetector> pMainObjectDetector =
             globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
         std::shared_ptr<ObstacleDetector> pMainObstacleDetector =
-            g_pObstacleDetectionHandler->GetObstacleDetector(ObstacleDetectionHandler::ObstacleDetectors::eHeadMainCam);
+            globals::g_pObstacleDetectionHandler->GetObstacleDetector(ObstacleDetectionHandler::ObstacleDetectors::eHeadMainCam);
         IPS IterPerSecond = IPS();
 
         // Now that cameras and detectors are configured start state machine.
