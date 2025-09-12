@@ -51,7 +51,7 @@ class ObstacleDetectionHandler
         // Accessors.
         /////////////////////////////////////////
 
-        std::shared_ptr<ObstacleDetector> GetTagDetector(ObstacleDetectors eDetectorName);
+        std::shared_ptr<ObstacleDetector> GetObstacleDetector(ObstacleDetectors eDetectorName);
 };
 
 #endif

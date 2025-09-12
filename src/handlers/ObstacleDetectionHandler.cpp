@@ -32,7 +32,7 @@ ObstacleDetectionHandler::ObstacleDetectionHandler()
     if (m_pObstacleDetectorMainCam->InitTorchDetection(constants::OBSTACLEDETECT_MAINCAM_TORCH_MODEL))
     {
         // Set torch detection enabled.
-        m_pObstacleDetectorMainCam->EnableTorchDetection(constants::OBSTACLEDETECT_MAINCAM_TORCH_CONFIDENCE, constants::OBSTACLEDETECT_MAINCAM_TORCH_NMS_THRESH)
+        m_pObstacleDetectorMainCam->EnableTorchDetection(constants::OBSTACLEDETECT_MAINCAM_TORCH_CONFIDENCE, constants::OBSTACLEDETECT_MAINCAM_TORCH_NMS_THRESH);
     }
 
     // Initialize recording handler for detectors.
