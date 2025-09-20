@@ -4,8 +4,8 @@
 cd /tmp
 
 # Install Variables
-FFMPEG_VERSION="7.1"
-SVT_AV1_VERSION="2.3.0"
+FFMPEG_VERSION="7.1.2"
+SVT_AV1_VERSION="3.1.2"
 
 # Build Arguments
 FORCE_BUILD=false

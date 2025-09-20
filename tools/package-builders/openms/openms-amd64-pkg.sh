@@ -96,11 +96,10 @@ else
         # Prepare contrib build. (all deps from source)
         cd OpenMS
         git submodule update --init contrib
-        cd ..
 
         mkdir contrib-build
         cd contrib-build
-        cmake -DBUILD_TYPE=ALL -DNUMBER_OF_JOBS=$(nproc) ../OpenMS/contrib
+        cmake -DBUILD_TYPE=ALL -DNUMBER_OF_JOBS=$(nproc) ../contrib
         make -j$(nproc)
         cd ..
 
@@ -116,7 +115,7 @@ else
             -DWITH_GUI=Off \
             -DHAS_XSERVER=Off \
             -DENABLE_DOCS=Off \
-            ../OpenMS
+            ..
 
         ninja -j$(nproc)
         ninja install

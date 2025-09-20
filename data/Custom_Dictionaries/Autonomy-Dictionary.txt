@@ -38,6 +38,7 @@ AUTONOMYSTATE
 AUTONOMYTHREAD
 AUTONOMYTHREADS
 AUTONOMYWAYPOINTTYPES
+autoremove
 AVAILABLECAMERAS
 avcodec
 AVCOL
@@ -154,6 +155,7 @@ driveboard
 DRIVEINDIVIDUAL
 DRIVELEFTRIGHT
 dumpversion
+DVTK
 DWITH
 Eddb
 Eddbb
@@ -380,6 +382,7 @@ libcaca
 libcanberra
 libcdio
 libchromaprint
+libcjson
 libcodec
 libdatachannel
 libdav
@@ -388,6 +391,7 @@ libdrm
 libedgetpu
 libeigen
 libfdk
+libflann
 libflite
 libfontconfig
 libfreetype
@@ -418,11 +422,15 @@ libmysofa
 libopenblas
 libopenjpeg
 libopenmpt
+libopenni
 libopus
+libpcap
 libplacebo
 libpostproc
 libpq
 libpulse
+libqhull
+libqt
 librabbitmq
 librav
 librist
@@ -435,6 +443,7 @@ libspeex
 libsqlite
 libsrt
 libssh
+libsvm
 libsvtav
 libswresample
 libswscale
@@ -448,8 +457,10 @@ libvidstab
 libvorbis
 libvpl
 libvpx
+libvtk
 libwebp
 libx
+libxerces
 libxine
 libxvid
 libxvidcore
@@ -555,6 +566,9 @@ pthread
 pthreads
 pyopengl
 QPID
+qtbase
+qtdeclarative
+qtshadertools
 Raman
 RAMANREADING
 rcond
@@ -612,6 +626,7 @@ SETLOGGINGLEVELS
 SETMAXSPEED
 setpoint
 setpoints
+shadertools
 Shafe
 shuf
 SIMBASICCAM

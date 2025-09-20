@@ -15,7 +15,7 @@
 #include "../../util/logging/PathTracer.hpp"
 
 /// \cond
-#include <kdtree++/kdtree.hpp>
+#include <OpenMS/DATASTRUCTURES/KDTree.h>
 #include <queue>
 #include <unordered_map>
 #include <vector>

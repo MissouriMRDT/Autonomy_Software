@@ -144,6 +144,8 @@
                     "/usr/local/include/edgetpu/**",
                     "/usr/local/include/pcl",
                     "/usr/local/include/pcl/**",
+                    "/usr/local/include/OpenMS",
+                    "/usr/local/include/OpenMS/**",
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",
