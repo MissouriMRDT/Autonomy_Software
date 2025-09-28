@@ -1,3 +1,13 @@
+/******************************************************************************
+ * @brief Defines the Extended Kalman Filter. The purpose is to filter out inaccurate GPS data
+ *
+ * @file ExtendedKalmanFilter.h
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+ * @date 2025-09-27
+ *
+ * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
+ ******************************************************************************/
+
 #ifndef EXTENDED_KALMAN_FILTER_H
 #define EXTENDED_KALMAN_FILTER_H
 
@@ -21,6 +31,10 @@ namespace filters
     class ExtendedKalmanFilter
     {
         public:
+            /////////////////////////////////////////
+            // Declare public class structs.
+            /////////////////////////////////////////
+
             /******************************************************************************
              * @brief A snapshot at any given time of our position, velocity, acceleration bias, and orientation.
              * gyroscope
@@ -38,28 +52,48 @@ namespace filters
                     std::chrono::system_clock::time_point tmTimestamp;    // When this state snapshot was recorded
             };
 
+            /////////////////////////////////////////
+            // Declare public class methods.
+            /////////////////////////////////////////
+
+            ExtendedKalmanFilter();
+            // TODO: make a constructor with inputs
+            ~ExtendedKalmanFilter();
+
+            /////////////////////////////////////////
+            // Setters.
+            /////////////////////////////////////////
+
             // TODO: Figure out what should be const
             void SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance);
-
-            // Methods for setting noise values
             void SetIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias);
             void SetGPSNoise(Eigen::Matrix3d& eiGPS);
             void SetCompassNoise(double dSigmaYaw);
 
+            /////////////////////////////////////////
+            // Prediction and updating.
+            /////////////////////////////////////////
+
             // Method for prediction with accelerometer and gyroscope
             void Predict(Eigen::Vector3d& eiAccelMeas, Eigen::Vector3d& eiGyroMeas, std::chrono::system_clock::time_point tmTimestamp);
-
             // TODO: see if including the timestamps is necessary- initially including because it might be, but currently unsure
             //  Methods for updating values
             void UpdateGPS(Eigen::Vector3d& eiGPSPos, std::chrono::system_clock::time_point tmTimestamp);
             void UpdateYaw(double dYaw, std::chrono::system_clock::time_point tmTimestamp);
             void UpdateHeading(Eigen::Vector3d dHeading, std::chrono::system_clock::time_point tmTimestamp);
 
-            // Getter for current state
+            /////////////////////////////////////////
+            // Getters.
+            /////////////////////////////////////////
+
             const XStateSnapshot& GetCurrentState() const;
 
             // TODO: go back and see if any member vars are missing
         private:
+            /////////////////////////////////////////
+            // Declare private member variables.
+            /////////////////////////////////////////
+
             bool m_bHasInitialGuess = false;                                      // Whether or not there is an initial guess
             XStateSnapshot m_stInitialState;                                      // To store the original state snapshot
             std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
