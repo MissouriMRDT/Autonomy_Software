@@ -18,33 +18,63 @@ namespace filters
      * @date 2025-09-10
      ******************************************************************************/
 
-    class extended_kalman_filter
+    class ExtendedKalmanFilter
     {
         public:
             /******************************************************************************
              * @brief A snapshot at any given time of our position, velocity, acceleration bias, and orientation.
              * gyroscope
              *
-             * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+             * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com) (some code taken from Adam)
              * @date 2025-09-27
              ******************************************************************************/
             struct XStateSnapshot
             {
-                    Eigen::Vector3d eiPosition;          // X, Y, and Z position
-                    Eigen::Vector3d eiVelocity;          // X, Y, and Z velocities
-                    Eigen::Quaterniond eiOrientation;    // X, Y, Z orientations relative to world TODO: might make this RoverPose instead
-                    Eigen::Vector3d eiAccelBias;         // X, Y, Z acceleration biases
-                    Eigen::Vector3d eiGyroBias;          // Gyroscope biases
+                    Eigen::Vector3d eiPosition;                           // X, Y, and Z position
+                    Eigen::Vector3d eiVelocity;                           // X, Y, and Z velocities
+                    Eigen::Quaterniond eiOrientation;                     // X, Y, Z orientations relative to world TODO: might make this RoverPose instead
+                    Eigen::Vector3d eiAccelBias;                          // X, Y, Z acceleration biases
+                    Eigen::Vector3d eiGyroBias;                           // Gyroscope biases
+                    std::chrono::system_clock::time_point tmTimestamp;    // When this state snapshot was recorded
             };
 
             // TODO: Figure out what should be const
-            // Methods for setting noise values
-            void setIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias);
-            void setGPSNoise(Eigen::Matrix3d eiGPS);
-            void setCompassNoise(double dSigmaYaw);
+            void SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance);
 
+            // Methods for setting noise values
+            void SetIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias);
+            void SetGPSNoise(Eigen::Matrix3d& eiGPS);
+            void SetCompassNoise(double dSigmaYaw);
+
+            // Method for prediction with accelerometer and gyroscope
+            void Predict(Eigen::Vector3d& eiAccelMeas, Eigen::Vector3d& eiGyroMeas, std::chrono::system_clock::time_point tmTimestamp);
+
+            // TODO: see if including the timestamps is necessary- initially including because it might be, but currently unsure
+            //  Methods for updating values
+            void UpdateGPS(Eigen::Vector3d& eiGPSPos, std::chrono::system_clock::time_point tmTimestamp);
+            void UpdateYaw(double dYaw, std::chrono::system_clock::time_point tmTimestamp);
+            void UpdateHeading(Eigen::Vector3d dHeading, std::chrono::system_clock::time_point tmTimestamp);
+
+            // Getter for current state
+            const XStateSnapshot& GetCurrentState() const;
+
+            // TODO: go back and see if any member vars are missing
         private:
-            bool m_bHasInitialGuess;
+            bool m_bHasInitialGuess = false;                                      // Whether or not there is an initial guess
+            XStateSnapshot m_stInitialState;                                      // To store the original state snapshot
+            std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
+            std::list<XStateSnapshot> m_liXStateHistory;        // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
+            Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;    // The covariance matrix for the error-state
+            Eigen::Matrix<double, 12, 12> m_eiIMUNoise;         // The continuous noise from the IMU
+            std::chrono::system_clock::time_point m_tmLastAccelerometerUpdate;    // Time of last accelerometer update.
+            Eigen::Matrix3d m_eiAccelerometerCovariance;                          // Accelerometer covariance matrix. (3x3)
+            std::chrono::system_clock::time_point m_tmLastGyroscopeUpdate;        // Time of last gyro update.
+            Eigen::Matrix3d m_eiGyroscopeCovariance;                              // Gyroscope covariance matrix. (3x3)
+            std::chrono::system_clock::time_point m_tmLastGPSUpdate;              // Time of last diff GPS update.
+            Eigen::Matrix3d m_eiGPSCovariance;                                    // Diff GPS covariance matrix. (3x3)
+            std::chrono::system_clock::time_point m_tmLastHeadingUpdate;          // Time of last heading update.
+            Eigen::Matrix3d m_eiHeadingCovariance;                                // Heading covariance matrix. (3x3)
+            Eigen::Vector3d m_eiGravity;                                          // Vector for gravity
     };
 };    // namespace filters
 
