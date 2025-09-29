@@ -1,12 +1,19 @@
 {
     "name": "MRDT Autonomy C++",
     "runArgs": [
+        "-p",
+        "11000:11000/udp",
+        "-p",
+        "9000:9000/udp",
+        "-p",
+        "12000:12000/tcp",
         // Name container.
         // "--name",
         // "Autonomy_Software_devcontainer",
         // Configure container to use the same network stack as the host machine.
-        "--network",
-        "host",
+        
+        // "--network",
+        // "host",
         // Add all available GPUs
         "--gpus",
         "all",

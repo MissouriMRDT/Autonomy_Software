@@ -440,15 +440,55 @@ namespace statemachine
                     // Set A* planner start and goal.
                     m_vPathCoordinates =
                         m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-                    // Set the path of the stanley controller.
-                    m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                    // Get the smoothed path for plotting.
-                    std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
-                    // Update our plot with the new path.
-                    m_pRoverPathPlot->ClearLayer("AStarPath");
-                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
-                    m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
-                    m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+                    LOG_INFO(logging::g_qSharedLogger, "Got the coords!");
+                    int counter = 0;
+                    rovecomm::RoveCommPacket<double> stPacket;
+                    stPacket.unDataId    = 11010;
+                    stPacket.unDataCount = 128;
+                    stPacket.eDataType   = manifest::DataTypes::DOUBLE_T;
+                    double minDiff       = 0.0001;    // tune this value
+                    double lastLat       = 0.0;
+                    double lastLon       = 0.0;
+                    bool hasLast         = false;
+
+                    for (const auto& waypoint : m_vPathCoordinates)
+                    {
+                        const auto& gps = waypoint.GetGPSCoordinate();
+
+                        if (hasLast)
+                        {
+                            double diff = std::abs(gps.dLatitude - lastLat) + std::abs(gps.dLongitude - lastLon);
+
+                            if (diff < minDiff)
+                            {
+                                continue;    // skip
+                            }
+                        }
+
+                        stPacket.vData.emplace_back(gps.dLatitude);
+                        stPacket.vData.emplace_back(gps.dLongitude);
+
+                        lastLat = gps.dLatitude;
+                        lastLon = gps.dLongitude;
+                        hasLast = true;
+                    }
+
+                    // Send drive command over RoveComm to drive board.
+                    if (network::g_pRoveCommUDPNode)
+                    {
+                        // Check if we should send packets to the SIM or board.
+                        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+                        // Send packet.
+                        // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+                        network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.107", 9000);
+                        // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.56.1", 9000);
+                        // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "172.24.16.1", 9000);
+                        // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "127.0.0.1", 9000);
+                        // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "host.docker.internal", 9000);
+                        // Submit logger message.
+                        LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
+                    }
+                    
                 }
 
                 // Send multimedia command to update state display.
