@@ -42,7 +42,7 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     
     # Cleanup the download directory
     rm -rf /tmp/pkg
-    rm -rf /tmp/openms
+    rm -rf /tmp/OpenMS
     mkdir -p /tmp/pkg/deb
 
     # Download the package from the repository
@@ -69,7 +69,7 @@ else
         
         # Delete Old Packages
         rm -rf /tmp/pkg
-        rm -rf /tmp/openms
+        rm -rf /tmp/OpenMS
 
         # Create Package Directory
         mkdir -p /tmp/pkg/openms_${OPENMS_VERSION}_amd64/usr/local
@@ -112,9 +112,9 @@ else
             -DCMAKE_BUILD_TYPE=Release \
             -DOPENMS_CONTRIB_LIBS="$(realpath ../contrib-build)" \
             -DBOOST_USE_STATIC=ON \
-            -DWITH_GUI=Off \
-            -DHAS_XSERVER=Off \
-            -DENABLE_DOCS=Off \
+            -DWITH_GUI=OFF \
+            -DHAS_XSERVER=OFF \
+            -DENABLE_DOCS=OFF \
             ..
 
         ninja -j$(nproc)

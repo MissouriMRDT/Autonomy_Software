@@ -638,6 +638,7 @@ sndio
 sockaddr
 softprops
 SPSC
+SQLITECPP
 STARTAUTONOMY
 statechart
 STATEDISPLAY

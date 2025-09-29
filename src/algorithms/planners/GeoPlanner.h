@@ -16,8 +16,10 @@
 
 /// \cond
 #include <OpenMS/DATASTRUCTURES/KDTree.h>
+#include <mutex>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 /// \endcond
@@ -33,8 +35,43 @@
  ******************************************************************************/
 namespace pathplanners
 {
+
     /******************************************************************************
-     * @brief This class implements a geospatial path planner that uses Dijkstra's algorithm
+     * @brief Small POD used for KDTree searches (2D point)
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-09-23
+     ******************************************************************************/
+    struct KDQueryPoint
+    {
+        public:
+            double dEasting;
+            double dNorthing;
+    };
+
+    /******************************************************************************
+     * @brief Accessor for KDTree that exposes easting/northing for both PointRow and KDQueryPoint.
+     *
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-09-23
+     ******************************************************************************/
+    struct PointKDAccessor
+    {
+        public:
+            using result_type = double;
+
+            inline result_type operator()(const LiDARHandler::PointRow& v, size_t idx) const { return (idx == 0) ? v.dEasting : v.dNorthing; }
+
+            inline result_type operator()(const KDQueryPoint& v, size_t idx) const { return (idx == 0) ? v.dEasting : v.dNorthing; }
+    };
+
+    // KD-Tree typedef for 2D PointRows using our accessor.
+    using KDTree2D = KDTree::KDTree<2, LiDARHandler::PointRow, PointKDAccessor>;
+
+    /******************************************************************************
+     * @brief This class implements a geospatial path planner that uses AStar's algorithm
      *       with a bias towards travel scores to find the optimal path between two points.
      *       geospatial data is fetched from the LidarHandler, and the path is planned
      *       using the Eigen library for matrix operations.
@@ -59,6 +96,7 @@ namespace pathplanners
                                                    double dSearchRadius = 3.0,
                                                    double dMinTravScore = 0.8,
                                                    bool bPlotPath       = false);
+            void ClearGeoCache();
 
         private:
             ////////////////////////////////////
@@ -66,7 +104,7 @@ namespace pathplanners
             ////////////////////////////////////
 
             /*
-             * Dijkstra's algorithm related structs.
+             * AStar's algorithm related structs.
              */
 
             /******************************************************************************
@@ -79,9 +117,14 @@ namespace pathplanners
             struct PlannerState
             {
                 public:
-                    int nID;                                  // The unique identifier for the LiDAR point. (node)
-                    double dEasting, dNorthing, dAltitude;    // The easting, northing, and altitude coordinates of the node.
-                    double dCost = 0.0;                       // The best known total cost to reach this node so far.
+                    int nID                    = -1;                                         // The unique identifier for the LiDAR point. (node)
+                    double dEasting            = 0.0;                                        // The easting coordinate of the point.
+                    double dNorthing           = 0.0;                                        // The northing coordinate of the point.
+                    double dAltitude           = 0.0;                                        // The altitude of the point.
+                    int nZone                  = 0;                                          // The UTM zone of the point.
+                    bool bInNorthernHemisphere = true;                                       // Whether the point is in the northern hemisphere.
+                    double dGCost              = std::numeric_limits<double>::infinity();    // The cost from the start node to this node.
+                    double dHCost              = 0.0;                                        // The heuristic cost from this node to the end node.
             };
 
             /******************************************************************************
@@ -97,7 +140,7 @@ namespace pathplanners
                     bool operator()(const PlannerState& stLeftHandSide, const PlannerState& stRightHandSide) const
                     {
                         // Compare based on cost, lower cost means higher priority.
-                        return stLeftHandSide.dCost > stRightHandSide.dCost;
+                        return stLeftHandSide.dGCost + stLeftHandSide.dHCost > stRightHandSide.dGCost + stRightHandSide.dHCost;
                     }
             };
 
@@ -175,11 +218,9 @@ namespace pathplanners
             // Declare private methods.
             ////////////////////////////////////
 
-            void InitializeSearch(const geoops::UTMCoordinate& stStart, const geoops::UTMCoordinate& stEnd);
-            void SearchDijkstra();
-            void ProcessNeighbors(const PlannerState& stCurrentState);
-            void RelaxEdge(const PlannerState& stCurrentState, const LiDARHandler::PointRow& stNeighborPoint, double dDistance);
-            std::vector<int> ReconstructPath() const;
+            bool InitializeSearch(const geoops::UTMCoordinate& stStart, const geoops::UTMCoordinate& stEnd);
+            void SearchAStar();
+            std::vector<geoops::Waypoint> ReconstructPath() const;
             void CheckAndLoadTile(const PlannerState& stCurrentState);
             PlannerState FindClosestLiDARPoint(const geoops::UTMCoordinate& stCoordinate);
             void PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const;
@@ -195,23 +236,27 @@ namespace pathplanners
             double m_dSearchRadius;                                          // Search radius for finding neighbors.
             LiDARHandler* m_pLiDARHandler;                                   // Pointer to the LiDARHandler instance for fetching geospatial data.
             std::unique_ptr<logging::graphing::PathTracer> m_pPathTracer;    // Path tracer for 3D visualization.
+            std::unique_ptr<KDTree2D> m_pKDTree;                             // KD-tree for fast spatial queries over loaded tiles.
 
-            // Dijkstra's algorithm related variables.
+            // AStar's algorithm related variables.
 
             /*
-             * The core of Dijkstra's algorithm is a priority queue that stores the states to be explored.
-             * In other words, this is the frontiers of the search.
-             * The open set is implemented as a priority queue, where the highest priority
-             * is given to the node with the lowest cost. This  queue always contains the unsettled nodes
-             * that are candidates for exploration and each time through the loop, the node with the lowest cost is selected for expansion.
+             * The core of AStar's algorithm is a priority queue (min-heap) that stores the open set of nodes to be evaluated.
+             * The priority queue is ordered by the estimated total cost (f = g + h) of reaching the goal from the start node
+             * through each node. We also maintain a map to track the best path to each node (predecessors) and a set of
+             * nodes that have already been evaluated (closedSet).
              */
-            std::priority_queue<PlannerState, std::vector<PlannerState>, PlannerStateCompare> m_pqOpenSet;
-            std::unordered_map<int, double> m_umCosts;        // Maps node IDs to their best known costs.
-            std::unordered_map<int, int> m_umPredecessors;    // Maps node IDs to their predecessors in the path.
-            std::unordered_set<int> m_usClosedSet;            // Maps node IDs to whether they have been processed.
+            std::priority_queue<PlannerState, std::vector<PlannerState>, PlannerStateCompare> m_pqOpenSetNextBest;    // Priority queue (min-heap) to be evaled.
+            std::unordered_set<int> m_usOpenSet;                                                                      // Set of point IDs currently in the open set.
+            std::unordered_map<int, int> m_umPredecessors;                                                            // Maps point IDs to their predecessor's ID.
+            std::unordered_set<int> m_usClosedSet;                                                                    // Set of point IDs that have been evaluated.
+            std::unordered_map<int, PlannerState> m_umAllStates;    // Maps point IDs to their corresponding PlannerState.
 
             // Implicit graph representation with tiles.
             std::unordered_map<TileKey, std::vector<LiDARHandler::PointRow>, TileKeyHash, TileKeyEqual> m_umTileMapCache;    // Maps tile keys to LiDAR points.
+            // KD-tree insertion bookkeeping to avoid duplicate inserts and to batch optimizations.
+            std::unordered_set<TileKey, TileKeyHash, TileKeyEqual> m_usKDTreeInsertedTiles;    // Tracks which tiles' points have been inserted
+            std::mutex m_kdTreeMutex;                                                          // Protects KD-tree and bookkeeping structures
     };
 }    // namespace pathplanners
 

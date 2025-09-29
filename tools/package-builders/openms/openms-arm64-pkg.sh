@@ -114,6 +114,7 @@ else
             -DBOOST_USE_STATIC=ON \
             -DWITH_GUI=Off \
             -DHAS_XSERVER=Off \
+            -DUSE_SYSTEM_SQLITE=ON \
             -DENABLE_DOCS=Off \
             ..
 

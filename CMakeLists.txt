@@ -172,6 +172,9 @@ find_package(OpenMP REQUIRED)
 ## Find OpenMS
 find_package(OpenMS REQUIRED)
 
+## Find SQLite3 (system)
+find_package(SQLite3 REQUIRED)
+
 ## Find Quill
 find_package(quill REQUIRED)
 
@@ -305,6 +308,7 @@ endif()
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
+                        SQLite::SQLite3
                         OpenMS
                         Eigen3::Eigen
                         RoveComm_CPP
@@ -326,7 +330,6 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${MPI_LIBRARIES}
                         ${PCL_LIBRARIES}
                         gcov
-                        sqlite3
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 

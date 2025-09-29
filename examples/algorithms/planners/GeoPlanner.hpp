@@ -33,10 +33,13 @@ void RunExample()
     }
 
     // Create and initialize the GeoPlanner.
-    std::unique_ptr<pathplanners::GeoPlanner> pPlanner = std::make_unique<pathplanners::GeoPlanner>(10);
+    std::unique_ptr<pathplanners::GeoPlanner> pPlanner = std::make_unique<pathplanners::GeoPlanner>(50);
 
-    geoops::UTMCoordinate stStart{606977.35, 4201066.42, 15, true};
-    geoops::UTMCoordinate stEnd{606626.97, 4200711.05, 15, true};
+    geoops::UTMCoordinate stStart{606977.35, 4201366.42, 15, true};
+    geoops::UTMCoordinate stEnd{606977.35, 4201066.42, 15, true};
 
-    pPlanner->PlanPath(pLiDARHandler.get(), stStart, stEnd, 1.0, 0.5, 0.0, true);
+    std::vector<geoops::Waypoint> vPath = pPlanner->PlanPath(pLiDARHandler.get(), stStart, stEnd, 1.0, 5.0, 0.5, true);
+
+    // Print the number of waypoints in the path.
+    std::cout << "Planned path with " << vPath.size() << " waypoints." << std::endl;
 }
