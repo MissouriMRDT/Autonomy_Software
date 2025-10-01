@@ -12,7 +12,6 @@
 #define EXTENDED_KALMAN_FILTER_H
 
 #include "../../util/GeospatialOperations.hpp"
-#include "../../vision/cameras/ZEDCam.h"
 #include <chrono>
 #include <eigen3/Eigen/Dense>
 #include <list>
@@ -57,7 +56,17 @@ namespace filters
             /////////////////////////////////////////
 
             ExtendedKalmanFilter();
-            // TODO: make a constructor with inputs
+            // TODO: change inputs if needed
+            ExtendedKalmanFilter(const Eigen::Vector3d& initPos,
+                                 const Eigen::Vector3d& initVel,
+                                 const Eigen::Quaterniond& initOrien,
+                                 double dSigmaAcc,
+                                 double dSigmaGyro,
+                                 double dSigmaAccBias,
+                                 double dSigmaGyroBias,
+                                 double dSigmaGPSHor,
+                                 double dSigmaGPSVer,
+                                 double dSigmaYaw);
             ~ExtendedKalmanFilter();
 
             /////////////////////////////////////////
@@ -67,7 +76,7 @@ namespace filters
             // TODO: Figure out what should be const
             void SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance);
             void SetIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias);
-            void SetGPSNoise(Eigen::Matrix3d& eiGPS);
+            void SetGPSNoise(double dSigmaHor, double dSigmaVer);
             void SetCompassNoise(double dSigmaYaw);
 
             /////////////////////////////////////////
@@ -76,9 +85,9 @@ namespace filters
 
             // Method for prediction with accelerometer and gyroscope
             void Predict(Eigen::Vector3d& eiAccelMeas, Eigen::Vector3d& eiGyroMeas, std::chrono::system_clock::time_point tmTimestamp);
-            // TODO: see if including the timestamps is necessary- initially including because it might be, but currently unsure
+
             //  Methods for updating values
-            void UpdateGPS(Eigen::Vector3d& eiGPSPos, std::chrono::system_clock::time_point tmTimestamp);
+            void UpdateGPS(const geoops::GPSCoordinate& stCoord, std::chrono::system_clock::time_point tmTimestamp);
             void UpdateYaw(double dYaw, std::chrono::system_clock::time_point tmTimestamp);
             void UpdateHeading(Eigen::Vector3d dHeading, std::chrono::system_clock::time_point tmTimestamp);
 

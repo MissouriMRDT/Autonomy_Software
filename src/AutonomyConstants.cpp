@@ -344,4 +344,19 @@ namespace constants
 
     ///////////////////////////////////////////////////////////////////////////
 
+    ///////////////////////////////////////////////////////////////////////////
+    //// Filter Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Extended Kalman Filter.
+    const double KALMAN_SIGMA_ACCELERATION         = 0.0;    // Standard deviation of the acceleration.
+    const double KALMAN_SIGMA_GYRO                 = 0.0;    // Standard deviation of the gyrometer.
+    const double KALMAN_SIGMA_ACCELERATION_BIAS    = 0.0;    // Standard deviation of the acceleration bias - how much it deviates from true reading.
+    const double KALMAN_SIGMA_GYRO_BIAS            = 0.0;    // Standard deviation of the gyrometer bias - how much it deviates from true reading.
+    const double KALMAN_SIGMA_GPS_HORIZONTAL_ERROR = 0.0;    // Standard deviation of the horizontal (latitude) GPS error.
+    const double KALMAN_SIGMA_GPS_VERTICAL_ERROR   = 0.0;    // Standard deviation of the vertical (longitude) GPS error.
+    const double KALMAN_SIGMA_YAW                  = 0.0;    // Standard deviation of the yaw from the compass.
+
+    ///////////////////////////////////////////////////////////////////////////
+
 }    // namespace constants

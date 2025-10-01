@@ -355,6 +355,21 @@ namespace constants
 
     ///////////////////////////////////////////////////////////////////////////
 
+    ///////////////////////////////////////////////////////////////////////////
+    //// Filter Constants.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Extended Kalman Filter.
+    extern const double KALMAN_SIGMA_ACCELERATION;
+    extern const double KALMAN_SIGMA_GYRO;
+    extern const double KALMAN_SIGMA_ACCELERATION_BIAS;
+    extern const double KALMAN_SIGMA_GYRO_BIAS;
+    extern const double KALMAN_SIGMA_GPS_HORIZONTAL_ERROR;
+    extern const double KALMAN_SIGMA_GPS_VERTICAL_ERROR;
+    extern const double KALMAN_SIGMA_YAW;
+
+    ///////////////////////////////////////////////////////////////////////////
+
 }    // namespace constants
 
 #endif    // AUTONOMY_CONSTANTS_H
