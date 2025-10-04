@@ -17,6 +17,8 @@
 #include <list>
 #include <sl/Camera.hpp>
 
+using woid = geoops::RoverPose;
+
 namespace filters
 {
     /******************************************************************************
@@ -36,16 +38,15 @@ namespace filters
 
             /******************************************************************************
              * @brief A snapshot at any given time of our position, velocity, acceleration bias, and orientation.
-             * gyroscope
+             *
              *
              * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com) (some code taken from Adam)
              * @date 2025-09-27
              ******************************************************************************/
             struct XStateSnapshot
             {
-                    Eigen::Vector3d eiPosition;                           // X, Y, and Z position
+                    geoops::RoverPose stPose;                             // GPS and heading for the rover
                     Eigen::Vector3d eiVelocity;                           // X, Y, and Z velocities
-                    Eigen::Quaterniond eiOrientation;                     // X, Y, Z orientations relative to world TODO: might make this RoverPose instead
                     Eigen::Vector3d eiAccelBias;                          // X, Y, Z acceleration biases
                     Eigen::Vector3d eiGyroBias;                           // Gyroscope biases
                     std::chrono::system_clock::time_point tmTimestamp;    // When this state snapshot was recorded
@@ -57,9 +58,8 @@ namespace filters
 
             ExtendedKalmanFilter();
             // TODO: change inputs if needed
-            ExtendedKalmanFilter(const Eigen::Vector3d& initPos,
-                                 const Eigen::Vector3d& initVel,
-                                 const Eigen::Quaterniond& initOrien,
+            ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
+                                 const Eigen::Vector3d& eiInitVel,
                                  double dSigmaAcc,
                                  double dSigmaGyro,
                                  double dSigmaAccBias,
@@ -96,6 +96,14 @@ namespace filters
             /////////////////////////////////////////
 
             const XStateSnapshot& GetCurrentState() const;
+
+            /////////////////////////////////////////
+            // Conversions.
+            /////////////////////////////////////////
+            // Takes position and orientation/heading vectors to turn them into RoverPoses.
+            woid ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
+            // Takes RoverPose and converts it into position and orientation vectors.
+            void FromRoverPose(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition, Eigen::Quaterniond& eiOrientation) const;
 
             // TODO: go back and see if any member vars are missing
         private:
