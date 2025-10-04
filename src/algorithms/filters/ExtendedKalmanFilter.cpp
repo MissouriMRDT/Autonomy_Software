@@ -110,4 +110,42 @@ namespace filters
                                     eiOrientation.z() * eiOrientation.z());
         return geoops::RoverPose(stCoord, dHeading);
     }
+
+    /******************************************************************************
+     * @brief This will set the IMU data noise.
+     *
+     * @param dSigmaAcc - The standard deviation of the acceleration.
+     * @param dSigmaGyro - The standard deviation of the gyroscope data.
+     * @param dSigmaAccBias - The standard deviation of the acceleration bias.
+     * @param dSigmaGyroBias - The standard deviation of the gyroscope bias.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-03
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias)
+    {
+        // TODO: implement
+    }
+
+    /******************************************************************************
+     * @brief This will set the GPS data noise.
+     *
+     * @param dSigmaHor - The standard deviation of the horizontal GPS noise.
+     * @param dSigmaVer - The standard deviation of the vertical GPS noise.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-03
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetGPSNoise(double dSigmaHor, double dSigmaVer)
+    {
+        // Clear existing covariance
+        m_eiGPSCovariance.setZero();
+
+        // Horizontal noise (X = East/West, Y = North/South)
+        m_eiGPSCovariance(0, 0) = dSigmaHor * dSigmaHor;    // variance in X
+        m_eiGPSCovariance(1, 1) = dSigmaHor * dSigmaHor;    // variance in Y
+
+        // Vertical noise (Z = Up/Down)
+        m_eiGPSCovariance(2, 2) = dSigmaVer * dSigmaVer;    // variance in Z
+    }
 }    // namespace filters

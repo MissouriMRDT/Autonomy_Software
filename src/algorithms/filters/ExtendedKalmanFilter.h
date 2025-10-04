@@ -126,6 +126,13 @@ namespace filters
             std::chrono::system_clock::time_point m_tmLastHeadingUpdate;          // Time of last heading update.
             Eigen::Matrix3d m_eiHeadingCovariance;                                // Heading covariance matrix. (3x3)
             Eigen::Vector3d m_eiGravity;                                          // Vector for gravity
+            double m_dSigmaAcc;
+            double m_dSigmaGyro;
+            double m_dSigmaAccBias;
+            double m_dSigmaGyroBias;
+            double m_dSigmaGPSHor;
+            double m_dSigmaGPSVer;
+            double m_dSigmaYaw;
     };
 };    // namespace filters
 
