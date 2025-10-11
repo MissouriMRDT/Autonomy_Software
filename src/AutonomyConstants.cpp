@@ -262,12 +262,12 @@ namespace constants
 
     // Approaching Marker State
     const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
-    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;      // The time in seconds to watch the tag before moving on.
-    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;      // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
-    const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
+    const bool APPROACH_MARKER_VERIFY_POSITION        = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
+    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.
+    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
+    const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = true;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
 
     // Approaching Object State
     const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the object.
@@ -276,7 +276,7 @@ namespace constants
     const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
     const double APPROACH_OBJECT_VERIFY_TIME         = 5.0;     // The time in seconds to watch the object before moving on.
     const double APPROACH_OBJECT_LOST_BUFFER_TIME    = 2.0;    // The time in seconds to wait before considering the object lost. This is used to prevent false negatives.
-    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when approaching an object.
+    const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT   = true;    // Whether or not to enable the stuck detection algorithm when approaching an object.
 
     // Stuck State
     const double STUCK_CHECK_INTERVAL        = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
@@ -287,6 +287,8 @@ namespace constants
     const double STUCK_HEADING_ALIGN_TIMEOUT = 5.0;     // The timeout in seconds before the rover gives up aligning to a certain heading.
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
+    const double STUCK_OBSTACLE_DISTANCE     = 1.0;     // Distance in meters between rover GPS and origin of obstacle.
+    const double STUCK_OBSTACLE_RADIUS       = 2.0;     // Radius in meters of declared obstacle.
 
     // Reverse State.
     const double REVERSE_MOTOR_POWER       = DRIVE_MAX_EFFORT * 0.6;    // The speed to drive backwards at.
@@ -301,14 +303,14 @@ namespace constants
     const double SEARCH_ZIGZAG_SPACING       = 4.0;                       // The spacing between successive points in the zigzag (meters).
     const double SEARCH_SNAKE_SLITHERS       = 2.0;                       // The number of slithers in the snake pattern.
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;                       // How close a rover must be to a point to have it count as visited.
-    const bool SEARCH_ENABLE_STUCK_DETECT    = false;                     // Whether or not to enable the stuck detection algorithm when searching for a marker.
+    const bool SEARCH_ENABLE_STUCK_DETECT    = true;                      // Whether or not to enable the stuck detection algorithm when searching for a marker.
 
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.8;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;                       // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION       = false;                     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;                      // The time in seconds to collect GPS points before verifying the rover's GPS position.
-    const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;                     // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT   = true;                      // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
 
     // Avoidance State.
     const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_EFFORT * 0.3;    // Drive speed of avoidance state

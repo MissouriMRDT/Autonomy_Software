@@ -43,7 +43,7 @@ namespace statemachine
         // Store the state that got stuck and triggered a stuck event.
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
-        // Store the postion and heading where the rover get stuck.
+        // Store the postion and heading where the rover got stuck.
         geoops::RoverPose stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         m_stOriginalPosition               = stStartRoverPose.GetGPSCoordinate();
         m_dOriginalHeading                 = stStartRoverPose.GetCompassHeading();
@@ -91,7 +91,7 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
+     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com), Sam Nolte (samnolte0302@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void StuckState::Run()
@@ -103,6 +103,16 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
         // Get current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
+        // Convert from compass degrees to unit circle radians.
+        double dRadians = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
+        if (dRadians < 0)
+            dRadians += 2 * M_PI;
+        // Add the area ahead of the rover as an obstacle.
+        geoops::GPSCoordinate stObstaclePosition = m_stOriginalPosition;
+        stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+        stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
 
         // Check if we are unstuck from our starting spot.
         if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
@@ -119,6 +129,7 @@ namespace statemachine
             // Perform unstuck logic.
             switch (m_eAttemptType)
             {
+                // TODO: Maybe use previous waypoints as the rover could've gotten stuck while not going straight
                 // On the first attempt we use the rover's original heading so alignment would already be completed.
                 case AttemptType::eReverseCurrentHeading:
                 {
@@ -130,7 +141,7 @@ namespace statemachine
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
                     break;
                 }
-                    // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
+                // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
                 case AttemptType::eReverseLeft:
                 {
                     // Check if we are already realigning.
