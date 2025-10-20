@@ -13,7 +13,8 @@
 
 #include "../../util/GeospatialOperations.hpp"
 #include "../../util/logging/PathTracer2D.hpp"
-#include "../kinematics/BicycleModel.hpp"
+// #include "../kinematics/BicycleModel.hpp"
+#include "../kinematics/UnicycleModel.hpp"
 
 /// \cond
 #include <vector>
@@ -57,11 +58,7 @@ namespace controllers
             // Declare public class methods.
             /////////////////////////////////////////
             PredictiveStanleyController();
-            PredictiveStanleyController(const double dControlGain,
-                                        const double dSteeringAngleLimit,
-                                        const double dWheelbase,
-                                        const int nPredictionHorizon,
-                                        const double dPredictionTimeStep);
+            PredictiveStanleyController(const double dControlGain, const double m_dAngularVelocityLimit, const int nPredictionHorizon, const double dPredictionTimeStep);
             ~PredictiveStanleyController();
             DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_MOTOR_POWER);
 
@@ -73,8 +70,8 @@ namespace controllers
             void SetReferencePath(const std::vector<geoops::UTMCoordinate>& vReferencePath);
             void SetReferencePath(const std::vector<geoops::GPSCoordinate>& vReferencePath);
             void SetControlGain(const double dControlGain);
-            void SetSteeringAngleLimit(const double dSteeringAngleLimit);
-            void SetWheelbase(const double dWheelbase);
+            void SetAngularVelocityLimit(const double dAngularVelocityLimit);
+            // void SetWheelbase(const double dWheelbase);
 
             /////////////////////////////////////////
             // Getters.
@@ -82,8 +79,8 @@ namespace controllers
 
             std::vector<geoops::Waypoint> GetReferencePath() const;
             double GetControlGain() const;
-            double GetSteeringAngleLimit() const;
-            double GetWheelbase() const;
+            double GetAngularVelocityLimit() const;
+            // double GetWheelbase() const;
             double GetReferencePathTargetIndex() const;
 
         private:
@@ -97,10 +94,11 @@ namespace controllers
             // Declare private member variables.
             /////////////////////////////////////////
 
-            BicycleModel m_BicycleModel;
+            // BicycleModel m_BicycleModel;
+            UnicycleModel m_UnicycleModel;
             double m_dControlGain;
-            double m_dSteeringAngleLimit;
-            double m_dWheelbase;
+            double m_dAngularVelocityLimit;
+            // double m_dWheelbase;
             int m_nPredictionHorizon;
             double m_dPredictionTimeStep;
             int m_nCurrentReferencePathTargetIndex;

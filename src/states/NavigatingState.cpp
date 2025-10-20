@@ -85,8 +85,7 @@ namespace statemachine
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
         m_pAStarPlanner      = std::make_unique<pathplanners::AStar>();
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
-                                                                                          constants::STANLEY_STEERING_ANGLE_LIMIT,
-                                                                                          constants::STANLEY_DIST_TO_FRONT_AXLE,
+                                                                                          constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
                                                                                           constants::STANLEY_PREDICTION_TIME_STEP);
 

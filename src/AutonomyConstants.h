@@ -334,6 +334,7 @@ namespace constants
     extern const double STANLEY_CROSSTRACK_CONTROL_GAIN;
     extern const double STANLEY_DIST_TO_FRONT_AXLE;
     extern const double STANLEY_STEERING_ANGLE_LIMIT;
+    extern const double STANLEY_ANGULAR_VELOCITY_LIMIT;
     extern const int STANLEY_PREDICTION_HORIZON;
     extern const double STANLEY_PREDICTION_TIME_STEP;
 

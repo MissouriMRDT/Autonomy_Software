@@ -323,6 +323,7 @@ namespace constants
     const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.5;     // Determines how reactive the rover is to crosstrack error adjustments.
     const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;     // Distance from position sensor to the center of the front axle in meters.
     const double STANLEY_STEERING_ANGLE_LIMIT    = 30.0;    // The maximum steering angle in degrees.
+    const double STANLEY_ANGULAR_VELOCITY_LIMIT  = 45.0;    // The maximum angular velocity in degrees per second.
     const int STANLEY_PREDICTION_HORIZON         = 1;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
 

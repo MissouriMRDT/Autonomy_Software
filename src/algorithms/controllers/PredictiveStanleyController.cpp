@@ -37,13 +37,13 @@ namespace controllers
     PredictiveStanleyController::PredictiveStanleyController()
     {
         // Initialize member variables.
-        m_dControlGain                     = constants::STANLEY_CROSSTRACK_CONTROL_GAIN;
-        m_dWheelbase                       = constants::STANLEY_DIST_TO_FRONT_AXLE;
-        m_dSteeringAngleLimit              = constants::STANLEY_STEERING_ANGLE_LIMIT;
+        m_dControlGain = constants::STANLEY_CROSSTRACK_CONTROL_GAIN;
+        // m_dWheelbase                       = constants::STANLEY_DIST_TO_FRONT_AXLE;
+        m_dAngularVelocityLimit            = constants::STANLEY_ANGULAR_VELOCITY_LIMIT;
         m_nPredictionHorizon               = constants::STANLEY_PREDICTION_HORIZON;
         m_dPredictionTimeStep              = constants::STANLEY_PREDICTION_TIME_STEP;
         m_nCurrentReferencePathTargetIndex = 0;
-        m_BicycleModel                     = BicycleModel(m_dWheelbase, 0.0, 0.0, 0.0);
+        m_UnicycleModel                    = UnicycleModel();
     }
 
     /******************************************************************************
@@ -51,7 +51,6 @@ namespace controllers
      *
      * @param dControlGain - The control gain for the controller.
      * @param dSteeringAngleLimit - The maximum steering angle the rover can turn.
-     * @param dWheelbase - The distance between the front and rear axles of the rover.
      * @param nPredictionHorizon - The number of predictions to make.
      * @param dPredictionTimeStep - The time step to predict the future state. How far into the future to predict.
      *
@@ -59,19 +58,17 @@ namespace controllers
      * @date 2025-01-10
      ******************************************************************************/
     PredictiveStanleyController::PredictiveStanleyController(const double dControlGain,
-                                                             const double dSteeringAngleLimit,
-                                                             const double dWheelbase,
+                                                             const double dAngularVelocityLimit,
                                                              const int nPredictionHorizon,
                                                              const double dPredictionTimeStep)
     {
         // Initialize member variables.
         m_dControlGain                     = dControlGain;
-        m_dSteeringAngleLimit              = dSteeringAngleLimit;
-        m_dWheelbase                       = dWheelbase;
+        m_dAngularVelocityLimit            = dAngularVelocityLimit;
         m_nPredictionHorizon               = nPredictionHorizon;
         m_dPredictionTimeStep              = dPredictionTimeStep;
         m_nCurrentReferencePathTargetIndex = 0;
-        m_BicycleModel                     = BicycleModel(m_dWheelbase, 0.0, 0.0, 0.0);
+        m_UnicycleModel                    = UnicycleModel(0.0, 0.0, 0.0);
     }
 
     /******************************************************************************
@@ -101,7 +98,7 @@ namespace controllers
     {
         // Create instance variables.
         double dSteeringAngle = 0.0;
-        std::vector<BicycleModel::Prediction> vPredictions;
+        std::vector<UnicycleModel::Prediction> vPredictions;
 
         // Check if the reference path is empty.
         if (m_vReferencePath.empty())
@@ -124,10 +121,10 @@ namespace controllers
             return DriveVector{dHeadingToLastWaypoint, 1.0};
         }
 
-        // Update the bicycle model with the current state.
-        m_BicycleModel.UpdateState(stCurrentPose.GetUTMCoordinate().dEasting, stCurrentPose.GetUTMCoordinate().dNorthing, stCurrentPose.GetCompassHeading());
+        // Update the unicycle model with the current state.
+        m_UnicycleModel.UpdateState(stCurrentPose.GetUTMCoordinate().dEasting, stCurrentPose.GetUTMCoordinate().dNorthing, stCurrentPose.GetCompassHeading());
         // Predict the future state of the model.
-        m_BicycleModel.Predict(m_dPredictionTimeStep, m_nPredictionHorizon, vPredictions);
+        m_UnicycleModel.Predict(m_dPredictionTimeStep, m_nPredictionHorizon, vPredictions);
 
         // Loop through all the predicted future states to compute the steering angle.
         for (size_t nIter = 0.0; nIter < vPredictions.size(); ++nIter)
@@ -178,12 +175,12 @@ namespace controllers
             // Apply an exponential weight factor that decreases as we predict further into the future.
             double dTimeWeight = std::exp(-1.5 * static_cast<double>(nIter));
             // Limit the cross track error steering angle.
-            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
+            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -m_dAngularVelocityLimit, m_dAngularVelocityLimit);
             // Calculate the steering angle using lateral and heading errors, weighted by the time step.
             dSteeringAngle += dTimeWeight * (dCrossTrackError - dHeadingError);
 
             // Limit the steering angle to the given limit.
-            dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
+            dSteeringAngle = std::clamp(dSteeringAngle, -m_dAngularVelocityLimit, m_dAngularVelocityLimit);
         }
 
         // The new steering heading must be from 0-360 degrees.
@@ -231,7 +228,7 @@ namespace controllers
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
         // Reset the bicycle model.
-        m_BicycleModel.ResetState();
+        m_UnicycleModel.ResetState();
         // Set the reference path.
         m_vReferencePath = vSmoothedPath;
     }
@@ -274,8 +271,8 @@ namespace controllers
 
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
-        // Reset the bicycle model.
-        m_BicycleModel.ResetState();
+        // Reset the unicycle model.
+        m_UnicycleModel.ResetState();
         // Set the reference path.
         m_vReferencePath = vSmoothedPath;
     }
@@ -318,8 +315,8 @@ namespace controllers
 
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
-        // Reset the bicycle model.
-        m_BicycleModel.ResetState();
+        // Reset the unicycle model.
+        m_UnicycleModel.ResetState();
         // Set the reference path.
         m_vReferencePath = vSmoothedPath;
     }
@@ -338,16 +335,16 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Setter for the steering angle limit of the stanley controller.
+     * @brief Setter for the angular velocity limit of the stanley controller.
      *
-     * @param dSteeringAngleLimit - The steering angle limit for the controller.
+     * @param dAngularVelocityLimit - The angular velocity limit for the controller.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-11
      ******************************************************************************/
-    void PredictiveStanleyController::SetSteeringAngleLimit(const double dSteeringAngleLimit)
+    void PredictiveStanleyController::SetAngularVelocityLimit(const double dAngularVelocityLimit)
     {
-        m_dSteeringAngleLimit = dSteeringAngleLimit;
+        m_dAngularVelocityLimit = dAngularVelocityLimit;
     }
 
     /******************************************************************************
@@ -358,10 +355,10 @@ namespace controllers
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-11
      ******************************************************************************/
-    void PredictiveStanleyController::SetWheelbase(const double dWheelbase)
-    {
-        m_dWheelbase = dWheelbase;
-    }
+    //    void PredictiveStanleyController::SetWheelbase(const double dWheelbase)
+    //    {
+    //        m_dWheelbase = dWheelbase;
+    //    }
 
     /******************************************************************************
      * @brief Accessor for the control gain of the stanley controller.
@@ -377,16 +374,16 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Accessor for the steering angle limit of the stanley controller.
+     * @brief Accessor for the angular velocity limit of the stanley controller.
      *
-     * @return double - The steering angle limit for the controller.
+     * @return double - The angular velocity limit for the controller.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-11
      ******************************************************************************/
-    double PredictiveStanleyController::GetSteeringAngleLimit() const
+    double PredictiveStanleyController::GetAngularVelocityLimit() const
     {
-        return m_dSteeringAngleLimit;
+        return m_dAngularVelocityLimit;
     }
 
     /******************************************************************************
@@ -397,10 +394,10 @@ namespace controllers
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-11
      ******************************************************************************/
-    double PredictiveStanleyController::GetWheelbase() const
-    {
-        return m_dWheelbase;
-    }
+    //    double PredictiveStanleyController::GetWheelbase() const
+    //    {
+    //        return m_dWheelbase;
+    //    }
 
     /******************************************************************************
      * @brief Accessor for the reference path that the controller is following.
@@ -441,37 +438,24 @@ namespace controllers
      ******************************************************************************/
     geoops::Waypoint PredictiveStanleyController::FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const double dCurrentHeading)
     {
-        // Initialize variables.
         geoops::Waypoint stClosestWaypoint;
-        geoops::UTMCoordinate stFrontAxlePosition = stCurrentPosition;
-        double dClosestDistance                   = std::numeric_limits<double>::max();
-
-        // Convert the heading to radians.
-        double dCurrentHeadingRad = dCurrentHeading * M_PI / 180.0;
-
-        // Calculate the current position of the front axle based on the wheelbase, heading, and current position.
-        stFrontAxlePosition.dEasting  = stCurrentPosition.dEasting + m_dWheelbase * std::sin(dCurrentHeadingRad);
-        stFrontAxlePosition.dNorthing = stCurrentPosition.dNorthing + m_dWheelbase * std::cos(dCurrentHeadingRad);
+        double dClosestDistance = std::numeric_limits<double>::max();
 
         // Loop through the reference path.
         for (size_t nIter = 0; nIter < m_vReferencePath.size(); ++nIter)
         {
             // Calculate the distance to the current waypoint.
-            double dDistance = geoops::CalculateGeoMeasurement(stFrontAxlePosition, m_vReferencePath[nIter].GetUTMCoordinate()).dDistanceMeters;
+            double dDistance = geoops::CalculateGeoMeasurement(stCurrentPosition, m_vReferencePath[nIter].GetUTMCoordinate()).dDistanceMeters;
 
             // Check if this waypoint is closer.
             if (dDistance < dClosestDistance)
             {
-                // Update the closest waypoint.
-                stClosestWaypoint = m_vReferencePath[nIter];
-                dClosestDistance  = dDistance;
-
-                // Update the current target index based on the location of the closest waypoint in the vector path.
+                stClosestWaypoint                  = m_vReferencePath[nIter];
+                dClosestDistance                   = dDistance;
                 m_nCurrentReferencePathTargetIndex = nIter;
             }
         }
 
-        // Return the closest waypoint.
         return stClosestWaypoint;
     }
 }    // namespace controllers
