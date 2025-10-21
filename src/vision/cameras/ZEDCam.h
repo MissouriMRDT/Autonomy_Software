@@ -146,6 +146,7 @@ class ZEDCam : public ZEDCamera
         sl::Mat m_slDepthImage;
         sl::Mat m_slDepthMeasure;
         sl::Mat m_slPointCloud;
+        sl::Mat m_slGNSSPointCloud;
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
 
@@ -171,6 +172,7 @@ class ZEDCam : public ZEDCamera
         std::atomic<bool> m_bNormalFramesQueued;
         std::atomic<bool> m_bDepthFramesQueued;
         std::atomic<bool> m_bPointCloudsQueued;
+        std::atomic<bool> m_bGNSSPointCloudsQueued;
         std::atomic<bool> m_bPosesQueued;
         std::atomic<bool> m_bGeoPosesQueued;
         std::atomic<bool> m_bFloorsQueued;

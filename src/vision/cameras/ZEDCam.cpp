@@ -497,6 +497,28 @@ void ZEDCam::ThreadedContinuousCode()
                 }
             }
 
+            // Check if GNSS point clouds have been requested.
+            if (m_bGNSSPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+            {
+                // Grab regular resized image and store it in member variable.
+                slReturnCode = m_slCamera.retrieveMeasure(m_slGNSSPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+                // Check that the regular frame was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCameraModel).get(),
+                                m_unCameraSerialNumber,
+                                sl::toString(slReturnCode).get());
+                }
+		else 
+		{
+			// Perform scaling and pose offset to translate distance point cloud into GNSS point cloud
+			// TODO: Implement GNSS calculations here
+		}
+            }
+
             // Check if positional tracking is enabled.
             if (m_slCamera.isPositionalTrackingEnabled())
             {
@@ -1213,14 +1235,11 @@ std::future<bool> ZEDCam::RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud)
     lkSchedulers.unlock();
 
     // Check if point cloud queue toggle has already been set.
-    if (!m_bPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+    if (!m_bGNSSPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
     {
         // Signify that the point cloud queue is not empty.
         m_bPointCloudsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
     }
-
-    // Apply GNSS scaling factor and rover pose offset to point cloud values.
-    // TODO Implement
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
@@ -1260,14 +1279,11 @@ std::future<bool> ZEDCam::RequestGNSSPointCloudCopy(cv::cuda::GpuMat& cvGPUPoint
     lkSchedulers.unlock();
 
     // Check if point cloud queue toggle has already been set.
-    if (!m_bPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+    if (!m_bGNSSPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
     {
         // Signify that the point cloud queue is not empty.
         m_bPointCloudsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
     }
-
-    // Apply GNSS scaling factor and rover pose offset to point cloud data.
-    // TODO Implement
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
