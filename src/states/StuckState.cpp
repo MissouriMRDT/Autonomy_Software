@@ -112,7 +112,11 @@ namespace statemachine
         geoops::GPSCoordinate stObstaclePosition = m_stOriginalPosition;
         stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
         stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
+        // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
+        // TODO: insert information into lidar handler as area we can't navigate through (update it)
+        // TODO: attempt backing up
+        // TODO: repath in stuck state
+        // TODO: exit stuck state and return to previous state
 
         // Check if we are unstuck from our starting spot.
         if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
@@ -212,7 +216,16 @@ namespace statemachine
                         // Submit logger message.
                         LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees counter-clockwise...", constants::STUCK_ALIGN_DEGREES);
                         // Set aligning toggle.
-                        m_bIsCurrentlyAligning = true;
+                        // m_bIsCurrentlyAligning = LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
+                        // TODO: uncomment
+                        m_bInitialized = false;
+
+                        if (!m_bInitialized)
+                        {
+                            Start();
+                            m_bInitialized = true;
+                        }
+                        true;
                         // Update start heading.
                         m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
                         // Update start time.
