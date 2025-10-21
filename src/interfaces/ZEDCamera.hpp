@@ -239,8 +239,8 @@ class ZEDCamera : public Camera<cv::Mat>
          * @brief Puts a frame pointer into a queue so a copy of a depth frame from the camera can be written to it.
          *
          * @param cvGPUDepth - A reference to the cv::cuda::GpuMat to store the depth frame in.
-         * @param bRetrieveMeasure - Whether or not to retrieve the depth measure or just the image.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+	 * @param bRetrieveMeasure - Whether or not to retrieve the depth measure or just the image.
+	 * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
@@ -298,6 +298,43 @@ class ZEDCamera : public Camera<cv::Mat>
 
             return pmPromise.get_future();
         }
+        
+	/******************************************************************************
+         * @brief Puts a frame pointer into a queue so a copy of a rover pose-offset point cloud in GNSS coordinates from the camera can be written to it.
+         *
+         * @param cvPointCloud - A reference to the cv::Mat to store the point cloud in.
+         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+         *
+         * @author three-halves (threehalves1@gmail.com)
+         * @date 2025-10-20
+         ******************************************************************************/
+        virtual std::future<bool> RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud) = 0;
+
+        /******************************************************************************
+         * @brief Puts a frame pointer into a queue so a copy of a rover pose-offset point cloud in GNSS coordinates from the camera can be written to it.
+         *
+         * @param cvGPUPointCloud - A reference to the cv::cuda::GpuMat to store the point cloud in.
+         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+         *
+         * @author three-halves (threehalves1@gmail.com)
+         * @date 2025-10-20
+         ******************************************************************************/
+        virtual std::future<bool> RequestGNSSPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
+        {
+            // Initialize instance variables.
+            (void) cvGPUPointCloud;
+            std::promise<bool> pmPromise;
+
+            // Immediately set the promise to false.
+            pmPromise.set_value(false);
+
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "ZEDCamera::RequestGNSSPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) not implemented. If SIM_MODE use cv::Mat version instead.");
+
+            return pmPromise.get_future();
+        }
+
 
         /******************************************************************************
          * @brief Resets the positional tracking of the camera.

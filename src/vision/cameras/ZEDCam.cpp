@@ -1112,7 +1112,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  *                          Value will be true if frame was successfully retrieved.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
+ * @date 2023-8-26
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
@@ -1136,7 +1136,6 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
-
 /******************************************************************************
  * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
@@ -1157,6 +1156,7 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-08-26
  ******************************************************************************/
+
 std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
 {
     // Assemble the FrameFetchContainer.
@@ -1175,6 +1175,99 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
         // Signify that the point cloud queue is not empty.
         m_bPointCloudsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
     }
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+/******************************************************************************
+ * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
+ *      image but with three XYZ values replacing the old color values in the 3rd dimension.
+ *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
+ *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's 
+ *	pose and scaled to represent GNSS coordinates.
+ *
+ *      A 4th value in the 3rd dimension exists as a float32 storing the BGRA values. Each color value
+ *      is 8-bits and is in this order:
+ *                          00000000 00000000 00000000 00000000 = 32 bits (float32)
+ *                              B       G         R       A
+ *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *
+ * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was successfully retrieved.
+ *
+ * @author three-halves (threehalves1@gmail.com)
+ * @date 2025-10-20
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud)
+{
+    // Assemble the FrameFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZBGRA);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkSchedulers.unlock();
+
+    // Check if point cloud queue toggle has already been set.
+    if (!m_bPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+    {
+        // Signify that the point cloud queue is not empty.
+        m_bPointCloudsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+    }
+
+    // Apply GNSS scaling factor and rover pose offset to point cloud values.
+    // TODO Implement
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
+ *      image but with three XYZ values replacing the old color values in the 3rd dimension.
+ *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
+ *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's 
+ *	pose and scaled to represent GNSS coordinates.
+ *
+ *      A 4th value in the 3rd dimension exists as a float32 storing the BGRA values. Each color value
+ *      is 8-bits and is in this order:
+ *                          00000000 00000000 00000000 00000000 = 32 bits (float32)
+ *                              B       G         R       A
+ *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *
+ * @param cvGPUPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-26
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestGNSSPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
+{
+    // Assemble the FrameFetchContainer.
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, PIXEL_FORMATS::eXYZBGRA);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qGPUFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkSchedulers.unlock();
+
+    // Check if point cloud queue toggle has already been set.
+    if (!m_bPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+    {
+        // Signify that the point cloud queue is not empty.
+        m_bPointCloudsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+    }
+
+    // Apply GNSS scaling factor and rover pose offset to point cloud data.
+    // TODO Implement
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();

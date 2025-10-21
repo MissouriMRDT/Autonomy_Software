@@ -55,6 +55,8 @@ class ZEDCam : public ZEDCamera
         std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true) override;
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud) override;
         std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) override;
+	std::future<bool> RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud) override;
+        std::future<bool> RequestGNSSPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) override;
         sl::ERROR_CODE ResetPositionalTracking() override;
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects) override;
         sl::ERROR_CODE RebootCamera() override;

@@ -50,6 +50,7 @@ class SIMZEDCam : public ZEDCamera
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
         std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
+        std::future<bool> RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud);
         sl::ERROR_CODE ResetPositionalTracking() override;
         sl::ERROR_CODE RebootCamera() override;
         sl::FUSION_ERROR_CODE SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID) override;

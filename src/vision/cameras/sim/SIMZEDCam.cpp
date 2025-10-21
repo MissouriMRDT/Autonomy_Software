@@ -566,6 +566,42 @@ std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 }
 
 /******************************************************************************
+ * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
+ *      image but with three XYZ values replacing the old color values in the 3rd dimension.
+ *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
+ *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's 
+ *	pose and scaled to represent GNSS coordinates.
+ *
+ *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
+ *
+ * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ *                          Value will be true if frame was successfully retrieved.
+ *
+ * @author three-halves (threehalves1@gmail.com)
+ * @date 2025-10-20
+ ******************************************************************************/
+std::future<bool> SIMZEDCam::RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud)
+{
+    // Assemble the FrameFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZ);
+
+    // Acquire lock on frame copy queue.
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qFrameCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkSchedulers.unlock();
+
+    // Apply GNSS scaling factor and rover pose offset to point cloud data
+    // TODO Implement
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+
+/******************************************************************************
  * @brief This method is used to reset the positional tracking of the camera.
  *      Because this is a simulation camera, and then ZEDSDK is not available,
  *      this method will just reset the offsets to zero.
