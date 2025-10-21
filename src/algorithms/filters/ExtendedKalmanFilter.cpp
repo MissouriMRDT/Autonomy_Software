@@ -30,7 +30,14 @@ namespace filters
      ******************************************************************************/
     ExtendedKalmanFilter::ExtendedKalmanFilter()
     {
-        // Initialize member variables
+        // TODO: Initialize member variables
+        m_dSigmaAcc      = constants::KALMAN_SIGMA_ACCELERATION;
+        m_dSigmaGyro     = constants::KALMAN_SIGMA_GYRO;
+        m_dSigmaAccBias  = constants::KALMAN_SIGMA_ACCELERATION_BIAS;
+        m_dSigmaGyroBias = constants::KALMAN_SIGMA_GYRO_BIAS;
+        m_dSigmaGPSHor   = constants::KALMAN_SIGMA_GPS_HORIZONTAL_ERROR;
+        m_dSigmaGPSVer   = constants::KALMAN_SIGMA_GPS_VERTICAL_ERROR;
+        m_dSigmaYaw      = constants::KALMAN_SIGMA_YAW;
         // TODO: ugly math sad face
     }
 
@@ -38,7 +45,6 @@ namespace filters
      * @brief Construct a new Extended Kalman Filter:: Extended Kalman Filter object.
      *
      *@param stInitPose - The initial GPS and heading of the rover.
-     *@param eiInitVel - The initial velocity of the rover. //TODO: maybe change to accelerations?
      *@param dSigmaAcc - The standard deviation of the acceleration.
      *@param dSigmaGyro - The standard deviation of the gyrometer.
      *@param dSigmaAccBias - The standard deviation of the acceleration bias.
@@ -60,6 +66,15 @@ namespace filters
                                                double dSigmaYaw)
     {
         // Initialize member variables
+        m_dSigmaAcc      = dSigmaAcc;
+        m_dSigmaGyro     = dSigmaGyro;
+        m_dSigmaAccBias  = dSigmaAccBias;
+        m_dSigmaGyroBias = dSigmaGyroBias;
+        m_dSigmaGPSHor   = dSigmaGPSHor;
+        m_dSigmaGPSVer   = dSigmaGPSVer;
+        // This will set the values for the position vector and orientation quaternion.
+        FromRoverPose(stInitPose, m_eiPosition, m_eiOrientation);
+
         // TODO: do the ugly math for initialization :sob: :cry:
     }
 
@@ -94,7 +109,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-03
      ******************************************************************************/
-    woid ExtendedKalmanFilter::ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const
+    geoops::RoverPose ExtendedKalmanFilter::ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const
     {
         // TODO: make sure that math is right (i think it is)
 

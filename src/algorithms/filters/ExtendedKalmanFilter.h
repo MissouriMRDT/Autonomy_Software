@@ -17,8 +17,6 @@
 #include <list>
 #include <sl/Camera.hpp>
 
-using woid = geoops::RoverPose;
-
 namespace filters
 {
     /******************************************************************************
@@ -57,7 +55,6 @@ namespace filters
             /////////////////////////////////////////
 
             ExtendedKalmanFilter();
-            // TODO: change inputs if needed
             ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
                                  double dSigmaAcc,
                                  double dSigmaGyro,
@@ -100,7 +97,7 @@ namespace filters
             // Conversions.
             /////////////////////////////////////////
             // Takes position and orientation/heading vectors to turn them into RoverPoses.
-            woid ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
+            geoops::RoverPose ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
             // Takes RoverPose and converts it into position and orientation vectors.
             void FromRoverPose(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition, Eigen::Quaterniond& eiOrientation) const;
 
@@ -132,6 +129,9 @@ namespace filters
             double m_dSigmaGPSHor;
             double m_dSigmaGPSVer;
             double m_dSigmaYaw;
+            Eigen::Vector3d m_eiPosition;          // The vector for the current position of the rover.
+            Eigen::Quaterniond m_eiOrientation;    // The quaternion for the rover's orientation.
+            geoops::RoverPose m_stPose;            // The overall RoverPose.
     };
 };    // namespace filters
 
