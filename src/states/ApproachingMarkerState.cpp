@@ -44,7 +44,7 @@ namespace statemachine
         // Add the search and rover path layers to the plot.
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
         m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
 
         // Get tag detectors.
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};

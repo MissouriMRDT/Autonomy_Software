@@ -42,8 +42,9 @@ namespace statemachine
 
         // Create rover path layers.
         m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         m_pRoverPathPlot->CreatePathLayer("GeoPath", "-m");
+        m_pRoverPathPlot->CreateDotLayer("StanleyTargetIndex", "or");
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "red");
@@ -84,8 +85,7 @@ namespace statemachine
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
         m_pGeoPlanner        = std::make_unique<pathplanners::GeoPlanner>();
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
-                                                                                          constants::STANLEY_STEERING_ANGLE_LIMIT,
-                                                                                          constants::STANLEY_WHEELBASE,
+                                                                                          constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
                                                                                           constants::STANLEY_PREDICTION_TIME_STEP);
 
@@ -135,6 +135,12 @@ namespace statemachine
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+
+        // Place a dot on the stanley target index.
+        geoops::Waypoint stStanleyTargetCoordinate =
+            m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
+        m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
+        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 0);
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;

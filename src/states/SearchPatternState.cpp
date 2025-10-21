@@ -58,7 +58,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
 

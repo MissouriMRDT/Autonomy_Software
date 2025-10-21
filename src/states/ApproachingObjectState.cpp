@@ -44,7 +44,7 @@ namespace statemachine
         // Add the search and rover path layers to the plot.
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "blue");
         m_pRoverPathPlot->CreateDotLayer("FinalObject", "green");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
+        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
 
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
     }
