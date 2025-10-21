@@ -31,13 +31,13 @@ namespace filters
     ExtendedKalmanFilter::ExtendedKalmanFilter()
     {
         // TODO: Initialize member variables
-        m_dSigmaAcc      = constants::KALMAN_SIGMA_ACCELERATION;
-        m_dSigmaGyro     = constants::KALMAN_SIGMA_GYRO;
-        m_dSigmaAccBias  = constants::KALMAN_SIGMA_ACCELERATION_BIAS;
-        m_dSigmaGyroBias = constants::KALMAN_SIGMA_GYRO_BIAS;
-        m_dSigmaGPSHor   = constants::KALMAN_SIGMA_GPS_HORIZONTAL_ERROR;
-        m_dSigmaGPSVer   = constants::KALMAN_SIGMA_GPS_VERTICAL_ERROR;
-        m_dSigmaYaw      = constants::KALMAN_SIGMA_YAW;
+        m_dSigmaAcc  = constants::KALMAN_SIGMA_ACCELERATION;
+        m_dSigmaGyro = constants::KALMAN_SIGMA_GYRO;
+        // m_dSigmaAccBias  = constants::KALMAN_SIGMA_ACCELERATION_BIAS;
+        // m_dSigmaGyroBias = constants::KALMAN_SIGMA_GYRO_BIAS;
+        m_dSigmaGPSHor = constants::KALMAN_SIGMA_GPS_HORIZONTAL_ERROR;
+        m_dSigmaGPSVer = constants::KALMAN_SIGMA_GPS_VERTICAL_ERROR;
+        m_dSigmaYaw    = constants::KALMAN_SIGMA_YAW;
         // TODO: ugly math sad face
     }
 
@@ -57,21 +57,21 @@ namespace filters
      * @date 2025-09-30
      ******************************************************************************/
     ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
-                                               double dSigmaAcc,
-                                               double dSigmaGyro,
-                                               double dSigmaAccBias,
-                                               double dSigmaGyroBias,
+                                               const Eigen::Matrix3d& eiAccelCov,
+                                               const Eigen::Matrix3d& eiGyroCov,
+                                               const double dSigmaAccel,
+                                               const double dSigmaGyro,
                                                double dSigmaGPSHor,
                                                double dSigmaGPSVer,
                                                double dSigmaYaw)
     {
         // Initialize member variables
-        m_dSigmaAcc      = dSigmaAcc;
-        m_dSigmaGyro     = dSigmaGyro;
-        m_dSigmaAccBias  = dSigmaAccBias;
-        m_dSigmaGyroBias = dSigmaGyroBias;
-        m_dSigmaGPSHor   = dSigmaGPSHor;
-        m_dSigmaGPSVer   = dSigmaGPSVer;
+        m_eiAccelerometerCovariance = eiAccelCov;
+        m_eiGyroscopeCovariance     = eiGyroCov;
+        m_dSigmaAcc                 = dSigmaAccel;
+        m_dSigmaGyro                = dSigmaGyro;
+        m_dSigmaGPSHor              = dSigmaGPSHor;
+        m_dSigmaGPSVer              = dSigmaGPSVer;
         // This will set the values for the position vector and orientation quaternion.
         FromRoverPose(stInitPose, m_eiPosition, m_eiOrientation);
 
@@ -123,22 +123,6 @@ namespace filters
                                 eiOrientation.w() * eiOrientation.w() - eiOrientation.x() * eiOrientation.x() - eiOrientation.y() * eiOrientation.y() +
                                     eiOrientation.z() * eiOrientation.z());
         return geoops::RoverPose(stCoord, dHeading);
-    }
-
-    /******************************************************************************
-     * @brief This will set the IMU data noise.
-     *
-     * @param dSigmaAcc - The standard deviation of the acceleration.
-     * @param dSigmaGyro - The standard deviation of the gyroscope data.
-     * @param dSigmaAccBias - The standard deviation of the acceleration bias.
-     * @param dSigmaGyroBias - The standard deviation of the gyroscope bias.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-03
-     ******************************************************************************/
-    void ExtendedKalmanFilter::SetIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias)
-    {
-        // TODO: implement
     }
 
     /******************************************************************************

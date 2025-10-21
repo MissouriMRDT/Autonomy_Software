@@ -56,10 +56,10 @@ namespace filters
 
             ExtendedKalmanFilter();
             ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
-                                 double dSigmaAcc,
-                                 double dSigmaGyro,
-                                 double dSigmaAccBias,
-                                 double dSigmaGyroBias,
+                                 const Eigen::Matrix3d& eiAccelCov,
+                                 const Eigen::Matrix3d& eiGyroCov,
+                                 const double dSigmaAccel,
+                                 const double dSigmaGyro,
                                  double dSigmaGPSHor,
                                  double dSigmaGPSVer,
                                  double dSigmaYaw);
@@ -71,7 +71,6 @@ namespace filters
 
             // TODO: Figure out what should be const
             void SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance);
-            void SetIMUNoise(double dSigmaAcc, double dSigmaGyro, double dSigmaAccBias, double dSigmaGyroBias);
             void SetGPSNoise(double dSigmaHor, double dSigmaVer);
             void SetCompassNoise(double dSigmaYaw);
 
@@ -124,8 +123,6 @@ namespace filters
             Eigen::Vector3d m_eiGravity;                                          // Vector for gravity
             double m_dSigmaAcc;
             double m_dSigmaGyro;
-            double m_dSigmaAccBias;
-            double m_dSigmaGyroBias;
             double m_dSigmaGPSHor;
             double m_dSigmaGPSVer;
             double m_dSigmaYaw;
