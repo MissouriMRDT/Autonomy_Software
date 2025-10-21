@@ -86,6 +86,9 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     // Set the database open flag to true.
     m_bIsDBOpen = true;
 
+    // Log success.
+    LOG_INFO(logging::g_qSharedLogger, "LiDARHandler: Successfully opened database at '{}'.", szDBPath);
+
     return true;
 }
 
@@ -277,10 +280,100 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     }
     else
     {
-        LOG_NOTICE(logging::g_qSharedLogger, "LiDARHandler: Query took {} seconds to execute.", dQueryTime);
+        LOG_DEBUG(logging::g_qSharedLogger, "LiDARHandler: Query took {} seconds to execute.", dQueryTime);
     }
 
     return vResults;
+}
+
+/******************************************************************************
+ * @brief Inserts LiDAR data points into the database.
+ *
+ * @param vPoints - Vector of geoops::Waypoint structures containing the data points to insert.
+ * @return true - If the data points were successfully inserted.
+ * @return false - If the insertion failed.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-10-20
+ ******************************************************************************/
+bool LiDARHandler::InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints)
+{
+    // Acquire a write lock on the mutex to ensure thread safety.
+    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+
+    // Check if the database is open.
+    if (!m_bIsDBOpen)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Database is not open.");
+        return false;
+    }
+
+    // Prepare the SQL statement for inserting data.
+    const char* pSQL      = R"(
+        INSERT INTO ProcessedLiDARPoints (easting, northing, altitude, zone, classification, normal_x, normal_y, normal_z, slope, rough, curvature, trav_score)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    )";
+
+    sqlite3_stmt* sqlSTMT = nullptr;
+    int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlSTMT, nullptr);
+    if (nRC != SQLITE_OK)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        return false;
+    }
+
+    // Process the input waypoints into PointRow structures.
+    std::vector<PointRow> vProcessedPoints;
+    for (const geoops::Waypoint& stWaypoint : vPoints)
+    {
+        PointRow point;
+        point.dEasting         = stWaypoint.GetUTMCoordinate().dEasting;
+        point.dNorthing        = stWaypoint.GetUTMCoordinate().dNorthing;
+        point.dAltitude        = stWaypoint.GetUTMCoordinate().dAltitude;
+        point.szZone           = std::to_string(stWaypoint.GetUTMCoordinate().nZone) + (stWaypoint.GetUTMCoordinate().bWithinNorthernHemisphere ? "N" : "S");
+        point.szClassification = "unknown";    // Default classification; modify as needed.
+        point.dNormalX         = 0.0;          // Placeholder; modify as needed.
+        point.dNormalY         = 0.0;          // Placeholder; modify as needed.
+        point.dNormalZ         = 0.0;          // Placeholder; modify as needed.
+        point.dSlope           = 0.0;          // Placeholder; modify as needed.
+        point.dRoughness       = 0.0;          // Placeholder; modify as needed.
+        point.dCurvature       = 0.0;          // Placeholder; modify as needed.
+        point.dTraversalScore  = 0.0;          // Placeholder; modify as needed.
+        vProcessedPoints.push_back(point);
+    }
+
+    // Bind parameters for each point.
+    for (const PointRow& point : vProcessedPoints)
+    {
+        sqlite3_bind_double(sqlSTMT, 1, point.dEasting);
+        sqlite3_bind_double(sqlSTMT, 2, point.dNorthing);
+        sqlite3_bind_double(sqlSTMT, 3, point.dAltitude);
+        sqlite3_bind_text(sqlSTMT, 4, point.szZone.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(sqlSTMT, 5, point.szClassification.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_double(sqlSTMT, 6, point.dNormalX);
+        sqlite3_bind_double(sqlSTMT, 7, point.dNormalY);
+        sqlite3_bind_double(sqlSTMT, 8, point.dNormalZ);
+        sqlite3_bind_double(sqlSTMT, 9, point.dSlope);
+        sqlite3_bind_double(sqlSTMT, 10, point.dRoughness);
+        sqlite3_bind_double(sqlSTMT, 11, point.dCurvature);
+        sqlite3_bind_double(sqlSTMT, 12, point.dTraversalScore);
+
+        // Execute the statement.
+        nRC = sqlite3_step(sqlSTMT);
+        if (nRC != SQLITE_DONE)
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
+            sqlite3_finalize(sqlSTMT);
+            return false;
+        }
+
+        // Reset the statement for the next iteration.
+        sqlite3_reset(sqlSTMT);
+    }
+
+    // Finalize the statement.
+    sqlite3_finalize(sqlSTMT);
+    return true;
 }
 
 /******************************************************************************

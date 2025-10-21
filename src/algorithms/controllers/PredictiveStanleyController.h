@@ -13,9 +13,12 @@
 
 #include "../../util/GeospatialOperations.hpp"
 #include "../../util/logging/PathTracer.hpp"
-#include "../kinematics/BicycleModel.hpp"
+#include "../kinematics/UnicycleModel.hpp"
 
 /// \cond
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include <vector>
 
 /// \endcond
@@ -97,7 +100,7 @@ namespace controllers
             // Declare private member variables.
             /////////////////////////////////////////
 
-            BicycleModel m_BicycleModel;
+            UnicycleModel m_BicycleModel;    // renamed to UnicycleModel but keep member name for compat
             double m_dControlGain;
             double m_dSteeringAngleLimit;
             double m_dWheelbase;

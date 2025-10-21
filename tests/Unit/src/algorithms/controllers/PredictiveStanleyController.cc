@@ -81,7 +81,7 @@ TEST_F(PredictiveStanleyControllerTests, DefaultConstructor)
     controllers::PredictiveStanleyController Controller;
     EXPECT_NEAR(Controller.GetControlGain(), constants::STANLEY_CROSSTRACK_CONTROL_GAIN, 0.01);
     EXPECT_NEAR(Controller.GetSteeringAngleLimit(), constants::STANLEY_STEERING_ANGLE_LIMIT, 0.01);
-    EXPECT_NEAR(Controller.GetWheelbase(), constants::STANLEY_DIST_TO_FRONT_AXLE, 0.01);
+    EXPECT_NEAR(Controller.GetWheelbase(), constants::STANLEY_WHEELBASE, 0.01);
 }
 
 /******************************************************************************

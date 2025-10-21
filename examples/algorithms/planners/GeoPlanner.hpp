@@ -26,7 +26,7 @@ void RunExample()
 {
     // Create and initialize handler
     std::unique_ptr<LiDARHandler> pLiDARHandler = std::make_unique<LiDARHandler>();
-    if (!pLiDARHandler->OpenDB("../data/LiDAR/data/databases/Rolla.db"))
+    if (!pLiDARHandler->OpenDB("../data/LiDAR/data/databases/Fugitive.db"))
     {
         std::cerr << "Failed to initialize LiDARHandler.\n";
         return;
@@ -35,10 +35,10 @@ void RunExample()
     // Create and initialize the GeoPlanner.
     std::unique_ptr<pathplanners::GeoPlanner> pPlanner = std::make_unique<pathplanners::GeoPlanner>(50);
 
-    geoops::UTMCoordinate stStart{606977.35, 4201366.42, 15, true};
-    geoops::UTMCoordinate stEnd{606977.35, 4201066.42, 15, true};
+    geoops::UTMCoordinate stStart{614019.79, 4190069.29, 15, true};
+    geoops::UTMCoordinate stEnd{614224.72, 4189924.76, 15, true};
 
-    std::vector<geoops::Waypoint> vPath = pPlanner->PlanPath(pLiDARHandler.get(), stStart, stEnd, 1.0, 5.0, 0.5, true);
+    std::vector<geoops::Waypoint> vPath = pPlanner->PlanPath(pLiDARHandler.get(), stStart, stEnd, 1000.0, 5.0, 0.0, true);
 
     // Print the number of waypoints in the path.
     std::cout << "Planned path with " << vPath.size() << " waypoints." << std::endl;

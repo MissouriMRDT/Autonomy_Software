@@ -15,6 +15,8 @@
 #ifndef LIDARHANDLER_H
 #define LIDARHANDLER_H
 
+#include "../util/GeospatialOperations.hpp"
+
 /// \cond
 #include <functional>
 #include <optional>
@@ -87,6 +89,7 @@ class LiDARHandler
         bool OpenDB(const std::string& szDBPath);
         bool CloseDB();
         std::vector<PointRow> GetLiDARData(const PointFilter& stPointFilter);
+        bool InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints);
 
         ////////////////////////////////////
         // Getters

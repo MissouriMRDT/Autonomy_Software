@@ -28,7 +28,6 @@
 class LiDARHandlerTests : public TestingBase<LiDARHandlerTests>
 {
     protected:
-        LiDARHandler m_Handler;
         std::string m_szDbPath = "../data/LiDAR/data/databases/Fugitive.db";
 
     public:
@@ -136,8 +135,8 @@ TEST_F(LiDARHandlerTests, QueryWithoutOpenReturnsEmpty)
 {
     LiDARHandler handler;
     LiDARHandler::PointFilter filter{.dEasting = 0, .dNorthing = 0, .dRadius = 1.0};
-    auto results = handler.GetLiDARData(filter);
-    EXPECT_TRUE(results.empty());
+    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(filter);
+    EXPECT_TRUE(vResults.empty());
 }
 
 /******************************************************************************
@@ -152,7 +151,7 @@ TEST_F(LiDARHandlerTests, QueryReturnsResultsIfPresent)
     LiDARHandler handler;
     ASSERT_TRUE(handler.OpenDB(m_szDbPath));
     LiDARHandler::PointFilter filter{.dEasting = 614058.84, .dNorthing = 4189968.85, .dRadius = 3.0};
-    auto results = handler.GetLiDARData(filter);
+    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(filter);
     // Can't guarantee DB contents, but should not crash
     SUCCEED();
 }
@@ -169,7 +168,7 @@ TEST_F(LiDARHandlerTests, QueryWithClassification)
     LiDARHandler handler;
     ASSERT_TRUE(handler.OpenDB(m_szDbPath));
     LiDARHandler::PointFilter filter{.dEasting = 614058.84, .dNorthing = 4189968.85, .dRadius = 3.0, .szClassification = std::optional<std::string>("ground")};
-    auto results = handler.GetLiDARData(filter);
+    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(filter);
     // Should not crash, may be empty
     SUCCEED();
 }
@@ -189,7 +188,7 @@ TEST_F(LiDARHandlerTests, QueryWithTraversalScoreRange)
                                      .dNorthing       = 4189968.85,
                                      .dRadius         = 3.0,
                                      .dTraversalScore = std::optional<LiDARHandler::PointFilter::Range<double>>({0.95, 1.0})};
-    auto results = handler.GetLiDARData(filter);
+    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(filter);
     // Should not crash, may be empty
     SUCCEED();
 }
@@ -217,7 +216,7 @@ TEST_F(LiDARHandlerTests, QueryWithAllRangeFilters)
         .dCurvature      = std::optional<LiDARHandler::PointFilter::Range<double>>({-10.0, 10.0}),
         .dTraversalScore = std::optional<LiDARHandler::PointFilter::Range<double>>({0.0, 1.0}),
     };
-    auto results = handler.GetLiDARData(filter);
+    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(filter);
     SUCCEED();
 }
 
@@ -254,4 +253,42 @@ TEST_F(LiDARHandlerTests, ThreadSafetyOpenCloseQuery)
     t1.join();
     t2.join();
     SUCCEED();
+}
+
+/******************************************************************************
+ * @brief Inserts LiDAR data points into the database.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-10-20
+ ******************************************************************************/
+TEST_F(LiDARHandlerTests, InsertLiDARData)
+{
+    // Open the database and setup handler.
+    LiDARHandler handler;
+    ASSERT_TRUE(handler.OpenDB(m_szDbPath));
+
+    // Prepare test data points. These will be a grid of 100 points spread over 5 square meters at a given altitude.
+    std::vector<geoops::Waypoint> vTestPoints;
+    geoops::Waypoint stCenterPoint = {geoops::UTMCoordinate(614132.76, 4190038.68, 15, true, 315)};
+
+    double dSpacing                = 0.5;    // 0.5 meter spacing
+    for (int nIter = 0; nIter < 100; ++nIter)
+    {
+        for (int mIter = 0; mIter < 100; ++mIter)
+        {
+            double dEasting  = stCenterPoint.GetUTMCoordinate().dEasting + (nIter - 5) * dSpacing;
+            double dNorthing = stCenterPoint.GetUTMCoordinate().dNorthing + (mIter - 5) * dSpacing;
+            geoops::UTMCoordinate stUTMPoint(dEasting,
+                                             dNorthing,
+                                             stCenterPoint.GetUTMCoordinate().nZone,
+                                             stCenterPoint.GetUTMCoordinate().bWithinNorthernHemisphere,
+                                             stCenterPoint.GetUTMCoordinate().dAltitude);
+            geoops::Waypoint stPoint(stUTMPoint, geoops::WaypointType::eNavigationWaypoint, 0.5, nIter * 10 + mIter);
+            vTestPoints.push_back(stPoint);
+        }
+    }
+
+    // Insert the test data points.
+    ASSERT_TRUE(handler.InsertLiDARData(vTestPoints));
 }

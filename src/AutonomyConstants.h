@@ -79,9 +79,6 @@ namespace constants
     // Power constants.
     extern const float DRIVE_MAX_POWER;
     extern const float DRIVE_MIN_POWER;
-    // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
-    extern const float DRIVE_MAX_EFFORT;
-    extern const float DRIVE_MIN_EFFORT;
 
     // Control constants.
     extern const double DRIVE_PID_PROPORTIONAL;
@@ -333,7 +330,7 @@ namespace constants
 
     // Stanley Controller config.
     extern const double STANLEY_CROSSTRACK_CONTROL_GAIN;
-    extern const double STANLEY_DIST_TO_FRONT_AXLE;
+    extern const double STANLEY_WHEELBASE;
     extern const double STANLEY_STEERING_ANGLE_LIMIT;
     extern const int STANLEY_PREDICTION_HORIZON;
     extern const double STANLEY_PREDICTION_TIME_STEP;

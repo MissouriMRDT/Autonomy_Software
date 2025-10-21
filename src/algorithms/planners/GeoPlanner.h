@@ -87,14 +87,14 @@ namespace pathplanners
             // Declare class methods.
             ////////////////////////////////////
 
-            GeoPlanner(double dTileSize = 5.0);
+            GeoPlanner(double dTileSize = 50.0);
             ~GeoPlanner();
             std::vector<geoops::Waypoint> PlanPath(LiDARHandler* pLiDARHandler,
                                                    const geoops::UTMCoordinate& stStart,
                                                    const geoops::UTMCoordinate& stEnd,
-                                                   double dBeta         = 1.0,
-                                                   double dSearchRadius = 3.0,
-                                                   double dMinTravScore = 0.8,
+                                                   double dBeta         = 1000.0,
+                                                   double dSearchRadius = 5.0,
+                                                   double dMinTravScore = 0.5,
                                                    bool bPlotPath       = false);
             void ClearGeoCache();
 
@@ -224,6 +224,7 @@ namespace pathplanners
             void CheckAndLoadTile(const PlannerState& stCurrentState);
             PlannerState FindClosestLiDARPoint(const geoops::UTMCoordinate& stCoordinate);
             void PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const;
+            double SquaredDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const;
 
             ////////////////////////////////////
             // Private member variables.

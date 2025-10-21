@@ -43,8 +43,7 @@ namespace statemachine
         // Create rover path layers.
         m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-.r*");
-        m_pRoverPathPlot->CreatePathLayer("AStarPath", "-m");
-        m_pRoverPathPlot->CreateDotLayer("SmoothPath", "b", false);
+        m_pRoverPathPlot->CreatePathLayer("GeoPath", "-m");
         m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "red");
@@ -83,10 +82,10 @@ namespace statemachine
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
-        m_pAStarPlanner      = std::make_unique<pathplanners::AStar>();
+        m_pGeoPlanner        = std::make_unique<pathplanners::GeoPlanner>();
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_STEERING_ANGLE_LIMIT,
-                                                                                          constants::STANLEY_DIST_TO_FRONT_AXLE,
+                                                                                          constants::STANLEY_WHEELBASE,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
                                                                                           constants::STANLEY_PREDICTION_TIME_STEP);
 
@@ -170,16 +169,16 @@ namespace statemachine
         {
             // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
             // Use stanley to calculate drive move/powers.
-            // controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // // Calculate move from goal heading and desired speed.
-            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-            //                                                                              stDriveVector.dThetaHeading,
-            //                                                                              stCurrentRoverPose.GetCompassHeading(),
-            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-                                                                                         stGoalWaypointMeasurement.dStartRelativeBearing,
+            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
+            // Calculate move from goal heading and desired speed.
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                         stDriveVector.dThetaHeading,
                                                                                          stCurrentRoverPose.GetCompassHeading(),
                                                                                          diffdrive::DifferentialControlMethod::eArcadeDrive);
+            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+            //                                                                              stCurrentRoverPose.GetCompassHeading(),
+            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
             // Send drive powers over RoveComm.
             globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
@@ -433,22 +432,28 @@ namespace statemachine
                     m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
                     m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
 
-                    // Get all obstacles from the obstacle handler.
-                    std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                    // Add obstacles to the A* planner.
-                    m_pAStarPlanner->UpsertObstacleData(vObstacles);
-                    // Set A* planner start and goal.
-                    m_vPathCoordinates =
-                        m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+                    // Update our plot with the new path.
+                    m_pRoverPathPlot->ClearLayer("GeoPath");
+                    // Plan a new path using the GeoPlanner.
+                    std::vector<geoops::Waypoint> m_vPathCoordinates = m_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
+                                                                                               globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
+                                                                                               m_stGoalWaypoint.GetUTMCoordinate());
+                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.
                     m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                    // Get the smoothed path for plotting.
-                    std::vector<geoops::Waypoint> vSmoothedPath = m_pStanleyController->GetReferencePath();
-                    // Update our plot with the new path.
-                    m_pRoverPathPlot->ClearLayer("AStarPath");
-                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "AStarPath", 0);
-                    m_pRoverPathPlot->AddDots(vSmoothedPath, "SmoothPath", 0);
+
+                    // Get all obstacles from the obstacle handler.
+                    std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+                    m_pRoverPathPlot->ClearLayer("ObstaclesLocation");
                     m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
+
+                    // Check if the path is empty. If it is, go to idle state.
+                    if (m_vPathCoordinates.empty())
+                    {
+                        LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Planned path is empty! Transitioning to Idle State.");
+                        eNextState = States::eIdle;
+                        break;
+                    }
                 }
 
                 // Send multimedia command to update state display.

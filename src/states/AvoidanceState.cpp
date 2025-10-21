@@ -95,7 +95,7 @@ namespace statemachine
                                                                         constants::STUCK_CHECK_ROT_THRESH);
         m_StanleyController = controllers::PredictiveStanleyController(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                        constants::STANLEY_STEERING_ANGLE_LIMIT,
-                                                                       constants::STANLEY_DIST_TO_FRONT_AXLE,
+                                                                       constants::STANLEY_WHEELBASE,
                                                                        constants::STANLEY_PREDICTION_HORIZON,
                                                                        constants::STANLEY_PREDICTION_TIME_STEP);
 

@@ -1,22 +1,23 @@
 /******************************************************************************
- * @brief Defines the Bicycle Model class. Used to simply model the kinematics
- *      of a bicycle, which most closely resembles the kinematics of the Mars Rover.
- *      This model can also predict the future state of the rover given a current
- *      state and control input.
+ * @brief Defines the Unicycle Model class. Used to model the kinematics
+ *      of a unicycle-style rover which can perform point turns. The model can
+ *      also predict future states given the most recently observed linear and
+ *      angular velocities.
  *
- * @file BicycleModel.hpp
+ * @file UnicycleModel.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-10
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef BICYCLE_MODEL_H
-#define BICYCLE_MODEL_H
+#ifndef UNICYCLE_MODEL_H
+#define UNICYCLE_MODEL_H
 
 #include "../../util/NumberOperations.hpp"
 
 /// \cond
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <vector>
@@ -24,14 +25,14 @@
 /// \endcond
 
 /******************************************************************************
- * @brief This class implements the Bicycle Model. This model is used to predict
- *    the future state of the rover given a current state and control input.
+ * @brief This class implements the Unicycle Model. This model is used to predict
+ *    the future state of the rover given a current state and inferred control inputs.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-10
  ******************************************************************************/
-class BicycleModel
+class UnicycleModel
 {
     public:
         /////////////////////////////////////////
@@ -39,7 +40,7 @@ class BicycleModel
         /////////////////////////////////////////
 
         /******************************************************************************
-         * @brief This struct is used to store the predicted state of the bicycle.
+         * @brief This struct is used to store the predicted state of the unicycle.
          *
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
@@ -58,28 +59,28 @@ class BicycleModel
         /////////////////////////////////////////
 
         /******************************************************************************
-         * @brief Construct a new Bicycle Model object.
+         * @brief Construct a new Unicycle Model object.
          *
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
-        BicycleModel()
+        UnicycleModel()
         {
             // Initialize member variables.
             m_dWheelbase       = 0.0;
             m_dXPosition       = 0.0;
             m_dYPosition       = 0.0;
             m_dTheta           = 0.0;
-            m_dVelocity        = -1.0;
-            m_dSteeringAngle   = 0.0;
+            m_dVelocity        = 0.0;
+            m_dAngularVelocity = 0.0;
             m_tmLastUpdateTime = std::chrono::system_clock::now();
         }
 
         /******************************************************************************
-         * @brief Construct a new Bicycle Model object.
+         * @brief Construct a new Unicycle Model object.
          *
-         * @param dWheelbase - The distance between the front and rear axles of the rover.
+         * @param dWheelbase - The (optional) distance between the front and rear axles of the rover (kept for compatibility).
          * @param dXPosition - The x position of the rover.
          * @param dYPosition - The y position of the rover.
          * @param dTheta - The heading angle of the rover in degrees.
@@ -87,15 +88,15 @@ class BicycleModel
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
-        BicycleModel(const double dWheelbase, const double dXPosition, const double dYPosition, const double dTheta)
+        UnicycleModel(const double dWheelbase, const double dXPosition, const double dYPosition, const double dTheta)
         {
             // Initialize member variables.
             m_dWheelbase       = dWheelbase;
             m_dXPosition       = dXPosition;
             m_dYPosition       = dYPosition;
             m_dTheta           = dTheta;
-            m_dVelocity        = -1.0;
-            m_dSteeringAngle   = 0.0;
+            m_dVelocity        = 0.0;
+            m_dAngularVelocity = 0.0;
             m_tmLastUpdateTime = std::chrono::system_clock::now();
         }
 
@@ -115,8 +116,8 @@ class BicycleModel
             m_dXPosition       = dXPosition;
             m_dYPosition       = dYPosition;
             m_dTheta           = dTheta;
-            m_dSteeringAngle   = 0.0;
-            m_dVelocity        = -1.0;
+            m_dVelocity        = 0.0;
+            m_dAngularVelocity = 0.0;
             m_tmLastUpdateTime = std::chrono::system_clock::now();
         }
 
@@ -133,53 +134,57 @@ class BicycleModel
             m_dXPosition       = 0.0;
             m_dYPosition       = 0.0;
             m_dTheta           = 0.0;
-            m_dSteeringAngle   = 0.0;
-            m_dVelocity        = -1.0;
+            m_dVelocity        = 0.0;
+            m_dAngularVelocity = 0.0;
             m_tmLastUpdateTime = std::chrono::system_clock::now();
         }
 
         /******************************************************************************
          * @brief Update the state of the model, given a new position and heading.
-         *      This method will automatically calculate the velocity of the rover
-         *      base on the new and current position. The steering angle is also
-         *      updated automatically based on the new and current heading.
+         *      This method will automatically calculate the linear velocity and angular
+         *      velocity of the rover based on the new and current position/heading.
          *
          * @param dXPosition - The x position of the rover.
          * @param dYPosition - The y position of the rover.
          * @param dTheta - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         void UpdateState(const double dXPosition, const double dYPosition, const double dTheta)
         {
-            // Check if this is our first update.
-            if (m_dVelocity == -1.0)
+            // Calculate elapsed time in seconds but protect against extremely small dt.
+            std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+            double dTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmLastUpdateTime).count() / 1000.0;
+            if (dTimeElapsed < 1e-4)
             {
-                // Set the velocity to zero.
-                m_dVelocity = 0.0;
+                dTimeElapsed = 1e-4;    // prevent division by (near) zero and spurious velocities
             }
-            // Calculate the velocity of the rover as long as the new position is different from the current position.
-            else if (dXPosition != m_dXPosition || dYPosition != m_dYPosition)
-            {
-                // Calculate the velocity of the rover.
-                std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-                double dTimeElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmLastUpdateTime).count() / 1000.0;
-                m_dVelocity         = std::sqrt(std::pow(dXPosition - m_dXPosition, 2) + std::pow(dYPosition - m_dYPosition, 2)) / dTimeElapsed;
 
-                // Update the last update time.
+            // If our current state is zero (first update), just set the state without computing velocities.
+            if (m_dXPosition == 0.0 && m_dYPosition == 0.0 && m_dTheta == 0.0)
+            {
+                m_dXPosition       = dXPosition;
+                m_dYPosition       = dYPosition;
+                m_dTheta           = numops::InputAngleModulus(dTheta, 0.0, 360.0);
                 m_tmLastUpdateTime = tmCurrentTime;
+
+                return;
             }
 
-            // Calculate the steering angle of the rover.
-            m_dSteeringAngle = (std::atan2(dYPosition - m_dYPosition, dXPosition - m_dXPosition) * 180.0 / M_PI) - m_dTheta;
-            // Ensure the steering angle stays within 0-360 degrees.
-            m_dSteeringAngle = numops::InputAngleModulus(m_dSteeringAngle, 0.0, 360.0);
+            // Compute linear velocity from position change.
+            double dDist = std::sqrt(std::pow(dXPosition - m_dXPosition, 2) + std::pow(dYPosition - m_dYPosition, 2));
+            m_dVelocity  = dDist / dTimeElapsed;
 
-            // Update member variables.
-            m_dXPosition = dXPosition;
-            m_dYPosition = dYPosition;
-            m_dTheta     = dTheta;
+            // Compute angular velocity from change in heading (shortest angle) in degrees/sec.
+            double dAngleDiff  = numops::AngularDifference(dTheta, m_dTheta);    // returns signed smallest difference
+            m_dAngularVelocity = dAngleDiff / dTimeElapsed;
+
+            // Update last update time and state.
+            m_tmLastUpdateTime = tmCurrentTime;
+            m_dXPosition       = dXPosition;
+            m_dYPosition       = dYPosition;
+            m_dTheta           = numops::InputAngleModulus(dTheta, 0.0, 360.0);
         }
 
         /******************************************************************************
@@ -189,7 +194,7 @@ class BicycleModel
          * @param nNumPredictions - The number of predictions to make.
          * @param vPredictions - The vector of predictions to store the predicted states.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         void Predict(const double dTimeStep, const int nNumPredictions, std::vector<Prediction>& vPredictions)
@@ -202,14 +207,14 @@ class BicycleModel
             // Perform prediction for a specified number of time steps.
             for (int nIter = 0; nIter < nNumPredictions; ++nIter)
             {
-                // Convert theta from degrees to radians for calculation.
-                double dThetaRad         = dThetaPredicted * M_PI / 180.0;
-                double dSteeringAngleRad = m_dSteeringAngle * M_PI / 180.0;
+                // Convert theta from degrees to radians for position integration.
+                double dThetaRad = dThetaPredicted * M_PI / 180.0;
 
-                // Calculate the new state.
+                // Advance the state using unicycle kinematics:
+                // x_dot = v * sin(theta) ; y_dot = v * cos(theta) ; theta_dot = omega (degrees/sec)
                 dXPredicted += m_dVelocity * std::sin(dThetaRad) * dTimeStep;
                 dYPredicted += m_dVelocity * std::cos(dThetaRad) * dTimeStep;
-                dThetaPredicted += (m_dVelocity / m_dWheelbase) * std::tan(dSteeringAngleRad - M_PI_2) * dTimeStep;
+                dThetaPredicted += m_dAngularVelocity * dTimeStep;
 
                 // Ensure theta stays within 0-360 degrees.
                 dThetaPredicted = numops::InputAngleModulus(dThetaPredicted, 0.0, 360.0);
@@ -225,11 +230,11 @@ class BicycleModel
         /////////////////////////////////////////
 
         /******************************************************************************
-         * @brief Mutator for the Wheelbase private member
+         * @brief Mutator for the Wheelbase private member (kept for compatibility).
          *
          * @param dWheelbase - The distance between the front and rear axles of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         void SetWheelbase(const double dWheelbase) { m_dWheelbase = dWheelbase; }
@@ -239,7 +244,7 @@ class BicycleModel
          *
          * @param dXPosition - The x position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         void SetXPosition(const double dXPosition) { m_dXPosition = dXPosition; }
@@ -249,7 +254,7 @@ class BicycleModel
          *
          * @param dYPosition - The y position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         void SetYPosition(const double dYPosition) { m_dYPosition = dYPosition; }
@@ -259,20 +264,30 @@ class BicycleModel
          *
          * @param dTheta - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetTheta(const double dTheta) { m_dTheta = dTheta; }
+        void SetTheta(const double dTheta) { m_dTheta = numops::InputAngleModulus(dTheta, 0.0, 360.0); }
 
         /******************************************************************************
-         * @brief Mutator for the Steering Angle private member
+         * @brief Mutator for the linear velocity private member
          *
-         * @param dSteeringAngle - The steering angle of the rover in degrees.
+         * @param dVelocity - The linear velocity of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
-        void SetSteeringAngle(const double dSteeringAngle) { m_dSteeringAngle = dSteeringAngle; }
+        void SetVelocity(const double dVelocity) { m_dVelocity = dVelocity; }
+
+        /******************************************************************************
+         * @brief Mutator for the angular velocity private member
+         *
+         * @param dAngularVelocity - The angular velocity of the rover (deg/sec).
+         *
+         * @author clayjay3 (claytonraycow3@gmail.com)
+         * @date 2025-01-10
+         ******************************************************************************/
+        void SetAngularVelocity(const double dAngularVelocity) { m_dAngularVelocity = dAngularVelocity; }
 
         /////////////////////////////////////////
         // Getters.
@@ -283,7 +298,7 @@ class BicycleModel
          *
          * @return double - The distance between the front and rear axles of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         double GetWheelbase() const { return m_dWheelbase; }
@@ -293,7 +308,7 @@ class BicycleModel
          *
          * @return double - The x position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         double GetXPosition() const { return m_dXPosition; }
@@ -303,7 +318,7 @@ class BicycleModel
          *
          * @return double - The y position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         double GetYPosition() const { return m_dYPosition; }
@@ -313,7 +328,7 @@ class BicycleModel
          *
          * @return double - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         double GetTheta() const { return m_dTheta; }
@@ -321,22 +336,22 @@ class BicycleModel
         /******************************************************************************
          * @brief Accessor for the Velocity private member.
          *
-         * @return double - The velocity of the rover.
+         * @return double - The linear velocity of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         double GetVelocity() const { return m_dVelocity; }
 
         /******************************************************************************
-         * @brief Accessor for the Steering Angle private member.
+         * @brief Accessor for the Angular Velocity private member.
          *
-         * @return double - The steering angle of the rover in degrees.
+         * @return double - The angular velocity of the rover in degrees/sec.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author clayjay3 (claytonraycow3@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
-        double GetSteeringAngle() const { return m_dSteeringAngle; }
+        double GetAngularVelocity() const { return m_dAngularVelocity; }
 
     private:
         /////////////////////////////////////////
@@ -346,9 +361,9 @@ class BicycleModel
         double m_dWheelbase;
         double m_dXPosition;
         double m_dYPosition;
-        double m_dTheta;
-        double m_dVelocity;
-        double m_dSteeringAngle;
+        double m_dTheta;              // degrees 0-360
+        double m_dVelocity;           // meters/sec
+        double m_dAngularVelocity;    // degrees/sec
         std::chrono::system_clock::time_point m_tmLastUpdateTime;
 };
 #endif

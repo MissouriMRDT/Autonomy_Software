@@ -92,14 +92,33 @@ namespace pathplanners
         m_dSearchRadius = dSearchRadius;
         m_dMinTravScore = dMinTravScore;
 
+        // Store the start time.
+        std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
+
         // Initialize search for new start and end points.
         this->InitializeSearch(stStart, stEnd);
+        // Track time taken to initialize search.
+        std::chrono::time_point<std::chrono::high_resolution_clock> tmAfterInit = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> dInitDuration                             = tmAfterInit - tmStartTime;
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner search initialization took {:.6f} seconds.", dInitDuration.count());
 
         // Run A* search algorithm.
         this->SearchAStar();
+        // Track time taken to perform search.
+        std::chrono::time_point<std::chrono::high_resolution_clock> tmAfterSearch = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> dSearchDuration                             = tmAfterSearch - tmAfterInit;
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner A* search took {:.6f} seconds.", dSearchDuration.count());
 
         // Reconstruct the path from the predecessor map.
         std::vector<geoops::Waypoint> vPath = this->ReconstructPath();
+        // Track total time taken for path planning.
+        std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> dTotalDuration                          = tmEndTime - tmAfterSearch;
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner path reconstruction took {:.6f} seconds.", dTotalDuration.count());
+
+        // Log the total time taken for path planning.
+        std::chrono::duration<double> dOverallDuration = tmEndTime - tmStartTime;
+        LOG_NOTICE(logging::g_qSharedLogger, "GeoPlanner total path planning took {:.6f} seconds. Path is {} waypoints long.", dOverallDuration.count(), vPath.size());
 
         // Plot the path and terrain if requested.
         if (bPlotPath && !vPath.empty())
@@ -184,8 +203,7 @@ namespace pathplanners
         PlannerState stStartState = m_umAllStates[m_nStartID];
         stStartState.dGCost       = 0.0;
         // Heuristic cost (Euclidean distance to goal).
-        stStartState.dHCost =
-            std::sqrt(std::pow(stStartState.dEasting - m_umAllStates[m_nEndID].dEasting, 2) + std::pow(stStartState.dNorthing - m_umAllStates[m_nEndID].dNorthing, 2));
+        stStartState.dHCost = this->SquaredDistance(stStartState.dEasting, stStartState.dNorthing, m_umAllStates[m_nEndID].dEasting, m_umAllStates[m_nEndID].dNorthing);
         m_umAllStates[m_nStartID] = stStartState;
 
         // Push start into the open set priority queue.
@@ -237,8 +255,8 @@ namespace pathplanners
                 /*
                     Calculate the tentative G cost for this neighbor.
                 */
-                // Calculate distance.
-                double dDistance = std::sqrt(std::pow(stPoint.dEasting - stCurrentState.dEasting, 2) + std::pow(stPoint.dNorthing - stCurrentState.dNorthing, 2));
+                // Calculate Euclidean distance to neighbor.
+                double dDistance = this->SquaredDistance(stCurrentState.dEasting, stCurrentState.dNorthing, stPoint.dEasting, stPoint.dNorthing);
                 // Calculate traversal cost factor (inverse of traversal score).
                 double dTraversalCostFactor = m_dBeta * stPoint.dTraversalScore + 0.001;    // Avoid division by zero.
                 // Tentative G cost.
@@ -261,7 +279,7 @@ namespace pathplanners
 
                     // Heuristic cost (Euclidean distance to goal).
                     stNeighborState.dHCost =
-                        std::sqrt(std::pow(stPoint.dEasting - m_umAllStates[m_nEndID].dEasting, 2) + std::pow(stPoint.dNorthing - m_umAllStates[m_nEndID].dNorthing, 2));
+                        this->SquaredDistance(stNeighborState.dEasting, stNeighborState.dNorthing, m_umAllStates[m_nEndID].dEasting, m_umAllStates[m_nEndID].dNorthing);
                     // Update the state map.
                     m_umAllStates[stPoint.nID] = stNeighborState;
                     // Update the predecessor map.
@@ -399,7 +417,7 @@ namespace pathplanners
             }
 
             // Log info message.
-            LOG_INFO(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into cache.", nTileX, nTileY, vTilePoints.size());
+            LOG_DEBUG(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into cache.", nTileX, nTileY, vTilePoints.size());
         }
 
         // Check if this tile is already loaded into the KD-Tree.
@@ -420,16 +438,16 @@ namespace pathplanners
                 Optimize the KD-Tree after bulk insertion.
 
                 We don't want to optimize too often, so we'll just check the count of the
-                inserted tiles and optimize every 10 tiles loaded.
+                inserted tiles and optimize every so tiles loaded.
             */
-            if (m_usKDTreeInsertedTiles.size() % 10 == 0)
+            if (m_usKDTreeInsertedTiles.size() % 100 == 0)
             {
                 m_pKDTree->optimize();
                 LOG_INFO(logging::g_qSharedLogger, "Optimized KD-Tree after loading {} tiles.", m_usKDTreeInsertedTiles.size());
             }
 
             // Log info message.
-            LOG_INFO(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into KD-Tree.", nTileX, nTileY, vTilePoints.size());
+            LOG_DEBUG(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into KD-Tree.", nTileX, nTileY, vTilePoints.size());
         }
     }
 
@@ -516,17 +534,46 @@ namespace pathplanners
                 std::vector<geoops::Waypoint> stTerrainWaypoints;
                 const std::vector<LiDARHandler::PointRow>& vTilePoints = itCachedTile->second;
 
-                // Loop through the points and convert them to waypoints.
-                for (const LiDARHandler::PointRow& stPoint : vTilePoints)
+                // Subsample the points if there are too many to plot.
+                const size_t nMaxPointsToPlot = 10;
+                if (vTilePoints.size() > nMaxPointsToPlot)
                 {
-                    // Create a waypoint from the PointRow struct.
-                    geoops::Waypoint stWaypoint{
-                        geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone), (stPoint.dNorthing >= 0), stPoint.dAltitude),
-                        geoops::WaypointType::eNavigationWaypoint,
-                        0.01,
-                        stPoint.nID};
-                    // Add the waypoint to the terrain waypoints vector.
-                    stTerrainWaypoints.push_back(stWaypoint);
+                    double dSubsampleFactor = static_cast<double>(vTilePoints.size()) / static_cast<double>(nMaxPointsToPlot);
+                    std::vector<LiDARHandler::PointRow> vSubsampledPoints;
+                    for (size_t i = 0; i < vTilePoints.size(); i += static_cast<size_t>(dSubsampleFactor))
+                    {
+                        vSubsampledPoints.push_back(vTilePoints[i]);
+                    }
+                    // Use the subsampled points for plotting.
+                    stTerrainWaypoints.reserve(vSubsampledPoints.size());
+                    for (const LiDARHandler::PointRow& stPoint : vSubsampledPoints)
+                    {
+                        // Create a waypoint from the PointRow struct.
+                        geoops::Waypoint stWaypoint{
+                            geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone), (stPoint.dNorthing >= 0), stPoint.dAltitude),
+                            geoops::WaypointType::eNavigationWaypoint,
+                            0.01,
+                            stPoint.nID};
+                        // Add the waypoint to the terrain waypoints vector.
+                        stTerrainWaypoints.push_back(stWaypoint);
+                    }
+                }
+                else
+                {
+                    // Use all points if under the max limit.
+                    stTerrainWaypoints.reserve(vTilePoints.size());
+
+                    for (const LiDARHandler::PointRow& stPoint : vTilePoints)
+                    {
+                        // Create a waypoint from the PointRow struct.
+                        geoops::Waypoint stWaypoint{
+                            geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone), (stPoint.dNorthing >= 0), stPoint.dAltitude),
+                            geoops::WaypointType::eNavigationWaypoint,
+                            0.01,
+                            stPoint.nID};
+                        // Add the waypoint to the terrain waypoints vector.
+                        stTerrainWaypoints.push_back(stWaypoint);
+                    }
                 }
 
                 // Add the waypoints to the path tracer.
@@ -538,4 +585,24 @@ namespace pathplanners
         m_pPathTracer->AddPathPoints(vPath, "RoverPath", 0);
     }
 
+    /******************************************************************************
+     * @brief Calculate the squared distance between two UTM coordinates.
+     *
+     * @param dEasting1 - The easting of the first point.
+     * @param dNorthing1 - The northing of the first point.
+     * @param dEasting2 - The easting of the second point.
+     * @param dNorthing2 - The northing of the second point.
+     * @return double - The squared distance between the two points.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-10-20
+     ******************************************************************************/
+    double GeoPlanner::SquaredDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const
+    {
+        // Calculate squared distance between two points.
+        double dDiffX = dEasting1 - dEasting2;
+        double dDiffY = dNorthing1 - dNorthing2;
+
+        return dDiffX * dDiffX + dDiffY * dDiffY;
+    }
 }    // namespace pathplanners
