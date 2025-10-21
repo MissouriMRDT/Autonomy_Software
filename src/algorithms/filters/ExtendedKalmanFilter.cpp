@@ -102,7 +102,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-03
      ******************************************************************************/
-    void ExtendedKalmanFilter::SetGPSNoise(double dSigmaHor, double dSigmaVer)
+    void ExtendedKalmanFilter::SetGPSNoise(double dSigmaHor, double dSigmaVer)    // TODO: change inputs
     {
         // Clear existing covariance
         m_eiGPSCovariance.setZero();
@@ -113,6 +113,21 @@ namespace filters
 
         // Vertical noise (Z = Up/Down)
         m_eiGPSCovariance(2, 2) = dSigmaVer * dSigmaVer;    // variance in Z
+    }
+
+    /******************************************************************************
+     * @brief This will update the GPS noise.
+     *
+     * @param stCoord - The GPS coordinate //TODO: may change
+     * @param tmTimestamp - The current timestamp.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-21
+     ******************************************************************************/
+    void UpdateGPS(const geoops::GPSCoordinate& stCoord, std::chrono::system_clock::time_point tmTimestamp)
+    {
+        // TODO: implement
+        return;
     }
 
     /******************************************************************************
