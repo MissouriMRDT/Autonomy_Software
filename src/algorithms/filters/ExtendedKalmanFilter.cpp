@@ -79,6 +79,43 @@ namespace filters
     }
 
     /******************************************************************************
+     * @brief This will set the initial guess for the Extended Kalman Filter.
+     *
+     * @param eiInitState - The state snapshot of the initial state.
+     * @param eiInitCovariance - The initial overall noise covariance matrix for the filter.
+     *
+     * @author Sam Hajdukiewic (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-21
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance)
+    {
+        // TODO: implement
+        return;
+    }
+
+    /******************************************************************************
+     * @brief This will set the GPS data noise.
+     *
+     * @param dSigmaHor - The standard deviation of the horizontal GPS noise.
+     * @param dSigmaVer - The standard deviation of the vertical GPS noise.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-03
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetGPSNoise(double dSigmaHor, double dSigmaVer)
+    {
+        // Clear existing covariance
+        m_eiGPSCovariance.setZero();
+
+        // Horizontal noise (X = East/West, Y = North/South)
+        m_eiGPSCovariance(0, 0) = dSigmaHor * dSigmaHor;    // variance in X
+        m_eiGPSCovariance(1, 1) = dSigmaHor * dSigmaHor;    // variance in Y
+
+        // Vertical noise (Z = Up/Down)
+        m_eiGPSCovariance(2, 2) = dSigmaVer * dSigmaVer;    // variance in Z
+    }
+
+    /******************************************************************************
      * @brief Converts a RoverPose to position and orientation vectors to make vector math easier.
      *
      * @param stPose - The current RoverPose.
@@ -111,8 +148,6 @@ namespace filters
      ******************************************************************************/
     geoops::RoverPose ExtendedKalmanFilter::ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const
     {
-        // TODO: make sure that math is right (i think it is)
-
         // Convert position vector to GPSCoordinate
         geoops::GPSCoordinate stCoord;
         stCoord.dLatitude  = eiPosition(0);
@@ -125,25 +160,4 @@ namespace filters
         return geoops::RoverPose(stCoord, dHeading);
     }
 
-    /******************************************************************************
-     * @brief This will set the GPS data noise.
-     *
-     * @param dSigmaHor - The standard deviation of the horizontal GPS noise.
-     * @param dSigmaVer - The standard deviation of the vertical GPS noise.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-03
-     ******************************************************************************/
-    void ExtendedKalmanFilter::SetGPSNoise(double dSigmaHor, double dSigmaVer)
-    {
-        // Clear existing covariance
-        m_eiGPSCovariance.setZero();
-
-        // Horizontal noise (X = East/West, Y = North/South)
-        m_eiGPSCovariance(0, 0) = dSigmaHor * dSigmaHor;    // variance in X
-        m_eiGPSCovariance(1, 1) = dSigmaHor * dSigmaHor;    // variance in Y
-
-        // Vertical noise (Z = Up/Down)
-        m_eiGPSCovariance(2, 2) = dSigmaVer * dSigmaVer;    // variance in Z
-    }
 }    // namespace filters
