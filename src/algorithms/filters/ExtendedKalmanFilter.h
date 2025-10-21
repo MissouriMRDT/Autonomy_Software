@@ -59,7 +59,6 @@ namespace filters
             ExtendedKalmanFilter();
             // TODO: change inputs if needed
             ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
-                                 const Eigen::Vector3d& eiInitVel,
                                  double dSigmaAcc,
                                  double dSigmaGyro,
                                  double dSigmaAccBias,

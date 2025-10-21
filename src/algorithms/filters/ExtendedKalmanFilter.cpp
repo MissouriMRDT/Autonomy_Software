@@ -51,7 +51,6 @@ namespace filters
      * @date 2025-09-30
      ******************************************************************************/
     ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
-                                               const Eigen::Vector3d& eiInitVel,
                                                double dSigmaAcc,
                                                double dSigmaGyro,
                                                double dSigmaAccBias,
