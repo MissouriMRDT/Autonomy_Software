@@ -72,7 +72,8 @@ namespace filters
         m_dSigmaGPSHor              = stInitGPS.dLatitude;
         m_dSigmaGPSVer              = stInitGPS.dLongitude;
         // This will set the values for the position vector and orientation quaternion.
-        FromRoverPose(stInitPose, m_eiPosition, m_eiOrientation);
+        RoverPoseToGPS(stInitPose, m_eiPosition);
+        RoverPoseToOrientation(stInitPose, m_eiOrientation);
 
         // TODO: do the ugly math for initialization :sob: :cry:
     }
@@ -124,7 +125,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-21
      ******************************************************************************/
-    void UpdateGPS(const geoops::GPSCoordinate& stCoord)
+    void ExtendedKalmanFilter::UpdateGPS(const geoops::GPSCoordinate& stCoord)
     {
         // Check if there is an initial guess set.
         if (!m_bHasInitialGuess)
@@ -134,7 +135,6 @@ namespace filters
         m_tmLastGPSUpdate = stCoord.tmTimestamp;
 
         // Convert GPS to ENU
-        // TODO: idk why this isn't working i'm kinda dumb
         Eigen::Vector3d eiZMeasure = ConvertGPSToENU(stCoord);
 
         // Build measurement noise matrix (R)
@@ -147,11 +147,12 @@ namespace filters
         eiR_gps(2, 2)           = dSigma_z * dSigma_z;
 
         // Extract predicted state
-        Eigen::Vector3d eiXpred = m_stInitialState.stPose.position;       // From RoverPose
+        RoverPoseToGPS(m_stInitialState.stPose, m_eiPosition);
+        Eigen::Vector3d eiXpred = m_eiPosition;                           // From RoverPose
         Eigen::Matrix3d eiPpos  = m_eiErrorStateCov.block<3, 3>(0, 0);    // top-left 3x3 position covariance
 
         //  Compute innovation (residual)
-        Eigen::Vector3d eiY_tilde = eiZMeasure - eiXPred;
+        Eigen::Vector3d eiY_tilde = eiZMeasure - eiXpred;
 
         // Compute innovation covariance (S)
         Eigen::Matrix3d eiS = eiPpos + eiR_gps;
@@ -163,7 +164,7 @@ namespace filters
         Eigen::Vector3d eiXUpdate = eiXPred + eiK * eiY_tilde;
 
         // Store updated position back into pose
-        m_stInitialState.stPose.position = eiXUpdate;
+        m_eiPosition = eiXUpdate;
 
         // Update covariance
         Eigen::Matrix3d eiI = Eigen::Matrix3d::Identity();
@@ -201,24 +202,36 @@ namespace filters
     }
 
     /******************************************************************************
-     * @brief Converts a RoverPose to position and orientation vectors to make vector math easier.
+     * @brief Converts a RoverPose to orientation quaternion.
      *
      * @param stPose - The current RoverPose.
-     * @param eiPosition - The position vector.
      * @param eiOrientation - The orientation quaternion.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-03
      ******************************************************************************/
-    void ExtendedKalmanFilter::FromRoverPose(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition, Eigen::Quaterniond& eiOrientation) const
+    void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
+    {
+        // Convert heading to orientation quaternion
+        double dHeading = stPose.GetCompassHeading();
+        eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
+    }
+
+    /******************************************************************************
+     * @brief Converts a RoverPose to position vector.
+     *
+     * @param stPose - The current RoverPose.
+     * @param eiPosition - The position vector.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-03
+     ******************************************************************************/
+    void ExtendedKalmanFilter::RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const
     {
         // Convert GPSCoordinate to position vector
         eiPosition(0) = stPose.GetGPSCoordinate().dLatitude;
         eiPosition(1) = stPose.GetGPSCoordinate().dLongitude;
         eiPosition(2) = stPose.GetGPSCoordinate().dAltitude;
-        // Convert heading to orientation quaternion
-        double dHeading = stPose.GetCompassHeading();
-        eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
     }
 
     /******************************************************************************

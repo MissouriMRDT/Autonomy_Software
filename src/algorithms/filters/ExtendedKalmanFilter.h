@@ -97,7 +97,8 @@ namespace filters
             // Takes position and orientation/heading vectors to turn them into RoverPoses.
             geoops::RoverPose ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
             // Takes RoverPose and converts it into position and orientation vectors.
-            void FromRoverPose(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition, Eigen::Quaterniond& eiOrientation) const;
+            void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
+            void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
             // Takes GPS coordinate and converts it to ENU.
             Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
 
