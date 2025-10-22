@@ -56,7 +56,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-09-30
      ******************************************************************************/
-    ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
+    ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
                                                const Eigen::Matrix3d& eiAccelCov,
                                                const Eigen::Matrix3d& eiGyroCov,
                                                const double dSigmaAccel,
@@ -118,6 +118,22 @@ namespace filters
     }
 
     /******************************************************************************
+     * @brief This will set the compass/heading noise.
+     *
+     * @param dSigmaYaw - The standard deviation of the yaw.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-22
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetCompassNoise(double dSigmaYaw)
+    {
+        m_eiHeadingCovariance.setZero();
+        double dYawSquared = dSigmaYaw * dSigmaYaw;
+        // (0, 0), (1, 1), and (2, 2)
+        m_eiHeadingCovariance.diagonal() << dYawSquared, dYawSquared, dYawSquared;
+    }
+
+    /******************************************************************************
      * @brief This will update the GPS noise.
      *
      * @param stCoord - The GPS coordinate.
@@ -127,7 +143,8 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::UpdateGPS(const geoops::GPSCoordinate& stCoord)
     {
-        // Check if there is an initial guess set.
+        // TODO: Look into this and see if math needs to be changed
+        //  Check if there is an initial guess set.
         if (!m_bHasInitialGuess)
             return;
 

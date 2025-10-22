@@ -55,7 +55,7 @@ namespace filters
             /////////////////////////////////////////
 
             ExtendedKalmanFilter();
-            ExtendedKalmanFilter(const geoops::RoverPose stInitPose,
+            ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
                                  const Eigen::Matrix3d& eiAccelCov,
                                  const Eigen::Matrix3d& eiGyroCov,
                                  const double dSigmaAccel,
@@ -96,11 +96,9 @@ namespace filters
             /////////////////////////////////////////
             // Takes position and orientation/heading vectors to turn them into RoverPoses.
             geoops::RoverPose ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
-            // Takes RoverPose and converts it into position and orientation vectors.
             void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
             void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
-            // Takes GPS coordinate and converts it to ENU.
-            Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
+            Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
 
             // TODO: go back and see if any member vars are missing
         private:
@@ -110,6 +108,7 @@ namespace filters
 
             bool m_bHasInitialGuess = false;                                      // Whether or not there is an initial guess
             XStateSnapshot m_stInitialState;                                      // To store the original state snapshot
+            XStateSnapshot m_stCurrentState;                                      // The current state
             std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
             std::list<XStateSnapshot> m_liXStateHistory;        // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
             Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;    // The covariance matrix for the error-state
