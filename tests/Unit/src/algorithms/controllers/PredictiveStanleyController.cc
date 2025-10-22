@@ -80,8 +80,7 @@ TEST_F(PredictiveStanleyControllerTests, DefaultConstructor)
 {
     controllers::PredictiveStanleyController Controller;
     EXPECT_NEAR(Controller.GetControlGain(), constants::STANLEY_CROSSTRACK_CONTROL_GAIN, 0.01);
-    EXPECT_NEAR(Controller.GetSteeringAngleLimit(), constants::STANLEY_STEERING_ANGLE_LIMIT, 0.01);
-    EXPECT_NEAR(Controller.GetWheelbase(), constants::STANLEY_WHEELBASE, 0.01);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), constants::STANLEY_ANGULAR_VELOCITY_LIMIT, 0.01);
 }
 
 /******************************************************************************
@@ -93,10 +92,10 @@ TEST_F(PredictiveStanleyControllerTests, DefaultConstructor)
  ******************************************************************************/
 TEST_F(PredictiveStanleyControllerTests, ParameterizedConstructor)
 {
-    controllers::PredictiveStanleyController Controller(2.0, 30.0, 1.5, 10, 0.1);
+    controllers::PredictiveStanleyController Controller(2.0, 1.5, 10, 0.1);
     EXPECT_NEAR(Controller.GetControlGain(), 2.0, 0.01);
-    EXPECT_NEAR(Controller.GetSteeringAngleLimit(), 30.0, 0.01);
-    EXPECT_NEAR(Controller.GetWheelbase(), 1.5, 0.01);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), 10, 0.01);
+    // EXPECT_NEAR(Controller.GetWheelbase(), 1.5, 0.01);
 }
 
 /******************************************************************************
@@ -114,17 +113,17 @@ TEST_F(PredictiveStanleyControllerTests, SetControlGain)
 }
 
 /******************************************************************************
- * @brief Test the SetSteeringAngleLimit method of PredictiveStanleyController.
+ * @brief Test the SetAngularVelocityLimit method of PredictiveStanleyController.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-02-11
  ******************************************************************************/
-TEST_F(PredictiveStanleyControllerTests, SetSteeringAngleLimit)
+TEST_F(PredictiveStanleyControllerTests, SetAngularVelocityLimit)
 {
     controllers::PredictiveStanleyController Controller;
-    Controller.SetSteeringAngleLimit(25.0);
-    EXPECT_NEAR(Controller.GetSteeringAngleLimit(), 25.0, 0.01);
+    Controller.SetAngularVelocityLimit(25.0);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), 25.0, 0.01);
 }
 
 /******************************************************************************
@@ -134,12 +133,12 @@ TEST_F(PredictiveStanleyControllerTests, SetSteeringAngleLimit)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-02-11
  ******************************************************************************/
-TEST_F(PredictiveStanleyControllerTests, SetWheelbase)
-{
-    controllers::PredictiveStanleyController Controller;
-    Controller.SetWheelbase(1.8);
-    EXPECT_NEAR(Controller.GetWheelbase(), 1.8, 0.01);
-}
+// TEST_F(PredictiveStanleyControllerTests, SetWheelbase)
+//{
+//     controllers::PredictiveStanleyController Controller;
+//     Controller.SetWheelbase(1.8);
+//     EXPECT_NEAR(Controller.GetWheelbase(), 1.8, 0.01);
+// }
 
 /******************************************************************************
  * @brief Test the SetReferencePath method of PredictiveStanleyController.
