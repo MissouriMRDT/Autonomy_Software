@@ -61,8 +61,7 @@ namespace filters
                                                const Eigen::Matrix3d& eiGyroCov,
                                                const double dSigmaAccel,
                                                const double dSigmaGyro,
-                                               double dSigmaGPSHor,
-                                               double dSigmaGPSVer,
+                                               const geoops::GPSCoordinate& stInitGPS,
                                                double dSigmaYaw)
     {
         // Initialize member variables
@@ -70,8 +69,8 @@ namespace filters
         m_eiGyroscopeCovariance     = eiGyroCov;
         m_dSigmaAcc                 = dSigmaAccel;
         m_dSigmaGyro                = dSigmaGyro;
-        m_dSigmaGPSHor              = dSigmaGPSHor;
-        m_dSigmaGPSVer              = dSigmaGPSVer;
+        m_dSigmaGPSHor              = stInitGPS.dLatitude;
+        m_dSigmaGPSVer              = stInitGPS.dLongitude;
         // This will set the values for the position vector and orientation quaternion.
         FromRoverPose(stInitPose, m_eiPosition, m_eiOrientation);
 
@@ -96,16 +95,18 @@ namespace filters
     /******************************************************************************
      * @brief This will set the GPS data noise.
      *
-     * @param dSigmaHor - The standard deviation of the horizontal GPS noise.
-     * @param dSigmaVer - The standard deviation of the vertical GPS noise.
+     * @param stCoord - The GPS coordinate.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-03
      ******************************************************************************/
-    void ExtendedKalmanFilter::SetGPSNoise(double dSigmaHor, double dSigmaVer)    // TODO: change inputs
+    void ExtendedKalmanFilter::SetGPSNoise(const geoops::GPSCoordinate& stCoord)
     {
         // Clear existing covariance
         m_eiGPSCovariance.setZero();
+
+        double dSigmaHor = (stCoord.d2DAccuracy > 0.0) ? stCoord.d2DAccuracy : 1.0;
+        double dSigmaVer = (stCoord.d3DAccuracy > 0.0) ? stCoord.d3DAccuracy : 2.0;
 
         // Horizontal noise (X = East/West, Y = North/South)
         m_eiGPSCovariance(0, 0) = dSigmaHor * dSigmaHor;    // variance in X
@@ -118,16 +119,85 @@ namespace filters
     /******************************************************************************
      * @brief This will update the GPS noise.
      *
-     * @param stCoord - The GPS coordinate //TODO: may change
-     * @param tmTimestamp - The current timestamp.
+     * @param stCoord - The GPS coordinate.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-21
      ******************************************************************************/
-    void UpdateGPS(const geoops::GPSCoordinate& stCoord, std::chrono::system_clock::time_point tmTimestamp)
+    void UpdateGPS(const geoops::GPSCoordinate& stCoord)
     {
-        // TODO: implement
+        // Check if there is an initial guess set.
+        if (!m_bHasInitialGuess)
+            return;
+
+        // Save time updated.
+        m_tmLastGPSUpdate = stCoord.tmTimestamp;
+
+        // Convert GPS to ENU
+        // TODO: idk why this isn't working i'm kinda dumb
+        Eigen::Vector3d eiZMeasure = ConvertGPSToENU(stCoord);
+
+        // Build measurement noise matrix (R)
+        double dSigma_xy        = (stCoord.d2DAccuracy > 0.1) ? stCoord.d2DAccuracy : 1.0;
+        double dSigma_z         = (stCoord.d3DAccuracy > 0.1) ? stCoord.d3DAccuracy : 2.0;
+
+        Eigen::Matrix3d eiR_gps = Eigen::Matrix3d::Zero();
+        eiR_gps(0, 0)           = dSigma_xy * dSigma_xy;
+        eiR_gps(1, 1)           = dSigma_xy * dSigma_xy;
+        eiR_gps(2, 2)           = dSigma_z * dSigma_z;
+
+        // Extract predicted state
+        Eigen::Vector3d eiXpred = m_stInitialState.stPose.position;       // From RoverPose
+        Eigen::Matrix3d eiPpos  = m_eiErrorStateCov.block<3, 3>(0, 0);    // top-left 3x3 position covariance
+
+        //  Compute innovation (residual)
+        Eigen::Vector3d eiY_tilde = eiZMeasure - eiXPred;
+
+        // Compute innovation covariance (S)
+        Eigen::Matrix3d eiS = eiPpos + eiR_gps;
+
+        // Compute Kalman gain (K)
+        Eigen::Matrix3d eiK = eiPpos * eiS.inverse();
+
+        // Update state estimate
+        Eigen::Vector3d eiXUpdate = eiXPred + eiK * eiY_tilde;
+
+        // Store updated position back into pose
+        m_stInitialState.stPose.position = eiXUpdate;
+
+        // Update covariance
+        Eigen::Matrix3d eiI = Eigen::Matrix3d::Identity();
+        eiPpos              = (eiI - eiK) * eiPpos;
+
+        // Write updated block back into full covariance
+        m_eiErrorStateCov.block<3, 3>(0, 0) = eiPpos;
+
         return;
+    }
+
+    /******************************************************************************
+     * @brief This will convert a GPS coordinate into ENU.
+     *
+     * @param stCoord - The GPS coordinate.
+     * @return Eigen::Vector3d - The ENU vector.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-22
+     ******************************************************************************/
+    Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord)
+    {
+        static geoops::GPSCoordinate stGpsRef = stCoord;      // First coordinate for reference
+        double dEarthRadius                   = 6378137.0;    // Meters
+
+        double dLat                           = (stCoord.dLatitude - stGpsRef.dLatitude) * M_PI / 180.0;
+        double dLon                           = (stCoord.dLongitude - stGpsRef.dLongitude) * M_PI / 180.0;
+        double avgLat                         = (stCoord.dLatitude + stGpsRef.dLatitude) * 0.5 * M_PI / 180.0;
+
+        double dx                             = dEarthRadius * dLon * cos(avgLat);         // East
+        double dy                             = dEarthRadius * dLat;                       // North
+        double dz                             = stCoord.dAltitude - stGpsRef.dAltitude;    // Up
+
+        return Eigen::Vector3d(dx, dy, dz);
     }
 
     /******************************************************************************

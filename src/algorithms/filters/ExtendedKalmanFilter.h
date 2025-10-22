@@ -60,8 +60,7 @@ namespace filters
                                  const Eigen::Matrix3d& eiGyroCov,
                                  const double dSigmaAccel,
                                  const double dSigmaGyro,
-                                 double dSigmaGPSHor,
-                                 double dSigmaGPSVer,
+                                 const geoops::GPSCoordinate& stInitGPS,
                                  double dSigmaYaw);
             ~ExtendedKalmanFilter();
 
@@ -71,7 +70,7 @@ namespace filters
 
             // TODO: Figure out what should be const
             void SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance);
-            void SetGPSNoise(double dSigmaHor, double dSigmaVer);
+            void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
             void SetCompassNoise(double dSigmaYaw);
 
             /////////////////////////////////////////
@@ -82,7 +81,7 @@ namespace filters
             void Predict(Eigen::Vector3d& eiAccelMeas, Eigen::Vector3d& eiGyroMeas, std::chrono::system_clock::time_point tmTimestamp);
 
             //  Methods for updating values
-            void UpdateGPS(const geoops::GPSCoordinate& stCoord, std::chrono::system_clock::time_point tmTimestamp);
+            void UpdateGPS(const geoops::GPSCoordinate& stCoord);
             void UpdateYaw(double dYaw, std::chrono::system_clock::time_point tmTimestamp);
             void UpdateHeading(Eigen::Vector3d dHeading, std::chrono::system_clock::time_point tmTimestamp);
 
@@ -99,6 +98,8 @@ namespace filters
             geoops::RoverPose ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
             // Takes RoverPose and converts it into position and orientation vectors.
             void FromRoverPose(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition, Eigen::Quaterniond& eiOrientation) const;
+            // Takes GPS coordinate and converts it to ENU.
+            Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
 
             // TODO: go back and see if any member vars are missing
         private:
