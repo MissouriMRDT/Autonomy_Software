@@ -92,8 +92,8 @@ namespace pathplanners
             std::vector<geoops::Waypoint> PlanPath(LiDARHandler* pLiDARHandler,
                                                    const geoops::UTMCoordinate& stStart,
                                                    const geoops::UTMCoordinate& stEnd,
-                                                   double dBeta         = 1000.0,
-                                                   double dSearchRadius = 5.0,
+                                                   double dBeta         = 1.0,
+                                                   double dSearchRadius = 2.0,
                                                    double dMinTravScore = 0.5,
                                                    bool bPlotPath       = false);
             void ClearGeoCache();
