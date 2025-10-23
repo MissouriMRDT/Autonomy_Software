@@ -505,6 +505,8 @@ void ZEDCam::ThreadedContinuousCode()
             if (m_bGNSSPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
             {
                 // Grab regular resized image and store it in member variable.
+		/* NOTE: In cases where the GNSS point cloud and regular point cloud are retrieved in the same iteration, 
+		   the point cloud is gathered from the ZED SDK twice, which could be optimized. */
                 slReturnCode = m_slCamera.retrieveMeasure(m_slGNSSPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
                 // Check that the regular frame was retrieved successfully.
                 if (slReturnCode != sl::ERROR_CODE::SUCCESS)
