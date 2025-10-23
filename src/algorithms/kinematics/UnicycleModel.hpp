@@ -103,8 +103,8 @@ class UnicycleModel
          * @param dYPosition - The y position of the rover.
          * @param dTheta - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-4
          ******************************************************************************/
         void ResetState(const double dXPosition, const double dYPosition, const double dTheta)
         {
@@ -121,8 +121,8 @@ class UnicycleModel
          * @brief Resets the state of the model to a default state.
          *
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         void ResetState()
         {
@@ -145,8 +145,8 @@ class UnicycleModel
          * @param dYPosition - The y position of the rover.
          * @param dTheta - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         void UpdateState(const double dXPosition, const double dYPosition, const double dTheta)
         {
@@ -181,8 +181,8 @@ class UnicycleModel
          * @param nNumPredictions - The number of predictions to make.
          * @param vPredictions - The vector of predictions to store the predicted states.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         void Predict(const double dTimeStep, const int nNumPredictions, std::vector<Prediction>& vPredictions)
         {
@@ -220,8 +220,8 @@ class UnicycleModel
          *
          * @param dXPosition - The x position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         void SetXPosition(const double dXPosition) { m_dXPosition = dXPosition; }
 
@@ -230,7 +230,7 @@ class UnicycleModel
          *
          * @param dYPosition - The y position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @author Bailey Schoenike (baileyps03@gmail.com)
          * @date 2025-01-10
          ******************************************************************************/
         void SetYPosition(const double dYPosition) { m_dYPosition = dYPosition; }
@@ -240,8 +240,8 @@ class UnicycleModel
          *
          * @param dTheta - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         void SetTheta(const double dTheta) { m_dTheta = dTheta; }
 
@@ -264,8 +264,8 @@ class UnicycleModel
          *
          * @return double - The x position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         double GetXPosition() const { return m_dXPosition; }
 
@@ -274,8 +274,8 @@ class UnicycleModel
          *
          * @return double - The y position of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         double GetYPosition() const { return m_dYPosition; }
 
@@ -284,8 +284,8 @@ class UnicycleModel
          *
          * @return double - The heading angle of the rover in degrees.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         double GetTheta() const { return m_dTheta; }
 
@@ -294,8 +294,8 @@ class UnicycleModel
          *
          * @return double - The velocity of the rover.
          *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-01-10
+         * @author Bailey Schoenike (baileyps03@gmail.com)
+         * @date 2025-10-04
          ******************************************************************************/
         double GetVelocity() const { return m_dVelocity; }
 
