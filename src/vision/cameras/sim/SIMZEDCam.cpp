@@ -593,9 +593,6 @@ std::future<bool> SIMZEDCam::RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud)
     // Release lock on the frame schedule queue.
     lkSchedulers.unlock();
 
-    // Apply GNSS scaling factor and rover pose offset to point cloud data
-    // TODO Implement
-
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }

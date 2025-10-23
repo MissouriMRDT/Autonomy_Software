@@ -13,6 +13,10 @@
 #include "../../util/NumberOperations.hpp"
 #include "../../util/vision/ImageOperations.hpp"
 
+
+// GNSS to meter offset scaling factor based on https://gis.stackexchange.com/questions/2951/algorithm-for-offsetting-latitude-longitude-by-some-amount-of-meters
+#define GNSS_TO_METER 1.0/111111
+
 /******************************************************************************
  * @brief Construct a new Zed Cam:: Zed Cam object.
  *
@@ -514,8 +518,31 @@ void ZEDCam::ThreadedContinuousCode()
                 }
 		else 
 		{
-			// Perform scaling and pose offset to translate distance point cloud into GNSS point cloud
-			// TODO: Implement GNSS calculations here
+		    // Perform scaling and pose offset to translate distance point cloud into GNSS point cloud
+		    // TEST: Build and test this to ensure correctness
+		    for (int x = 0; x < m_slGNSSPointCloud.getWidth(); x++)
+		    {
+		        for (int y = 0; y < m_slGNSSPointCloud.getHeight(); y++)
+			{
+			    // Get point cloud value
+			    sl::float4 slPoint;
+			    m_s1GNSSPointCloud.getValue(x, y, &slPoint);
+
+			    // Apply scaling factor
+			    slPoint.z *= GNSS_TO_METER;
+			    slPoint.x *= std::cos(slPoint.z) * GNSS_TO_METER;
+
+			    // Offset by rover pose
+			    sPos = geoops::Roverpose.GetGPSCoordinate();
+			    slPoint.z += sPos.dLatitude;
+			    slPoint.x += sPos.dLongitude;
+			    slPoint.y += dAltitude;
+
+			    // Set updated GNSS value
+			    m_slGNSSPointCloud.setValue(x, y, $slPoint);
+
+			}
+		    }
 		}
             }
 
