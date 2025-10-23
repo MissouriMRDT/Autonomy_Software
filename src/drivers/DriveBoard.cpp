@@ -15,6 +15,7 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 #include "../AutonomyNetworking.h"
+#include "../vision/cameras/ZEDCam.h"
 
 /// \cond
 #include <RoveComm/RoveCommManifest.h>
@@ -185,6 +186,59 @@ void DriveBoard::SendStop()
 }
 
 /******************************************************************************
+ * @brief
+ *
+ * @return
+ *
+ * @author
+ * @date
+ ******************************************************************************/
+float DriveBoard::VariableDriveEffort()
+{
+    // Get pointer to camera.
+    std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    // Declare data structures to store data in.
+    ZEDCam::Pose stPose;
+    sl::SensorsData slSensorData;
+
+    while (true)
+    {
+        // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
+        std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+
+        // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
+        if (fuCopyStatus.get())
+        {
+            // Declare roll, pitch, yaw from sensor data
+            float fRoll  = stPose.stEulerAngles.dXO;
+            float fPitch = stPose.stEulerAngles.dYO;
+            float fYaw   = stPose.stEulerAngles.dZO;
+
+            // Calculate the risk factor to be applied to the linear polarization equation
+            float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
+
+            // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
+            if (fTheta <= m_fMinSlope)
+                return m_fMaxDamp;
+            if (fTheta >= m_fMaxSlope)
+                return m_fMinDamp;
+
+            // Calculate multiplier using linear polarization
+            const float k = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
+            float D       = m_fMaxDamp - k * (fTheta - m_fMinSlope);
+
+            // Return multiplier
+            return std::clamp(D, m_fMinDamp, m_fMaxDamp);
+        }
+        else
+        {
+            // Something went wrong, the camera got to our request but said it wasn't able to get the data correctly.
+            return 1;
+        }
+    }
+}
+
+/******************************************************************************
  * @brief Set the max power limits of the drive.
  *
  * @param fMinDriveEffort - A multiplier from 0-1 for the max power output of the drive.
@@ -201,9 +255,11 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     // Clamp the multiplier to the range [0, 1].
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
+    float VariableSpeedMultiplier          = VariableDriveEffort();
+
     // Update member variables.
-    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
-    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
+    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier * VariableSpeedMultiplier;
+    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier * VariableSpeedMultiplier;
 }
 
 /******************************************************************************

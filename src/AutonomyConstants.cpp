@@ -90,6 +90,15 @@ namespace constants
     const bool DRIVE_PID_OUTPUT_REVERSED     = false;    // Negates the output of the PID controller.
     const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // Whether to enable turning in-place when using curvature drive control.
+
+    // Drive Board constants
+    const float DRIVE_BOARD_MIN_SLOPE    = 5.0;
+    const float DRIVE_BOARD_MAX_SLOPE    = 30.0;
+    const float DRIVE_BOARD_MIN_DAMP     = 0.5;
+    const float DRIVE_BOARD_MAX_DAMP     = 1.0;
+    const float DRIVE_BOARD_ROLL_WEIGHT  = 0.6;
+    const float DRIVE_BOARD_PITCH_WEIGHT = 0.4;
+    const float DRIVE_BOARD_YAW_WEIGHT   = 0.0;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
