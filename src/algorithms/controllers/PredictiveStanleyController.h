@@ -91,11 +91,9 @@ namespace controllers
             // Declare private member variables.
             /////////////////////////////////////////
 
-            // BicycleModel m_BicycleModel;
             UnicycleModel m_UnicycleModel;
             double m_dControlGain;
             double m_dAngularVelocityLimit;
-            // double m_dWheelbase;
             int m_nPredictionHorizon;
             double m_dPredictionTimeStep;
             int m_nCurrentReferencePathTargetIndex;
