@@ -217,6 +217,9 @@ int main()
         globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
         globals::g_pStateMachineHandler    = new StateMachineHandler();
 
+        // Initialize GeoPlanner.
+        globals::g_pGeoPlanner = new pathplanners::GeoPlanner(constants::GEOPLANNER_TILE_SIZE);
+
         // Open the LiDAR database.
         if (!globals::g_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
         {
@@ -497,6 +500,8 @@ int main()
         // Close the LiDAR database.
         globals::g_pLiDARHandler->CloseDB();
 
+        // Cleanup GeoPlanner.
+        delete globals::g_pGeoPlanner;
         // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pObjectDetectionHandler;
@@ -505,6 +510,7 @@ int main()
         delete globals::g_pWaypointHandler;
         delete globals::g_pLiDARHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
+        globals::g_pGeoPlanner             = nullptr;
         globals::g_pStateMachineHandler    = nullptr;
         globals::g_pObjectDetectionHandler = nullptr;
         globals::g_pTagDetectionHandler    = nullptr;

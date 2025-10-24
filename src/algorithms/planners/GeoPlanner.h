@@ -16,6 +16,8 @@
 
 /// \cond
 #include <OpenMS/DATASTRUCTURES/KDTree.h>
+#include <RoveComm/RoveComm.h>
+#include <RoveComm/RoveCommManifest.h>
 #include <mutex>
 #include <queue>
 #include <unordered_map>
@@ -94,7 +96,7 @@ namespace pathplanners
                                                    const geoops::UTMCoordinate& stEnd,
                                                    double dBeta         = 1.0,
                                                    double dSearchRadius = 2.0,
-                                                   double dMinTravScore = 0.5,
+                                                   double dMinTravScore = 0.0,
                                                    bool bPlotPath       = false);
             void ClearGeoCache();
 
@@ -224,7 +226,51 @@ namespace pathplanners
             void CheckAndLoadTile(const PlannerState& stCurrentState);
             PlannerState FindClosestLiDARPoint(const geoops::UTMCoordinate& stCoordinate);
             void PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const;
-            double SquaredDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const;
+            double EuclideanDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const;
+
+            /******************************************************************************
+             * @brief Callback function used to set the minimum travel score for path planning.
+             *
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-04
+             ******************************************************************************/
+            const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> MinTravScore =
+                [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
+            {
+                // Not using this.
+                (void) stdAddr;
+
+                // Set minimum travel score from incoming packet.
+                if (stPacket.vData.size() > 0)
+                {
+                    this->m_dMinTravScore = static_cast<double>(stPacket.vData[0]);
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner minimum travel score to {}", this->m_dMinTravScore);
+                }
+            };
+
+            /******************************************************************************
+             * @brief Callback function used to set the beta bias for travel scores in path planning.
+             *
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-04-04
+             ******************************************************************************/
+            const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> BetaBias =
+                [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
+            {
+                // Not using this.
+                (void) stdAddr;
+
+                // Set minimum travel score from incoming packet.
+                if (stPacket.vData.size() > 0)
+                {
+                    this->m_dBeta = static_cast<double>(stPacket.vData[0]);
+                    // Submit logger message.
+                    LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner beta bias to {}", this->m_dBeta);
+                }
+            };
 
             ////////////////////////////////////
             // Private member variables.
@@ -238,6 +284,7 @@ namespace pathplanners
             LiDARHandler* m_pLiDARHandler;                                   // Pointer to the LiDARHandler instance for fetching geospatial data.
             std::unique_ptr<logging::graphing::PathTracer> m_pPathTracer;    // Path tracer for 3D visualization.
             std::unique_ptr<KDTree2D> m_pKDTree;                             // KD-tree for fast spatial queries over loaded tiles.
+            std::mutex m_muPathGenMutex;                                     // Mutex to protect path planning operations.
 
             // AStar's algorithm related variables.
 

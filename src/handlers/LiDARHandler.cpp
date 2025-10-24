@@ -66,7 +66,7 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     if (m_bIsDBOpen)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "LiDARHandler: Database is already open. Closing existing connection before opening a new one.");
+        LOG_WARNING(logging::g_qSharedLogger, "Database is already open. Closing existing connection before opening a new one.");
         // Release lock before calling CloseDB to avoid deadlock.
         lkWriteLock.unlock();
         this->CloseDB();
@@ -78,7 +78,7 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     if (nReturnCode != SQLITE_OK)
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to open database at '{}': {}", szDBPath, sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to open database at '{}': {}", szDBPath, sqlite3_errmsg(m_pSQLDatabase));
         // Return false on failure.
         return false;
     }
@@ -87,7 +87,7 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     m_bIsDBOpen = true;
 
     // Log success.
-    LOG_INFO(logging::g_qSharedLogger, "LiDARHandler: Successfully opened database at '{}'.", szDBPath);
+    LOG_INFO(logging::g_qSharedLogger, "Successfully opened database at '{}'.", szDBPath);
 
     return true;
 }
@@ -117,7 +117,7 @@ bool LiDARHandler::CloseDB()
             if (nReturnCode != SQLITE_OK)
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to finalize SQL statement: {}", sqlite3_errmsg(m_pSQLDatabase));
+                LOG_ERROR(logging::g_qSharedLogger, "Failed to finalize SQL statement: {}", sqlite3_errmsg(m_pSQLDatabase));
                 // Return false on failure.
                 return false;
             }
@@ -129,7 +129,7 @@ bool LiDARHandler::CloseDB()
         if (nReturnCode != SQLITE_OK)
         {
             // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to close database: {}", sqlite3_errmsg(m_pSQLDatabase));
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to close database: {}", sqlite3_errmsg(m_pSQLDatabase));
             // Return false on failure.
             return false;
         }
@@ -162,7 +162,7 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
 
     if (!m_bIsDBOpen)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Database is not open.");
+        LOG_ERROR(logging::g_qSharedLogger, "Database is not open.");
         return {};
     }
 
@@ -228,7 +228,7 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, szSQLQuery.c_str(), -1, &sqlSTMT, nullptr);
     if (nRC != SQLITE_OK)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
         return {};
     }
 
@@ -263,7 +263,7 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     if ((nRC = sqlite3_finalize(sqlSTMT)) != SQLITE_OK)
     {
         // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to finalize statement: {}", sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to finalize statement: {}", sqlite3_errmsg(m_pSQLDatabase));
         // Return empty results on failure.
         return {};
     }
@@ -276,11 +276,17 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     if (dQueryTime > 1.0)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "LiDARHandler: Query took {:.2f} seconds to execute.", dQueryTime);
+        LOG_WARNING(logging::g_qSharedLogger, "Query took {:.2f} seconds to execute.", dQueryTime);
     }
     else
     {
-        LOG_DEBUG(logging::g_qSharedLogger, "LiDARHandler: Query took {} seconds to execute.", dQueryTime);
+        LOG_DEBUG(logging::g_qSharedLogger, "Query took {} seconds to execute.", dQueryTime);
+    }
+
+    // If we didn't get any data, log a warning that this has occurred.
+    if (vResults.empty())
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "Query returned no results.");
     }
 
     return vResults;
@@ -304,7 +310,7 @@ bool LiDARHandler::InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints)
     // Check if the database is open.
     if (!m_bIsDBOpen)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Database is not open.");
+        LOG_ERROR(logging::g_qSharedLogger, "Database is not open.");
         return false;
     }
 
@@ -318,7 +324,7 @@ bool LiDARHandler::InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints)
     int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlSTMT, nullptr);
     if (nRC != SQLITE_OK)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
         return false;
     }
 
@@ -362,7 +368,7 @@ bool LiDARHandler::InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints)
         nRC = sqlite3_step(sqlSTMT);
         if (nRC != SQLITE_DONE)
         {
-            LOG_ERROR(logging::g_qSharedLogger, "LiDARHandler: Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
             sqlite3_finalize(sqlSTMT);
             return false;
         }

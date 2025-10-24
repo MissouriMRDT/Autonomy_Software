@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "GeoPlanner.h"
+#include "../../AutonomyNetworking.h"
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
@@ -47,8 +48,12 @@ namespace pathplanners
         m_pPathTracer->CreateDotLayer("TerrainPoints", "gray", false);
         m_pPathTracer->CreatePathLayer("RoverPath", "red");
 
+        // Set RoveComm Node callbacks.
+        network::g_pRoveCommUDPNode->AddUDPCallback<float>(MinTravScore, manifest::Autonomy::COMMANDS.find("SETMINTRAVSCORE")->second.DATA_ID);
+        network::g_pRoveCommUDPNode->AddUDPCallback<float>(BetaBias, manifest::Autonomy::COMMANDS.find("SETBETABIAS")->second.DATA_ID);
+
         // Log initialization message.
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner initialized with tile size: {} meters.", std::to_string(dTileSize));
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner initialized with tile size: {} meters", std::to_string(dTileSize));
     }
 
     /******************************************************************************
@@ -86,11 +91,33 @@ namespace pathplanners
                                                        double dMinTravScore,
                                                        bool bPlotPath)
     {
+        // Acquire a mutex lock so we don't try to plan multiple paths at the same time.
+        std::lock_guard<std::mutex> lock(m_muPathGenMutex);
+
         // Initialize member variables.
         m_pLiDARHandler = pLiDARHandler;
         m_dBeta         = dBeta;
         m_dSearchRadius = dSearchRadius;
         m_dMinTravScore = dMinTravScore;
+
+        // Submit logger message.
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "Starting GeoPlanner path planning from ({:.2f}, {:.2f}) to ({:.2f}, {:.2f}) with beta: {}, search radius: {} meters, min traversal score: {}.",
+                   stStart.dEasting,
+                   stStart.dNorthing,
+                   stEnd.dEasting,
+                   stEnd.dNorthing,
+                   m_dBeta,
+                   m_dSearchRadius,
+                   m_dMinTravScore);
+
+        // Validate beta to avoid accidental disabling.
+        if (dBeta <= 0.0)
+        {
+            dBeta = 1.0;
+            LOG_WARNING(logging::g_qSharedLogger, "GeoPlanner: supplied dBeta {} invalid; using fallback 1.0.", dBeta);
+        }
+        m_dBeta = dBeta;
 
         // Store the start time.
         std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
@@ -142,6 +169,9 @@ namespace pathplanners
      ******************************************************************************/
     void GeoPlanner::ClearGeoCache()
     {
+        // Acquire a mutex lock so we don't try to clear cache while planning a path.
+        std::lock_guard<std::mutex> lock(m_muPathGenMutex);
+
         // Clear all cached tiles and KD-Tree data.
         m_umTileMapCache.clear();
         m_usKDTreeInsertedTiles.clear();
@@ -203,7 +233,7 @@ namespace pathplanners
         PlannerState stStartState = m_umAllStates[m_nStartID];
         stStartState.dGCost       = 0.0;
         // Heuristic cost (Euclidean distance to goal).
-        stStartState.dHCost = this->SquaredDistance(stStartState.dEasting, stStartState.dNorthing, m_umAllStates[m_nEndID].dEasting, m_umAllStates[m_nEndID].dNorthing);
+        stStartState.dHCost = this->EuclideanDistance(stStartState.dEasting, stStartState.dNorthing, m_umAllStates[m_nEndID].dEasting, m_umAllStates[m_nEndID].dNorthing);
         m_umAllStates[m_nStartID] = stStartState;
 
         // Push start into the open set priority queue.
@@ -217,6 +247,12 @@ namespace pathplanners
             PlannerState stCurrentState = m_pqOpenSetNextBest.top();
             // Remove the current node from the open set.
             m_pqOpenSetNextBest.pop();
+            // Stale entry check: if the popped state's g-cost differs from authoritative state, skip it.
+            auto itAuth = m_umAllStates.find(stCurrentState.nID);
+            if (itAuth == m_umAllStates.end() || std::abs(itAuth->second.dGCost - stCurrentState.dGCost) > 1e-9)
+            {
+                continue;
+            }
             m_usOpenSet.erase(stCurrentState.nID);
 
             // If we've already evaluated it (closed set), skip.
@@ -256,11 +292,13 @@ namespace pathplanners
                     Calculate the tentative G cost for this neighbor.
                 */
                 // Calculate Euclidean distance to neighbor.
-                double dDistance = this->SquaredDistance(stCurrentState.dEasting, stCurrentState.dNorthing, stPoint.dEasting, stPoint.dNorthing);
-                // Calculate traversal cost factor (inverse of traversal score).
-                double dTraversalCostFactor = m_dBeta * stPoint.dTraversalScore + 0.001;    // Avoid division by zero.
-                // Tentative G cost.
-                double dTentativeGCost = stCurrentState.dGCost + dDistance / dTraversalCostFactor;
+                double dDistance = this->EuclideanDistance(stCurrentState.dEasting, stCurrentState.dNorthing, stPoint.dEasting, stPoint.dNorthing);
+                // Clamp traversal score [0,1] just to be safe.
+                double dScore = std::clamp(stPoint.dTraversalScore, 0.0, 1.0);
+                // Calculate cost multiplier based on traversal score and beta.
+                double dMultiplier = 1.0 + m_dBeta * (1.0 - dScore);    // <1 not needed; this is >=1
+                // Calculate tentative G cost.
+                double dTentativeGCost = stCurrentState.dGCost + dDistance * dMultiplier;
 
                 // If this neighbor is not in the open set or we found a better path to it.
                 std::unordered_map<int, PlannerState>::const_iterator itNeighborState = m_umAllStates.find(stPoint.nID);
@@ -273,25 +311,21 @@ namespace pathplanners
                     stNeighborState.dEasting              = stPoint.dEasting;
                     stNeighborState.dNorthing             = stPoint.dNorthing;
                     stNeighborState.dAltitude             = stPoint.dAltitude;
-                    stNeighborState.nZone                 = std::stoi(stPoint.szZone);    // Assuming zone is stored as string.
-                    stNeighborState.bInNorthernHemisphere = (stPoint.dNorthing >= 0);     // Simple check based on northing.
+                    stNeighborState.nZone                 = std::stoi(stPoint.szZone.substr(0, 2));    // Assuming zone is stored as string.
+                    stNeighborState.bInNorthernHemisphere = (stPoint.dNorthing >= 0);                  // Simple check based on northing.
                     stNeighborState.dGCost                = dTentativeGCost;
 
                     // Heuristic cost (Euclidean distance to goal).
                     stNeighborState.dHCost =
-                        this->SquaredDistance(stNeighborState.dEasting, stNeighborState.dNorthing, m_umAllStates[m_nEndID].dEasting, m_umAllStates[m_nEndID].dNorthing);
+                        this->EuclideanDistance(stNeighborState.dEasting, stNeighborState.dNorthing, m_umAllStates[m_nEndID].dEasting, m_umAllStates[m_nEndID].dNorthing);
                     // Update the state map.
                     m_umAllStates[stPoint.nID] = stNeighborState;
                     // Update the predecessor map.
                     m_umPredecessors[stPoint.nID] = stCurrentState.nID;
 
-                    // If the neighbor is not already in the open set, add it.
-                    // Add neighbor to the open set if not already present.
-                    if (m_usOpenSet.find(stPoint.nID) == m_usOpenSet.end())
-                    {
-                        m_pqOpenSetNextBest.push(stNeighborState);
-                        m_usOpenSet.insert(stNeighborState.nID);
-                    }
+                    // Add neighbor to the open set or update if found better path.
+                    m_pqOpenSetNextBest.push(stNeighborState);
+                    m_usOpenSet.insert(stNeighborState.nID);    // Harmless if already present.
                 }
             }
 
@@ -549,11 +583,14 @@ namespace pathplanners
                     for (const LiDARHandler::PointRow& stPoint : vSubsampledPoints)
                     {
                         // Create a waypoint from the PointRow struct.
-                        geoops::Waypoint stWaypoint{
-                            geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone), (stPoint.dNorthing >= 0), stPoint.dAltitude),
-                            geoops::WaypointType::eNavigationWaypoint,
-                            0.01,
-                            stPoint.nID};
+                        geoops::Waypoint stWaypoint{geoops::UTMCoordinate(stPoint.dEasting,
+                                                                          stPoint.dNorthing,
+                                                                          std::stoi(stPoint.szZone.substr(0, 2)),
+                                                                          (stPoint.dNorthing >= 0),
+                                                                          stPoint.dAltitude),
+                                                    geoops::WaypointType::eNavigationWaypoint,
+                                                    0.01,
+                                                    stPoint.nID};
                         // Add the waypoint to the terrain waypoints vector.
                         stTerrainWaypoints.push_back(stWaypoint);
                     }
@@ -566,11 +603,14 @@ namespace pathplanners
                     for (const LiDARHandler::PointRow& stPoint : vTilePoints)
                     {
                         // Create a waypoint from the PointRow struct.
-                        geoops::Waypoint stWaypoint{
-                            geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone), (stPoint.dNorthing >= 0), stPoint.dAltitude),
-                            geoops::WaypointType::eNavigationWaypoint,
-                            0.01,
-                            stPoint.nID};
+                        geoops::Waypoint stWaypoint{geoops::UTMCoordinate(stPoint.dEasting,
+                                                                          stPoint.dNorthing,
+                                                                          std::stoi(stPoint.szZone.substr(0, 2)),
+                                                                          (stPoint.dNorthing >= 0),
+                                                                          stPoint.dAltitude),
+                                                    geoops::WaypointType::eNavigationWaypoint,
+                                                    0.01,
+                                                    stPoint.nID};
                         // Add the waypoint to the terrain waypoints vector.
                         stTerrainWaypoints.push_back(stWaypoint);
                     }
@@ -586,23 +626,23 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Calculate the squared distance between two UTM coordinates.
+     * @brief Calculate the distance between two UTM coordinates.
      *
      * @param dEasting1 - The easting of the first point.
      * @param dNorthing1 - The northing of the first point.
      * @param dEasting2 - The easting of the second point.
      * @param dNorthing2 - The northing of the second point.
-     * @return double - The squared distance between the two points.
+     * @return double - The distance between the two points.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-10-20
      ******************************************************************************/
-    double GeoPlanner::SquaredDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const
+    double GeoPlanner::EuclideanDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const
     {
-        // Calculate squared distance between two points.
+        // Calculate distance between two points.
         double dDiffX = dEasting1 - dEasting2;
         double dDiffY = dNorthing1 - dNorthing2;
 
-        return dDiffX * dDiffX + dDiffY * dDiffY;
+        return std::sqrt(dDiffX * dDiffX + dDiffY * dDiffY);
     }
 }    // namespace pathplanners

@@ -42,6 +42,9 @@ namespace globals
     // State Machine Handler:
     StateMachineHandler* g_pStateMachineHandler;
 
+    // GeoPlanner:
+    pathplanners::GeoPlanner* g_pGeoPlanner;
+
     // Drivers:
     DriveBoard* g_pDriveBoard;
     MultimediaBoard* g_pMultimediaBoard;

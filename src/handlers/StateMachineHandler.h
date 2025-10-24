@@ -11,8 +11,6 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
-#include "./CameraHandler.h"
-
 #include "../states/ApproachingMarkerState.h"
 #include "../states/ApproachingObjectState.h"
 #include "../states/AvoidanceState.h"
@@ -24,6 +22,7 @@
 #include "../states/VerifyingMarkerState.h"
 #include "../states/VerifyingObjectState.h"
 #include "../states/VerifyingPositionState.h"
+#include "./CameraHandler.h"
 
 /// \cond
 #include <RoveComm/RoveComm.h>
@@ -108,6 +107,27 @@ class StateMachineHandler : private AutonomyThread<void>
 
             // Signal statemachine handler with stop event.
             this->HandleEvent(statemachine::Event::eAbort, true);
+        };
+
+        /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new CLEARWAYPOINTS packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> ClearWaypointsCallback =
+            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stPacket;
+            (void) stdAddr;
+
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Deleting all saved states in StateMachineHandler...");
+
+            // Clear the saved states.
+            this->ClearSavedStates();
         };
 
         /******************************************************************************

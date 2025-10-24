@@ -83,7 +83,6 @@ namespace statemachine
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
-        m_pGeoPlanner        = std::make_unique<pathplanners::GeoPlanner>();
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
@@ -134,13 +133,13 @@ namespace statemachine
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath", 1);
 
         // Place a dot on the stanley target index.
         geoops::Waypoint stStanleyTargetCoordinate =
             m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
         m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
-        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 0);
+        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
@@ -441,9 +440,10 @@ namespace statemachine
                     // Update our plot with the new path.
                     m_pRoverPathPlot->ClearLayer("GeoPath");
                     // Plan a new path using the GeoPlanner.
-                    std::vector<geoops::Waypoint> m_vPathCoordinates = m_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
-                                                                                               globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
-                                                                                               m_stGoalWaypoint.GetUTMCoordinate());
+                    std::vector<geoops::Waypoint> m_vPathCoordinates =
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
+                                                         globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
+                                                         m_stGoalWaypoint.GetUTMCoordinate());
                     m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.
                     m_pStanleyController->SetReferencePath(m_vPathCoordinates);
@@ -458,7 +458,6 @@ namespace statemachine
                     {
                         LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Planned path is empty! Transitioning to Idle State.");
                         eNextState = States::eIdle;
-                        break;
                     }
                 }
 

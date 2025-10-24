@@ -225,8 +225,12 @@ namespace controllers
         m_nCurrentReferencePathTargetIndex = 0;
         // Reset the bicycle model.
         m_UnicycleModel.ResetState();
+
+        // Smooth the path by fitting it to a B-spline.
+        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
+
         // Set the reference path.
-        m_vReferencePath = vReferencePath;
+        m_vReferencePath = vSmoothedPath;
     }
 
     /******************************************************************************
@@ -239,11 +243,6 @@ namespace controllers
      ******************************************************************************/
     void PredictiveStanleyController::SetReferencePath(const std::vector<geoops::UTMCoordinate>& vReferencePath)
     {
-        // Reset the current target index.
-        m_nCurrentReferencePathTargetIndex = 0;
-        // Reset the unicycle model.
-        m_UnicycleModel.ResetState();
-
         // Convert UTM coordinates to waypoints.
         std::vector<geoops::Waypoint> vConvertedPath;
         for (const auto& stUTMCoord : vReferencePath)
@@ -252,7 +251,7 @@ namespace controllers
         }
 
         // Set the reference path.
-        m_vReferencePath = vConvertedPath;
+        this->SetReferencePath(vConvertedPath);
     }
 
     /******************************************************************************
@@ -265,11 +264,6 @@ namespace controllers
      ******************************************************************************/
     void PredictiveStanleyController::SetReferencePath(const std::vector<geoops::GPSCoordinate>& vReferencePath)
     {
-        // Reset the current target index.
-        m_nCurrentReferencePathTargetIndex = 0;
-        // Reset the unicycle model.
-        m_UnicycleModel.ResetState();
-
         // Convert GPS coordinates to waypoints.
         std::vector<geoops::Waypoint> vConvertedPath;
         for (const auto& stGPSCoord : vReferencePath)
@@ -278,7 +272,7 @@ namespace controllers
         }
 
         // Set the reference path.
-        m_vReferencePath = vConvertedPath;
+        this->SetReferencePath(vConvertedPath);
     }
 
     /******************************************************************************

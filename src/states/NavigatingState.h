@@ -48,7 +48,6 @@ namespace statemachine
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
-            std::unique_ptr<pathplanners::GeoPlanner> m_pGeoPlanner;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
 

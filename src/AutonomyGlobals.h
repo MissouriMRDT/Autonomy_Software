@@ -11,6 +11,7 @@
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
 
+#include "algorithms/planners/GeoPlanner.h"
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
@@ -59,6 +60,9 @@ namespace globals
 
     // State Machine Handler:
     extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
+
+    // GeoPlanner:
+    extern pathplanners::GeoPlanner* g_pGeoPlanner;    // Global GeoPlanner
 
     // Board Interfaces:
     extern DriveBoard* g_pDriveBoard;              // Global Drive Board Driver
