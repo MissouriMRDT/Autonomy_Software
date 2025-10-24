@@ -9,13 +9,10 @@
  ******************************************************************************/
 
 #include "ZEDCam.h"
+#include "../../AutonomyGlobals.h"
 #include "../../AutonomyLogging.h"
 #include "../../util/NumberOperations.hpp"
 #include "../../util/vision/ImageOperations.hpp"
-
-
-// GNSS to meter offset scaling factor based on https://gis.stackexchange.com/questions/2951/algorithm-for-offsetting-latitude-longitude-by-some-amount-of-meters
-#define GNSS_TO_METER 1.0/111111
 
 /******************************************************************************
  * @brief Construct a new Zed Cam:: Zed Cam object.
@@ -505,9 +502,10 @@ void ZEDCam::ThreadedContinuousCode()
             if (m_bGNSSPointCloudsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
             {
                 // Grab regular resized image and store it in member variable.
-		/* NOTE: In cases where the GNSS point cloud and regular point cloud are retrieved in the same iteration, 
-		   the point cloud is gathered from the ZED SDK twice, which could be optimized. */
-                slReturnCode = m_slCamera.retrieveMeasure(m_slGNSSPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
+                /* NOTE: In cases where the GNSS point cloud and regular point cloud are retrieved in the same iteration,
+                   the point cloud is gathered from the ZED SDK twice, which could be optimized. */
+                slReturnCode =
+                    m_slCamera.retrieveMeasure(m_slGNSSPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, sl::Resolution(m_nPropResolutionX, m_nPropResolutionY));
                 // Check that the regular frame was retrieved successfully.
                 if (slReturnCode != sl::ERROR_CODE::SUCCESS)
                 {
@@ -518,34 +516,31 @@ void ZEDCam::ThreadedContinuousCode()
                                 m_unCameraSerialNumber,
                                 sl::toString(slReturnCode).get());
                 }
-		else 
-		{
-		    // Perform scaling and pose offset to translate distance point cloud into GNSS point cloud
-		    // TEST: Build and test this to ensure correctness
-		    for (int x = 0; x < m_slGNSSPointCloud.getWidth(); x++)
-		    {
-		        for (int y = 0; y < m_slGNSSPointCloud.getHeight(); y++)
-			{
-			    // Get point cloud value
-			    sl::float4 slPoint;
-			    m_s1GNSSPointCloud.getValue(x, y, &slPoint);
+                else
+                {
+                    // Perform scaling and pose offset to translate distance point cloud into GNSS point cloud
+                    // TEST: Build and test this to ensure correctness
 
-			    // Apply scaling factor
-			    slPoint.z *= GNSS_TO_METER;
-			    slPoint.x *= std::cos(slPoint.z) * GNSS_TO_METER;
+                    // Get the current rover pose.
+                    geoops::GPSCoordinate stPos = globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetGPSCoordinate();
+                    for (size_t x = 0; x < m_slGNSSPointCloud.getWidth(); x++)
+                    {
+                        for (size_t y = 0; y < m_slGNSSPointCloud.getHeight(); y++)
+                        {
+                            // Get point cloud value
+                            sl::Vector4<float> slPoint;
+                            m_slGNSSPointCloud.getValue(x, y, &slPoint);
 
-			    // Offset by rover pose
-			    sPos = geoops::Roverpose.GetGPSCoordinate();
-			    slPoint.z += sPos.dLatitude;
-			    slPoint.x += sPos.dLongitude;
-			    slPoint.y += dAltitude;
+                            // Apply scaling factor and offset by rover pose
+                            slPoint.z = slPoint.z * GNSS_TO_METER + stPos.dLatitude;
+                            slPoint.x *= slPoint.x * std::cos(slPoint.z) * GNSS_TO_METER + stPos.dLongitude;
+                            slPoint.y += stPos.dAltitude;
 
-			    // Set updated GNSS value
-			    m_slGNSSPointCloud.setValue(x, y, $slPoint);
-
-			}
-		    }
-		}
+                            // Set updated GNSS value
+                            m_slGNSSPointCloud.setValue(x, y, slPoint);
+                        }
+                    }
+                }
             }
 
             // Check if positional tracking is enabled.
@@ -1187,6 +1182,7 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
+
 /******************************************************************************
  * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
@@ -1230,11 +1226,12 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
+
 /******************************************************************************
  * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
- *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's 
+ *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's
  *	pose and scaled to represent GNSS coordinates.
  *
  *      A 4th value in the 3rd dimension exists as a float32 storing the BGRA values. Each color value
@@ -1278,7 +1275,7 @@ std::future<bool> ZEDCam::RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud)
  * @brief Grabs a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
- *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's 
+ *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's
  *	pose and scaled to represent GNSS coordinates.
  *
  *      A 4th value in the 3rd dimension exists as a float32 storing the BGRA values. Each color value

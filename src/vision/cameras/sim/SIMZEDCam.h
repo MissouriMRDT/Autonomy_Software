@@ -84,7 +84,7 @@ class SIMZEDCam : public ZEDCamera
         void PooledLinearCode() override;
         void SetCallbacks();
         void EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure);
-        void CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud);
+        void CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud, cv::Mat& cvGNSSPointCloud);
 
         /////////////////////////////////////////
         // Declare private member variables.
@@ -121,6 +121,7 @@ class SIMZEDCam : public ZEDCamera
         cv::Mat m_cvDepthImage;
         cv::Mat m_cvDepthMeasure;
         cv::Mat m_cvPointCloud;
+        cv::Mat m_cvGNSSPointCloud;
 
         std::queue<containers::DataFetchContainer<Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;

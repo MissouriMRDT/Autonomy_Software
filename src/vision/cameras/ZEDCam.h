@@ -17,6 +17,9 @@
 
 /// \endcond
 
+// GNSS to meter offset scaling factor based on https://gis.stackexchange.com/questions/2951/algorithm-for-offsetting-latitude-longitude-by-some-amount-of-meters
+#define GNSS_TO_METER 1.0 / 111111
+
 /******************************************************************************
  * @brief This class implements and interfaces with the most common ZEDSDK cameras
  *  and features. It is designed in such a way that multiple other classes/threads
@@ -55,7 +58,7 @@ class ZEDCam : public ZEDCamera
         std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true) override;
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud) override;
         std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) override;
-	std::future<bool> RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud) override;
+        std::future<bool> RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud) override;
         std::future<bool> RequestGNSSPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) override;
         sl::ERROR_CODE ResetPositionalTracking() override;
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects) override;

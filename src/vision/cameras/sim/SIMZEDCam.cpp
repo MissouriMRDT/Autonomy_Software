@@ -65,10 +65,11 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
-    m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
-    m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC1);
-    m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
-    m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
+    m_cvFrame          = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
+    m_cvDepthImage     = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC1);
+    m_cvDepthMeasure   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
+    m_cvPointCloud     = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
+    m_cvGNSSPointCloud = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
     m_pRGBStream        = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
@@ -195,11 +196,12 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
  *
  * @param cvDepthMeasure - The decoded depth measure.
  * @param cvPointCloud - The point cloud that will be written to.
+ * @param cvGNSSPointCloud - The GNSS point cloud that will be written to.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-04
  ******************************************************************************/
-void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
+void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud, cv::Mat& cvGNSSPointCloud)
 {
     // Calculate focal lengths from FOV.
     const double dRadPerDeg = M_PI / 180.0;
@@ -208,6 +210,9 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
     // Image center.
     const double dCx = cvDepthMeasure.cols / 2.0;
     const double dCy = cvDepthMeasure.rows / 2.0;
+
+    // Get the current rover pose for GNSS offset
+    geoops::GPSCoordinate stPos = globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetGPSCoordinate();
 
 // TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
 // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
@@ -235,6 +240,11 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
 
             // Store point. (XYZ + intensity, using Y channel for intensity)
             cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
+
+            // Store GNSS Point
+            // NOTE: Conversion math is currently duplicated between sim and regular code
+            float fLat                             = fZ * GNSS_TO_METER + stPos.dLongitude;
+            cvGNSSPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX * std::cos(fLat) * GNSS_TO_METER + stPos.dLongitude, fY + stPos.dAltitude, fLat, 255);
         }
     }
 }
@@ -282,7 +292,7 @@ void SIMZEDCam::ThreadedContinuousCode()
         lkWebRTC2.unlock();
 
         // Calculate the point cloud from the estimated depth measure.
-        this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
+        this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud, m_cvGNSSPointCloud);
     }
 
     // Acquire a shared_lock on the frame copy queue.
@@ -368,6 +378,7 @@ void SIMZEDCam::PooledLinearCode()
             case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage.clone(); break;
             case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure.clone(); break;
             case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud.clone(); break;
+            case PIXEL_FORMATS::eXYZRGBA: *(stContainer.pFrame) = m_cvGNSSPointCloud.clone(); break;
             default: *(stContainer.pFrame) = m_cvFrame.clone(); break;
         }
 
@@ -569,7 +580,7 @@ std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
  *      image but with three XYZ values replacing the old color values in the 3rd dimension.
  *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
- *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's 
+ *      constants set in AutonomyConstants.h. The coordinates are also offset based on the rover's
  *	pose and scaled to represent GNSS coordinates.
  *
  *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
@@ -596,7 +607,6 @@ std::future<bool> SIMZEDCam::RequestGNSSPointCloudCopy(cv::Mat& cvPointCloud)
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
 }
-
 
 /******************************************************************************
  * @brief This method is used to reset the positional tracking of the camera.
