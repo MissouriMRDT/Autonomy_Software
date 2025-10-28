@@ -96,7 +96,7 @@ namespace pathplanners
                                                    const geoops::UTMCoordinate& stEnd,
                                                    double dBeta         = 0.5,
                                                    double dSearchRadius = 3.0,
-                                                   double dMinTravScore = 0.0,
+                                                   double dMinTravScore = 0.5,
                                                    bool bPlotPath       = false);
             void ClearGeoCache();
 
@@ -244,7 +244,7 @@ namespace pathplanners
                 // Set minimum travel score from incoming packet.
                 if (stPacket.vData.size() > 0)
                 {
-                    this->m_dMinTravScore = static_cast<double>(stPacket.vData[0]);
+                    m_dMinTravScore = static_cast<double>(stPacket.vData[0]);
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner minimum travel score to {}", this->m_dMinTravScore);
                 }
@@ -266,7 +266,7 @@ namespace pathplanners
                 // Set minimum travel score from incoming packet.
                 if (stPacket.vData.size() > 0)
                 {
-                    this->m_dBeta = static_cast<double>(stPacket.vData[0]);
+                    m_dBeta = static_cast<double>(stPacket.vData[0]);
                     // Submit logger message.
                     LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner beta bias to {}", this->m_dBeta);
                 }
