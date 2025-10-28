@@ -92,7 +92,7 @@ namespace pathplanners
                                                        bool bPlotPath)
     {
         // Acquire a mutex lock so we don't try to plan multiple paths at the same time.
-        std::lock_guard<std::mutex> lock(m_muPathGenMutex);
+        std::lock_guard<std::mutex> lkPathLock(m_muPathGenMutex);
 
         // Initialize member variables.
         m_pLiDARHandler = pLiDARHandler;
@@ -324,8 +324,13 @@ namespace pathplanners
                     m_umPredecessors[stPoint.nID] = stCurrentState.nID;
 
                     // Add neighbor to the open set or update if found better path.
+                    if (m_usOpenSet.find(stPoint.nID) != m_usOpenSet.end())
+                    {
+                        // Already in open set, no need to re-insert; the priority queue will handle it.
+                        continue;
+                    }
                     m_pqOpenSetNextBest.push(stNeighborState);
-                    m_usOpenSet.insert(stNeighborState.nID);    // Harmless if already present.
+                    m_usOpenSet.insert(stNeighborState.nID);
                 }
             }
 

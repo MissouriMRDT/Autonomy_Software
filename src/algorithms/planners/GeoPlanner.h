@@ -95,8 +95,8 @@ namespace pathplanners
                                                    const geoops::UTMCoordinate& stStart,
                                                    const geoops::UTMCoordinate& stEnd,
                                                    double dBeta         = 1.0,
-                                                   double dSearchRadius = 2.0,
-                                                   double dMinTravScore = 0.0,
+                                                   double dSearchRadius = 10.0,
+                                                   double dMinTravScore = 0.5,
                                                    bool bPlotPath       = false);
             void ClearGeoCache();
 
