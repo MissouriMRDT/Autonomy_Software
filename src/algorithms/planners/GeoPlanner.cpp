@@ -170,12 +170,10 @@ namespace pathplanners
     void GeoPlanner::ClearGeoCache()
     {
         // Acquire a mutex lock so we don't try to clear cache while planning a path.
-        std::lock_guard<std::mutex> lock(m_muPathGenMutex);
+        std::lock_guard<std::mutex> lkResourceLock(m_muPathGenMutex);
 
         // Clear all cached tiles and KD-Tree data.
         m_umTileMapCache.clear();
-        m_usKDTreeInsertedTiles.clear();
-        m_pKDTree->clear();
     }
 
     /******************************************************************************
@@ -203,6 +201,9 @@ namespace pathplanners
         // Reset start and end IDs.
         m_nStartID = -1;
         m_nEndID   = -1;
+        // Clear KD-Tree.
+        m_usKDTreeInsertedTiles.clear();
+        m_pKDTree->clear();
 
         // Cache the start and end tiles and update ID values.
         PlannerState stStartState = FindClosestLiDARPoint(stStart);
@@ -216,6 +217,16 @@ namespace pathplanners
             LOG_ERROR(logging::g_qSharedLogger, "Invalid start or end point for path planning. Start ID: {}, End ID: {}.", m_nStartID, m_nEndID);
             return false;
         }
+
+        // Log the chosen start and end UTM positions.
+        LOG_INFO(logging::g_qSharedLogger,
+                 "GeoPlanner initialized search with Start ID: {} at ({:.2f}, {:.2f}), End ID: {} at ({:.2f}, {:.2f}).",
+                 m_nStartID,
+                 stStartState.dEasting,
+                 stStartState.dNorthing,
+                 m_nEndID,
+                 stEndState.dEasting,
+                 stEndState.dNorthing);
 
         return true;
     }
@@ -247,12 +258,6 @@ namespace pathplanners
             PlannerState stCurrentState = m_pqOpenSetNextBest.top();
             // Remove the current node from the open set.
             m_pqOpenSetNextBest.pop();
-            // Stale entry check: if the popped state's g-cost differs from authoritative state, skip it.
-            auto itAuth = m_umAllStates.find(stCurrentState.nID);
-            if (itAuth == m_umAllStates.end() || std::abs(itAuth->second.dGCost - stCurrentState.dGCost) > 1e-9)
-            {
-                continue;
-            }
             m_usOpenSet.erase(stCurrentState.nID);
 
             // If we've already evaluated it (closed set), skip.
@@ -324,13 +329,11 @@ namespace pathplanners
                     m_umPredecessors[stPoint.nID] = stCurrentState.nID;
 
                     // Add neighbor to the open set or update if found better path.
-                    if (m_usOpenSet.find(stPoint.nID) != m_usOpenSet.end())
+                    if (m_usOpenSet.find(stPoint.nID) == m_usOpenSet.end())
                     {
-                        // Already in open set, no need to re-insert; the priority queue will handle it.
-                        continue;
+                        m_pqOpenSetNextBest.push(stNeighborState);
+                        m_usOpenSet.insert(stNeighborState.nID);
                     }
-                    m_pqOpenSetNextBest.push(stNeighborState);
-                    m_usOpenSet.insert(stNeighborState.nID);
                 }
             }
 
@@ -437,24 +440,6 @@ namespace pathplanners
             // First, we insert the points into the tile cache.
             m_umTileMapCache[stTileKey] = vTilePoints;
 
-            // Add tile points with IDs to the all states map.
-            for (const LiDARHandler::PointRow& stPoint : vTilePoints)
-            {
-                // Convert the szZone ("15S") to an integer zone number (15) and hemisphere (true/false, north/south).
-                int nZoneNumber            = std::stoi(stPoint.szZone.substr(0, 2));
-                bool bIsNorthernHemisphere = stPoint.dNorthing >= 0;    // Simple check based on northing.
-
-                // Don't check if it's already there, just assign to overwrite if it is.
-                m_umAllStates[stPoint.nID] = PlannerState{stPoint.nID,
-                                                          stPoint.dEasting,
-                                                          stPoint.dNorthing,
-                                                          stPoint.dAltitude,
-                                                          nZoneNumber,
-                                                          bIsNorthernHemisphere,
-                                                          std::numeric_limits<double>::infinity(),
-                                                          0.0};
-            }
-
             // Log info message.
             LOG_DEBUG(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into cache.", nTileX, nTileY, vTilePoints.size());
         }
@@ -469,6 +454,23 @@ namespace pathplanners
             {
                 // Insert this point into the KDTree.
                 m_pKDTree->insert(stLiDARPoint);
+
+                /*
+                    Add tile points with IDs to the all states map.
+                */
+                // Convert the szZone ("15S") to an integer zone number (15) and hemisphere (true/false, north/south).
+                int nZoneNumber            = std::stoi(stLiDARPoint.szZone.substr(0, 2));
+                bool bIsNorthernHemisphere = stLiDARPoint.dNorthing >= 0;    // Simple check based on northing.
+
+                // Don't check if it's already there, just assign to overwrite if it is.
+                m_umAllStates[stLiDARPoint.nID] = PlannerState{stLiDARPoint.nID,
+                                                               stLiDARPoint.dEasting,
+                                                               stLiDARPoint.dNorthing,
+                                                               stLiDARPoint.dAltitude,
+                                                               nZoneNumber,
+                                                               bIsNorthernHemisphere,
+                                                               std::numeric_limits<double>::infinity(),
+                                                               0.0};
             }
             // Mark this tile as loaded into the KD-Tree.
             m_usKDTreeInsertedTiles.insert(stTileKey);
@@ -518,7 +520,7 @@ namespace pathplanners
             stClosestPoint.dEasting                      = stNearestPoint.dEasting;
             stClosestPoint.dNorthing                     = stNearestPoint.dNorthing;
             stClosestPoint.dAltitude                     = stNearestPoint.dAltitude;
-            stClosestPoint.dGCost                        = 0.0;    // G cost is zero since this is the starting point.
+            stClosestPoint.dGCost                        = std::numeric_limits<double>::infinity();
             stClosestPoint.dHCost                        = 0.0;    // H cost will be calculated later.
         }
         else
