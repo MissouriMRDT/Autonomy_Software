@@ -62,7 +62,7 @@ namespace filters
                                                const double dSigmaAccel,
                                                const double dSigmaGyro,
                                                const geoops::GPSCoordinate& stInitGPS,
-                                               double dSigmaYaw)
+                                               const double dSigmaYaw)
     {
         // Initialize member variables
         m_eiAccelerometerCovariance = eiAccelCov;
@@ -87,7 +87,7 @@ namespace filters
      * @author Sam Hajdukiewic (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-21
      ******************************************************************************/
-    void ExtendedKalmanFilter::SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance)
+    void ExtendedKalmanFilter::SetInitialGuess(const XStateSnapshot& eiInitState, const Eigen::Matrix<double, 15, 15>& eiInitCovariance)
     {
         // TODO: implement
         return;
@@ -131,6 +131,73 @@ namespace filters
         double dYawSquared = dSigmaYaw * dSigmaYaw;
         // (0, 0), (1, 1), and (2, 2)
         m_eiHeadingCovariance.diagonal() << dYawSquared, dYawSquared, dYawSquared;
+    }
+
+    /******************************************************************************
+     * @brief The main predict/estimate step for EKF. Integrates IMU data to predict state.
+     *
+     * @param eiAccelMeas - The accerometer reading.
+     * @param eiGyroMeas - The gyrometer reading.
+     * @param tmTimestamp - The timestamp that the prediction has occurred.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-28
+     ******************************************************************************/
+    void ExtendedKalmanFilter::Predict(Eigen::Vector3d& eiAccelMeas, Eigen::Vector3d& eiGyroMeas, std::chrono::system_clock::time_point tmTimestamp)
+    {
+        // Must have an initial guess
+        if (!m_bHasInitialGuess)
+            return;
+
+        double dt                    = std::chrono::duration<double>(tmTimestamp - m_stInitialState.tmTimestamp).count();
+        m_stInitialState.tmTimestamp = tmTimestamp;
+
+        // Accelerometer and gyrometer bias removal
+        Eigen::Vector3d eiAcc   = eiAccelMeas - m_stInitialState.eiAccelBias;
+        Eigen::Vector3d eiGyro  = eiGyroMeas - m_stInitialState.eiGyroBias;
+
+        Eigen::Vector3d eiOmega = eiGyroMeas * dt;
+        double dAngle           = eiOmega.norm();
+
+        Eigen::Quaterniond eiDq;
+
+        // If not 0
+        if (dAngle > 0)
+            eiDq = Eigen::Quaterniond(Eigen::AngleAxisd(dAngle, eiOmega.normalized()));
+
+        // Identity quaternion
+        else
+            eiDq = Eigen::Quaterniond::Identity();
+
+        m_eiOrientation = (m_eiOrientation * eiDq).normalized();
+
+        // Acceleration in the world frame (accounts for gravity)
+        Eigen::Vector3d eiAccWorldFrame = (m_eiOrientation * eiAcc) + m_eiGravity;
+
+        // TODO: Check if this is correct
+        m_stInitialState.eiVelocity += eiAccWorldFrame * dt;
+        m_eiPosition += (m_stInitialState.eiVelocity * dt) + (eiAccWorldFrame * dt * dt) / 2.0;
+
+        // Covariance
+        Eigen::Matrix<double, 15, 15> eiF = Eigen::Matrix<double, 15, 15>::Zero();
+
+        eiF.block<3, 3>(0, 3)             = Eigen::Matrix3d::Identity();
+        // TODO: figure out how to get skew-symmetric matrix
+        eiF.block<3, 3>(3, 9)              = -1.0 * m_eiOrientation.toRotationMatrix();
+        eiF.block<3, 3>(6, 12)             = -1.0 * Eigen::Matrix3d::Identity();
+
+        Eigen::Matrix<double, 15, 15> eiFd = Eigen::Matrix<double, 15, 15>::Identity() + eiF * dt;
+
+        // Process noise Q
+        Eigen::Matrix<double, 15, 15> eiQ = Eigen::Matrix<double, 15, 15>::Zero();
+        double dt2                        = dt * dt;
+        eiQ.block<3, 3>(3, 3)             = (m_dSigmaAcc * m_dSigmaAcc) * Eigen::Matrix3d::Identity() * dt2;
+        eiQ.block<3, 3>(6, 6)             = (m_dSigmaGyro * m_dSigmaGyro) * Eigen::Matrix3d::Identity() * dt2;
+        eiQ.block<3, 3>(9, 9)             = (m_dSigmaAccBias * m_dSigmaAccBias) * Eigen::Matrix3d::Identity() * dt2;
+        eiQ.block<3, 3>(12, 12)           = (m_dSigmaGyroBias * m_dSigmaGyroBias) * Eigen::Matrix3d::Identity() * dt2;
+
+        // Error state covariance
+        m_eiErrorStateCov = eiFd * m_eiErrorStateCov * eiFd.transpose() + eiQ;
     }
 
     /******************************************************************************
@@ -178,7 +245,7 @@ namespace filters
         Eigen::Matrix3d eiK = eiPpos * eiS.inverse();
 
         // Update state estimate
-        Eigen::Vector3d eiXUpdate = eiXPred + eiK * eiY_tilde;
+        Eigen::Vector3d eiXUpdate = eiXpred + eiK * eiY_tilde;
 
         // Store updated position back into pose
         m_eiPosition = eiXUpdate;

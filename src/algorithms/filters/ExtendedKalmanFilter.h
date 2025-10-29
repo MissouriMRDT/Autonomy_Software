@@ -61,7 +61,7 @@ namespace filters
                                  const double dSigmaAccel,
                                  const double dSigmaGyro,
                                  const geoops::GPSCoordinate& stInitGPS,
-                                 double dSigmaYaw);
+                                 const double dSigmaYaw);
             ~ExtendedKalmanFilter();
 
             /////////////////////////////////////////
@@ -69,7 +69,7 @@ namespace filters
             /////////////////////////////////////////
 
             // TODO: Figure out what should be const
-            void SetInitialGuess(XStateSnapshot& eiInitState, Eigen::Matrix<double, 15, 15>& eiInitCovariance);
+            void SetInitialGuess(const XStateSnapshot& eiInitState, const Eigen::Matrix<double, 15, 15>& eiInitCovariance);
             void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
             void SetCompassNoise(double dSigmaYaw);
 
@@ -123,7 +123,9 @@ namespace filters
             Eigen::Matrix3d m_eiHeadingCovariance;                                // Heading covariance matrix. (3x3)
             Eigen::Vector3d m_eiGravity;                                          // Vector for gravity
             double m_dSigmaAcc;
+            double m_dSigmaAccBias;
             double m_dSigmaGyro;
+            double m_dSigmaGyroBias;
             double m_dSigmaGPSHor;
             double m_dSigmaGPSVer;
             double m_dSigmaYaw;
