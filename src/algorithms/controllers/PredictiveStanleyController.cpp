@@ -7,10 +7,12 @@
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
-
+#include "../../AutonomyNetworking.h"
 #include "PredictiveStanleyController.h"
 #include "../../AutonomyConstants.h"
 #include "../../util/planners/PathPostProcessing.hpp"
+#include "../../util/GeospatialOperations.hpp"
+#include "../../AutonomyGlobals.h"
 
 /// \cond
 
@@ -185,9 +187,17 @@ namespace controllers
             // Limit the steering angle to the given limit.
             dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
         }
-
+        
         // The new steering heading must be from 0-360 degrees.
         double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
+
+
+        // Calculate ETA
+        double remainingDistance = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_vReferencePath[m_nCurrentReferencePathTargetIndex]).dDistanceMeters;
+        for (int i = m_nCurrentReferencePathTargetIndex; i < m_vReferencePath.size() - 1; i++) {
+            remainingDistance += geoops::CalculateGeoMeasurement(m_vReferencePath[i], m_vReferencePath[i + 1]).dDistanceMeters;
+        }
+        double ETA = remainingDistance / globals::g_pNavigationBoard->GetVelocity();
 
         return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
     }

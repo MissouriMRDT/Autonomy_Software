@@ -440,34 +440,28 @@ namespace statemachine
                     // Set A* planner start and goal.
                     m_vPathCoordinates =
                         m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-                    LOG_INFO(logging::g_qSharedLogger, "Got the coords!");
-                    int counter = 0;
-                    
-                    
                 }
+
                 rovecomm::RoveCommPacket<double> stPacket;
                 stPacket.unDataId  = 11010;
 
                 stPacket.eDataType = manifest::DataTypes::DOUBLE_T;
-                double minDiff     = 0.0001;    // tune this value
+                double minDiff     = 0.0001;
                 double lastLat     = 0.0;
                 double lastLon     = 0.0;
-                bool hasLast       = false;
 
                 for (const auto& waypoint : m_vPathCoordinates)
                 {
                     const auto& gps = waypoint.GetGPSCoordinate();
 
-                    if (hasLast)
-                    {
-                        double diff = std::abs(gps.dLatitude - lastLat) + std::abs(gps.dLongitude - lastLon);
+                    double diff = std::abs(gps.dLatitude - lastLat) + std::abs(gps.dLongitude - lastLon);
 
-                        if (diff < minDiff)
-                        {
-                            LOG_INFO(logging::g_qSharedLogger, "Skipped waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
-                            continue;    // skip
-                        }
+                    if (diff < minDiff)
+                    {
+                        LOG_INFO(logging::g_qSharedLogger, "Skipped waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
+                        continue;
                     }
+                    
                     LOG_INFO(logging::g_qSharedLogger, "Added waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
                     stPacket.vData.emplace_back(gps.dLatitude);
                     stPacket.vData.emplace_back(gps.dLongitude);
@@ -491,14 +485,13 @@ namespace statemachine
                     // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "host.docker.internal", 9000);
                     // Submit logger message.
                     LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
-                }
 
+                }
                 // Send multimedia command to update state display.
-                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                // Set toggle.
-                m_bFetchNewWaypoint = false;
-                break;
-            }
+                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                    // Set toggle.
+                    m_bFetchNewWaypoint = false;
+                    break;
             case Event::eStart:
             {
                 // Submit logger message.
