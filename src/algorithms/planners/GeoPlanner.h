@@ -94,11 +94,24 @@ namespace pathplanners
             std::vector<geoops::Waypoint> PlanPath(LiDARHandler* pLiDARHandler,
                                                    const geoops::UTMCoordinate& stStart,
                                                    const geoops::UTMCoordinate& stEnd,
-                                                   double dBeta         = 0.5,
-                                                   double dSearchRadius = 3.0,
-                                                   double dMinTravScore = 0.5,
-                                                   bool bPlotPath       = false);
+                                                   double dSearchRadius         = 2.0,
+                                                   double dMaxSearchTimeSeconds = 120.0,
+                                                   bool bPlotPath               = false);
             void ClearGeoCache();
+
+            ////////////////////////////////////
+            // Setters.
+            ////////////////////////////////////
+            void SetTileSize(double dTileSize);
+            void SetMinTravScore(double dMinTravScore);
+            void SetBetaBias(double dBetaBias);
+
+            ////////////////////////////////////
+            // Getters.
+            ////////////////////////////////////
+            double GetTileSize() const;
+            double GetMinTravScore() const;
+            double GetBetaBias() const;
 
         private:
             ////////////////////////////////////
@@ -141,8 +154,8 @@ namespace pathplanners
                 public:
                     bool operator()(const PlannerState& stLeftHandSide, const PlannerState& stRightHandSide) const
                     {
-                        // Compare based on cost, lower cost means higher priority.
-                        return stLeftHandSide.dGCost + stLeftHandSide.dHCost > stRightHandSide.dGCost + stRightHandSide.dHCost;
+                        // Tiebreaker: Compare based on cost, lower cost means higher priority. We want to keep the right-hand side if it has a lower cost.
+                        return (stLeftHandSide.dGCost + stLeftHandSide.dHCost) > (stRightHandSide.dGCost + stRightHandSide.dHCost);
                     }
             };
 
@@ -226,7 +239,7 @@ namespace pathplanners
             void CheckAndLoadTile(const PlannerState& stCurrentState);
             PlannerState FindClosestLiDARPoint(const geoops::UTMCoordinate& stCoordinate);
             void PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const;
-            double EuclideanDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const;
+            double EuclideanDistance(double dEasting1, double dNorthing1, double dAltitude1, double dEasting2, double dNorthing2, double dAltitude2) const;
 
             /******************************************************************************
              * @brief Callback function used to set the minimum travel score for path planning.
@@ -244,9 +257,15 @@ namespace pathplanners
                 // Set minimum travel score from incoming packet.
                 if (stPacket.vData.size() > 0)
                 {
+                    // Set minimum travel score.
                     m_dMinTravScore = static_cast<double>(stPacket.vData[0]);
+                    // Clear the tile cache.
+                    this->ClearGeoCache();
+
                     // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner minimum travel score to {}", this->m_dMinTravScore);
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "Incoming Packet: Setting GeoPlanner minimum travel score to {}. The tile cache has also been cleared.",
+                               this->m_dMinTravScore);
                 }
             };
 
@@ -281,6 +300,7 @@ namespace pathplanners
             double m_dMinTravScore;                                          // Minimum travel score threshold for path planning.
             double m_dTileSize;                                              // Size of the grid tiles in meters.
             double m_dSearchRadius;                                          // Search radius for finding neighbors.
+            double m_dMaxSearchTimeSeconds;                                  // The maximum time to spend searching for a path in seconds.
             LiDARHandler* m_pLiDARHandler;                                   // Pointer to the LiDARHandler instance for fetching geospatial data.
             std::unique_ptr<logging::graphing::PathTracer> m_pPathTracer;    // Path tracer for 3D visualization.
             std::unique_ptr<KDTree2D> m_pKDTree;                             // KD-tree for fast spatial queries over loaded tiles.
@@ -295,7 +315,6 @@ namespace pathplanners
              * nodes that have already been evaluated (closedSet).
              */
             std::priority_queue<PlannerState, std::vector<PlannerState>, PlannerStateCompare> m_pqOpenSetNextBest;    // Priority queue (min-heap) to be evaled.
-            std::unordered_set<int> m_usOpenSet;                                                                      // Set of point IDs currently in the open set.
             std::unordered_map<int, int> m_umPredecessors;                                                            // Maps point IDs to their predecessor's ID.
             std::unordered_set<int> m_usClosedSet;                                                                    // Set of point IDs that have been evaluated.
             std::unordered_map<int, PlannerState> m_umAllStates;    // Maps point IDs to their corresponding PlannerState.

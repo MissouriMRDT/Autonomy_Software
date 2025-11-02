@@ -304,6 +304,7 @@ int main()
                                    "\n--------[ Autonomy Software Help ]--------\n"
                                    "Press 'f' or 'F' to print FPS stats to the log file.\n"
                                    "Press 'p' or 'P' to print rover pose info to the log file.\n"
+                                   "Press 'd' or 'D' to print current drive powers.\n"
                                    "Press 't' or 'T' to print tag detection info to the log file.\n"
                                    "Press 'm' or 'M' to print object detection info to the log file.\n"
                                    "Press 'q' or 'Q' to quit the program.\n"
@@ -325,6 +326,17 @@ int main()
                         szRoverPoseInfo += "Compass: " + std::to_string(stCurrentRoverPose.GetCompassHeading()) + "\n";
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "{}", szRoverPoseInfo);
+                    }
+                    else if (chTerminalInput == 'd' || chTerminalInput == 'D')
+                    {
+                        // Get the current drive powers from the drive board.
+                        diffdrive::DrivePowers stCurrentDrivePowers = globals::g_pDriveBoard->GetDrivePowers();
+                        // Assemble a string to print containing data about the drive powers.
+                        std::string szDrivePowersInfo = "\n--------[ Drive Powers Info ]--------\n";
+                        szDrivePowersInfo += "Left Power: " + std::to_string(stCurrentDrivePowers.dLeftDrivePower) + "\n";
+                        szDrivePowersInfo += "Right Power: " + std::to_string(stCurrentDrivePowers.dRightDrivePower) + "\n";
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szDrivePowersInfo);
                     }
                     else if (chTerminalInput == 't' || chTerminalInput == 'T')
                     {
