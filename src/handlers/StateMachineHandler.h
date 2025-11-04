@@ -203,18 +203,20 @@ class StateMachineHandler : private AutonomyThread<void>
         /////////////////////////////////////////
         StateMachineHandler();
         ~StateMachineHandler();
-
         void StartStateMachine();
         void StopStateMachine();
-
         void HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState = false);
-
         void ClearSavedStates();
         void ClearSavedState(statemachine::States eState);
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
 
+        // Smart location retrieving.
+        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOHeading = true, bool bVIOTracking = false);
+        double SmartRetrieveVelocity();
+        double SmartRetrieveAngularVelocity();
         void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
+
         using AutonomyThread::GetIPS;
 };
 

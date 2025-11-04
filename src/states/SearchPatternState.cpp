@@ -43,7 +43,7 @@ namespace statemachine
         m_stSearchPatternCenter     = globals::g_pWaypointHandler->PeekNextWaypoint();
 
         // Get the current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
         m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
@@ -123,7 +123,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
 
         // Get the current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
@@ -219,7 +219,7 @@ namespace statemachine
 
         // Check if stuck.
         if (constants::SEARCH_ENABLE_STUCK_DETECT &&
-            m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");

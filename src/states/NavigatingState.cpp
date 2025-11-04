@@ -124,12 +124,12 @@ namespace statemachine
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
         {
             // Trigger new waypoint event.
-            globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint, true);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eNewWaypoint);
             return;
         }
 
         // Get Current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.
@@ -338,7 +338,7 @@ namespace statemachine
 
         // Check if stuck.
         if (constants::NAVIGATING_ENABLE_STUCK_DETECT &&
-            m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
@@ -434,7 +434,7 @@ namespace statemachine
                     // Clear the old path plot and add the new path.
                     m_pRoverPathPlot->ClearLayer("NavPath");
                     // Add starting point and goal point to path plot.
-                    m_pRoverPathPlot->AddPathPoint(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
+                    m_pRoverPathPlot->AddPathPoint(globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
                     m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
 
                     // Update our plot with the new path.
@@ -442,7 +442,7 @@ namespace statemachine
                     // Plan a new path using the GeoPlanner.
                     std::vector<geoops::Waypoint> m_vPathCoordinates =
                         globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
-                                                         globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
+                                                         globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
                                                          m_stGoalWaypoint.GetUTMCoordinate());
                     m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.

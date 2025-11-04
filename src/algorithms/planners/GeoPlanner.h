@@ -95,7 +95,7 @@ namespace pathplanners
                                                    const geoops::UTMCoordinate& stStart,
                                                    const geoops::UTMCoordinate& stEnd,
                                                    double dSearchRadius         = 2.0,
-                                                   double dMaxSearchTimeSeconds = 120.0,
+                                                   double dMaxSearchTimeSeconds = 240.0,
                                                    bool bPlotPath               = false);
             void ClearGeoCache();
 

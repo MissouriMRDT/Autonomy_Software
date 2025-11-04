@@ -83,7 +83,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
         // Create instance variables.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Calculate distance from current position to position when idle state was entered.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());

@@ -39,7 +39,7 @@ namespace statemachine
         // Initialize ASTAR Pathfinder:
         // TODO: Poll zedCam / object detector for seen obstacles to pass to AStar.
         // Determine start and goal (peek waypoint for goal).
-        m_stPose         = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        m_stPose         = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         m_stStart        = m_stPose.GetUTMCoordinate();
         m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
 
@@ -121,16 +121,15 @@ namespace statemachine
         // A route has already been plotted by the planner and passed to the controller.
         // Navigate by issuing drive commands from the controller.
         // Check if we are at the goal waypoint.
-        geoops::RoverPose stCurrentRoverPose             = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose             = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
 
         // Check to see if rover velocity is below stuck threshold (scaled to avoidance speed).
-        if (m_stStuckChecker.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+        if (m_stStuckChecker.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
         {
             LOG_INFO(logging::g_qSharedLogger, "AvoidanceState: Rover has become stuck");
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
         }
-
         // Goal has not been reached yet:
         else if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {

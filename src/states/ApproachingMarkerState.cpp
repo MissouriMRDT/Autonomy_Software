@@ -103,7 +103,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingMarkerState: Running state-specific behavior.");
 
         // Get the current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
@@ -291,7 +291,7 @@ namespace statemachine
 
         // Check if stuck.
         if (constants::APPROACH_MARKER_ENABLE_STUCK_DETECT &&
-            m_StuckDetector.CheckIfStuck(globals::g_pWaypointHandler->SmartRetrieveVelocity(), globals::g_pWaypointHandler->SmartRetrieveAngularVelocity()))
+            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Rover has become stuck!");

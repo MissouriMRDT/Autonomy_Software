@@ -317,7 +317,7 @@ int main()
                     else if (chTerminalInput == 'p' || chTerminalInput == 'P')
                     {
                         // Get the rover pose from the waypoint handler.
-                        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+                        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
                         // Assemble a string to print containing data about the rover pose.
                         std::string szRoverPoseInfo = "\n--------[ Rover Pose Info ]--------\n";
                         szRoverPoseInfo += "Easting: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dEasting) + "\n";
