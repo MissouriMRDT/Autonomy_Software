@@ -441,57 +441,11 @@ namespace statemachine
                     m_vPathCoordinates =
                         m_pAStarPlanner->PlanAvoidancePath(globals::g_pWaypointHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
                 }
-
-                rovecomm::RoveCommPacket<double> stPacket;
-                stPacket.unDataId  = 11010;
-
-                stPacket.eDataType = manifest::DataTypes::DOUBLE_T;
-                double minDiff     = 0.0001;
-                double lastLat     = 0.0;
-                double lastLon     = 0.0;
-
-                for (const auto& waypoint : m_vPathCoordinates)
-                {
-                    const auto& gps = waypoint.GetGPSCoordinate();
-
-                    double diff = std::abs(gps.dLatitude - lastLat) + std::abs(gps.dLongitude - lastLon);
-
-                    if (diff < minDiff)
-                    {
-                        LOG_INFO(logging::g_qSharedLogger, "Skipped waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
-                        continue;
-                    }
-                    
-                    LOG_INFO(logging::g_qSharedLogger, "Added waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
-                    stPacket.vData.emplace_back(gps.dLatitude);
-                    stPacket.vData.emplace_back(gps.dLongitude);
-
-                    lastLat = gps.dLatitude;
-                    lastLon = gps.dLongitude;
-                    hasLast = true;
-                }
-                stPacket.unDataCount = stPacket.vData.size();
-                // Send drive command over RoveComm to drive board.
-                if (network::g_pRoveCommUDPNode)
-                {
-                    // Check if we should send packets to the SIM or board.
-                    const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
-                    // Send packet.
-                    // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
-                    network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
-                    // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.56.1", 9000);
-                    // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "172.24.16.1", 9000);
-                    // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "127.0.0.1", 9000);
-                    // network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "host.docker.internal", 9000);
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
-
-                }
                 // Send multimedia command to update state display.
-                    globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
-                    // Set toggle.
-                    m_bFetchNewWaypoint = false;
-                    break;
+                globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
+                // Set toggle.
+                m_bFetchNewWaypoint = false;
+                break;
             case Event::eStart:
             {
                 // Submit logger message.

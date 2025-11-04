@@ -7,12 +7,12 @@
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
-#include "../../AutonomyNetworking.h"
 #include "PredictiveStanleyController.h"
 #include "../../AutonomyConstants.h"
-#include "../../util/planners/PathPostProcessing.hpp"
-#include "../../util/GeospatialOperations.hpp"
 #include "../../AutonomyGlobals.h"
+#include "../../AutonomyNetworking.h"
+#include "../../util/GeospatialOperations.hpp"
+#include "../../util/planners/PathPostProcessing.hpp"
 
 /// \cond
 
@@ -187,14 +187,15 @@ namespace controllers
             // Limit the steering angle to the given limit.
             dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
         }
-        
+
         // The new steering heading must be from 0-360 degrees.
         double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
 
-
         // Calculate ETA
-        double remainingDistance = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_vReferencePath[m_nCurrentReferencePathTargetIndex]).dDistanceMeters;
-        for (int i = m_nCurrentReferencePathTargetIndex; i < m_vReferencePath.size() - 1; i++) {
+        double remainingDistance =
+            geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_vReferencePath[m_nCurrentReferencePathTargetIndex]).dDistanceMeters;
+        for (int i = m_nCurrentReferencePathTargetIndex; i < m_vReferencePath.size() - 1; i++)
+        {
             remainingDistance += geoops::CalculateGeoMeasurement(m_vReferencePath[i], m_vReferencePath[i + 1]).dDistanceMeters;
         }
         double ETA = remainingDistance / globals::g_pNavigationBoard->GetVelocity();
@@ -244,6 +245,59 @@ namespace controllers
         m_BicycleModel.ResetState();
         // Set the reference path.
         m_vReferencePath = vSmoothedPath;
+
+        // Initialize packet
+        rovecomm::RoveCommPacket<double> stPacket;
+        stPacket.unDataId  = 11104;
+
+        stPacket.eDataType = manifest::DataTypes::DOUBLE_T;
+        /* Difference threshold for including a waypoint in the packet
+        If the magnitude of the difference between latitude and longitude between the last and current
+         point is less than this, the waypoint is skipped.
+        */
+        double minDiff = 0.0001;
+        // Keep track of last added waypoint latitude and longitude
+        double lastLat = 0.0;
+        double lastLon = 0.0;
+
+        for (const auto& waypoint : m_vPathCoordinates)
+        {
+            // Convert waypoint to GPSCoordinate
+            const geoops::GPSCoordinate& gps = waypoint.GetGPSCoordinate();
+
+            // Difference between last point and this point
+            double diff = std::abs(gps.dLatitude - lastLat) + std::abs(gps.dLongitude - lastLon);
+
+            // Skip this waypoint if it is too close to the last one
+            if (diff < minDiff)
+            {
+                LOG_INFO(logging::g_qSharedLogger, "Skipped waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
+                continue;
+            }
+            
+            LOG_INFO(logging::g_qSharedLogger, "Added waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
+
+            // Add waypoint to the packet data
+            stPacket.vData.emplace_back(gps.dLatitude);
+            stPacket.vData.emplace_back(gps.dLongitude);
+            
+            // Track the last waypoint that was added
+            lastLat = gps.dLatitude;
+            lastLon = gps.dLongitude;
+        }
+
+        // Set the datacount to the number of waypoints added
+        stPacket.unDataCount = stPacket.vData.size();
+
+        // Send drive command over RoveComm to Basestation
+        if (network::g_pRoveCommUDPNode)
+        {
+            // Send packet on local machine (This needs to be changed to actual Basestation IP)
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
+        }
     }
 
     /******************************************************************************
