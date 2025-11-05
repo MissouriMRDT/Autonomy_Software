@@ -5,7 +5,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-10
  *
- * @codPYright CodPYright Mars Rover Design Team 2025 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
 #include "PredictiveStanleyController.h"
@@ -18,7 +18,7 @@
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
- *      implement different controllers that implement advanced control dSYstems
+ *      implement different controllers that implement advanced control systems
  *      used for accurate and precise robotic control.
  *
  *
@@ -167,7 +167,7 @@ namespace controllers
             // Predicted theta is produced by UnicycleModel in DEGREES (compass). Treat as degrees.
             double dPredThetaDeg = dPredictedTheta;
             // Small helper: signed smallest-angle difference in degrees in (-180, 180].
-            auto AngleDiffDeg = [](double targetDeg, double sourceDeg) -> double
+            std::function<double(double, double)> AngleDiffDeg = [](double targetDeg, double sourceDeg) -> double
             {
                 double diff = std::fmod(targetDeg - sourceDeg + 540.0, 360.0) - 180.0;
                 return diff;
@@ -245,7 +245,7 @@ namespace controllers
     {
         // Convert UTM coordinates to waypoints.
         std::vector<geoops::Waypoint> vConvertedPath;
-        for (const auto& stUTMCoord : vReferencePath)
+        for (const geoops::UTMCoordinate& stUTMCoord : vReferencePath)
         {
             vConvertedPath.emplace_back(geoops::Waypoint(stUTMCoord, geoops::WaypointType::eNavigationWaypoint, 0.0, -1));
         }
@@ -266,7 +266,7 @@ namespace controllers
     {
         // Convert GPS coordinates to waypoints.
         std::vector<geoops::Waypoint> vConvertedPath;
-        for (const auto& stGPSCoord : vReferencePath)
+        for (const geoops::GPSCoordinate& stGPSCoord : vReferencePath)
         {
             vConvertedPath.emplace_back(geoops::Waypoint(stGPSCoord, geoops::WaypointType::eNavigationWaypoint, 0.0, -1));
         }
@@ -330,7 +330,7 @@ namespace controllers
     /******************************************************************************
      * @brief Accessor for the reference path that the controller is following.
      *
-     * @return std::vector<geoops::Waypoint> - A codPY of the reference path.
+     * @return std::vector<geoops::Waypoint> - A copy of the reference path.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10

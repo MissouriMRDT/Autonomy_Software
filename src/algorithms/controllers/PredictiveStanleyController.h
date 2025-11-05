@@ -2,7 +2,7 @@
  * @brief Defines the Predictive Stanley Controller class.
  *
  * @file PredictiveStanleyController.h
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com) Bailey Schoenike (baileyps03@gmail.com)
  * @date 2025-01-10
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
@@ -57,7 +57,7 @@ namespace controllers
             // Declare public class methods.
             /////////////////////////////////////////
             PredictiveStanleyController();
-            PredictiveStanleyController(const double dControlGain, const double m_dAngularVelocityLimit, const int nPredictionHorizon, const double dPredictionTimeStep);
+            PredictiveStanleyController(const double dControlGain, const double dAngularVelocityLimit, const int nPredictionHorizon, const double dPredictionTimeStep);
             ~PredictiveStanleyController();
             DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_MOTOR_POWER);
 
