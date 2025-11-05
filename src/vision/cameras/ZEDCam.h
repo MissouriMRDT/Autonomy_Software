@@ -55,6 +55,12 @@ class ZEDCam : public ZEDCamera
         std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true) override;
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud) override;
         std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) override;
+        std::future<bool> RequestPositionalPoseCopy(Pose& stPose) override;
+        std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose) override;
+        std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane) override;
+        std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData) override;
+        std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData) override;
+        std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData) override;
         sl::ERROR_CODE ResetPositionalTracking() override;
         sl::ERROR_CODE TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustomObjects) override;
         sl::ERROR_CODE RebootCamera() override;
@@ -82,17 +88,12 @@ class ZEDCam : public ZEDCamera
         bool GetUsingGPUMem() const override;
         std::string GetCameraModel() override;
         unsigned int GetCameraSerial() override;
-        std::future<bool> RequestPositionalPoseCopy(Pose& stPose) override;
-        std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose) override;
-        std::future<bool> RequestFloorPlaneCopy(sl::Plane& slPlane) override;
         bool GetPositionalTrackingEnabled() override;
         sl::PositionalTrackingStatus GetPositionalTrackingState() override;
         sl::FusedPositionalTrackingStatus GetFusedPositionalTrackingState() override;
         sl::SPATIAL_MAPPING_STATE GetSpatialMappingState() override;
         sl::SPATIAL_MAPPING_STATE ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture) override;
         bool GetObjectDetectionEnabled() override;
-        std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData) override;
-        std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData) override;
 
     private:
         /////////////////////////////////////////
@@ -116,6 +117,7 @@ class ZEDCam : public ZEDCamera
         sl::GeoPose m_slFusionGeoPose;
         sl::Plane m_slFloorPlane;
         sl::Transform m_slFloorTrackingTransform;
+        sl::SensorsData m_slSensorsData;
         sl::SpatialMappingParameters m_slSpatialMappingParams;
         sl::ObjectDetectionParameters m_slObjectDetectionParams;
         sl::BatchParameters m_slObjectDetectionBatchParams;
@@ -152,6 +154,7 @@ class ZEDCam : public ZEDCamera
         std::queue<containers::DataFetchContainer<Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::Plane>> m_qFloorCopySchedule;
+        std::queue<containers::DataFetchContainer<sl::SensorsData>> m_qSensorsCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectData>>> m_qObjectDataCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<sl::ObjectsBatch>>> m_qObjectBatchedDataCopySchedule;
 
@@ -161,6 +164,7 @@ class ZEDCam : public ZEDCamera
         std::shared_mutex m_muPoseCopyMutex;
         std::shared_mutex m_muGeoPoseCopyMutex;
         std::shared_mutex m_muFloorCopyMutex;
+        std::shared_mutex m_muSensorsCopyMutex;
         std::shared_mutex m_muObjectDataCopyMutex;
         std::shared_mutex m_muObjectBatchedDataCopyMutex;
 
@@ -172,6 +176,7 @@ class ZEDCam : public ZEDCamera
         std::atomic<bool> m_bPosesQueued;
         std::atomic<bool> m_bGeoPosesQueued;
         std::atomic<bool> m_bFloorsQueued;
+        std::atomic<bool> m_bSensorsQueued;
         std::atomic<bool> m_bObjectsQueued;
         std::atomic<bool> m_bBatchedObjectsQueued;
 
