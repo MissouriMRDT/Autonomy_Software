@@ -138,7 +138,7 @@ TEST_F(GeoPlannerTests, PlanPathBasic)
     // Fugitive Beach.
     geoops::UTMCoordinate stStart(614082.79, 4190057.07, 15);
     geoops::UTMCoordinate stEnd(614203.77, 4189924.81, 15);
-    std::vector<geoops::Waypoint> vPath = GeoPlanner.PlanPath(m_pLiDARHandler, stStart, stEnd, 1.0, 3.0, 0.8, true);
+    std::vector<geoops::Waypoint> vPath = GeoPlanner.PlanPath(m_pLiDARHandler, stStart, stEnd, 2.0, 240.0, true);
 
     // We can't guarantee a path exists without a real/mocked DB, but we can check type and no crash.
     EXPECT_TRUE(vPath.size() >= 0);

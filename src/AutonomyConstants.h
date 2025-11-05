@@ -79,6 +79,7 @@ namespace constants
     // Power constants.
     extern const float DRIVE_MAX_POWER;
     extern const float DRIVE_MIN_POWER;
+    extern const float DRIVE_MAX_SAFE_POWER;
 
     // Control constants.
     extern const double DRIVE_PID_PROPORTIONAL;
