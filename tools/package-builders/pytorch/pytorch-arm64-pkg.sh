@@ -98,7 +98,13 @@ else
         # mkdir pytorch-build
         mkdir -p /tmp/pytorch-build && cd /tmp/pytorch-build    
         # Build Torch
-        cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release -DPYTHON_EXECUTABLE:PATH=`which python3` -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install ../pytorch
+        cmake \
+        -DBUILD_SHARED_LIBS:BOOL=ON \
+        -DCMAKE_BUILD_TYPE:STRING=Release \
+        -DUSE_NCCL=OFF \
+        -DPYTHON_EXECUTABLE:PATH=`which python3` \
+        -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install \
+        ../pytorch
 
         # Install Torch
         cmake --build . --target install
