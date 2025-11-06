@@ -167,7 +167,7 @@ namespace controllers
             // Predicted theta is produced by UnicycleModel in DEGREES (compass). Treat as degrees.
             double dPredThetaDeg = dPredictedTheta;
             // Small helper: signed smallest-angle difference in degrees in (-180, 180].
-            auto AngleDiffDeg = [](double targetDeg, double sourceDeg) -> double
+            std::function<double(double, double)> AngleDiffDeg = [](double targetDeg, double sourceDeg) -> double
             {
                 double diff = std::fmod(targetDeg - sourceDeg + 540.0, 360.0) - 180.0;
                 return diff;
@@ -245,7 +245,7 @@ namespace controllers
     {
         // Convert UTM coordinates to waypoints.
         std::vector<geoops::Waypoint> vConvertedPath;
-        for (const auto& stUTMCoord : vReferencePath)
+        for (const geoops::UTMCoordinate& stUTMCoord : vReferencePath)
         {
             vConvertedPath.emplace_back(geoops::Waypoint(stUTMCoord, geoops::WaypointType::eNavigationWaypoint, 0.0, -1));
         }
@@ -266,7 +266,7 @@ namespace controllers
     {
         // Convert GPS coordinates to waypoints.
         std::vector<geoops::Waypoint> vConvertedPath;
-        for (const auto& stGPSCoord : vReferencePath)
+        for (const geoops::GPSCoordinate& stGPSCoord : vReferencePath)
         {
             vConvertedPath.emplace_back(geoops::Waypoint(stGPSCoord, geoops::WaypointType::eNavigationWaypoint, 0.0, -1));
         }
