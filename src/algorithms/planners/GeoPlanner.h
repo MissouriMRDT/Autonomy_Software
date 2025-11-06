@@ -323,7 +323,6 @@ namespace pathplanners
             std::unordered_map<TileKey, std::vector<LiDARHandler::PointRow>, TileKeyHash, TileKeyEqual> m_umTileMapCache;    // Maps tile keys to LiDAR points.
             // KD-tree insertion bookkeeping to avoid duplicate inserts and to batch optimizations.
             std::unordered_set<TileKey, TileKeyHash, TileKeyEqual> m_usKDTreeInsertedTiles;    // Tracks which tiles' points have been inserted
-            std::mutex m_kdTreeMutex;                                                          // Protects KD-tree and bookkeeping structures
     };
 }    // namespace pathplanners
 

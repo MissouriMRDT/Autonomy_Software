@@ -497,8 +497,6 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bVIOHeading, 
                     if (fuResultStatus2.get())
                     {
                         // Repack the camera pose into a UTMCoordinate.
-                        // dCurrentHeading = slCurrentCameraGeoPose.heading * (180.0 / M_PI);    // This doesn't work because the heading is on the wrong axis for some
-                        // reason.
                         dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
 
                         // Set fused toggle.
@@ -579,14 +577,13 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bVIOHeading, 
               bVIOTracking ? "true" : "false",
               bVIOHeading ? "true" : "false");
 
-    // Submit a debug print for some error metrics pertaining to the ZED camera and NavBoard locations and headings.
-    double dHeadingError  = dCurrentHeading - dCurrentGPSHeading;
-    double dEastingError  = ConvertGPSToUTM(stCurrentGPSPosition).dEasting - stCurrentUTMPosition.dEasting;
-    double dNorthingError = ConvertGPSToUTM(stCurrentGPSPosition).dNorthing - stCurrentUTMPosition.dNorthing;
-
     // Check if VIO tracking or heading is being used.
     if (bVIOHeading || bVIOTracking)
     {
+        // Submit a debug print for some error metrics pertaining to the ZED camera and NavBoard locations and headings.
+        double dHeadingError  = dCurrentHeading - dCurrentGPSHeading;
+        double dEastingError  = ConvertGPSToUTM(stCurrentGPSPosition).dEasting - stCurrentUTMPosition.dEasting;
+        double dNorthingError = ConvertGPSToUTM(stCurrentGPSPosition).dNorthing - stCurrentUTMPosition.dNorthing;
         // Assemble the error metrics into a single string. We are going to include the original GPS positions of the NavBoard and the Camera and then include the error.
         // Same thing for the heading data.
         std::string szErrorMetrics = "--------[ Pose Tracking Error ]--------\nGPS/VIO Position Error (UTM for easy reading):\n" +

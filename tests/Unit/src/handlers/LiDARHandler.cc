@@ -230,7 +230,7 @@ TEST_F(LiDARHandlerTests, QueryWithAllRangeFilters)
 TEST_F(LiDARHandlerTests, ThreadSafetyOpenCloseQuery)
 {
     LiDARHandler handler;
-    auto openClose = [&handler, this]()
+    std::function<void()> fnOpenClose = [&handler, this]()
     {
         for (int i = 0; i < 5; ++i)
         {
@@ -238,7 +238,7 @@ TEST_F(LiDARHandlerTests, ThreadSafetyOpenCloseQuery)
             handler.CloseDB();
         }
     };
-    auto query = [&handler, this]()
+    std::function<void()> fnQuery = [&handler, this]()
     {
         for (int i = 0; i < 5; ++i)
         {
@@ -248,10 +248,10 @@ TEST_F(LiDARHandlerTests, ThreadSafetyOpenCloseQuery)
             handler.CloseDB();
         }
     };
-    std::thread t1(openClose);
-    std::thread t2(query);
-    t1.join();
-    t2.join();
+    std::thread thThread1(fnOpenClose);
+    std::thread thThread2(fnQuery);
+    thThread1.join();
+    thThread2.join();
     SUCCEED();
 }
 

@@ -52,7 +52,7 @@ LiDARHandler::~LiDARHandler()
  * @return false - If there was an error opening the database or preparing the SQL statement.
  *
  * @note If the database file cannot be found or accessed, an error message will be printed
- *       to std::cerr and this function will return false.
+ *       via Quill Logger and this function will return false.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-13

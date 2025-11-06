@@ -5,7 +5,7 @@
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-10
  *
- * @codPYright CodPYright Mars Rover Design Team 2025 - All Rights Reserved
+ * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
 #include "PredictiveStanleyController.h"
@@ -18,7 +18,7 @@
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
- *      implement different controllers that implement advanced control dSYstems
+ *      implement different controllers that implement advanced control systems
  *      used for accurate and precise robotic control.
  *
  *
@@ -330,7 +330,7 @@ namespace controllers
     /******************************************************************************
      * @brief Accessor for the reference path that the controller is following.
      *
-     * @return std::vector<geoops::Waypoint> - A codPY of the reference path.
+     * @return std::vector<geoops::Waypoint> - A copy of the reference path.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10
