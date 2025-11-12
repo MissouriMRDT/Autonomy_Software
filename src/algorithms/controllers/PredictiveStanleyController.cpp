@@ -198,7 +198,24 @@ namespace controllers
         {
             remainingDistance += geoops::CalculateGeoMeasurement(m_vReferencePath[i], m_vReferencePath[i + 1]).dDistanceMeters;
         }
-        double ETA = remainingDistance / globals::g_pNavigationBoard->GetVelocity();
+        double timeRemaining = remainingDistance / globals::g_pNavigationBoard->GetVelocity();
+
+        // Initialize packet
+        rovecomm::RoveCommPacket<double> stPacket;
+        stPacket.unDataId  = 11105;
+        stPacket.eDataType = manifest::DataTypes::DOUBLE_T;
+        stPacket.unDataCount = 1;
+        stPacket.vData.emplace_back(timeRemaining);
+        
+        // Send time remaining over RoveComm to Basestation
+        if (network::g_pRoveCommUDPNode)
+        {
+            // Send packet on local machine (This needs to be changed to actual Basestation IP)
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
+
+            // Submit logger message.
+            LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
+        }
 
         return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
     }
@@ -260,7 +277,7 @@ namespace controllers
         double lastLat = 0.0;
         double lastLon = 0.0;
 
-        for (const auto& waypoint : m_vPathCoordinates)
+        for (const auto& waypoint : m_vReferencePath)
         {
             // Convert waypoint to GPSCoordinate
             const geoops::GPSCoordinate& gps = waypoint.GetGPSCoordinate();
@@ -289,7 +306,7 @@ namespace controllers
         // Set the datacount to the number of waypoints added
         stPacket.unDataCount = stPacket.vData.size();
 
-        // Send drive command over RoveComm to Basestation
+        // Send path data over RoveComm to Basestation
         if (network::g_pRoveCommUDPNode)
         {
             // Send packet on local machine (This needs to be changed to actual Basestation IP)

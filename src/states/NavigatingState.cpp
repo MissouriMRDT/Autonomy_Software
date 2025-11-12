@@ -446,6 +446,7 @@ namespace statemachine
                 // Set toggle.
                 m_bFetchNewWaypoint = false;
                 break;
+            }
             case Event::eStart:
             {
                 // Submit logger message.
