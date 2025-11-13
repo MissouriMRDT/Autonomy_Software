@@ -300,6 +300,124 @@ class ZEDCamera : public Camera<cv::Mat>
         }
 
         /******************************************************************************
+         * @brief Puts a Pose pointer into a queue so a copy of a Pose from the camera can be written to it.
+         *
+         * @param stPose - A reference to the Pose to store the Pose in.
+         * @return std::future<bool> - A future that should be waited on before the passed in Pose is used.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-12-25
+         ******************************************************************************/
+        virtual std::future<bool> RequestPositionalPoseCopy(Pose& stPose) = 0;
+
+        /******************************************************************************
+         * @brief Puts a GeoPose pointer into a queue so a copy of a GeoPose from the camera can be written to it.
+         *
+         * @param slGeoPose - A reference to the sl::GeoPose to store the GeoPose in.
+         * @return std::future<bool> - A future that should be waited on before the passed in GeoPose is used.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-12-25
+         ******************************************************************************/
+        virtual std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose) = 0;
+
+        /******************************************************************************
+         * @brief Puts a FloorPlane pointer into a queue so a copy of a FloorPlane from the camera can be written to it.
+         *
+         * @param slFloorPlane - A reference to the sl::Plane to store the FloorPlane in.
+         * @return std::future<bool> - A future that should be waited on before the passed in FloorPlane is used.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-12-25
+         ******************************************************************************/
+        virtual std::future<bool> RequestFloorPlaneCopy(sl::Plane& slFloorPlane)
+        {
+            // Initialize instance variables.
+            (void) slFloorPlane;
+            std::promise<bool> pmPromise;
+
+            // Immediately set the promise to false.
+            pmPromise.set_value(false);
+
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestFloorPlaneCopy(sl::Plane& slFloorPlane) not implemented.");
+
+            return pmPromise.get_future();
+        }
+
+        /******************************************************************************
+         * @brief Puts a SensorsData pointer into a queue so a copy of a SensorsData from the camera can be written to it.
+         *
+         * @param slSensorsData - A reference to the sl::SensorsData to store the SensorsData in.
+         * @return std::future<bool> - A future that should be waited on before the passed in SensorsData is used.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2025-08-26
+         ******************************************************************************/
+        virtual std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData)
+        {
+            // Initialize instance variables.
+            (void) slSensorsData;
+            std::promise<bool> pmPromise;
+
+            // Immediately set the promise to false.
+            pmPromise.set_value(false);
+
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestSensorsCopy(sl::SensorsData& slSensorsData) not implemented.");
+
+            return pmPromise.get_future();
+        }
+
+        /******************************************************************************
+         * @brief Puts a vector of ObjectData pointers into a queue so a copy of a vector of ObjectData from the camera can be written to it.
+         *
+         * @param vObjectData - A reference to the vector of sl::ObjectData to store the ObjectData in.
+         * @return std::future<bool> - A future that should be waited on before the passed in ObjectData is used.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-12-25
+         ******************************************************************************/
+        virtual std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
+        {
+            // Initialize instance variables.
+            (void) vObjectData;
+            std::promise<bool> pmPromise;
+
+            // Immediately set the promise to false.
+            pmPromise.set_value(false);
+
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData) not implemented.");
+
+            return pmPromise.get_future();
+        }
+
+        /******************************************************************************
+         * @brief Puts a vector of ObjectsBatch pointers into a queue so a copy of a vector of ObjectsBatch from the camera can be written to it.
+         *
+         * @param vBatchedObjectData - A reference to the vector of sl::ObjectsBatch to store the ObjectsBatch in.
+         * @return std::future<bool> - A future that should be waited on before the passed in ObjectsBatch is used.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-12-25
+         ******************************************************************************/
+        virtual std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
+        {
+            // Initialize instance variables.
+            (void) vBatchedObjectData;
+            std::promise<bool> pmPromise;
+
+            // Immediately set the promise to false.
+            pmPromise.set_value(false);
+
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData) not implemented.");
+
+            return pmPromise.get_future();
+        }
+
+        /******************************************************************************
          * @brief Resets the positional tracking of the camera.
          *
          * @return sl::ERROR_CODE - The error code returned by the ZED SDK.
@@ -528,52 +646,6 @@ class ZEDCamera : public Camera<cv::Mat>
         virtual unsigned int GetCameraSerial() { return m_unCameraSerialNumber; };
 
         /******************************************************************************
-         * @brief Puts a Pose pointer into a queue so a copy of a Pose from the camera can be written to it.
-         *
-         * @param stPose - A reference to the Pose to store the Pose in.
-         * @return std::future<bool> - A future that should be waited on before the passed in Pose is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestPositionalPoseCopy(Pose& stPose) = 0;
-
-        /******************************************************************************
-         * @brief Puts a GeoPose pointer into a queue so a copy of a GeoPose from the camera can be written to it.
-         *
-         * @param slGeoPose - A reference to the sl::GeoPose to store the GeoPose in.
-         * @return std::future<bool> - A future that should be waited on before the passed in GeoPose is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose) = 0;
-
-        /******************************************************************************
-         * @brief Puts a FloorPlane pointer into a queue so a copy of a FloorPlane from the camera can be written to it.
-         *
-         * @param slFloorPlane - A reference to the sl::Plane to store the FloorPlane in.
-         * @return std::future<bool> - A future that should be waited on before the passed in FloorPlane is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestFloorPlaneCopy(sl::Plane& slFloorPlane)
-        {
-            // Initialize instance variables.
-            (void) slFloorPlane;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestFloorPlaneCopy(sl::Plane& slFloorPlane) not implemented.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
          * @brief Accessor for the Positional Tracking Enabled private member.
          *
          * @return true - Positional tracking is enabled.
@@ -662,54 +734,6 @@ class ZEDCamera : public Camera<cv::Mat>
          * @date 2024-12-25
          ******************************************************************************/
         virtual bool GetObjectDetectionEnabled() { return false; }
-
-        /******************************************************************************
-         * @brief Puts a vector of ObjectData pointers into a queue so a copy of a vector of ObjectData from the camera can be written to it.
-         *
-         * @param vObjectData - A reference to the vector of sl::ObjectData to store the ObjectData in.
-         * @return std::future<bool> - A future that should be waited on before the passed in ObjectData is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
-        {
-            // Initialize instance variables.
-            (void) vObjectData;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData) not implemented.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
-         * @brief Puts a vector of ObjectsBatch pointers into a queue so a copy of a vector of ObjectsBatch from the camera can be written to it.
-         *
-         * @param vBatchedObjectData - A reference to the vector of sl::ObjectsBatch to store the ObjectsBatch in.
-         * @return std::future<bool> - A future that should be waited on before the passed in ObjectsBatch is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
-        {
-            // Initialize instance variables.
-            (void) vBatchedObjectData;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData) not implemented.");
-
-            return pmPromise.get_future();
-        }
 
     protected:
         /////////////////////////////////////////

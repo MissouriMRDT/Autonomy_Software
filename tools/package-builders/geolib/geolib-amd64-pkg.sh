@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-GEOLIB_VERSION="2.5"
+GEOLIB_VERSION="2.5.2"
 
 # Build Arguments
 FORCE_BUILD=false

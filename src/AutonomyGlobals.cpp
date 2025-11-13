@@ -27,6 +27,9 @@ namespace globals
     // Waypoint Handler:
     WaypointHandler* g_pWaypointHandler;
 
+    // LiDAR Handler:
+    LiDARHandler* g_pLiDARHandler;
+
     // Camera Handler:
     CameraHandler* g_pCameraHandler;
 
@@ -38,6 +41,9 @@ namespace globals
 
     // State Machine Handler:
     StateMachineHandler* g_pStateMachineHandler;
+
+    // GeoPlanner:
+    pathplanners::GeoPlanner* g_pGeoPlanner;
 
     // Drivers:
     DriveBoard* g_pDriveBoard;

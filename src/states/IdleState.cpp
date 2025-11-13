@@ -83,7 +83,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "IdleState: Running state-specific behavior.");
 
         // Create instance variables.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Calculate distance from current position to position when idle state was entered.
         geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stStartRoverPose.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
@@ -96,15 +96,6 @@ namespace statemachine
             m_stStartRoverPose = stCurrentRoverPose;
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "IdleState: Stopped drive.");
-        }
-
-        // If the last state was searchpattern and the waypoint handler has been cleared, reset.
-        if (globals::g_pStateMachineHandler->GetPreviousState() != States::eIdle && globals::g_pWaypointHandler->GetWaypointCount() <= 0)
-        {
-            // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "IdleState: WaypointHandler queue is empty while in IdleState, deleting old saved states...");
-            // Reset all old states. Since waypoint handler has been cleared, there's no need to save old searchpattern state.
-            globals::g_pStateMachineHandler->ClearSavedStates();
         }
     }
 

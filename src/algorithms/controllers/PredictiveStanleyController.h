@@ -2,7 +2,7 @@
  * @brief Defines the Predictive Stanley Controller class.
  *
  * @file PredictiveStanleyController.h
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com) Bailey Schoenike (baileyps03@gmail.com)
  * @date 2025-01-10
  *
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
@@ -12,8 +12,8 @@
 #define PREDICTIVE_STANLEY_CONTROLLER_H
 
 #include "../../util/GeospatialOperations.hpp"
-#include "../../util/logging/PathTracer2D.hpp"
-#include "../kinematics/BicycleModel.hpp"
+#include "../../util/logging/PathTracer.hpp"
+#include "../kinematics/UnicycleModel.hpp"
 
 /// \cond
 #include <vector>
@@ -57,11 +57,7 @@ namespace controllers
             // Declare public class methods.
             /////////////////////////////////////////
             PredictiveStanleyController();
-            PredictiveStanleyController(const double dControlGain,
-                                        const double dSteeringAngleLimit,
-                                        const double dWheelbase,
-                                        const int nPredictionHorizon,
-                                        const double dPredictionTimeStep);
+            PredictiveStanleyController(const double dControlGain, const double dAngularVelocityLimit, const int nPredictionHorizon, const double dPredictionTimeStep);
             ~PredictiveStanleyController();
             DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_MOTOR_POWER);
 
@@ -73,8 +69,7 @@ namespace controllers
             void SetReferencePath(const std::vector<geoops::UTMCoordinate>& vReferencePath);
             void SetReferencePath(const std::vector<geoops::GPSCoordinate>& vReferencePath);
             void SetControlGain(const double dControlGain);
-            void SetSteeringAngleLimit(const double dSteeringAngleLimit);
-            void SetWheelbase(const double dWheelbase);
+            void SetAngularVelocityLimit(const double dAngularVelocityLimit);
 
             /////////////////////////////////////////
             // Getters.
@@ -82,8 +77,7 @@ namespace controllers
 
             std::vector<geoops::Waypoint> GetReferencePath() const;
             double GetControlGain() const;
-            double GetSteeringAngleLimit() const;
-            double GetWheelbase() const;
+            double GetAngularVelocityLimit() const;
             double GetReferencePathTargetIndex() const;
 
         private:
@@ -91,20 +85,18 @@ namespace controllers
             // Declare private class methods.
             /////////////////////////////////////////
 
-            geoops::Waypoint FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const double dCurrentHeading);
+            geoops::Waypoint FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition);
 
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
 
-            BicycleModel m_BicycleModel;
+            UnicycleModel m_UnicycleModel;
             double m_dControlGain;
-            double m_dSteeringAngleLimit;
-            double m_dWheelbase;
+            double m_dAngularVelocityLimit;
             int m_nPredictionHorizon;
             double m_dPredictionTimeStep;
             int m_nCurrentReferencePathTargetIndex;
-            std::vector<double> m_vReferencePathCurvature;
             std::vector<geoops::Waypoint> m_vReferencePath;
     };
 }    // namespace controllers

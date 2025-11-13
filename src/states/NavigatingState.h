@@ -12,10 +12,10 @@
 #define NAVIGATING_STATE_H
 
 #include "../algorithms/controllers/PredictiveStanleyController.h"
-#include "../algorithms/planners/AStar.h"
+#include "../algorithms/planners/GeoPlanner.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
-#include "../util/logging/PathTracer2D.hpp"
+#include "../util/logging/PathTracer.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/objects/ObjectDetector.h"
@@ -49,7 +49,6 @@ namespace statemachine
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
-            std::unique_ptr<pathplanners::AStar> m_pAStarPlanner;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
 
         protected:
