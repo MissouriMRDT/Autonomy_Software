@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="9.0.2"
+QUILL_VERSION="10.1.0"
 
 # Build Arguments
 FORCE_BUILD=false

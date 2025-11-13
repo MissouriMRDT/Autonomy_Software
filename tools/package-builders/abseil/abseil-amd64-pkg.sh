@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-ABSEIL_VERSION="20250127.0"
+ABSEIL_VERSION="20250814.0"
 
 # Build Arguments
 FORCE_BUILD=false
@@ -94,6 +94,7 @@ else
         cmake \
         -D CMAKE_INSTALL_PREFIX=/tmp/pkg/abseil_${ABSEIL_VERSION}_amd64/usr/local \
         -D CMAKE_BUILD_TYPE=Release \
+        -D CMAKE_CXX_STANDARD=20 \
         -D ABSL_ENABLE_INSTALL=ON ..
 
         # Install Abseil

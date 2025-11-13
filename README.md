@@ -344,6 +344,13 @@ This project makes use of several open-source libraries and tools that help us a
   [GeographicLib GitHub](https://github.com/geographiclib/geographiclib)  
   License: [MIT License](https://github.com/geographiclib/geographiclib/blob/main/LICENSE.txt)
 
+- **QT6** - A library for designing graphical user interfaces.
+  [QT6 GitHub](https://github.com/qt/qtbase)  
+
+- **OpenMS** - A C++ library for LC-MS data management and analysis.
+  [OpenMS GitHub](https://github.com/OpenMS/OpenMS)  
+  License: [BSD3 License](https://github.com/OpenMS/OpenMS/blob/develop/LICENSE.md
+
 - **Eigen** - A high-performance C++ library for linear algebra, matrix, and vector operations.  
   [Eigen GitHub](https://gitlab.com/libeigen/eigen)  
   License: [MPL2 License](https://gitlab.com/libeigen/eigen/-/blob/master/COPYING.MPL2)

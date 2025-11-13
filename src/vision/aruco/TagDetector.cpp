@@ -780,7 +780,7 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
         if (!m_cvPointCloud.empty())
         {
             // Get the rover pose from the waypoint handler.
-            m_stRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+            m_stRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
             // Loop through the tags and use their center point to lookup their distance in the point cloud.
             for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
             {

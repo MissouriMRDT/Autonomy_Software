@@ -40,11 +40,11 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-05-08-03-09-25",
-    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-05-08-03-09-25",
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-05-10-00-39-31",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-05-10-00-39-31",
     // "build": {
     //     "dockerfile": "Jammy.dockerfile"
-    //     "dockerfile": "JetPack.dockerfile"
+    //     // "dockerfile": "JetPack.dockerfile"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
@@ -72,7 +72,9 @@
                 "vscode-icons-team.vscode-icons",
                 "ryanluker.vscode-coverage-gutters",
                 "GitHub.vscode-pull-request-github",
-                "GitHub.copilot"
+                "GitHub.copilot",
+                "qwtel.sqlite-viewer",
+                "icrawl.discord-vscode"
             ],
             "settings": {
                 // VSCode settings.
@@ -142,6 +144,8 @@
                     "/usr/local/include/edgetpu/**",
                     "/usr/local/include/pcl",
                     "/usr/local/include/pcl/**",
+                    "/usr/local/include/OpenMS",
+                    "/usr/local/include/OpenMS/**",
                     "/usr/include/torch",
                     "/usr/include/torch/**",
                     "/usr/include/nlohmann",
@@ -341,7 +345,9 @@
                 ],
                 "coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": true,
                 "coverage-gutters.showLineCoverage": true,
-                "coverage-gutters.showRulerCoverage": true
+                "coverage-gutters.showRulerCoverage": true,
+                // SQLite Viewer Extension Settings.
+                "sqliteViewer.maxFileSize": 0 // Set to 0 to disable file size limit
             }
         }
     }

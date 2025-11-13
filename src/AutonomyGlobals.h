@@ -11,10 +11,12 @@
 #ifndef AUTONOMY_GLOBALS_H
 #define AUTONOMY_GLOBALS_H
 
+#include "algorithms/planners/GeoPlanner.h"
 #include "drivers/DriveBoard.h"
 #include "drivers/MultimediaBoard.h"
 #include "drivers/NavigationBoard.h"
 #include "handlers/CameraHandler.h"
+#include "handlers/LiDARHandler.h"
 #include "handlers/ObjectDetectionHandler.h"
 #include "handlers/StateMachineHandler.h"
 #include "handlers/TagDetectionHandler.h"
@@ -44,6 +46,9 @@ namespace globals
     // Waypoint Handler:
     extern WaypointHandler* g_pWaypointHandler;    // Global Waypoint Handler
 
+    // LiDAR Handler:
+    extern LiDARHandler* g_pLiDARHandler;    // Global LiDAR Handler
+
     // Camera Handler:
     extern CameraHandler* g_pCameraHandler;    // Global Camera Handler
 
@@ -55,6 +60,9 @@ namespace globals
 
     // State Machine Handler:
     extern StateMachineHandler* g_pStateMachineHandler;    // Global State Machine Handler
+
+    // GeoPlanner:
+    extern pathplanners::GeoPlanner* g_pGeoPlanner;    // Global GeoPlanner
 
     // Board Interfaces:
     extern DriveBoard* g_pDriveBoard;              // Global Drive Board Driver

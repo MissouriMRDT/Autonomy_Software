@@ -51,13 +51,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y iputils-ping \
     vim-common gasket-dkms nlohmann-json3-dev gcovr lcov curl \
     libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev \
-    libboost-all-dev libflann-dev libvtk9-dev libvtk9-qt-dev libqhull-dev libopenni-dev libopenni2-dev \
-    qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libqt5opengl5-dev qttools5-dev qttools5-dev-tools \
-    libcjson-dev libpcap-dev
+    libboost-all-dev libflann-dev libqhull-dev libopenni-dev libopenni2-dev \
+    libsvm-dev libxerces-c-dev libhdf5-dev \
+    libcjson-dev libpcap-dev sqlite3 libsqlite3-dev
 
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
+
+# Remove Unused Packages.
+RUN apt purge 'qt5-*' 'libqt5*' && apt autoremove --purge -y
 
 # Install Required Python Packages and link python3 executable to python.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib
@@ -85,8 +88,8 @@ RUN if [ "${CMAKE_VERSION}" != "none" ]; then \
 WORKDIR /opt
 
 # Install ZED SDK
-ARG ZED_MAJOR="4"
-ARG ZED_MINOR="2"
+ARG ZED_MAJOR="5"
+ARG ZED_MINOR="0"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
@@ -98,13 +101,13 @@ RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.11.0"
+ARG OPENCV_VERSION="4.12.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/amd64/opencv_${OPENCV_VERSION}_amd64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.6.0"
+ARG TORCH_VERSION="2.8.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
     rm pytorch_${TORCH_VERSION}_amd64.deb
@@ -116,25 +119,43 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflo
     rm tensorflow_${TENSORFLOW_VERSION}_amd64.deb
 
 # Install FFMPEG
-ARG FFMPEG_VERSION="7.1"
+ARG FFMPEG_VERSION="7.1.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
     dpkg -i ffmpeg_${FFMPEG_VERSION}_amd64.deb && \
     rm ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
+# Install OpenMS
+ARG OPENMS_VERSION="3.4.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/amd64/openms_${OPENMS_VERSION}_amd64.deb && \
+    dpkg -i openms_${OPENMS_VERSION}_amd64.deb && \
+    rm openms_${OPENMS_VERSION}_amd64.deb
+
+# Install QT6
+ARG QT6_VERSION="6.5.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/amd64/qt6_${QT6_VERSION}_amd64.deb && \
+    dpkg -i qt6_${QT6_VERSION}_amd64.deb && \
+    rm qt6_${QT6_VERSION}_amd64.deb
+
+# Install VTK
+ARG VTK_VERSION="9.5.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/amd64/vtk_${VTK_VERSION}_amd64.deb && \
+    dpkg -i vtk_${VTK_VERSION}_amd64.deb && \
+    rm vtk_${VTK_VERSION}_amd64.deb
+
 # Install Abseil.
-ARG ABSEIL_VERSION="20250127.0"
+ARG ABSEIL_VERSION="20250814.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/amd64/abseil_${ABSEIL_VERSION}_amd64.deb && \
     dpkg -i abseil_${ABSEIL_VERSION}_amd64.deb && \
     rm abseil_${ABSEIL_VERSION}_amd64.deb
 
 # Install GeographicLib
-ARG GEOLIB_VERSION="2.5"
+ARG GEOLIB_VERSION="2.5.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/amd64/geolib_${GEOLIB_VERSION}_amd64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_amd64.deb && \
     rm geolib_${GEOLIB_VERSION}_amd64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22.5"
+ARG LIBDATACHANNEL_VERSION="0.23.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/amd64/libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_amd64.deb
@@ -146,28 +167,28 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotpl
     rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_amd64.deb
 
 # Install PointCloudLibrary
-ARG PCL_VERSION="1.15.0"
+ARG PCL_VERSION="1.15.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64/pcl_${PCL_VERSION}_amd64.deb && \
     dpkg -i pcl_${PCL_VERSION}_amd64.deb && \
     rm pcl_${PCL_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="9.0.2"
+ARG QUILL_VERSION="10.1.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.16.0"
+ARG GTEST_VERSION="1.17.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/amd64/gtest_${GTEST_VERSION}_amd64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_amd64.deb && \
     rm gtest_${GTEST_VERSION}_amd64.deb
 
 # Fix Perl Locale Error
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
-ENV LANG en_US.UTF-8  
-ENV LANGUAGE en_US:en  
-ENV LC_ALL en_US.UTF-8  
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 # Enable Cowsay, Fortune, Lolcat, and other fun commands.
 RUN mkdir -p ~/.config/fish/ && echo 'set fish_greeting; function random_message_or_donut; set rand (random 0 9999); if test $rand -eq 0; /workspaces/Autonomy_Software/data/Spinning_Donut/donut; else; set cowfile (ls /workspaces/Autonomy_Software/data/Cowsay_Cows/*.cow | shuf -n 1); /usr/games/fortune | /usr/games/cowsay -f $cowfile | /usr/games/lolcat -f; end; end; if status is-interactive; random_message_or_donut; end' >> ~/.config/fish/config.fish
@@ -187,4 +208,4 @@ LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
 LABEL org.opencontainers.image.source=https://github.com/missourimrdt/autonomy_software
 LABEL org.opencontainers.image.licenses=GPL-3.0-only
 LABEL org.opencontainers.image.version="v24.5.0"
-LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.${UBUNTU_MINOR} with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}."
+LABEL org.opencontainers.image.description="Docker Image for Ubuntu ${UBUNTU_MAJOR}.04 with CUDA ${CUDA_MAJOR}.${CUDA_MINOR}, ZED SDK ${ZED_MAJOR}.${ZED_MINOR}, OpenCV ${OPENCV_VERSION}, Quill ${QUILL_VERSION}."
