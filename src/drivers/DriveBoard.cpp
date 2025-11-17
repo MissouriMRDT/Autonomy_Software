@@ -210,8 +210,8 @@ float DriveBoard::VariableDriveEffort()
         if (fuCopyStatus.get())
         {
             // Declare roll, pitch, yaw from sensor data
-            float fRoll  = stPose.stEulerAngles.dXO;
-            float fPitch = stPose.stEulerAngles.dYO;
+            float fRoll  = abs(stPose.stEulerAngles.dXO);
+            float fPitch = abs(stPose.stEulerAngles.dYO);
             float fYaw   = stPose.stEulerAngles.dZO;
 
             // Calculate the risk factor to be applied to the linear polarization equation
