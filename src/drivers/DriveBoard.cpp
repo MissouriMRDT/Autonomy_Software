@@ -121,6 +121,8 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     float fDriveBoardLeftPower  = 0.0;
     float fDriveBoardRightPower = 0.0;
 
+    VariableDriveEffort();
+
     // If the min and max drive effort have been set to 0, then just send zero powers.
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
     {
@@ -204,7 +206,9 @@ float DriveBoard::VariableDriveEffort()
     while (true)
     {
         // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
-        std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuCopyStatus     = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+        float fMultiplier                  = 1;
 
         // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
         if (fuCopyStatus.get())
@@ -219,22 +223,24 @@ float DriveBoard::VariableDriveEffort()
 
             // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
             if (fTheta <= m_fMinSlope)
-                return m_fMaxDamp;
+                fMultiplier = m_fMaxDamp;
             if (fTheta >= m_fMaxSlope)
-                return m_fMinDamp;
+                fMultiplier = m_fMinDamp;
 
             // Calculate multiplier using linear polarization
             const float k = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
             float D       = m_fMaxDamp - k * (fTheta - m_fMinSlope);
 
             // Return multiplier
-            return std::clamp(D, m_fMinDamp, m_fMaxDamp);
+            fMultiplier = std::clamp(D, m_fMinDamp, m_fMaxDamp);
+
+            SetMaxDriveEffort(fMultiplier);
         }
-        else
-        {
-            // Something went wrong, the camera got to our request but said it wasn't able to get the data correctly.
-            return 1;
-        }
+        // else
+        // {
+        //     // Something went wrong, the camera got to our request but said it wasn't able to get the data correctly.
+        //     fMultiplier = 1;
+        // }
     }
 }
 
@@ -255,11 +261,14 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     // Clamp the multiplier to the range [0, 1].
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
-    float VariableSpeedMultiplier          = VariableDriveEffort();
+    // float VariableSpeedMultiplier          = VariableDriveEffort();
+    LOG_INFO(logging::g_qConsoleLogger, "Variable Speed Multiplier:{}", fMaxDriveEffortMultiplier);
 
     // Update member variables.
-    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier * VariableSpeedMultiplier;
-    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier * VariableSpeedMultiplier;
+    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
+    // *VariableSpeedMultiplier;
+    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
+    //   *VariableSpeedMultiplier;
 }
 
 /******************************************************************************
