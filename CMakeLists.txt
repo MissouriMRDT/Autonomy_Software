@@ -42,7 +42,7 @@ option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
 
 ## Enable or Disable Coverage Watch Mode
-option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" ON)
+option(BUILD_COVERAGE_WATCH "Enable Code Coverage Watch Mode" OFF)
 
 ## Enable or Disable Verbose Makefile
 option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
@@ -169,6 +169,12 @@ find_package(Threads REQUIRED)
 ## Find OpenMP
 find_package(OpenMP REQUIRED)
 
+## Find OpenMS
+find_package(OpenMS REQUIRED)
+
+## Find SQLite3 (system)
+find_package(SQLite3 REQUIRED)
+
 ## Find Quill
 find_package(quill REQUIRED)
 
@@ -285,7 +291,6 @@ endif()
 file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp")
 file(GLOB_RECURSE Examples_SRC  CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB_RECURSE External_SRC  CONFIGURE_DEPENDS  "external/src/*.cpp")
-file(GLOB_RECURSE Tools_SRC     CONFIGURE_DEPENDS  "tools/*.cpp")
 
 if (BUILD_EXAMPLES_MODE)
     add_executable(${EXE_NAME} ${External_SRC} ${SRC} ${Examples_SRC} ${Tools_SRC})
@@ -303,6 +308,8 @@ endif()
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
+                        SQLite::SQLite3
+                        OpenMS
                         Eigen3::Eigen
                         RoveComm_CPP
                         Python3::Python

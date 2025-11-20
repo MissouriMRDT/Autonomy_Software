@@ -10,7 +10,6 @@
 
 #include "../../../../src/algorithms/SearchPattern.hpp"
 #include "../../../../src/util/GeospatialOperations.hpp"
-#include "../../../../src/util/logging/PlotsAndGraphs.hpp"
 #include "../../../TestingBase.hh"
 
 /// \cond
@@ -304,10 +303,6 @@ TEST_F(SearchPatternTests, ZigZagPatternShapeUTMHorizontal)
     std::vector<geoops::Waypoint> vSearchPatternPath  = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 2.0, false);
     std::vector<geoops::Waypoint> vSearchPatternPath2 = searchpattern::CalculateZigZagPatternWaypoints(stUTMRollaCoordinate, 20.0, 20.0, 2.0, true);
 
-    // Plot
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath, "ZigZagPath1");
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath2, "ZigZagPath2");
-
     // Check if the returned path resembles an outward spiral pattern.
     EXPECT_TRUE(IsZigZag(vSearchPatternPath));
 }
@@ -413,17 +408,6 @@ TEST_F(SearchPatternTests, SnakePatternShape)
     std::vector<geoops::Waypoint> vSearchPatternpath9  = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 5.0, 5.0, 0.5, 4.0, true);
     std::vector<geoops::Waypoint> vSearchPatternPath10 = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 5.0, 5.0, 0.5, 4.0, false);
     std::vector<geoops::Waypoint> vSearchPatternPath11 = searchpattern::CalculateSnakeSearchPattern(stGPSRollaCoordinate, 0.5, 0.5, 0.5, 4.0, true);
-
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath1);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath2);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath3);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath4);
-    logging::graphing::PlotCoordinates2D(vSearchPatternpath5);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath6);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath7);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath8);
-    logging::graphing::PlotCoordinates2D(vSearchPatternpath9);
-    logging::graphing::PlotCoordinates2D(vSearchPatternPath10);
 
     // Check if the returned path resembles a snake pattern.
     EXPECT_TRUE(!vSearchPatternPath1.empty());

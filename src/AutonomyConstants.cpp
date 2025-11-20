@@ -73,9 +73,7 @@ namespace constants
     // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
-    // NOTE: This should not be used to adjust the rover's speed for task. This is just a limit. Refer to the state machine constants for speed control.
-    const float DRIVE_MAX_EFFORT = 0.5;     // This is the max effort in the drive board's range that can be used to clamp/cutoff the drive power.
-    const float DRIVE_MIN_EFFORT = -0.5;    // This is the min effort in the drive board's range that can be used to clamp/cutoff the drive power.
+    const float DRIVE_MAX_SAFE_POWER = 0.6;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL      = 0.01;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -248,6 +246,24 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
+    //// LiDAR Data Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // LiDAR Data Handler.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/Rolla_SIM.db";    // The path to the LiDAR database file.
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// GeoPlanner Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Global GeoPlanner
+    const double GEOPLANNER_TILE_SIZE = 50.0;    // The size of each tile in the GeoPlanner in meters.
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
     //// ArUco Vision Constants.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -270,7 +286,7 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.6;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
     const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
@@ -279,7 +295,7 @@ namespace constants
     const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
 
     // Approaching Object State
-    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.6;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.6;    // The amount of power the motors use when approaching the object.
     const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
     const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
     const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
@@ -298,29 +314,29 @@ namespace constants
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
 
     // Reverse State.
-    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_EFFORT * 0.6;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                       // The distance to reverse in meters.
-    const double REVERSE_TIMEOUT_PER_METER = 5.0;                       // Reverse state timeout in seconds for each meter reversed.
-    const bool REVERSE_MAINTAIN_HEADING    = true;                      // Whether or not the rover should maintain heading while reversing.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 0.6;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 3.0;                           // The distance to reverse in meters.
+    const double REVERSE_TIMEOUT_PER_METER = 5.0;                           // Reverse state timeout in seconds for each meter reversed.
+    const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER          = DRIVE_MAX_EFFORT * 0.5;    // The amount of power the motors use when approaching the marker.
-    const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;                      // The amount the angle is incremented in each iteration of the loop (degrees).
-    const double SEARCH_SPIRAL_SPACING       = 1.0;                       // The spacing between successive points in the spiral (meters).
-    const double SEARCH_ZIGZAG_SPACING       = 4.0;                       // The spacing between successive points in the zigzag (meters).
-    const double SEARCH_SNAKE_SLITHERS       = 2.0;                       // The number of slithers in the snake pattern.
-    const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;                       // How close a rover must be to a point to have it count as visited.
-    const bool SEARCH_ENABLE_STUCK_DETECT    = false;                     // Whether or not to enable the stuck detection algorithm when searching for a marker.
+    const double SEARCH_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.5;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;                          // The amount the angle is incremented in each iteration of the loop (degrees).
+    const double SEARCH_SPIRAL_SPACING       = 1.0;                           // The spacing between successive points in the spiral (meters).
+    const double SEARCH_ZIGZAG_SPACING       = 4.0;                           // The spacing between successive points in the zigzag (meters).
+    const double SEARCH_SNAKE_SLITHERS       = 2.0;                           // The number of slithers in the snake pattern.
+    const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;                           // How close a rover must be to a point to have it count as visited.
+    const bool SEARCH_ENABLE_STUCK_DETECT    = false;                         // Whether or not to enable the stuck detection algorithm when searching for a marker.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_EFFORT * 0.8;    // The speed to drive at when navigating.
-    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;                       // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION       = false;                     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;                      // The time in seconds to collect GPS points before verifying the rover's GPS position.
-    const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;                     // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
+    const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
+    const bool NAVIGATING_VERIFY_POSITION       = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
 
     // Avoidance State.
-    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_EFFORT * 0.3;    // Drive speed of avoidance state
+    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_SAFE_POWER * 0.3;    // Drive speed of avoidance state
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -329,11 +345,10 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.5;     // Determines how reactive the rover is to crosstrack error adjustments.
-    const double STANLEY_DIST_TO_FRONT_AXLE      = 0.5;     // Distance from position sensor to the center of the front axle in meters.
-    const double STANLEY_STEERING_ANGLE_LIMIT    = 30.0;    // The maximum steering angle in degrees.
-    const int STANLEY_PREDICTION_HORIZON         = 1;       // The number of predictions to make.
-    const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller bicycle model.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.3;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_ANGULAR_VELOCITY_LIMIT  = 90.0;    // The maximum angular velocity in degrees per second.
+    const int STANLEY_PREDICTION_HORIZON         = 10;      // The number of predictions to make.
+    const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller unicycle model.
 
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles
