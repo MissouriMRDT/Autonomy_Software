@@ -43,7 +43,8 @@ namespace filters
              ******************************************************************************/
             struct XStateSnapshot
             {
-                    geoops::RoverPose stPose;                             // GPS and heading for the rover
+                    Eigen::Vector3d eiPosition;                           // GPS for the rover
+                    Eigen::Vector3d eiOrientation;                        // Orientation of the rover
                     Eigen::Vector3d eiVelocity;                           // X, Y, and Z velocities
                     Eigen::Vector3d eiAccelBias;                          // X, Y, Z acceleration biases
                     Eigen::Vector3d eiGyroBias;                           // Gyroscope biases
@@ -99,6 +100,7 @@ namespace filters
             void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
             void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
             Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
+            Eigen::Matrix3d MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec);
 
             // TODO: go back and see if any member vars are missing
         private:

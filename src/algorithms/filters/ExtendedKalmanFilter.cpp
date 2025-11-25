@@ -149,20 +149,21 @@ namespace filters
         if (!m_bHasInitialGuess)
             return;
 
-        double dt                    = std::chrono::duration<double>(tmTimestamp - m_stInitialState.tmTimestamp).count();
-        m_stInitialState.tmTimestamp = tmTimestamp;
+        // TODO: Might need to change variable used for timestamp calculation
+        double dt                   = std::chrono::duration<double>(tmTimestamp - m_tmLastAccelerometerUpdate).count();
+        m_tmLastAccelerometerUpdate = tmTimestamp;
 
         // Accelerometer and gyrometer bias removal
         Eigen::Vector3d eiAcc   = eiAccelMeas - m_stInitialState.eiAccelBias;
         Eigen::Vector3d eiGyro  = eiGyroMeas - m_stInitialState.eiGyroBias;
 
-        Eigen::Vector3d eiOmega = eiGyroMeas * dt;
+        Eigen::Vector3d eiOmega = eiGyro * dt;
         double dAngle           = eiOmega.norm();
 
         Eigen::Quaterniond eiDq;
 
-        // If not 0
-        if (dAngle > 0)
+        // If not basically 0
+        if (dAngle > 1e-8)
             eiDq = Eigen::Quaterniond(Eigen::AngleAxisd(dAngle, eiOmega.normalized()));
 
         // Identity quaternion
@@ -174,17 +175,18 @@ namespace filters
         // Acceleration in the world frame (accounts for gravity)
         Eigen::Vector3d eiAccWorldFrame = (m_eiOrientation * eiAcc) + m_eiGravity;
 
-        // TODO: Check if this is correct
+        // Update velocity and position
         m_stInitialState.eiVelocity += eiAccWorldFrame * dt;
-        m_eiPosition += (m_stInitialState.eiVelocity * dt) + (eiAccWorldFrame * dt * dt) / 2.0;
+        m_eiPosition += (m_stInitialState.eiVelocity * dt) + ((eiAccWorldFrame * dt * dt) / 2.0);
 
-        // Covariance
-        Eigen::Matrix<double, 15, 15> eiF = Eigen::Matrix<double, 15, 15>::Zero();
+        // Covariance update
+        Eigen::Matrix<double, 15, 15> eiF  = Eigen::Matrix<double, 15, 15>::Zero();
 
-        eiF.block<3, 3>(0, 3)             = Eigen::Matrix3d::Identity();
-        // TODO: figure out how to get skew-symmetric matrix
-        eiF.block<3, 3>(3, 9)              = -1.0 * m_eiOrientation.toRotationMatrix();
-        eiF.block<3, 3>(6, 12)             = -1.0 * Eigen::Matrix3d::Identity();
+        eiF.block<3, 3>(0, 3)              = Eigen::Matrix3d::Identity();
+        eiF.block<3, 3>(3, 6)              = -m_eiOrientation.toRotationMatrix() * MakeSkewSymmetricMatrix(eiAcc);
+        eiF.block<3, 3>(3, 9)              = -m_eiOrientation.toRotationMatrix();
+        eiF.block<3, 3>(6, 6)              = -1.0 * MakeSkewSymmetricMatrix(eiGyro);
+        eiF.block<3, 3>(6, 12)             = -1.0 * MakeSkewSymmetricMatrix(eiGyro) * dt;
 
         Eigen::Matrix<double, 15, 15> eiFd = Eigen::Matrix<double, 15, 15>::Identity() + eiF * dt;
 
@@ -203,14 +205,13 @@ namespace filters
     /******************************************************************************
      * @brief This will update the GPS noise.
      *
-     * @param stCoord - The GPS coordinate.
+     * @param stCoord - The GPS coordinate from the RoverPose.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-21
      ******************************************************************************/
     void ExtendedKalmanFilter::UpdateGPS(const geoops::GPSCoordinate& stCoord)
     {
-        // TODO: Look into this and see if math needs to be changed
         //  Check if there is an initial guess set.
         if (!m_bHasInitialGuess)
             return;
@@ -219,45 +220,56 @@ namespace filters
         m_tmLastGPSUpdate = stCoord.tmTimestamp;
 
         // Convert GPS to ENU
-        Eigen::Vector3d eiZMeasure = ConvertGPSToENU(stCoord);
+        Eigen::Vector3d eiZ = ConvertGPSToENU(stCoord);
 
         // Build measurement noise matrix (R)
-        double dSigma_xy        = (stCoord.d2DAccuracy > 0.1) ? stCoord.d2DAccuracy : 1.0;
-        double dSigma_z         = (stCoord.d3DAccuracy > 0.1) ? stCoord.d3DAccuracy : 2.0;
+        double dSigma_xy    = (stCoord.d2DAccuracy > 0.0) ? stCoord.d2DAccuracy : m_dSigmaGPSHor;
+        double dSigma_z     = (stCoord.d3DAccuracy > 0.0) ? stCoord.d3DAccuracy : m_dSigmaGPSVer;
 
-        Eigen::Matrix3d eiR_gps = Eigen::Matrix3d::Zero();
-        eiR_gps(0, 0)           = dSigma_xy * dSigma_xy;
-        eiR_gps(1, 1)           = dSigma_xy * dSigma_xy;
-        eiR_gps(2, 2)           = dSigma_z * dSigma_z;
+        Eigen::Matrix3d eiR = Eigen::Matrix3d::Zero();
+        eiR(0, 0)           = dSigma_xy * dSigma_xy;
+        eiR(1, 1)           = dSigma_xy * dSigma_xy;
+        eiR(2, 2)           = dSigma_z * dSigma_z;
 
-        // Extract predicted state
-        RoverPoseToGPS(m_stInitialState.stPose, m_eiPosition);
-        Eigen::Vector3d eiXpred = m_eiPosition;                           // From RoverPose
-        Eigen::Matrix3d eiPpos  = m_eiErrorStateCov.block<3, 3>(0, 0);    // top-left 3x3 position covariance
+        // Predicted position and innovation
+        Eigen::Vector3d eiXpred = m_stCurrentState.eiPosition;    // From RoverPose
+        Eigen::Vector3d eiY     = eiZ - eiXpred;
 
-        //  Compute innovation (residual)
-        Eigen::Vector3d eiY_tilde = eiZMeasure - eiXpred;
+        // H matrix
+        Eigen::Matrix<double, 3, 15> eiH = Eigen::Matrix<double, 3, 15>::Zero();
+        eiH.block<3, 3>(0, 0)            = Eigen::Matrix3d::Identity();
 
-        // Compute innovation covariance (S)
-        Eigen::Matrix3d eiS = eiPpos + eiR_gps;
+        // S matrix
+        Eigen::Matrix3d eiS = eiH * m_eiErrorStateCov * eiH.transpose() + eiR;
 
-        // Compute Kalman gain (K)
-        Eigen::Matrix3d eiK = eiPpos * eiS.inverse();
+        // Kalman gain (K)
+        Eigen::Matrix<double, 15, 3> eiK = m_eiErrorStateCov * eiH.transpose() * eiS.inverse();
 
-        // Update state estimate
-        Eigen::Vector3d eiXUpdate = eiXpred + eiK * eiY_tilde;
+        // Full state correction dx = K * y
+        Eigen::Matrix<double, 15, 1> eiDx = eiK * eiY;
 
-        // Store updated position back into pose
-        m_eiPosition = eiXUpdate;
+        // Apply corrections: pos, vel, orientation, accel, gyro
+        m_stCurrentState.eiPosition += eiDx.block<3, 1>(0, 0);
 
-        // Update covariance
-        Eigen::Matrix3d eiI = Eigen::Matrix3d::Identity();
-        eiPpos              = (eiI - eiK) * eiPpos;
+        m_stCurrentState.eiVelocity += eiDx.block<3, 1>(3, 0);
 
-        // Write updated block back into full covariance
-        m_eiErrorStateCov.block<3, 3>(0, 0) = eiPpos;
+        Eigen::Vector3d eiTheta = eiDx.block<3, 1>(6, 0);
+        // Small-angle quaternion: q_delta ~= [1, 0.5*delta_theta]
+        Eigen::Quaterniond eiDq;
+        eiDq.w() = 1.0;
+        eiDq.x() = 0.5 * eiTheta.x();
+        eiDq.y() = 0.5 * eiTheta.y();
+        eiDq.z() = 0.5 * eiTheta.z();
+        eiDq.normalize();
+        m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
 
-        return;
+        m_stCurrentState.eiAccelBias += eiDx.block<3, 1>(9, 0);
+
+        m_stCurrentState.eiGyroBias += eiDx.block<3, 1>(12, 0);
+
+        // Covariance update: P_new = (I - K H) P (I - K H)^T + K R K^T
+        Eigen::Matrix<double, 15, 15> eiI = Eigen::Matrix<double, 15, 15>::Identity();
+        m_eiErrorStateCov                 = (eiI - eiK * eiH) * m_eiErrorStateCov * (eiI - eiK * eiH).transpose() + eiK * eiR * eiK.transpose();
     }
 
     /******************************************************************************
@@ -296,7 +308,8 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
     {
-        // Convert heading to orientation quaternion
+        // TODO: make sure these may be necessary because i'm not entirely sure
+        //  Convert heading to orientation quaternion
         double dHeading = stPose.GetCompassHeading();
         eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
     }
@@ -340,6 +353,23 @@ namespace filters
                                 eiOrientation.w() * eiOrientation.w() - eiOrientation.x() * eiOrientation.x() - eiOrientation.y() * eiOrientation.y() +
                                     eiOrientation.z() * eiOrientation.z());
         return geoops::RoverPose(stCoord, dHeading);
+    }
+
+    /******************************************************************************
+     * @brief This method will take a vector as an input and output a skew-symmetric matrix.
+     *
+     * @param eiVec - The input vector (can be any vector)
+     * @return Eigen::Matrix3d - The skew symmetric matrix.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-11-24
+     ******************************************************************************/
+    Eigen::Matrix3d ExtendedKalmanFilter::MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec)
+    {
+        Eigen::Matrix3d eiSkew;
+        // I promise you that this looks prettier before the auto-format
+        eiSkew << 0, -eiVec.z(), eiVec.y(), eiVec.z(), 0, -eiVec.x(), -eiVec.y(), eiVec.x(), 0;
+        return eiSkew;
     }
 
 }    // namespace filters
