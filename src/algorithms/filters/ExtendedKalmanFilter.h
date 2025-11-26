@@ -66,9 +66,7 @@ namespace filters
             // Setters.
             /////////////////////////////////////////
 
-            void SetInitialGuess(const XStateSnapshot& eiInitState, const Eigen::Matrix<double, 15, 15>& eiInitCovariance);
             void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
-            void SetCompassNoise(const double& dSigmaYaw);
 
             /////////////////////////////////////////
             // Prediction and updating.
@@ -79,20 +77,16 @@ namespace filters
 
             //  Methods for updating values
             void UpdateGPS(const geoops::GPSCoordinate& stCoord);
-            void UpdateYaw(double dYaw, std::chrono::system_clock::time_point tmTimestamp);
-            void UpdateHeading(Eigen::Vector3d dHeading, std::chrono::system_clock::time_point tmTimestamp);
 
             /////////////////////////////////////////
             // Getters.
             /////////////////////////////////////////
 
-            const XStateSnapshot& GetCurrentState() const;
+            const XStateSnapshot GetCurrentState() const;
 
             /////////////////////////////////////////
             // Conversions.
             /////////////////////////////////////////
-            // Takes position and orientation/heading vectors to turn them into RoverPoses.
-            geoops::RoverPose ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const;
             void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
             void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
             Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
@@ -109,15 +103,12 @@ namespace filters
             std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
             std::list<XStateSnapshot> m_liXStateHistory;        // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
             Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;    // The covariance matrix for the error-state
-            Eigen::Matrix<double, 12, 12> m_eiIMUNoise;         // The continuous noise from the IMU
             std::chrono::system_clock::time_point m_tmLastAccelerometerUpdate;    // Time of last accelerometer update.
             Eigen::Matrix3d m_eiAccelerometerCovariance;                          // Accelerometer covariance matrix. (3x3)
             std::chrono::system_clock::time_point m_tmLastGyroscopeUpdate;        // Time of last gyro update.
             Eigen::Matrix3d m_eiGyroscopeCovariance;                              // Gyroscope covariance matrix. (3x3)
             std::chrono::system_clock::time_point m_tmLastGPSUpdate;              // Time of last diff GPS update.
             Eigen::Matrix3d m_eiGPSCovariance;                                    // Diff GPS covariance matrix. (3x3)
-            std::chrono::system_clock::time_point m_tmLastHeadingUpdate;          // Time of last heading update.
-            Eigen::Matrix3d m_eiHeadingCovariance;                                // Heading covariance matrix. (3x3)
             Eigen::Vector3d m_eiGravity;                                          // Vector for gravity
             double m_dSigmaAcc;
             double m_dSigmaAccBias;

@@ -76,27 +76,18 @@ namespace filters
         // Setting current state
         m_stCurrentState = m_stInitialState;
 
+        // Initialize gravity vector
+        m_eiGravity = Eigen::Vector3d(0.0, 0.0, 9.80665);
+
         // Update that the initial guess has been made
         m_bHasInitialGuess = true;
 
         // Initialize timestamps
         m_tmLastAccelerometerUpdate = std::chrono::system_clock::now();
         m_tmLastGyroscopeUpdate     = std::chrono::system_clock::now();
-    }
 
-    /******************************************************************************
-     * @brief This will set the initial guess for the Extended Kalman Filter.
-     *
-     * @param eiInitState - The state snapshot of the initial state.
-     * @param eiInitCovariance - The initial overall noise covariance matrix for the filter.
-     *
-     * @author Sam Hajdukiewic (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-21
-     ******************************************************************************/
-    void ExtendedKalmanFilter::SetInitialGuess(const XStateSnapshot& eiInitState, const Eigen::Matrix<double, 15, 15>& eiInitCovariance)
-    {
-        // TODO: Probably delete this method (redundant)
-        return;
+        // Adding onto the state history
+        m_liXStateHistory.push_back(m_stCurrentState);
     }
 
     /******************************************************************************
@@ -125,22 +116,6 @@ namespace filters
 
         // Vertical noise (Z = Up/Down)
         m_eiGPSCovariance(2, 2) = m_dSigmaGPSVer * m_dSigmaGPSVer;    // variance in Z
-    }
-
-    /******************************************************************************
-     * @brief This will set the compass/heading noise.
-     *
-     * @param dSigmaYaw - The standard deviation of the yaw.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-22
-     ******************************************************************************/
-    void ExtendedKalmanFilter::SetCompassNoise(const double& dSigmaYaw)
-    {
-        m_eiHeadingCovariance.setZero();
-        double dYawSquared = dSigmaYaw * dSigmaYaw;
-        // (0, 0), (1, 1), and (2, 2)
-        m_eiHeadingCovariance.diagonal() << dYawSquared, dYawSquared, dYawSquared;
     }
 
     /******************************************************************************
@@ -210,6 +185,9 @@ namespace filters
 
         // Error state covariance
         m_eiErrorStateCov = eiFd * m_eiErrorStateCov * eiFd.transpose() + eiQ;
+
+        // Adding onto the state history
+        m_liXStateHistory.push_back(m_stCurrentState);
     }
 
     /******************************************************************************
@@ -222,7 +200,6 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::UpdateGPS(const geoops::GPSCoordinate& stCoord)
     {
-        // TODO: update this to fit constructor and updated SetGPS()
         //   Check if there is an initial guess set.
         if (!m_bHasInitialGuess)
             return;
@@ -233,14 +210,13 @@ namespace filters
         // Convert GPS to ENU
         Eigen::Vector3d eiZ = ConvertGPSToENU(stCoord);
 
-        // Build measurement noise matrix (R)
-        double dSigma_xy    = (stCoord.d2DAccuracy > 0.0) ? stCoord.d2DAccuracy : m_dSigmaGPSHor;
-        double dSigma_z     = (stCoord.d3DAccuracy > 0.0) ? stCoord.d3DAccuracy : m_dSigmaGPSVer;
+        // Build measurement noise matrix (R) (accuracy may change after SetGPS())
+        SetGPSNoise(stCoord);
 
         Eigen::Matrix3d eiR = Eigen::Matrix3d::Zero();
-        eiR(0, 0)           = dSigma_xy * dSigma_xy;
-        eiR(1, 1)           = dSigma_xy * dSigma_xy;
-        eiR(2, 2)           = dSigma_z * dSigma_z;
+        eiR(0, 0)           = m_dSigmaGPSHor * m_dSigmaGPSHor;
+        eiR(1, 1)           = m_dSigmaGPSHor * m_dSigmaGPSHor;
+        eiR(2, 2)           = m_dSigmaGPSVer * m_dSigmaGPSVer;
 
         // Predicted position and innovation
         Eigen::Vector3d eiXpred = m_stCurrentState.eiPosition;    // From RoverPose
@@ -319,7 +295,6 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
     {
-        // TODO: make sure these may be necessary because i'm not entirely sure
         //  Convert heading to orientation quaternion
         double dHeading = stPose.GetCompassHeading();
         eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
@@ -343,30 +318,6 @@ namespace filters
     }
 
     /******************************************************************************
-     * @brief This converts a position and orientation vector into a single RoverPose.
-     *
-     * @param eiPosition - The position vector.
-     * @param eiOrientation - The orientation quaternion.
-     * @return RoverPose - GPS and orientation of the rover.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-03
-     ******************************************************************************/
-    geoops::RoverPose ExtendedKalmanFilter::ToRoverPose(const Eigen::Vector3d& eiPosition, const Eigen::Quaterniond& eiOrientation) const
-    {
-        // Convert position vector to GPSCoordinate
-        geoops::GPSCoordinate stCoord;
-        stCoord.dLatitude  = eiPosition(0);
-        stCoord.dLongitude = eiPosition(1);
-        stCoord.dAltitude  = eiPosition(2);
-        // Convert orientation quaternion to heading
-        double dHeading = atan2(2.0 * (eiOrientation.x() * eiOrientation.y() + eiOrientation.w() * eiOrientation.z()),
-                                eiOrientation.w() * eiOrientation.w() - eiOrientation.x() * eiOrientation.x() - eiOrientation.y() * eiOrientation.y() +
-                                    eiOrientation.z() * eiOrientation.z());
-        return geoops::RoverPose(stCoord, dHeading);
-    }
-
-    /******************************************************************************
      * @brief This method will take a vector as an input and output a skew-symmetric matrix.
      *
      * @param eiVec - The input vector (can be any vector)
@@ -381,6 +332,31 @@ namespace filters
         // I promise you that this looks prettier before the auto-format
         eiSkew << 0, -eiVec.z(), eiVec.y(), eiVec.z(), 0, -eiVec.x(), -eiVec.y(), eiVec.x(), 0;
         return eiSkew;
+    }
+
+    /******************************************************************************
+     * @brief Returns the current state snapshot.
+     *
+     * @return const ExtendedKalmanFilter::XStateSnapshot& - The current state snapshot.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-11-26
+     ******************************************************************************/
+    const ExtendedKalmanFilter::XStateSnapshot ExtendedKalmanFilter::GetCurrentState() const
+    {
+        return m_stCurrentState;
+    }
+
+    /******************************************************************************
+     * @brief Destroy the Extended Kalman Filter:: Extended Kalman Filter object.
+     *
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-11-26
+     ******************************************************************************/
+    ExtendedKalmanFilter::~ExtendedKalmanFilter()
+    {
+        // Nothing yet
     }
 
 }    // namespace filters
