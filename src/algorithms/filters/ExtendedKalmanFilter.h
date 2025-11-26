@@ -44,7 +44,7 @@ namespace filters
             struct XStateSnapshot
             {
                     Eigen::Vector3d eiPosition;                           // GPS for the rover
-                    Eigen::Vector3d eiOrientation;                        // Orientation of the rover
+                    Eigen::Quaterniond eiOrientation;                     // Orientation of the rover
                     Eigen::Vector3d eiVelocity;                           // X, Y, and Z velocities
                     Eigen::Vector3d eiAccelBias;                          // X, Y, Z acceleration biases
                     Eigen::Vector3d eiGyroBias;                           // Gyroscope biases
@@ -55,24 +55,20 @@ namespace filters
             // Declare public class methods.
             /////////////////////////////////////////
 
-            ExtendedKalmanFilter();
             ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
                                  const Eigen::Matrix3d& eiAccelCov,
                                  const Eigen::Matrix3d& eiGyroCov,
                                  const double dSigmaAccel,
-                                 const double dSigmaGyro,
-                                 const geoops::GPSCoordinate& stInitGPS,
-                                 const double dSigmaYaw);
+                                 const double dSigmaGyro);
             ~ExtendedKalmanFilter();
 
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
 
-            // TODO: Figure out what should be const
             void SetInitialGuess(const XStateSnapshot& eiInitState, const Eigen::Matrix<double, 15, 15>& eiInitCovariance);
             void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
-            void SetCompassNoise(double dSigmaYaw);
+            void SetCompassNoise(const double& dSigmaYaw);
 
             /////////////////////////////////////////
             // Prediction and updating.
@@ -102,7 +98,6 @@ namespace filters
             Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
             Eigen::Matrix3d MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec);
 
-            // TODO: go back and see if any member vars are missing
         private:
             /////////////////////////////////////////
             // Declare private member variables.
@@ -131,9 +126,6 @@ namespace filters
             double m_dSigmaGPSHor;
             double m_dSigmaGPSVer;
             double m_dSigmaYaw;
-            Eigen::Vector3d m_eiPosition;          // The vector for the current position of the rover.
-            Eigen::Quaterniond m_eiOrientation;    // The quaternion for the rover's orientation.
-            geoops::RoverPose m_stPose;            // The overall RoverPose.
     };
 };    // namespace filters
 

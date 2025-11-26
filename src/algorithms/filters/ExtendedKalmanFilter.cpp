@@ -24,34 +24,11 @@ namespace filters
     /******************************************************************************
      * @brief Construct a new Extended Kalman Filter:: Extended Kalman Filter object.
      *
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-09-27
-     ******************************************************************************/
-    ExtendedKalmanFilter::ExtendedKalmanFilter()
-    {
-        // TODO: Initialize member variables
-        m_dSigmaAcc  = constants::KALMAN_SIGMA_ACCELERATION;
-        m_dSigmaGyro = constants::KALMAN_SIGMA_GYRO;
-        // m_dSigmaAccBias  = constants::KALMAN_SIGMA_ACCELERATION_BIAS;
-        // m_dSigmaGyroBias = constants::KALMAN_SIGMA_GYRO_BIAS;
-        m_dSigmaGPSHor = constants::KALMAN_SIGMA_GPS_HORIZONTAL_ERROR;
-        m_dSigmaGPSVer = constants::KALMAN_SIGMA_GPS_VERTICAL_ERROR;
-        m_dSigmaYaw    = constants::KALMAN_SIGMA_YAW;
-        // TODO: ugly math sad face
-    }
-
-    /******************************************************************************
-     * @brief Construct a new Extended Kalman Filter:: Extended Kalman Filter object.
-     *
      *@param stInitPose - The initial GPS and heading of the rover.
-     *@param dSigmaAcc - The standard deviation of the acceleration.
-     *@param dSigmaGyro - The standard deviation of the gyrometer.
-     *@param dSigmaAccBias - The standard deviation of the acceleration bias.
-     *@param dSigmaGyroBias - The standard deviation of the gyrometer bias.
-     *@param dSigmaGPSHor - The standard deviation of the horizontal GPS.
-     *@param dSigmaGPSVer - The standard deviation of the vertical GPS.
-     *@param dSigmaYaw - The standard deviation of the yaw.
+     *@param eiAccelCov - The acceleration covariance matrix.
+     *@param eiGyroCov -The gyroscope covariance matrix.
+     *@param dInitAccel - The initial linear acceleration.
+     *@param dInitGyro - The initial reading of the gyrometer (angular velocity).
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-09-30
@@ -59,23 +36,52 @@ namespace filters
     ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
                                                const Eigen::Matrix3d& eiAccelCov,
                                                const Eigen::Matrix3d& eiGyroCov,
-                                               const double dSigmaAccel,
-                                               const double dSigmaGyro,
-                                               const geoops::GPSCoordinate& stInitGPS,
-                                               const double dSigmaYaw)
+                                               const double dInitAccel,
+                                               const double dInitGyro)
     {
-        // Initialize member variables
+        // Initialize covariance matrices
         m_eiAccelerometerCovariance = eiAccelCov;
         m_eiGyroscopeCovariance     = eiGyroCov;
-        m_dSigmaAcc                 = dSigmaAccel;
-        m_dSigmaGyro                = dSigmaGyro;
-        m_dSigmaGPSHor              = stInitGPS.dLatitude;
-        m_dSigmaGPSVer              = stInitGPS.dLongitude;
-        // This will set the values for the position vector and orientation quaternion.
-        RoverPoseToGPS(stInitPose, m_eiPosition);
-        RoverPoseToOrientation(stInitPose, m_eiOrientation);
 
-        // TODO: do the ugly math for initialization :sob: :cry:
+        // Calculating sigmas (std dev) from readings
+        m_dSigmaAcc  = std::sqrt(m_eiAccelerometerCovariance(0, 0));
+        m_dSigmaGyro = std::sqrt(m_eiGyroscopeCovariance(0, 0));
+
+        // Acc and gyro biases (updated when GPS updates)
+        m_dSigmaAccBias  = 0.001;
+        m_dSigmaGyroBias = 0.001;
+
+        // Horizontal and vertical GPS accuracies (updated on GPS)
+        m_dSigmaGPSHor  = stInitPose.GetGPSCoordinate().d2DAccuracy;
+        double dSigma3D = stInitPose.GetGPSCoordinate().d3DAccuracy;
+        m_dSigmaGPSVer  = std::sqrt(dSigma3D * dSigma3D - m_dSigmaGPSHor * m_dSigmaGPSHor);
+
+        // Initialize starting state struct
+        RoverPoseToGPS(stInitPose, m_stInitialState.eiPosition);
+        RoverPoseToOrientation(stInitPose, m_stInitialState.eiOrientation);
+        m_stInitialState.eiVelocity  = Eigen::Vector3d::Zero();
+        m_stInitialState.eiAccelBias = Eigen::Vector3d::Zero();
+        m_stInitialState.eiGyroBias  = Eigen::Vector3d::Zero();
+        m_stInitialState.tmTimestamp = std::chrono::system_clock::now();
+
+        // Initial covariance P0 (15x15 matrix)
+        m_eiErrorStateCov = Eigen::Matrix<double, 15, 15>::Zero();
+        // Setting initial noises (gets updated)
+        m_eiErrorStateCov.block<3, 3>(0, 0)   = Eigen::Matrix3d::Identity() * 10.0;    // Position
+        m_eiErrorStateCov.block<3, 3>(3, 3)   = Eigen::Matrix3d::Identity() * 0.3;     // Orientation
+        m_eiErrorStateCov.block<3, 3>(6, 6)   = Eigen::Matrix3d::Identity() * 1.0;     // Velocity
+        m_eiErrorStateCov.block<3, 3>(9, 9)   = Eigen::Matrix3d::Identity() * 0.01;    // Accel bias
+        m_eiErrorStateCov.block<3, 3>(12, 12) = Eigen::Matrix3d::Identity() * 0.01;    // Gyro bias
+
+        // Setting current state
+        m_stCurrentState = m_stInitialState;
+
+        // Update that the initial guess has been made
+        m_bHasInitialGuess = true;
+
+        // Initialize timestamps
+        m_tmLastAccelerometerUpdate = std::chrono::system_clock::now();
+        m_tmLastGyroscopeUpdate     = std::chrono::system_clock::now();
     }
 
     /******************************************************************************
@@ -89,7 +95,7 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::SetInitialGuess(const XStateSnapshot& eiInitState, const Eigen::Matrix<double, 15, 15>& eiInitCovariance)
     {
-        // TODO: implement
+        // TODO: Probably delete this method (redundant)
         return;
     }
 
@@ -106,15 +112,19 @@ namespace filters
         // Clear existing covariance
         m_eiGPSCovariance.setZero();
 
-        double dSigmaHor = (stCoord.d2DAccuracy > 0.0) ? stCoord.d2DAccuracy : 1.0;
-        double dSigmaVer = (stCoord.d3DAccuracy > 0.0) ? stCoord.d3DAccuracy : 2.0;
+        // Setting horizontal and vertical accuracies
+        m_dSigmaGPSHor = (stCoord.d2DAccuracy > 0.0) ? stCoord.d2DAccuracy : 1.0;
+        double d3DAcc  = stCoord.d3DAccuracy;
+        m_dSigmaGPSVer = std::sqrt(d3DAcc * d3DAcc - m_dSigmaGPSHor * m_dSigmaGPSHor);
 
+        // Updating R matrix
+        m_eiGPSCovariance = Eigen::Matrix3d::Zero();
         // Horizontal noise (X = East/West, Y = North/South)
-        m_eiGPSCovariance(0, 0) = dSigmaHor * dSigmaHor;    // variance in X
-        m_eiGPSCovariance(1, 1) = dSigmaHor * dSigmaHor;    // variance in Y
+        m_eiGPSCovariance(0, 0) = m_dSigmaGPSHor * m_dSigmaGPSHor;    // variance in X
+        m_eiGPSCovariance(1, 1) = m_dSigmaGPSHor * m_dSigmaGPSHor;    // variance in Y
 
         // Vertical noise (Z = Up/Down)
-        m_eiGPSCovariance(2, 2) = dSigmaVer * dSigmaVer;    // variance in Z
+        m_eiGPSCovariance(2, 2) = m_dSigmaGPSVer * m_dSigmaGPSVer;    // variance in Z
     }
 
     /******************************************************************************
@@ -125,7 +135,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-10-22
      ******************************************************************************/
-    void ExtendedKalmanFilter::SetCompassNoise(double dSigmaYaw)
+    void ExtendedKalmanFilter::SetCompassNoise(const double& dSigmaYaw)
     {
         m_eiHeadingCovariance.setZero();
         double dYawSquared = dSigmaYaw * dSigmaYaw;
@@ -149,17 +159,17 @@ namespace filters
         if (!m_bHasInitialGuess)
             return;
 
-        // TODO: Might need to change variable used for timestamp calculation
         double dt                   = std::chrono::duration<double>(tmTimestamp - m_tmLastAccelerometerUpdate).count();
         m_tmLastAccelerometerUpdate = tmTimestamp;
 
         // Accelerometer and gyrometer bias removal
-        Eigen::Vector3d eiAcc   = eiAccelMeas - m_stInitialState.eiAccelBias;
-        Eigen::Vector3d eiGyro  = eiGyroMeas - m_stInitialState.eiGyroBias;
+        Eigen::Vector3d eiAcc   = eiAccelMeas - m_stCurrentState.eiAccelBias;
+        Eigen::Vector3d eiGyro  = eiGyroMeas - m_stCurrentState.eiGyroBias;
 
         Eigen::Vector3d eiOmega = eiGyro * dt;
         double dAngle           = eiOmega.norm();
 
+        // Updating orientation
         Eigen::Quaterniond eiDq;
 
         // If not basically 0
@@ -170,21 +180,21 @@ namespace filters
         else
             eiDq = Eigen::Quaterniond::Identity();
 
-        m_eiOrientation = (m_eiOrientation * eiDq).normalized();
+        m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
 
         // Acceleration in the world frame (accounts for gravity)
-        Eigen::Vector3d eiAccWorldFrame = (m_eiOrientation * eiAcc) + m_eiGravity;
+        Eigen::Vector3d eiAccWorldFrame = (m_stCurrentState.eiOrientation.toRotationMatrix() * eiAcc) + m_eiGravity;
 
         // Update velocity and position
-        m_stInitialState.eiVelocity += eiAccWorldFrame * dt;
-        m_eiPosition += (m_stInitialState.eiVelocity * dt) + ((eiAccWorldFrame * dt * dt) / 2.0);
+        m_stCurrentState.eiVelocity += eiAccWorldFrame * dt;
+        m_stCurrentState.eiPosition += (m_stCurrentState.eiVelocity * dt) + ((eiAccWorldFrame * dt * dt) / 2.0);
 
         // Covariance update
         Eigen::Matrix<double, 15, 15> eiF  = Eigen::Matrix<double, 15, 15>::Zero();
 
         eiF.block<3, 3>(0, 3)              = Eigen::Matrix3d::Identity();
-        eiF.block<3, 3>(3, 6)              = -m_eiOrientation.toRotationMatrix() * MakeSkewSymmetricMatrix(eiAcc);
-        eiF.block<3, 3>(3, 9)              = -m_eiOrientation.toRotationMatrix();
+        eiF.block<3, 3>(3, 6)              = -m_stCurrentState.eiOrientation.toRotationMatrix() * MakeSkewSymmetricMatrix(eiAcc);
+        eiF.block<3, 3>(3, 9)              = -m_stCurrentState.eiOrientation.toRotationMatrix();
         eiF.block<3, 3>(6, 6)              = -1.0 * MakeSkewSymmetricMatrix(eiGyro);
         eiF.block<3, 3>(6, 12)             = -1.0 * MakeSkewSymmetricMatrix(eiGyro) * dt;
 
@@ -212,7 +222,8 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::UpdateGPS(const geoops::GPSCoordinate& stCoord)
     {
-        //  Check if there is an initial guess set.
+        // TODO: update this to fit constructor and updated SetGPS()
+        //   Check if there is an initial guess set.
         if (!m_bHasInitialGuess)
             return;
 
