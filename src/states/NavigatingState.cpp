@@ -36,6 +36,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
+        m_bWasStuck         = false;
         m_bFetchNewWaypoint = true;
         m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
         m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
@@ -120,6 +121,44 @@ namespace statemachine
         /* --- Navigate to goal waypoint --- */
         ///////////////////////////////////////
 
+        // Get Current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+
+        // If navigating was previously stuck, then re-path plan
+        if (m_bWasStuck)
+        {
+            // Convert from compass degrees to unit circle radians.
+            double dRadians = (90.0 - stCurrentRoverPose.GetCompassHeading()) * M_PI / 180.0;
+            if (dRadians < 0)
+                dRadians += 2 * M_PI;
+            // Add the area ahead of the rover as an obstacle.
+            geoops::UTMCoordinate stObstaclePosition = stCurrentRoverPose.GetUTMCoordinate();
+            stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+            stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+
+            // Remove all points that are in stuck zone
+            for (int i = 0; i < m_vPathCoordinates.size; i++)
+            {
+                if (abs(m_vPathCoordinates[i].GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
+                    abs(m_vPathCoordinates[i].GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
+                {
+                    m_vPathCoordinates.erase(i);
+                    --i;
+                }
+            }
+
+            geoops::UTMCoordinate stSpliceGoalCoordinate = (m_vPathCoordinates.size != 0) ? m_vPathCoordinates[0] : m_stGoalWaypoint;
+
+            // Plan a new path to the next remaining path node
+            std::vector<geoops::Waypoint> vSplicePathCoordinates =
+                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stSpliceGoalCoordinate.GetUTMCoordinate());
+            // Append new path to front
+            m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
+
+            m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
+            m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+        }
+
         // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
         {
@@ -128,8 +167,6 @@ namespace statemachine
             return;
         }
 
-        // Get Current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
         // Add the current rover pose to the path plot.

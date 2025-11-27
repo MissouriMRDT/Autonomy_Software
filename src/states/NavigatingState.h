@@ -41,6 +41,7 @@ namespace statemachine
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
+            bool m_bWasStuck;
             bool m_bFetchNewWaypoint;
             geoops::Waypoint m_stGoalWaypoint;
             bool m_bInitialized;
