@@ -112,11 +112,11 @@ namespace statemachine
         geoops::GPSCoordinate stObstaclePosition = m_stOriginalPosition;
         stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
         stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+
+        // Insert obstacle into lidar data
+        // TODO: How to change traversal score??
+        LiDARHandler::InsertLiDARData({stObstaclePosition});
         // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
-        // TODO: insert information into lidar handler as area we can't navigate through (update it)
-        // TODO: attempt backing up
-        // TODO: repath in stuck state
-        // TODO: exit stuck state and return to previous state
 
         // Check if we are unstuck from our starting spot.
         if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
@@ -133,7 +133,6 @@ namespace statemachine
             // Perform unstuck logic.
             switch (m_eAttemptType)
             {
-                // TODO: Maybe use previous waypoints as the rover could've gotten stuck while not going straight
                 // On the first attempt we use the rover's original heading so alignment would already be completed.
                 case AttemptType::eReverseCurrentHeading:
                 {

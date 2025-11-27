@@ -145,6 +145,7 @@ namespace statemachine
                     m_vPathCoordinates.erase(i);
                     --i;
                 }
+                // TODO: maybe break when condition is false
             }
 
             geoops::UTMCoordinate stSpliceGoalCoordinate = (m_vPathCoordinates.size != 0) ? m_vPathCoordinates[0] : m_stGoalWaypoint;
