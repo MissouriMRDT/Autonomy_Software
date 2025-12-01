@@ -304,6 +304,7 @@ int main()
                                    "\n--------[ Autonomy Software Help ]--------\n"
                                    "Press 'f' or 'F' to print FPS stats to the log file.\n"
                                    "Press 'p' or 'P' to print rover pose info to the log file.\n"
+                                   "Press 's' or 'S' to print sensor data to the log file.\n"
                                    "Press 'd' or 'D' to print current drive powers.\n"
                                    "Press 't' or 'T' to print tag detection info to the log file.\n"
                                    "Press 'm' or 'M' to print object detection info to the log file.\n"
@@ -326,6 +327,30 @@ int main()
                         szRoverPoseInfo += "Compass: " + std::to_string(stCurrentRoverPose.GetCompassHeading()) + "\n";
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "{}", szRoverPoseInfo);
+                    }
+                    else if (chTerminalInput == 's' || chTerminalInput == 'S')
+                    {
+                        // Get the sensor data from the navigation board.
+                        sl::SensorsData slSensorData;
+                        std::future<bool> fuResult = pMainCam->RequestSensorsCopy(slSensorData);
+
+                        // Wait for the data to be copied.
+                        if (fuResult.get())
+                        {
+                            // Assemble a string to print containing data about the sensor data.
+                            std::string szSensorDataInfo = "\n--------[ Sensor Data Info ]--------\n";
+                            szSensorDataInfo += "IMU Accel X: " + std::to_string(slSensorData.imu.linear_acceleration.x) + "\n";
+                            szSensorDataInfo += "IMU Accel Y: " + std::to_string(slSensorData.imu.linear_acceleration.y) + "\n";
+                            szSensorDataInfo += "IMU Accel Z: " + std::to_string(slSensorData.imu.linear_acceleration.z) + "\n";
+                            szSensorDataInfo += "IMU AngVel X: " + std::to_string(slSensorData.imu.angular_velocity.x) + "\n";
+                            szSensorDataInfo += "IMU AngVel Y: " + std::to_string(slSensorData.imu.angular_velocity.y) + "\n";
+                            szSensorDataInfo += "IMU AngVel Z: " + std::to_string(slSensorData.imu.angular_velocity.z) + "\n";
+                            szSensorDataInfo += "IMU Gyro X:" + std::to_string(slSensorData.imu.pose.getEulerAngles(false).x) + "\n";
+                            szSensorDataInfo += "IMU Gyro Y: " + std::to_string(slSensorData.imu.pose.getEulerAngles(false).y) + "\n";
+                            szSensorDataInfo += "IMU Gyro Z: " + std::to_string(slSensorData.imu.pose.getEulerAngles(false).z) + "\n";
+                            // Submit logger message.
+                            LOG_NOTICE(logging::g_qSharedLogger, "{}", szSensorDataInfo);
+                        }
                     }
                     else if (chTerminalInput == 'd' || chTerminalInput == 'D')
                     {

@@ -111,6 +111,22 @@ class SIMZEDCam : public ZEDCamera
             m_stIMUData.imu.angular_velocity.x    = static_cast<float>(stPacket.vData[3]);
             m_stIMUData.imu.angular_velocity.y    = static_cast<float>(stPacket.vData[4]);
             m_stIMUData.imu.angular_velocity.z    = static_cast<float>(stPacket.vData[5]);
+
+            // Manually calculate the Gyro pose using the Tait-Bryan angles (ZYX convention) and the quaternion representation.
+            // This is because the SIM does not provide orientation data from the IMU, only angular velocity.
+            double dQx    = stPacket.vData[6];
+            double dQy    = stPacket.vData[7];
+            double dQz    = stPacket.vData[8];
+            double dQw    = stPacket.vData[9];
+            double dRoll  = std::atan2(2.0 * (dQw * dQx + dQy * dQz), 1.0 - 2.0 * (dQx * dQx + dQy * dQy));
+            double dPitch = std::asin(2.0 * (dQw * dQy - dQz * dQx));
+            double dYaw   = std::atan2(2.0 * (dQw * dQz + dQx * dQy), 1.0 - 2.0 * (dQy * dQy + dQz * dQz));
+            // Pack the gyro values into a sl::Transform.
+            sl::float3 slEulerAngles(static_cast<float>(dRoll), static_cast<float>(dPitch), static_cast<float>(dYaw));
+            sl::Transform slIMUTransform;
+            slIMUTransform.setEulerAngles(slEulerAngles, false);
+            m_stIMUData.imu.pose = slIMUTransform;
+
             // Unlock mutex.
             lkSensorsProcessLock.unlock();
 
