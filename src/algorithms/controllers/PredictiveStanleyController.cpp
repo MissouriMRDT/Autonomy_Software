@@ -242,11 +242,11 @@ namespace controllers
         if (avgVelocity != 0)
         {
             // Get time remaining in seconds
-            double timeRemaining = remainingDistance / avgVelocity;
+            timeRemaining = remainingDistance / avgVelocity;
         }
         else {
             // -1 signals the time remaining is infinite since rover is not moving
-            double timeRemaining = -1;
+            timeRemaining = -1;
         }
 
         // Initialize packet
