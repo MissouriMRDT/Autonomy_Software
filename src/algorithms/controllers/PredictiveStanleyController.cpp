@@ -210,14 +210,44 @@ namespace controllers
         // The new steering heading must be from 0-360 degrees.
         double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
 
-        // Calculate ETA
+        // Distance to closest point on path
         double remainingDistance =
             geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_vReferencePath[m_nCurrentReferencePathTargetIndex]).dDistanceMeters;
+        
+        // Add remaining distance of the path
         for (int i = m_nCurrentReferencePathTargetIndex; i < m_vReferencePath.size() - 1; i++)
         {
             remainingDistance += geoops::CalculateGeoMeasurement(m_vReferencePath[i], m_vReferencePath[i + 1]).dDistanceMeters;
         }
-        double timeRemaining = remainingDistance / globals::g_pNavigationBoard->GetVelocity();
+
+        // Get current velocity from NavBoard
+        double curVelocity = globals::g_pNavigationBoard->GetVelocity();
+
+        // Track the current velocity for rolling average
+        m_qPreviousVelocities.push_back(curVelocity);
+
+        // Cap rolling average at 30 velocity values
+        if (m_qPreviousVelocities.size() > 30) {
+            m_qPreviousVelocities.pop_front();
+        }
+        
+        // Compute average velocity of past 30 velocity values
+        double totalVelocity = 0;
+        for (double velocity : m_qPreviousVelocities) {
+            totalVelocity += velocity;
+        }
+        double avgVelocity = totalVelocity / m_qPreviousVelocities.size();
+
+        double timeRemaining;
+        if (avgVelocity != 0)
+        {
+            // Get time remaining in seconds
+            double timeRemaining = remainingDistance / avgVelocity;
+        }
+        else {
+            // -1 signals the time remaining is infinite since rover is not moving
+            double timeRemaining = -1;
+        }
 
         // Initialize packet
         rovecomm::RoveCommPacket<double> stPacket;
@@ -231,9 +261,6 @@ namespace controllers
         {
             // Send packet on local machine (This needs to be changed to actual Basestation IP)
             network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
-
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
         }
 
         return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
@@ -270,10 +297,10 @@ namespace controllers
          point is less than this, the waypoint is skipped.
         */
         double minDiff = 0.0001;
+
         // Keep track of last added waypoint latitude and longitude
         double lastLat = 0.0;
         double lastLon = 0.0;
-
         for (const auto& waypoint : m_vReferencePath)
         {
             // Convert waypoint to GPSCoordinate
@@ -285,12 +312,9 @@ namespace controllers
             // Skip this waypoint if it is too close to the last one
             if (diff < minDiff)
             {
-                LOG_INFO(logging::g_qSharedLogger, "Skipped waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
                 continue;
             }
             
-            LOG_INFO(logging::g_qSharedLogger, "Added waypoint: ({}, {})", gps.dLatitude, gps.dLongitude);
-
             // Add waypoint to the packet data
             stPacket.vData.emplace_back(gps.dLatitude);
             stPacket.vData.emplace_back(gps.dLongitude);
@@ -308,9 +332,6 @@ namespace controllers
         {
             // Send packet on local machine (This needs to be changed to actual Basestation IP)
             network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
-
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Sent waypoint: ()");
         }
     }
 

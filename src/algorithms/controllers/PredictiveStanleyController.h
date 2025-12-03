@@ -98,6 +98,7 @@ namespace controllers
             double m_dPredictionTimeStep;
             int m_nCurrentReferencePathTargetIndex;
             std::vector<geoops::Waypoint> m_vReferencePath;
+            std::deque<double> m_qPreviousVelocities;
     };
 }    // namespace controllers
 #endif
