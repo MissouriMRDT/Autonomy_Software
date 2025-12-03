@@ -124,7 +124,7 @@ class SIMZEDCam : public ZEDCamera
             // Pack the gyro values into a sl::Transform.
             sl::float3 slEulerAngles(static_cast<float>(dRoll), static_cast<float>(dPitch), static_cast<float>(dYaw));
             sl::Transform slIMUTransform;
-            slIMUTransform.setEulerAngles(slEulerAngles, false);
+            slIMUTransform.setEulerAngles(slEulerAngles);
             m_stIMUData.imu.pose = slIMUTransform;
 
             // Unlock mutex.
