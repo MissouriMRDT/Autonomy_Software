@@ -38,7 +38,7 @@ namespace pathplanners
         m_pLiDARHandler         = nullptr;
         m_nStartID              = -1;
         m_nEndID                = -1;
-        m_dBeta                 = 0.5;
+        m_dBeta                 = 1.0;
         m_dMinTravScore         = 0.0;
         m_dSearchRadius         = 3.0;
         m_dMaxSearchTimeSeconds = 120.0;

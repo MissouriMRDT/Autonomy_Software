@@ -56,8 +56,10 @@ namespace controllers
             /////////////////////////////////////////
             // Declare public class methods.
             /////////////////////////////////////////
-            PredictiveStanleyController();
-            PredictiveStanleyController(const double dControlGain, const double dAngularVelocityLimit, const int nPredictionHorizon, const double dPredictionTimeStep);
+            PredictiveStanleyController(const double dControlGain          = 0.3,
+                                        const double dAngularVelocityLimit = 90.0,
+                                        const int nPredictionHorizon       = 10,
+                                        const double dPredictionTimeStep   = 0.01);
             ~PredictiveStanleyController();
             DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_MOTOR_POWER);
 
