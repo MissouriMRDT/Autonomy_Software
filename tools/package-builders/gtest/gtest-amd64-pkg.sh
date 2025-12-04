@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-GTEST_VERSION="1.16.0"
+GTEST_VERSION="1.17.0"
 
 # Build Arguments
 FORCE_BUILD=false

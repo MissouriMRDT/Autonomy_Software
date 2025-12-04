@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-TORCH_VERSION="2.6.0"
+TORCH_VERSION="2.8.0"
 TORCH_CUDA_VERSION="cu126"
 
 # Build Arguments
@@ -88,7 +88,7 @@ else
         } > /tmp/pkg/pytorch_${TORCH_VERSION}_amd64/DEBIAN/control
 
         # Download Torch
-        wget -O torch.zip https://download.pytorch.org/libtorch/${TORCH_CUDA_VERSION}/libtorch-cxx11-abi-shared-with-deps-${TORCH_VERSION}%2B${TORCH_CUDA_VERSION}.zip
+        wget -O torch.zip https://download.pytorch.org/libtorch/${TORCH_CUDA_VERSION}/libtorch-shared-with-deps-${TORCH_VERSION}%2B${TORCH_CUDA_VERSION}.zip
         unzip torch.zip
         # rm torch.zip
         cd libtorch

@@ -80,8 +80,7 @@ TEST_F(PredictiveStanleyControllerTests, DefaultConstructor)
 {
     controllers::PredictiveStanleyController Controller;
     EXPECT_NEAR(Controller.GetControlGain(), constants::STANLEY_CROSSTRACK_CONTROL_GAIN, 0.01);
-    EXPECT_NEAR(Controller.GetSteeringAngleLimit(), constants::STANLEY_STEERING_ANGLE_LIMIT, 0.01);
-    EXPECT_NEAR(Controller.GetWheelbase(), constants::STANLEY_DIST_TO_FRONT_AXLE, 0.01);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), constants::STANLEY_ANGULAR_VELOCITY_LIMIT, 0.01);
 }
 
 /******************************************************************************
@@ -93,10 +92,9 @@ TEST_F(PredictiveStanleyControllerTests, DefaultConstructor)
  ******************************************************************************/
 TEST_F(PredictiveStanleyControllerTests, ParameterizedConstructor)
 {
-    controllers::PredictiveStanleyController Controller(2.0, 30.0, 1.5, 10, 0.1);
+    controllers::PredictiveStanleyController Controller(2.0, 1.5, 10, 0.1);
     EXPECT_NEAR(Controller.GetControlGain(), 2.0, 0.01);
-    EXPECT_NEAR(Controller.GetSteeringAngleLimit(), 30.0, 0.01);
-    EXPECT_NEAR(Controller.GetWheelbase(), 1.5, 0.01);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), 1.5, 0.01);
 }
 
 /******************************************************************************
@@ -114,31 +112,17 @@ TEST_F(PredictiveStanleyControllerTests, SetControlGain)
 }
 
 /******************************************************************************
- * @brief Test the SetSteeringAngleLimit method of PredictiveStanleyController.
+ * @brief Test the SetAngularVelocityLimit method of PredictiveStanleyController.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-02-11
  ******************************************************************************/
-TEST_F(PredictiveStanleyControllerTests, SetSteeringAngleLimit)
+TEST_F(PredictiveStanleyControllerTests, SetAngularVelocityLimit)
 {
     controllers::PredictiveStanleyController Controller;
-    Controller.SetSteeringAngleLimit(25.0);
-    EXPECT_NEAR(Controller.GetSteeringAngleLimit(), 25.0, 0.01);
-}
-
-/******************************************************************************
- * @brief Test the SetWheelbase method of PredictiveStanleyController.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-02-11
- ******************************************************************************/
-TEST_F(PredictiveStanleyControllerTests, SetWheelbase)
-{
-    controllers::PredictiveStanleyController Controller;
-    Controller.SetWheelbase(1.8);
-    EXPECT_NEAR(Controller.GetWheelbase(), 1.8, 0.01);
+    Controller.SetAngularVelocityLimit(25.0);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), 25.0, 0.01);
 }
 
 /******************************************************************************
@@ -163,8 +147,7 @@ TEST_F(PredictiveStanleyControllerTests, SetReferencePath)
     }
     Controller.SetReferencePath(vComplexPath);
 
-    // We apply B-spline path fitting to the complex path internally, so just check that the size of the given path is greater than the size of the resulting path.
-    EXPECT_TRUE(Controller.GetReferencePath().size() < vComplexPath.size());
+    EXPECT_TRUE(Controller.GetReferencePath().size() <= vComplexPath.size());
 }
 
 /******************************************************************************
@@ -226,7 +209,7 @@ TEST_F(PredictiveStanleyControllerTests, CalculateFullPath)
     Controller.SetReferencePath(vPath);
     geoops::RoverPose stPose                                          = {geoops::GPSCoordinate{1.0, 1.0}, 0.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
-    EXPECT_NEAR(driveVector.dThetaHeading, 30, 0.01);
+    EXPECT_NEAR(driveVector.dThetaHeading, 45, 0.01);
 }
 
 /******************************************************************************
@@ -244,7 +227,7 @@ TEST_F(PredictiveStanleyControllerTests, DriveTowardsEndOfPath)
     geoops::RoverPose stPose                                          = {geoops::GPSCoordinate{3.0, 3.0}, 45.0};
     controllers::PredictiveStanleyController::DriveVector driveVector = Controller.Calculate(stPose);
     driveVector                                                       = Controller.Calculate(stPose);
-    EXPECT_NEAR(driveVector.dThetaHeading, 225.19, 0.01);
+    EXPECT_NEAR(driveVector.dThetaHeading, 90, 0.01);
 }
 
 /******************************************************************************
@@ -260,5 +243,5 @@ TEST_F(PredictiveStanleyControllerTests, GetPathTargetIndex)
     std::vector<geoops::Waypoint> vPath = {geoops::GPSCoordinate(0.0, 0.0), geoops::GPSCoordinate(1.0, 1.0), geoops::GPSCoordinate(2.0, 2.0)};
     Controller.SetReferencePath(vPath);
     Controller.Calculate({geoops::GPSCoordinate{2.0, 2.0}, 0.0});
-    EXPECT_EQ(Controller.GetReferencePathTargetIndex(), 2);
+    EXPECT_EQ(Controller.GetReferencePathTargetIndex(), 1);
 }

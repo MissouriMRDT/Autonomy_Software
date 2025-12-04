@@ -4,7 +4,7 @@
 cd /tmp
 
 # Install Variables
-PCL_VERSION="1.15.0"
+PCL_VERSION="1.15.1"
 PCL_INTERMEDIATE="1.15"
 
 # Build Arguments
@@ -87,21 +87,24 @@ else
             echo "Description: A prebuilt version of pcl. Made by the Mars Rover Design Team."
         } > /tmp/pkg/pcl_${PCL_VERSION}_amd64/DEBIAN/control
 
-        # Download LibDataChannel
+        # Download PointCloudLibrary
         git clone --recurse-submodules --depth 1 --branch pcl-${PCL_VERSION} https://github.com/PointCloudLibrary/pcl.git pcl
         mkdir pcl/build
         cd pcl/build
 
-        # Build LibDataChannel
+        # Build PointCloudLibrary
         cmake \
         -D CMAKE_INSTALL_PREFIX=/tmp/pkg/pcl_${PCL_VERSION}_amd64/usr/local \
         -D BUILD_GPU=ON \
         -D BUILD_CUDA=ON \
         -D WITH_CUDA=ON \
         -D BUILD_examples=ON \
+        -D BUILD_apps=ON \
+        -D WITH_QT=OFF \
+        -D QT_VERSION_MAJOR=6 \
         -D CMAKE_BUILD_TYPE=Release ..
 
-        # Install LibDataChannel
+        # Install PointCloudLibrary
         make
         make install
 
