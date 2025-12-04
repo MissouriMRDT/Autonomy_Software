@@ -171,7 +171,7 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     std::vector<std::function<void(sqlite3_stmt*, int&)>> vBinders;
     int nParamIndex = 1;
 
-    // Spatial bounds are always present.
+    // Spatial bounds are always present (using R-Tree index).
     vClauses.emplace_back("idx.min_x BETWEEN ? AND ?");
     vBinders.emplace_back(
         [&](sqlite3_stmt* sqlSTMT, int& nIndex)
@@ -187,15 +187,16 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
             sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dNorthing + stPointFilter.dRadius);
         });
 
-    // Optional classification.
+    // Optional classification filter.
+    // OPTIMIZATION: We filter against the joined 'Classifications' table (c.label).
     if (stPointFilter.szClassification && !stPointFilter.szClassification->empty())
     {
-        vClauses.emplace_back("p.classification = ?");
+        vClauses.emplace_back("c.label = ?");
         vBinders.emplace_back([&](sqlite3_stmt* sqlSTMT, int& nIndex)
                               { sqlite3_bind_text(sqlSTMT, nIndex++, stPointFilter.szClassification->c_str(), -1, SQLITE_STATIC); });
     }
 
-    // Add optional filters.
+    // Add optional filters for metrics.
     this->AddRangeFilter(vClauses, vBinders, "p.normal_x", stPointFilter.dNormalX);
     this->AddRangeFilter(vClauses, vBinders, "p.normal_y", stPointFilter.dNormalY);
     this->AddRangeFilter(vClauses, vBinders, "p.normal_z", stPointFilter.dNormalZ);
@@ -206,10 +207,16 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
 
     // Construct final SQL query string.
     std::ostringstream stdOSS;
-    stdOSS << "SELECT p.id, p.easting, p.northing, p.altitude, p.zone, p.classification,"
+
+    // OPTIMIZATION:
+    // 1. Select 'z.label' and 'c.label' to get human-readable text.
+    // 2. LEFT JOIN to handle cases where IDs might not map (prevents data loss).
+    stdOSS << "SELECT p.id, p.easting, p.northing, p.altitude, z.label, c.label,"
            << " p.normal_x, p.normal_y, p.normal_z, p.slope, p.rough, p.curvature, p.trav_score"
            << " FROM ProcessedLiDARPoints_idx AS idx"
            << " JOIN ProcessedLiDARPoints AS p ON p.id = idx.id"
+           << " LEFT JOIN Zones AS z ON p.zone_id = z.id"
+           << " LEFT JOIN Classifications AS c ON p.class_code = c.code"
            << " WHERE ";
 
     // Append all clauses to the SQL query.
@@ -243,28 +250,36 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     while ((nRC = sqlite3_step(sqlSTMT)) == SQLITE_ROW)
     {
         PointRow stRow;
-        stRow.nID              = sqlite3_column_int(sqlSTMT, 0);
-        stRow.dEasting         = sqlite3_column_double(sqlSTMT, 1);
-        stRow.dNorthing        = sqlite3_column_double(sqlSTMT, 2);
-        stRow.dAltitude        = sqlite3_column_double(sqlSTMT, 3);
-        stRow.szZone           = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 4));
-        stRow.szClassification = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 5));
-        stRow.dNormalX         = sqlite3_column_double(sqlSTMT, 6);
-        stRow.dNormalY         = sqlite3_column_double(sqlSTMT, 7);
-        stRow.dNormalZ         = sqlite3_column_double(sqlSTMT, 8);
-        stRow.dSlope           = sqlite3_column_double(sqlSTMT, 9);
-        stRow.dRoughness       = sqlite3_column_double(sqlSTMT, 10);
-        stRow.dCurvature       = sqlite3_column_double(sqlSTMT, 11);
-        stRow.dTraversalScore  = sqlite3_column_double(sqlSTMT, 12);
+        stRow.nID       = sqlite3_column_int(sqlSTMT, 0);
+        stRow.dEasting  = sqlite3_column_double(sqlSTMT, 1);
+        stRow.dNorthing = sqlite3_column_double(sqlSTMT, 2);
+        stRow.dAltitude = sqlite3_column_double(sqlSTMT, 3);
+
+        // --- SEGFAULT FIX START ---
+        // Retrieve Zone (Column 4). Check for NULL (if LEFT JOIN failed).
+        const char* pszZone = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 4));
+        stRow.szZone        = pszZone ? pszZone : "Unknown";
+
+        // Retrieve Classification (Column 5). Check for NULL.
+        const char* pszClass   = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 5));
+        stRow.szClassification = pszClass ? pszClass : "Unclassified";
+        // --- SEGFAULT FIX END ---
+
+        stRow.dNormalX        = sqlite3_column_double(sqlSTMT, 6);
+        stRow.dNormalY        = sqlite3_column_double(sqlSTMT, 7);
+        stRow.dNormalZ        = sqlite3_column_double(sqlSTMT, 8);
+        stRow.dSlope          = sqlite3_column_double(sqlSTMT, 9);
+        stRow.dRoughness      = sqlite3_column_double(sqlSTMT, 10);
+        stRow.dCurvature      = sqlite3_column_double(sqlSTMT, 11);
+        stRow.dTraversalScore = sqlite3_column_double(sqlSTMT, 12);
+
         vResults.push_back(stRow);
     }
 
     // Finalize SQL statement.
     if ((nRC = sqlite3_finalize(sqlSTMT)) != SQLITE_OK)
     {
-        // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Failed to finalize statement: {}", sqlite3_errmsg(m_pSQLDatabase));
-        // Return empty results on failure.
         return {};
     }
 
@@ -272,10 +287,8 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
     double dQueryTime                                                     = std::chrono::duration<double>(tmEndTime - tmStartTime).count();
 
-    // If time is over 1 second log a warning.
-    if (dQueryTime > 1.0)
+    if (dQueryTime > 0.2)
     {
-        // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Query took {:.2f} seconds to execute.", dQueryTime);
     }
     else
@@ -283,7 +296,6 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         LOG_DEBUG(logging::g_qSharedLogger, "Query took {} seconds to execute.", dQueryTime);
     }
 
-    // If we didn't get any data, log a warning that this has occurred.
     if (vResults.empty())
     {
         LOG_WARNING(logging::g_qSharedLogger, "Query returned no results.");
