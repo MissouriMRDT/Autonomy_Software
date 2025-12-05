@@ -201,45 +201,41 @@ float DriveBoard::VariableDriveEffort()
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Declare data structures to store data in.
-    ZEDCam::Pose stPose;
     sl::SensorsData slSensorData;
 
-    while (true)
+    // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
+    std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+    float fMultiplier              = 1;
+
+    // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
+    if (fuCopyStatus.get())
     {
-        // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
-        std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
-        float fMultiplier              = 1;
+        // Declare roll, pitch, yaw from sensor data
+        float fRoll  = abs(slSensorData.imu.pose.getEulerAngles().x);
+        float fPitch = abs(slSensorData.imu.pose.getEulerAngles().y);
+        float fYaw   = slSensorData.imu.pose.getEulerAngles().z;
 
-        // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
-        if (fuCopyStatus.get())
-        {
-            // Declare roll, pitch, yaw from sensor data
-            float fRoll  = abs(slSensorData.imu.pose.getEulerAngles().x);
-            float fPitch = abs(slSensorData.imu.pose.getEulerAngles().y);
-            float fYaw   = slSensorData.imu.pose.getEulerAngles().z;
+        // Calculate the risk factor to be applied to the linear polarization equation
+        float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
+        LOG_INFO(logging::g_qConsoleLogger, "fTheta:{} | {} | {}", fTheta, fRoll, fPitch);
 
-            // Calculate the risk factor to be applied to the linear polarization equation
-            float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
-            LOG_INFO(logging::g_qConsoleLogger, "fTheta:{} | {} | {}", fTheta, fRoll, fPitch);
+        // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
+        if (fTheta <= m_fMinSlope)
+            fMultiplier = m_fMaxDamp;
+        if (fTheta >= m_fMaxSlope)
+            fMultiplier = m_fMinDamp;
 
-            // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
-            if (fTheta <= m_fMinSlope)
-                fMultiplier = m_fMaxDamp;
-            if (fTheta >= m_fMaxSlope)
-                fMultiplier = m_fMinDamp;
+        // Calculate multiplier using linear polarization
+        const float k = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
+        float D       = m_fMaxDamp - k * (fTheta - m_fMinSlope);
 
-            // Calculate multiplier using linear polarization
-            const float k = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
-            float D       = m_fMaxDamp - k * (fTheta - m_fMinSlope);
+        // Return multiplier
+        fMultiplier = std::clamp(D, m_fMinDamp, m_fMaxDamp);
 
-            // Return multiplier
-            fMultiplier = std::clamp(D, m_fMinDamp, m_fMaxDamp);
-
-            SetMaxDriveEffort(fMultiplier);
-        }
-
-        return fMultiplier;
+        SetMaxDriveEffort(fMultiplier);
     }
+
+    return fMultiplier;
 }
 
 /******************************************************************************
