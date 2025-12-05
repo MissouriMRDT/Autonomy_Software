@@ -121,7 +121,8 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     float fDriveBoardLeftPower  = 0.0;
     float fDriveBoardRightPower = 0.0;
 
-    VariableDriveEffort();
+    float fMultiplier           = VariableDriveEffort();
+    SetMaxDriveEffort(fMultiplier);
 
     // If the min and max drive effort have been set to 0, then just send zero powers.
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
@@ -206,20 +207,20 @@ float DriveBoard::VariableDriveEffort()
     while (true)
     {
         // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
-        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
-        std::future<bool> fuCopyStatus     = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
-        float fMultiplier                  = 1;
+        std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+        float fMultiplier              = 1;
 
         // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
         if (fuCopyStatus.get())
         {
             // Declare roll, pitch, yaw from sensor data
-            float fRoll  = abs(stPose.stEulerAngles.dXO);
-            float fPitch = abs(stPose.stEulerAngles.dYO);
-            float fYaw   = stPose.stEulerAngles.dZO;
+            float fRoll  = abs(slSensorData.imu.pose.getEulerAngles().x);
+            float fPitch = abs(slSensorData.imu.pose.getEulerAngles().y);
+            float fYaw   = slSensorData.imu.pose.getEulerAngles().z;
 
             // Calculate the risk factor to be applied to the linear polarization equation
             float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
+            LOG_INFO(logging::g_qConsoleLogger, "fTheta:{} | {} | {}", fTheta, fRoll, fPitch);
 
             // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
             if (fTheta <= m_fMinSlope)
@@ -236,11 +237,8 @@ float DriveBoard::VariableDriveEffort()
 
             SetMaxDriveEffort(fMultiplier);
         }
-        // else
-        // {
-        //     // Something went wrong, the camera got to our request but said it wasn't able to get the data correctly.
-        //     fMultiplier = 1;
-        // }
+
+        return fMultiplier;
     }
 }
 
@@ -262,7 +260,7 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
     // float VariableSpeedMultiplier          = VariableDriveEffort();
-    LOG_INFO(logging::g_qConsoleLogger, "Variable Speed Multiplier:{}", fMaxDriveEffortMultiplier);
+    // LOG_INFO(logging::g_qConsoleLogger, "Variable Speed Multiplier:{}", fMaxDriveEffortMultiplier);
 
     // Update member variables.
     m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
