@@ -197,7 +197,7 @@ namespace controllers
             geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_vReferencePath[m_nCurrentReferencePathTargetIndex]).dDistanceMeters;
         
         // Add remaining distance of the path
-        for (int i = m_nCurrentReferencePathTargetIndex; i < m_vReferencePath.size() - 1; i++)
+        for (size_t i = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); i < m_vReferencePath.size() - 1; i++)
         {
             remainingDistance += geoops::CalculateGeoMeasurement(m_vReferencePath[i], m_vReferencePath[i + 1]).dDistanceMeters;
         }
@@ -241,8 +241,8 @@ namespace controllers
         // Send time remaining over RoveComm to Basestation
         if (network::g_pRoveCommUDPNode)
         {
-            // Send packet on local machine (This needs to be changed to actual Basestation IP)
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
+            // Send packet to Basestation
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::BaseStationNav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
         }
 
         return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
@@ -312,8 +312,8 @@ namespace controllers
         // Send path data over RoveComm to Basestation
         if (network::g_pRoveCommUDPNode)
         {
-            // Send packet on local machine (This needs to be changed to actual Basestation IP)
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.0.117", 9000);
+            // Send packet to Basestation
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::BaseStationNav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
         }
     }
 
