@@ -46,15 +46,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libusb-1.0-0-dev \
     libboost-all-dev libflann-dev libqhull-dev libopenni2-dev libsvm-dev \
-    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev \
-    sqlite3 libsqlite3-dev libhdf5-dev
-
+    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev libwebp-dev \
+    sqlite3 libsqlite3-dev libhdf5-dev libglpk-dev libbz2-dev \
+    coinor-libcbc-dev coinor-libclp-dev coinor-libosi-dev coinor-libcoinutils-dev
+    
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Remove Unused Packages.
-RUN apt purge 'qt5-*' 'libqt5*' && apt autoremove --purge -y
+RUN apt purge -y 'qt5-*' 'libqt5*' || true && apt autoremove --purge -y
 
 # Install Required Python Packages.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib
@@ -121,23 +122,23 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/ar
     dpkg -i ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
     rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
 
-# Install OpenMS
-ARG OPENMS_VERSION="3.4.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/arm64/openms_${OPENMS_VERSION}_arm64.deb && \
-    dpkg -i openms_${OPENMS_VERSION}_arm64.deb && \
-    rm openms_${OPENMS_VERSION}_arm64.deb
+# # Install OpenMS
+# ARG OPENMS_VERSION="3.4.1"
+# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/arm64/openms_${OPENMS_VERSION}_arm64.deb && \
+#     dpkg -i openms_${OPENMS_VERSION}_arm64.deb && \
+#     rm openms_${OPENMS_VERSION}_arm64.deb
 
-# Install QT6
-ARG QT6_VERSION="6.5.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/arm64/qt6_${QT6_VERSION}_arm64.deb && \
-    dpkg -i qt6_${QT6_VERSION}_arm64.deb && \
-    rm qt6_${QT6_VERSION}_arm64.deb
+# # Install QT6
+# ARG QT6_VERSION="6.5.0"
+# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/arm64/qt6_${QT6_VERSION}_arm64.deb && \
+#     dpkg -i qt6_${QT6_VERSION}_arm64.deb && \
+#     rm qt6_${QT6_VERSION}_arm64.deb
 
-# Install VTK
-ARG VTK_VERSION="9.5.1"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb && \
-    dpkg -i vtk_${VTK_VERSION}_arm64.deb && \
-    rm vtk_${VTK_VERSION}_arm64.deb
+# # Install VTK
+# ARG VTK_VERSION="9.5.1"
+# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb && \
+#     dpkg -i vtk_${VTK_VERSION}_arm64.deb && \
+#     rm vtk_${VTK_VERSION}_arm64.deb
 
 # Install Abseil.
 ARG ABSEIL_VERSION="20250814.0"
