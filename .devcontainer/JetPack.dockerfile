@@ -122,23 +122,23 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/ar
     dpkg -i ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
     rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
 
-# # Install OpenMS
-# ARG OPENMS_VERSION="3.4.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/arm64/openms_${OPENMS_VERSION}_arm64.deb && \
-#     dpkg -i openms_${OPENMS_VERSION}_arm64.deb && \
-#     rm openms_${OPENMS_VERSION}_arm64.deb
+# Install OpenMS
+ARG OPENMS_VERSION="3.4.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/arm64/openms_${OPENMS_VERSION}_arm64.deb && \
+    dpkg -i openms_${OPENMS_VERSION}_arm64.deb && \
+    rm openms_${OPENMS_VERSION}_arm64.deb
 
-# # Install QT6
-# ARG QT6_VERSION="6.5.0"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/arm64/qt6_${QT6_VERSION}_arm64.deb && \
-#     dpkg -i qt6_${QT6_VERSION}_arm64.deb && \
-#     rm qt6_${QT6_VERSION}_arm64.deb
+# Install QT6
+ARG QT6_VERSION="6.5.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/arm64/qt6_${QT6_VERSION}_arm64.deb && \
+    dpkg -i qt6_${QT6_VERSION}_arm64.deb && \
+    rm qt6_${QT6_VERSION}_arm64.deb
 
-# # Install VTK
-# ARG VTK_VERSION="9.5.1"
-# RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb && \
-#     dpkg -i vtk_${VTK_VERSION}_arm64.deb && \
-#     rm vtk_${VTK_VERSION}_arm64.deb
+# Install VTK
+ARG VTK_VERSION="9.5.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb && \
+    dpkg -i vtk_${VTK_VERSION}_arm64.deb && \
+    rm vtk_${VTK_VERSION}_arm64.deb
 
 # Install Abseil.
 ARG ABSEIL_VERSION="20250814.0"
