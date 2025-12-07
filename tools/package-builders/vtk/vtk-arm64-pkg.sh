@@ -47,7 +47,7 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     mkdir -p /tmp/pkg/deb
 
     # Download the package from the repository
-    curl -L $FILE_URL --output /tmp/pkg/deb/vtk_${VTK_VERSION}arm64.deb
+    curl -L $FILE_URL --output /tmp/pkg/deb/vtk_${VTK_VERSION}_arm64.deb
 
     # Exit the script
     gh_out "rebuilding_pkg=false"
