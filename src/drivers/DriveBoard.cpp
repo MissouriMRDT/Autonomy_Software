@@ -211,13 +211,12 @@ float DriveBoard::VariableDriveEffort()
     if (fuCopyStatus.get())
     {
         // Declare roll, pitch, yaw from sensor data
-        float fRoll  = abs(slSensorData.imu.pose.getEulerAngles().x);
-        float fPitch = abs(slSensorData.imu.pose.getEulerAngles().y);
-        float fYaw   = slSensorData.imu.pose.getEulerAngles().z;
+        float fRoll  = fabs(slSensorData.imu.pose.getEulerAngles(false).z);
+        float fPitch = fabs(slSensorData.imu.pose.getEulerAngles(false).x);
+        float fYaw   = slSensorData.imu.pose.getEulerAngles(false).y;
 
         // Calculate the risk factor to be applied to the linear polarization equation
         float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
-        LOG_INFO(logging::g_qConsoleLogger, "fTheta:{} | {} | {}", fTheta, fRoll, fPitch);
 
         // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
         if (fTheta <= m_fMinSlope)
@@ -233,6 +232,7 @@ float DriveBoard::VariableDriveEffort()
         fMultiplier = std::clamp(D, m_fMinDamp, m_fMaxDamp);
 
         SetMaxDriveEffort(fMultiplier);
+        LOG_INFO(logging::g_qConsoleLogger, "fMultiplier:{} | fTheta:{} | fRoll:{} | fPitch:{} | fYaw:{}", fMultiplier, fTheta, fRoll, fPitch, fYaw);
     }
 
     return fMultiplier;
