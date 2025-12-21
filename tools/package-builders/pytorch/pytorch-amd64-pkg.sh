@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set Working Directory
 cd /tmp
@@ -50,23 +51,23 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     curl -L $FILE_URL --output /tmp/pkg/deb/pytorch_${TORCH_VERSION}_amd64.deb
 
     # Exit the script
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 fi
 
 # Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${TORCH_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 else
     if [[ "$CHECK_PACKAGE" == true ]]; then
         echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         exit 1
     else
         echo "Package version ${TORCH_VERSION} does not exist in the repository. Building the package."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         
         # Delete Old Packages
         rm -rf /tmp/pkg

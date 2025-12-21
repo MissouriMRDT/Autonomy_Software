@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set Working Directory
 cd /tmp
@@ -36,102 +37,133 @@ done
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/arm64/openms_${OPENMS_VERSION}_arm64.deb"
 
-# Download the latest version
+# Helper: safely write GitHub Actions outputs if available, otherwise echo
+gh_out() {
+    if [[ -n "${GITHUB_OUTPUT-}" ]]; then
+        echo "$1" >> "$GITHUB_OUTPUT"
+    else
+        echo "$1"
+    fi
+}
+
+# ------------------------------------------------------------------
+# Download Handling
+# ------------------------------------------------------------------
 if [[ "$DOWNLOAD_LATEST" == true ]]; then
     echo "Downloading the latest version..."
-    
-    # Cleanup the download directory
     rm -rf /tmp/pkg
-    rm -rf /tmp/openms
     mkdir -p /tmp/pkg/deb
-
-    # Download the package from the repository
-    curl -L $FILE_URL --output /tmp/pkg/deb/openms_${OPENMS_VERSION}_arm64.deb
-
-    # Exit the script
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    curl -L --fail --show-error --output "/tmp/pkg/deb/openms_${OPENMS_VERSION}_arm64.deb" "$FILE_URL"
+    gh_out "rebuilding_pkg=false"
     exit 0
 fi
 
-# Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
-    echo "Package version ${OPENMS_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    echo "Package version ${OPENMS_VERSION} already exists. Skipping build."
+    gh_out "rebuilding_pkg=false"
     exit 0
 else
     if [[ "$CHECK_PACKAGE" == true ]]; then
-        echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        echo "Package version ${OPENMS_VERSION} does not exist. Exiting check mode."
+        gh_out "rebuilding_pkg=true"
         exit 1
     else
-        echo "Package version ${OPENMS_VERSION} does not exist in the repository. Building the package."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        echo "Package version ${OPENMS_VERSION} does not exist. Starting build process."
+        gh_out "rebuilding_pkg=true"
+
+        # ------------------------------------------------------------------
+        # Build Preparation
+        # ------------------------------------------------------------------
         
-        # Delete Old Packages
+        # Clean previous builds
         rm -rf /tmp/pkg
-        rm -rf /tmp/openms
+        rm -rf /tmp/openms_src
+        rm -rf /tmp/contrib_build
+        rm -rf /tmp/openms_build
 
-        # Create Package Directory
-        mkdir -p /tmp/pkg/openms_${OPENMS_VERSION}_arm64/usr/local
-        mkdir -p /tmp/pkg/openms_${OPENMS_VERSION}_arm64/DEBIAN
+        # Structure setup
+        PKG_DIR="/tmp/pkg/openms_${OPENMS_VERSION}_arm64"
+        mkdir -p "${PKG_DIR}/usr/local"
+        mkdir -p "${PKG_DIR}/DEBIAN"
 
-        # Create Control File
+        # Control File
         {
             echo "Package: openms-mrdt"
             echo "Version: ${OPENMS_VERSION}"
-            echo "Maintainer: OpenMS"
-            echo "Depends:"
+            echo "Maintainer: Missouri MRDT"
             echo "Architecture: arm64"
             echo "Homepage: https://github.com/OpenMS/OpenMS.git"
-            echo "Description: A prebuilt version of OpenMS. Made by the Mars Rover Design Team."
-        } > /tmp/pkg/openms_${OPENMS_VERSION}_arm64/DEBIAN/control
+            echo "Description: A prebuilt version of OpenMS ${OPENMS_VERSION} for ARM64."
+        } > "${PKG_DIR}/DEBIAN/control"
 
-        # Apt install some stuff needed for building.
+        # ------------------------------------------------------------------
+        # Dependency Installation
+        # ------------------------------------------------------------------
         sudo apt update
-        sudo apt install -y libtool ninja-build
+        # Installs all necessary dev libraries so we don't need to build them in contrib
+        sudo apt install -y \
+          autoconf patch libtool git \
+          libeigen3-dev libboost-all-dev libxerces-c-dev \
+          zlib1g-dev libsvm-dev libbz2-dev coinor-libcoinmp-dev libhdf5-dev \
+          libglpk-dev ninja-build dpkg-dev
 
-        # Download OpenMS
-        git clone --depth 1 --branch release/${OPENMS_VERSION} https://github.com/OpenMS/OpenMS.git
+        # ------------------------------------------------------------------
+        # Source Retrieval
+        # ------------------------------------------------------------------
+        echo "Cloning OpenMS..."
+        if git clone --depth 1 --branch "release/${OPENMS_VERSION}" "https://github.com/OpenMS/OpenMS.git" /tmp/openms_src; then
+            echo "Cloned release branch."
+        elif git clone --depth 1 --branch "${OPENMS_VERSION}" "https://github.com/OpenMS/OpenMS.git" /tmp/openms_src; then
+            echo "Cloned tag."
+        else
+            echo "Release/Tag not found, cloning default branch."
+            git clone --depth 1 "https://github.com/OpenMS/OpenMS.git" /tmp/openms_src
+        fi
 
-        # Prepare contrib build. (all deps from source)
-        cd OpenMS
-        git submodule update --init contrib
+        # ------------------------------------------------------------------
+        # OpenMS Build
+        # ------------------------------------------------------------------
+        # NOTE: We skip building 'contrib' because we installed all dependencies
+        # (libsvm, coinmp, eigen, boost, etc.) via apt.
+        
+        mkdir -p /tmp/openms_build
+        cd /tmp/openms_build
 
-        mkdir contrib-build
-        cd contrib-build
-        cmake -DBUILD_TYPE=ALL -DNUMBER_OF_JOBS=$(nproc) ../contrib
-        make -j$(nproc)
-        cd ..
-
-        # Build OpenMS out-of-source.
-        mkdir openms-build
-        cd openms-build
-
+        echo "Configuring OpenMS..."
+        
+        # We explicitly set Search Engines to common system paths or empty if unused
+        # We REMOVE -DOPENMS_CONTRIB_LIBS to force it to look in system paths (/usr/lib)
+        
         cmake -G Ninja \
-            -DCMAKE_INSTALL_PREFIX=/tmp/pkg/openms_${OPENMS_VERSION}_arm64/usr/local \
+            -DCMAKE_INSTALL_PREFIX="${PKG_DIR}/usr/local" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DOPENMS_CONTRIB_LIBS="$(realpath ../contrib-build)" \
-            -DBOOST_USE_STATIC=ON \
-            -DWITH_GUI=Off \
-            -DHAS_XSERVER=Off \
-            -DUSE_SYSTEM_SQLITE=ON \
-            -DENABLE_DOCS=Off \
-            ..
+            -DBOOST_USE_STATIC=OFF \
+            -DWITH_GUI=OFF \
+            -DHAS_XSERVER=OFF \
+            -DENABLE_DOCS=OFF \
+            -DCMAKE_PREFIX_PATH="/usr/lib/aarch64-linux-gnu/cmake;/usr/lib/cmake;/usr/local" \
+            /tmp/openms_src
 
-        ninja -j$(nproc)
-        ninja install
+        echo "Building OpenMS..."
+        ninja -j"$(nproc)" || { echo "OpenMS Build failed"; exit 1; }
+        
+        echo "Installing OpenMS to packaging directory..."
+        ninja install || { echo "Install step failed"; exit 1; }
 
-        # Cleanup sources after install
-        cd ..
-        rm -rf OpenMS contrib-build openms-build
+        # ------------------------------------------------------------------
+        # Packaging
+        # ------------------------------------------------------------------
+        echo "Building .deb package..."
+        dpkg --build "${PKG_DIR}" || { echo "dpkg build failed"; exit 1; }
 
-        # Create Package
-        dpkg --build /tmp/pkg/openms_${OPENMS_VERSION}_arm64
-
-        # Create Package Directory
+        # Move to export location
         mkdir -p /tmp/pkg/deb
+        cp "/tmp/pkg/openms_${OPENMS_VERSION}_arm64.deb" "/tmp/pkg/deb/openms_${OPENMS_VERSION}_arm64.deb"
 
-        # Copy Package
-        cp /tmp/pkg/openms_${OPENMS_VERSION}_arm64.deb /tmp/pkg/deb/openms_${OPENMS_VERSION}_arm64.deb
+        # Cleanup Source/Build dirs
+        rm -rf /tmp/openms_src /tmp/openms_build
+
+        gh_out "rebuilding_pkg=false"
+        echo "Build complete: /tmp/pkg/deb/openms_${OPENMS_VERSION}_arm64.deb"
     fi
 fi
