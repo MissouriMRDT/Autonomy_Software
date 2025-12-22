@@ -181,7 +181,7 @@ namespace statemachine
 
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if (m_stSearchPatternCenter.eType == geoops::WaypointType::eObjectWaypoint || m_stSearchPatternCenter.eType == geoops::WaypointType::eMalletWaypoint ||
-            m_stSearchPatternCenter.eType == geoops::WaypointType::eWaterBottleWaypoint)
+            m_stSearchPatternCenter.eType == geoops::WaypointType::eWaterBottleWaypoint || m_stSearchPatternCenter.eType == geoops::WaypointType::eRockPickWaypoint)
         {
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;

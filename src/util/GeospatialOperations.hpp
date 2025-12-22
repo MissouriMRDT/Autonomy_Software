@@ -42,7 +42,8 @@ namespace geoops
         eTagWaypoint,
         eMalletWaypoint,
         eWaterBottleWaypoint,
-        eObjectWaypoint,    // Used to represent either Mallet or WaterBottle waypoint.
+        eRockPickWaypoint,
+        eObjectWaypoint,    // Used to represent either Mallet, WaterBottle, or RockPick waypoint.
         eObstacleWaypoint,
         eUNKNOWN
     };

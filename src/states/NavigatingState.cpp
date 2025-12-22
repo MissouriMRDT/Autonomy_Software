@@ -226,15 +226,22 @@ namespace statemachine
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
                     return;
                 }
-                // Goal waypoint is object.
+                // Goal waypoint is mallet.
                 case geoops::WaypointType::eMalletWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
                     return;
                 }
-                // Goal waypoint is object.
+                // Goal waypoint is water bottle.
                 case geoops::WaypointType::eWaterBottleWaypoint:
+                {
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                    return;
+                }
+                // Goal waypoint is rock pick.
+                case geoops::WaypointType::eRockPickWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
@@ -295,7 +302,7 @@ namespace statemachine
 
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if ((m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eMalletWaypoint ||
-             m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint) &&
+             m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eRockPickWaypoint) &&
             stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
             // Create instance variables.

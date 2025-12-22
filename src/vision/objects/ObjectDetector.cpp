@@ -758,9 +758,13 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 {
                     stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eMallet;
                 }
-                else if (stObject.szClassName == "bottles")
+                else if (stObject.szClassName == "bottle")
                 {
                     stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eWaterBottle;
+                }
+                else if (stObject.szClassName == "pick")
+                {
+                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eRockPick;
                 }
 
                 // Calculate the geo measurement and print the distance to the object.

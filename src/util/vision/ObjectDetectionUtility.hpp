@@ -56,9 +56,10 @@ namespace objectdetectutils
      ******************************************************************************/
     enum class ObjectDetectionType
     {
-        eUnknown,       // Unknown detection type.
-        eMallet,        // Detection is a mallet.
-        eWaterBottle    // Detection is a water bottle.
+        eUnknown,        // Unknown detection type.
+        eMallet,         // Detection is a mallet.
+        eWaterBottle,    // Detection is a water bottle.
+        eRockPick        // Detection is a rock pick.
     };
 
     /******************************************************************************
