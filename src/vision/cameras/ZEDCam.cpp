@@ -568,6 +568,24 @@ void ZEDCam::ThreadedContinuousCode()
                 }
             }
 
+            // Get the IMU, barometer, magnetometer, and temperature sensor info from the camera.
+            if (m_bSensorsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+            {
+                // Get the sensor data from the camera.
+                slReturnCode = m_slCamera.getSensorsData(m_slSensorsData, sl::TIME_REFERENCE::CURRENT);
+
+                // Check if the sensor data was retrieved successfully.
+                if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                {
+                    // Submit logger message.
+                    LOG_WARNING(logging::g_qSharedLogger,
+                                "Unable to retrieve sensor data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                                sl::toString(m_slCameraModel).get(),
+                                m_unCameraSerialNumber,
+                                sl::toString(slReturnCode).get());
+                }
+            }
+
             // Check if object detection is enabled.
             if (m_slCamera.isObjectDetectionEnabled())
             {
@@ -637,11 +655,12 @@ void ZEDCam::ThreadedContinuousCode()
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if any requests have been made.
     if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-        !m_qGeoPoseCopySchedule.empty() || m_qFloorCopySchedule.size() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
+        !m_qGeoPoseCopySchedule.empty() || !m_qFloorCopySchedule.empty() || !m_qSensorsCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() ||
+        !m_qObjectBatchedDataCopySchedule.empty())
     {
         // Add the length of all queues together to determine how many tasks need to be run.
         size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qGPUFrameCopySchedule.size() + m_qCustomBoxIngestSchedule.size() + m_qPoseCopySchedule.size() +
-                                    m_qGeoPoseCopySchedule.size() + m_qFloorCopySchedule.size() + m_qObjectDataCopySchedule.size() +
+                                    m_qGeoPoseCopySchedule.size() + m_qFloorCopySchedule.size() + m_qSensorsCopySchedule.size() + m_qObjectDataCopySchedule.size() +
                                     m_qObjectBatchedDataCopySchedule.size();
 
         // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
@@ -661,6 +680,7 @@ void ZEDCam::ThreadedContinuousCode()
             m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bGeoPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bFloorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
+            m_bSensorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bBatchedObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
 
@@ -876,11 +896,41 @@ void ZEDCam::PooledLinearCode()
 
         // Copy pose.
         *stContainer.pData = sl::Plane(m_slFloorPlane);
+
+        // Signal future that the data has been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
     }
     else
     {
         // Release lock.
         lkPlaneQueue.unlock();
+    }
+
+    /////////////////////////////
+    //  Sensors queue.
+    /////////////////////////////
+    // Acquire mutex for getting frames out of the sensors queue.
+    std::unique_lock<std::shared_mutex> lkSensorsQueue(m_muSensorsCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qSensorsCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::DataFetchContainer<sl::SensorsData> stContainer = m_qSensorsCopySchedule.front();
+        // Pop out of queue.
+        m_qSensorsCopySchedule.pop();
+        // Release lock.
+        lkSensorsQueue.unlock();
+
+        // Copy pose.
+        *stContainer.pData = sl::SensorsData(m_slSensorsData);
+
+        // Signal future that the data had been successfully retrieved.
+        stContainer.pCopiedDataStatus->set_value(true);
+    }
+    else
+    {
+        // Release lock.
+        lkSensorsQueue.unlock();
     }
 
     /////////////////////////////
@@ -1178,6 +1228,344 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
+ *      Puts a Pose pointer into a queue so a copy of a pose from the camera can be written to it.
+ *      If positional tracking is not enabled, this method will return false and the ZEDCam::Pose may be uninitialized.
+ *
+ * @param stPose - A reference to the ZEDCam::Pose object to copy the current camera pose to.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
+ *                          Value will be true if pose was successfully retrieved.
+ *
+ * @note If this camera is acting as the ZEDSDK Fusion master instance, then the positional pose returned will be from
+ *      the Fusion instance. aka The Fused GNSS and visual inertial odometry will be returned.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-27
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    // Check if positional tracking has been enabled.
+    if (m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Assemble the data container.
+        containers::DataFetchContainer<Pose> stContainer(stPose);
+
+        // Acquire lock on pose copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append pose fetch container to the schedule queue.
+        m_qPoseCopySchedule.push(stContainer);
+        // Release lock on the pose schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if pose queue toggle has already been set.
+        if (!m_bPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+        {
+            // Signify that the pose queue is not empty.
+            m_bPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled or is still initializing!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
+}
+
+/******************************************************************************
+ * @brief Requests the current geo pose of the camera. This method should be used to retrieve ONLY the GNSS data from
+ *      the ZEDSDK's Fusion module. Puts a GeoPose pointer into a queue so a copy of a GeoPose from the
+ *      camera can be written to it. If positional tracking or fusion is disabled for this camera, then this method will return false
+ *      and the sl::GeoPose may be uninitialized.
+ *
+ * @param slGeoPose - A reference to the sl::GeoPose object to copy the current geo pose to.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::GeoPose is used.
+ *                          Value will be true if geo pose was successfully retrieved.
+ *
+ * @note This camera must be a Fusion Master and the NavBoard must be giving accurate info to the camera for this to be functional.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-01-25
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose)
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    // Check if positional tracking has been enabled.
+    if (m_bCameraIsFusionMaster && m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Assemble the data container.
+        containers::DataFetchContainer<sl::GeoPose> stContainer(slGeoPose);
+
+        // Acquire lock on frame copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append frame fetch container to the schedule queue.
+        m_qGeoPoseCopySchedule.push(stContainer);
+        // Release lock on the frame schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if pose queue toggle has already been set.
+        if (!m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+        {
+            // Signify that the pose queue is not empty.
+            m_bGeoPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger,
+                    "Attempted to get ZED FUSION geo pose but positional tracking is not enabled and/or this camera was not initialized as a Fusion Master!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
+}
+
+/******************************************************************************
+ * @brief Requests the current floor plane of the camera relative to it's current pose.
+ *      Puts a Plane pointer into a queue so a copy of the floor plane from the camera can be written to it.
+ *      If positional tracking is not enabled, this method will return false and the sl::Plane may be uninitialized.
+ *
+ * @param slPlane - A reference to the sl::Plane object to copy the current camera floor plane to.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::Plane is used.
+ *                          Value will be true if data was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-22
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    // Check if positional tracking has been enabled.
+    if (m_slCamera.isPositionalTrackingEnabled())
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Assemble the data container.
+        containers::DataFetchContainer<sl::Plane> stContainer(slPlane);
+
+        // Acquire lock on pose copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append data fetch container to the schedule queue.
+        m_qFloorCopySchedule.push(stContainer);
+        // Release lock on the pose schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if pose queue toggle has already been set.
+        if (!m_bFloorsQueued.load(std::memory_order_relaxed))
+        {
+            // Signify that the pose queue is not empty.
+            m_bFloorsQueued.store(true, std::memory_order_relaxed);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED floor plane but positional tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
+}
+
+/******************************************************************************
+ * @brief Requests the most up to date sensors data from the camera. This data
+ *  include IMU pose and raw values, barometer, magnetometer, and temperature data.
+ *
+ * @param slSensorsData - A reference to the sl::SensorsData struct to copy data into.
+ * @return std::future<bool> - A future that should be waited on before the passed in sl::SensorsData is used.
+ *                          Value will be true if data was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-08-26
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestSensorsCopy(sl::SensorsData& slSensorsData)
+{
+    // Assemble the data container.
+    containers::DataFetchContainer<sl::SensorsData> stContainer(slSensorsData);
+
+    // Acquire lock on sensors copy queue.
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Append sensors fetch container to the schedule queue.
+    m_qSensorsCopySchedule.push(stContainer);
+    // Release lock on the sensors schedule queue.
+    lkSchedulers.unlock();
+
+    // Check if sensors queue toggle has already been set.
+    if (!m_bSensorsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+    {
+        // Signify that the sensors queue is not empty.
+        m_bSensorsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+    }
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedDataStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Requests a current copy of the tracked objects from the camera.
+ *      Puts a pointer to a vector containing sl::ObjectData into a queue so a copy of a frame from the camera can be written to it.
+ *
+ * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
+ * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
+ *                          Value will be true if data was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-27
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    // Check if object detection has been enabled.
+    if (m_slCamera.isObjectDetectionEnabled())
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Assemble the data container.
+        containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer(vObjectData);
+
+        // Acquire lock on object copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append data fetch container to the schedule queue.
+        m_qObjectDataCopySchedule.push(stContainer);
+        // Release lock on the object schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if objects queue toggle has already been set.
+        if (!m_bObjectsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+        {
+            // Signify that the objects queue is not empty.
+            m_bObjectsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED object data but object detection/tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
+}
+
+/******************************************************************************
+ * @brief If batching is enabled, this requests the normal objects and passes them to
+ *  the the internal batching queue of the zed api. This performs short-term re-identification
+ *  with deep learning and trajectories filtering. Batching must have been set to enabled when
+ *  EnableObjectDetection() was called. Most of the time the vector will be empty and will be
+ *  filled every ZED_OBJDETECTION_BATCH_LATENCY.
+ *
+ * @param vBatchedObjectData - A vector containing objects of sl::ObjectsBatch object that will
+ *                              have object data copied to.
+ * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
+ *                          Value will be true if data was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-08-30
+ ******************************************************************************/
+std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
+{
+    // Acquire read lock.
+    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    // Check if object detection and batching has been enabled.
+    if (m_slCamera.isObjectDetectionEnabled() && m_slObjectDetectionBatchParams.enable)
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Assemble the data container.
+        containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer(vBatchedObjectData);
+
+        // Acquire lock on batched object copy queue.
+        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        // Append data fetch container to the schedule queue.
+        m_qObjectBatchedDataCopySchedule.push(stContainer);
+        // Release lock on the data schedule queue.
+        lkSchedulers.unlock();
+
+        // Check if objects queue toggle has already been set.
+        if (!m_bBatchedObjectsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
+        {
+            // Signify that the objects queue is not empty.
+            m_bBatchedObjectsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
+        }
+
+        // Return the future from the promise stored in the container.
+        return stContainer.pCopiedDataStatus->get_future();
+    }
+    else
+    {
+        // Release lock.
+        lkCameraLock.unlock();
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED batched object data but object detection/tracking is not enabled!");
+
+        // Create dummy promise to return the future.
+        std::promise<bool> pmDummyPromise;
+        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
+        // Set future value.
+        pmDummyPromise.set_value(false);
+
+        // Return unsuccessful.
+        return fuDummyFuture;
+    }
 }
 
 /******************************************************************************
@@ -1891,190 +2279,6 @@ unsigned int ZEDCam::GetCameraSerial()
 }
 
 /******************************************************************************
- * @brief Requests the current pose of the camera relative to it's start pose or the origin of the set pose.
- *      Puts a Pose pointer into a queue so a copy of a pose from the camera can be written to it.
- *      If positional tracking is not enabled, this method will return false and the ZEDCam::Pose may be uninitialized.
- *
- * @param stPose - A reference to the ZEDCam::Pose object to copy the current camera pose to.
- * @return std::future<bool> - A future that should be waited on before the passed in sl::Pose is used.
- *                          Value will be true if pose was successfully retrieved.
- *
- * @note If this camera is acting as the ZEDSDK Fusion master instance, then the positional pose returned will be from
- *      the Fusion instance. aka The Fused GNSS and visual inertial odometry will be returned.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-27
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Check if positional tracking has been enabled.
-    if (m_slCamera.isPositionalTrackingEnabled())
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Assemble the data container.
-        containers::DataFetchContainer<Pose> stContainer(stPose);
-
-        // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append pose fetch container to the schedule queue.
-        m_qPoseCopySchedule.push(stContainer);
-        // Release lock on the pose schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if pose queue toggle has already been set.
-        if (!m_bPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the pose queue is not empty.
-            m_bPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled or is still initializing!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
- * @brief Requests the current geo pose of the camera. This method should be used to retrieve ONLY the GNSS data from
- *      the ZEDSDK's Fusion module. Puts a GeoPose pointer into a queue so a copy of a GeoPose from the
- *      camera can be written to it. If positional tracking or fusion is disabled for this camera, then this method will return false
- *      and the sl::GeoPose may be uninitialized.
- *
- * @param slGeoPose - A reference to the sl::GeoPose object to copy the current geo pose to.
- * @return std::future<bool> - A future that should be waited on before the passed in sl::GeoPose is used.
- *                          Value will be true if geo pose was successfully retrieved.
- *
- * @note This camera must be a Fusion Master and the NavBoard must be giving accurate info to the camera for this to be functional.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-25
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose)
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Check if positional tracking has been enabled.
-    if (m_bCameraIsFusionMaster && m_slCamera.isPositionalTrackingEnabled())
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Assemble the data container.
-        containers::DataFetchContainer<sl::GeoPose> stContainer(slGeoPose);
-
-        // Acquire lock on frame copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
-        m_qGeoPoseCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if pose queue toggle has already been set.
-        if (!m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the pose queue is not empty.
-            m_bGeoPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to get ZED FUSION geo pose but positional tracking is not enabled and/or this camera was not initialized as a Fusion Master!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
- * @brief Requests the current floor plane of the camera relative to it's current pose.
- *      Puts a Plane pointer into a queue so a copy of the floor plane from the camera can be written to it.
- *      If positional tracking is not enabled, this method will return false and the sl::Plane may be uninitialized.
- *
- * @param slPlane - A reference to the sl::Plane object to copy the current camera floor plane to.
- * @return std::future<bool> - A future that should be waited on before the passed in sl::Plane is used.
- *                          Value will be true if data was successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-10-22
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Check if positional tracking has been enabled.
-    if (m_slCamera.isPositionalTrackingEnabled())
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Assemble the data container.
-        containers::DataFetchContainer<sl::Plane> stContainer(slPlane);
-
-        // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append data fetch container to the schedule queue.
-        m_qFloorCopySchedule.push(stContainer);
-        // Release lock on the pose schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if pose queue toggle has already been set.
-        if (!m_bFloorsQueued.load(std::memory_order_relaxed))
-        {
-            // Signify that the pose queue is not empty.
-            m_bFloorsQueued.store(true, std::memory_order_relaxed);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED floor plane but positional tracking is not enabled!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
  * @brief Accessor for if the positional tracking functionality of the camera has been enabled
  *      and functioning.
  *
@@ -2224,124 +2428,4 @@ bool ZEDCam::GetObjectDetectionEnabled()
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     return m_slCamera.isObjectDetectionEnabled();
-}
-
-/******************************************************************************
- * @brief Requests a current copy of the tracked objects from the camera.
- *      Puts a pointer to a vector containing sl::ObjectData into a queue so a copy of a frame from the camera can be written to it.
- *
- * @param vObjectData - A vector that will have data copied to it containing sl::ObjectData objects.
- * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if data was successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-27
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Check if object detection has been enabled.
-    if (m_slCamera.isObjectDetectionEnabled())
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Assemble the data container.
-        containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer(vObjectData);
-
-        // Acquire lock on object copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append data fetch container to the schedule queue.
-        m_qObjectDataCopySchedule.push(stContainer);
-        // Release lock on the object schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if objects queue toggle has already been set.
-        if (!m_bObjectsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the objects queue is not empty.
-            m_bObjectsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED object data but object detection/tracking is not enabled!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
- * @brief If batching is enabled, this requests the normal objects and passes them to
- *  the the internal batching queue of the zed api. This performs short-term re-identification
- *  with deep learning and trajectories filtering. Batching must have been set to enabled when
- *  EnableObjectDetection() was called. Most of the time the vector will be empty and will be
- *  filled every ZED_OBJDETECTION_BATCH_LATENCY.
- *
- * @param vBatchedObjectData - A vector containing objects of sl::ObjectsBatch object that will
- *                              have object data copied to.
- * @return std::future<bool> - A future that should be waited on before the passed in vector is used.
- *                          Value will be true if data was successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-30
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Check if object detection and batching has been enabled.
-    if (m_slCamera.isObjectDetectionEnabled() && m_slObjectDetectionBatchParams.enable)
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Assemble the data container.
-        containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer(vBatchedObjectData);
-
-        // Acquire lock on batched object copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append data fetch container to the schedule queue.
-        m_qObjectBatchedDataCopySchedule.push(stContainer);
-        // Release lock on the data schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if objects queue toggle has already been set.
-        if (!m_bBatchedObjectsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the objects queue is not empty.
-            m_bBatchedObjectsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED batched object data but object detection/tracking is not enabled!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
 }

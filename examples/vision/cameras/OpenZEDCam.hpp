@@ -75,6 +75,7 @@ void RunExample()
     cv::cuda::GpuMat cvGPUPointCloud1;
     // Declare other data types to store data in.
     ZEDCam::Pose stPose;
+    sl::SensorsData slSensors;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -103,7 +104,8 @@ void RunExample()
             fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuPoseCopyStatus    = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuSensorsCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensors);
 
         // Wait for the frames to be copied.
         if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
@@ -144,6 +146,29 @@ void RunExample()
                          stPose.stEulerAngles.dXO,
                          stPose.stEulerAngles.dYO,
                          stPose.stEulerAngles.dZO);
+            }
+
+            // Wait for sensors data to be copied.
+            if (fuSensorsCopyStatus.get())
+            {
+                // Unpack sensors data.
+                double dRelativeAltitude = slSensors.barometer.relative_altitude;
+                float fTemperature       = 0.0;
+                slSensors.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, fTemperature);
+                float fMagHeading    = slSensors.magnetometer.magnetic_heading;
+                sl::float3 slIMUPose = slSensors.imu.pose.getEulerAngles(false);
+                float fIMUPoseX      = slIMUPose.x;
+                float fIMUPoseY      = slIMUPose.y;
+                float fIMUPoseZ      = slIMUPose.z;
+
+                LOG_INFO(logging::g_qConsoleLogger,
+                         "Sensors Data: Altitude: {} | Temperature: {} | Mag Heading: {} | IMU PoseX: {} | IMU PoseY: {} | IMU PoseZ: {}",
+                         dRelativeAltitude,
+                         fTemperature,
+                         fMagHeading,
+                         fIMUPoseX,
+                         fIMUPoseY,
+                         fIMUPoseZ);
             }
 
             // Print info.
