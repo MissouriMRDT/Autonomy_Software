@@ -225,11 +225,11 @@ float DriveBoard::VariableDriveEffort()
             fMultiplier = m_fMinDamp;
 
         // Calculate multiplier using linear polarization
-        const float k = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
-        float D       = m_fMaxDamp - k * (fTheta - m_fMinSlope);
+        const float fK = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
+        float fD       = m_fMaxDamp - fK * (fTheta - m_fMinSlope);
 
         // Return multiplier
-        fMultiplier = std::clamp(D, m_fMinDamp, m_fMaxDamp);
+        fMultiplier = std::clamp(fD, m_fMinDamp, m_fMaxDamp);
 
         SetMaxDriveEffort(fMultiplier);
     }
