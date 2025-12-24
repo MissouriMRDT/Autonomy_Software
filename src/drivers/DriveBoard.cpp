@@ -232,7 +232,6 @@ float DriveBoard::VariableDriveEffort()
         fMultiplier = std::clamp(D, m_fMinDamp, m_fMaxDamp);
 
         SetMaxDriveEffort(fMultiplier);
-        LOG_INFO(logging::g_qConsoleLogger, "fMultiplier:{} | fTheta:{} | fRoll:{} | fPitch:{} | fYaw:{}", fMultiplier, fTheta, fRoll, fPitch, fYaw);
     }
 
     return fMultiplier;
