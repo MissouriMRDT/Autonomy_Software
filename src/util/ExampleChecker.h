@@ -15,17 +15,14 @@
 #define EXAMPLE_CHECK_H
 
 // Define the macro to check if the example directory is included.
-#define CHECK_IF_EXAMPLE_INCLUDED           \
-    static bool bRunExampleFlag = false;    \
-    namespace                               \
-    {                                       \
-        struct RunExampleInitializer        \
-        {                                   \
-                RunExampleInitializer()     \
-                {                           \
-                    bRunExampleFlag = true; \
-                }                           \
-        } initializer;                      \
+#define CHECK_IF_EXAMPLE_INCLUDED                                   \
+    static bool bRunExampleFlag = false;                            \
+    namespace                                                       \
+    {                                                               \
+        struct RunExampleInitializer                                \
+        {                                                           \
+                RunExampleInitializer() { bRunExampleFlag = true; } \
+        } initializer;                                              \
     }
 
 #endif    // EXAMPLE_CHECK_H

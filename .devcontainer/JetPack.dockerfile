@@ -28,7 +28,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Clean APT Cache
 RUN rm /var/lib/dpkg/info/libc-bin.*
 # Add APT Repo for PCIe drivers and Bazel.
-RUN apt update && apt install -y wget && \
+RUN apt-get update && apt-get install -y wget && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
     wget -q -O - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
@@ -55,7 +55,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Remove Unused Packages.
-RUN apt purge -y 'qt5-*' 'libqt5*' || true && apt autoremove --purge -y
+RUN apt-get purge -y 'qt5-*' 'libqt5*' || true && apt-get autoremove --purge -y
 
 # Install Required Python Packages.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib
