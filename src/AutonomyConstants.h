@@ -106,12 +106,13 @@ namespace constants
     extern const int RECORDER_FPS;
     // Camera recording toggles.
     extern const bool ZED_MAINCAM_ENABLE_RECORDING;
-    extern const bool BASICCAM_GROUNDCAM_ENABLE_RECORDING;
+    extern const bool ZED_REARCAM_ENABLE_RECORDING;
     // TagDetector recording toggles.
     extern const bool TAGDETECT_MAINCAM_ENABLE_RECORDING;
-    extern const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING;
+    extern const bool TAGDETECT_REARCAM_ENABLE_RECORDING;
     // ObjectDetector recording toggles.
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING;
+    extern const bool OBJECTDETECT_REARCAM_ENABLE_RECORDING;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -183,15 +184,30 @@ namespace constants
     extern const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_MAINCAM_SERIAL;
 
-    // Ground Basic Cam.
-    extern const int BASICCAM_GROUNDCAM_RESOLUTIONX;
-    extern const int BASICCAM_GROUNDCAM_RESOLUTIONY;
-    extern const int BASICCAM_GROUNDCAM_FPS;
-    extern const int BASICCAM_GROUNDCAM_HORIZONTAL_FOV;
-    extern const int BASICCAM_GROUNDCAM_VERTICAL_FOV;
-    extern const int BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS;
-    extern const int BASICCAM_GROUNDCAM_INDEX;
-    extern const PIXEL_FORMATS BASICCAM_GROUNDCAM_PIXELTYPE;
+    // Rear ZED Camera.
+    extern const bool MODE_REAR_ZED; 
+    extern const int ZED_REARCAM_RESOLUTIONX;
+    extern const int ZED_REARCAM_RESOLUTIONY;
+    extern const int ZED_REARCAM_FPS;
+    extern const int ZED_REARCAM_HORIZONTAL_FOV;
+    extern const int ZED_RearCAM_VERTICAL_FOV;
+    extern const bool ZED_REARCAM_EXPORT_SVO_RECORDING;
+    extern const bool ZED_REARCAM_EXPORT_SPATIAL_MAP;
+    extern const bool ZED_REARCAM_USE_GPU_MAT;
+    extern const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH;
+    extern const bool ZED_REARCAM_FUSION_MASTER;
+    extern const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS;
+    extern const int ZED_REARCAM_SERIAL;
+
+    // Basic Cam.
+    extern const int BASICCAM_CAM_RESOLUTIONX;
+    extern const int BASICCAM_CAM_RESOLUTIONY;
+    extern const int BASICCAM_CAM_FPS;
+    extern const int BASICCAM_CAM_HORIZONTAL_FOV;
+    extern const int BASICCAM_CAM_VERTICAL_FOV;
+    extern const int BASICCAM_CAM_FRAME_RETRIEVAL_THREADS;
+    extern const int BASICCAM_CAM_INDEX;
+    extern const PIXEL_FORMATS BASICCAM_CAM_PIXELTYPE;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -225,6 +241,20 @@ namespace constants
     extern const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH;
 
+    // Rear ZED Camera.
+    extern const int TAGDETECT_REARCAM_DATA_RETRIEVAL_THREADS;
+    extern const int TAGDETECT_REARCAM_CORNER_REFINE_MAX_ITER;
+    extern const int TAGDETECT_REARCAM_CORNER_REFINE_METHOD;
+    extern const bool TAGDETECT_REARCAM_DETECT_INVERTED_MARKER;
+    extern const int TAGDETECT_REARCAM_MARKER_BORDER_BITS;
+    extern const bool TAGDETECT_REARCAM_USE_ARUCO3_DETECTION;
+    extern const bool TAGDETECT_REARCAM_ENABLE_TRACKING;
+    extern const int TAGDETECT_REARCAM_MAX_FPS;
+    extern const bool TAGDETECT_REARCAM_ENABLE_TORCH;
+    extern const std::string TAGDETECT_REARCAM_TORCH_MODEL;
+    extern const float TAGDETECT_REARCAM_TORCH_CONFIDENCE;
+    extern const float TAGDETECT_REARCAM_TORCH_NMS_THRESH;
+
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
@@ -237,6 +267,15 @@ namespace constants
     extern const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL;
     extern const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH;
+
+    // Rear ZED Camera.
+    extern const int OBJECTDETECT_REARCAM_DATA_RETRIEVAL_THREADS;
+    extern const bool OBJECTDETECT_REARCAM_ENABLE_TRACKING;
+    extern const int OBJECTDETECT_REARCAM_MAX_FPS;
+    extern const bool OBJECTDETECT_REARCAM_ENABLE_TORCH;
+    extern const std::string OBJECTDETECT_REARCAM_TORCH_MODEL;
+    extern const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE;
+    extern const float OBJECTDETECT_REARCAM_TORCH_NMS_THRESH;
 
     ///////////////////////////////////////////////////////////////////////////
 
