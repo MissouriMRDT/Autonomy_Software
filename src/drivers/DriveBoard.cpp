@@ -33,8 +33,8 @@ DriveBoard::DriveBoard()
     // Initialize member variables.
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
-    m_fMinDriveEffort                = constants::DRIVE_MIN_EFFORT;
-    m_fMaxDriveEffort                = constants::DRIVE_MAX_EFFORT;
+    m_fMinDriveEffort                = constants::DRIVE_MIN_POWER;
+    m_fMaxDriveEffort                = constants::DRIVE_MAX_POWER;
 
     // Configure PID controller for heading hold function.
     m_pPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
@@ -127,8 +127,8 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
         double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
         double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
         // Limit the power to max and min effort defined in constants.
-        fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
-        fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+        fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
         // Update member variables with new target speeds.
         m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
         m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
@@ -187,7 +187,7 @@ void DriveBoard::SendStop()
 /******************************************************************************
  * @brief Set the max power limits of the drive.
  *
- * @param fMinDriveEffort - A multiplier from 0-1 for the max power output of the drive.
+ * @param fMaxDriveEffortMultiplier - A multiplier from 0-1 for the max power output of the drive.
  *              Multiplier will be applied to constants::DRIVE_MIN_POWER and constants::DRIVE_MAX_POWER.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)

@@ -646,11 +646,11 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
         // Submit logger message.
-        LOG_NOTICE(logging::g_qSharedLogger,
-                   "Failed to send packet to decoder! Error code: {} {}. This is not a serious problem and is likely just because some of the UDP RTP packets didn't "
-                   "make it to us.",
-                   nReturnCode,
-                   aErrorBuffer);
+        // LOG_NOTICE(logging::g_qSharedLogger,
+        //            "Failed to send packet to decoder! Error code: {} {}. This is not a serious problem and is likely just because some of the UDP RTP packets didn't "
+        //            "make it to us.",
+        //            nReturnCode,
+        //            aErrorBuffer);
         // Request a new keyframe from the video track.
         this->RequestKeyFrame();
 
