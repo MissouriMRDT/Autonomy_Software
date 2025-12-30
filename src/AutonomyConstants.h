@@ -185,7 +185,7 @@ namespace constants
     extern const int ZED_MAINCAM_SERIAL;
 
     // Rear ZED Camera.
-    extern const bool MODE_REAR_ZED; 
+    extern const bool MODE_REAR_ZED;
     extern const int ZED_REARCAM_RESOLUTIONX;
     extern const int ZED_REARCAM_RESOLUTIONY;
     extern const int ZED_REARCAM_FPS;
@@ -227,6 +227,9 @@ namespace constants
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
+    // Models to use for detection.
+    extern const std::string TAGDETECT_TORCH_MODEL;
+
     // Main ZED Camera.
     extern const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
     extern const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER;
@@ -237,7 +240,6 @@ namespace constants
     extern const bool TAGDETECT_MAINCAM_ENABLE_TRACKING;
     extern const int TAGDETECT_MAINCAM_MAX_FPS;
     extern const bool TAGDETECT_MAINCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_MAINCAM_TORCH_MODEL;
     extern const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH;
 
@@ -251,7 +253,6 @@ namespace constants
     extern const bool TAGDETECT_REARCAM_ENABLE_TRACKING;
     extern const int TAGDETECT_REARCAM_MAX_FPS;
     extern const bool TAGDETECT_REARCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_REARCAM_TORCH_MODEL;
     extern const float TAGDETECT_REARCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_REARCAM_TORCH_NMS_THRESH;
 
@@ -259,12 +260,14 @@ namespace constants
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
+    // Models to use for detection.
+    extern const std::string OBJECTDETECT_TORCH_MODEL;
+
     // Main ZED Camera.
     extern const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING;
     extern const int OBJECTDETECT_MAINCAM_MAX_FPS;
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH;
-    extern const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL;
     extern const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH;
 
@@ -273,7 +276,6 @@ namespace constants
     extern const bool OBJECTDETECT_REARCAM_ENABLE_TRACKING;
     extern const int OBJECTDETECT_REARCAM_MAX_FPS;
     extern const bool OBJECTDETECT_REARCAM_ENABLE_TORCH;
-    extern const std::string OBJECTDETECT_REARCAM_TORCH_MODEL;
     extern const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE;
     extern const float OBJECTDETECT_REARCAM_TORCH_NMS_THRESH;
 
