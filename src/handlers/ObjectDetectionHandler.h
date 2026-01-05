@@ -62,6 +62,8 @@ class ObjectDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ObjectDetector> GetObjectDetector(ObjectDetectors eDetectorName);
+
+        cv::Mat RequestDetectionOverlayFrame(ObjectDetectors eDetector = ObjectDetectors::eHeadMainCam);
 };
 
 #endif

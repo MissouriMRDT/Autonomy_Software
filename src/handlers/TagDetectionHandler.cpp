@@ -138,3 +138,37 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
         default: return m_pTagDetectorMainCam; break;
     }
 }
+
+/******************************************************************************
+ * @brief Requests a snapshot of the current tag detection overlay. Blocks execution until the frame is ready.
+ *
+ * @param eDetector - The detector to request the frame from.
+ * @return cv::Mat - The frame with detection overlays.
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-04
+ ******************************************************************************/
+cv::Mat TagDetectionHandler::RequestDetectionOverlayFrame(TagDetectors eDetector)
+{
+    cv::Mat cvFrame;
+    std::shared_ptr<TagDetector> pDetector = this->GetTagDetector(eDetector);
+
+    if (pDetector && pDetector->GetIsReady())
+    {
+        std::future<bool> fuFrame = pDetector->RequestDetectionOverlayFrame(cvFrame);
+
+        if (fuFrame.wait_for(std::chrono::seconds(1)) == std::future_status::ready)
+        {
+            fuFrame.get();
+        }
+        else
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "TagDetectionHandler: Timed out waiting for overlay snapshot.");
+        }
+    }
+    else
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "TagDetectionHandler: Requested snapshot from invalid or unready detector.");
+    }
+
+    return cvFrame;
+}

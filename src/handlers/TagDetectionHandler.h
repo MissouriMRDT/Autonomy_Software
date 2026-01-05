@@ -62,6 +62,8 @@ class TagDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<TagDetector> GetTagDetector(TagDetectors eDetectorName);
+
+        cv::Mat RequestDetectionOverlayFrame(TagDetectors eDetector = TagDetectors::eHeadMainCam);
 };
 
 #endif

@@ -8,10 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
+#include <opencv2/opencv.hpp>
+#include <filesystem>
 #include "VerifyingObjectState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
 #include "../util/states/ObjectDetectionChecker.hpp"
+#include "../util/TimeOperations.hpp"
 
 // #include "../util/states/ObjectDetectionChecker.hpp"
 
@@ -172,6 +175,35 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+
+                // Request the snapshot from the object detection handler
+                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->RequestDetectionOverlayFrame();
+
+                if (!cvSnapshot.empty())
+                {
+                    std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
+                    if (!std::filesystem::exists(szLogDir)) {
+                        std::filesystem::create_directories(szLogDir);
+                    }
+
+                    // 2. Unique filename for the snapshot
+                    std::string szTimestamp = timeops::GetTimestamp(); 
+                    std::string szFilename = szLogDir + "object_" + szTimestamp + ".png";
+
+                    // 3. Save
+                    bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
+
+                    if (bSuccess) {
+                        LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Saved detection snapshot to {}", szFilename);
+                    } else {
+                        LOG_ERROR(logging::g_qSharedLogger, "VerifyingObjectState: Failed to write snapshot to disk.");
+                    }
+                }
+                else
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Overlay frame was empty. No snapshot taken.");
+                }
+
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
                 // Clear saved states.

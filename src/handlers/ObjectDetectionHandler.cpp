@@ -133,3 +133,45 @@ std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(Object
         default: return m_pObjectDetectorMainCam; break;
     }
 }
+
+/******************************************************************************
+ * @brief Requests a snapshot of the current detection overlay. Blocks execution until the frame is ready.
+ *
+ * @param eDetector - The detector to request the frame from.
+ * @return cv::Mat - The frame with detection overlays.
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-01
+ ******************************************************************************/
+cv::Mat ObjectDetectionHandler::RequestDetectionOverlayFrame(ObjectDetectors eDetector)
+{
+    // Create an empty frame to store the result
+    cv::Mat cvFrame;
+
+    // Get the specific detector (e.g., Head Main Cam)
+    std::shared_ptr<ObjectDetector> pDetector = this->GetObjectDetector(eDetector);
+
+    // Check if the detector is valid and running
+    if (pDetector && pDetector->GetIsReady())
+    {
+        // Request the frame. This returns a "future" (a promise that data will come later)
+        std::future<bool> fuFrame = pDetector->RequestDetectionOverlayFrame(cvFrame);
+
+        // Wait for the detector thread to fulfill the promise
+        if (fuFrame.wait_for(std::chrono::seconds(1)) == std::future_status::ready)
+        {
+            // Retrieve the result (this ensures any exceptions are handled, though rare here)
+            fuFrame.get();
+        }
+        else
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: Timed out waiting for overlay snapshot.");
+        }
+    }
+    else
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: Requested snapshot from invalid or unready detector.");
+    }
+
+    // Return the frame (it will be empty if anything failed, which the State Machine handles)
+    return cvFrame;
+}

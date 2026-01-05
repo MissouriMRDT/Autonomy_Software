@@ -8,10 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
+#include <opencv2/opencv.hpp>
+#include <filesystem>
 #include "VerifyingMarkerState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
 #include "../util/states/TagDetectionChecker.hpp"
+#include "../util/TimeOperations.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -177,6 +180,37 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Handling Verifying Complete event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+
+
+                // Request the snapshot from the handler
+                cv::Mat cvSnapshot = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame();
+
+                if (!cvSnapshot.empty())
+                {
+                    // Ensure the directory exists
+                    std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
+                    if (!std::filesystem::exists(szLogDir)) {
+                        std::filesystem::create_directories(szLogDir);
+                    }
+
+                    // Create a unique filename using the current timestamp
+                    std::string szTimestamp = timeops::GetTimestamp(); 
+                    std::string szFilename = szLogDir + "marker_" + szTimestamp + ".png";
+
+                    // Save the image to the disk
+                    bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
+
+                    if (bSuccess) {
+                        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Saved detection snapshot to {}", szFilename);
+                    } else {
+                        LOG_ERROR(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to write snapshot to disk.");
+                    }
+                }
+                else
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Overlay frame was empty. No snapshot taken.");
+                }
+
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
                 // Clear saved states.
