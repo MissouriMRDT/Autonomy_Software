@@ -30,28 +30,8 @@ namespace controllers
     /******************************************************************************
      * @brief Construct a new Predictive Stanley Controller:: Predictive Stanley Controller object.
      *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-01-10
-     ******************************************************************************/
-    PredictiveStanleyController::PredictiveStanleyController()
-    {
-        // Initialize member variables.
-        m_dControlGain                     = constants::STANLEY_CROSSTRACK_CONTROL_GAIN;
-        m_dWheelbase                       = constants::STANLEY_DIST_TO_FRONT_AXLE;
-        m_dSteeringAngleLimit              = constants::STANLEY_STEERING_ANGLE_LIMIT;
-        m_nPredictionHorizon               = constants::STANLEY_PREDICTION_HORIZON;
-        m_dPredictionTimeStep              = constants::STANLEY_PREDICTION_TIME_STEP;
-        m_nCurrentReferencePathTargetIndex = 0;
-        m_BicycleModel                     = BicycleModel(m_dWheelbase, 0.0, 0.0, 0.0);
-    }
-
-    /******************************************************************************
-     * @brief Construct a new Predictive Stanley Controller:: Predictive Stanley Controller object.
-     *
      * @param dControlGain - The control gain for the controller.
      * @param dSteeringAngleLimit - The maximum steering angle the rover can turn.
-     * @param dWheelbase - The distance between the front and rear axles of the rover.
      * @param nPredictionHorizon - The number of predictions to make.
      * @param dPredictionTimeStep - The time step to predict the future state. How far into the future to predict.
      *
@@ -59,19 +39,17 @@ namespace controllers
      * @date 2025-01-10
      ******************************************************************************/
     PredictiveStanleyController::PredictiveStanleyController(const double dControlGain,
-                                                             const double dSteeringAngleLimit,
-                                                             const double dWheelbase,
+                                                             const double dAngularVelocityLimit,
                                                              const int nPredictionHorizon,
                                                              const double dPredictionTimeStep)
     {
         // Initialize member variables.
         m_dControlGain                     = dControlGain;
-        m_dSteeringAngleLimit              = dSteeringAngleLimit;
-        m_dWheelbase                       = dWheelbase;
+        m_dAngularVelocityLimit            = dAngularVelocityLimit;
         m_nPredictionHorizon               = nPredictionHorizon;
         m_dPredictionTimeStep              = dPredictionTimeStep;
         m_nCurrentReferencePathTargetIndex = 0;
-        m_BicycleModel                     = BicycleModel(m_dWheelbase, 0.0, 0.0, 0.0);
+        m_UnicycleModel                    = UnicycleModel(0.0, 0.0, 0.0);
     }
 
     /******************************************************************************
@@ -101,7 +79,7 @@ namespace controllers
     {
         // Create instance variables.
         double dSteeringAngle = 0.0;
-        std::vector<BicycleModel::Prediction> vPredictions;
+        std::vector<UnicycleModel::Prediction> vPredictions;
 
         // Check if the reference path is empty.
         if (m_vReferencePath.empty())
@@ -124,13 +102,13 @@ namespace controllers
             return DriveVector{dHeadingToLastWaypoint, 1.0};
         }
 
-        // Update the bicycle model with the current state.
-        m_BicycleModel.UpdateState(stCurrentPose.GetUTMCoordinate().dEasting, stCurrentPose.GetUTMCoordinate().dNorthing, stCurrentPose.GetCompassHeading());
+        // Update the unicycle model with the current state.
+        m_UnicycleModel.UpdateState(stCurrentPose.GetUTMCoordinate().dEasting, stCurrentPose.GetUTMCoordinate().dNorthing, stCurrentPose.GetCompassHeading());
         // Predict the future state of the model.
-        m_BicycleModel.Predict(m_dPredictionTimeStep, m_nPredictionHorizon, vPredictions);
+        m_UnicycleModel.Predict(m_dPredictionTimeStep, m_nPredictionHorizon, vPredictions);
 
         // Loop through all the predicted future states to compute the steering angle.
-        for (size_t nIter = 0.0; nIter < vPredictions.size(); ++nIter)
+        for (size_t nIter = 0; nIter < vPredictions.size(); ++nIter)
         {
             // Create instance variables.
             double dPredictedXPosition = vPredictions[nIter].dXPosition;
@@ -142,48 +120,71 @@ namespace controllers
             stPredictedPosition.dEasting              = dPredictedXPosition;
             stPredictedPosition.dNorthing             = dPredictedYPosition;
             // Find the closest point to the reference path.
-            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stPredictedPosition, dPredictedTheta);
+            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stPredictedPosition);
 
-            // Compute the heading error. This is the difference between the heading of the rover and the heading or curvature of the path.
-            double dHeadingError = numops::AngularDifference(m_vReferencePathCurvature[m_nCurrentReferencePathTargetIndex], dPredictedTheta);
+            // Compute the path forward vector from the segment start -> next waypoint (use index set by FindClosestWaypointInPath).
+            int nIdx                                    = m_nCurrentReferencePathTargetIndex;
+            int nNextIdx                                = std::min(nIdx + 1, static_cast<int>(m_vReferencePath.size() - 1));
+            const geoops::UTMCoordinate& stSegmentStart = m_vReferencePath[nIdx].GetUTMCoordinate();
+            const geoops::UTMCoordinate& stSegmentEnd   = m_vReferencePath[nNextIdx].GetUTMCoordinate();
 
-            /*
-                Compute the cross track error. This is the distance between the predicted position and the closest point on the path. The sign of the cross track error
-                indicates which side of the path the rover is on. Left is positive, right is negative. The sign of the crosstrack error is determined by the sign of the
-            */
+            // Forward vector of the path segment.
+            double dForwardVectorX = stSegmentEnd.dEasting - stSegmentStart.dEasting;
+            double dForwardVectorY = stSegmentEnd.dNorthing - stSegmentStart.dNorthing;
+            double dForwardNorm    = std::hypot(dForwardVectorX, dForwardVectorY);
+            // Degenerate segment. Skip this prediction step.
+            if (dForwardNorm < 1e-9)
+            {
+                continue;
+            }
 
-            // Get the reference path vector: from the closest waypoint to the next waypoint.
-            double dForwardVectorX = m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dEasting - stClosestWaypoint.GetUTMCoordinate().dEasting;
-            double dForwardVectorY =
-                m_vReferencePath[m_nCurrentReferencePathTargetIndex + 1].GetUTMCoordinate().dNorthing - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Compute the norm and unit vector for the path segment.
-            double dForwardNorm = sqrt(dForwardVectorX * dForwardVectorX + dForwardVectorY * dForwardVectorY);
-            double dFwdUnitX    = dForwardVectorX / dForwardNorm;
-            double dFwdUnitY    = dForwardVectorY / dForwardNorm;
-            // Get the vehicle's position vector relative to the closest waypoint.
+            // Unit forward vector.
+            double dFwdUnitX = dForwardVectorX / dForwardNorm;
+            double dFwdUnitY = dForwardVectorY / dForwardNorm;
+            // Math angle of segment (atan2 gives angle from +X (East), CCW positive) in degrees.
+            double dSegmentMathDeg = std::atan2(dForwardVectorY, dForwardVectorX) * (180.0 / M_PI);
+            // Convert math angle to COMPASS heading (0 = North, clockwise positive):
+            // compass = (90 - math) mod 360.
+            double dPathHeadingDeg = std::fmod(90.0 - dSegmentMathDeg + 360.0, 360.0);
+            // Predicted theta is produced by UnicycleModel in DEGREES (compass). Treat as degrees.
+            double dPredThetaDeg = dPredictedTheta;
+            // Small helper: signed smallest-angle difference in degrees in (-180, 180].
+            std::function<double(double, double)> AngleDiffDeg = [](double targetDeg, double sourceDeg) -> double
+            {
+                double diff = std::fmod(targetDeg - sourceDeg + 540.0, 360.0) - 180.0;
+                return diff;
+            };
+            // Heading error (degrees): positive means we should rotate clockwise to match target (compass conv).
+            double dHeadingError = AngleDiffDeg(dPathHeadingDeg, dPredThetaDeg);
+
+            // Vehicle vector relative to the closest point. (projection)
             double dVehicleVectorX = dPredictedXPosition - stClosestWaypoint.GetUTMCoordinate().dEasting;
             double dVehicleVectorY = dPredictedYPosition - stClosestWaypoint.GetUTMCoordinate().dNorthing;
-            // Project the vehicle vector onto the path unit vector to obtain the longitudinal component.
-            double dLongitudinal = dVehicleVectorX * dFwdUnitX + dVehicleVectorY * dFwdUnitY;
-            // Compute the lateral error vector by subtracting the longitudinal projection from the vehicle vector.
-            double dLateralX = dVehicleVectorX - dLongitudinal * dFwdUnitX;
-            double dLateralY = dVehicleVectorY - dLongitudinal * dFwdUnitY;
-            // The cross-track error is the magnitude of this lateral vector.
-            double dLateralDistance = sqrt(dLateralX * dLateralX + dLateralY * dLateralY);
-            // Determine the sign of the cross-track error using the cross product (left positive, right negative).
-            int nCrossTrackErrorSign = (dFwdUnitX * dVehicleVectorY - dFwdUnitY * dVehicleVectorX) > 0 ? 1 : -1;
-            // Final cross-track error.
-            double dCrossTrackError = nCrossTrackErrorSign * dLateralDistance;
+            // Longitudinal projection and lateral vector.
+            double dLongitudinal    = dVehicleVectorX * dFwdUnitX + dVehicleVectorY * dFwdUnitY;
+            double dLateralX        = dVehicleVectorX - dLongitudinal * dFwdUnitX;
+            double dLateralY        = dVehicleVectorY - dLongitudinal * dFwdUnitY;
+            double dLateralDistance = std::hypot(dLateralX, dLateralY);
+            // Sign using cross product. (left positive)
+            double dCross           = dFwdUnitX * dVehicleVectorY - dFwdUnitY * dVehicleVectorX;
+            double dCrossTrackError = (dCross > 0.0 ? 1.0 : -1.0) * dLateralDistance;    // meters
 
             // Apply an exponential weight factor that decreases as we predict further into the future.
             double dTimeWeight = std::exp(-1.5 * static_cast<double>(nIter));
-            // Limit the cross track error steering angle.
-            dCrossTrackError = std::clamp(m_dControlGain * dCrossTrackError, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
-            // Calculate the steering angle using lateral and heading errors, weighted by the time step.
-            dSteeringAngle += dTimeWeight * (dCrossTrackError - dHeadingError);
+
+            // Use model velocity if available, otherwise fall back to provided dMaxSpeed
+            double dModelSpeed = m_UnicycleModel.GetVelocity();
+            double dSpeed      = (dModelSpeed > 0.0) ? dModelSpeed : dMaxSpeed;
+            dSpeed             = std::max(dSpeed, 1e-4);
+
+            // Stanley control law to compute the steering angle.
+            double dStanleyTermRad = std::atan2(m_dControlGain * dCrossTrackError, dSpeed);
+            double dStanleyTermDeg = dStanleyTermRad * (180.0 / M_PI);
+            // Combine the heading error and the stanley term.
+            dSteeringAngle += (dStanleyTermDeg + dHeadingError) * dTimeWeight;
 
             // Limit the steering angle to the given limit.
-            dSteeringAngle = std::clamp(dSteeringAngle, -m_dSteeringAngleLimit, m_dSteeringAngleLimit);
+            dSteeringAngle = std::clamp(dSteeringAngle, -m_dAngularVelocityLimit, m_dAngularVelocityLimit);
         }
 
         // The new steering heading must be from 0-360 degrees.
@@ -202,36 +203,14 @@ namespace controllers
      ******************************************************************************/
     void PredictiveStanleyController::SetReferencePath(const std::vector<geoops::Waypoint>& vReferencePath)
     {
-        // Create instance variables.
-        double dCurvature = 0.0;
-
-        // Apply path smoothing first.
-        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
-
-        // Loop through the reference path and calculate the curvature at each point.
-        for (size_t nIter = 0; nIter < vSmoothedPath.size(); ++nIter)
-        {
-            // Calculate the curvature at this point.
-            if (nIter > 0 && nIter < vSmoothedPath.size() - 1)
-            {
-                // Calculate the curvature.
-                dCurvature = geoops::CalculateGeoMeasurement(vSmoothedPath[nIter - 1].GetUTMCoordinate(), vSmoothedPath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
-
-                // If this is the second iteration, then also set the curvature of the previous point.
-                if (nIter == 1)
-                {
-                    m_vReferencePathCurvature[0] = dCurvature;
-                }
-            }
-
-            // Store the waypoint and curvature.
-            m_vReferencePathCurvature.push_back(dCurvature);
-        }
-
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
         // Reset the bicycle model.
-        m_BicycleModel.ResetState();
+        m_UnicycleModel.ResetState();
+
+        // Smooth the path by fitting it to a B-spline.
+        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
+
         // Set the reference path.
         m_vReferencePath = vSmoothedPath;
     }
@@ -246,38 +225,15 @@ namespace controllers
      ******************************************************************************/
     void PredictiveStanleyController::SetReferencePath(const std::vector<geoops::UTMCoordinate>& vReferencePath)
     {
-        // Create instance variables.
-        double dCurvature = 0.0;
-
-        // Apply path smoothing first.
-        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
-
-        // Loop through the reference path and calculate the curvature at each point.
-        for (size_t nIter = 0; nIter < vSmoothedPath.size(); ++nIter)
+        // Convert UTM coordinates to waypoints.
+        std::vector<geoops::Waypoint> vConvertedPath;
+        for (const geoops::UTMCoordinate& stUTMCoord : vReferencePath)
         {
-            // Calculate the curvature at this point.
-            if (nIter > 0 && nIter < vSmoothedPath.size() - 1)
-            {
-                // Calculate the curvature.
-                dCurvature = geoops::CalculateGeoMeasurement(vSmoothedPath[nIter - 1].GetUTMCoordinate(), vSmoothedPath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
-
-                // If this is the second iteration, then also set the curvature of the previous point.
-                if (nIter == 1)
-                {
-                    m_vReferencePathCurvature[0] = dCurvature;
-                }
-            }
-
-            // Store the waypoint and curvature.
-            m_vReferencePathCurvature.push_back(dCurvature);
+            vConvertedPath.emplace_back(geoops::Waypoint(stUTMCoord, geoops::WaypointType::eNavigationWaypoint, 0.0, -1));
         }
 
-        // Reset the current target index.
-        m_nCurrentReferencePathTargetIndex = 0;
-        // Reset the bicycle model.
-        m_BicycleModel.ResetState();
         // Set the reference path.
-        m_vReferencePath = vSmoothedPath;
+        this->SetReferencePath(vConvertedPath);
     }
 
     /******************************************************************************
@@ -290,38 +246,15 @@ namespace controllers
      ******************************************************************************/
     void PredictiveStanleyController::SetReferencePath(const std::vector<geoops::GPSCoordinate>& vReferencePath)
     {
-        // Create instance variables.
-        double dCurvature = 0.0;
-
-        // Apply path smoothing first.
-        std::vector<geoops::Waypoint> vSmoothedPath = pathplanners::postprocessing::FitPathWithBSpline(vReferencePath);
-
-        // Loop through the reference path and calculate the curvature at each point.
-        for (size_t nIter = 0; nIter < vSmoothedPath.size(); ++nIter)
+        // Convert GPS coordinates to waypoints.
+        std::vector<geoops::Waypoint> vConvertedPath;
+        for (const geoops::GPSCoordinate& stGPSCoord : vReferencePath)
         {
-            // Calculate the curvature at this point.
-            if (nIter > 0 && nIter < vSmoothedPath.size() - 1)
-            {
-                // Calculate the curvature.
-                dCurvature = geoops::CalculateGeoMeasurement(vSmoothedPath[nIter - 1].GetUTMCoordinate(), vSmoothedPath[nIter].GetUTMCoordinate()).dStartRelativeBearing;
-
-                // If this is the second iteration, then also set the curvature of the previous point.
-                if (nIter == 1)
-                {
-                    m_vReferencePathCurvature[0] = dCurvature;
-                }
-            }
-
-            // Store the waypoint and curvature.
-            m_vReferencePathCurvature.push_back(dCurvature);
+            vConvertedPath.emplace_back(geoops::Waypoint(stGPSCoord, geoops::WaypointType::eNavigationWaypoint, 0.0, -1));
         }
 
-        // Reset the current target index.
-        m_nCurrentReferencePathTargetIndex = 0;
-        // Reset the bicycle model.
-        m_BicycleModel.ResetState();
         // Set the reference path.
-        m_vReferencePath = vSmoothedPath;
+        this->SetReferencePath(vConvertedPath);
     }
 
     /******************************************************************************
@@ -338,29 +271,16 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Setter for the steering angle limit of the stanley controller.
+     * @brief Setter for the angular velocity limit of the stanley controller.
      *
-     * @param dSteeringAngleLimit - The steering angle limit for the controller.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-01-11
-     ******************************************************************************/
-    void PredictiveStanleyController::SetSteeringAngleLimit(const double dSteeringAngleLimit)
-    {
-        m_dSteeringAngleLimit = dSteeringAngleLimit;
-    }
-
-    /******************************************************************************
-     * @brief Setter for the wheelbase of the stanley controller.
-     *
-     * @param dWheelbase - The distance between the front and rear axles of the rover.
+     * @param dAngularVelocityLimit - The angular velocity limit for the controller.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-11
      ******************************************************************************/
-    void PredictiveStanleyController::SetWheelbase(const double dWheelbase)
+    void PredictiveStanleyController::SetAngularVelocityLimit(const double dAngularVelocityLimit)
     {
-        m_dWheelbase = dWheelbase;
+        m_dAngularVelocityLimit = dAngularVelocityLimit;
     }
 
     /******************************************************************************
@@ -377,29 +297,16 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Accessor for the steering angle limit of the stanley controller.
+     * @brief Accessor for the angular velocity limit of the stanley controller.
      *
-     * @return double - The steering angle limit for the controller.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-01-11
-     ******************************************************************************/
-    double PredictiveStanleyController::GetSteeringAngleLimit() const
-    {
-        return m_dSteeringAngleLimit;
-    }
-
-    /******************************************************************************
-     * @brief Accessor for the wheelbase of the stanley controller.
-     *
-     * @return double - The wheelbase of the controller.
+     * @return double - The angular velocity limit for the controller.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-11
      ******************************************************************************/
-    double PredictiveStanleyController::GetWheelbase() const
+    double PredictiveStanleyController::GetAngularVelocityLimit() const
     {
-        return m_dWheelbase;
+        return m_dAngularVelocityLimit;
     }
 
     /******************************************************************************
@@ -439,39 +346,113 @@ namespace controllers
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10
      ******************************************************************************/
-    geoops::Waypoint PredictiveStanleyController::FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const double dCurrentHeading)
+    geoops::Waypoint PredictiveStanleyController::FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition)
     {
-        // Initialize variables.
+        // Create instance variables.
         geoops::Waypoint stClosestWaypoint;
-        geoops::UTMCoordinate stFrontAxlePosition = stCurrentPosition;
-        double dClosestDistance                   = std::numeric_limits<double>::max();
+        double dClosestDistanceSq = std::numeric_limits<double>::max();
+        const size_t nWaypoints   = m_vReferencePath.size();
 
-        // Convert the heading to radians.
-        double dCurrentHeadingRad = dCurrentHeading * M_PI / 180.0;
-
-        // Calculate the current position of the front axle based on the wheelbase, heading, and current position.
-        stFrontAxlePosition.dEasting  = stCurrentPosition.dEasting + m_dWheelbase * std::sin(dCurrentHeadingRad);
-        stFrontAxlePosition.dNorthing = stCurrentPosition.dNorthing + m_dWheelbase * std::cos(dCurrentHeadingRad);
-
-        // Loop through the reference path.
-        for (size_t nIter = 0; nIter < m_vReferencePath.size(); ++nIter)
+        // Check for empty path.
+        if (nWaypoints == 0)
         {
-            // Calculate the distance to the current waypoint.
-            double dDistance = geoops::CalculateGeoMeasurement(stFrontAxlePosition, m_vReferencePath[nIter].GetUTMCoordinate()).dDistanceMeters;
+            return stClosestWaypoint;
+        }
 
-            // Check if this waypoint is closer.
-            if (dDistance < dClosestDistance)
+        // If only a single waypoint, return it directly.
+        if (nWaypoints == 1)
+        {
+            m_nCurrentReferencePathTargetIndex = 0;
+            return m_vReferencePath.front();
+        }
+
+        // We'll search across path segments (i -> i+1) and compute the closest point on each segment.
+        int nBestSegmentIndex = -1;
+        geoops::UTMCoordinate stBestProjection;
+
+        for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < nWaypoints - 1; ++siIter)
+        {
+            const geoops::UTMCoordinate& stA = m_vReferencePath[siIter].GetUTMCoordinate();
+            const geoops::UTMCoordinate& stB = m_vReferencePath[siIter + 1].GetUTMCoordinate();
+
+            // Segment vector. (B - A)
+            double dSX = stB.dEasting - stA.dEasting;
+            double dSY = stB.dNorthing - stA.dNorthing;
+
+            // Vector from A -> P.
+            double dPX                   = stCurrentPosition.dEasting - stA.dEasting;
+            double dPY                   = stCurrentPosition.dNorthing - stA.dNorthing;
+
+            double sSegmentLengthSquared = dSX * dSX + dSY * dSY;
+            double dProjT                = 0.0;
+            if (sSegmentLengthSquared > 0.0)
             {
-                // Update the closest waypoint.
-                stClosestWaypoint = m_vReferencePath[nIter];
-                dClosestDistance  = dDistance;
+                // projection parameter t = dot(P-A, B-A) / |B-A|^2.
+                dProjT = (dPX * dSX + dPY * dSY) / sSegmentLengthSquared;
+                dProjT = std::clamp(dProjT, 0.0, 1.0);
+            }
+            else
+            {
+                // Degenerate segment (A == B). Use A as projection.
+                dProjT = 0.0;
+            }
 
-                // Update the current target index based on the location of the closest waypoint in the vector path.
-                m_nCurrentReferencePathTargetIndex = nIter;
+            // Projection point coordinates.
+            double dProjX = stA.dEasting + dProjT * dSX;
+            double dProjY = stA.dNorthing + dProjT * dSY;
+
+            // Squared distance from P to projection.
+            double dx     = stCurrentPosition.dEasting - dProjX;
+            double dy     = stCurrentPosition.dNorthing - dProjY;
+            double distSq = dx * dx + dy * dy;
+
+            if (distSq < dClosestDistanceSq)
+            {
+                dClosestDistanceSq                         = distSq;
+                nBestSegmentIndex                          = static_cast<int>(siIter);
+                stBestProjection.dEasting                  = dProjX;
+                stBestProjection.dNorthing                 = dProjY;
+                stBestProjection.nZone                     = stA.nZone;
+                stBestProjection.bWithinNorthernHemisphere = stA.bWithinNorthernHemisphere;
             }
         }
 
-        // Return the closest waypoint.
+        // If we didn't find a segment (shouldn't happen), fall back to the closest waypoint vertex search.
+        if (nBestSegmentIndex < 0)
+        {
+            double dClosestDist = std::numeric_limits<double>::max();
+            for (size_t siIter = 0; siIter < nWaypoints; ++siIter)
+            {
+                double dDistance = geoops::CalculateGeoMeasurement(stCurrentPosition, m_vReferencePath[siIter].GetUTMCoordinate()).dDistanceMeters;
+                if (dDistance < dClosestDist)
+                {
+                    dClosestDist                       = dDistance;
+                    stClosestWaypoint                  = m_vReferencePath[siIter];
+                    m_nCurrentReferencePathTargetIndex = static_cast<int>(siIter);
+                }
+            }
+            return stClosestWaypoint;
+        }
+
+        // Build a waypoint for the projected point.
+        // Use the properties of the segment start waypoint as a base, then set the UTM to the projection.
+        geoops::Waypoint stSegmentStart   = m_vReferencePath[nBestSegmentIndex];
+        geoops::UTMCoordinate stBestCoord = geoops::UTMCoordinate(stBestProjection.dEasting,
+                                                                  stBestProjection.dNorthing,
+                                                                  stBestProjection.nZone,
+                                                                  stBestProjection.bWithinNorthernHemisphere,
+                                                                  stSegmentStart.GetUTMCoordinate().dAltitude,
+                                                                  stSegmentStart.GetUTMCoordinate().d2DAccuracy,
+                                                                  stSegmentStart.GetUTMCoordinate().d3DAccuracy,
+                                                                  stSegmentStart.GetUTMCoordinate().dMeridianConvergence,
+                                                                  stSegmentStart.GetUTMCoordinate().dScale,
+                                                                  stSegmentStart.GetUTMCoordinate().eCoordinateAccuracyFixType,
+                                                                  stSegmentStart.GetUTMCoordinate().bIsDifferential);
+        stClosestWaypoint                 = geoops::Waypoint(stBestCoord);
+
+        // Update the controller's current reference index to the segment start index so callers can use (index + 1).
+        m_nCurrentReferencePathTargetIndex = nBestSegmentIndex;
+
         return stClosestWaypoint;
     }
 }    // namespace controllers

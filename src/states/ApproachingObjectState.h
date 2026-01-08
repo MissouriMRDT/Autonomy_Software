@@ -13,7 +13,7 @@
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
-#include "../util/logging/PathTracer2D.hpp"
+#include "../util/logging/PathTracer.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../util/vision/ObjectDetectionUtility.hpp"
 #include "../vision/objects/ObjectDetector.h"

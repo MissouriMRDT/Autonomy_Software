@@ -11,8 +11,6 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
-#include "./CameraHandler.h"
-
 #include "../states/ApproachingMarkerState.h"
 #include "../states/ApproachingObjectState.h"
 #include "../states/AvoidanceState.h"
@@ -24,6 +22,7 @@
 #include "../states/VerifyingMarkerState.h"
 #include "../states/VerifyingObjectState.h"
 #include "../states/VerifyingPositionState.h"
+#include "./CameraHandler.h"
 
 /// \cond
 #include <RoveComm/RoveComm.h>
@@ -111,6 +110,43 @@ class StateMachineHandler : private AutonomyThread<void>
         };
 
         /******************************************************************************
+         * @brief Callback function that is called whenever RoveComm receives new CLEARWAYPOINTS packet.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2024-03-03
+         ******************************************************************************/
+        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> ClearWaypointsCallback =
+            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
+        {
+            // Not using this.
+            (void) stPacket;
+            (void) stdAddr;
+
+            /*
+                The clear waypoints command will clear all waypoints in the WaypointHandler, but it also clears all saved states in the StateMachineHandler
+                to prevent any conflicts when restarting autonomy with previously saved states that may have waypoints associated with them.
+                However, we only want to delete our saved states if we are currently in IdleState.
+            */
+
+            // Check if the current state is IdleState.
+            if (this->GetCurrentState() == statemachine::States::eIdle)
+            {
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Deleting all saved states in StateMachineHandler...");
+                // Clear the saved states.
+                this->ClearSavedStates();
+            }
+            else
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Incoming Clear Waypoints packet: Cannot clear saved states in StateMachineHandler unless in Idle state. Current state is {}.",
+                            static_cast<int>(this->GetCurrentState()));
+            }
+        };
+
+        /******************************************************************************
          * @brief Callback function used to force autonomy into Idle state if battery voltage gets too low.
          *      No matter what state we are in, signal an Abort Event.
          *
@@ -167,18 +203,20 @@ class StateMachineHandler : private AutonomyThread<void>
         /////////////////////////////////////////
         StateMachineHandler();
         ~StateMachineHandler();
-
         void StartStateMachine();
         void StopStateMachine();
-
         void HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState = false);
-
         void ClearSavedStates();
         void ClearSavedState(statemachine::States eState);
         statemachine::States GetCurrentState() const;
         statemachine::States GetPreviousState() const;
 
+        // Smart location retrieving.
+        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOHeading = true, bool bVIOTracking = false);
+        double SmartRetrieveVelocity();
+        double SmartRetrieveAngularVelocity();
         void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
+
         using AutonomyThread::GetIPS;
 };
 
