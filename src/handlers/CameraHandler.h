@@ -50,7 +50,7 @@ class CameraHandler
         {
             ZEDCAM_START,
             eHeadMainCam,
-            eHeadRearCam,
+            eRearCam,
             ZEDCAM_END
         };
 

@@ -41,6 +41,7 @@ StateMachineHandler::StateMachineHandler()
 
     // Initialize member variables.
     m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    m_pRearCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
@@ -320,7 +321,7 @@ void StateMachineHandler::ThreadedContinuousCode()
                 m_stCurrentGPSLocation = stNewGPSLocation;
                 // Get current compass heading.
                 double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
-                // Realign the main ZED cameras pose with current GPS-based position and heading.
+                // Realign the main ZED camera's pose with current GPS-based position and heading.
                 this->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
             }
         }
@@ -451,6 +452,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bVIOHeading, 
 
     // Create instance variables.
     std::shared_ptr<ZEDCamera> pMainCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    std::shared_ptr<ZEDCamera> pRearCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
     geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
     double dCurrentHeading                     = dCurrentGPSHeading;
     bool bVIOGPSFused                          = false;

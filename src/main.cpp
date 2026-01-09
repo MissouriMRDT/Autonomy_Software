@@ -119,7 +119,7 @@ int CheckKeyPress()
  *
  * @return int - Exit status number.
  *
- * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com)
+ * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-06-20
  ******************************************************************************/
 int main()
@@ -246,6 +246,10 @@ int main()
         std::shared_ptr<TagDetector> pMainTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
         std::shared_ptr<ObjectDetector> pMainObjectDetector =
             globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
+        std::shared_ptr<ZEDCamera> pRearCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
+        std::shared_ptr<TagDetector> pRearTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam);
+        std::shared_ptr<ObjectDetector> pRearObjectDetector =
+            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
         IPS IterPerSecond = IPS();
 
         // Now that cameras and detectors are configured start state machine.
@@ -266,6 +270,9 @@ int main()
             vThreadFPSValues.push_back(static_cast<uint32_t>(pMainCam->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(pMainTagDetector->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(pMainObjectDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pRearCam->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pRearTagDetector->GetIPS().GetExactIPS()));
+            vThreadFPSValues.push_back(static_cast<uint32_t>(pRearObjectDetector->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
@@ -278,6 +285,9 @@ int main()
             szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainTagDetector FPS: " + std::to_string(pMainTagDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "MainObjectDetector FPS: " + std::to_string(pMainObjectDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RearCam FPS: " + std::to_string(pRearCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RearTagDetector FPS: " + std::to_string(pRearTagDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RearObjectDetector FPS: " + std::to_string(pRearObjectDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";

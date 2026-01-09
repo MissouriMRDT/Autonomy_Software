@@ -28,7 +28,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void VerifyingObjectState::Start()
@@ -42,7 +42,8 @@ namespace statemachine
         m_tmObjectLastSeenTime          = std::chrono::system_clock::now();
 
         // Get object detectors.
-        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
     }
 
     /******************************************************************************

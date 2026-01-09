@@ -16,7 +16,7 @@
  * @brief Construct a new ObjectDetectionHandler::ObjectDetectionHandler object.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 ObjectDetectionHandler::ObjectDetectionHandler()
@@ -33,12 +33,32 @@ ObjectDetectionHandler::ObjectDetectionHandler()
     if (constants::OBJECTDETECT_MAINCAM_ENABLE_TORCH)
     {
         // Attempt to init torch detection.
-        if (m_pObjectDetectorMainCam->InitTorchDetection(constants::OBJECTDETECT_MAINCAM_TORCH_MODEL))
+        if (m_pObjectDetectorMainCam->InitTorchDetection(constants::OBJECTDETECT_TORCH_MODEL))
         {
             // Set torch detection enabled.
             m_pObjectDetectorMainCam->EnableTorchDetection(constants::OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE, constants::OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH);
         }
     }
+
+    // Initialize detector for rear ZEDCam.
+    m_pObjectDetectorRearCam = std::make_shared<ObjectDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam),
+                                                                constants::OBJECTDETECT_REARCAM_ENABLE_TRACKING,
+                                                                constants::OBJECTDETECT_REARCAM_MAX_FPS,
+                                                                constants::OBJECTDETECT_REARCAM_ENABLE_RECORDING,
+                                                                constants::OBJECTDETECT_REARCAM_DATA_RETRIEVAL_THREADS,
+                                                                constants::ZED_REARCAM_USE_GPU_MAT);
+
+    // Check if torch detection is enabled for rear ZEDCam.
+    if (constants::OBJECTDETECT_REARCAM_ENABLE_TORCH)
+    {
+        // Attempt to init torch detection.
+        if (m_pObjectDetectorMainCam->InitTorchDetection(constants::OBJECTDETECT_TORCH_MODEL))
+        {
+            // Set torch detection enabled.
+            m_pObjectDetectorMainCam->EnableTorchDetection(constants::OBJECTDETECT_REARCAM_TORCH_CONFIDENCE, constants::OBJECTDETECT_REARCAM_TORCH_NMS_THRESH);
+        }
+    }
+    
 
     // Initialize recording handler for detectors.
     m_pRecordingHandler = std::make_unique<RecordingHandler>(RecordingHandler::RecordingMode::eObjectDetectionHandler);
@@ -61,15 +81,17 @@ ObjectDetectionHandler::~ObjectDetectionHandler()
  * @brief Signals all detectors to start their threads.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 void ObjectDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pObjectDetectorMainCam->Start();
-}
 
+    // Start ZED rearcam detector.
+    m_pObjectDetectorRearCam->Start();
+}
 /******************************************************************************
  * @brief Signal the RecordingHandler to start recording feeds from the detectors.
  *
@@ -87,7 +109,7 @@ void ObjectDetectionHandler::StartRecording()
  * @brief Signals all detectors to stop their threads.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 void ObjectDetectionHandler::StopAllDetectors()
@@ -99,6 +121,10 @@ void ObjectDetectionHandler::StopAllDetectors()
     // Stop ZED maincam detector.
     m_pObjectDetectorMainCam->RequestStop();
     m_pObjectDetectorMainCam->Join();
+
+    // Stop ZED rearcam detector.
+    m_pObjectDetectorRearCam->RequestStop();
+    m_pObjectDetectorRearCam->Join();
 }
 
 /******************************************************************************
@@ -121,7 +147,7 @@ void ObjectDetectionHandler::StopRecording()
  * @param eDetectorName - The name of the detector to retrieve. An enum defined in and specific to this class.
  * @return std::shared_ptr<ObjectDetector> - A pointer to the detector pertaining to the given name.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(ObjectDetectors eDetectorName)
@@ -130,6 +156,7 @@ std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(Object
     switch (eDetectorName)
     {
         case ObjectDetectors::eHeadMainCam: return m_pObjectDetectorMainCam; break;
+        case ObjectDetectors::eRearCam: return m_pObjectDetectorRearCam; break;
         default: return m_pObjectDetectorMainCam; break;
     }
 }
