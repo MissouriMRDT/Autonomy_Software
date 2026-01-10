@@ -1,11 +1,12 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set Working Directory
 cd /tmp
 
 # Install Variables
-FFMPEG_VERSION="7.1"
-SVT_AV1_VERSION="2.3.0"
+FFMPEG_VERSION="7.1.2"
+SVT_AV1_VERSION="3.1.2"
 
 # Build Arguments
 FORCE_BUILD=false
@@ -37,6 +38,15 @@ done
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/amd64/ffmpeg_${FFMPEG_VERSION}_amd64.deb"
 
+# Helper: safely write GitHub Actions outputs if available, otherwise echo
+gh_out() {
+    if [[ -n "${GITHUB_OUTPUT-}" ]]; then
+        echo "$1" >> "$GITHUB_OUTPUT"
+    else
+        echo "$1"
+    fi
+}
+
 # Download the latest version
 if [[ "$DOWNLOAD_LATEST" == true ]]; then
     echo "Downloading the latest version..."
@@ -50,23 +60,23 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     curl -L $FILE_URL --output /tmp/pkg/deb/ffmpeg_${FFMPEG_VERSION}_amd64.deb
 
     # Exit the script
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 fi
 
 # Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${FFMPEG_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT    
+    gh_out "rebuilding_pkg=false"    
     exit 0
 else 
     if [[ "$CHECK_PACKAGE" == true ]]; then
         echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         exit 1
     else
         echo "Package version ${FFMPEG_VERSION} does not exist in the repository. Building the package."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         
         # Install Dependencies
         apt update

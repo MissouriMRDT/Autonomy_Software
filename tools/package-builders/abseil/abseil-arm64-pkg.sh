@@ -1,10 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set Working Directory
 cd /tmp
 
 # Install Variables
-ABSEIL_VERSION="20250127.0"
+ABSEIL_VERSION="20250814.0"
 
 # Build Arguments
 FORCE_BUILD=false
@@ -36,6 +37,15 @@ done
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb"
 
+# Helper: safely write GitHub Actions outputs if available, otherwise echo
+gh_out() {
+    if [[ -n "${GITHUB_OUTPUT-}" ]]; then
+        echo "$1" >> "$GITHUB_OUTPUT"
+    else
+        echo "$1"
+    fi
+}
+
 # Download the latest version
 if [[ "$DOWNLOAD_LATEST" == true ]]; then
     echo "Downloading the latest version..."
@@ -49,23 +59,23 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     curl -L $FILE_URL --output /tmp/pkg/deb/abseil_${ABSEIL_VERSION}_arm64.deb
 
     # Exit the script
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 fi
 
 # Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${ABSEIL_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 else
     if [[ "$CHECK_PACKAGE" == true ]]; then
         echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         exit 1
     else
         echo "Package version ${ABSEIL_VERSION} does not exist in the repository. Building the package."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         
         # Delete Old Packages
         rm -rf /tmp/pkg
@@ -94,6 +104,7 @@ else
         cmake \
         -D CMAKE_INSTALL_PREFIX=/tmp/pkg/abseil_${ABSEIL_VERSION}_arm64/usr/local \
         -D CMAKE_BUILD_TYPE=Release \
+        -D CMAKE_CXX_STANDARD=20 \
         -D ABSL_ENABLE_INSTALL=ON ..
 
         # Install Abseil

@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief The PathTracer class is used to trace the path of the rover and
- *    plot the path on a 2D graph.
+ *    plot the path on a graph.
  *
  * @file PathTracer.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -9,8 +9,8 @@
  * @copyright Copyright Mars Rover Design Team 2025 - All Rights Reserved
  ******************************************************************************/
 
-#ifndef PATH_TRACER_2D_HPP
-#define PATH_TRACER_2D_HPP
+#ifndef PATH_TRACER_HPP
+#define PATH_TRACER_HPP
 
 #include "../GeospatialOperations.hpp"
 
@@ -43,7 +43,7 @@ namespace logging
     {
         /******************************************************************************
          * @brief The PathTracer class is used to trace the path of the rover and
-         *      plot the path on a 2D graph.
+         *      plot the path on a graph.
          *
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
@@ -55,16 +55,19 @@ namespace logging
                 /******************************************************************************
                  * @brief Construct a new Path Tracer object.
                  *
+                 * @param szPlotTitle - The title of the plot.
+                 * @param bEnable3D - Whether to enable 3D plotting or not. Default is false.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
-                 * @date 2025-01-08
+                 * @date 2025-07-31
                  ******************************************************************************/
-                PathTracer(const std::string& szPlotTitle = "Graph")
+                PathTracer(const std::string& szPlotTitle = "Graph", bool bEnable3D = false)
                 {
                     // Initialize member variables.
                     m_mtRoverPathPlot = matplot::figure(true);
                     m_mtRoverPathAxes = m_mtRoverPathPlot->current_axes();
                     m_szPlotTitle     = szPlotTitle;
+                    m_bEnable3D       = bEnable3D;
 
                     // Check if a file with the same title name already exists. If so then append a number to the end of the file name and recheck.
                     std::string szPlotSavePath = logging::g_szLoggingOutputPath + "/path_plots/" + m_szPlotTitle;
@@ -97,6 +100,7 @@ namespace logging
                     m_mtRoverPathPlot->title(m_szPlotTitle);
                     m_mtRoverPathAxes->xlabel("Easting");
                     m_mtRoverPathAxes->ylabel("Northing");
+                    m_mtRoverPathAxes->zlabel("Altitude");
                 }
 
                 /******************************************************************************
@@ -174,7 +178,7 @@ namespace logging
                     }
 
                     // Add the layer to the maps.
-                    m_umPathMap[szLayerName]               = std::vector<std::pair<double, double>>();
+                    m_umPathMap[szLayerName]               = std::vector<std::tuple<double, double, double>>();
                     m_umPathLineStyleMap[szLayerName]      = szStyleString;
                     m_umLastPlotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
 
@@ -213,7 +217,7 @@ namespace logging
                     }
 
                     // Add the layer to the maps.
-                    m_umDotMap[szLayerName]               = std::vector<std::tuple<double, double, double>>();
+                    m_umDotMap[szLayerName]               = std::vector<std::tuple<double, double, double, double>>();
                     m_umDotLineStyleMap[szLayerName]      = std::make_pair(szColorString, bFillMarkerFace);
                     m_umLastDotUpdateTimeMap[szLayerName] = std::chrono::system_clock::now();
 
@@ -312,7 +316,9 @@ namespace logging
                     }
 
                     // Add the waypoint to the path.
-                    m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing);
+                    m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
+                                                          stWaypoint.GetUTMCoordinate().dNorthing,
+                                                          stWaypoint.GetUTMCoordinate().dAltitude);
 
                     // Update the plot.
                     this->UpdatePlot();
@@ -340,7 +346,7 @@ namespace logging
                     }
 
                     // Add the waypoint to the path.
-                    m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing);
+                    m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, stCoordinate.dAltitude);
 
                     // Update the plot.
                     this->UpdatePlot();
@@ -371,7 +377,7 @@ namespace logging
                     geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
 
                     // Add the waypoint to the path.
-                    m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing);
+                    m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, stUTMCoordinate.dAltitude);
 
                     // Update the plot.
                     this->UpdatePlot();
@@ -402,7 +408,9 @@ namespace logging
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
                     for (const geoops::Waypoint& stWaypoint : stWaypoints)
                     {
-                        m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing);
+                        m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
+                                                              stWaypoint.GetUTMCoordinate().dNorthing,
+                                                              stWaypoint.GetUTMCoordinate().dAltitude);
                     }
 
                     // Update the plot.
@@ -434,7 +442,7 @@ namespace logging
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
                     for (const geoops::UTMCoordinate& stCoordinate : vCoordinates)
                     {
-                        m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing);
+                        m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, stCoordinate.dAltitude);
                     }
 
                     // Update the plot.
@@ -467,7 +475,7 @@ namespace logging
                     for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
                     {
                         geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
-                        m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing);
+                        m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, stUTMCoordinate.dAltitude);
                     }
 
                     // Update the plot.
@@ -500,11 +508,17 @@ namespace logging
                     // Check the radius of the waypoint. It shouldn't be less than 0.
                     if (stWaypoint.dRadius <= 0)
                     {
-                        m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, 5);
+                        m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
+                                                             stWaypoint.GetUTMCoordinate().dNorthing,
+                                                             stWaypoint.GetUTMCoordinate().dAltitude,
+                                                             5.0);
                     }
                     else
                     {
-                        m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, stWaypoint.dRadius);
+                        m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
+                                                             stWaypoint.GetUTMCoordinate().dNorthing,
+                                                             stWaypoint.GetUTMCoordinate().dAltitude,
+                                                             stWaypoint.dRadius);
                     }
 
                     // Update the plot.
@@ -534,7 +548,7 @@ namespace logging
                     }
 
                     // Add the waypoint to the path.
-                    m_umDotMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, dDotRadius);
+                    m_umDotMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, stCoordinate.dAltitude, dDotRadius);
 
                     // Update the plot.
                     this->UpdatePlot();
@@ -566,7 +580,7 @@ namespace logging
                     geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
 
                     // Add the waypoint to the path.
-                    m_umDotMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, dDotRadius);
+                    m_umDotMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, stUTMCoordinate.dAltitude, dDotRadius);
 
                     // Update the plot.
                     this->UpdatePlot();
@@ -602,11 +616,17 @@ namespace logging
                         // Check the radius of the waypoint. It shouldn't be less than 0.
                         if (stWaypoint.dRadius <= 0)
                         {
-                            m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, 5);
+                            m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
+                                                                 stWaypoint.GetUTMCoordinate().dNorthing,
+                                                                 stWaypoint.GetUTMCoordinate().dAltitude,
+                                                                 5);
                         }
                         else
                         {
-                            m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting, stWaypoint.GetUTMCoordinate().dNorthing, stWaypoint.dRadius);
+                            m_umDotMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
+                                                                 stWaypoint.GetUTMCoordinate().dNorthing,
+                                                                 stWaypoint.GetUTMCoordinate().dAltitude,
+                                                                 stWaypoint.dRadius);
                         }
                     }
 
@@ -643,7 +663,7 @@ namespace logging
                     // Add the waypoints to the vector or double pairs at the given layer name in the map.
                     for (const geoops::UTMCoordinate& stCoordinate : vCoordinates)
                     {
-                        m_umDotMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, dDotRadius);
+                        m_umDotMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, stCoordinate.dAltitude, dDotRadius);
                     }
 
                     // Update the plot.
@@ -680,7 +700,7 @@ namespace logging
                     for (const geoops::GPSCoordinate& stCoordinate : vCoordinates)
                     {
                         geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
-                        m_umDotMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, dDotRadius);
+                        m_umDotMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, stUTMCoordinate.dAltitude, dDotRadius);
                     }
 
                     // Update the plot.
@@ -695,10 +715,11 @@ namespace logging
                 std::unordered_map<std::string, std::pair<std::string, bool>> m_umDotLineStyleMap;
                 std::unordered_map<std::string, std::chrono::system_clock::time_point> m_umLastPlotUpdateTimeMap;
                 std::unordered_map<std::string, std::chrono::system_clock::time_point> m_umLastDotUpdateTimeMap;
-                std::unordered_map<std::string, std::vector<std::pair<double, double>>> m_umPathMap;
-                std::unordered_map<std::string, std::vector<std::tuple<double, double, double>>> m_umDotMap;
+                std::unordered_map<std::string, std::vector<std::tuple<double, double, double>>> m_umPathMap;
+                std::unordered_map<std::string, std::vector<std::tuple<double, double, double, double>>> m_umDotMap;
                 std::string m_szPlotTitle;
                 std::string m_szCurrentPlotSavePath;
+                bool m_bEnable3D;
 
                 /******************************************************************************
                  * @brief Update the plot with the new waypoints and redraw the plot.
@@ -716,7 +737,7 @@ namespace logging
                     m_mtRoverPathAxes->clear();
 
                     /*
-                        PATHS
+                    PATHS
                     */
                     // Loop through each of the layer name keys in the map.
                     for (const std::pair<const std::string, const std::string>& stdLayer : m_umPathLineStyleMap)
@@ -727,16 +748,35 @@ namespace logging
                             // Add the layer name to the vector.
                             vLayerNames.push_back(stdLayer.first);
 
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing;
-                            for (const std::pair<double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                            // Check if we are in 3D mode.
+                            if (m_bEnable3D)
                             {
-                                vEasting.push_back(stCoordinate.first);
-                                vNorthing.push_back(stCoordinate.second);
+                                // Get the x, y, and z coordinates for the layer.
+                                std::vector<double> vEasting, vNorthing, vAltitude;
+                                for (const std::tuple<double, double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                                {
+                                    vEasting.push_back(std::get<0>(stCoordinate));
+                                    vNorthing.push_back(std::get<1>(stCoordinate));
+                                    vAltitude.push_back(std::get<2>(stCoordinate));
+                                }
+
+                                // Plot the path in 3D.
+                                m_mtRoverPathAxes->plot3(vEasting, vNorthing, vAltitude, std::string_view(stdLayer.second));
+                            }
+                            else
+                            {
+                                // Get the x and y coordinates for the layer.
+                                std::vector<double> vEasting, vNorthing;
+                                for (const std::tuple<double, double, double>& stCoordinate : m_umPathMap[stdLayer.first])
+                                {
+                                    vEasting.push_back(std::get<0>(stCoordinate));
+                                    vNorthing.push_back(std::get<1>(stCoordinate));
+                                }
+
+                                // Plot the path.
+                                m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
                             }
 
-                            // Plot the path.
-                            m_mtRoverPathAxes->plot(vEasting, vNorthing, std::string_view(stdLayer.second));
                             // Set the hold to true.
                             m_mtRoverPathAxes->hold(true);
                         }
@@ -754,19 +794,43 @@ namespace logging
                             // Add the layer name to the vector.
                             vLayerNames.push_back(stdLayer.first);
 
-                            // Get the x and y coordinates for the layer.
-                            std::vector<double> vEasting, vNorthing, vRadius;
-                            for (const std::tuple<double, double, double>& stCoordinate : m_umDotMap[stdLayer.first])
+                            // Check if we are in 3D mode.
+                            if (m_bEnable3D)
                             {
-                                vEasting.push_back(std::get<0>(stCoordinate));
-                                vNorthing.push_back(std::get<1>(stCoordinate));
-                                vRadius.push_back(std::get<2>(stCoordinate));
+                                // Get the x and y coordinates for the layer.
+                                std::vector<double> vEasting, vNorthing, vAltitude, vRadius;
+                                for (const std::tuple<double, double, double, double>& stCoordinate : m_umDotMap[stdLayer.first])
+                                {
+                                    vEasting.push_back(std::get<0>(stCoordinate));
+                                    vNorthing.push_back(std::get<1>(stCoordinate));
+                                    vAltitude.push_back(std::get<2>(stCoordinate));
+                                    vRadius.push_back(std::get<3>(stCoordinate));
+                                }
+
+                                // Plot the path.
+                                matplot::line_handle mtLineHandle = m_mtRoverPathAxes->scatter3(vEasting, vNorthing, vAltitude, vRadius);
+                                // Set the line style and marker face for the layer.
+                                mtLineHandle->color(stdLayer.second.first);
+                                mtLineHandle->marker_face(stdLayer.second.second);
+                            }
+                            else
+                            {
+                                // Get the x and y coordinates for the layer.
+                                std::vector<double> vEasting, vNorthing, vRadius;
+                                for (const std::tuple<double, double, double, double>& stCoordinate : m_umDotMap[stdLayer.first])
+                                {
+                                    vEasting.push_back(std::get<0>(stCoordinate));
+                                    vNorthing.push_back(std::get<1>(stCoordinate));
+                                    vRadius.push_back(std::get<3>(stCoordinate));
+                                }
+
+                                // Plot the path.
+                                matplot::line_handle mtLineHandle = m_mtRoverPathAxes->scatter(vEasting, vNorthing, vRadius);
+                                // Set the line style and marker face for the layer.
+                                mtLineHandle->color(stdLayer.second.first);
+                                mtLineHandle->marker_face(stdLayer.second.second);
                             }
 
-                            // Plot the path.
-                            matplot::line_handle mtLineHandle = m_mtRoverPathAxes->scatter(vEasting, vNorthing, vRadius);
-                            mtLineHandle->color(stdLayer.second.first);
-                            mtLineHandle->marker_face(stdLayer.second.second);
                             // Set the hold to true.
                             m_mtRoverPathAxes->hold(true);
                         }
@@ -783,6 +847,7 @@ namespace logging
                     m_mtRoverPathAxes->axis(matplot::square);
                     m_mtRoverPathAxes->xtickformat("%.0f");    // No decimal places for x-axis
                     m_mtRoverPathAxes->ytickformat("%.0f");    // No decimal places for y-axis
+                    m_mtRoverPathAxes->ztickformat("%.0f");    // No decimal places for z-axis
                     // Set the hold to false.
                     m_mtRoverPathAxes->hold(false);
                     // Plot the path.

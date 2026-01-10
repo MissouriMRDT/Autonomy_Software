@@ -44,7 +44,7 @@ namespace statemachine
         m_eTriggeringState = globals::g_pStateMachineHandler->GetPreviousState();
 
         // Store the postion and heading where the rover get stuck.
-        geoops::RoverPose stStartRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stStartRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         m_stOriginalPosition               = stStartRoverPose.GetGPSCoordinate();
         m_dOriginalHeading                 = stStartRoverPose.GetCompassHeading();
         // Get state start time.
@@ -100,7 +100,7 @@ namespace statemachine
         LOG_DEBUG(logging::g_qSharedLogger, "StuckState: Running state-specific behavior.");
 
         // Store the current postion and heading.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         // Get current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 

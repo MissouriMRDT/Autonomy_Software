@@ -24,6 +24,38 @@
 const bool ENABLE_SPATIAL_MAPPING = false;
 
 /******************************************************************************
+ * @brief Constructs a printable string out of a given Matrix3f data
+ *      structure from the stereolabs library.
+ *
+ * @param slMatrix - The matrix to print.
+ *
+ * @author MissouriMRDT (mrdt.autonomy@gmail.com)
+ * @date 2025-11-17
+ ******************************************************************************/
+std::string PrintMatrix3f(const sl::Matrix3f& slMatrix)
+{
+    std::ostringstream stdOSS;
+    stdOSS << std::fixed << std::setprecision(4);
+
+    for (int nIter = 0; nIter < 3; ++nIter)
+    {
+        stdOSS << "[ ";
+        for (int nJter = 0; nJter < 3; ++nJter)
+        {
+            // Access element at row i, column j
+            stdOSS << slMatrix.r[nIter * 3 + nJter];
+            if (nJter < 2)
+            {
+                stdOSS << ", ";
+            }
+        }
+        stdOSS << " ]" << std::endl;
+    }
+
+    return stdOSS.str();
+}
+
+/******************************************************************************
  * @brief This example demonstrates the proper way to interact with the CameraHandler.
  *      A pointer to a ZEDCam is retrieved and then a couple of local cv::Mat are created
  *      for storing frames. Then, the frames are passed to the RequestFrameCopy function of the
@@ -75,6 +107,7 @@ void RunExample()
     cv::cuda::GpuMat cvGPUPointCloud1;
     // Declare other data types to store data in.
     ZEDCam::Pose stPose;
+    sl::SensorsData slSensors;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -103,7 +136,8 @@ void RunExample()
             fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
         }
         // Grab other info from camera.
-        std::future<bool> fuPoseCopyStatus = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuPoseCopyStatus    = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
+        std::future<bool> fuSensorsCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensors);
 
         // Wait for the frames to be copied.
         if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
@@ -144,6 +178,39 @@ void RunExample()
                          stPose.stEulerAngles.dXO,
                          stPose.stEulerAngles.dYO,
                          stPose.stEulerAngles.dZO);
+            }
+
+            // Wait for sensors data to be copied.
+            if (fuSensorsCopyStatus.get())
+            {
+                // Unpack sensors data.
+                double dRelativeAltitude = slSensors.barometer.relative_altitude;
+                float fTemperature       = 0.0;
+                slSensors.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, fTemperature);
+                float fMagHeading             = slSensors.magnetometer.magnetic_heading;
+                float fIMUVelocityX           = slSensors.imu.angular_velocity.x;
+                float fIMUVelocityY           = slSensors.imu.angular_velocity.y;
+                float fIMUVelocityZ           = slSensors.imu.angular_velocity.z;
+                sl::Matrix3f slIMUVelocityCov = slSensors.imu.angular_velocity_covariance.r;
+                float fAccelX                 = slSensors.imu.linear_acceleration.x;
+                float fAccelY                 = slSensors.imu.linear_acceleration.y;
+                float fAccelZ                 = slSensors.imu.linear_acceleration.z;
+                sl::Matrix3f slAccelCov       = slSensors.imu.angular_velocity_covariance.r;
+
+                LOG_INFO(logging::g_qConsoleLogger,
+                         "Sensors Data: Altitude: {} | Temperature: {} | Mag Heading: {}\nIMU VelX: {}\nIMU VelY: {}\nIMU VelZ: {}\nIMU AccelX: {}\nIMU AccelY: {}\n"
+                         "IMU AccelZ: {}\nIMU VelCov: {}\nIMU AccelCov: {}",
+                         dRelativeAltitude,
+                         fTemperature,
+                         fMagHeading,
+                         fIMUVelocityX,
+                         fIMUVelocityY,
+                         fIMUVelocityZ,
+                         fAccelX,
+                         fAccelY,
+                         fAccelZ,
+                         PrintMatrix3f(slIMUVelocityCov),
+                         PrintMatrix3f(slAccelCov));
             }
 
             // Print info.
