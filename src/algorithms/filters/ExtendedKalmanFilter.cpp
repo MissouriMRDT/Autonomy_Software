@@ -39,6 +39,7 @@ namespace filters
                                                const double dInitAccel,
                                                const double dInitGyro)
     {
+        // TODO:  MAKE ALL OF THIS SETINITIALGUESS AND MAKE CONSTRUCTOR DO SOMETHING ELSE
         // Initialize covariance matrices
         m_eiAccelerometerCovariance = eiAccelCov;
         m_eiGyroscopeCovariance     = eiGyroCov;
