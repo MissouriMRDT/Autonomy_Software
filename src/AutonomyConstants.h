@@ -157,7 +157,6 @@ namespace constants
     extern const sl::UNIT FUSION_MEASUREMENT_UNITS;
     extern const sl::COORDINATE_SYSTEM FUSION_COORD_SYSTEM;
     extern const bool FUSION_SDK_VERBOSE;
-    extern const bool FUSION_ENABLE_GNSS_FUSION;
 
     // BasicCam Basic Config.
     extern const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD;

@@ -11,6 +11,7 @@
 #ifndef STATEMACHINEHANDLER_H
 #define STATEMACHINEHANDLER_H
 
+#include "../algorithms/filters/ExtendedKalmanFilter.h"
 #include "../states/ApproachingMarkerState.h"
 #include "../states/ApproachingObjectState.h"
 #include "../states/AvoidanceState.h"
@@ -55,6 +56,7 @@ class StateMachineHandler : private AutonomyThread<void>
         std::atomic_bool m_bSwitchingStates;
         std::shared_ptr<ZEDCamera> m_pMainCam;
         geoops::GPSCoordinate m_stCurrentGPSLocation;
+        std::unique_ptr<filters::ExtendedKalmanFilter> m_pEKF;
 
         /////////////////////////////////////////
         // Declare private class methods.
@@ -212,7 +214,7 @@ class StateMachineHandler : private AutonomyThread<void>
         statemachine::States GetPreviousState() const;
 
         // Smart location retrieving.
-        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOHeading = true, bool bVIOTracking = false);
+        geoops::RoverPose SmartRetrieveRoverPose();
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
         void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);

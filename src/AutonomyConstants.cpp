@@ -151,7 +151,6 @@ namespace constants
     const sl::UNIT FUSION_MEASUREMENT_UNITS         = ZED_MEASURE_UNITS;    // The base measurement unit to use for depth and other measurements.
     const sl::COORDINATE_SYSTEM FUSION_COORD_SYSTEM = ZED_COORD_SYSTEM;     // Coordinate system to use for measurements.
     const bool FUSION_SDK_VERBOSE                   = false;                // Enable verbose output from the internal fusion library in the ZEDSDK.
-    const bool FUSION_ENABLE_GNSS_FUSION            = false;                // Enable the fusion of camera visual odometry tracking with GNSS data from NavBoard.
 
     // BasicCam Basic Config.
     const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD = cv::InterpolationFlags::INTER_LINEAR;    // The algorithm used to fill in pixels when resizing.

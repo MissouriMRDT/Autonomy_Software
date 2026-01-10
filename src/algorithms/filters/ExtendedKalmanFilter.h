@@ -55,11 +55,11 @@ namespace filters
             // Declare public class methods.
             /////////////////////////////////////////
 
-            ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
-                                 const Eigen::Matrix3d& eiAccelCov,
-                                 const Eigen::Matrix3d& eiGyroCov,
-                                 const double dSigmaAccel,
-                                 const double dSigmaGyro);
+            ExtendedKalmanFilter(const geoops::RoverPose& stInitPose = geoops::RoverPose(),
+                                 const Eigen::Matrix3d& eiAccelCov   = Eigen::Matrix3d::Identity(),
+                                 const Eigen::Matrix3d& eiGyroCov    = Eigen::Matrix3d::Identity(),
+                                 const double dSigmaAccel            = 0,
+                                 const double dSigmaGyro             = 0);
             ~ExtendedKalmanFilter();
 
             /////////////////////////////////////////
