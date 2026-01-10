@@ -189,12 +189,14 @@ void DriveBoard::SendStop()
 }
 
 /******************************************************************************
- * @brief
+ * @brief This method calculates a multiplier that is applied to
+ *      SetMaxDriveEffort() to adjust the speed of the rover in relation to the
+ *      risk of the terrain.
  *
- * @return
+ * @return fMultiplier - A multiplier value between m_fMinDamp and m_fMaxDamp
  *
- * @author
- * @date
+ * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+ * @date 2026-01-10
  ******************************************************************************/
 float DriveBoard::VariableDriveEffort()
 {
@@ -254,14 +256,9 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     // Clamp the multiplier to the range [0, 1].
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
-    // float VariableSpeedMultiplier          = VariableDriveEffort();
-    // LOG_INFO(logging::g_qConsoleLogger, "Variable Speed Multiplier:{}", fMaxDriveEffortMultiplier);
-
     // Update member variables.
     m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
-    // *VariableSpeedMultiplier;
     m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
-    //   *VariableSpeedMultiplier;
 }
 
 /******************************************************************************

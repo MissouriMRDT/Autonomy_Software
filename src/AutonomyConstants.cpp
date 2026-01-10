@@ -90,13 +90,13 @@ namespace constants
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // Whether to enable turning in-place when using curvature drive control.
 
     // Drive Board constants
-    const float DRIVE_BOARD_MIN_SLOPE    = 3.5;
-    const float DRIVE_BOARD_MAX_SLOPE    = 30.0;
-    const float DRIVE_BOARD_MIN_DAMP     = 0.5;
-    const float DRIVE_BOARD_MAX_DAMP     = 1.0;
-    const float DRIVE_BOARD_ROLL_WEIGHT  = 0.6;
-    const float DRIVE_BOARD_PITCH_WEIGHT = 0.4;
-    const float DRIVE_BOARD_YAW_WEIGHT   = 0.0;
+    const float DRIVE_BOARD_MIN_SLOPE    = 3.5;     // The min slope in degrees for fTheta to start calculating multiplier. If fTheta is less: set to max multiplier.
+    const float DRIVE_BOARD_MAX_SLOPE    = 30.0;    // The max slope in degrees for fTheta to stop calculating multiplier and set to min multiplier.
+    const float DRIVE_BOARD_MIN_DAMP     = 0.5;     // The min multiplier used in variable drive speed applied to SetMaxDriveEffort().
+    const float DRIVE_BOARD_MAX_DAMP     = 1.0;     // The max multiplier used in variable drive speed applied to SetMaxDriveEffort().
+    const float DRIVE_BOARD_ROLL_WEIGHT  = 0.6;     // The weight in a percentage of importance for the roll position: 60%.
+    const float DRIVE_BOARD_PITCH_WEIGHT = 0.4;     // The weight in a percentage of importance for the pitch position: 40%.
+    const float DRIVE_BOARD_YAW_WEIGHT   = 0.0;     // The weight in a percentage of importance for the yaw position: 0% (added for future proofing).
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
