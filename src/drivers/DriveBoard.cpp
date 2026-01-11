@@ -15,6 +15,7 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 #include "../AutonomyNetworking.h"
+#include "../vision/cameras/ZEDCam.h"
 
 /// \cond
 #include <RoveComm/RoveCommManifest.h>
@@ -120,6 +121,9 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     float fDriveBoardLeftPower  = 0.0;
     float fDriveBoardRightPower = 0.0;
 
+    float fMultiplier           = VariableDriveEffort();
+    SetMaxDriveEffort(fMultiplier);
+
     // If the min and max drive effort have been set to 0, then just send zero powers.
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
     {
@@ -182,6 +186,57 @@ void DriveBoard::SendStop()
     }
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain");
+}
+
+/******************************************************************************
+ * @brief This method calculates a multiplier that is applied to
+ *      SetMaxDriveEffort() to adjust the speed of the rover in relation to the
+ *      risk of the terrain.
+ *
+ * @return fMultiplier - A multiplier value between m_fMinDamp and m_fMaxDamp
+ *
+ * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+ * @date 2026-01-10
+ ******************************************************************************/
+float DriveBoard::VariableDriveEffort()
+{
+    // Get pointer to camera.
+    std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    // Declare data structures to store data in.
+    sl::SensorsData slSensorData;
+
+    // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
+    std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+    float fMultiplier              = 1;
+
+    // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
+    if (fuCopyStatus.get())
+    {
+        // Declare roll, pitch, yaw from sensor data
+        float fRoll  = fabs(slSensorData.imu.pose.getEulerAngles(false).z);
+        float fPitch = fabs(slSensorData.imu.pose.getEulerAngles(false).x);
+        float fYaw   = slSensorData.imu.pose.getEulerAngles(false).y;
+
+        // Calculate the risk factor to be applied to the linear polarization equation
+        float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
+
+        // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
+        if (fTheta <= m_fMinSlope)
+            fMultiplier = m_fMaxDamp;
+        if (fTheta >= m_fMaxSlope)
+            fMultiplier = m_fMinDamp;
+
+        // Calculate multiplier using linear polarization
+        const float fK = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
+        float fD       = m_fMaxDamp - fK * (fTheta - m_fMinSlope);
+
+        // Return multiplier
+        fMultiplier = std::clamp(fD, m_fMinDamp, m_fMaxDamp);
+
+        SetMaxDriveEffort(fMultiplier);
+    }
+
+    return fMultiplier;
 }
 
 /******************************************************************************
