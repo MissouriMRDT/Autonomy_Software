@@ -742,6 +742,21 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
         {
             // Get the rover pose from the waypoint handler.
             m_stRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+
+            // Find the camera's position in UTM coordinates by applying the camera offset to the rover pose.
+            geoops::UTMCoordinate stCamera = m_stRoverPose.GetUTMCoordinate();
+            stCamera.dEasting += m_pCamera->GetCameraPoseOffset().dPosX;
+            stCamera.dNorthing += m_pCamera->GetCameraPoseOffset().dPosY;
+            stCamera.dAltitude += m_pCamera->GetCameraPoseOffset().dPosZ;
+            // Update the rover pose's heading to match the camera's heading. We will need to calculate the camera's heading using the quaternion.
+            double dSinYCosP      = 2.0 * (m_pCamera->GetCameraPoseOffset().dQW * m_pCamera->GetCameraPoseOffset().dQZ +
+                                      m_pCamera->GetCameraPoseOffset().dQX * m_pCamera->GetCameraPoseOffset().dQY);
+            double dCosYCosP      = 1.0 - 2.0 * (m_pCamera->GetCameraPoseOffset().dQY * m_pCamera->GetCameraPoseOffset().dQY +
+                                            m_pCamera->GetCameraPoseOffset().dQZ * m_pCamera->GetCameraPoseOffset().dQZ);
+            double dCameraHeading = std::atan2(dSinYCosP, dCosYCosP) * (180.0 / CV_PI);
+            // Recreate the rover pose with the camera's adjusted position and heading.
+            geoops::RoverPose stCameraPose = geoops::RoverPose(stCamera, dCameraHeading);
+
             // Loop through the objects and use their center point to lookup their distance in the point cloud.
             for (objectdetectutils::Object& stObject : m_vDetectedObjects)
             {
@@ -749,7 +764,7 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
                 // Geolocate the object in the point cloud.
                 stObject.stGeolocatedPosition =
-                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
+                    geoloc::GeolocateBox(m_cvPointCloud, stCameraPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
 
                 // Since this is a object detection, set the object's waypoint type appropriately.
                 stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;

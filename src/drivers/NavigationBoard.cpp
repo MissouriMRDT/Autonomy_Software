@@ -84,6 +84,17 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
     // Calculate time elapsed since last GPS data update.
     int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTime()).count();
+    // Make a copy of the GPS data to return.
+    geoops::GPSCoordinate stGPSCopy = m_stLocation;
+    // Release lock before modifying data.
+    lkGPSProcessLock.unlock();
+
+    // Adjust the GPS data by the configured offsets.
+    geoops::UTMCoordinate stUTMData = geoops::ConvertGPSToUTM(stGPSCopy);
+    stUTMData.dEasting += constants::NAVBOARD_EASTING_OFFSET;
+    stUTMData.dNorthing += constants::NAVBOARD_NORTHING_OFFSET;
+    stGPSCopy = geoops::ConvertUTMToGPS(stUTMData);
+
     // Check the last time that our current GPS data has been updated.
     if (nGPSDataAge >= constants::NAVBOARD_MAX_GPS_DATA_AGE && !bAlreadyPrintedWarning)
     {
@@ -105,7 +116,7 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
     }
 
     // Return current GPS location.
-    return m_stLocation;
+    return stGPSCopy;
 }
 
 /******************************************************************************
@@ -126,6 +137,16 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
     // Calculate time elapsed since last GPS data update.
     int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTime()).count();
+    // Make a copy of the GPS data to return.
+    geoops::GPSCoordinate stGPSCopy = m_stLocation;
+    // Release lock before modifying data.
+    lkGPSProcessLock.unlock();
+
+    // Adjust the GPS data by the configured offsets.
+    geoops::UTMCoordinate stUTMData = geoops::ConvertGPSToUTM(stGPSCopy);
+    stUTMData.dEasting += constants::NAVBOARD_EASTING_OFFSET;
+    stUTMData.dNorthing += constants::NAVBOARD_NORTHING_OFFSET;
+
     // Check the last time that our current GPS data has been updated.
     if (nGPSDataAge >= constants::NAVBOARD_MAX_GPS_DATA_AGE && !bAlreadyPrintedWarning)
     {
@@ -147,7 +168,7 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
     }
 
     // Convert the currently stored GPS coord to UTM and return.
-    return geoops::ConvertGPSToUTM(m_stLocation);
+    return stUTMData;
 }
 
 /******************************************************************************
