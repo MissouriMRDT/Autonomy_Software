@@ -96,6 +96,14 @@ namespace constants
     extern const bool DRIVE_SQUARE_CONTROL_INPUTS;
     extern const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED;
 
+    // Drive Board constants
+    extern const float DRIVE_BOARD_MIN_SLOPE;
+    extern const float DRIVE_BOARD_MAX_SLOPE;
+    extern const float DRIVE_BOARD_MIN_DAMP;
+    extern const float DRIVE_BOARD_MAX_DAMP;
+    extern const float DRIVE_BOARD_ROLL_WEIGHT;
+    extern const float DRIVE_BOARD_PITCH_WEIGHT;
+    extern const float DRIVE_BOARD_YAW_WEIGHT;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

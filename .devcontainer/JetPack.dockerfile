@@ -55,7 +55,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Remove Unused Packages.
-RUN apt-get purge -y 'qt5-*' 'libqt5*' || true && apt-get autoremove --purge -y
+RUN apt purge -y 'qt5-*' 'libqt5*' || true && apt autoremove --purge -y
 
 # Install Required Python Packages.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib

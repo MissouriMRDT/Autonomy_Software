@@ -204,7 +204,7 @@ TEST_F(LiDARHandlerTests, QueryWithAllRangeFilters)
 {
     LiDARHandler handler;
     ASSERT_TRUE(handler.OpenDB(m_szDbPath));
-    LiDARHandler::PointFilter filter{
+    LiDARHandler::PointFilter stFilter{
         .dEasting        = 614058.84,
         .dNorthing       = 4189968.85,
         .dRadius         = 3.0,
@@ -216,7 +216,7 @@ TEST_F(LiDARHandlerTests, QueryWithAllRangeFilters)
         .dCurvature      = std::optional<LiDARHandler::PointFilter::Range<double>>({-10.0, 10.0}),
         .dTraversalScore = std::optional<LiDARHandler::PointFilter::Range<double>>({0.0, 1.0}),
     };
-    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(filter);
+    std::vector<LiDARHandler::PointRow> vResults = handler.GetLiDARData(stFilter);
     SUCCEED();
 }
 
