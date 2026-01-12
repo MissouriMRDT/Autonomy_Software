@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "WebRTC.h"
+#include "../../../AutonomyConstants.h"    // Added for constants::SIM_WEBRTC_QP
 #include "../../../AutonomyLogging.h"
 
 /// \cond
@@ -27,13 +28,23 @@
  ******************************************************************************/
 WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szStreamerID)
 {
+    // Submit logger message.
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera constructing instance. Target URL: {}, StreamerID: {}", szSignallingServerURL, szStreamerID);
+
     // Set member variables.
     m_szSignallingServerURL     = szSignallingServerURL;
     m_szStreamerID              = szStreamerID;
     m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
 
     // Setup the FFMPEG H264 decoder.
-    this->InitializeH264Decoder();
+    if (this->InitializeH264Decoder())
+    {
+        LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} H264 Decoder initialized successfully.", m_szStreamerID);
+    }
+    else
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Failed to initialize H264 Decoder!", m_szStreamerID);
+    }
 
     // Enable logging from the WebRTC LibDataChannel library for debugging.
     // rtc::InitLogger(rtc::LogLevel::Verbose);
@@ -46,6 +57,8 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     m_pWebSocket                                = std::make_shared<rtc::WebSocket>(rtcWebSocketConfig);
     m_pPeerConnection                           = std::make_shared<rtc::PeerConnection>(rtcPeerConnectionConfig);
     m_pDataChannel                              = m_pPeerConnection->createDataChannel("webrtc-datachannel");
+
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} PeerConnection and DataChannel objects created.", m_szStreamerID);
 
     // Attempt to connect to the signalling server.
     this->ConnectToSignallingServer(szSignallingServerURL);
@@ -60,6 +73,7 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
  ******************************************************************************/
 WebRTC::~WebRTC()
 {
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} destructor called. Cleaning up...", m_szStreamerID);
     this->CloseConnection();
 
     // Free the codec context.
@@ -85,6 +99,7 @@ WebRTC::~WebRTC()
     m_pFrame          = nullptr;
     m_pPacket         = nullptr;
     m_pSWSContext     = nullptr;
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Cleanup complete.", m_szStreamerID);
 }
 
 /******************************************************************************
@@ -96,6 +111,7 @@ WebRTC::~WebRTC()
  ******************************************************************************/
 void WebRTC::CloseConnection()
 {
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} closing connections...", m_szStreamerID);
     // Close the WebRTC connections.
     if (m_pVideoTrack1)
     {
@@ -123,6 +139,7 @@ void WebRTC::CloseConnection()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Connections closed.", m_szStreamerID);
 }
 
 /******************************************************************************
@@ -140,6 +157,7 @@ void WebRTC::SetOnFrameReceivedCallback(std::function<void(cv::Mat&)> fnOnFrameR
     m_fnOnFrameReceivedCallback = fnOnFrameReceivedCallback;
     // Set the output pixel format.
     m_eOutputPixelFormat = eOutputPixelFormat;
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} frame received callback set.", m_szStreamerID);
 }
 
 /******************************************************************************
@@ -176,6 +194,7 @@ bool WebRTC::GetIsConnected() const
  ******************************************************************************/
 bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 {
+    LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} opening WebSocket to {}...", m_szStreamerID, szSignallingServerURL);
     // Connect to the signalling server via a websocket to handle WebRTC negotiation and signalling.
     m_pWebSocket->open(szSignallingServerURL);
 
@@ -188,7 +207,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         [this]()
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Connected to the signalling server via {}. Checking if stream {} exists...", m_szSignallingServerURL, m_szStreamerID);
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} WebSocket OPEN. Connected to {}. Sending 'listStreamers'...", m_szStreamerID, m_szSignallingServerURL);
 
             // Request the streamer list from the server. This also kicks off the negotiation process.
             nlohmann::json jsnStreamList;
@@ -201,7 +220,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         [this]()
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Closed {} stream and disconnected from the signalling server.", m_szStreamerID);
+            LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} WebSocket CLOSED. Disconnected from signalling server.", m_szStreamerID);
         });
 
     // Handling signalling server messages. (offer/answer/ICE candidate)
@@ -221,25 +240,25 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                     // Parse the JSON message from the signaling server.
                     jsnMessage = nlohmann::json::parse(szMessage);
-                    LOG_DEBUG(logging::g_qSharedLogger, "Received message from signalling server: {}", szMessage);
+                    LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} WS Message (String): {}", m_szStreamerID, szMessage);
                 }
                 else if (std::holds_alternative<rtc::binary>(rtcMessage))
                 {
                     // Retrieve the binary message.
                     rtc::binary rtcBinaryData = std::get<rtc::binary>(rtcMessage);
                     // Print length of binary data.
-                    LOG_DEBUG(logging::g_qSharedLogger, "Received binary data of length: {}", rtcBinaryData.size());
+                    LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} WS Message (Binary) of length: {}", m_szStreamerID, rtcBinaryData.size());
 
                     // Convert the binary data to a string.
                     std::string szBinaryDataStr(reinterpret_cast<const char*>(rtcBinaryData.data()), rtcBinaryData.size());
                     // Print the binary data as a string.
-                    LOG_DEBUG(logging::g_qSharedLogger, "Received binary data: {}", szBinaryDataStr);
+                    LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} WS Binary Content: {}", m_szStreamerID, szBinaryDataStr);
                     // Parse the binary data as JSON.
                     jsnMessage = nlohmann::json::parse(szBinaryDataStr);
                 }
                 else
                 {
-                    LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from signalling server");
+                    LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} WS Received unknown message type.", m_szStreamerID);
                 }
 
                 // Check if the message contains a type.
@@ -250,7 +269,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     if (szType == "config")
                     {
                         // Submit logger message.
-                        LOG_DEBUG(logging::g_qSharedLogger, "Received config message from signalling server: {}", jsnMessage.dump());
+                        LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Received 'config': {}", m_szStreamerID, jsnMessage.dump());
                     }
                     // If the message from the server is an offer, set the remote description offer.
                     else if (szType == "offer")
@@ -258,7 +277,14 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         // Get the SDP offer and set it as the remote description.
                         std::string sdp = jsnMessage["sdp"];
                         m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "offer"));
-                        LOG_DEBUG(logging::g_qSharedLogger, "Processing SDP offer from signalling server: {}", sdp);
+                        LOG_DEBUG(logging::g_qSharedLogger,
+                                  "WebRTC camera {} Received 'offer'. SDP Length: {}. Setting Remote Description...",
+                                  m_szStreamerID,
+                                  sdp.length());
+
+                        // Trigger answer creation.
+                        m_pPeerConnection->setLocalDescription();
+                        LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Triggered setLocalDescription() to generate answer.", m_szStreamerID);
                     }
                     // If the message from the server is an answer, set the remote description answer.
                     else if (szType == "answer")
@@ -266,7 +292,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         // Get the SDP answer and set it as the remote description.
                         std::string sdp = jsnMessage["sdp"];
                         m_pPeerConnection->setRemoteDescription(rtc::Description(sdp, "answer"));
-                        LOG_DEBUG(logging::g_qSharedLogger, "Processing SDP answer from signalling server: {}", sdp);
+                        LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Received 'answer'. Setting Remote Description.", m_szStreamerID);
                     }
                     // If the message from the server is advertising an ICE candidate, add it to the peer connection.
                     else if (szType == "iceCandidate")
@@ -277,12 +303,12 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                         rtc::Candidate rtcCandidate = rtc::Candidate(szCandidateStr);
                         m_pPeerConnection->addRemoteCandidate(rtcCandidate);
-                        LOG_DEBUG(logging::g_qSharedLogger, "Added ICE candidate to peer connection: {}", szCandidateStr);
+                        LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Received 'iceCandidate'. Added: {}", m_szStreamerID, szCandidateStr);
                     }
                     else if (szType == "streamerList")
                     {
                         // Print the streamer list.
-                        LOG_DEBUG(logging::g_qSharedLogger, "Streamer List: {}", jsnMessage.dump());
+                        LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Received 'streamerList': {}", m_szStreamerID, jsnMessage.dump());
 
                         // Check that the streamer ID given by the user is in the streamer list.
                         if (jsnMessage.contains("ids"))
@@ -296,28 +322,28 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                                 jsnStream["streamerId"] = m_szStreamerID;
                                 m_pWebSocket->send(jsnStream.dump());
                                 // Submit logger message.
-                                LOG_DEBUG(logging::g_qSharedLogger, "Streamer ID {} found in the streamer list. Subscribing to stream...", m_szStreamerID);
+                                LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Streamer ID {} found! Sending 'subscribe'...", m_szStreamerID, m_szStreamerID);
                             }
                             else
                             {
-                                LOG_ERROR(logging::g_qSharedLogger, "Streamer ID {} not found in the streamer list!", m_szStreamerID);
+                                LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Streamer ID {} NOT found in streamer list!", m_szStreamerID, m_szStreamerID);
                             }
                         }
                         else
                         {
-                            LOG_ERROR(logging::g_qSharedLogger, "Streamer list does not contain 'ids' field!");
+                            LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Streamer list does not contain 'ids' field!", m_szStreamerID);
                         }
                     }
                     else
                     {
-                        LOG_ERROR(logging::g_qSharedLogger, "Unknown message type received from signalling server: {}", szType);
+                        LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Unknown message type received: {}", m_szStreamerID, szType);
                     }
                 }
             }
             catch (const std::exception& e)
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Error occurred while negotiating with the Signalling Server: {}", e.what());
+                LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Exception during Negotiation: {}", m_szStreamerID, e.what());
             }
         });
 
@@ -325,7 +351,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         [this](const std::string& szError)
         {
             // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Error occurred on WebSocket: {}", szError);
+            LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} WebSocket Error: {}", m_szStreamerID, szError);
         });
 
     /////////////////////////////////////////////////////////////////////
@@ -335,9 +361,12 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
     m_pPeerConnection->onLocalDescription(
         [this](rtc::Description rtcDescription)
         {
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Generated Local Description (Type: {}).", m_szStreamerID, rtcDescription.typeString());
+
             // Check the type of the description.
             if (rtcDescription.typeString() == "offer")
             {
+                LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Ignoring 'offer' type in onLocalDescription.", m_szStreamerID);
                 return;
             }
 
@@ -348,6 +377,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             jsnConfigMessage["temporalLayer"] = 0;
             jsnConfigMessage["playerId"]      = "";
             m_pWebSocket->send(jsnConfigMessage.dump());
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC Sent 'layerPreference'.");
 
             // Send the local description to the signalling server
             nlohmann::json jsnMessage;
@@ -365,7 +395,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             m_pWebSocket->send(jsnMessage.dump());
 
             // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Sending local description to signalling server: {}", jsnMessage.dump());
+            LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Sent Local Description to Server (Munged SDP).", m_szStreamerID);
         });
 
     m_pPeerConnection->onTrack(
@@ -376,9 +406,12 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Get some information about the track.
             std::string szMediaType = rtcMediaDescription.type();
 
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} onTrack triggered. Media Type: {}", m_szStreamerID, szMediaType);
+
             // Check if the track is a video track.
             if (szMediaType != "video")
             {
+                LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Ignoring non-video track.", m_szStreamerID);
                 return;
             }
 
@@ -391,35 +424,69 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             m_pTrack1H264DepacketizationHandler->addToChain(m_pTrack1RtcpReceivingSession);
             m_pVideoTrack1->setMediaHandler(m_pTrack1H264DepacketizationHandler);
 
+            LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Video Track Handler Configured. Waiting for frames...", m_szStreamerID);
+
             // Set the onMessage callback for the video track.
             m_pVideoTrack1->onFrame(
                 [this](rtc::binary rtcBinaryMessage, rtc::FrameInfo rtcFrameInfo)
                 {
-                    // Assuming 96 is the H264 payload type.
+                    // CRITICAL FIX: Ignore empty packets to prevent flushing the decoder.
+                    if (rtcBinaryMessage.empty())
+                    {
+                        return;
+                    }
+
+                    // Prepare buffer for H.264 bytes.
+                    std::vector<uint8_t> vH264EncodedBytes;
+                    // Reserve space + FFmpeg Padding safety buffer.
+                    vH264EncodedBytes.reserve(rtcBinaryMessage.size() + 16 + AV_INPUT_BUFFER_PADDING_SIZE);
+
                     if (rtcFrameInfo.payloadType == 96)
                     {
-                        // Change the rtc::Binary (std::vector<std::byte>) to a std::vector<uint8_t>.
-                        std::vector<uint8_t> vH264EncodedBytes;
-                        vH264EncodedBytes.reserve(rtcBinaryMessage.size());
-                        for (std::byte stdByte : rtcBinaryMessage)
-                        {
-                            vH264EncodedBytes.push_back(static_cast<uint8_t>(stdByte));
-                        }
+                        // Standard H264 Packet (Already Depacketized by LibDataChannel)
+                        // It usually includes the Start Code (00 00 00 01) because of the Handler config.
 
-                        // Acquire a mutex lock on the shared_mutex before calling sws_scale.
-                        std::unique_lock<std::shared_mutex> lkDecoderLock(m_muDecoderMutex);
-                        // Pass to FFmpeg decoder
-                        this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
-
-                        // Check if the callback function is set before calling it.
-                        if (m_fnOnFrameReceivedCallback)
-                        {
-                            // Call the user's callback function.
-                            m_fnOnFrameReceivedCallback(m_cvFrame);
-                        }
-                        // Release the lock on the shared_mutex.
-                        lkDecoderLock.unlock();
+                        const uint8_t* pData = reinterpret_cast<const uint8_t*>(rtcBinaryMessage.data());
+                        vH264EncodedBytes.insert(vH264EncodedBytes.end(), pData, pData + rtcBinaryMessage.size());
                     }
+                    else if (rtcFrameInfo.payloadType == 97)
+                    {
+                        // RTX (Retransmission) Packet
+                        // Structure: [OSN (2 bytes)] [Original RTP Payload]
+                        // This packet bypassed the Depacketizer, so it is "Raw".
+                        // To decode it, we must strip the OSN and manually add the Start Code.
+
+                        if (rtcBinaryMessage.size() <= 2)
+                            return;    // Too small to contain data.
+
+                        // Start code. (Long Start Sequence: 00 00 00 01)
+                        vH264EncodedBytes.push_back(0);
+                        vH264EncodedBytes.push_back(0);
+                        vH264EncodedBytes.push_back(0);
+                        vH264EncodedBytes.push_back(1);
+
+                        // Original payload. (Skip first 2 bytes of RTX header)
+                        const uint8_t* pData = reinterpret_cast<const uint8_t*>(rtcBinaryMessage.data());
+                        vH264EncodedBytes.insert(vH264EncodedBytes.end(), pData + 2, pData + rtcBinaryMessage.size());
+                    }
+                    else
+                    {
+                        // Unknown payload type.
+                        return;
+                    }
+
+                    // Zero-initialize padding bytes. (required by FFmpeg safety)
+                    vH264EncodedBytes.insert(vH264EncodedBytes.end(), AV_INPUT_BUFFER_PADDING_SIZE, 0);
+
+                    // Decode.
+                    std::unique_lock<std::shared_mutex> lkDecoderLock(m_muDecoderMutex);
+                    bool bDecoded = this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
+
+                    if (bDecoded && m_fnOnFrameReceivedCallback)
+                    {
+                        m_fnOnFrameReceivedCallback(m_cvFrame);
+                    }
+                    lkDecoderLock.unlock();
                 });
         });
 
@@ -429,13 +496,16 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Switch to translate the state to a string.
             switch (eGatheringState)
             {
-                case rtc::PeerConnection::GatheringState::Complete: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE gathering state changed to: Complete"); break;
-
-                case rtc::PeerConnection::GatheringState::InProgress:
-                    LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE gathering state changed to: InProgress");
+                case rtc::PeerConnection::GatheringState::Complete:
+                    LOG_DEBUG(logging::g_qSharedLogger, "Camera {} PeerConnection ICE gathering state changed to: Complete", m_szStreamerID);
                     break;
-                case rtc::PeerConnection::GatheringState::New: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE gathering state changed to: New"); break;
-                default: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection ICE gathering state changed to: Unknown"); break;
+                case rtc::PeerConnection::GatheringState::InProgress:
+                    LOG_DEBUG(logging::g_qSharedLogger, "Camera {} PeerConnection ICE gathering state changed to: InProgress", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::GatheringState::New:
+                    LOG_DEBUG(logging::g_qSharedLogger, "Camera {} PeerConnection ICE gathering state changed to: New", m_szStreamerID);
+                    break;
+                default: LOG_DEBUG(logging::g_qSharedLogger, "Camera {} Peer connection ICE gathering state changed to: Unknown", m_szStreamerID); break;
             }
         });
 
@@ -445,14 +515,26 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Switch to translate the state to a string.
             switch (eIceState)
             {
-                case rtc::PeerConnection::IceState::Checking: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Checking"); break;
-                case rtc::PeerConnection::IceState::Closed: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Closed"); break;
-                case rtc::PeerConnection::IceState::Completed: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Completed"); break;
-                case rtc::PeerConnection::IceState::Connected: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Connected"); break;
-                case rtc::PeerConnection::IceState::Disconnected: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Disconnected"); break;
-                case rtc::PeerConnection::IceState::Failed: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: Failed"); break;
-                case rtc::PeerConnection::IceState::New: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection ICE state changed to: New"); break;
-                default: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection ICE state changed to: Unknown"); break;
+                case rtc::PeerConnection::IceState::Checking:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: Checking", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::IceState::Closed:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: Closed", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::IceState::Completed:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: Completed", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::IceState::Connected:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: Connected", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::IceState::Disconnected:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: Disconnected", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::IceState::Failed:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: Failed", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::IceState::New: LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection ICE state changed to: New", m_szStreamerID); break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection ICE state changed to: Unknown", m_szStreamerID); break;
             }
         });
     m_pPeerConnection->onSignalingStateChange(
@@ -462,21 +544,21 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             switch (eSignalingState)
             {
                 case rtc::PeerConnection::SignalingState::HaveLocalOffer:
-                {
-                    LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveLocalOffer");
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection signaling state changed to: HaveLocalOffer", m_szStreamerID);
                     break;
-                }
                 case rtc::PeerConnection::SignalingState::HaveLocalPranswer:
-                    LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveLocalPranswer");
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection signaling state changed to: HaveLocalPranswer", m_szStreamerID);
                     break;
                 case rtc::PeerConnection::SignalingState::HaveRemoteOffer:
-                    LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveRemoteOffer");
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection signaling state changed to: HaveRemoteOffer", m_szStreamerID);
                     break;
                 case rtc::PeerConnection::SignalingState::HaveRemotePranswer:
-                    LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection signaling state changed to: HaveRemotePrAnswer");
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection signaling state changed to: HaveRemotePrAnswer", m_szStreamerID);
                     break;
-                case rtc::PeerConnection::SignalingState::Stable: LOG_DEBUG(logging::g_qSharedLogger, "PeerConnection signaling state changed to: Stable"); break;
-                default: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection signaling state changed to: Unknown"); break;
+                case rtc::PeerConnection::SignalingState::Stable:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} PeerConnection signaling state changed to: Stable", m_szStreamerID);
+                    break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection signaling state changed to: Unknown", m_szStreamerID); break;
             }
         });
 
@@ -486,13 +568,19 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             // Switch to translate the state to a string.
             switch (eState)
             {
-                case rtc::PeerConnection::State::Closed: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: Closed"); break;
-                case rtc::PeerConnection::State::Connected: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: Connected"); break;
-                case rtc::PeerConnection::State::Connecting: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: Connecting"); break;
-                case rtc::PeerConnection::State::Disconnected: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: Disconnected"); break;
-                case rtc::PeerConnection::State::Failed: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: Failed"); break;
-                case rtc::PeerConnection::State::New: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: New"); break;
-                default: LOG_DEBUG(logging::g_qSharedLogger, "Peer connection state changed to: Unknown"); break;
+                case rtc::PeerConnection::State::Closed: LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: Closed", m_szStreamerID); break;
+                case rtc::PeerConnection::State::Connected:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: Connected", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::State::Connecting:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: Connecting", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::State::Disconnected:
+                    LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: Disconnected", m_szStreamerID);
+                    break;
+                case rtc::PeerConnection::State::Failed: LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: Failed", m_szStreamerID); break;
+                case rtc::PeerConnection::State::New: LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: New", m_szStreamerID); break;
+                default: LOG_INFO(logging::g_qSharedLogger, "Camera {} Peer connection state changed to: Unknown", m_szStreamerID); break;
             }
         });
 
@@ -504,10 +592,29 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
         [this]()
         {
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Data channel opened.");
+            LOG_INFO(logging::g_qSharedLogger, "Camera {} WebRTC Data channel OPENED.", m_szStreamerID);
 
             // Request quality control of the stream.
             m_pDataChannel->send(std::string(1, static_cast<char>(1)));
+
+            // --------------------------------------------------------
+            // SEND INITIAL ENCODER CONFIGURATION
+            // --------------------------------------------------------
+            LOG_INFO(logging::g_qSharedLogger, "Camera {} WebRTC Sending Encoder Configuration to Simulator...", m_szStreamerID);
+
+            // Set the QP factor. (0 = Lossless/Max Quality).
+            this->SendCommandToStreamer("{\"Encoder.MaxQP\":" + std::to_string(constants::SIM_WEBRTC_QP) + "}");
+
+            // Set bitrate limits.
+            this->SendCommandToStreamer(R"({"WebRTC.MinBitrate":100000})");
+            this->SendCommandToStreamer(R"({"WebRTC.MaxBitrate":100000000})");
+
+            // Set FPS.
+            this->SendCommandToStreamer(R"({"WebRTC.Fps":60})");
+            this->SendCommandToStreamer(R"({"WebRTC.MaxFps":60})");
+
+            // Target Bitrate. (-1 = Use Max/Unlimited)
+            this->SendCommandToStreamer(R"({"Encoder.TargetBitrate":-1})");
         });
 
     m_pDataChannel->onMessage(
@@ -526,7 +633,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
                     // Parse the JSON message from the signaling server.
                     jsnMessage = nlohmann::json::parse(szMessage);
-                    LOG_NOTICE(logging::g_qSharedLogger, "DATA_CHANNEL Received message from peer: {}", szMessage);
+                    LOG_DEBUG(logging::g_qSharedLogger, "Camera {} DATA_CHANNEL Received message from peer: {}", m_szStreamerID, szMessage);
                 }
                 else if (std::holds_alternative<rtc::binary>(rtcMessage))
                 {
@@ -544,17 +651,21 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     }
 
                     // Print the binary data as a string.
-                    LOG_DEBUG(logging::g_qSharedLogger, "DATA_CHANNEL Received binary data ({} bytes): {}", rtcBinaryData.size(), szBinaryDataStr);
+                    LOG_DEBUG(logging::g_qSharedLogger,
+                              "Camera {} DATA_CHANNEL Received binary data ({} bytes): {}",
+                              m_szStreamerID,
+                              rtcBinaryData.size(),
+                              szBinaryDataStr);
                 }
                 else
                 {
-                    LOG_ERROR(logging::g_qSharedLogger, "Received unknown message type from peer");
+                    LOG_ERROR(logging::g_qSharedLogger, "Camera {} Received unknown message type from peer", m_szStreamerID);
                 }
             }
             catch (const std::exception& e)
             {
                 // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Error occurred while negotiating with the datachannel: {}", e.what());
+                LOG_ERROR(logging::g_qSharedLogger, "Camera {} Error occurred while negotiating with the datachannel: {}", m_szStreamerID, e.what());
             }
         });
 
@@ -634,9 +745,16 @@ bool WebRTC::InitializeH264Decoder()
  ******************************************************************************/
 bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat)
 {
+    // Safety check
+    if (vH264EncodedBytes.empty())
+        return false;
+
+    // Use the actual data size, excluding the padding we added in onFrame.
+    size_t nDataSize = vH264EncodedBytes.size() - AV_INPUT_BUFFER_PADDING_SIZE;
+
     // Initialize packet data.
     m_pPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
-    m_pPacket->size = static_cast<int>(vH264EncodedBytes.size());
+    m_pPacket->size = static_cast<int>(nDataSize);    // Tell FFmpeg the real size.
 
     // Send the packet to the decoder.
     int nReturnCode = avcodec_send_packet(m_pAVCodecContext, m_pPacket);
@@ -646,11 +764,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
         // Submit logger message.
-        // LOG_NOTICE(logging::g_qSharedLogger,
-        //            "Failed to send packet to decoder! Error code: {} {}. This is not a serious problem and is likely just because some of the UDP RTP packets didn't "
-        //            "make it to us.",
-        //            nReturnCode,
-        //            aErrorBuffer);
+        LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} FFMPEG send_packet failed. Error: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
         // Request a new keyframe from the video track.
         this->RequestKeyFrame();
 
@@ -703,6 +817,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // Convert the decoded frame to cv::Mat using sws_scale.
             if (m_pSWSContext == nullptr)
             {
+                LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Initializing SwsContext...", m_szStreamerID);
                 m_pSWSContext = sws_getContext(m_pFrame->width,
                                                m_pFrame->height,
                                                static_cast<AVPixelFormat>(m_pFrame->format),
@@ -722,15 +837,6 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
                     return false;
                 }
-
-                // Allocate buffer for the frame's data
-                int nRetCode = av_image_alloc(m_pFrame->data, m_pFrame->linesize, m_pFrame->width, m_pFrame->height, static_cast<AVPixelFormat>(m_pFrame->format), 32);
-                if (nRetCode < 0)
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "Failed to allocate image buffer!");
-                    return false;
-                }
             }
 
             // Create new mat for the decoded frame.
@@ -741,29 +847,6 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // Convert the frame to the output pixel format.
             sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pFrame->height, aDest.data(), aDestLinesize.data());
         }
-
-        // Calculate the time since the last key frame request.
-        std::chrono::duration<double> tmTimeSinceLastKeyFrameRequest = std::chrono::system_clock::now() - m_tmLastKeyFrameRequestTime;
-        // Check if the time since the last key frame request is greater than the key frame request interval.
-        if (tmTimeSinceLastKeyFrameRequest.count() > 1.0)
-        {
-            // Request a new key frame from the video track.
-            // this->RequestKeyFrame();
-
-            // Set the QP factor to 0. (Max quality)
-            this->SendCommandToStreamer("{\"Encoder.MaxQP\":" + std::to_string(constants::SIM_WEBRTC_QP) + "}");
-            // Set the bitrate limits.
-            this->SendCommandToStreamer(R"({"WebRTC.MinBitrate":99999})");
-            this->SendCommandToStreamer(R"({"WebRTC.MaxBitrate":99999999})");
-            // Set FPS to 30.
-            this->SendCommandToStreamer(R"({"WebRTC.Fps":30})");
-            this->SendCommandToStreamer(R"({"WebRTC.MaxFps":30})");
-            // Here's the magic, this might work. Target bitrate is what has been causing the issues.
-            this->SendCommandToStreamer(R"({"Encoder.TargetBitrate":99999999})");
-
-            // Update the time of the last key frame request.
-            m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
-        }
     }
 
     return true;
@@ -771,7 +854,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
 /******************************************************************************
  * @brief Requests a key frame from the given video track. This is useful for when the
- *      video track is out of sync or has lost frames.
+ * video track is out of sync or has lost frames.
  *
  * @return true - Key frame was successfully requested.
  * @return false - Key frame was not successfully requested.
@@ -797,55 +880,48 @@ bool WebRTC::RequestKeyFrame()
 
 /******************************************************************************
  * @brief This method sends a command to the streamer via the data channel.
- *      The command is a JSON string that is sent as a binary message.
- *      The PixelStreaming plugin handles the command very weirdly, so we have to
- *      sort of encode the command in a specific way. This handles that encoding.
+ * The command is a JSON string that is sent as a binary message.
+ * The PixelStreaming plugin handles the command very weirdly, so we have to
+ * sort of encode the command in a specific way. This handles that encoding.
  *
  * @param szCommand - The command to send to the streamer.
  * @return true - Command was successfully sent.
  * @return false - Command was not successfully sent.
  *
  * @note This will only work for valid COMMANDS with ID of type 51. Check the
- *      PixelStreamingInfrastructure repo for more information.
- *      https://github.com/EpicGamesExt/PixelStreamingInfrastructure/blob/13ce022d3a09d315d4ca85c05b61a8d3fe92741c/Extras/JSStreamer/src/protocol.ts#L196
+ * PixelStreamingInfrastructure repo for more information.
+ * https://github.com/EpicGamesExt/PixelStreamingInfrastructure/blob/13ce022d3a09d315d4ca85c05b61a8d3fe92741c/Extras/JSStreamer/src/protocol.ts#L196
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-01-01
  ******************************************************************************/
 bool WebRTC::SendCommandToStreamer(const std::string& szCommand)
 {
-    // Check if the data channel is valid.
     if (!m_pDataChannel)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Invalid data channel!");
         return false;
-    }
-
-    // Check if the command is empty.
     if (szCommand.empty())
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Empty command!");
         return false;
-    }
 
-    // Set the max QP to 0.
-    std::string szID(1, static_cast<char>(51));    // This is the ID for COMMAND.
-    std::string szSize(1, static_cast<char>(szCommand.size()));
-    std::string szFinal = szID + szSize + szCommand;
-    // Loop through the string and build a binary message.
+    // Command ID 51.
+    std::string szID(1, static_cast<char>(51));
+
+    // Calculate total payload size in BYTES. (UTF-16 = size * 2)
+    uint16_t u16Size = static_cast<uint16_t>(szCommand.size() * 2);
+
     rtc::binary rtcBinaryMessage;
-    // First byte is the ID.
     rtcBinaryMessage.push_back(static_cast<std::byte>(szID[0]));
-    // Next two bytes are the size.
-    rtcBinaryMessage.push_back(static_cast<std::byte>(szSize[0]));
-    rtcBinaryMessage.push_back(static_cast<std::byte>(szSize[1]));
-    // The rest of the bytes are the command, but this is utf16 so we need to add a null byte before each character.
+
+    // Send Size as 16-bit integer. (Little Endian)
+    rtcBinaryMessage.push_back(static_cast<std::byte>(u16Size & 0xFF));           // Low byte
+    rtcBinaryMessage.push_back(static_cast<std::byte>((u16Size >> 8) & 0xFF));    // High byte
+
+    // Send payload as UTF-16 Little Endian.
     for (char cLetter : szCommand)
     {
         rtcBinaryMessage.push_back(static_cast<std::byte>(cLetter));
         rtcBinaryMessage.push_back(static_cast<std::byte>(0));
     }
 
-    // Send the binary message.
+    LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Sending Data Channel Command: {}", m_szStreamerID, szCommand);
     return m_pDataChannel->send(rtcBinaryMessage);
 }
