@@ -309,6 +309,7 @@ GROUNDCAM
 gruntfuggly
 gtest
 gthr
+gyrometer
 hajdukiewicz
 hemi
 HFOV
@@ -369,6 +370,7 @@ jidicula
 jspencerpittman
 Jter
 jthread
+Kalman
 kbits
 KDTREE
 KDTREEPP
@@ -793,6 +795,7 @@ xhost
 xlabel
 xlim
 XNNPACK
+Xpred
 xtickangle
 xtickformat
 XYZBGRA
