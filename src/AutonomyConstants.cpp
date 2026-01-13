@@ -335,9 +335,6 @@ namespace constants
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
 
-    // Avoidance State.
-    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_SAFE_POWER * 0.3;    // Drive speed of avoidance state
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
