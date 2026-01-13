@@ -28,7 +28,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Clean APT Cache
 RUN rm /var/lib/dpkg/info/libc-bin.*
 # Add APT Repo for PCIe drivers and Bazel.
-RUN apt update && apt install -y wget && \
+RUN apt-get update && apt-get install -y wget && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
     wget -q -O - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
@@ -46,15 +46,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libusb-1.0-0-dev \
     libboost-all-dev libflann-dev libqhull-dev libopenni2-dev libsvm-dev \
-    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev \
-    sqlite3 libsqlite3-dev libhdf5-dev
-
+    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev libwebp-dev \
+    sqlite3 libsqlite3-dev libhdf5-dev libglpk-dev libbz2-dev \
+    coinor-libcbc-dev coinor-libclp-dev coinor-libosi-dev coinor-libcoinutils-dev
+    
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Remove Unused Packages.
-RUN apt purge 'qt5-*' 'libqt5*' && apt autoremove --purge -y
+RUN apt purge -y 'qt5-*' 'libqt5*' || true && apt autoremove --purge -y
 
 # Install Required Python Packages.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib

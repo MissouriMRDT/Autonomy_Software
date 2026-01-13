@@ -30,24 +30,6 @@ namespace controllers
     /******************************************************************************
      * @brief Construct a new Predictive Stanley Controller:: Predictive Stanley Controller object.
      *
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-01-10
-     ******************************************************************************/
-    PredictiveStanleyController::PredictiveStanleyController()
-    {
-        // Initialize member variables.
-        m_dControlGain                     = constants::STANLEY_CROSSTRACK_CONTROL_GAIN;
-        m_dAngularVelocityLimit            = constants::STANLEY_ANGULAR_VELOCITY_LIMIT;
-        m_nPredictionHorizon               = constants::STANLEY_PREDICTION_HORIZON;
-        m_dPredictionTimeStep              = constants::STANLEY_PREDICTION_TIME_STEP;
-        m_nCurrentReferencePathTargetIndex = 0;
-        m_UnicycleModel                    = UnicycleModel();
-    }
-
-    /******************************************************************************
-     * @brief Construct a new Predictive Stanley Controller:: Predictive Stanley Controller object.
-     *
      * @param dControlGain - The control gain for the controller.
      * @param dSteeringAngleLimit - The maximum steering angle the rover can turn.
      * @param nPredictionHorizon - The number of predictions to make.

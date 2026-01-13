@@ -32,7 +32,7 @@ RUN echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}" > /usr/local/c
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Add APT Repo for PCIe drivers.
-RUN apt update && apt install -y wget gnupg && \
+RUN apt-get update && apt-get install -y wget gnupg && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
     wget -qO - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
     wget -qO - https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel-archive-keyring.gpg && \
@@ -60,7 +60,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Remove Unused Packages.
-RUN apt purge 'qt5-*' 'libqt5*' && apt autoremove --purge -y
+RUN apt-get purge 'qt5-*' 'libqt5*' && apt-get autoremove --purge -y
 
 # Install Required Python Packages and link python3 executable to python.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib

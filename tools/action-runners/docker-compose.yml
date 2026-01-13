@@ -5,16 +5,16 @@ services:
       context: .
       dockerfile: Jammy.dockerfile
       args:
-        RUNNER_VERSION: '2.321.0'
+        RUNNER_VERSION: "2.321.0"
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 3
       resources:
         reservations:
           devices:
-          - driver: nvidia
-            count: 1
-            capabilities: [gpu]
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     volumes:
       - type: bind
         source: /var/run/docker.sock
@@ -30,16 +30,16 @@ services:
       context: .
       dockerfile: JetPack.dockerfile
       args:
-        RUNNER_VERSION: '2.321.0'
+        RUNNER_VERSION: "2.321.0"
     command: unix-connect:/var/run/docker.sock
     deploy:
       replicas: 1
       resources:
         reservations:
           devices:
-          - driver: nvidia
-            count: 1
-            capabilities: [gpu]
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     volumes:
       - type: bind
         source: /var/run/docker.sock
@@ -48,4 +48,3 @@ services:
       GH_TOKEN: <GH_PAT>
       GH_OWNER: MissouriMRDT
       GH_REPOSITORY: Autonomy_Software
-
