@@ -183,6 +183,13 @@ namespace constants
     const bool ZED_MAINCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
     const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
+    const double ZED_MAINCAM_EASTING_OFFSET         = 0.0;    // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
+    const double ZED_MAINCAM_NORTHING_OFFSET        = 0.0;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
+    const double ZED_MAINCAM_ALTITUDE_OFFSET        = 0.0;    // The altitude offset to apply to the GPS data that way we know where it is relative to the rover center.
+    const double ZED_MAINCAM_QUATERNION_OFFSET_X    = 0.0;    // The quaternion X offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_MAINCAM_QUATERNION_OFFSET_Y    = 0.0;    // The quaternion Y offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_MAINCAM_QUATERNION_OFFSET_Z    = 0.0;    // The quaternion Z offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_MAINCAM_QUATERNION_OFFSET_W    = 1.0;    // The quaternion W offset to apply to the camera orientation that way we know its orientation.
 
     // Ground Basic Cam.
     const int BASICCAM_GROUNDCAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.
@@ -362,6 +369,9 @@ namespace constants
     // NavBoard.
     const double NAVBOARD_MAX_GPS_DATA_AGE     = 3.0;    // The maximum age of the current GPS data before printing warnings.
     const double NAVBOARD_MAX_COMPASS_DATA_AGE = 3.0;    // The maximum age of the current Compass data before printing warnings.
+    const double NAVBOARD_EASTING_OFFSET       = 0.0;    // The easting offset to apply to the GPS data that way it aligns with the center of the rover.
+    const double NAVBOARD_NORTHING_OFFSET      = 0.0;    // The northing offset to apply to the GPS data that way it aligns with the center of the rover.
+    const double NAVBOARD_ALTITUDE_OFFSET      = 0.0;    // The altitude offset to apply to the GPS data that way it aligns with the center of the rover.
 
     ///////////////////////////////////////////////////////////////////////////
 
