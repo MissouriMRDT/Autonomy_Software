@@ -122,7 +122,7 @@ namespace filters
     /******************************************************************************
      * @brief The main predict/estimate step for EKF. Integrates IMU data to predict state.
      *
-     * @param eiAccelMeas - The accerometer reading.
+     * @param eiAccelMeas - The accelerometer reading.
      * @param eiGyroMeas - The gyrometer reading.
      * @param tmTimestamp - The timestamp that the prediction has occurred.
      *
@@ -131,63 +131,65 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::Predict(Eigen::Vector3d& eiAccelMeas, Eigen::Vector3d& eiGyroMeas, std::chrono::system_clock::time_point tmTimestamp)
     {
-        // Must have an initial guess
+        // Must have an initial guess.
         if (!m_bHasInitialGuess)
+        {
             return;
+        }
 
         double dt                   = std::chrono::duration<double>(tmTimestamp - m_tmLastAccelerometerUpdate).count();
         m_tmLastAccelerometerUpdate = tmTimestamp;
 
-        // Accelerometer and gyrometer bias removal
-        Eigen::Vector3d eiAcc   = eiAccelMeas - m_stCurrentState.eiAccelBias;
-        Eigen::Vector3d eiGyro  = eiGyroMeas - m_stCurrentState.eiGyroBias;
+        // Accelerometer and gyrometer bias removal.
+        Eigen::Vector3d eiAcc  = eiAccelMeas - m_stCurrentState.eiAccelBias;
+        Eigen::Vector3d eiGyro = eiGyroMeas - m_stCurrentState.eiGyroBias;
 
+        // Updating orientation.
         Eigen::Vector3d eiOmega = eiGyro * dt;
-        double dAngle           = eiOmega.norm();
-
-        // Updating orientation
         Eigen::Quaterniond eiDq;
 
-        // If not basically 0
-        if (dAngle > 1e-8)
-            eiDq = Eigen::Quaterniond(Eigen::AngleAxisd(dAngle, eiOmega.normalized()));
+        if (eiOmega.norm() > 1e-8)
+            eiDq = Eigen::Quaterniond(Eigen::AngleAxisd(eiOmega.norm(), eiOmega.normalized()));
 
-        // Identity quaternion
+        // Identity quaternion.
         else
             eiDq = Eigen::Quaterniond::Identity();
 
+        Eigen::Matrix3d eiROld         = m_stCurrentState.eiOrientation.toRotationMatrix();
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
+        Eigen::Matrix3d eiRNew         = m_stCurrentState.eiOrientation.toRotationMatrix();
 
-        // Acceleration in the world frame (accounts for gravity)
-        Eigen::Vector3d eiAccWorldFrame = (m_stCurrentState.eiOrientation.toRotationMatrix() * eiAcc) + m_eiGravity;
+        // Acceleration in the world frame (accounts for gravity).
+        Eigen::Vector3d eiAccWorldFrame = (eiROld * eiAcc) - m_eiGravity;
 
-        // Update velocity and position
+        // Update velocity and position.
         m_stCurrentState.eiVelocity += eiAccWorldFrame * dt;
         m_stCurrentState.eiPosition += (m_stCurrentState.eiVelocity * dt) + ((eiAccWorldFrame * dt * dt) / 2.0);
 
-        // Covariance update
-        Eigen::Matrix<double, 15, 15> eiF  = Eigen::Matrix<double, 15, 15>::Zero();
+        // Covariance update.
+        Eigen::Matrix<double, 15, 15> eiF = Eigen::Matrix<double, 15, 15>::Zero();
 
-        eiF.block<3, 3>(0, 3)              = Eigen::Matrix3d::Identity();
-        eiF.block<3, 3>(3, 6)              = -m_stCurrentState.eiOrientation.toRotationMatrix() * MakeSkewSymmetricMatrix(eiAcc);
-        eiF.block<3, 3>(3, 9)              = -m_stCurrentState.eiOrientation.toRotationMatrix();
-        eiF.block<3, 3>(6, 6)              = -1.0 * MakeSkewSymmetricMatrix(eiGyro);
-        eiF.block<3, 3>(6, 12)             = -1.0 * MakeSkewSymmetricMatrix(eiGyro) * dt;
+        eiF.block<3, 3>(0, 6)             = Eigen::Matrix3d::Identity();
+        eiF.block<3, 3>(3, 3)             = -MakeSkewSymmetricMatrix(eiGyro);
+        eiF.block<3, 3>(3, 12)            = -Eigen::Matrix3d::Identity();
+        eiF.block<3, 3>(6, 3)             = -eiROld * MakeSkewSymmetricMatrix(eiAcc);
+        eiF.block<3, 3>(6, 9)             = -eiROld;
 
-        Eigen::Matrix<double, 15, 15> eiFd = Eigen::Matrix<double, 15, 15>::Identity() + eiF * dt;
+        // Discretize F matrix.
+        Eigen::Matrix<double, 15, 15> eiFd = Eigen::Matrix<double, 15, 15>::Identity() + (eiF * dt);
 
-        // Process noise Q
+        // Process noise Q.
         Eigen::Matrix<double, 15, 15> eiQ = Eigen::Matrix<double, 15, 15>::Zero();
         double dt2                        = dt * dt;
-        eiQ.block<3, 3>(3, 3)             = (m_dSigmaAcc * m_dSigmaAcc) * Eigen::Matrix3d::Identity() * dt2;
-        eiQ.block<3, 3>(6, 6)             = (m_dSigmaGyro * m_dSigmaGyro) * Eigen::Matrix3d::Identity() * dt2;
-        eiQ.block<3, 3>(9, 9)             = (m_dSigmaAccBias * m_dSigmaAccBias) * Eigen::Matrix3d::Identity() * dt2;
-        eiQ.block<3, 3>(12, 12)           = (m_dSigmaGyroBias * m_dSigmaGyroBias) * Eigen::Matrix3d::Identity() * dt2;
+        eiQ.block<3, 3>(3, 3)             = (m_dSigmaGyro * m_dSigmaGyro * dt2) * Eigen::Matrix3d::Identity();
+        eiQ.block<3, 3>(6, 6)             = (m_dSigmaAcc * m_dSigmaAcc * dt2) * Eigen::Matrix3d::Identity();
+        eiQ.block<3, 3>(9, 9)             = (m_dSigmaAccBias * m_dSigmaAccBias * dt) * Eigen::Matrix3d::Identity();
+        eiQ.block<3, 3>(12, 12)           = (m_dSigmaGyroBias * m_dSigmaGyroBias * dt) * Eigen::Matrix3d::Identity();
 
-        // Error state covariance
+        // Error state covariance update.
         m_eiErrorStateCov = eiFd * m_eiErrorStateCov * eiFd.transpose() + eiQ;
 
-        // Adding onto the state history
+        // Adding onto the state history.
         m_liXStateHistory.push_back(m_stCurrentState);
     }
 
@@ -271,16 +273,24 @@ namespace filters
      ******************************************************************************/
     Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord)
     {
-        static geoops::GPSCoordinate stGpsRef = stCoord;      // First coordinate for reference
-        double dEarthRadius                   = 6378137.0;    // Meters
+        // If we haven't set an origin, use the first point we see or the one passed in constructor.
+        if (!m_bOriginSet)
+        {
+            m_stOriginGPS = stCoord;
+            m_bOriginSet  = true;
+            return Eigen::Vector3d::Zero();
+        }
 
-        double dLat                           = (stCoord.dLatitude - stGpsRef.dLatitude) * M_PI / 180.0;
-        double dLon                           = (stCoord.dLongitude - stGpsRef.dLongitude) * M_PI / 180.0;
-        double avgLat                         = (stCoord.dLatitude + stGpsRef.dLatitude) * 0.5 * M_PI / 180.0;
+        double dEarthRadius = 6378137.0;
 
-        double dx                             = dEarthRadius * dLon * cos(avgLat);         // East
-        double dy                             = dEarthRadius * dLat;                       // North
-        double dz                             = stCoord.dAltitude - stGpsRef.dAltitude;    // Up
+        double dLat         = (stCoord.dLatitude - m_stOriginGPS.dLatitude) * M_PI / 180.0;
+        double dLon         = (stCoord.dLongitude - m_stOriginGPS.dLongitude) * M_PI / 180.0;
+        double avgLat       = (stCoord.dLatitude + m_stOriginGPS.dLatitude) * 0.5 * M_PI / 180.0;
+
+        // Converting to ENU (East, North, Up)
+        double dx = dEarthRadius * dLon * cos(avgLat);              // East
+        double dy = dEarthRadius * dLat;                            // North
+        double dz = stCoord.dAltitude - m_stOriginGPS.dAltitude;    // Up
 
         return Eigen::Vector3d(dx, dy, dz);
     }

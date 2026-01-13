@@ -77,6 +77,7 @@ namespace filters
 
             //  Methods for updating values
             void UpdateGPS(const geoops::GPSCoordinate& stCoord);
+            void UpdateCompass(const double dHeading);
 
             /////////////////////////////////////////
             // Getters.
@@ -97,12 +98,14 @@ namespace filters
             // Declare private member variables.
             /////////////////////////////////////////
 
-            bool m_bHasInitialGuess = false;                                      // Whether or not there is an initial guess
-            XStateSnapshot m_stInitialState;                                      // To store the original state snapshot
-            XStateSnapshot m_stCurrentState;                                      // The current state
+            bool m_bHasInitialGuess = false;                                      // Whether or not there is an initial guess.
+            bool m_bOriginSet       = false;                                      // Whether or not there is an initial GPS set.
+            geoops::GPSCoordinate m_stOriginGPS;                                  // The original GPS coordinate set.
+            XStateSnapshot m_stInitialState;                                      // To store the original state snapshot.
+            XStateSnapshot m_stCurrentState;                                      // The current state.
             std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
             std::list<XStateSnapshot> m_liXStateHistory;        // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
-            Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;    // The covariance matrix for the error-state
+            Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;    // The covariance matrix for the error-state.
             std::chrono::system_clock::time_point m_tmLastAccelerometerUpdate;    // Time of last accelerometer update.
             Eigen::Matrix3d m_eiAccelerometerCovariance;                          // Accelerometer covariance matrix. (3x3)
             std::chrono::system_clock::time_point m_tmLastGyroscopeUpdate;        // Time of last gyro update.
