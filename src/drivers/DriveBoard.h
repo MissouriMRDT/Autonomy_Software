@@ -15,6 +15,7 @@
 #include "../algorithms/kinematics/DifferentialDrive.hpp"
 
 /// \cond
+#include "../AutonomyConstants.h"
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
 #include <array>
@@ -42,6 +43,13 @@ class DriveBoard
         float m_fMinDriveEffort;                               // The min power limit of the drive. This can be adjusted through RoveComm.
         float m_fMaxDriveEffort;                               // The max power limit of the drive. This can be adjusted through RoveComm.
         std::shared_mutex m_muDriveEffortMutex;                // Mutex used for changing the drive efforts.
+        const float m_fMinSlope = constants::DRIVE_BOARD_MIN_SLOPE;
+        const float m_fMaxSlope = constants::DRIVE_BOARD_MAX_SLOPE;
+        const float m_fMinDamp  = constants::DRIVE_BOARD_MIN_DAMP;
+        const float m_fMaxDamp  = constants::DRIVE_BOARD_MAX_DAMP;
+        const float m_fRoll_w   = constants::DRIVE_BOARD_ROLL_WEIGHT;
+        const float m_fPitch_w  = constants::DRIVE_BOARD_PITCH_WEIGHT;
+        const float m_fYaw_w    = constants::DRIVE_BOARD_YAW_WEIGHT;
 
         /////////////////////////////////////////
         // Declare private methods.
@@ -64,7 +72,7 @@ class DriveBoard
             this->SetMaxDriveEffort(stPacket.vData[0]);
 
             // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", stPacket.vData[0]);
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", stPacket.vData[0]);
         };
 
     public:
@@ -85,6 +93,8 @@ class DriveBoard
                                              const bool bAlwaysProgressForward                            = false);
         void SendDrive(const diffdrive::DrivePowers& stDrivePowers);
         void SendStop();
+
+        float VariableDriveEffort();
 
         /////////////////////////////////////////
         // Setters

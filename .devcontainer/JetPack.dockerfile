@@ -17,7 +17,7 @@ ARG L4T_BASE="l4t-jetpack"
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Set Jetson Streaming Evironment Variables
-ENV LOGNAME root
+ENV LOGNAME=root
 
 # Set L4T Version
 RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}.${L4T_PATCH}" > /etc/nv_tegra_release
@@ -28,7 +28,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Clean APT Cache
 RUN rm /var/lib/dpkg/info/libc-bin.*
 # Add APT Repo for PCIe drivers and Bazel.
-RUN apt update && apt install -y wget && \
+RUN apt-get update && apt-get install -y wget && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
     wget -q -O - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
@@ -44,13 +44,18 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
     vim-common libedgetpu1-std gasket-dkms ca-certificates nlohmann-json3-dev curl \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
-    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libvtk9-qt-dev libusb-1.0-0-dev \
-    libboost-all-dev libflann-dev libvtk9-dev libqhull-dev libopenni2-dev qtchooser qt5-qmake qtbase5-dev-tools \
-    qtbase5-dev qttools5-dev qttools5-dev-tools libqt5opengl5-dev libpcap-dev libopenni-dev libcjson-dev
-
+    libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libusb-1.0-0-dev \
+    libboost-all-dev libflann-dev libqhull-dev libopenni2-dev libsvm-dev \
+    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev libwebp-dev \
+    sqlite3 libsqlite3-dev libhdf5-dev libglpk-dev libbz2-dev \
+    coinor-libcbc-dev coinor-libclp-dev coinor-libosi-dev coinor-libcoinutils-dev
+    
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
+
+# Remove Unused Packages.
+RUN apt purge -y 'qt5-*' 'libqt5*' || true && apt autoremove --purge -y
 
 # Install Required Python Packages.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib
@@ -81,8 +86,8 @@ RUN if [ "${CMAKE_VERSION}" != "none" ]; then \
 WORKDIR /opt
 
 # Install ZED SDK
-ARG ZED_MAJOR="4"
-ARG ZED_MINOR="2"
+ARG ZED_MAJOR="5"
+ARG ZED_MINOR="0"
 RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent && \
@@ -94,13 +99,13 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.11.0"
+ARG OPENCV_VERSION="4.12.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
     dpkg -i opencv_${OPENCV_VERSION}_arm64.deb && \
     rm opencv_${OPENCV_VERSION}_arm64.deb
 
 # Install PyTorch.
-ARG TORCH_VERSION="2.6.0"
+ARG TORCH_VERSION="2.8.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
     rm pytorch_${TORCH_VERSION}_arm64.deb
@@ -112,25 +117,43 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflo
     rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
 
 # Install FFMPEG
-ARG FFMPEG_VERSION="7.1"
+ARG FFMPEG_VERSION="7.1.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/ffmpeg/arm64/ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
     dpkg -i ffmpeg_${FFMPEG_VERSION}_arm64.deb && \
     rm ffmpeg_${FFMPEG_VERSION}_arm64.deb
 
+# Install OpenMS
+ARG OPENMS_VERSION="3.4.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/arm64/openms_${OPENMS_VERSION}_arm64.deb && \
+    dpkg -i openms_${OPENMS_VERSION}_arm64.deb && \
+    rm openms_${OPENMS_VERSION}_arm64.deb
+
+# Install QT6
+ARG QT6_VERSION="6.5.0"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/arm64/qt6_${QT6_VERSION}_arm64.deb && \
+    dpkg -i qt6_${QT6_VERSION}_arm64.deb && \
+    rm qt6_${QT6_VERSION}_arm64.deb
+
+# Install VTK
+ARG VTK_VERSION="9.5.1"
+RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb && \
+    dpkg -i vtk_${VTK_VERSION}_arm64.deb && \
+    rm vtk_${VTK_VERSION}_arm64.deb
+
 # Install Abseil.
-ARG ABSEIL_VERSION="20250127.0"
+ARG ABSEIL_VERSION="20250814.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
     dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
     rm abseil_${ABSEIL_VERSION}_arm64.deb
 
 # Install GeographicLib
-ARG GEOLIB_VERSION="2.5"
+ARG GEOLIB_VERSION="2.5.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
     dpkg -i geolib_${GEOLIB_VERSION}_arm64.deb && \
     rm geolib_${GEOLIB_VERSION}_arm64.deb
 
 # Install Libdatachannel
-ARG LIBDATACHANNEL_VERSION="0.22.5"
+ARG LIBDATACHANNEL_VERSION="0.23.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
@@ -142,19 +165,19 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotpl
     rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb
 
 # Install PointCloudLibrary
-ARG PCL_VERSION="1.15.0"
+ARG PCL_VERSION="1.15.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/arm64/pcl_${PCL_VERSION}_arm64.deb && \
     dpkg -i pcl_${PCL_VERSION}_arm64.deb && \
     rm pcl_${PCL_VERSION}_arm64.deb
 
 # Install Quill
-ARG QUILL_VERSION="9.0.2"
+ARG QUILL_VERSION="10.1.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/arm64/quill_${QUILL_VERSION}_arm64.deb && \
     dpkg -i quill_${QUILL_VERSION}_arm64.deb && \
     rm quill_${QUILL_VERSION}_arm64.deb
 
 # Install Google Test
-ARG GTEST_VERSION="1.16.0"
+ARG GTEST_VERSION="1.17.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm64/gtest_${GTEST_VERSION}_arm64.deb && \
     dpkg -i gtest_${GTEST_VERSION}_arm64.deb && \
     rm gtest_${GTEST_VERSION}_arm64.deb

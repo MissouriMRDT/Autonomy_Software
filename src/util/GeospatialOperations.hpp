@@ -183,6 +183,21 @@ namespace geoops
              * @date 2024-02-04
              ******************************************************************************/
             bool operator!=(const GPSCoordinate& stOtherCoordinate) const { return !this->operator==(stOtherCoordinate); }
+
+            /******************************************************************************
+             * @brief Converts the GPSCoordinate to a string representation.
+             *
+             * @return std::string - The string representation of the GPSCoordinate.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2024-02-04
+             ******************************************************************************/
+            std::string ToString() const
+            {
+                std::ostringstream oss;
+                oss << "Latitude: " << dLatitude << ", Longitude: " << dLongitude << ", Altitude: " << dAltitude;
+                return oss.str();
+            }
     };
 
     /******************************************************************************
@@ -289,6 +304,21 @@ namespace geoops
              * @date 2024-02-04
              ******************************************************************************/
             bool operator!=(const UTMCoordinate& stOtherCoordinate) const { return !this->operator==(stOtherCoordinate); }
+
+            /******************************************************************************
+             * @brief Converts the UTMCoordinate to a string representation.
+             *
+             * @return std::string - A string representation of the UTMCoordinate.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2025-07-31
+             ******************************************************************************/
+            std::string ToString() const
+            {
+                std::ostringstream oss;
+                oss << "Easting: " << dEasting << ", Northing: " << dNorthing << ", Altitude: " << dAltitude;
+                return oss.str();
+            }
     };
 
     /******************************************************************************

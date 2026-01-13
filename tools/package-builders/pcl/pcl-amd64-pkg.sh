@@ -1,10 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set Working Directory
 cd /tmp
 
 # Install Variables
-PCL_VERSION="1.15.0"
+PCL_VERSION="1.15.1"
 PCL_INTERMEDIATE="1.15"
 
 # Build Arguments
@@ -37,6 +38,15 @@ done
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64/pcl_${PCL_VERSION}_amd64.deb"
 
+# Helper: safely write GitHub Actions outputs if available, otherwise echo
+gh_out() {
+    if [[ -n "${GITHUB_OUTPUT-}" ]]; then
+        echo "$1" >> "$GITHUB_OUTPUT"
+    else
+        echo "$1"
+    fi
+}
+
 # Download the latest version
 if [[ "$DOWNLOAD_LATEST" == true ]]; then
     echo "Downloading the latest version..."
@@ -50,23 +60,23 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     curl -L $FILE_URL --output /tmp/pkg/deb/pcl_${PCL_VERSION}_amd64.deb
 
     # Exit the script
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 fi
 
 # Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${PCL_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 else
     if [[ "$CHECK_PACKAGE" == true ]]; then
         echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         exit 1
     else
         echo "Package version ${PCL_VERSION} does not exist in the repository. Building the package."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         
         # Delete Old Packages
         rm -rf /tmp/pkg
@@ -87,21 +97,24 @@ else
             echo "Description: A prebuilt version of pcl. Made by the Mars Rover Design Team."
         } > /tmp/pkg/pcl_${PCL_VERSION}_amd64/DEBIAN/control
 
-        # Download LibDataChannel
+        # Download PointCloudLibrary
         git clone --recurse-submodules --depth 1 --branch pcl-${PCL_VERSION} https://github.com/PointCloudLibrary/pcl.git pcl
         mkdir pcl/build
         cd pcl/build
 
-        # Build LibDataChannel
+        # Build PointCloudLibrary
         cmake \
         -D CMAKE_INSTALL_PREFIX=/tmp/pkg/pcl_${PCL_VERSION}_amd64/usr/local \
         -D BUILD_GPU=ON \
         -D BUILD_CUDA=ON \
         -D WITH_CUDA=ON \
         -D BUILD_examples=ON \
+        -D BUILD_apps=ON \
+        -D WITH_QT=OFF \
+        -D QT_VERSION_MAJOR=6 \
         -D CMAKE_BUILD_TYPE=Release ..
 
-        # Install LibDataChannel
+        # Install PointCloudLibrary
         make
         make install
 

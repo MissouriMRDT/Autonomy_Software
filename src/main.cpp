@@ -210,11 +210,24 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pCameraHandler          = new CameraHandler();
         globals::g_pWaypointHandler        = new WaypointHandler();
+        globals::g_pLiDARHandler           = new LiDARHandler();
+        globals::g_pCameraHandler          = new CameraHandler();
         globals::g_pTagDetectionHandler    = new TagDetectionHandler();
         globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
         globals::g_pStateMachineHandler    = new StateMachineHandler();
+
+        // Initialize GeoPlanner.
+        globals::g_pGeoPlanner = new pathplanners::GeoPlanner(constants::GEOPLANNER_TILE_SIZE);
+
+        // Open the LiDAR database.
+        if (!globals::g_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to open LiDAR database.");
+            // Stop main loop.
+            bMainStop = true;
+        }
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
@@ -291,6 +304,8 @@ int main()
                                    "\n--------[ Autonomy Software Help ]--------\n"
                                    "Press 'f' or 'F' to print FPS stats to the log file.\n"
                                    "Press 'p' or 'P' to print rover pose info to the log file.\n"
+                                   "Press 's' or 'S' to print sensor data to the log file.\n"
+                                   "Press 'd' or 'D' to print current drive powers.\n"
                                    "Press 't' or 'T' to print tag detection info to the log file.\n"
                                    "Press 'm' or 'M' to print object detection info to the log file.\n"
                                    "Press 'q' or 'Q' to quit the program.\n"
@@ -303,7 +318,7 @@ int main()
                     else if (chTerminalInput == 'p' || chTerminalInput == 'P')
                     {
                         // Get the rover pose from the waypoint handler.
-                        geoops::RoverPose stCurrentRoverPose = globals::g_pWaypointHandler->SmartRetrieveRoverPose();
+                        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
                         // Assemble a string to print containing data about the rover pose.
                         std::string szRoverPoseInfo = "\n--------[ Rover Pose Info ]--------\n";
                         szRoverPoseInfo += "Easting: " + std::to_string(stCurrentRoverPose.GetUTMCoordinate().dEasting) + "\n";
@@ -312,6 +327,41 @@ int main()
                         szRoverPoseInfo += "Compass: " + std::to_string(stCurrentRoverPose.GetCompassHeading()) + "\n";
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "{}", szRoverPoseInfo);
+                    }
+                    else if (chTerminalInput == 's' || chTerminalInput == 'S')
+                    {
+                        // Get the sensor data from the navigation board.
+                        sl::SensorsData slSensorData;
+                        std::future<bool> fuResult = pMainCam->RequestSensorsCopy(slSensorData);
+
+                        // Wait for the data to be copied.
+                        if (fuResult.get())
+                        {
+                            // Assemble a string to print containing data about the sensor data.
+                            std::string szSensorDataInfo = "\n--------[ Sensor Data Info ]--------\n";
+                            szSensorDataInfo += "IMU Accel X: " + std::to_string(slSensorData.imu.linear_acceleration.x) + "\n";
+                            szSensorDataInfo += "IMU Accel Y: " + std::to_string(slSensorData.imu.linear_acceleration.y) + "\n";
+                            szSensorDataInfo += "IMU Accel Z: " + std::to_string(slSensorData.imu.linear_acceleration.z) + "\n";
+                            szSensorDataInfo += "IMU AngVel X: " + std::to_string(slSensorData.imu.angular_velocity.x) + "\n";
+                            szSensorDataInfo += "IMU AngVel Y: " + std::to_string(slSensorData.imu.angular_velocity.y) + "\n";
+                            szSensorDataInfo += "IMU AngVel Z: " + std::to_string(slSensorData.imu.angular_velocity.z) + "\n";
+                            szSensorDataInfo += "IMU Gyro X:" + std::to_string(slSensorData.imu.pose.getEulerAngles(false).x) + "\n";
+                            szSensorDataInfo += "IMU Gyro Y: " + std::to_string(slSensorData.imu.pose.getEulerAngles(false).y) + "\n";
+                            szSensorDataInfo += "IMU Gyro Z: " + std::to_string(slSensorData.imu.pose.getEulerAngles(false).z) + "\n";
+                            // Submit logger message.
+                            LOG_NOTICE(logging::g_qSharedLogger, "{}", szSensorDataInfo);
+                        }
+                    }
+                    else if (chTerminalInput == 'd' || chTerminalInput == 'D')
+                    {
+                        // Get the current drive powers from the drive board.
+                        diffdrive::DrivePowers stCurrentDrivePowers = globals::g_pDriveBoard->GetDrivePowers();
+                        // Assemble a string to print containing data about the drive powers.
+                        std::string szDrivePowersInfo = "\n--------[ Drive Powers Info ]--------\n";
+                        szDrivePowersInfo += "Left Power: " + std::to_string(stCurrentDrivePowers.dLeftDrivePower) + "\n";
+                        szDrivePowersInfo += "Right Power: " + std::to_string(stCurrentDrivePowers.dRightDrivePower) + "\n";
+                        // Submit logger message.
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szDrivePowersInfo);
                     }
                     else if (chTerminalInput == 't' || chTerminalInput == 'T')
                     {
@@ -484,18 +534,26 @@ int main()
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
 
+        // Close the LiDAR database.
+        globals::g_pLiDARHandler->CloseDB();
+
+        // Cleanup GeoPlanner.
+        delete globals::g_pGeoPlanner;
         // Cleanup handlers.
         delete globals::g_pStateMachineHandler;
         delete globals::g_pObjectDetectionHandler;
         delete globals::g_pTagDetectionHandler;
         delete globals::g_pCameraHandler;
         delete globals::g_pWaypointHandler;
+        delete globals::g_pLiDARHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
+        globals::g_pGeoPlanner             = nullptr;
         globals::g_pStateMachineHandler    = nullptr;
         globals::g_pObjectDetectionHandler = nullptr;
         globals::g_pTagDetectionHandler    = nullptr;
         globals::g_pCameraHandler          = nullptr;
         globals::g_pWaypointHandler        = nullptr;
+        globals::g_pLiDARHandler           = nullptr;
     }
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.

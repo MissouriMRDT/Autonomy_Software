@@ -1,10 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set Working Directory
 cd /tmp
 
 # Install Variables
-TORCH_VERSION="2.6.0"
+TORCH_VERSION="2.8.0"
 TORCH_CUDA_VERSION="cu126"
 
 # Build Arguments
@@ -37,6 +38,15 @@ done
 # Define Package URL
 FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb"
 
+# Helper: safely write GitHub Actions outputs if available, otherwise echo
+gh_out() {
+    if [[ -n "${GITHUB_OUTPUT-}" ]]; then
+        echo "$1" >> "$GITHUB_OUTPUT"
+    else
+        echo "$1"
+    fi
+}
+
 # Download the latest version
 if [[ "$DOWNLOAD_LATEST" == true ]]; then
     echo "Downloading the latest version..."
@@ -50,23 +60,23 @@ if [[ "$DOWNLOAD_LATEST" == true ]]; then
     curl -L $FILE_URL --output /tmp/pkg/deb/pytorch_${TORCH_VERSION}_arm64.deb
 
     # Exit the script
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 fi
 
 # Check if the file exists
 if [[ "$FORCE_BUILD" == false ]] && curl --output /dev/null --silent --head --fail "$FILE_URL"; then
     echo "Package version ${TORCH_VERSION} already exists in the repository. Skipping build."
-    echo "rebuilding_pkg=false" >> $GITHUB_OUTPUT
+    gh_out "rebuilding_pkg=false"
     exit 0
 else
     if [[ "$CHECK_PACKAGE" == true ]]; then
         echo "Package version ${FFMPEG_VERSION} does not exist in the repository. We're in check mode, so we're exiting with status 1."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
         exit 1
     else
         echo "Package version ${TORCH_VERSION} does not exist in the repository. Building the package."
-        echo "rebuilding_pkg=true" >> $GITHUB_OUTPUT
+        gh_out "rebuilding_pkg=true"
 
         # Install dependencies.
         apt update && apt install -y python3-numpy python-is-python3
@@ -98,7 +108,13 @@ else
         # mkdir pytorch-build
         mkdir -p /tmp/pytorch-build && cd /tmp/pytorch-build    
         # Build Torch
-        cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release -DPYTHON_EXECUTABLE:PATH=`which python3` -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install ../pytorch
+        cmake \
+        -DBUILD_SHARED_LIBS:BOOL=ON \
+        -DCMAKE_BUILD_TYPE:STRING=Release \
+        -DUSE_NCCL=OFF \
+        -DPYTHON_EXECUTABLE:PATH=`which python3` \
+        -DCMAKE_INSTALL_PREFIX:PATH=../pytorch-install \
+        ../pytorch
 
         # Install Torch
         cmake --build . --target install

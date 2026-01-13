@@ -15,6 +15,7 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 #include "../AutonomyNetworking.h"
+#include "../vision/cameras/ZEDCam.h"
 
 /// \cond
 #include <RoveComm/RoveCommManifest.h>
@@ -33,8 +34,8 @@ DriveBoard::DriveBoard()
     // Initialize member variables.
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
-    m_fMinDriveEffort                = constants::DRIVE_MIN_EFFORT;
-    m_fMaxDriveEffort                = constants::DRIVE_MAX_EFFORT;
+    m_fMinDriveEffort                = constants::DRIVE_MIN_POWER;
+    m_fMaxDriveEffort                = constants::DRIVE_MAX_POWER;
 
     // Configure PID controller for heading hold function.
     m_pPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
@@ -120,6 +121,9 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     float fDriveBoardLeftPower  = 0.0;
     float fDriveBoardRightPower = 0.0;
 
+    float fMultiplier           = VariableDriveEffort();
+    SetMaxDriveEffort(fMultiplier);
+
     // If the min and max drive effort have been set to 0, then just send zero powers.
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
     {
@@ -127,8 +131,8 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
         double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
         double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
         // Limit the power to max and min effort defined in constants.
-        fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
-        fDriveBoardRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_EFFORT, constants::DRIVE_MAX_EFFORT);
+        fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
         // Update member variables with new target speeds.
         m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
         m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
@@ -185,9 +189,60 @@ void DriveBoard::SendStop()
 }
 
 /******************************************************************************
+ * @brief This method calculates a multiplier that is applied to
+ *      SetMaxDriveEffort() to adjust the speed of the rover in relation to the
+ *      risk of the terrain.
+ *
+ * @return fMultiplier - A multiplier value between m_fMinDamp and m_fMaxDamp
+ *
+ * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+ * @date 2026-01-10
+ ******************************************************************************/
+float DriveBoard::VariableDriveEffort()
+{
+    // Get pointer to camera.
+    std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    // Declare data structures to store data in.
+    sl::SensorsData slSensorData;
+
+    // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
+    std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
+    float fMultiplier              = 1;
+
+    // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
+    if (fuCopyStatus.get())
+    {
+        // Declare roll, pitch, yaw from sensor data
+        float fRoll  = fabs(slSensorData.imu.pose.getEulerAngles(false).z);
+        float fPitch = fabs(slSensorData.imu.pose.getEulerAngles(false).x);
+        float fYaw   = slSensorData.imu.pose.getEulerAngles(false).y;
+
+        // Calculate the risk factor to be applied to the linear polarization equation
+        float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
+
+        // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
+        if (fTheta <= m_fMinSlope)
+            fMultiplier = m_fMaxDamp;
+        if (fTheta >= m_fMaxSlope)
+            fMultiplier = m_fMinDamp;
+
+        // Calculate multiplier using linear polarization
+        const float fK = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
+        float fD       = m_fMaxDamp - fK * (fTheta - m_fMinSlope);
+
+        // Return multiplier
+        fMultiplier = std::clamp(fD, m_fMinDamp, m_fMaxDamp);
+
+        SetMaxDriveEffort(fMultiplier);
+    }
+
+    return fMultiplier;
+}
+
+/******************************************************************************
  * @brief Set the max power limits of the drive.
  *
- * @param fMinDriveEffort - A multiplier from 0-1 for the max power output of the drive.
+ * @param fMaxDriveEffortMultiplier - A multiplier from 0-1 for the max power output of the drive.
  *              Multiplier will be applied to constants::DRIVE_MIN_POWER and constants::DRIVE_MAX_POWER.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)

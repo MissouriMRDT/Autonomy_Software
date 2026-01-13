@@ -82,11 +82,6 @@ class WaypointHandler
         int GetPathsCount();
         int GetObstaclesCount();
 
-        // Smart location retrieving.
-        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOHeading = true, bool bVIOTracking = false);
-        double SmartRetrieveVelocity();
-        double SmartRetrieveAngularVelocity();
-
     private:
         /////////////////////////////////////////
         // Declare private member variables.
