@@ -275,113 +275,206 @@ namespace filters
         Eigen::Matrix<double, 15, 15> eiImKH = eiI - (eiK * eiH);
 
         m_eiErrorStateCov                    = eiImKH * m_eiErrorStateCov * eiImKH.transpose() + (eiK * eiR * eiK.transpose());
+    }
 
-        /******************************************************************************
-         * @brief This will convert a GPS coordinate into ENU.
-         *
-         * @param stCoord - The GPS coordinate.
-         * @return Eigen::Vector3d - The ENU vector.
-         *
-         * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-         * @date 2025-10-22
-         ******************************************************************************/
-        Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord)
+    /******************************************************************************
+     * @brief This will update our compass, or heading.
+     *
+     * @param dHeading - The rover's current heading.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-01-12
+     ******************************************************************************/
+    void ExtendedKalmanFilter::UpdateCompass(const double dHeading)
+    {
+        if (!m_bHasInitialGuess)
         {
-            // If we haven't set an origin, use the first point we see or the one passed in constructor.
-            if (!m_bOriginSet)
-            {
-                m_stOriginGPS = stCoord;
-                m_bOriginSet  = true;
-                return Eigen::Vector3d::Zero();
-            }
-
-            double dEarthRadius = 6378137.0;
-
-            double dLat         = (stCoord.dLatitude - m_stOriginGPS.dLatitude) * M_PI / 180.0;
-            double dLon         = (stCoord.dLongitude - m_stOriginGPS.dLongitude) * M_PI / 180.0;
-            double avgLat       = (stCoord.dLatitude + m_stOriginGPS.dLatitude) * 0.5 * M_PI / 180.0;
-
-            // Converting to ENU (East, North, Up)
-            double dx = dEarthRadius * dLon * cos(avgLat);              // East
-            double dy = dEarthRadius * dLat;                            // North
-            double dz = stCoord.dAltitude - m_stOriginGPS.dAltitude;    // Up
-
-            return Eigen::Vector3d(dx, dy, dz);
+            return;
         }
 
-        /******************************************************************************
-         * @brief Converts a RoverPose to orientation quaternion.
-         *
-         * @param stPose - The current RoverPose.
-         * @param eiOrientation - The orientation quaternion.
-         *
-         * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-         * @date 2025-10-03
-         ******************************************************************************/
-        void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
+        // Convert measurement to ENU frame.
+        double dYawMeas = (90.0 - dHeading) * M_PI / 180.0;
+
+        // Normalize.
+        dYawMeas = std::atan2(std::sin(dYawMeas), std::cos(dYawMeas));
+
+        // Extract predicted yaw from state.
+        Eigen::Quaterniond q = m_stCurrentState.eiOrientation;
+        double dYawPred      = std::atan2(2.0 * (q.w() * q.z() + q.x() * q.y()), 1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z()));
+
+        // Calculate Innovation / Residual (y).
+        double dResidual = dYawMeas - dYawPred;
+
+        // Handle angle wrapping.
+        while (dResidual > M_PI)
         {
-            //  Convert heading to orientation quaternion
-            double dHeading = stPose.GetCompassHeading();
-            eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
+            dResidual -= 2.0 * M_PI;
         }
 
-        /******************************************************************************
-         * @brief Converts a RoverPose to position vector.
-         *
-         * @param stPose - The current RoverPose.
-         * @param eiPosition - The position vector.
-         *
-         * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-         * @date 2025-10-03
-         ******************************************************************************/
-        void ExtendedKalmanFilter::RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const
+        while (dResidual < -M_PI)
         {
-            // Convert GPSCoordinate to position vector
-            eiPosition(0) = stPose.GetGPSCoordinate().dLatitude;
-            eiPosition(1) = stPose.GetGPSCoordinate().dLongitude;
-            eiPosition(2) = stPose.GetGPSCoordinate().dAltitude;
+            dResidual += 2.0 * M_PI;
         }
 
-        /******************************************************************************
-         * @brief This method will take a vector as an input and output a skew-symmetric matrix.
-         *
-         * @param eiVec - The input vector (can be any vector)
-         * @return Eigen::Matrix3d - The skew symmetric matrix.
-         *
-         * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-         * @date 2025-11-24
-         ******************************************************************************/
-        Eigen::Matrix3d ExtendedKalmanFilter::MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec)
+        // Set up measurement noise (R).
+        double dSigmaCompass = 5.0 * M_PI / 180.0;
+        double dR            = dSigmaCompass * dSigmaCompass;
+
+        // Build observation Jacobian (H).
+        Eigen::Matrix<double, 1, 15> eiH = Eigen::Matrix<double, 1, 15>::Zero();
+        eiH(0, 5)                        = 1.0;
+
+        // Calculate innovation covariance (S).
+        double dS = m_eiErrorStateCov(5, 5) + dR;
+
+        // Mahalanobis Gate.
+        double dMahalanobis = (dResidual * dResidual) / dS;
+        if (dMahalanobis > 6.63)
         {
-            Eigen::Matrix3d eiSkew;
-            // I promise you that this looks prettier before the auto-format
-            eiSkew << 0, -eiVec.z(), eiVec.y(), eiVec.z(), 0, -eiVec.x(), -eiVec.y(), eiVec.x(), 0;
-            return eiSkew;
+            return;    // Reject magnetic anomaly.
         }
 
-        /******************************************************************************
-         * @brief Returns the current state snapshot.
-         *
-         * @return const ExtendedKalmanFilter::XStateSnapshot& - The current state snapshot.
-         *
-         * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-         * @date 2025-11-26
-         ******************************************************************************/
-        const ExtendedKalmanFilter::XStateSnapshot ExtendedKalmanFilter::GetCurrentState() const
+        // Calculate Kalman gain (K).
+        Eigen::VectorXd eiK = m_eiErrorStateCov.col(5) / dS;
+
+        // Compute correction (dx).
+        Eigen::VectorXd eiDx = eiK * dResidual;
+
+        // Apply state corrections.
+        // Position update.
+        m_stCurrentState.eiPosition += eiDx.block<3, 1>(0, 0);
+
+        // Velocity update.
+        m_stCurrentState.eiVelocity += eiDx.block<3, 1>(6, 0);
+
+        // Accel and gyro bias updates.
+        m_stCurrentState.eiAccelBias += eiDx.block<3, 1>(9, 0);
+        m_stCurrentState.eiGyroBias += eiDx.block<3, 1>(12, 0);
+
+        // Orientation update.
+        Eigen::Vector3d eiThetaErr = eiDx.block<3, 1>(3, 0);
+        Eigen::Quaterniond eiDq;
+        eiDq.w() = 1.0;
+        eiDq.x() = 0.5 * eiThetaErr.x();
+        eiDq.y() = 0.5 * eiThetaErr.y();
+        eiDq.z() = 0.5 * eiThetaErr.z();
+        eiDq.normalize();
+
+        m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
+
+        // Update covariance matrix (P).
+        Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();
+        Eigen::Matrix<double, 15, 15> eiImKH = eiI - (eiK * eiH);
+
+        m_eiErrorStateCov                    = eiImKH * m_eiErrorStateCov * eiImKH.transpose() + eiK * dR * eiK.transpose();
+    }
+
+    /******************************************************************************
+     * @brief This will convert a GPS coordinate into ENU.
+     *
+     * @param stCoord - The GPS coordinate.
+     * @return Eigen::Vector3d - The ENU vector.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-22
+     ******************************************************************************/
+    Eigen::Vector3d ExtendedKalmanFilter::ConvertGPSToENU(const geoops::GPSCoordinate& stCoord)
+    {
+        // If we haven't set an origin, use the first point we see or the one passed in constructor.
+        if (!m_bOriginSet)
         {
-            return m_stCurrentState;
+            m_stOriginGPS = stCoord;
+            m_bOriginSet  = true;
+            return Eigen::Vector3d::Zero();
         }
 
-        /******************************************************************************
-         * @brief Destroy the Extended Kalman Filter:: Extended Kalman Filter object.
-         *
-         *
-         * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-         * @date 2025-11-26
-         ******************************************************************************/
-        ExtendedKalmanFilter::~ExtendedKalmanFilter()
-        {
-            // Nothing yet
-        }
+        double dEarthRadius = 6378137.0;
 
-    }    // namespace filters
+        double dLat         = (stCoord.dLatitude - m_stOriginGPS.dLatitude) * M_PI / 180.0;
+        double dLon         = (stCoord.dLongitude - m_stOriginGPS.dLongitude) * M_PI / 180.0;
+        double avgLat       = (stCoord.dLatitude + m_stOriginGPS.dLatitude) * 0.5 * M_PI / 180.0;
+
+        // Converting to ENU (East, North, Up)
+        double dx = dEarthRadius * dLon * cos(avgLat);              // East
+        double dy = dEarthRadius * dLat;                            // North
+        double dz = stCoord.dAltitude - m_stOriginGPS.dAltitude;    // Up
+
+        return Eigen::Vector3d(dx, dy, dz);
+    }
+
+    /******************************************************************************
+     * @brief Converts a RoverPose to orientation quaternion.
+     *
+     * @param stPose - The current RoverPose.
+     * @param eiOrientation - The orientation quaternion.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-03
+     ******************************************************************************/
+    void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
+    {
+        //  Convert heading to orientation quaternion
+        double dHeading = stPose.GetCompassHeading();
+        eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
+    }
+
+    /******************************************************************************
+     * @brief Converts a RoverPose to position vector.
+     *
+     * @param stPose - The current RoverPose.
+     * @param eiPosition - The position vector.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-10-03
+     ******************************************************************************/
+    void ExtendedKalmanFilter::RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const
+    {
+        // Convert GPSCoordinate to position vector
+        eiPosition(0) = stPose.GetGPSCoordinate().dLatitude;
+        eiPosition(1) = stPose.GetGPSCoordinate().dLongitude;
+        eiPosition(2) = stPose.GetGPSCoordinate().dAltitude;
+    }
+
+    /******************************************************************************
+     * @brief This method will take a vector as an input and output a skew-symmetric matrix.
+     *
+     * @param eiVec - The input vector (can be any vector)
+     * @return Eigen::Matrix3d - The skew symmetric matrix.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-11-24
+     ******************************************************************************/
+    Eigen::Matrix3d ExtendedKalmanFilter::MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec)
+    {
+        Eigen::Matrix3d eiSkew;
+        // I promise you that this looks prettier before the auto-format
+        eiSkew << 0, -eiVec.z(), eiVec.y(), eiVec.z(), 0, -eiVec.x(), -eiVec.y(), eiVec.x(), 0;
+        return eiSkew;
+    }
+
+    /******************************************************************************
+     * @brief Returns the current state snapshot.
+     *
+     * @return const ExtendedKalmanFilter::XStateSnapshot& - The current state snapshot.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-11-26
+     ******************************************************************************/
+    const ExtendedKalmanFilter::XStateSnapshot ExtendedKalmanFilter::GetCurrentState() const
+    {
+        return m_stCurrentState;
+    }
+
+    /******************************************************************************
+     * @brief Destroy the Extended Kalman Filter:: Extended Kalman Filter object.
+     *
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2025-11-26
+     ******************************************************************************/
+    ExtendedKalmanFilter::~ExtendedKalmanFilter()
+    {
+        // Nothing yet
+    }
+
+}    // namespace filters
