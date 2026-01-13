@@ -561,7 +561,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bVIOHeading, 
         {
             LOG_WARNING_LIMIT(std::chrono::seconds(5),
                               logging::g_qSharedLogger,
-                              "Positional tracking is not enabled or camera is not open! Using NavBoard GPS data for rover pose...");
+                              "Positional tracking is NOT ENABLED, NOT STABLE, or camera is NOT OPEN! Using NavBoard GPS data for rover pose...");
         }
     }
 
