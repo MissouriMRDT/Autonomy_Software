@@ -362,3 +362,147 @@ void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
         }
     }
 }
+
+/******************************************************************************
+ * @brief Modifies all LiDAR points in radius to reflect bad terrain
+ *
+ * @param stPoint - Center UTM coordinate of obstacle
+ * @param dRadius - Radius of obstacle
+ * @return true - If the data points were successfully modified.
+ * @return false - If the modification failed.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Nolte (samnolte0302@gmail.com)
+ * @date 2025-1-12
+ ******************************************************************************/
+bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dRadius)
+{
+    // Acquire a write lock on the mutex to ensure thread safety.
+    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+
+    // Check if the database is open.
+    if (!m_bIsDBOpen)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Database is not open.");
+        return false;
+    }
+
+    // Prepare the SQL statements for inserting data.
+    // TODO: Experiment with the more circle-like combination of shapes vs execution time
+    const char* pSQL            = R"(
+        UPDATE ProcessedLiDARPoints
+        SET trav-score = 0.0
+        WHERE
+        (
+            easting > ?
+            AND easting < ?
+            AND northing > ?
+            AND northing < ?
+        )
+        OR
+        (
+            easting > ?
+            AND easting < ?
+            AND northing > ?
+            AND northing < ?
+        )
+    )";
+
+    sqlite3_stmt* sqlDeleteSTMT = nullptr;
+    int nRC                     = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlDeleteSTMT, nullptr);
+    if (nRC != SQLITE_OK)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        return false;
+    }
+
+    double dH = dRadius * sin(2.0 / 6.0 * M_PI);
+    double dK = dRadius * cos(2.0 / 6.0 * M_PI);
+
+    sqlite3_bind_double(sqlDeleteSTMT, 1, stPoint.dEasting - dK);
+    sqlite3_bind_double(sqlDeleteSTMT, 2, stPoint.dEasting + dK);
+    sqlite3_bind_double(sqlDeleteSTMT, 3, stPoint.dNorthing - dH);
+    sqlite3_bind_double(sqlDeleteSTMT, 4, stPoint.dNorthing + dH);
+    sqlite3_bind_double(sqlDeleteSTMT, 5, stPoint.dEasting - dH);
+    sqlite3_bind_double(sqlDeleteSTMT, 6, stPoint.dEasting + dH);
+    sqlite3_bind_double(sqlDeleteSTMT, 7, stPoint.dNorthing - dK);
+    sqlite3_bind_double(sqlDeleteSTMT, 8, stPoint.dNorthing + dK);
+
+    // Execute the statement.
+    nRC = sqlite3_step(sqlDeleteSTMT);
+    if (nRC != SQLITE_DONE)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
+        sqlite3_finalize(sqlDeleteSTMT);
+        return false;
+    }
+
+    // Finalize the statement.
+    sqlite3_finalize(sqlDeleteSTMT);
+
+    // // Prepare the SQL statements for inserting data.
+    // const char* pSQL            = R"(
+    //     INSERT INTO ProcessedLiDARPoints (easting, northing, altitude, zone, classification, normal_x, normal_y, normal_z, slope, rough, curvature, trav_score)
+    //     VALUES (?, ?, ?, ?, ?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    // )";
+
+    // sqlite3_stmt* sqlInsertSTMT = nullptr;
+    // int nRC                     = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlInsertSTMT, nullptr);
+    // if (nRC != SQLITE_OK)
+    // {
+    //     LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+    //     return false;
+    // }
+
+    // // Add a couple points around the circle
+    // double dPercentDist   = 0.90;
+    // double dOffsets[9][2] = {
+    //     {-dPercentDist / sqrt(2), dPercentDist / sqrt(2)},     // top-left
+    //     {0, dPercentDist},                                     // top-middle
+    //     {dPercentDist / sqrt(2), dPercentDist / sqrt(2)},      // top-right
+    //     {-dPercentDist, 0},                                    // middle-left
+    //     {0, 0},                                                // middle-middle
+    //     {dPercentDist, 0},                                     // middle-right
+    //     {-dPercentDist / sqrt(2), -dPercentDist / sqrt(2)},    // bottom-left
+    //     {0, -dPercentDist},                                    // bottom-middle
+    //     {dPercentDist / sqrt(2), -dPercentDist / sqrt(2)}      // middle-right
+    // };
+
+    // // Process the input waypoints into PointRow structures.
+    // std::vector<PointRow> vProcessedPoints;
+    // for (int i = 0; i < 9; ++i)
+    // {
+    //     PointRow point;
+    //     point.dEasting         = stWaypoint.GetUTMCoordinate().dEasting + dRadius * dOffset[i][0];
+    //     point.dNorthing        = stWaypoint.GetUTMCoordinate().dNorthing + dRadius * dOffset[i][1];
+    //     point.dAltitude        = stWaypoint.GetUTMCoordinate().dAltitude;
+    //     point.szZone           = std::to_string(stWaypoint.GetUTMCoordinate().nZone) + (stWaypoint.GetUTMCoordinate().bWithinNorthernHemisphere ? "N" : "S");
+    //     point.szClassification = "obstacle";
+    //     vProcessedPoints.push_back(point);
+    // }
+
+    // // Bind parameters for each point.
+    // for (const PointRow& point : vProcessedPoints)
+    // {
+    //     sqlite3_bind_double(sqlInsertSTMT, 1, point.dEasting);
+    //     sqlite3_bind_double(sqlInsertSTMT, 2, point.dNorthing);
+    //     sqlite3_bind_double(sqlInsertSTMT, 3, point.dAltitude);
+    //     sqlite3_bind_text(sqlInsertSTMT, 4, point.szZone.c_str(), -1, SQLITE_STATIC);
+    //     sqlite3_bind_text(sqlInsertSTMT, 5, point.szClassification.c_str(), -1, SQLITE_STATIC);
+
+    //     // Execute the statement.
+    //     nRC = sqlite3_step(sqlInsertSTMT);
+    //     if (nRC != SQLITE_DONE)
+    //     {
+    //         LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
+    //         sqlite3_finalize(sqlInsertSTMT);
+    //         return false;
+    //     }
+
+    //     // Reset the statement for the next iteration.
+    //     sqlite3_reset(sqlInsertSTMT);
+    // }
+
+    // // Finalize the statement.
+    // sqlite3_finalize(sqlInsertSTMT);
+    return true;
+}

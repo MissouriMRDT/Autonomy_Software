@@ -114,8 +114,7 @@ namespace statemachine
         stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
         // Insert obstacle into lidar data
-        // TODO: How to change traversal score??
-        LiDARHandler::InsertLiDARData({stObstaclePosition});
+        LiDARHandler::DeclareLiDARObstacle(geoops::ConvertGPSToUTM(stObstaclePosition), constants::STUCK_OBSTACLE_RADIUS);
         // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
 
         // Check if we are unstuck from our starting spot.
