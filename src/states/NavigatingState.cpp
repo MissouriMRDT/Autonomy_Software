@@ -137,25 +137,41 @@ namespace statemachine
             stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
             // Remove all points that are in stuck zone
+            geoops::UTMCoordinate stSpliceStartCoordinate = NULL;
             for (int i = 0; i < m_vPathCoordinates.size; i++)
             {
+                // If path coord is inside stuck zone, then remove it
                 if (abs(m_vPathCoordinates[i].GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
                     abs(m_vPathCoordinates[i].GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
                 {
+                    if (stSpliceStartCoordinate = NULL)
+                        stSpliceStartCoordinate = m_vPathCoordinates[i].GetUTMCoordinate();
                     m_vPathCoordinates.erase(i);
                     --i;
                 }
-                // TODO: maybe break when condition is false
+                // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
+                else if (stSpliceStartCoordinate != NULL)
+                {
+                    geoops::UTMCoordinate stSpliceGoalCoordinate = m_vPathCoordinates[i].GetUTMCoordinate();
+                    // Plan a new path to the next remaining path node
+                    std::vector<geoops::Waypoint> vSplicePathCoordinates =
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stSpliceStartCoordinate, stSpliceGoalCoordinate);
+                    // Append new path to front
+                    m_vPathCoordinates.insert(m_vPathCoordinates.begin() + i + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
+                    stSpliceStartCoordinate = NULL;
+                }
+            }
+            if (stSpliceStartCoordinate != NULL)
+            {
+                geoops::UTMCoordinate stSpliceGoalCoordinate = m_stGoalWaypoint.GetUTMCoordinate();
+                // Plan a new path to the next remaining path node
+                std::vector<geoops::Waypoint> vSplicePathCoordinates =
+                    globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stSpliceStartCoordinate, stSpliceGoalCoordinate);
+                // Append new path to front
+                m_vPathCoordinates.insert(m_vPathCoordinates.begin() + i + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
             }
 
-            geoops::UTMCoordinate stSpliceGoalCoordinate = (m_vPathCoordinates.size != 0) ? m_vPathCoordinates[0] : m_stGoalWaypoint;
-
-            // Plan a new path to the next remaining path node
-            std::vector<geoops::Waypoint> vSplicePathCoordinates =
-                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stSpliceGoalCoordinate.GetUTMCoordinate());
-            // Append new path to front
-            m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
-
+            // Hopefully this part works
             m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
         }
