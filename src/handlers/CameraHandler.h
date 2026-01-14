@@ -77,7 +77,7 @@ class CameraHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ZEDCamera> GetZED(ZEDCamName eCameraName);
-        // std::shared_ptr<BasicCamera> GetBasicCam(BasicCamName eCameraName);  // Uncomment if need basic cam.
+        std::shared_ptr<BasicCamera> GetBasicCam(BasicCamName eCameraName);
 };
 
 #endif

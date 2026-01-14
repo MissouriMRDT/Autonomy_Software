@@ -32,7 +32,7 @@ class ObjectDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ObjectDetector> m_pObjectDetectorMainCam;
-        td::shared_ptr<ObjectDetector> m_pObjectDetectorRearCam;
+        std::shared_ptr<ObjectDetector> m_pObjectDetectorRearCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:

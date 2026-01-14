@@ -196,10 +196,9 @@ namespace constants
     const bool ZED_REARCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_REARCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const bool ZED_REARCAM_FUSION_MASTER            = false;    // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
-    const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 10;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
-    // TODO: Update serial val whenever camera obtained.
-    const int ZED_REARCAM_SERIAL = 999999999;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
+    const bool ZED_REARCAM_FUSION_MASTER            = false;       // Whether or not this camera will host the master instance of the ZEDSDK Fusion capabilities.
+    const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_REARCAM_SERIAL                    = 39163798;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
 
     // Basic Cam.
     const int BASICCAM_CAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.

@@ -197,7 +197,7 @@ namespace constants
     extern const int ZED_REARCAM_RESOLUTIONY;
     extern const int ZED_REARCAM_FPS;
     extern const int ZED_REARCAM_HORIZONTAL_FOV;
-    extern const int ZED_RearCAM_VERTICAL_FOV;
+    extern const int ZED_REARCAM_VERTICAL_FOV;
     extern const bool ZED_REARCAM_EXPORT_SVO_RECORDING;
     extern const bool ZED_REARCAM_EXPORT_SPATIAL_MAP;
     extern const bool ZED_REARCAM_USE_GPU_MAT;
