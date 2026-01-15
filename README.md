@@ -47,12 +47,6 @@
   </div>
 
   <div>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=active+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
-    </a>
-  </div>
-
-  <div>
     <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">
       <img src="https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat-round" alt="license" />
     </a>
