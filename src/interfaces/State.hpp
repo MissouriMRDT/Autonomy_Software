@@ -37,7 +37,6 @@ namespace statemachine
         eVerifyingPosition,
         eVerifyingMarker,
         eVerifyingObject,
-        eAvoidance,
         eReversing,
         eStuck,
 
@@ -64,8 +63,6 @@ namespace statemachine
         eVerifyingFailed,
         eAbort,
         eRestart,
-        eObstacleAvoidance,
-        eEndObstacleAvoidance,
         eNoWaypoint,
         eNewWaypoint,
         eReverse,
@@ -98,7 +95,6 @@ namespace statemachine
             case States::eVerifyingPosition: return "Verifying Position";
             case States::eVerifyingMarker: return "Verifying Marker";
             case States::eVerifyingObject: return "Verifying Object";
-            case States::eAvoidance: return "Avoidance";
             case States::eReversing: return "Reversing";
             case States::eStuck: return "Stuck";
             default: return "Unknown";

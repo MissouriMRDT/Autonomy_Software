@@ -349,9 +349,6 @@ namespace constants
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
     extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
 
-    // Avoidance State.
-    extern const double AVOIDANCE_STATE_MOTOR_POWER;
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

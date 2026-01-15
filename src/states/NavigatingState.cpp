@@ -505,12 +505,6 @@ namespace statemachine
                 eNextState = States::eApproachingObject;
                 break;
             }
-            case Event::eObstacleAvoidance:
-            {
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
-                eNextState = States::eAvoidance;
-                break;
-            }
             case Event::eReverse:
             {
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Reverse event.");
