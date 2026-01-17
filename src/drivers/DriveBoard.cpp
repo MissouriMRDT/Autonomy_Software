@@ -122,18 +122,38 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     float fMultiplier = VariableDriveEffort();
     SetMaxDriveEffort(fMultiplier);
 
+    // Limit input values (-1.0 to 1.0).
+    double dLeftInput  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
+    double dRightInput = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
+
+    // -------------------------------------------------------------------------
+    // Decouple Linear and Angular components to fix low-speed turning.
+    // -------------------------------------------------------------------------
+
+    // Separate Linear (Forward/Back) and Angular (Turn) power.
+    double dLinearPower  = (dLeftInput + dRightInput) / 2.0;
+    double dAngularPower = (dLeftInput - dRightInput) / 2.0;
+    // Apply the Speed Multiplier ONLY to the Linear component.
+    // This slows down the travel speed but keeps full turning torque available.
+    {
+        std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+        dLinearPower *= m_fDriveEffortMultiplier;
+    }
+    // Reconstruct Left and Right powers.
+    double dLeftSpeed  = dLinearPower + dAngularPower;
+    double dRightSpeed = dLinearPower - dAngularPower;
+    // -------------------------------------------------------------------------
+
     // If the min and max drive effort have been set to 0, then just send zero powers.
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
     {
-        // Limit input values.
-        double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
-        double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
-        // Limit the power to max and min effort defined in constants.
+        // Limit the power to max and min effort defined in constants (Slope Safety).
         float fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
         float fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        // Update member variables with new target speeds. Final scale from RoveComm is applied.
-        m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower * m_fDriveEffortMultiplier;
-        m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower * m_fDriveEffortMultiplier;
+
+        // Update member variables.
+        m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
+        m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
     }
 
     // Construct a RoveComm packet with the drive data.
