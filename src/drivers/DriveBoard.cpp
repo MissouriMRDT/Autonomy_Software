@@ -36,6 +36,7 @@ DriveBoard::DriveBoard()
     m_stDrivePowers.dRightDrivePower = 0.0;
     m_fMinDriveEffort                = constants::DRIVE_MIN_POWER;
     m_fMaxDriveEffort                = constants::DRIVE_MAX_POWER;
+    m_fDriveEffortMultiplier         = 1.0f;
 
     // Configure PID controller for heading hold function.
     m_pPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
@@ -92,16 +93,16 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
                                                  const bool bAlwaysProgressForward)
 {
     // Calculate the drive powers from the current heading, goal heading, and goal speed.
-    m_stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed,
-                                                                dGoalHeading,
-                                                                dActualHeading,
-                                                                eKinematicsMethod,
-                                                                *m_pPID,
-                                                                bAlwaysProgressForward,
-                                                                constants::DRIVE_SQUARE_CONTROL_INPUTS,
-                                                                constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED);
+    diffdrive::DrivePowers stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed,
+                                                                                     dGoalHeading,
+                                                                                     dActualHeading,
+                                                                                     eKinematicsMethod,
+                                                                                     *m_pPID,
+                                                                                     bAlwaysProgressForward,
+                                                                                     constants::DRIVE_SQUARE_CONTROL_INPUTS,
+                                                                                     constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED);
 
-    return m_stDrivePowers;
+    return stDrivePowers;
 }
 
 /******************************************************************************
@@ -118,10 +119,7 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
 void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
 {
     // Create instance variables.
-    float fDriveBoardLeftPower  = 0.0;
-    float fDriveBoardRightPower = 0.0;
-
-    float fMultiplier           = VariableDriveEffort();
+    float fMultiplier = VariableDriveEffort();
     SetMaxDriveEffort(fMultiplier);
 
     // If the min and max drive effort have been set to 0, then just send zero powers.
@@ -131,11 +129,11 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
         double dLeftSpeed  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
         double dRightSpeed = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
         // Limit the power to max and min effort defined in constants.
-        fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        // Update member variables with new target speeds.
-        m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
-        m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
+        float fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        float fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        // Update member variables with new target speeds. Final scale from RoveComm is applied.
+        m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower * m_fDriveEffortMultiplier;
+        m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower * m_fDriveEffortMultiplier;
     }
 
     // Construct a RoveComm packet with the drive data.
@@ -143,8 +141,8 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
     stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
-    stPacket.vData.emplace_back(fDriveBoardLeftPower);
-    stPacket.vData.emplace_back(fDriveBoardRightPower);
+    stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
+    stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
@@ -154,7 +152,7 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", fDriveBoardLeftPower, fDriveBoardRightPower);
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
 }
 
 /******************************************************************************
@@ -250,9 +248,6 @@ float DriveBoard::VariableDriveEffort()
  ******************************************************************************/
 void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
 {
-    // Acquire write lock for writing to max effort member variables.
-    std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
-
     // Clamp the multiplier to the range [0, 1].
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
