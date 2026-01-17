@@ -133,42 +133,42 @@ namespace statemachine
                 dRadians += 2 * M_PI;
             // Add the area ahead of the rover as an obstacle.
             geoops::UTMCoordinate stObstaclePosition = stCurrentRoverPose.GetUTMCoordinate();
-            stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-            stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+            stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+            stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
             // Remove all points that are in stuck zone
-            geoops::UTMCoordinate stSpliceStartCoordinate = NULL;
-            for (int i = 0; i < m_vPathCoordinates.size; i++)
+            int nSpliceStartIndex = -1;
+            for (int i = 0; i < (int) m_vPathCoordinates.size(); i++)
             {
                 // If path coord is inside stuck zone, then remove it
                 if (abs(m_vPathCoordinates[i].GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
                     abs(m_vPathCoordinates[i].GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
                 {
-                    if (stSpliceStartCoordinate = NULL)
-                        stSpliceStartCoordinate = m_vPathCoordinates[i].GetUTMCoordinate();
-                    m_vPathCoordinates.erase(i);
+                    if (nSpliceStartIndex == -1)
+                        nSpliceStartIndex = i;
+                    m_vPathCoordinates.erase(m_vPathCoordinates.begin() + i);
                     --i;
                 }
                 // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
-                else if (stSpliceStartCoordinate != NULL)
+                else if (nSpliceStartIndex != -1)
                 {
-                    geoops::UTMCoordinate stSpliceGoalCoordinate = m_vPathCoordinates[i].GetUTMCoordinate();
                     // Plan a new path to the next remaining path node
+                    geoops::UTMCoordinate stSpliceGoalCoordinate = m_vPathCoordinates[i].GetUTMCoordinate();
                     std::vector<geoops::Waypoint> vSplicePathCoordinates =
-                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stSpliceStartCoordinate, stSpliceGoalCoordinate);
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, m_vPathCoordinates[nSpliceStartIndex].GetUTMCoordinate(), stSpliceGoalCoordinate);
                     // Append new path to front
-                    m_vPathCoordinates.insert(m_vPathCoordinates.begin() + i + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
-                    stSpliceStartCoordinate = NULL;
+                    m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nSpliceStartIndex + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
+                    nSpliceStartIndex = -1;
                 }
             }
-            if (stSpliceStartCoordinate != NULL)
+            if (nSpliceStartIndex != -1)
             {
                 geoops::UTMCoordinate stSpliceGoalCoordinate = m_stGoalWaypoint.GetUTMCoordinate();
                 // Plan a new path to the next remaining path node
                 std::vector<geoops::Waypoint> vSplicePathCoordinates =
-                    globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stSpliceStartCoordinate, stSpliceGoalCoordinate);
+                    globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, m_vPathCoordinates[nSpliceStartIndex].GetUTMCoordinate(), stSpliceGoalCoordinate);
                 // Append new path to front
-                m_vPathCoordinates.insert(m_vPathCoordinates.begin() + i + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
+                m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nSpliceStartIndex + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
             }
 
             // Hopefully this part works

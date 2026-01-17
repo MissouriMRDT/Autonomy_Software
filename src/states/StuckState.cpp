@@ -114,7 +114,7 @@ namespace statemachine
         stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
         // Insert obstacle into lidar data
-        LiDARHandler::DeclareLiDARObstacle(geoops::ConvertGPSToUTM(stObstaclePosition), constants::STUCK_OBSTACLE_RADIUS);
+        globals::g_pLiDARHandler->DeclareLiDARObstacle(geoops::ConvertGPSToUTM(stObstaclePosition), constants::STUCK_OBSTACLE_RADIUS);
         // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
 
         // Check if we are unstuck from our starting spot.
@@ -223,7 +223,7 @@ namespace statemachine
                             Start();
                             m_bInitialized = true;
                         }
-                        true;
+
                         // Update start heading.
                         m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
                         // Update start time.
