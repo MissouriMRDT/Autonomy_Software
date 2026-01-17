@@ -250,8 +250,6 @@ float DriveBoard::VariableDriveEffort()
 
         // Return multiplier
         fMultiplier = std::clamp(fD, m_fMinDamp, m_fMaxDamp);
-
-        SetMaxDriveEffort(fMultiplier);
     }
 
     return fMultiplier;
