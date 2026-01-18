@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Implements the interface for sending commands to the drive board on
- * 		the Rover.
+ * the Rover.
  *
  * @file DriveBoard.cpp
  * @author Eli Byrd (edbgkk@mst.edu)
@@ -10,7 +10,6 @@
  ******************************************************************************/
 
 #include "./DriveBoard.h"
-
 #include "../AutonomyConstants.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
@@ -74,7 +73,7 @@ DriveBoard::~DriveBoard()
 
 /******************************************************************************
  * @brief This method determines drive powers to make the Rover drive towards a
- * 		given heading at a given speed
+ * given heading at a given speed
  *
  * @param dGoalSpeed - The speed to drive at (-1 to 1)
  * @param dGoalHeading - The angle to drive towards. (0 - 360) 0 is North.
@@ -109,9 +108,9 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
  * @brief Sets the left and right drive powers of the drive board.
  *
  * @param stDrivePowers - A struct containing info about the desired drive powers.
- *              Drive powers are always in between -1.0 and 1.0 no matter what constants
- *              or RoveComm say. the -1.0 to 1.0 range is automatically mapped to the
- *              correct DriveBoard range in this method.
+ * Drive powers are always in between -1.0 and 1.0 no matter what constants
+ * or RoveComm say. the -1.0 to 1.0 range is automatically mapped to the
+ * correct DriveBoard range in this method.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
@@ -129,28 +128,43 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     // -------------------------------------------------------------------------
     // Decouple Linear and Angular components to fix low-speed turning.
     // -------------------------------------------------------------------------
-
     // Separate Linear (Forward/Back) and Angular (Turn) power.
     double dLinearPower  = (dLeftInput + dRightInput) / 2.0;
     double dAngularPower = (dLeftInput - dRightInput) / 2.0;
+
     // Apply the Speed Multiplier ONLY to the Linear component.
     // This slows down the travel speed but keeps full turning torque available.
+    // Use a shared lock to prevent data races when reading the multiplier.
     {
         std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
         dLinearPower *= m_fDriveEffortMultiplier;
     }
+
     // Reconstruct Left and Right powers.
     double dLeftSpeed  = dLinearPower + dAngularPower;
     double dRightSpeed = dLinearPower - dAngularPower;
+
+    // Desaturate the output to preserve the turning ratio if it exceeds the max.
+    // If we commanded (1.0, 0.5) and scaled linear by 0.1, we might get (0.1, 0.05).
+    // But if turning adds significant power, we might exceed 1.0.
+    double dMaxMagnitude = std::max(std::abs(dLeftSpeed), std::abs(dRightSpeed));
+    if (dMaxMagnitude > 1.0)
+    {
+        dLeftSpeed /= dMaxMagnitude;
+        dRightSpeed /= dMaxMagnitude;
+    }
     // -------------------------------------------------------------------------
 
     // If the min and max drive effort have been set to 0, then just send zero powers.
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
     {
         // Limit the power to max and min effort defined in constants (Slope Safety).
-        // Limit the power to max and min effort defined in constants (Slope Safety).
-        m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        float fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        float fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+
+        // Update member variables.
+        m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
+        m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
     }
 
     // Construct a RoveComm packet with the drive data.
@@ -205,8 +219,8 @@ void DriveBoard::SendStop()
 
 /******************************************************************************
  * @brief This method calculates a multiplier that is applied to
- *      SetMaxDriveEffort() to adjust the speed of the rover in relation to the
- *      risk of the terrain.
+ * SetMaxDriveEffort() to adjust the speed of the rover in relation to the
+ * risk of the terrain.
  *
  * @return fMultiplier - A multiplier value between m_fMinDamp and m_fMaxDamp
  *
@@ -256,7 +270,7 @@ float DriveBoard::VariableDriveEffort()
  * @brief Set the max power limits of the drive.
  *
  * @param fMaxDriveEffortMultiplier - A multiplier from 0-1 for the max power output of the drive.
- *              Multiplier will be applied to constants::DRIVE_MIN_POWER and constants::DRIVE_MAX_POWER.
+ * Multiplier will be applied to constants::DRIVE_MIN_POWER and constants::DRIVE_MAX_POWER.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-03-15
