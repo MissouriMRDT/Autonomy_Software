@@ -148,12 +148,9 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
     if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
     {
         // Limit the power to max and min effort defined in constants (Slope Safety).
-        float fDriveBoardLeftPower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        float fDriveBoardRightPower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-
-        // Update member variables.
-        m_stDrivePowers.dLeftDrivePower  = fDriveBoardLeftPower;
-        m_stDrivePowers.dRightDrivePower = fDriveBoardRightPower;
+        // Limit the power to max and min effort defined in constants (Slope Safety).
+        m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
+        m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
     }
 
     // Construct a RoveComm packet with the drive data.
