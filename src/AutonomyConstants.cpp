@@ -199,14 +199,11 @@ namespace constants
     //// Bounding Box Tracking Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // NOTE: These next two constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_BBOX_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    const double BBOX_MIN_LIFETIME_THRESHOLD      = 0.15;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
-    const double BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
-    const double BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
-    const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
+    const double BBOX_MIN_LIFETIME_THRESHOLD = 0.15;     // How many seconds does the detection need to be detected before being validated as a good detection.
+    const double BBOX_MIN_SCREEN_PERCENTAGE  = 0.001;    // Minumum percentage of the screen the detection must cover to be valid. 0-100
+    const double BBOX_TRACKER_LOST_TIMEOUT   = 0.1;      // The time in seconds to wait before considering a tracker lost. This should always be less than MAX_LIFTTIME.
+    const double BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a detection without new detection.MAX_TRACK_TIME
+    const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;                             // The IOU threshold to match a new detection to an existing tracker.
     const tracking::TrackerType BBOX_TRACKER_TYPE = tracking::TrackerType::eCSRT;    // The type of tracker to use for the DNN detection.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -242,7 +239,6 @@ namespace constants
         "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
     const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable object detection.
     const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -260,7 +256,6 @@ namespace constants
 
     // Global GeoPlanner
     const double GEOPLANNER_TILE_SIZE = 50.0;    // The size of each tile in the GeoPlanner in meters.
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -334,7 +329,6 @@ namespace constants
     const bool NAVIGATING_VERIFY_POSITION       = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -352,7 +346,6 @@ namespace constants
     const double ASTAR_MAX_SEARCH_GRID      = 4000.0;    // Maximum search grid size (UTM)
     const double ASTAR_MAX_SEARCH_TIME      = 120.0;     // Maximum time to search for a path before giving up. Time is in seconds.
     const double ASTAR_NODE_SIZE            = 0.5;       // Represents the node size / accuracy in meters
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -362,7 +355,6 @@ namespace constants
     // NavBoard.
     const double NAVBOARD_MAX_GPS_DATA_AGE     = 3.0;    // The maximum age of the current GPS data before printing warnings.
     const double NAVBOARD_MAX_COMPASS_DATA_AGE = 3.0;    // The maximum age of the current Compass data before printing warnings.
-
-    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants

@@ -115,11 +115,14 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-21
  ******************************************************************************/
-void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers)
+void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bool bEnableVariableDriveEffort)
 {
-    // Create instance variables.
-    float fMultiplier = VariableDriveEffort();
-    SetMaxDriveEffort(fMultiplier);
+    // Enable or disable variable drive effort.
+    if (bEnableVariableDriveEffort)
+    {
+        float fMultiplier = VariableDriveEffort();
+        SetMaxDriveEffort(fMultiplier);
+    }
 
     // Limit input values (-1.0 to 1.0).
     double dLeftInput  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);

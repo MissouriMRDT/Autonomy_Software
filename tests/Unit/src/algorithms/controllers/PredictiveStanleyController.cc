@@ -79,8 +79,8 @@ class PredictiveStanleyControllerTests : public TestingBase<PredictiveStanleyCon
 TEST_F(PredictiveStanleyControllerTests, DefaultConstructor)
 {
     controllers::PredictiveStanleyController Controller;
-    EXPECT_NEAR(Controller.GetControlGain(), constants::STANLEY_CROSSTRACK_CONTROL_GAIN, 0.01);
-    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), constants::STANLEY_ANGULAR_VELOCITY_LIMIT, 0.01);
+    EXPECT_NEAR(Controller.GetControlGain(), 0.1, 0.01);
+    EXPECT_NEAR(Controller.GetAngularVelocityLimit(), 90.0, 0.01);
 }
 
 /******************************************************************************
