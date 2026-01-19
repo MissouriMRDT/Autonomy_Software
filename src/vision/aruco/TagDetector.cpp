@@ -781,21 +781,6 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
         {
             // Get the rover pose from the waypoint handler.
             m_stRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-
-            // Find the camera's position in UTM coordinates by applying the camera offset to the rover pose.
-            geoops::UTMCoordinate stCamera = m_stRoverPose.GetUTMCoordinate();
-            stCamera.dEasting += m_pCamera->GetCameraPoseOffset().dPosX;
-            stCamera.dNorthing += m_pCamera->GetCameraPoseOffset().dPosY;
-            stCamera.dAltitude += m_pCamera->GetCameraPoseOffset().dPosZ;
-            // Update the rover pose's heading to match the camera's heading. We will need to calculate the camera's heading using the quaternion.
-            double dSinYCosP      = 2.0 * (m_pCamera->GetCameraPoseOffset().dQW * m_pCamera->GetCameraPoseOffset().dQZ +
-                                      m_pCamera->GetCameraPoseOffset().dQX * m_pCamera->GetCameraPoseOffset().dQY);
-            double dCosYCosP      = 1.0 - 2.0 * (m_pCamera->GetCameraPoseOffset().dQY * m_pCamera->GetCameraPoseOffset().dQY +
-                                            m_pCamera->GetCameraPoseOffset().dQZ * m_pCamera->GetCameraPoseOffset().dQZ);
-            double dCameraHeading = std::atan2(dSinYCosP, dCosYCosP) * (180.0 / CV_PI);
-            // Recreate the rover pose with the camera's adjusted position and heading.
-            geoops::RoverPose stCameraPose = geoops::RoverPose(stCamera, dCameraHeading);
-
             // Loop through the tags and use their center point to lookup their distance in the point cloud.
             for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
             {
@@ -803,7 +788,7 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                 int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
                 // Geolocate the tag in the point cloud.
                 geoops::Waypoint stGeolocation =
-                    geoloc::GeolocateBox(m_cvPointCloud, stCameraPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
+                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stTag.pBoundingBox->x, stTag.pBoundingBox->y), nNeighborhoodSize);
                 // Since this is a tag detection, set the tag's waypoint type appropriately.
                 stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
 

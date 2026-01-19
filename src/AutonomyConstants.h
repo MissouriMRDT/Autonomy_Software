@@ -70,7 +70,6 @@ namespace constants
     extern const int ROVECOMM_OUTGOING_UDP_PORT;
     extern const int ROVECOMM_OUTGOING_TCP_PORT;
     extern const std::string ROVECOMM_TCP_INTERFACE_IP;
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -120,7 +119,6 @@ namespace constants
     extern const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING;
     // ObjectDetector recording toggles.
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING;
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -172,7 +170,6 @@ namespace constants
 
     // BasicCam Basic Config.
     extern const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD;
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -192,13 +189,6 @@ namespace constants
     extern const bool ZED_MAINCAM_FUSION_MASTER;
     extern const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_MAINCAM_SERIAL;
-    extern const double ZED_MAINCAM_EASTING_OFFSET;
-    extern const double ZED_MAINCAM_NORTHING_OFFSET;
-    extern const double ZED_MAINCAM_ALTITUDE_OFFSET;
-    extern const double ZED_MAINCAM_QUATERNION_OFFSET_X;
-    extern const double ZED_MAINCAM_QUATERNION_OFFSET_Y;
-    extern const double ZED_MAINCAM_QUATERNION_OFFSET_Z;
-    extern const double ZED_MAINCAM_QUATERNION_OFFSET_W;
 
     // Ground Basic Cam.
     extern const int BASICCAM_GROUNDCAM_RESOLUTIONX;
@@ -209,7 +199,6 @@ namespace constants
     extern const int BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS;
     extern const int BASICCAM_GROUNDCAM_INDEX;
     extern const PIXEL_FORMATS BASICCAM_GROUNDCAM_PIXELTYPE;
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -377,9 +366,6 @@ namespace constants
     // NavBoard.
     extern const double NAVBOARD_MAX_GPS_DATA_AGE;
     extern const double NAVBOARD_MAX_COMPASS_DATA_AGE;
-    extern const double NAVBOARD_EASTING_OFFSET;
-    extern const double NAVBOARD_NORTHING_OFFSET;
-    extern const double NAVBOARD_ALTITUDE_OFFSET;
 
     ///////////////////////////////////////////////////////////////////////////
 

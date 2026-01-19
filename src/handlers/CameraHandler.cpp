@@ -65,15 +65,6 @@ CameraHandler::CameraHandler()
                                                  constants::ZED_MAINCAM_SERIAL);
     }
 
-    // Set the position offsets of the main camera.
-    m_pMainCam->SetCameraPoseOffset(constants::ZED_MAINCAM_EASTING_OFFSET,
-                                    constants::ZED_MAINCAM_NORTHING_OFFSET,
-                                    constants::ZED_MAINCAM_ALTITUDE_OFFSET,
-                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_X,
-                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_Y,
-                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_Z,
-                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_W);
-
     // Initialize ground eye.
     m_pGroundCam = std::make_shared<BasicCam>(constants::BASICCAM_GROUNDCAM_INDEX,
                                               constants::BASICCAM_GROUNDCAM_RESOLUTIONX,
