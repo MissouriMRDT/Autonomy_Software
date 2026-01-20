@@ -67,6 +67,7 @@ namespace filters
             /////////////////////////////////////////
 
             void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
+            void SetCompassNoise(double dSigmaDeg);
 
             /////////////////////////////////////////
             // Prediction and updating.

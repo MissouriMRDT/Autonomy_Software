@@ -120,6 +120,26 @@ namespace filters
     }
 
     /******************************************************************************
+     * @brief This will set the compass noise.
+     *
+     * @param dSigmaDeg - The standard deviation of the compass in degrees.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-01-15
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetCompassNoise(double dSigmaDeg)
+    {
+        // Ensure we don't set it to 0.
+        if (dSigmaDeg < 0.1)
+        {
+            dSigmaDeg = 0.1;
+        }
+
+        // Convert to radians and store.
+        m_dSigmaYaw = dSigmaDeg * M_PI / 180.0;
+    }
+
+    /******************************************************************************
      * @brief The main predict/estimate step for EKF. Integrates IMU data to predict state.
      *
      * @param eiAccelMeas - The accelerometer reading.
@@ -317,8 +337,7 @@ namespace filters
         }
 
         // Set up measurement noise (R).
-        double dSigmaCompass = 5.0 * M_PI / 180.0;
-        double dR            = dSigmaCompass * dSigmaCompass;
+        double dR = m_dSigmaYaw * m_dSigmaYaw;
 
         // Build observation Jacobian (H).
         Eigen::Matrix<double, 1, 15> eiH = Eigen::Matrix<double, 1, 15>::Zero();
