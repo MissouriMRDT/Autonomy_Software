@@ -209,6 +209,10 @@ class WaypointHandler
             {
                 eWaypointType = geoops::WaypointType::eWaterBottleWaypoint;
             }
+            else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ROCKPICK))
+            {
+                eWaypointType = geoops::WaypointType::eRockPickWaypoint;
+            }
             else
             {
                 eWaypointType = geoops::WaypointType::eObjectWaypoint;

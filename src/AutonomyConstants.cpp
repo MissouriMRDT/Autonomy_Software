@@ -239,9 +239,9 @@ namespace constants
     const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
     const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
     const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
-        "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable object detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
+        "../data/models/yolo_models/bmp_v4/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.7f;                       // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                       // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
 
