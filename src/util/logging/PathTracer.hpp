@@ -319,10 +319,11 @@ namespace logging
                     // Check if point is significantly different from the last point to prevent zero-range errors.
                     if (!m_umPathMap[szLayerName].empty())
                     {
-                        auto& lastPoint = m_umPathMap[szLayerName].back();
-                        double dDistSq  = std::pow(std::get<0>(lastPoint) - stWaypoint.GetUTMCoordinate().dEasting, 2) +
-                                         std::pow(std::get<1>(lastPoint) - stWaypoint.GetUTMCoordinate().dNorthing, 2);
-                        if (dDistSq < 0.0001)    // Ignore updates smaller than 1cm
+                        std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
+                        double dDistSq                                   = std::pow(std::get<0>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dEasting, 2) +
+                                         std::pow(std::get<1>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dNorthing, 2);
+                        // Ignore updates smaller than 1 cm.
+                        if (dDistSq < 0.0001)
                         {
                             return;
                         }
@@ -361,9 +362,10 @@ namespace logging
                     // Check if point is significantly different from the last point to prevent zero-range errors.
                     if (!m_umPathMap[szLayerName].empty())
                     {
-                        auto& lastPoint = m_umPathMap[szLayerName].back();
-                        double dDistSq  = std::pow(std::get<0>(lastPoint) - stCoordinate.dEasting, 2) + std::pow(std::get<1>(lastPoint) - stCoordinate.dNorthing, 2);
-                        if (dDistSq < 0.0001)    // Ignore updates smaller than 1cm
+                        std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
+                        double dDistSq = std::pow(std::get<0>(stdLastPoint) - stCoordinate.dEasting, 2) + std::pow(std::get<1>(stdLastPoint) - stCoordinate.dNorthing, 2);
+                        // Ignore updates smaller than 1 cm.
+                        if (dDistSq < 0.0001)
                         {
                             return;
                         }
@@ -403,9 +405,11 @@ namespace logging
                     // Check if point is significantly different from the last point to prevent zero-range errors.
                     if (!m_umPathMap[szLayerName].empty())
                     {
-                        auto& lastPoint = m_umPathMap[szLayerName].back();
-                        double dDistSq = std::pow(std::get<0>(lastPoint) - stUTMCoordinate.dEasting, 2) + std::pow(std::get<1>(lastPoint) - stUTMCoordinate.dNorthing, 2);
-                        if (dDistSq < 0.0001)    // Ignore updates smaller than 1cm
+                        std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
+                        double dDistSq =
+                            std::pow(std::get<0>(stdLastPoint) - stUTMCoordinate.dEasting, 2) + std::pow(std::get<1>(stdLastPoint) - stUTMCoordinate.dNorthing, 2);
+                        // Ignore updates smaller than 1 cm.
+                        if (dDistSq < 0.0001)
                         {
                             return;
                         }
