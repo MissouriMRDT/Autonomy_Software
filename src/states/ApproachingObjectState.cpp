@@ -24,7 +24,7 @@ namespace statemachine
 {
     /******************************************************************************
      * @brief This method is called when the state is first started. It is used to
-     *        initialize the state.
+     * initialize the state.
      *
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
@@ -51,7 +51,7 @@ namespace statemachine
 
     /******************************************************************************
      * @brief This method is called when the state is exited. It is used to clean up
-     *        the state.
+     * the state.
      *
      *
      * @author Eli Byrd (edbgkk@mst.edu)
@@ -123,9 +123,23 @@ namespace statemachine
         objectdetectutils::Object stBestObject;
         statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
 
-        // Check if object is unseen.
-        static bool bAlreadyPrintedLost                            = false;
+        // Persistent variables to track target across frames
+        static double dHeadingSetPoint    = 0.0;
+        static double dDistanceFromObject = 0.0;
+        static geoops::Waypoint stLastGeolocatedPosition;
+        static bool bHasLastGeolocatedPosition                     = false;
         static std::chrono::system_clock::time_point tLastSeenTime = std::chrono::system_clock::now();
+        static bool bAlreadyPrintedLost                            = false;
+        static bool bAlreadyPrintedVisualLostFallback              = false;
+
+        // Check for stale session data (if we re-entered this state after a long time).
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tLastSeenTime).count() >
+            constants::APPROACH_OBJECT_LOST_GIVE_UP_TIME + 5.0)
+        {
+            bHasLastGeolocatedPosition = false;
+        }
+
+        // Check if object is unseen.
         if (stBestObject.dConfidence == 0.0)
         {
             std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
@@ -142,23 +156,34 @@ namespace statemachine
                     bAlreadyPrintedLost = true;
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ApproachingObjectState: No objects detected.");
+                }
 
-                    // If an object is good and has a valid geoposition, don't stop the drive, we can keep driving to it.
-                    if (stBestObject.dConfidence != 0.0 && stBestObject.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                // If we have a valid last known geolocated position, keep driving to it.
+                if (bHasLastGeolocatedPosition)
+                {
+                    // Calculate the geomeasurement to the last known position.
+                    geoops::GeoMeasurement stLastMeasurement =
+                        geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stLastGeolocatedPosition.GetUTMCoordinate());
+
+                    // Update setpoints to track the last known location.
+                    dHeadingSetPoint    = stLastMeasurement.dStartRelativeBearing;
+                    dDistanceFromObject = stLastMeasurement.dDistanceMeters;
+
+                    if (!bAlreadyPrintedVisualLostFallback)
                     {
-                        // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: Object is geolocated.");
-                        return;
+                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: Visual lost, driving to last known geolocated position.");
+                        bAlreadyPrintedVisualLostFallback = true;
                     }
-
+                }
+                else
+                {
                     // Stop the drive.
                     globals::g_pDriveBoard->SendStop();
                     return;
                 }
             }
         }
-
-        else
+        else    // Object Detected
         {
             // Submit logger message.
             if (bAlreadyPrintedLost)
@@ -168,31 +193,35 @@ namespace statemachine
 
             // Reset the last seen time if a tag is detected.
             tLastSeenTime = std::chrono::system_clock::now();
-            // Reset printed flag when tags are detected again.
-            bAlreadyPrintedLost = false;
-        }
+            // Reset printed flags when tags are detected again.
+            bAlreadyPrintedLost               = false;
+            bAlreadyPrintedVisualLostFallback = false;
 
-        // Create instance variables.
-        static double dHeadingSetPoint    = 0.0;
-        static double dDistanceFromObject = 0.0;
-        // Check if we got a good object.
-        if (stBestObject.dConfidence != 0.0)
-        {
-            dDistanceFromObject = stBestObject.dStraightLineDistance;
-            // Check if the object has an absolute coordinate populated.
-            if (stBestObject.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+            // Check if we got a good object.
+            if (stBestObject.dConfidence != 0.0)
             {
-                // Calculate the geomeasurement to the object.
-                geoops::GeoMeasurement stObjectMeasurement =
-                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestObject.stGeolocatedPosition.GetUTMCoordinate());
-                // Update static variables.
-                dHeadingSetPoint = stObjectMeasurement.dStartRelativeBearing;
-                // Add the most recent geolocated object to the path plot.
-                m_pRoverPathPlot->AddDot(stBestObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
-            }
-            else
-            {
-                dHeadingSetPoint = numops::InputAngleModulus(stBestObject.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+                dDistanceFromObject = stBestObject.dStraightLineDistance;
+                // Check if the object has an absolute coordinate populated.
+                if (stBestObject.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                {
+                    // Calculate the geomeasurement to the object.
+                    geoops::GeoMeasurement stObjectMeasurement =
+                        geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestObject.stGeolocatedPosition.GetUTMCoordinate());
+                    // Update static variables.
+                    dHeadingSetPoint = stObjectMeasurement.dStartRelativeBearing;
+
+                    // Save geolocated position for fallback.
+                    stLastGeolocatedPosition   = stBestObject.stGeolocatedPosition;
+                    bHasLastGeolocatedPosition = true;
+
+                    // Add the most recent geolocated object to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
+                }
+                else
+                {
+                    // Fallback to relative tracking (Current Heading + Yaw Angle).
+                    dHeadingSetPoint = numops::InputAngleModulus(stBestObject.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+                }
             }
         }
 
@@ -234,8 +263,9 @@ namespace statemachine
             }
 
             // Reset the object heading and distance.
-            dHeadingSetPoint    = 0.0;
-            dDistanceFromObject = 0.0;
+            dHeadingSetPoint           = 0.0;
+            dDistanceFromObject        = 0.0;
+            bHasLastGeolocatedPosition = false;
 
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, true);
