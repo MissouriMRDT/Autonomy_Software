@@ -136,10 +136,19 @@ namespace statemachine
                     }
                     break;
                 }
+                case geoops::WaypointType::eRockPickWaypoint:
+                {
+                    if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eRockPick)
+                    {
+                        continue;
+                    }
+                    break;
+                }
                 case geoops::WaypointType::eObjectWaypoint:
                 {
                     if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eMallet &&
-                        stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle)
+                        stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle &&
+                        stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eRockPick)
                     {
                         continue;
                     }
