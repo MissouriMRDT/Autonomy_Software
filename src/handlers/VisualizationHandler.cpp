@@ -973,6 +973,19 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             min-width: 250px;
             z-index: 10;
         }
+        #eta-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #0f0;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
         #marker-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -1051,6 +1064,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
         <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
     </div>
+    
+    <div id="eta-box">ETA: Calculating...</div>
 
     <div id="legend-layer">
         <div class="legend-section" id="det-legend">
@@ -1088,6 +1103,14 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let prevRoverPos = new THREE.Vector3();
     const keys = { w:false, a:false, s:false, d:false, q:false, e:false, shift:false };
     let lastTime = performance.now();
+
+    // ETA Variables
+    let lastTelemetryTime = 0;
+    let lastTelemetryPos = new THREE.Vector3();
+    let avgSpeed = 0.0;
+    let pathDistance = 0.0;
+    const speedHistory = [];
+    let lastPathPoint = null;
     
     const typeColors = {};
     const typeNames = {};
@@ -1262,6 +1285,23 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const ry = view.getFloat32(4, true);
         const rz = view.getFloat32(8, true);
         const rh = view.getFloat32(12, true);
+        
+        // Calculate Speed
+        const now = performance.now();
+        const newPos = new THREE.Vector3(rx, ry, -rz);
+        if (lastTelemetryTime > 0) {
+            const dt = (now - lastTelemetryTime) / 1000.0;
+            if (dt > 0.1) {
+                const dist = newPos.distanceTo(lastTelemetryPos);
+                const instSpeed = dist / dt;
+                speedHistory.push(instSpeed);
+                if (speedHistory.length > 20) speedHistory.shift();
+                avgSpeed = speedHistory.reduce((a,b)=>a+b, 0) / speedHistory.length;
+            }
+        }
+        lastTelemetryPos.copy(newPos);
+        lastTelemetryTime = now;
+
         targetPos.set(rx, ry, -rz); 
         targetHeading = -rh * (Math.PI / 180.0);
 
@@ -1300,12 +1340,33 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             plannedPathLine.geometry.dispose();
             plannedPathLine = null;
         }
+        
+        pathDistance = 0.0;
+        lastPathPoint = null;
+
         if (count > 0) {
             const floats = new Float32Array(buffer, 4, count * 3);
             const vertices = [];
             for(let i=0; i<floats.length; i+=3) {
                 vertices.push(floats[i], floats[i+1], -floats[i+2]);
             }
+            
+            // Calculate total path distance (sum of segments)
+            // Add distance from rover to first point
+            if(vertices.length >= 3) {
+                 const firstPt = new THREE.Vector3(vertices[0], vertices[1], vertices[2]);
+                 pathDistance += targetPos.distanceTo(firstPt);
+                 // Store Last Point
+                 const lastIdx = vertices.length - 3;
+                 lastPathPoint = new THREE.Vector3(vertices[lastIdx], vertices[lastIdx+1], vertices[lastIdx+2]);
+            }
+            // Add segments
+            for(let i=0; i<vertices.length-3; i+=3) {
+                const p1 = new THREE.Vector3(vertices[i], vertices[i+1], vertices[i+2]);
+                const p2 = new THREE.Vector3(vertices[i+3], vertices[i+4], vertices[i+5]);
+                pathDistance += p1.distanceTo(p2);
+            }
+
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 4 }));
@@ -1408,6 +1469,34 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const width = window.innerWidth;
         const height = window.innerHeight;
         const pad = 30; 
+
+        // Update ETA Box
+        const etaBox = document.getElementById('eta-box');
+        
+        // Reached End Logic
+        let bReached = false;
+        if (lastPathPoint && roverMesh.position.distanceTo(lastPathPoint) < 2.0) {
+             bReached = true;
+        }
+
+        if (bReached) {
+            etaBox.innerText = "Status: Reached End of Path";
+            etaBox.style.color = "#00ff00"; // Green
+        } else {
+            etaBox.style.color = "#0f0"; // Default Green
+            if (avgSpeed < 0.05) {
+                etaBox.innerText = "ETA: Stopped";
+            } else {
+                const timeSec = pathDistance / avgSpeed;
+                if (!isFinite(timeSec) || timeSec < 0) {
+                     etaBox.innerText = "ETA: --:--";
+                } else {
+                     const min = Math.floor(timeSec / 60);
+                     const sec = Math.floor(timeSec % 60);
+                     etaBox.innerText = `ETA: ${min}m ${sec}s (${avgSpeed.toFixed(2)} m/s)`;
+                }
+            }
+        }
 
         activeWaypoints.forEach(wp => {
             const target = wp.pos.clone();
