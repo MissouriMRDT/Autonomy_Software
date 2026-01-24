@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "./VisualizationHandler.h"
+#include "../AutonomyGlobals.h"
 #include "../handlers/StateMachineHandler.h"
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
@@ -525,8 +526,9 @@ std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& sz
     std::lock_guard<std::mutex> lkPathLock(m_muPathMutex);
 
     // Calculate buffer size.
+    // Header = Pose(3f) + Heading(1f) + LPower(1f) + RPower(1f) + Count(1u)
     size_t siPathBytes = m_vPathHistory.size() * 4 * sizeof(float);
-    size_t siHeader    = (4 * sizeof(float)) + (1 * sizeof(uint32_t));
+    size_t siHeader    = (6 * sizeof(float)) + (1 * sizeof(uint32_t));
     std::vector<char> vBuffer;
     vBuffer.reserve(siHeader + siPathBytes);
 
@@ -560,6 +562,16 @@ std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& sz
 
     // Push Compass Heading.
     PushFloat(static_cast<float>(stPose.GetCompassHeading()));
+
+    // Push Drive Powers.
+    diffdrive::DrivePowers stPowers = {0.0, 0.0};
+    if (globals::g_pDriveBoard)
+    {
+        stPowers = globals::g_pDriveBoard->GetDrivePowers();
+    }
+    PushFloat(static_cast<float>(stPowers.dLeftDrivePower));
+    PushFloat(static_cast<float>(stPowers.dRightDrivePower));
+
     // Push Path History size.
     PushUint(static_cast<uint32_t>(m_vPathHistory.size()));
     // Push each point in the path history.
@@ -1064,7 +1076,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
         <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
     </div>
-    
+
     <div id="eta-box">ETA: Calculating...</div>
 
     <div id="legend-layer">
@@ -1091,6 +1103,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let waypointGroup, detectionGroup; 
     let markerLayer; 
     let activeWaypoints = []; 
+    let leftArrow, rightArrow;
 
     let mapCenter = { x: 0, y: 0 }; 
     let cfgRadius = 50;
@@ -1161,6 +1174,18 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
         roverMesh = new THREE.Mesh(geometry, material);
         scene.add(roverMesh);
+        
+        // Drive Vectors (Arrows)
+        const arrowDir = new THREE.Vector3(0, 0, -1);
+        const arrowOrigin = new THREE.Vector3(0, 0, 0);
+        const arrowLen = 1;
+        const arrowCol = 0xffff00;
+        leftArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLen, arrowCol);
+        rightArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLen, arrowCol);
+        roverMesh.add(leftArrow);
+        roverMesh.add(rightArrow);
+        leftArrow.position.set(-0.6, 0, 0); 
+        rightArrow.position.set(0.6, 0, 0);
 
         waypointGroup = new THREE.Group();
         scene.add(waypointGroup);
@@ -1278,6 +1303,15 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             updateDetections(buffer);
         } catch(e) {}
     }
+    
+    function updateArrow(arrow, power) {
+        const absPwr = Math.abs(power);
+        const dir = power >= 0 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 0, 1);
+        arrow.setDirection(dir);
+        arrow.setLength(Math.max(absPwr * 2.0, 0.001), 0.2, 0.1);
+        const col = power >= 0 ? 0x00ff00 : 0xff0000;
+        arrow.setColor(col);
+    }
 
     function updateTelemetry(buffer) {
         const view = new DataView(buffer);
@@ -1285,7 +1319,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const ry = view.getFloat32(4, true);
         const rz = view.getFloat32(8, true);
         const rh = view.getFloat32(12, true);
-        
+
         // Calculate Speed
         const now = performance.now();
         const newPos = new THREE.Vector3(rx, ry, -rz);
@@ -1301,16 +1335,22 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         }
         lastTelemetryPos.copy(newPos);
         lastTelemetryTime = now;
-
+        
+        // Drive Powers
+        const leftPwr = view.getFloat32(16, true);
+        const rightPwr = view.getFloat32(20, true);
+        updateArrow(leftArrow, leftPwr);
+        updateArrow(rightArrow, rightPwr);
+        
         targetPos.set(rx, ry, -rz); 
         targetHeading = -rh * (Math.PI / 180.0);
 
         checkBoundary(false);
 
-        const pathCount = view.getUint32(16, true);
+        const pathCount = view.getUint32(24, true); // Offset 24
         if (pathCount > 0) {
             if (pathLine) scene.remove(pathLine);
-            const floats = new Float32Array(buffer, 20, pathCount * 4);
+            const floats = new Float32Array(buffer, 28, pathCount * 4); // Offset 28
             const vertices = [];
             const colors = [];
             const c = new THREE.Color();
@@ -1340,7 +1380,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             plannedPathLine.geometry.dispose();
             plannedPathLine = null;
         }
-        
+
         pathDistance = 0.0;
         lastPathPoint = null;
 
@@ -1350,7 +1390,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             for(let i=0; i<floats.length; i+=3) {
                 vertices.push(floats[i], floats[i+1], -floats[i+2]);
             }
-            
+
             // Calculate total path distance (sum of segments)
             // Add distance from rover to first point
             if(vertices.length >= 3) {
