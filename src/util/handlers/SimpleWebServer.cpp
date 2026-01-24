@@ -308,10 +308,24 @@ void SimpleWebServer::HandleClient(int nClientFD)
         {
             // Create response body from callback.
             std::vector<char> vData = fnCallback(szQuery);
-            std::string szHeader    = "HTTP/1.1 200 OK\r\n"
-                                      "Content-Type: application/octet-stream\r\n"
-                                      "Access-Control-Allow-Origin: *\r\n"
-                                      "Content-Length: " +
+
+            // FIX: Dynamic MIME Type Detection
+            std::string szContentType = "application/octet-stream";
+            if (szPath.length() >= 3 && szPath.substr(szPath.length() - 3) == ".js")
+            {
+                szContentType = "text/javascript";
+            }
+            else if (szPath.length() >= 4 && szPath.substr(szPath.length() - 4) == ".css")
+            {
+                szContentType = "text/css";
+            }
+
+            std::string szHeader = "HTTP/1.1 200 OK\r\n"
+                                   "Content-Type: " +
+                                   szContentType +
+                                   "\r\n"
+                                   "Access-Control-Allow-Origin: *\r\n"
+                                   "Content-Length: " +
                                    std::to_string(vData.size()) +
                                    "\r\n"
                                    "Connection: close\r\n\r\n";

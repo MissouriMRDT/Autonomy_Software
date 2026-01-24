@@ -36,6 +36,12 @@ VisualizationHandler::VisualizationHandler(int nPort)
 
     // Start Web Server.
     m_pWebServer = std::make_unique<SimpleWebServer>(m_nPort);
+
+    // Register Asset Endpoints.
+    m_pWebServer->RegisterEndpoint("/lib/three.js", std::bind(&VisualizationHandler::OnRequestLibThree, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/lib/orbit.js", std::bind(&VisualizationHandler::OnRequestLibOrbit, this, std::placeholders::_1));
+
+    // Register Data Endpoints.
     m_pWebServer->SetHtmlContent(this->GetEmbeddedHtml());
     m_pWebServer->RegisterEndpoint("/api/telemetry", std::bind(&VisualizationHandler::OnRequestTelemetry, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/map", std::bind(&VisualizationHandler::OnRequestMap, this, std::placeholders::_1));
@@ -88,6 +94,7 @@ void VisualizationHandler::ThreadedContinuousCode()
             m_stOriginUTM = stRoverUTM;
             m_bOriginSet  = true;
             LOG_DEBUG(logging::g_qSharedLogger, "VisualizationHandler: Origin set to E:{}, N:{}", m_stOriginUTM.dEasting, m_stOriginUTM.dNorthing);
+            LOG_INFO(logging::g_qSharedLogger, "VisualizationHandler: WebServer has been started on http://0.0.0.0:{}!", m_nPort);
         }
     }
 
@@ -119,7 +126,7 @@ void VisualizationHandler::ThreadedContinuousCode()
 void VisualizationHandler::PooledLinearCode() {}
 
 /******************************************************************************
- * @brief Save the current visualization to an HTML file.
+ * @brief Save the current visualization to a single HTML file with embedded assets.
  *
  * @param szFilename - The filename to save the visualization as.
  *
@@ -189,7 +196,7 @@ void VisualizationHandler::SaveVisualization(const std::string& szFilename)
         vLidarPoints = globals::g_pLiDARHandler->GetLiDARData(stFilter);
     }
 
-    // Generate HTML content.
+    // Generate HTML content (including embedded JS).
     std::string szHtml = GenerateStaticHtml(vLidarPoints);
 
     std::ofstream stdOutFile(szFilename);
@@ -471,6 +478,7 @@ void VisualizationHandler::UpdateGoalBeacons(const geoops::UTMCoordinate& stRove
         float fCurZ = static_cast<float>(stRoverUTM.dNorthing - m_stOriginUTM.dNorthing);
 
         // Check for deduplication (within 2 meters).
+        bool bAdd = true;
         if (!m_vGoalBeacons.empty())
         {
             // Calculate distance to last added beacon.
@@ -479,17 +487,23 @@ void VisualizationHandler::UpdateGoalBeacons(const geoops::UTMCoordinate& stRove
             // If the distance is less than 2 meters, do not add.
             if (fDistance < 2.0f)
             {
-                // Construct beacon.
-                DisplayWaypoint stWaypoint;
-                stWaypoint.fX    = fCurX;
-                stWaypoint.fY    = fCurY;
-                stWaypoint.fZ    = fCurZ;
-                stWaypoint.nType = 8;
-                m_vGoalBeacons.push_back(stWaypoint);
-
-                // Submit logger message.
-                LOG_DEBUG(logging::g_qSharedLogger, "VisualizationHandler: Added persistent Goal Beacon at current location.");
+                bAdd = false;
             }
+        }
+
+        // Check if our last beacon is in the same location.
+        if (bAdd)
+        {
+            // Construct beacon.
+            DisplayWaypoint stWaypoint;
+            stWaypoint.fX    = fCurX;
+            stWaypoint.fY    = fCurY;
+            stWaypoint.fZ    = fCurZ;
+            stWaypoint.nType = 8;
+            m_vGoalBeacons.push_back(stWaypoint);
+
+            // Submit logger message.
+            LOG_DEBUG(logging::g_qSharedLogger, "VisualizationHandler: Added persistent Goal Beacon at current location.");
         }
     }
 }
@@ -807,6 +821,130 @@ std::vector<char> VisualizationHandler::OnRequestMap(const std::string& szQuery)
 }
 
 /******************************************************************************
+ * @brief Serves the local three.min.js file.
+ *
+ * @param szQuery - The query string (unused).
+ * @return std::vector<char> - The binary content of the file.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-01-24
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestLibThree(const std::string& szQuery)
+{
+    (void) szQuery;
+    return LoadFileToBuffer(constants::VISUALIZER_THREEJS_PATH);
+}
+
+/******************************************************************************
+ * @brief Serves the local OrbitControls.js file.
+ *
+ * @param szQuery - The query string (unused).
+ * @return std::vector<char> - The binary content of the file.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-01-24
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestLibOrbit(const std::string& szQuery)
+{
+    (void) szQuery;
+    return LoadFileToBuffer(constants::VISUALIZER_ORBITCONTROLS_PATH);
+}
+
+/******************************************************************************
+ * @brief Helper to load a file into a byte buffer.
+ *
+ * @param szPath - The file path.
+ * @return std::vector<char> - The file content as a byte buffer.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-01-24
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::LoadFileToBuffer(const std::string& szPath)
+{
+    std::ifstream stdFile(szPath, std::ios::binary);
+    if (!stdFile.is_open())
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "VisualizationHandler: Failed to load asset: {}", szPath);
+        return {};
+    }
+
+    return std::vector<char>((std::istreambuf_iterator<char>(stdFile)), std::istreambuf_iterator<char>());
+}
+
+/******************************************************************************
+ * @brief Encodes binary data to a Base64 string.
+ *
+ * @param vData - The binary data to encode.
+ * @return std::string - The Base64 encoded string.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-01-24
+ ******************************************************************************/
+std::string VisualizationHandler::Base64Encode(const std::vector<char>& vData)
+{
+    // Create instance variables.
+    const std::string szBase64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                      "abcdefghijklmnopqrstuvwxyz"
+                                      "0123456789+/";
+    std::string szReturnString;
+    int nIter = 0;
+    int nJter = 0;
+    unsigned char aCharArray3[3];
+    unsigned char aCharArray4[4];
+
+    // Loop through each character in the data.
+    for (char chCharacter : vData)
+    {
+        // Fill the 3-byte array.
+        aCharArray3[nIter++] = chCharacter;
+
+        // If we have 3 bytes, encode to 4 Base64 characters.
+        if (nIter == 3)
+        {
+            // Convert to Base64.
+            aCharArray4[0] = (aCharArray3[0] & 0xfc) >> 2;
+            aCharArray4[1] = ((aCharArray3[0] & 0x03) << 4) + ((aCharArray3[1] & 0xf0) >> 4);
+            aCharArray4[2] = ((aCharArray3[1] & 0x0f) << 2) + ((aCharArray3[2] & 0xc0) >> 6);
+            aCharArray4[3] = aCharArray3[2] & 0x3f;
+            // Append to return string.
+            for (nIter = 0; (nIter < 4); nIter++)
+            {
+                szReturnString += szBase64Chars[aCharArray4[nIter]];
+            }
+
+            nIter = 0;
+        }
+    }
+
+    // Handle padding for remaining bytes.
+    if (nIter)
+    {
+        // Fill remaining bytes with zeros.
+        for (nJter = nIter; nJter < 3; nJter++)
+        {
+            aCharArray3[nJter] = '\0';
+        }
+        // Convert to Base64.
+        aCharArray4[0] = (aCharArray3[0] & 0xfc) >> 2;
+        aCharArray4[1] = ((aCharArray3[0] & 0x03) << 4) + ((aCharArray3[1] & 0xf0) >> 4);
+        aCharArray4[2] = ((aCharArray3[1] & 0x0f) << 2) + ((aCharArray3[2] & 0xc0) >> 6);
+        aCharArray4[3] = aCharArray3[2] & 0x3f;
+        // Append to return string.
+        for (nJter = 0; (nJter < nIter + 1); nJter++)
+        {
+            szReturnString += szBase64Chars[aCharArray4[nJter]];
+        }
+        // Add padding '=' characters.
+        while ((nIter++ < 3))
+        {
+            szReturnString += '=';
+        }
+    }
+
+    return szReturnString;
+}
+
+/******************************************************************************
  * @brief Gets the embedded HTML for the visualization page.
  *
  * @return std::string - The HTML content as a string.
@@ -886,7 +1024,14 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         .key { color: #fff; font-weight: bold; border: 1px solid #666; padding: 2px 5px; border-radius: 3px; background: #333; }
         h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
     </style>
-    <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }</script>
+    <script type="importmap">
+    { 
+        "imports": { 
+            "three": "/lib/three.js", 
+            "three/addons/controls/OrbitControls.js": "/lib/orbit.js" 
+        } 
+    }
+    </script>
 </head>
 <body>
     <div id="ui-layer">
@@ -1002,7 +1147,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
         const config = [
             { id: 0, name: "NAV", color: "#00ffff" },
-            { id: 1, name: "TAG", color: "#ffffffff" },
+            { id: 1, name: "TAG", color: "#ffffff" },
             { id: 2, name: "MALLET", color: "#ffa500" },
             { id: 3, name: "BOTTLE", color: "#0088ff" },
             { id: 4, name: "PICK", color: "#ffee00" },
@@ -1422,7 +1567,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 }
 
 /******************************************************************************
- * @brief Generates a static HTML page with embedded LiDAR data.
+ * @brief Generates a static HTML page with embedded LiDAR data and embedded dependencies.
  *
  * @param vLidar - Vector of LiDAR point rows to include in the HTML.
  * @return std::string - The generated HTML content as a string.
@@ -1432,10 +1577,20 @@ std::string VisualizationHandler::GetEmbeddedHtml()
  ******************************************************************************/
 std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHandler::PointRow>& vLidar)
 {
+    // 1. Load and Encode Assets
+    std::string szThreeJS = Base64Encode(LoadFileToBuffer(constants::VISUALIZER_THREEJS_PATH));
+    std::string szOrbitJS = Base64Encode(LoadFileToBuffer(constants::VISUALIZER_ORBITCONTROLS_PATH));
+
+    if (szThreeJS.empty() || szOrbitJS.empty())
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "VisualizationHandler: Cannot generate monolithic export. Missing assets.");
+        return "<html><body>Error: Missing ThreeJS assets on rover. Ensure 'assets/three.module.js' and 'assets/OrbitControls.js' exist.</body></html>";
+    }
+
     std::stringstream stdSS;
     stdSS << std::fixed << std::setprecision(3);
 
-    // Write Header directly to stdSS to ensure it is present
+    // Write Header
     stdSS << R"RAW(
 <!DOCTYPE html>
 <html>
@@ -1462,7 +1617,22 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
     </style>
     <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    { 
+        "imports": { 
+            "three": "data:text/javascript;base64,)RAW";
+
+    // Inject ThreeJS Base64
+    stdSS << szThreeJS;
+
+    stdSS << R"RAW(", 
+            "three/addons/controls/OrbitControls.js": "data:text/javascript;base64,)RAW";
+
+    // Inject OrbitControls Base64
+    stdSS << szOrbitJS;
+
+    stdSS << R"RAW(" 
+        } 
+    }
     </script>
 </head>
 <body>
@@ -1498,7 +1668,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     }
     stdSS << "];\n";
 
-    // Path History Loop. (Explicit replacement for generic lambda)
+    // Path History Loop.
     {
         // Acquire lock for thread safety.
         std::lock_guard<std::mutex> lkPathLock(m_muPathMutex);
@@ -1580,7 +1750,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     stdSS << "    const INIT_H = " << stPose.GetCompassHeading() << ";\n";
     stdSS << "</script>\n";
 
-    // Write Logic Script directly to SS to prevent Scope errors.
+    // Write Logic Script directly to SS.
     stdSS << R"JS(
 <script type="module">
     import * as THREE from 'three';

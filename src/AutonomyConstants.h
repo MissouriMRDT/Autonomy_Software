@@ -262,6 +262,8 @@ namespace constants
 
     // LiDAR Data Handler.
     extern const int VISUALIZER_WEBSERVER_PORT;
+    extern const std::string VISUALIZER_THREEJS_PATH;
+    extern const std::string VISUALIZER_ORBITCONTROLS_PATH;
 
     ///////////////////////////////////////////////////////////////////////////
 

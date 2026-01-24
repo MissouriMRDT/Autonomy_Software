@@ -256,7 +256,9 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const int VISUALIZER_WEBSERVER_PORT = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
+    const int VISUALIZER_WEBSERVER_PORT             = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
+    const std::string VISUALIZER_THREEJS_PATH       = "../data/Web_Visualizer/assets/three.module.js";     // The path to the ThreeJS library.
+    const std::string VISUALIZER_ORBITCONTROLS_PATH = "../data/Web_Visualizer/assets/OrbitControls.js";    // The path to the OrbitControls library.
 
     ///////////////////////////////////////////////////////////////////////////
 
