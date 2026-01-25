@@ -39,7 +39,6 @@ namespace statemachine
         eVerifyingObject,
         eReversing,
         eStuck,
-
         NUM_STATES
     };
 

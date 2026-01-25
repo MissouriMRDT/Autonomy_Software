@@ -202,7 +202,7 @@ namespace constants
     const double BBOX_MIN_LIFETIME_THRESHOLD = 0.15;     // How many seconds does the detection need to be detected before being validated as a good detection.
     const double BBOX_MIN_SCREEN_PERCENTAGE  = 0.001;    // Minumum percentage of the screen the detection must cover to be valid. 0-100
     const double BBOX_TRACKER_LOST_TIMEOUT   = 0.1;      // The time in seconds to wait before considering a tracker lost. This should always be less than MAX_LIFTTIME.
-    const double BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a detection without new detection.MAX_TRACK_TIME
+    const double BBOX_TRACKER_MAX_TRACK_TIME = 5.0;      // The maximum time in seconds to track a detection without new detection.MAX_TRACK_TIME
     const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;                             // The IOU threshold to match a new detection to an existing tracker.
     const tracking::TrackerType BBOX_TRACKER_TYPE = tracking::TrackerType::eCSRT;    // The type of tracker to use for the DNN detection.
     ///////////////////////////////////////////////////////////////////////////
@@ -248,6 +248,17 @@ namespace constants
 
     // LiDAR Data Handler.
     const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/Flat_SIM.db";    // The path to the LiDAR database file.
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Visualization Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // LiDAR Data Handler.
+    const int VISUALIZER_WEBSERVER_PORT             = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
+    const std::string VISUALIZER_THREEJS_PATH       = "../data/Web_Visualizer/assets/three.module.js";     // The path to the ThreeJS library.
+    const std::string VISUALIZER_ORBITCONTROLS_PATH = "../data/Web_Visualizer/assets/OrbitControls.js";    // The path to the OrbitControls library.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -337,7 +348,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.1;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.5;     // Determines how reactive the rover is to crosstrack error adjustments.
     const double STANLEY_ANGULAR_VELOCITY_LIMIT  = 90.0;    // The maximum angular velocity in degrees per second.
     const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller unicycle model.

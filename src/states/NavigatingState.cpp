@@ -451,6 +451,9 @@ namespace statemachine
                         globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
                                                          globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
                                                          m_stGoalWaypoint.GetUTMCoordinate());
+                    // Add the path to the waypoint handler for reference by other states or handlers.
+                    globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                    // Add the new path to the plot.
                     m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.
                     m_pStanleyController->SetReferencePath(m_vPathCoordinates);
