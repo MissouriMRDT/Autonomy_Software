@@ -97,7 +97,7 @@ namespace filters
             void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
             void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
             Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
-            Eigen::Vector3d ConvertENUToGPS(const Eigen::Vector3d& eiPosition);
+            geoops::GPSCoordinate ConvertENUToGPS(const Eigen::Vector3d& eiPosition) const;
             Eigen::Matrix3d MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec);
 
             /////////////////////////////////////////
@@ -108,14 +108,13 @@ namespace filters
             bool m_bHasInitialGuess = false;                            // Whether or not there is an initial guess.
             bool m_bOriginSet       = false;                            // Whether or not there is an initial GPS set.
             geoops::GPSCoordinate m_stOriginGPS;                        // The original GPS coordinate set.
-            XStateSnapshot m_stInitialState;                            // To store the original state snapshot.
             XStateSnapshot m_stCurrentState;                            // The current state.
             Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;            // The covariance matrix for the error-state.
             std::chrono::system_clock::time_point m_tmLastIMUUpdate;    // Time of last IMU update.
             Eigen::Matrix3d m_eiAccelerometerCovariance;                // Accelerometer covariance matrix. (3x3)
             Eigen::Matrix3d m_eiGyroscopeCovariance;                    // Gyroscope covariance matrix. (3x3)
             Eigen::Matrix3d m_eiGPSCovariance;                          // Diff GPS covariance matrix. (3x3)
-            Eigen::Vector3d m_eiGravity;                                // Vector for gravity
+            Eigen::Vector3d m_eiGravity;                                // Vector for gravity.
             double m_dSigmaAcc;
             double m_dSigmaAccBias;
             double m_dSigmaGyro;

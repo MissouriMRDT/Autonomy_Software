@@ -11,6 +11,8 @@
 #include "ExtendedKalmanFilter.h"
 #include "../../AutonomyConstants.h"
 
+#include <GeographicLib/Geodesic.hpp>
+
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs used to implement the
  *      Extended Kalman Filter.
@@ -244,6 +246,14 @@ namespace filters
             return;
         }
 
+        // Check if there is an origin set.
+        if (!m_bOriginSet)
+        {
+            m_stOriginGPS = stCoord;
+            m_bOriginSet  = true;
+            return;
+        }
+
         // Convert GPS to ENU.
         Eigen::Vector3d eiZ = ConvertGPSToENU(stCoord);
 
@@ -458,6 +468,40 @@ namespace filters
     }
 
     /******************************************************************************
+     * @brief This will convert ENU (East/North/Up) into GPS. Transforms from local to global frame.
+     *
+     * @param eiPosition - The current ENU position of the rover.
+     * @return Eigen::Vector3d - The vector of the GPS position of the rover.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-01-25
+     ******************************************************************************/
+    geoops::GPSCoordinate ExtendedKalmanFilter::ConvertENUToGPS(const Eigen::Vector3d& eiPosition) const
+    {
+        geoops::GPSCoordinate stResult;
+
+        // If origin isn't set, we can't convert. Return default/empty.
+        if (!m_bOriginSet)
+        {
+            return m_stOriginGPS;
+        }
+
+        // Calculate latitude.
+        double dLatOffsetDeg = (eiPosition.y() / GeographicLib::Geodesic::WGS84().EquatorialRadius()) * 180.0 / M_PI;
+        stResult.dLatitude   = m_stOriginGPS.dLatitude + dLatOffsetDeg;
+
+        // Calculate longitude.
+        double dCosLat       = std::cos(m_stOriginGPS.dLatitude * (M_PI / 180.0));
+        double dLonOffsetDeg = (eiPosition.x() / (GeographicLib::Geodesic::WGS84().EquatorialRadius() * dCosLat)) * 180.0 / M_PI;
+        stResult.dLongitude  = m_stOriginGPS.dLongitude + dLonOffsetDeg;
+
+        // Calculate altitude.
+        stResult.dAltitude = m_stOriginGPS.dAltitude + eiPosition.z();
+
+        return stResult;
+    }
+
+    /******************************************************************************
      * @brief Converts a RoverPose to orientation quaternion.
      *
      * @param stPose - The current RoverPose.
@@ -530,6 +574,39 @@ namespace filters
     ExtendedKalmanFilter::XStateSnapshot ExtendedKalmanFilter::GetCurrentState() const
     {
         return m_stCurrentState;
+    }
+
+    /******************************************************************************
+     * @brief Returns the estimated RoverPose based on the current state, which includes position and heading.
+     *
+     * @return geoops::RoverPose - The estimated RoverPose based on the current state.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-01-25
+     ******************************************************************************/
+    geoops::RoverPose ExtendedKalmanFilter::GetEstimatedRoverPose() const
+    {
+        // Locking while reading.
+        std::shared_lock<std::shared_mutex> lkStateRead(m_muStateMutex);
+
+        // Extract position. (ENU -> GPS)
+        geoops::GPSCoordinate stEstimatedGPS = ConvertENUToGPS(m_stCurrentState.eiPosition);
+
+        // Extract heading. (Quaternion -> Yaw)
+        Eigen::Vector3d eiEuler = m_stCurrentState.eiOrientation.toRotationMatrix().eulerAngles(0, 1, 2);
+
+        // Normalize heading to compass standard and convert yaw to degrees.
+        double dCompassHeading = 90.0 - (eiEuler.z() * 180.0 / M_PI);
+
+        // Normalize to [0, 360).
+        dCompassHeading = std::fmod(dCompassHeading, 360.0);
+        if (dCompassHeading < 0)
+        {
+            dCompassHeading += 360.0;
+        }
+
+        // Construct and return.
+        return geoops::RoverPose(stEstimatedGPS, dCompassHeading);
     }
 
     /******************************************************************************
