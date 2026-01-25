@@ -144,5 +144,4 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<DisplayDetection> m_vDetections;
         std::mutex m_muDetectionMutex;
 };
-
 #endif
