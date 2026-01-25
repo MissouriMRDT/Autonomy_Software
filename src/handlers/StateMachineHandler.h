@@ -14,7 +14,6 @@
 #include "../algorithms/filters/ExtendedKalmanFilter.h"
 #include "../states/ApproachingMarkerState.h"
 #include "../states/ApproachingObjectState.h"
-#include "../states/AvoidanceState.h"
 #include "../states/IdleState.h"
 #include "../states/NavigatingState.h"
 #include "../states/ReversingState.h"
