@@ -10,7 +10,6 @@
 
 #include "ExtendedKalmanFilter.h"
 #include "../../AutonomyConstants.h"
-#include "../../vision/cameras/ZEDCam.h"
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs used to implement the
@@ -55,18 +54,27 @@ namespace filters
         // Horizontal and vertical GPS accuracies (updated on GPS)
         m_dSigmaGPSHor  = stInitPose.GetGPSCoordinate().d2DAccuracy;
         double dSigma3D = stInitPose.GetGPSCoordinate().d3DAccuracy;
-        m_dSigmaGPSVer  = std::sqrt(dSigma3D * dSigma3D - m_dSigmaGPSHor * m_dSigmaGPSHor);
+        m_dSigmaGPSVer  = std::sqrt(std::max(0.0, dSigma3D * dSigma3D - m_dSigmaGPSHor * m_dSigmaGPSHor));
 
         // Initialize starting state struct
-        RoverPoseToGPS(stInitPose, m_stInitialState.eiPosition);
-        RoverPoseToOrientation(stInitPose, m_stInitialState.eiOrientation);
-        m_stInitialState.eiVelocity  = Eigen::Vector3d::Zero();
-        m_stInitialState.eiAccelBias = Eigen::Vector3d::Zero();
-        m_stInitialState.eiGyroBias  = Eigen::Vector3d::Zero();
-        m_stInitialState.tmTimestamp = std::chrono::system_clock::now();
+        RoverPoseToGPS(stInitPose, m_stCurrentState.eiPosition);
+        RoverPoseToOrientation(stInitPose, m_stCurrentState.eiOrientation);
+
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
+        // Updating current state.
+        m_stCurrentState.eiVelocity  = Eigen::Vector3d::Zero();
+        m_stCurrentState.eiAccelBias = Eigen::Vector3d::Zero();
+        m_stCurrentState.eiGyroBias  = Eigen::Vector3d::Zero();
+        m_stCurrentState.tmTimestamp = std::chrono::system_clock::now();
+
+        // Unlocking after writing.
+        lkStateWrite.unlock();
 
         // Initial covariance P0 (15x15 matrix)
         m_eiErrorStateCov = Eigen::Matrix<double, 15, 15>::Zero();
+
         // Setting initial noises (gets updated)
         m_eiErrorStateCov.block<3, 3>(0, 0)   = Eigen::Matrix3d::Identity() * 10.0;    // Position
         m_eiErrorStateCov.block<3, 3>(3, 3)   = Eigen::Matrix3d::Identity() * 0.3;     // Orientation
@@ -74,21 +82,14 @@ namespace filters
         m_eiErrorStateCov.block<3, 3>(9, 9)   = Eigen::Matrix3d::Identity() * 0.01;    // Accel bias
         m_eiErrorStateCov.block<3, 3>(12, 12) = Eigen::Matrix3d::Identity() * 0.01;    // Gyro bias
 
-        // Setting current state
-        m_stCurrentState = m_stInitialState;
-
-        // Initialize gravity vector
+        // Initialize gravity vector.
         m_eiGravity = Eigen::Vector3d(0.0, 0.0, 9.80665);
 
-        // Update that the initial guess has been made
+        // Update that the initial guess has been made.
         m_bHasInitialGuess = true;
 
-        // Initialize timestamps
-        m_tmLastAccelerometerUpdate = std::chrono::system_clock::now();
-        m_tmLastGyroscopeUpdate     = std::chrono::system_clock::now();
-
-        // Adding onto the state history
-        m_liXStateHistory.push_back(m_stCurrentState);
+        // Initialize timestamps.
+        m_tmLastIMUUpdate = std::chrono::system_clock::now();
     }
 
     /******************************************************************************
@@ -101,21 +102,22 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::SetGPSNoise(const geoops::GPSCoordinate& stCoord)
     {
-        // Clear existing covariance
+        // Clear existing covariance.
         m_eiGPSCovariance.setZero();
 
-        // Setting horizontal and vertical accuracies
+        // Setting horizontal and vertical accuracies.
         m_dSigmaGPSHor = (stCoord.d2DAccuracy > 0.0) ? stCoord.d2DAccuracy : 1.0;
         double d3DAcc  = stCoord.d3DAccuracy;
-        m_dSigmaGPSVer = std::sqrt(d3DAcc * d3DAcc - m_dSigmaGPSHor * m_dSigmaGPSHor);
+        m_dSigmaGPSVer = std::sqrt(std::max(0.0, d3DAcc * d3DAcc - m_dSigmaGPSHor * m_dSigmaGPSHor));
 
-        // Updating R matrix
+        // Updating R matrix.
         m_eiGPSCovariance = Eigen::Matrix3d::Zero();
-        // Horizontal noise (X = East/West, Y = North/South)
+
+        // Horizontal noise (X = East/West, Y = North/South).
         m_eiGPSCovariance(0, 0) = m_dSigmaGPSHor * m_dSigmaGPSHor;    // variance in X
         m_eiGPSCovariance(1, 1) = m_dSigmaGPSHor * m_dSigmaGPSHor;    // variance in Y
 
-        // Vertical noise (Z = Up/Down)
+        // Vertical noise (Z = Up/Down).
         m_eiGPSCovariance(2, 2) = m_dSigmaGPSVer * m_dSigmaGPSVer;    // variance in Z
     }
 
@@ -157,23 +159,36 @@ namespace filters
             return;
         }
 
-        double dt                   = std::chrono::duration<double>(tmTimestamp - m_tmLastAccelerometerUpdate).count();
-        m_tmLastAccelerometerUpdate = tmTimestamp;
+        double dt         = std::chrono::duration<double>(tmTimestamp - m_tmLastIMUUpdate).count();
+        m_tmLastIMUUpdate = tmTimestamp;
+
+        // Locking while reading.
+        std::shared_lock<std::shared_mutex> lkStateRead(m_muStateMutex);
 
         // Accelerometer and gyrometer bias removal.
         Eigen::Vector3d eiAcc  = eiAccelMeas - m_stCurrentState.eiAccelBias;
         Eigen::Vector3d eiGyro = eiGyroMeas - m_stCurrentState.eiGyroBias;
+
+        // Unlocking after reading.
+        lkStateRead.unlock();
 
         // Updating orientation.
         Eigen::Vector3d eiOmega = eiGyro * dt;
         Eigen::Quaterniond eiDq;
 
         if (eiOmega.norm() > 1e-8)
+        {
             eiDq = Eigen::Quaterniond(Eigen::AngleAxisd(eiOmega.norm(), eiOmega.normalized()));
+        }
 
         // Identity quaternion.
         else
+        {
             eiDq = Eigen::Quaterniond::Identity();
+        }
+
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
 
         Eigen::Matrix3d eiROld         = m_stCurrentState.eiOrientation.toRotationMatrix();
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
@@ -185,6 +200,9 @@ namespace filters
         // Update velocity and position.
         m_stCurrentState.eiVelocity += eiAccWorldFrame * dt;
         m_stCurrentState.eiPosition += (m_stCurrentState.eiVelocity * dt) + ((eiAccWorldFrame * dt * dt) / 2.0);
+
+        // Unlocking after writing.
+        lkStateWrite.unlock();
 
         // Covariance update.
         Eigen::Matrix<double, 15, 15> eiF = Eigen::Matrix<double, 15, 15>::Zero();
@@ -208,9 +226,6 @@ namespace filters
 
         // Error state covariance update.
         m_eiErrorStateCov = eiFd * m_eiErrorStateCov * eiFd.transpose() + eiQ;
-
-        // Adding onto the state history.
-        m_liXStateHistory.push_back(m_stCurrentState);
     }
 
     /******************************************************************************
@@ -229,9 +244,6 @@ namespace filters
             return;
         }
 
-        // Save time updated.
-        m_tmLastGPSUpdate = stCoord.tmTimestamp;
-
         // Convert GPS to ENU.
         Eigen::Vector3d eiZ = ConvertGPSToENU(stCoord);
 
@@ -243,9 +255,15 @@ namespace filters
         eiR(1, 1)           = m_dSigmaGPSHor * m_dSigmaGPSHor;
         eiR(2, 2)           = m_dSigmaGPSVer * m_dSigmaGPSVer;
 
+        // Locking while reading.
+        std::shared_lock<std::shared_mutex> lkStateRead(m_muStateMutex);
+
         // Predicted position and innovation.
         Eigen::Vector3d eiXpred = m_stCurrentState.eiPosition;    // From RoverPose
         Eigen::Vector3d eiY     = eiZ - eiXpred;
+
+        // Unlocking after reading.
+        lkStateRead.unlock();
 
         // H matrix.
         Eigen::Matrix<double, 3, 15> eiH = Eigen::Matrix<double, 3, 15>::Zero();
@@ -268,6 +286,9 @@ namespace filters
         // Full state correction dx = K * y.
         Eigen::Matrix<double, 15, 1> eiDx = eiK * eiY;
 
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         // Apply corrections to nominal state.
         // Position update.
         m_stCurrentState.eiPosition += eiDx.block<3, 1>(0, 0);
@@ -289,6 +310,9 @@ namespace filters
         // Accel and gyro bias update.
         m_stCurrentState.eiAccelBias += eiDx.block<3, 1>(9, 0);
         m_stCurrentState.eiGyroBias += eiDx.block<3, 1>(12, 0);
+
+        // Unlocking after writing.
+        lkStateWrite.unlock();
 
         // Covariance update: P_new = (I - K H) P (I - K H)^T + K R K^T.
         Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();
@@ -318,9 +342,15 @@ namespace filters
         // Normalize.
         dYawMeas = std::atan2(std::sin(dYawMeas), std::cos(dYawMeas));
 
+        // Locking while reading.
+        std::shared_lock<std::shared_mutex> lkStateRead(m_muStateMutex);
+
         // Extract predicted yaw from state.
         Eigen::Quaterniond q = m_stCurrentState.eiOrientation;
         double dYawPred      = std::atan2(2.0 * (q.w() * q.z() + q.x() * q.y()), 1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z()));
+
+        // Unlocking after reading.
+        lkStateRead.unlock();
 
         // Calculate Innovation / Residual (y).
         double dResidual = dYawMeas - dYawPred;
@@ -359,6 +389,9 @@ namespace filters
         // Compute correction (dx).
         Eigen::VectorXd eiDx = eiK * dResidual;
 
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         // Apply state corrections.
         // Position update.
         m_stCurrentState.eiPosition += eiDx.block<3, 1>(0, 0);
@@ -380,6 +413,9 @@ namespace filters
         eiDq.normalize();
 
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
+
+        // Unlocking after writing.
+        lkStateWrite.unlock();
 
         // Update covariance matrix (P).
         Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();
@@ -432,9 +468,15 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
     {
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         //  Convert heading to orientation quaternion
         double dHeading = stPose.GetCompassHeading();
         eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
+
+        // Unlocking after writing.
+        lkStateWrite.unlock();
     }
 
     /******************************************************************************
@@ -448,10 +490,16 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const
     {
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         // Convert GPSCoordinate to position vector
         eiPosition(0) = stPose.GetGPSCoordinate().dLatitude;
         eiPosition(1) = stPose.GetGPSCoordinate().dLongitude;
         eiPosition(2) = stPose.GetGPSCoordinate().dAltitude;
+
+        // Unlocking after writing.
+        lkStateWrite.unlock();
     }
 
     /******************************************************************************
@@ -479,7 +527,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-11-26
      ******************************************************************************/
-    const ExtendedKalmanFilter::XStateSnapshot ExtendedKalmanFilter::GetCurrentState() const
+    ExtendedKalmanFilter::XStateSnapshot ExtendedKalmanFilter::GetCurrentState() const
     {
         return m_stCurrentState;
     }

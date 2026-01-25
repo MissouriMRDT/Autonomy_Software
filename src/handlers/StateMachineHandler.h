@@ -28,6 +28,7 @@
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
 #include <atomic>
+#include <eigen3/Eigen/Dense>
 #include <shared_mutex>
 
 /// \endcond
@@ -63,6 +64,14 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_ptr<statemachine::State> CreateState(statemachine::States eState);
         void ChangeState(statemachine::States eNextState, const bool bSaveCurrentState = false);
         void SaveCurrentState();
+        void TransformIMUToRobotFrame(const float fAx,
+                                      const float fAy,
+                                      const float fAz,
+                                      const float fGx,
+                                      const float fGy,
+                                      const float fGz,
+                                      Eigen::Vector3d& eiAccelVec,
+                                      Eigen::Vector3d& eiGyroVec);
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 

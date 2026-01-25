@@ -229,6 +229,41 @@ void StateMachineHandler::StopStateMachine()
 }
 
 /******************************************************************************
+ * @brief This will transform our ZED 2i's left-handed Y-up frame to the Extended Kalman Filter's required right-hand Z-up frame.
+ *
+ * @param fAx - Acceleration in the x-axis.
+ * @param fAy - Acceleration in the y-axis.
+ * @param fAz - Acceleration in the z-axis.
+ * @param fGx - Angular velocity in the x-axis.
+ * @param fGy - Angular velocity in the y-axis.
+ * @param fGz - Angular velocity in the z-axis.
+ * @param eiAccelVec - The output acceleration vector.
+ * @param eiGyroVec - The output angular velocity vector.
+ *
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+ * @date 2026-01-25
+ ******************************************************************************/
+void StateMachineHandler::TransformIMUToRobotFrame(const float fAx,
+                                                   const float fAy,
+                                                   const float fAz,
+                                                   const float fGx,
+                                                   const float fGy,
+                                                   const float fGz,
+                                                   Eigen::Vector3d& eiAccelVec,
+                                                   Eigen::Vector3d& eiGyroVec)
+{
+    // Mapping new acceleration values.
+    eiAccelVec.x() = fAz;     // Rover X = ZED Z
+    eiAccelVec.y() = -fAx;    // Rover Y = -ZED X
+    eiAccelVec.z() = fAy;     // Rover Z = ZED Y
+
+    // Mapping new gyroscope values.
+    eiGyroVec.x() = -fGz * M_PI / 180.0;    // Rover X = -ZED Z
+    eiGyroVec.y() = fGx * M_PI / 180.0;     // Rover Y = ZED X
+    eiGyroVec.z() = -fGy * M_PI / 180.0;    // Rover Z = -ZED Y
+}
+
+/******************************************************************************
  * @brief This code will run continuously in a separate thread. The State
  *        Machine Handler will check the current state and run the state's
  *        logic. It will then check the state's transition conditions and

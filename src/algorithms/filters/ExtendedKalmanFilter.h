@@ -14,8 +14,7 @@
 #include "../../util/GeospatialOperations.hpp"
 #include <chrono>
 #include <eigen3/Eigen/Dense>
-#include <list>
-#include <sl/Camera.hpp>
+#include <shared_mutex>
 
 namespace filters
 {
@@ -84,7 +83,13 @@ namespace filters
             // Getters.
             /////////////////////////////////////////
 
-            const XStateSnapshot GetCurrentState() const;
+            XStateSnapshot GetCurrentState() const;
+            geoops::RoverPose GetEstimatedRoverPose() const;
+
+        private:
+            /////////////////////////////////////////
+            // Declare private class methods.
+            /////////////////////////////////////////
 
             /////////////////////////////////////////
             // Conversions.
@@ -92,28 +97,25 @@ namespace filters
             void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
             void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
             Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
+            Eigen::Vector3d ConvertENUToGPS(const Eigen::Vector3d& eiPosition);
             Eigen::Matrix3d MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec);
 
-        private:
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
 
-            bool m_bHasInitialGuess = false;                                      // Whether or not there is an initial guess.
-            bool m_bOriginSet       = false;                                      // Whether or not there is an initial GPS set.
-            geoops::GPSCoordinate m_stOriginGPS;                                  // The original GPS coordinate set.
-            XStateSnapshot m_stInitialState;                                      // To store the original state snapshot.
-            XStateSnapshot m_stCurrentState;                                      // The current state.
-            std::chrono::duration<std::chrono::milliseconds> m_tiHistoryLimit;    // How far back m_liXStateHistory should be recorded.
-            std::list<XStateSnapshot> m_liXStateHistory;        // All estimates made in the last m_tiHistoryLimit period, with new estimates inserted at the back.
-            Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;    // The covariance matrix for the error-state.
-            std::chrono::system_clock::time_point m_tmLastAccelerometerUpdate;    // Time of last accelerometer update.
-            Eigen::Matrix3d m_eiAccelerometerCovariance;                          // Accelerometer covariance matrix. (3x3)
-            std::chrono::system_clock::time_point m_tmLastGyroscopeUpdate;        // Time of last gyro update.
-            Eigen::Matrix3d m_eiGyroscopeCovariance;                              // Gyroscope covariance matrix. (3x3)
-            std::chrono::system_clock::time_point m_tmLastGPSUpdate;              // Time of last diff GPS update.
-            Eigen::Matrix3d m_eiGPSCovariance;                                    // Diff GPS covariance matrix. (3x3)
-            Eigen::Vector3d m_eiGravity;                                          // Vector for gravity
+            mutable std::shared_mutex m_muStateMutex;                   // Mutex when updating filter.
+            bool m_bHasInitialGuess = false;                            // Whether or not there is an initial guess.
+            bool m_bOriginSet       = false;                            // Whether or not there is an initial GPS set.
+            geoops::GPSCoordinate m_stOriginGPS;                        // The original GPS coordinate set.
+            XStateSnapshot m_stInitialState;                            // To store the original state snapshot.
+            XStateSnapshot m_stCurrentState;                            // The current state.
+            Eigen::Matrix<double, 15, 15> m_eiErrorStateCov;            // The covariance matrix for the error-state.
+            std::chrono::system_clock::time_point m_tmLastIMUUpdate;    // Time of last IMU update.
+            Eigen::Matrix3d m_eiAccelerometerCovariance;                // Accelerometer covariance matrix. (3x3)
+            Eigen::Matrix3d m_eiGyroscopeCovariance;                    // Gyroscope covariance matrix. (3x3)
+            Eigen::Matrix3d m_eiGPSCovariance;                          // Diff GPS covariance matrix. (3x3)
+            Eigen::Vector3d m_eiGravity;                                // Vector for gravity
             double m_dSigmaAcc;
             double m_dSigmaAccBias;
             double m_dSigmaGyro;
