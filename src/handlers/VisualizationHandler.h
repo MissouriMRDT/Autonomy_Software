@@ -145,4 +145,4 @@ class VisualizationHandler : public AutonomyThread<void>
         std::mutex m_muDetectionMutex;
 };
 
-#endif    // VISUALIZATIONHANDLER_H
+#endif
