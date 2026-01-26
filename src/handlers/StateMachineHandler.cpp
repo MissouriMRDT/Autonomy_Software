@@ -288,8 +288,91 @@ void StateMachineHandler::ThreadedContinuousCode()
         m_pCurrentState->Run();
     }
 
+    // Start Extended Kalman Filter code.
+    if (!m_pEKF)
+    {
+        // Check if NavBoard has a VALID GPS fix (2D Accuracy < 10m is a safe threshold)
+        auto stGPS = globals::g_pNavigationBoard->GetGPSData();
+
+        if (stGPS.d2DAccuracy > 0.0 && stGPS.d2DAccuracy < 10.0)
+        {
+            // We have a good start point! Create the filter.
+            double dHeading = globals::g_pNavigationBoard->GetHeading();
+            geoops::RoverPose stStartPose(stGPS, dHeading);
+
+            // Instantiate the EKF on the heap
+            // This calls your constructor: ExtendedKalmanFilter(stStartPose, ...)
+            m_pEKF = std::make_unique<filters::ExtendedKalmanFilter>(stStartPose);
+
+            LOG_INFO(logging::g_qSharedLogger, "EKF Initialized at Lat: {}, Lon: {}", stGPS.dLatitude, stGPS.dLongitude);
+        }
+        else
+        {
+            // Wait for GPS before trying to run EKF
+            return;
+        }
+    }
+
+    // If camera is open, acquire sensor data.
+
+    // Get the sensor data.
+    sl::SensorsData slSensorData;
+    std::future<bool> fuResult = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam)->RequestSensorsCopy(slSensorData);
+
+    // Declare and initialize sensor values.
+    float fAx = 0.0;
+    float fAy = 0.0;
+    float fAz = 0.0;
+    float fGx = 0.0;
+    float fGy = 0.0;
+    float fGz = 0.0;
+
+    // Wait for the data to be copied.
+    if (fuResult.get())
+    {
+        // Input sensor data to variables.
+        float fAx = slSensorData.imu.linear_acceleration.x;
+        float fAy = slSensorData.imu.linear_acceleration.y;
+        float fAz = slSensorData.imu.linear_acceleration.z;
+        float fGx = slSensorData.imu.angular_velocity.x;
+        float fGy = slSensorData.imu.angular_velocity.y;
+        float fGz = slSensorData.imu.angular_velocity.z;
+    }
+
+    // Declare acceleration and gyro vectors.
+    Eigen::Vector3d eiAccel, eiGyro;
+
+    // Convert from ZED left-handed Y-Up coordinate system to rover-frame right-handed Z-Up.
+    TransformIMUToRobotFrame(fAx, fAy, fAz, fGx, fGy, fGz, eiAccel, eiGyro);
+
+    // Run prediction.
+    m_pEKF->Predict(eiAccel, eiGyro, std::chrono::system_clock::now());
+
+    // Update GPS.
+    static std::chrono::system_clock::duration tmLastGPS = std::chrono::system_clock::duration::min();
+    if (globals::g_pNavigationBoard->GetGPSLastUpdateTime() > tmLastGPS)
+    {
+        tmLastGPS                   = globals::g_pNavigationBoard->GetGPSLastUpdateTime();
+        geoops::GPSCoordinate stGPS = globals::g_pNavigationBoard->GetGPSData();
+
+        // Filter out bad accuracies.
+        if (stGPS.d2DAccuracy > 0.0)
+        {
+            m_pEKF->UpdateGPS(stGPS);
+        }
+    }
+
+    // Update compass.
+    static std::chrono::system_clock::duration tmLastCompass = std::chrono::system_clock::duration::min();
+    if (globals::g_pNavigationBoard->GetCompassLastUpdateTime() > tmLastCompass)
+    {
+        tmLastCompass = globals::g_pNavigationBoard->GetCompassLastUpdateTime();
+        m_pEKF->UpdateCompass(globals::g_pNavigationBoard->GetHeading());
+    }
+
     // Create instance variable.
     static geoops::GPSCoordinate stNewGPSLocation;
+
     // Check if GPS data is recent and updated.
     if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSLastUpdateTime()).count() <= 100 ||
         (stNewGPSLocation.dLatitude == 0.0 && stNewGPSLocation.dLongitude == 0.0))
@@ -298,8 +381,9 @@ void StateMachineHandler::ThreadedContinuousCode()
         stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
     }
 
-    // Create static boolean value for toggling DiffGPS warning log print.
+    // Create static bool value for toggling DiffGPS warning log print.
     static bool bAlreadyPrintedDiffGPSWarning = false;
+
     // Check if the current GPS data is different from the old.
     if (stNewGPSLocation.dLatitude != m_stCurrentGPSLocation.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSLocation.dLongitude &&
         stNewGPSLocation.dAltitude != m_stCurrentGPSLocation.dAltitude)
@@ -439,42 +523,30 @@ statemachine::States StateMachineHandler::GetPreviousState() const
  ******************************************************************************/
 geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose()
 {
-    // Get and store the normal GPS position and heading from NavBoard.
-    geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
-    double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
+    // Create instance variable.
+    geoops::RoverPose stCurrentEKFPosition;
 
-    // Create instance variables.
-    std::shared_ptr<ZEDCamera> pMainCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-    geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
-    double dCurrentHeading                     = dCurrentGPSHeading;
-
-    static bool bAlreadyPrinted                = false;
-
-    if (!constants::MODE_SIM)
+    // If the EKF is initialized and running, trust its estimate.
+    if (m_pEKF)
     {
-        // Check if the main ZED camera is opened and the fusion module is initialized.
-        if (pMainCam->GetCameraIsOpen())
-        {
-            // TODO: get imu, ekf
-        }
-        else
-        {
-            LOG_WARNING_LIMIT(std::chrono::seconds(5),
-                              logging::g_qSharedLogger,
-                              "Positional tracking is NOT ENABLED, NOT STABLE, or camera is NOT OPEN! Using NavBoard GPS data for rover pose...");
-        }
+        stCurrentEKFPosition = m_pEKF->GetEstimatedRoverPose();
+        // Submit a debug print for the current rover pose.
+        geoops::UTMCoordinate stCurrentUTMPosition = stCurrentEKFPosition.GetUTMCoordinate();
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees)",
+                  stCurrentUTMPosition.dEasting,
+                  stCurrentUTMPosition.dNorthing,
+                  stCurrentUTMPosition.dAltitude,
+                  stCurrentEKFPosition.GetCompassHeading());
+    }
+    // If EKF is not ready, return raw sensor data.
+    else
+    {
+        stCurrentEKFPosition = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
+        LOG_WARNING(logging::g_qSharedLogger, "EKF is not initialized/running.");
     }
 
-    // Submit a debug print for the current rover pose.
-    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentVIOPosition);
-    LOG_DEBUG(logging::g_qSharedLogger,
-              "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees)",
-              stCurrentUTMPosition.dEasting,
-              stCurrentUTMPosition.dNorthing,
-              stCurrentUTMPosition.dAltitude,
-              dCurrentHeading);
-
-    return geoops::RoverPose(stCurrentVIOPosition, dCurrentHeading);
+    return stCurrentEKFPosition;
 }
 
 /******************************************************************************
