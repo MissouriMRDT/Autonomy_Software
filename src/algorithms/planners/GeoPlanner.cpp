@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Implementation file for the GeoPlanner class, which provides path planning
- *     functionality using LiDAR data and A* algorithm.
+ * functionality using LiDAR data and A* algorithm.
  *
  * @file GeoPlanner.cpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -14,8 +14,8 @@
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
- *     implement different path planner algorithms used by the rover to determine
- *     the optimal path to take for any given situation.
+ * implement different path planner algorithms used by the rover to determine
+ * the optimal path to take for any given situation.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -39,7 +39,7 @@ namespace pathplanners
         m_nStartID              = -1;
         m_nEndID                = -1;
         m_dBeta                 = 5.0;
-        m_dHeuristicWeight      = 1.5;
+        m_dHeuristicWeight      = 1.0;
         m_dMinTravScore         = 0.0;
         m_dSearchRadius         = 3.0;
         m_dMaxSearchTimeSeconds = 120.0;
@@ -332,13 +332,16 @@ namespace pathplanners
                                                       stStartState.dAltitude,
                                                       m_umAllStates[m_nEndID].dEasting,
                                                       m_umAllStates[m_nEndID].dNorthing,
-                                                      m_umAllStates[m_nEndID].dAltitude) *
-                              m_dHeuristicWeight;
+                                                      m_umAllStates[m_nEndID].dAltitude);
         // Cumulative traversal score starts as the start point's score.
         m_umAllStates[m_nStartID] = stStartState;
 
         // Push start into the open set priority queue.
         m_pqOpenSetNextBest.push(m_umAllStates[m_nStartID]);
+
+        // Logging timers and stats
+        auto tmLastLogTime         = std::chrono::high_resolution_clock::now();
+        size_t unLastClosedSetSize = 0;
 
         // Main A* search loop.
         while (!m_pqOpenSetNextBest.empty())
@@ -425,7 +428,8 @@ namespace pathplanners
                     stNeighborState.nZone                 = std::stoi(stPoint.szZone.substr(0, 2));    // Assuming zone is stored as string.
                     stNeighborState.bInNorthernHemisphere = (stPoint.dNorthing >= 0);                  // Simple check based on northing.
                     stNeighborState.dGCost                = dTentativeGCost;
-                    // Heuristic cost (Euclidean distance to goal).
+
+                    // Heuristic cost (Euclidean distance to goal) WITH WEIGHT
                     stNeighborState.dHCost = this->EuclideanDistance(stNeighborState.dEasting,
                                                                      stNeighborState.dNorthing,
                                                                      stNeighborState.dAltitude,
@@ -444,10 +448,34 @@ namespace pathplanners
                 }
             }
 
-            // Log progress every 100 iterations.
-            if (m_usClosedSet.size() % 1000 == 0)
+            // Logging: Calculate time since last log.
+            std::chrono::high_resolution_clock::time_point tmNow = std::chrono::high_resolution_clock::now();
+            double dSecondsSinceLog                              = std::chrono::duration<double>(tmNow - tmLastLogTime).count();
+
+            // Log status every 2.0 seconds
+            if (dSecondsSinceLog >= 2.0)
             {
-                LOG_INFO(logging::g_qSharedLogger, "A* search progress: {} nodes evaluated.", m_usClosedSet.size());
+                // Calculate Speed (Nodes Per Second)
+                size_t unCurrentClosedSize = m_usClosedSet.size();
+                double dNPS                = (unCurrentClosedSize - unLastClosedSetSize) / dSecondsSinceLog;
+
+                // Get Open Set Size (Frontier)
+                size_t unOpenSize = m_pqOpenSetNextBest.size();
+
+                // Format data for density
+                // G-Cost: Distance traveled so far from start
+                // H-Cost: Estimated distance remaining to goal
+                LOG_INFO(logging::g_qSharedLogger,
+                         "A* Stats | Visited: {} ({:.0f}/s) | Frontier: {} | Curr Path: {:.1f}m | Dist To Goal: {:.1f}m",
+                         unCurrentClosedSize,
+                         dNPS,
+                         unOpenSize,
+                         stCurrentState.dGCost,
+                         stCurrentState.dHCost);
+
+                // Update trackers
+                tmLastLogTime       = tmNow;
+                unLastClosedSetSize = unCurrentClosedSize;
             }
 
             // Check if we've exceeded the maximum search time.
@@ -565,6 +593,7 @@ namespace pathplanners
         {
             // Get the points for this tile from the cache.
             std::vector<LiDARHandler::PointRow>& vTilePoints = m_umTileMapCache[stTileKey];
+
             // Next, we will insert the points into the KD-Tree for fast spatial queries.
             for (LiDARHandler::PointRow& stLiDARPoint : vTilePoints)
             {
