@@ -41,7 +41,6 @@ StateMachineHandler::StateMachineHandler()
 
     // Initialize member variables.
     m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-    m_pEKF     = std::make_unique<filters::ExtendedKalmanFilter>();
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
@@ -288,33 +287,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         m_pCurrentState->Run();
     }
 
-    // Start Extended Kalman Filter code.
-    if (!m_pEKF)
-    {
-        // Check if NavBoard has a VALID GPS fix (2D Accuracy < 10m is a safe threshold)
-        auto stGPS = globals::g_pNavigationBoard->GetGPSData();
-
-        if (stGPS.d2DAccuracy > 0.0 && stGPS.d2DAccuracy < 10.0)
-        {
-            // We have a good start point! Create the filter.
-            double dHeading = globals::g_pNavigationBoard->GetHeading();
-            geoops::RoverPose stStartPose(stGPS, dHeading);
-
-            // Instantiate the EKF on the heap
-            // This calls your constructor: ExtendedKalmanFilter(stStartPose, ...)
-            m_pEKF = std::make_unique<filters::ExtendedKalmanFilter>(stStartPose);
-
-            LOG_INFO(logging::g_qSharedLogger, "EKF Initialized at Lat: {}, Lon: {}", stGPS.dLatitude, stGPS.dLongitude);
-        }
-        else
-        {
-            // Wait for GPS before trying to run EKF
-            return;
-        }
-    }
-
     // If camera is open, acquire sensor data.
-
     // Get the sensor data.
     sl::SensorsData slSensorData;
     std::future<bool> fuResult = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam)->RequestSensorsCopy(slSensorData);
@@ -331,12 +304,59 @@ void StateMachineHandler::ThreadedContinuousCode()
     if (fuResult.get())
     {
         // Input sensor data to variables.
-        float fAx = slSensorData.imu.linear_acceleration.x;
-        float fAy = slSensorData.imu.linear_acceleration.y;
-        float fAz = slSensorData.imu.linear_acceleration.z;
-        float fGx = slSensorData.imu.angular_velocity.x;
-        float fGy = slSensorData.imu.angular_velocity.y;
-        float fGz = slSensorData.imu.angular_velocity.z;
+        fAx = slSensorData.imu.linear_acceleration.x;
+        fAy = slSensorData.imu.linear_acceleration.y;
+        fAz = slSensorData.imu.linear_acceleration.z;
+        fGx = slSensorData.imu.angular_velocity.x;
+        fGy = slSensorData.imu.angular_velocity.y;
+        fGz = slSensorData.imu.angular_velocity.z;
+    }
+
+    // Start Extended Kalman Filter code.
+    if (!m_pEKF)
+    {
+        // Check if NavBoard has a VALID GPS fix
+        geoops::GPSCoordinate stGPS = globals::g_pNavigationBoard->GetGPSData();
+
+        if (stGPS.d2DAccuracy > 0.0 && stGPS.d2DAccuracy < 10.0)
+        {
+            double dHeading = globals::g_pNavigationBoard->GetHeading();
+            geoops::RoverPose stStartPose(stGPS, dHeading);
+
+            // Create temporary buffers for the raw data from ZED cov matrices.
+            float fRawAccelCov[9];
+            float fRawGyroCov[9];
+
+            // Copy memory from the ZED struct to our buffers.
+            std::memcpy(fRawAccelCov, &slSensorData.imu.linear_acceleration_covariance, sizeof(float) * 9);
+            std::memcpy(fRawGyroCov, &slSensorData.imu.angular_velocity_covariance, sizeof(float) * 9);
+
+            // Map the temporary buffers to Eigen for our matrix math.
+            Eigen::Matrix3d eiRawAccelCov = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(fRawAccelCov).cast<double>();
+            Eigen::Matrix3d eiRawGyroCov  = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(fRawGyroCov).cast<double>();
+
+            // Create rotational matrices for frame conversion.
+            Eigen::Matrix3d eiRotAccel, eiRotGyro;
+            eiRotAccel << 0, 0, 1, -1, 0, 0, 0, 1, 0;
+            eiRotGyro << 0, 0, -1, 1, 0, 0, 0, -1, 0;
+
+            Eigen::Matrix3d eiAccelNoise = eiRotAccel * eiRawAccelCov * eiRotAccel.transpose();
+            Eigen::Matrix3d eiGyroNoise  = eiRotGyro * eiRawGyroCov * eiRotGyro.transpose();
+
+            // Convert gyro variance from deg^2 torRad^2.
+            double dDegToRad = M_PI / 180.0;
+            eiGyroNoise      = eiGyroNoise * (dDegToRad * dDegToRad);
+
+            // Instantiate the EKF on the heap.
+            m_pEKF = std::make_unique<filters::ExtendedKalmanFilter>(stStartPose, eiAccelNoise, eiGyroNoise);
+
+            LOG_INFO(logging::g_qSharedLogger, "EKF Initialized at Lat: {}, Lon: {}", stGPS.dLatitude, stGPS.dLongitude);
+        }
+        else
+        {
+            // Wait for GPS before trying to run EKF.
+            return;
+        }
     }
 
     // Declare acceleration and gyro vectors.
@@ -380,9 +400,6 @@ void StateMachineHandler::ThreadedContinuousCode()
         // Get the current NavBoard GPS data.
         stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
     }
-
-    // Create static bool value for toggling DiffGPS warning log print.
-    static bool bAlreadyPrintedDiffGPSWarning = false;
 
     // Check if the current GPS data is different from the old.
     if (stNewGPSLocation.dLatitude != m_stCurrentGPSLocation.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSLocation.dLongitude &&

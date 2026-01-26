@@ -118,6 +118,6 @@ namespace filters
             double m_dSigmaGPSVer;
             double m_dSigmaYaw;
     };
-};    // namespace filters
+}    // namespace filters
 
 #endif

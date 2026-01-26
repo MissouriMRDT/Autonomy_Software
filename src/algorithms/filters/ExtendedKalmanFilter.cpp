@@ -219,7 +219,7 @@ namespace filters
         }
 
         // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+        lkStateWrite.lock();
 
         Eigen::Matrix3d eiROld         = m_stCurrentState.eiOrientation.toRotationMatrix();
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
@@ -326,7 +326,7 @@ namespace filters
         Eigen::Matrix<double, 15, 1> eiDx = eiK * eiY;
 
         // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+        lkStateWrite.lock();
 
         // Apply corrections to nominal state.
         // Position update.

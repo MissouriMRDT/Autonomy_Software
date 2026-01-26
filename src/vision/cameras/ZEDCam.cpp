@@ -201,8 +201,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
         m_slFusionParams.coordinate_units  = constants::FUSION_MEASUREMENT_UNITS;
         m_slFusionParams.coordinate_system = constants::FUSION_COORD_SYSTEM;
         m_slFusionParams.verbose           = constants::FUSION_SDK_VERBOSE;
-        // Setup Fusion positional tracking parameters.
-        m_slFusionPoseTrackingParams.enable_GNSS_fusion = constants::FUSION_ENABLE_GNSS_FUSION;
 
         // Initialize fusion instance for camera.
         sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.init(m_slFusionParams);
@@ -1785,7 +1783,7 @@ sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewG
         // Acquire read lock.
         std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
         // Check if fusion positional tracking is enabled.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && m_slCamera.isPositionalTrackingEnabled())
+        if (m_slCamera.isPositionalTrackingEnabled())
         {
             // Release lock.
             lkCameraLock.unlock();
@@ -1927,7 +1925,7 @@ sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewG
             lkCameraLock.unlock();
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger,
-                      "Cannot ingest GNSS data because camera {} ({}) does not have positional tracking enabled or constants::FUSION_ENABLE_GNSS_FUSION is false!",
+                      "Cannot ingest GNSS data because camera {} ({}) does not have positional tracking enabled",
                       sl::toString(m_slCameraModel).get(),
                       m_unCameraSerialNumber);
         }
