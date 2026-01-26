@@ -37,19 +37,32 @@ DriveBoard::DriveBoard()
     m_fMaxDriveEffort                = constants::DRIVE_MAX_POWER;
     m_fDriveEffortMultiplier         = 1.0f;
 
+    // Configure variable drive effort parameters.
+    m_pPowerPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
+                                                               constants::DRIVE_PID_INTEGRAL,
+                                                               constants::DRIVE_PID_DERIVATIVE,
+                                                               constants::DRIVE_PID_FEEDFORWARD);
+    m_pPowerPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR);
+    m_pPowerPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
+    m_pPowerPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
+    m_pPowerPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
+    m_pPowerPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
+    m_pPowerPID->SetTolerance(constants::DRIVE_PID_TOLERANCE);
+    m_pPowerPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
+
     // Configure PID controller for heading hold function.
-    m_pPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
-                                                          constants::DRIVE_PID_INTEGRAL,
-                                                          constants::DRIVE_PID_DERIVATIVE,
-                                                          constants::DRIVE_PID_FEEDFORWARD);
-    m_pPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR);
-    m_pPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
-    m_pPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
-    m_pPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
-    m_pPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
-    m_pPID->SetTolerance(constants::DRIVE_PID_TOLERANCE);
-    m_pPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
-    m_pPID->EnableContinuousInput(0, 360);
+    m_pSteeringPID = std::make_unique<controllers::PIDController>(constants::DRIVE_PID_PROPORTIONAL,
+                                                                  constants::DRIVE_PID_INTEGRAL,
+                                                                  constants::DRIVE_PID_DERIVATIVE,
+                                                                  constants::DRIVE_PID_FEEDFORWARD);
+    m_pSteeringPID->SetMaxSetpointDifference(constants::DRIVE_PID_MAX_ERROR);
+    m_pSteeringPID->SetMaxIntegralEffort(constants::DRIVE_PID_MAX_INTEGRAL_TERM);
+    m_pSteeringPID->SetOutputLimits(1.0);    // Autonomy internally always uses -1.0, 1.0 for turning and drive powers.
+    m_pSteeringPID->SetOutputRampRate(constants::DRIVE_PID_MAX_RAMP_RATE);
+    m_pSteeringPID->SetOutputFilter(constants::DRIVE_PID_OUTPUT_FILTER);
+    m_pSteeringPID->SetTolerance(constants::DRIVE_PID_TOLERANCE);
+    m_pSteeringPID->SetDirection(constants::DRIVE_PID_OUTPUT_REVERSED);
+    m_pSteeringPID->EnableContinuousInput(0, 360);
 
     // Set RoveComm callbacks.
     if (network::g_pRoveCommUDPNode)
@@ -75,7 +88,7 @@ DriveBoard::~DriveBoard()
  * @brief This method determines drive powers to make the Rover drive towards a
  * given heading at a given speed
  *
- * @param dGoalSpeed - The speed to drive at (-1 to 1)
+ * @param dGoalSpeed - The speed to drive at in meters per second.
  * @param dGoalHeading - The angle to drive towards. (0 - 360) 0 is North.
  * @param dActualHeading - The real angle that the Rover is current facing.
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
@@ -87,6 +100,7 @@ DriveBoard::~DriveBoard()
  ******************************************************************************/
 diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
                                                  const double dGoalHeading,
+                                                 const double dActualSpeed,
                                                  const double dActualHeading,
                                                  const diffdrive::DifferentialControlMethod eKinematicsMethod,
                                                  const bool bAlwaysProgressForward)
@@ -94,9 +108,11 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
     // Calculate the drive powers from the current heading, goal heading, and goal speed.
     diffdrive::DrivePowers stDrivePowers = diffdrive::CalculateMotorPowerFromHeading(dGoalSpeed,
                                                                                      dGoalHeading,
+                                                                                     dActualSpeed,
                                                                                      dActualHeading,
                                                                                      eKinematicsMethod,
-                                                                                     *m_pPID,
+                                                                                     *m_pPowerPID,
+                                                                                     *m_pSteeringPID,
                                                                                      bAlwaysProgressForward,
                                                                                      constants::DRIVE_SQUARE_CONTROL_INPUTS,
                                                                                      constants::DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED);

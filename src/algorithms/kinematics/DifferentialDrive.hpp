@@ -218,11 +218,13 @@ namespace diffdrive
      *      curvature is determined by the given PID controller which must be properly
      *      configured.
      *
-     * @param dGoalSpeed - The goal speed for the robot.
+     * @param dGoalSpeed - The goal speed for the robot in meters per second.
      * @param dGoalHeading - The goal absolute heading for the robot. (0-360 degrees, CW positive.)
+     * @param dActualSpeed - The actual current speed of the robot in meters per second.
      * @param dActualHeading - The actual current heading of the robot.
      * @param eDriveMethod - The differential drive method to use for navigation. MUST NOT BE TANK.
-     * @param PID - A reference to the PID controller to use for hitting the heading setpoint.
+     * @param PowerPID - A reference to the PID controller to use for hitting the speed setpoint.
+     * @param SteeringPID - A reference to the PID controller to use for hitting the heading setpoint.
      * @param bAlwaysProgressForward - If this is true, the kinematic model will always move forward or backward, point turns
      *                          will not be allowed and the rover will not be able to spin one side backwards and the other side forwards.
      * @param bSquareControlInput - Can provide smoother control at goal heading.
@@ -236,9 +238,11 @@ namespace diffdrive
      ******************************************************************************/
     inline DrivePowers CalculateMotorPowerFromHeading(double dGoalSpeed,
                                                       double dGoalHeading,
+                                                      double dActualSpeed,
                                                       double dActualHeading,
                                                       const DifferentialControlMethod eDriveMethod,
-                                                      controllers::PIDController& PID,
+                                                      controllers::PIDController& PowerPID,
+                                                      controllers::PIDController& SteeringPID,
                                                       const bool bAlwaysProgressForward                  = false,
                                                       const bool bSquareControlInput                     = false,
                                                       const bool bCurvatureDriveAllowTurningWhileStopped = true)
@@ -246,8 +250,11 @@ namespace diffdrive
         // Create instance variables.
         DrivePowers stOutputPowers;
 
-        // Get control output from PID controller.
-        double dTurnOutput = PID.Calculate(dActualHeading, dGoalHeading);
+        // Get the control speed output from the PID controller.
+        double dNormalizedSpeed = PowerPID.Calculate(dActualSpeed, dGoalSpeed);
+
+        // Get control steering output from PID controller.
+        double dTurnOutput = SteeringPID.Calculate(dActualHeading, dGoalHeading);
 
         // Calculate drive powers from inverse kinematics of goal speed and turning adjustment.
         switch (eDriveMethod)
@@ -259,10 +266,10 @@ namespace diffdrive
                 {
                     // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
                     // constant speed.
-                    dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
+                    dNormalizedSpeed *= 1.0 - std::pow(dTurnOutput, 2);
                 }
                 // Calculate drive power with inverse kinematics.
-                stOutputPowers = CalculateArcadeDrive(dGoalSpeed, dTurnOutput, bSquareControlInput);
+                stOutputPowers = CalculateArcadeDrive(dNormalizedSpeed, dTurnOutput, bSquareControlInput);
                 break;
             }
             case DifferentialControlMethod::eCurvatureDrive:
@@ -272,10 +279,10 @@ namespace diffdrive
                 {
                     // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
                     // constant speed.
-                    dGoalSpeed *= 1.0 - std::pow(dTurnOutput, 2);
+                    dNormalizedSpeed *= 1.0 - std::pow(dTurnOutput, 2);
                 }
                 // Calculate drive power with inverse kinematics.
-                stOutputPowers = CalculateCurvatureDrive(dGoalSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
+                stOutputPowers = CalculateCurvatureDrive(dNormalizedSpeed, dTurnOutput, bCurvatureDriveAllowTurningWhileStopped, bSquareControlInput);
                 break;
             }
             default:

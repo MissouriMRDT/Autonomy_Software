@@ -82,16 +82,26 @@ namespace constants
     extern const float DRIVE_MAX_SAFE_POWER;
 
     // Control constants.
-    extern const double DRIVE_PID_PROPORTIONAL;
-    extern const double DRIVE_PID_INTEGRAL;
-    extern const double DRIVE_PID_DERIVATIVE;
-    extern const double DRIVE_PID_FEEDFORWARD;
-    extern const double DRIVE_PID_MAX_ERROR;
-    extern const double DRIVE_PID_MAX_INTEGRAL_TERM;
-    extern const double DRIVE_PID_MAX_RAMP_RATE;
-    extern const double DRIVE_PID_OUTPUT_FILTER;
-    extern const double DRIVE_PID_TOLERANCE;
-    extern const bool DRIVE_PID_OUTPUT_REVERSED;
+    extern const double DRIVE_POWER_PID_PROPORTIONAL;
+    extern const double DRIVE_POWER_PID_INTEGRAL;
+    extern const double DRIVE_POWER_PID_DERIVATIVE;
+    extern const double DRIVE_POWER_PID_FEEDFORWARD;
+    extern const double DRIVE_POWER_PID_MAX_ERROR;
+    extern const double DRIVE_POWER_PID_MAX_INTEGRAL_TERM;
+    extern const double DRIVE_POWER_PID_MAX_RAMP_RATE;
+    extern const double DRIVE_POWER_PID_OUTPUT_FILTER;
+    extern const double DRIVE_POWER_PID_TOLERANCE;
+    extern const bool DRIVE_POWER_PID_OUTPUT_REVERSED;
+    extern const double DRIVE_STEERING_PID_PROPORTIONAL;
+    extern const double DRIVE_STEERING_PID_INTEGRAL;
+    extern const double DRIVE_STEERING_PID_DERIVATIVE;
+    extern const double DRIVE_STEERING_PID_FEEDFORWARD;
+    extern const double DRIVE_STEERING_PID_MAX_ERROR;
+    extern const double DRIVE_STEERING_PID_MAX_INTEGRAL_TERM;
+    extern const double DRIVE_STEERING_PID_MAX_RAMP_RATE;
+    extern const double DRIVE_STEERING_PID_OUTPUT_FILTER;
+    extern const double DRIVE_STEERING_PID_TOLERANCE;
+    extern const bool DRIVE_STEERING_PID_OUTPUT_REVERSED;
     extern const bool DRIVE_SQUARE_CONTROL_INPUTS;
     extern const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED;
 
