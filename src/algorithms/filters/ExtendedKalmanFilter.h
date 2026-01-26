@@ -93,8 +93,6 @@ namespace filters
             /////////////////////////////////////////
             // Conversions.
             /////////////////////////////////////////
-            void RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const;
-            void RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const;
             Eigen::Vector3d ConvertGPSToENU(const geoops::GPSCoordinate& stCoord);
             geoops::GPSCoordinate ConvertENUToGPS(const Eigen::Vector3d& eiPosition) const;
             Eigen::Matrix3d MakeSkewSymmetricMatrix(const Eigen::Vector3d& eiVec);

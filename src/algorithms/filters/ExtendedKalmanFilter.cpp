@@ -187,6 +187,9 @@ namespace filters
             return;
         }
 
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         double dt         = std::chrono::duration<double>(tmTimestamp - m_tmLastIMUUpdate).count();
         m_tmLastIMUUpdate = tmTimestamp;
 
@@ -270,12 +273,14 @@ namespace filters
             return;
         }
 
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         // Check if there is an origin set.
         if (!m_bOriginSet)
         {
             m_stOriginGPS = stCoord;
             m_bOriginSet  = true;
-            return;
         }
 
         // Convert GPS to ENU.
@@ -345,9 +350,6 @@ namespace filters
         m_stCurrentState.eiAccelBias += eiDx.block<3, 1>(9, 0);
         m_stCurrentState.eiGyroBias += eiDx.block<3, 1>(12, 0);
 
-        // Unlocking after writing.
-        lkStateWrite.unlock();
-
         // Covariance update: P_new = (I - K H) P (I - K H)^T + K R K^T.
         Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();
         Eigen::Matrix<double, 15, 15> eiImKH = eiI - (eiK * eiH);
@@ -369,6 +371,9 @@ namespace filters
         {
             return;
         }
+
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
 
         // Convert measurement to ENU frame.
         double dYawMeas = (90.0 - dHeading) * M_PI / 180.0;
@@ -423,9 +428,6 @@ namespace filters
         // Compute correction (dx).
         Eigen::VectorXd eiDx = eiK * dResidual;
 
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
-
         // Apply state corrections.
         // Position update.
         m_stCurrentState.eiPosition += eiDx.block<3, 1>(0, 0);
@@ -447,9 +449,6 @@ namespace filters
         eiDq.normalize();
 
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
-
-        // Unlocking after writing.
-        lkStateWrite.unlock();
 
         // Update covariance matrix (P).
         Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();
@@ -523,51 +522,6 @@ namespace filters
         stResult.dAltitude = m_stOriginGPS.dAltitude + eiPosition.z();
 
         return stResult;
-    }
-
-    /******************************************************************************
-     * @brief Converts a RoverPose to orientation quaternion.
-     *
-     * @param stPose - The current RoverPose.
-     * @param eiOrientation - The orientation quaternion.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-03
-     ******************************************************************************/
-    void ExtendedKalmanFilter::RoverPoseToOrientation(const geoops::RoverPose& stPose, Eigen::Quaterniond& eiOrientation) const
-    {
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
-
-        //  Convert heading to orientation quaternion
-        double dHeading = stPose.GetCompassHeading();
-        eiOrientation   = Eigen::AngleAxisd(dHeading, Eigen::Vector3d::UnitZ());
-
-        // Unlocking after writing.
-        lkStateWrite.unlock();
-    }
-
-    /******************************************************************************
-     * @brief Converts a RoverPose to position vector.
-     *
-     * @param stPose - The current RoverPose.
-     * @param eiPosition - The position vector.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2025-10-03
-     ******************************************************************************/
-    void ExtendedKalmanFilter::RoverPoseToGPS(const geoops::RoverPose& stPose, Eigen::Vector3d& eiPosition) const
-    {
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
-
-        // Convert GPSCoordinate to position vector
-        eiPosition(0) = stPose.GetGPSCoordinate().dLatitude;
-        eiPosition(1) = stPose.GetGPSCoordinate().dLongitude;
-        eiPosition(2) = stPose.GetGPSCoordinate().dAltitude;
-
-        // Unlocking after writing.
-        lkStateWrite.unlock();
     }
 
     /******************************************************************************
