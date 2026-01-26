@@ -38,7 +38,8 @@ namespace pathplanners
         m_pLiDARHandler         = nullptr;
         m_nStartID              = -1;
         m_nEndID                = -1;
-        m_dBeta                 = 1.0;
+        m_dBeta                 = 5.0;
+        m_dHeuristicWeight      = 1.5;
         m_dMinTravScore         = 0.0;
         m_dSearchRadius         = 3.0;
         m_dMaxSearchTimeSeconds = 120.0;
@@ -331,7 +332,8 @@ namespace pathplanners
                                                       stStartState.dAltitude,
                                                       m_umAllStates[m_nEndID].dEasting,
                                                       m_umAllStates[m_nEndID].dNorthing,
-                                                      m_umAllStates[m_nEndID].dAltitude);
+                                                      m_umAllStates[m_nEndID].dAltitude) *
+                              m_dHeuristicWeight;
         // Cumulative traversal score starts as the start point's score.
         m_umAllStates[m_nStartID] = stStartState;
 
@@ -429,7 +431,8 @@ namespace pathplanners
                                                                      stNeighborState.dAltitude,
                                                                      m_umAllStates[m_nEndID].dEasting,
                                                                      m_umAllStates[m_nEndID].dNorthing,
-                                                                     m_umAllStates[m_nEndID].dAltitude);
+                                                                     m_umAllStates[m_nEndID].dAltitude) *
+                                             m_dHeuristicWeight;
 
                     // Update the state map.
                     m_umAllStates[stPoint.nID] = stNeighborState;
