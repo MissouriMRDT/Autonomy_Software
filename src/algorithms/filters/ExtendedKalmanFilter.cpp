@@ -28,70 +28,96 @@ namespace filters
      *@param stInitPose - The initial GPS and heading of the rover.
      *@param eiAccelCov - The acceleration covariance matrix.
      *@param eiGyroCov -The gyroscope covariance matrix.
-     *@param dInitAccel - The initial linear acceleration.
-     *@param dInitGyro - The initial reading of the gyrometer (angular velocity).
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-09-30
      ******************************************************************************/
-    ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
-                                               const Eigen::Matrix3d& eiAccelCov,
-                                               const Eigen::Matrix3d& eiGyroCov,
-                                               const double dInitAccel,
-                                               const double dInitGyro)
+    ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose& stInitPose, const Eigen::Matrix3d& eiAccelCov, const Eigen::Matrix3d& eiGyroCov)
     {
-        // TODO:  MAKE ALL OF THIS SETINITIALGUESS AND MAKE CONSTRUCTOR DO SOMETHING ELSE
-        // Initialize covariance matrices
+        // Set the covariance matrices.
         m_eiAccelerometerCovariance = eiAccelCov;
         m_eiGyroscopeCovariance     = eiGyroCov;
 
-        // Calculating sigmas (std dev) from readings
-        m_dSigmaAcc  = std::sqrt(m_eiAccelerometerCovariance(0, 0));
-        m_dSigmaGyro = std::sqrt(m_eiGyroscopeCovariance(0, 0));
-
-        // Acc and gyro biases (updated when GPS updates)
+        // Set the member variables.
         m_dSigmaAccBias  = 0.001;
         m_dSigmaGyroBias = 0.001;
+        m_eiGravity      = Eigen::Vector3d(0.0, 0.0, 9.80665);
 
-        // Horizontal and vertical GPS accuracies (updated on GPS)
-        m_dSigmaGPSHor  = stInitPose.GetGPSCoordinate().d2DAccuracy;
-        double dSigma3D = stInitPose.GetGPSCoordinate().d3DAccuracy;
-        m_dSigmaGPSVer  = std::sqrt(std::max(0.0, dSigma3D * dSigma3D - m_dSigmaGPSHor * m_dSigmaGPSHor));
+        // Call method to set the initial guess.
+        SetInitialGuess(stInitPose);
+    }
 
-        // Initialize starting state struct
-        RoverPoseToGPS(stInitPose, m_stCurrentState.eiPosition);
-        RoverPoseToOrientation(stInitPose, m_stCurrentState.eiOrientation);
-
+    /******************************************************************************
+     * @brief This will set the initial guess of the Extended Kalman Filter.
+     *
+     * @param stInitPose - The initial RoverPose.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-01-25
+     ******************************************************************************/
+    void ExtendedKalmanFilter::SetInitialGuess(const geoops::RoverPose& stInitPose)
+    {
         // Locking while writing.
         std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
 
-        // Updating current state.
-        m_stCurrentState.eiVelocity  = Eigen::Vector3d::Zero();
+        // Set origin GPS point.
+        m_stOriginGPS = stInitPose.GetGPSCoordinate();
+
+        // Check for valid origin.
+        if (std::abs(m_stOriginGPS.dLatitude) > 1e-5)
+        {
+            m_bOriginSet = true;
+        }
+
+        // Update GPS measurement noise.
+        geoops::GPSCoordinate stGPS = stInitPose.GetGPSCoordinate();
+
+        // Set horizontal GPS accuracy.
+        m_dSigmaGPSHor = (stGPS.d2DAccuracy > 0.0) ? stGPS.d2DAccuracy : 5.0;
+
+        // Set vertical GPS accuracy.
+        double d3DAcc  = stGPS.d3DAccuracy;
+        m_dSigmaGPSVer = std::sqrt(std::max(0.1, (d3DAcc * d3DAcc) - (m_dSigmaGPSHor * m_dSigmaGPSHor)));
+
+        // Initialize state vector (15x15 matrix).
+        m_stCurrentState.eiPosition = Eigen::Vector3d::Zero();
+
+        // Set the orientation.
+        m_stCurrentState.eiOrientation = Eigen::AngleAxisd(stInitPose.GetCompassHeading() * M_PI / 180.0, Eigen::Vector3d::UnitZ());
+
+        // Set velocity.
+        m_stCurrentState.eiVelocity = Eigen::Vector3d::Zero();
+
+        // Set acceleration and gyro biases.
         m_stCurrentState.eiAccelBias = Eigen::Vector3d::Zero();
         m_stCurrentState.eiGyroBias  = Eigen::Vector3d::Zero();
+
+        // Set the timestamp.
         m_stCurrentState.tmTimestamp = std::chrono::system_clock::now();
 
-        // Unlocking after writing.
-        lkStateWrite.unlock();
-
-        // Initial covariance P0 (15x15 matrix)
+        // Initialize P Matrix (error-state covariance).
         m_eiErrorStateCov = Eigen::Matrix<double, 15, 15>::Zero();
 
-        // Setting initial noises (gets updated)
-        m_eiErrorStateCov.block<3, 3>(0, 0)   = Eigen::Matrix3d::Identity() * 10.0;    // Position
-        m_eiErrorStateCov.block<3, 3>(3, 3)   = Eigen::Matrix3d::Identity() * 0.3;     // Orientation
-        m_eiErrorStateCov.block<3, 3>(6, 6)   = Eigen::Matrix3d::Identity() * 1.0;     // Velocity
-        m_eiErrorStateCov.block<3, 3>(9, 9)   = Eigen::Matrix3d::Identity() * 0.01;    // Accel bias
-        m_eiErrorStateCov.block<3, 3>(12, 12) = Eigen::Matrix3d::Identity() * 0.01;    // Gyro bias
+        // Set the position uncertainty (East/North/Up).
+        m_eiErrorStateCov(0, 0) = m_dSigmaGPSHor * m_dSigmaGPSHor;    // East
+        m_eiErrorStateCov(1, 1) = m_dSigmaGPSHor * m_dSigmaGPSHor;    // North
+        m_eiErrorStateCov(2, 2) = m_dSigmaGPSVer * m_dSigmaGPSVer;    // Up
 
-        // Initialize gravity vector.
-        m_eiGravity = Eigen::Vector3d(0.0, 0.0, 9.80665);
+        // Set the orientation uncertainty.
+        m_eiErrorStateCov.block<3, 3>(3, 3) = Eigen::Matrix3d::Identity() * (M_PI * M_PI / 324.0);    // (10pi/180)^2
 
-        // Update that the initial guess has been made.
-        m_bHasInitialGuess = true;
+        // Set the velocity uncertainty.
+        m_eiErrorStateCov.block<3, 3>(6, 6) = Eigen::Matrix3d::Identity() * 1.0;
 
-        // Initialize timestamps.
+        // Set bias uncertainties.
+        m_eiErrorStateCov.block<3, 3>(9, 9)   = Eigen::Matrix3d::Identity() * 0.01;
+        m_eiErrorStateCov.block<3, 3>(12, 12) = Eigen::Matrix3d::Identity() * 0.01;
+
+        // Set IMU update timestamp.
         m_tmLastIMUUpdate = std::chrono::system_clock::now();
+
+        // Confirm initial guess set.
+        m_bHasInitialGuess = true;
     }
 
     /******************************************************************************
@@ -194,7 +220,6 @@ namespace filters
 
         Eigen::Matrix3d eiROld         = m_stCurrentState.eiOrientation.toRotationMatrix();
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
-        Eigen::Matrix3d eiRNew         = m_stCurrentState.eiOrientation.toRotationMatrix();
 
         // Acceleration in the world frame (accounts for gravity).
         Eigen::Vector3d eiAccWorldFrame = (eiROld * eiAcc) - m_eiGravity;
@@ -220,9 +245,8 @@ namespace filters
 
         // Process noise Q.
         Eigen::Matrix<double, 15, 15> eiQ = Eigen::Matrix<double, 15, 15>::Zero();
-        double dt2                        = dt * dt;
-        eiQ.block<3, 3>(3, 3)             = (m_dSigmaGyro * m_dSigmaGyro * dt2) * Eigen::Matrix3d::Identity();
-        eiQ.block<3, 3>(6, 6)             = (m_dSigmaAcc * m_dSigmaAcc * dt2) * Eigen::Matrix3d::Identity();
+        eiQ.block<3, 3>(3, 3)             = m_eiGyroscopeCovariance * dt * dt;
+        eiQ.block<3, 3>(6, 6)             = m_eiAccelerometerCovariance * dt * dt;
         eiQ.block<3, 3>(9, 9)             = (m_dSigmaAccBias * m_dSigmaAccBias * dt) * Eigen::Matrix3d::Identity();
         eiQ.block<3, 3>(12, 12)           = (m_dSigmaGyroBias * m_dSigmaGyroBias * dt) * Eigen::Matrix3d::Identity();
 

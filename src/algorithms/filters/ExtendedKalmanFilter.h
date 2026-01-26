@@ -54,17 +54,16 @@ namespace filters
             // Declare public class methods.
             /////////////////////////////////////////
 
-            ExtendedKalmanFilter(const geoops::RoverPose& stInitPose = geoops::RoverPose(),
-                                 const Eigen::Matrix3d& eiAccelCov   = Eigen::Matrix3d::Identity(),
-                                 const Eigen::Matrix3d& eiGyroCov    = Eigen::Matrix3d::Identity(),
-                                 const double dSigmaAccel            = 0,
-                                 const double dSigmaGyro             = 0);
+            ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
+                                 const Eigen::Matrix3d& eiAccelCov = Eigen::Matrix3d::Identity(),
+                                 const Eigen::Matrix3d& eiGyroCov  = Eigen::Matrix3d::Identity());
             ~ExtendedKalmanFilter();
 
             /////////////////////////////////////////
             // Setters.
             /////////////////////////////////////////
 
+            void SetInitialGuess(const geoops::RoverPose& stInitPose);
             void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
             void SetCompassNoise(double dSigmaDeg);
 
@@ -115,9 +114,7 @@ namespace filters
             Eigen::Matrix3d m_eiGyroscopeCovariance;                    // Gyroscope covariance matrix. (3x3)
             Eigen::Matrix3d m_eiGPSCovariance;                          // Diff GPS covariance matrix. (3x3)
             Eigen::Vector3d m_eiGravity;                                // Vector for gravity.
-            double m_dSigmaAcc;
             double m_dSigmaAccBias;
-            double m_dSigmaGyro;
             double m_dSigmaGyroBias;
             double m_dSigmaGPSHor;
             double m_dSigmaGPSVer;
