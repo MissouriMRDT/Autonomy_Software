@@ -57,9 +57,6 @@ namespace filters
      ******************************************************************************/
     void ExtendedKalmanFilter::SetInitialGuess(const geoops::RoverPose& stInitPose)
     {
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
-
         // Set origin GPS point.
         m_stOriginGPS = stInitPose.GetGPSCoordinate();
 
@@ -79,11 +76,14 @@ namespace filters
         double d3DAcc  = stGPS.d3DAccuracy;
         m_dSigmaGPSVer = std::sqrt(std::max(0.1, (d3DAcc * d3DAcc) - (m_dSigmaGPSHor * m_dSigmaGPSHor)));
 
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         // Initialize state vector (15x15 matrix).
         m_stCurrentState.eiPosition = Eigen::Vector3d::Zero();
 
         // Set the orientation.
-        m_stCurrentState.eiOrientation = Eigen::AngleAxisd(stInitPose.GetCompassHeading() * M_PI / 180.0, Eigen::Vector3d::UnitZ());
+        m_stCurrentState.eiOrientation = Eigen::AngleAxisd((90.0 - stInitPose.GetCompassHeading()) * M_PI / 180.0, Eigen::Vector3d::UnitZ());
 
         // Set velocity.
         m_stCurrentState.eiVelocity = Eigen::Vector3d::Zero();
@@ -273,7 +273,7 @@ namespace filters
             return;
         }
 
-                // Check if there is an origin set.
+        // Check if there is an origin set.
         if (!m_bOriginSet)
         {
             m_stOriginGPS = stCoord;
@@ -572,10 +572,11 @@ namespace filters
         geoops::GPSCoordinate stEstimatedGPS = ConvertENUToGPS(m_stCurrentState.eiPosition);
 
         // Extract heading. (Quaternion -> Yaw)
-        Eigen::Vector3d eiEuler = m_stCurrentState.eiOrientation.toRotationMatrix().eulerAngles(0, 1, 2);
+        Eigen::Quaterniond q = m_stCurrentState.eiOrientation;
+        double dYawENU       = std::atan2(2.0 * (q.w() * q.z() + q.x() * q.y()), 1.0 - 2.0 * (q.y() * q.y() + q.z() * q.z()));
 
         // Normalize heading to compass standard and convert yaw to degrees.
-        double dCompassHeading = 90.0 - (eiEuler.z() * 180.0 / M_PI);
+        double dCompassHeading = 90.0 - (dYawENU * 180.0 / M_PI);
 
         // Normalize to [0, 360).
         dCompassHeading = std::fmod(dCompassHeading, 360.0);
