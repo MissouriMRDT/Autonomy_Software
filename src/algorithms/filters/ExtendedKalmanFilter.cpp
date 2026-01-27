@@ -187,9 +187,6 @@ namespace filters
             return;
         }
 
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
-
         double dt         = std::chrono::duration<double>(tmTimestamp - m_tmLastIMUUpdate).count();
         m_tmLastIMUUpdate = tmTimestamp;
 
@@ -218,14 +215,17 @@ namespace filters
             eiDq = Eigen::Quaterniond::Identity();
         }
 
-        // Locking while writing.
-        lkStateWrite.lock();
+        lkStateRead.lock();
 
         Eigen::Matrix3d eiROld         = m_stCurrentState.eiOrientation.toRotationMatrix();
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
 
+        lkStateRead.unlock();
+
         // Acceleration in the world frame (accounts for gravity).
         Eigen::Vector3d eiAccWorldFrame = (eiROld * eiAcc) - m_eiGravity;
+
+        std::shared_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
 
         // Update velocity and position.
         m_stCurrentState.eiVelocity += eiAccWorldFrame * dt;
@@ -273,10 +273,7 @@ namespace filters
             return;
         }
 
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
-
-        // Check if there is an origin set.
+                // Check if there is an origin set.
         if (!m_bOriginSet)
         {
             m_stOriginGPS = stCoord;
@@ -326,7 +323,7 @@ namespace filters
         Eigen::Matrix<double, 15, 1> eiDx = eiK * eiY;
 
         // Locking while writing.
-        lkStateWrite.lock();
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
 
         // Apply corrections to nominal state.
         // Position update.
@@ -350,6 +347,8 @@ namespace filters
         m_stCurrentState.eiAccelBias += eiDx.block<3, 1>(9, 0);
         m_stCurrentState.eiGyroBias += eiDx.block<3, 1>(12, 0);
 
+        lkStateWrite.unlock();
+
         // Covariance update: P_new = (I - K H) P (I - K H)^T + K R K^T.
         Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();
         Eigen::Matrix<double, 15, 15> eiImKH = eiI - (eiK * eiH);
@@ -371,9 +370,6 @@ namespace filters
         {
             return;
         }
-
-        // Locking while writing.
-        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
 
         // Convert measurement to ENU frame.
         double dYawMeas = (90.0 - dHeading) * M_PI / 180.0;
@@ -428,6 +424,9 @@ namespace filters
         // Compute correction (dx).
         Eigen::VectorXd eiDx = eiK * dResidual;
 
+        // Locking while writing.
+        std::unique_lock<std::shared_mutex> lkStateWrite(m_muStateMutex);
+
         // Apply state corrections.
         // Position update.
         m_stCurrentState.eiPosition += eiDx.block<3, 1>(0, 0);
@@ -449,6 +448,8 @@ namespace filters
         eiDq.normalize();
 
         m_stCurrentState.eiOrientation = (m_stCurrentState.eiOrientation * eiDq).normalized();
+
+        lkStateWrite.unlock();
 
         // Update covariance matrix (P).
         Eigen::Matrix<double, 15, 15> eiI    = Eigen::Matrix<double, 15, 15>::Identity();

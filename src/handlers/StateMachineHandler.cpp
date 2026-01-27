@@ -318,7 +318,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         // Check if NavBoard has a VALID GPS fix
         geoops::GPSCoordinate stGPS = globals::g_pNavigationBoard->GetGPSData();
 
-        if (stGPS.d2DAccuracy > 0.0 && stGPS.d2DAccuracy < 10.0)
+        if (stGPS != geoops::GPSCoordinate())
         {
             double dHeading = globals::g_pNavigationBoard->GetHeading();
             geoops::RoverPose stStartPose(stGPS, dHeading);
@@ -376,7 +376,7 @@ void StateMachineHandler::ThreadedContinuousCode()
         geoops::GPSCoordinate stGPS = globals::g_pNavigationBoard->GetGPSData();
 
         // Filter out bad accuracies.
-        if (stGPS.d2DAccuracy > 0.0)
+        if (stGPS != geoops::GPSCoordinate())
         {
             m_pEKF->UpdateGPS(stGPS);
         }
