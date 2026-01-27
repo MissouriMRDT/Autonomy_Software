@@ -575,7 +575,7 @@ std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& sz
     // Push Path History size.
     PushUint(static_cast<uint32_t>(m_vPathHistory.size()));
     // Push each point in the path history.
-    for (const auto& pt : m_vPathHistory)
+    for (const DisplayPoint& pt : m_vPathHistory)
     {
         PushFloat(pt.fX);
         PushFloat(pt.fY);

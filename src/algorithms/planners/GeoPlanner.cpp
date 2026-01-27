@@ -340,8 +340,8 @@ namespace pathplanners
         m_pqOpenSetNextBest.push(m_umAllStates[m_nStartID]);
 
         // Logging timers and stats
-        auto tmLastLogTime         = std::chrono::high_resolution_clock::now();
-        size_t unLastClosedSetSize = 0;
+        std::chrono::high_resolution_clock::time_point tmLastLogTime = std::chrono::high_resolution_clock::now();
+        size_t siLastClosedSetSize                                   = 0;
 
         // Main A* search loop.
         while (!m_pqOpenSetNextBest.empty())
@@ -457,7 +457,7 @@ namespace pathplanners
             {
                 // Calculate Speed (Nodes Per Second)
                 size_t unCurrentClosedSize = m_usClosedSet.size();
-                double dNPS                = (unCurrentClosedSize - unLastClosedSetSize) / dSecondsSinceLog;
+                double dNPS                = (unCurrentClosedSize - siLastClosedSetSize) / dSecondsSinceLog;
 
                 // Get Open Set Size (Frontier)
                 size_t unOpenSize = m_pqOpenSetNextBest.size();
@@ -475,7 +475,7 @@ namespace pathplanners
 
                 // Update trackers
                 tmLastLogTime       = tmNow;
-                unLastClosedSetSize = unCurrentClosedSize;
+                siLastClosedSetSize = unCurrentClosedSize;
             }
 
             // Check if we've exceeded the maximum search time.
