@@ -52,6 +52,9 @@ namespace statemachine
 
         // Stop drivetrain.
         globals::g_pDriveBoard->SendStop();
+
+        // Declare area in front of rover as an obstacle
+        DeclareObstacle();
     }
 
     /******************************************************************************
@@ -103,19 +106,6 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         // Get current time.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-
-        // Convert from compass degrees to unit circle radians.
-        double dRadians = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
-        if (dRadians < 0)
-            dRadians += 2 * M_PI;
-        // Add the area ahead of the rover as an obstacle.
-        geoops::GPSCoordinate stObstaclePosition = m_stOriginalPosition;
-        stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-        stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-
-        // Insert obstacle into lidar data
-        globals::g_pLiDARHandler->DeclareLiDARObstacle(geoops::ConvertGPSToUTM(stObstaclePosition), constants::STUCK_OBSTACLE_RADIUS);
-        // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
 
         // Check if we are unstuck from our starting spot.
         if (!this->SamePosition(m_stOriginalPosition, stCurrentRoverPose.GetGPSCoordinate()))
@@ -387,5 +377,30 @@ namespace statemachine
     {
         double dDistance = geoops::CalculateGeoMeasurement(stOriginalPosition, stCurrPosition).dDistanceMeters;
         return dDistance <= constants::STUCK_SAME_POINT_PROXIMITY;
+    }
+
+    /******************************************************************************
+     * @brief Adds the area in front of the rover as an obstacle by modifying the area's trav-score in LiDAR data
+     *
+     * @note Uses constants::STUCK_OBSTACLE_RADIUS for the declared obstacle's radius and constants::STUCK_OBSTACLE_DISTANCE for distance in front of the rover that is
+     * declared an obstacle
+     *
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2026-01-27
+     ******************************************************************************/
+    void StuckState::DeclareObstacle()
+    {
+        // Convert from compass degrees to unit circle radians.
+        double dRadians = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
+        if (dRadians < 0)
+            dRadians += 2 * M_PI;
+        // Add the area ahead of the rover as an obstacle.
+        geoops::GPSCoordinate stObstaclePosition = m_stOriginalPosition;
+        stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+        stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+
+        // Insert obstacle into lidar data
+        globals::g_pLiDARHandler->DeclareLiDARObstacle(geoops::ConvertGPSToUTM(stObstaclePosition), constants::STUCK_OBSTACLE_RADIUS);
+        // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
     }
 }    // namespace statemachine

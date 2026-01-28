@@ -65,6 +65,7 @@ namespace statemachine
             // Declare private class methods.
             /////////////////////////////////////////
             bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition);
+            void DeclareObstacle();
 
         protected:
             /////////////////////////////////////////

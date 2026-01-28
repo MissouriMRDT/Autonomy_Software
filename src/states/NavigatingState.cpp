@@ -36,7 +36,11 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bWasStuck         = false;
+        m_bWasStuck = false;
+
+        // NOTE: temporary testing
+        m_bTestStuck        = true;
+
         m_bFetchNewWaypoint = true;
         m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
         m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
@@ -123,6 +127,14 @@ namespace statemachine
 
         // Get Current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+
+        // NOTE: temporary testing
+        if (m_bTestStuck)
+        {
+            m_bTestStuck = false;
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            return;
+        }
 
         // If navigating was previously stuck, then re-path plan
         if (m_bWasStuck)
@@ -398,6 +410,7 @@ namespace statemachine
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            m_bWasStuck = true;
             // Don't execute the rest of the state.
             return;
         }

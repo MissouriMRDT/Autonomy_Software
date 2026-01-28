@@ -390,7 +390,7 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     // TODO: Experiment with the more circle-like combination of shapes vs execution time
     const char* pSQL            = R"(
         UPDATE ProcessedLiDARPoints
-        SET trav-score = 0.0
+        SET trav_score = 0.0
         WHERE
         (
             easting > ?
