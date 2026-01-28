@@ -55,6 +55,7 @@ namespace filters
             /////////////////////////////////////////
 
             ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
+                                 const Eigen::Vector3d& eiInitAccel,
                                  const Eigen::Matrix3d& eiAccelCov = Eigen::Matrix3d::Identity(),
                                  const Eigen::Matrix3d& eiGyroCov  = Eigen::Matrix3d::Identity());
             ~ExtendedKalmanFilter();
@@ -63,7 +64,7 @@ namespace filters
             // Setters.
             /////////////////////////////////////////
 
-            void SetInitialGuess(const geoops::RoverPose& stInitPose);
+            void SetInitialGuess(const geoops::RoverPose& stInitPose, const Eigen::Vector3d& eiInitAccel);
             void SetGPSNoise(const geoops::GPSCoordinate& stCoord);
             void SetCompassNoise(double dSigmaDeg);
 

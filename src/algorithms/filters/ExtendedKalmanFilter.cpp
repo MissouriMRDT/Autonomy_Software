@@ -32,7 +32,10 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-09-30
      ******************************************************************************/
-    ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose& stInitPose, const Eigen::Matrix3d& eiAccelCov, const Eigen::Matrix3d& eiGyroCov)
+    ExtendedKalmanFilter::ExtendedKalmanFilter(const geoops::RoverPose& stInitPose,
+                                               const Eigen::Vector3d& eiInitAccel,
+                                               const Eigen::Matrix3d& eiAccelCov,
+                                               const Eigen::Matrix3d& eiGyroCov)
     {
         // Set the covariance matrices.
         m_eiAccelerometerCovariance = eiAccelCov;
@@ -41,10 +44,10 @@ namespace filters
         // Set the member variables.
         m_dSigmaAccBias  = 0.001;
         m_dSigmaGyroBias = 0.001;
-        m_eiGravity      = Eigen::Vector3d(0.0, 0.0, 9.80665);
+        m_eiGravity      = Eigen::Vector3d(0.0, 0.0, -9.80665);
 
         // Call method to set the initial guess.
-        SetInitialGuess(stInitPose);
+        SetInitialGuess(stInitPose, eiInitAccel);
     }
 
     /******************************************************************************
@@ -55,7 +58,7 @@ namespace filters
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2026-01-25
      ******************************************************************************/
-    void ExtendedKalmanFilter::SetInitialGuess(const geoops::RoverPose& stInitPose)
+    void ExtendedKalmanFilter::SetInitialGuess(const geoops::RoverPose& stInitPose, const Eigen::Vector3d& eiInitAccel)
     {
         // Set origin GPS point.
         m_stOriginGPS = stInitPose.GetGPSCoordinate();
@@ -82,8 +85,20 @@ namespace filters
         // Initialize state vector (15x15 matrix).
         m_stCurrentState.eiPosition = Eigen::Vector3d::Zero();
 
+        // Calculate yaw from the compass.
+        double dYaw = (90.0 - stInitPose.GetCompassHeading()) * M_PI / 180.0;
+
+        // Calculate initial roll and pitch from accelerometer.
+        double dRoll  = std::atan2(eiInitAccel.y(), eiInitAccel.z());
+        double dPitch = std::atan2(-eiInitAccel.x(), std::sqrt(eiInitAccel.y() * eiInitAccel.y() + eiInitAccel.z() * eiInitAccel.z()));
+
+        // Create the orientation quaternion from R/P/Y.
+        Eigen::Quaterniond eiYaw(Eigen::AngleAxisd(dYaw, Eigen::Vector3d::UnitZ()));
+        Eigen::Quaterniond eiPitch(Eigen::AngleAxisd(dPitch, Eigen::Vector3d::UnitY()));
+        Eigen::Quaterniond eiRoll(Eigen::AngleAxisd(dRoll, Eigen::Vector3d::UnitX()));
+
         // Set the orientation.
-        m_stCurrentState.eiOrientation = Eigen::AngleAxisd((90.0 - stInitPose.GetCompassHeading()) * M_PI / 180.0, Eigen::Vector3d::UnitZ());
+        m_stCurrentState.eiOrientation = (eiYaw * eiPitch * eiRoll).normalized();
 
         // Set velocity.
         m_stCurrentState.eiVelocity = Eigen::Vector3d::Zero();
