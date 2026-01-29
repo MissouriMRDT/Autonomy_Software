@@ -84,7 +84,6 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
         case statemachine::States::eVerifyingPosition: return std::make_shared<statemachine::VerifyingPositionState>();
         case statemachine::States::eVerifyingMarker: return std::make_shared<statemachine::VerifyingMarkerState>();
         case statemachine::States::eVerifyingObject: return std::make_shared<statemachine::VerifyingObjectState>();
-        case statemachine::States::eAvoidance: return std::make_shared<statemachine::AvoidanceState>();
         case statemachine::States::eReversing: return std::make_shared<statemachine::ReversingState>();
         case statemachine::States::eStuck: return std::make_shared<statemachine::StuckState>();
         default:

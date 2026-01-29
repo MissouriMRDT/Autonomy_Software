@@ -562,6 +562,8 @@ Objectness
 occl
 odometry
 onchange
+onclick
+oninput
 openal
 OPENCL
 opencontainers
@@ -724,6 +726,7 @@ tflite
 Tgsnwcv
 THREADFPS
 threadpool
+THREEJS
 timestamping
 timestep
 TOGGLESTREAM
@@ -779,6 +782,7 @@ Vexas
 videotoolbox
 VIDEOWRITER
 VIOGPS
+VISUALIZATIONHANDLER
 vlrs
 Watchpoints
 WATERBOTTLE
