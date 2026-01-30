@@ -14,6 +14,8 @@
 /// \cond
 #include <algorithm>
 #include <cstring>
+#include <filesystem> 
+#include <fstream>
 #include <netinet/in.h>
 #include <sstream>
 #include <sys/socket.h>
@@ -80,6 +82,49 @@ void SimpleWebServer::RegisterEndpoint(const std::string& szEndpoint, RequestCal
 {
     std::lock_guard<std::mutex> lkLock(m_muDataMutex);
     m_mGetCallbacks[szEndpoint] = fnCallback;
+}
+
+void SimpleWebServer::AddStaticDirectory(const std::string& szUrlPrefix, const std::string& szLocalDir)
+{
+    std::lock_guard<std::mutex> lkLock(m_muDataMutex);
+
+    // Ensure prefix starts with / and doesn't end with /
+    std::string szPrefix = szUrlPrefix;
+    if (szPrefix.empty() || szPrefix[0] != '/') szPrefix = "/" + szPrefix;
+    if (szPrefix.length() > 1 && szPrefix.back() == '/') szPrefix.pop_back();
+
+    m_mStaticDirectories[szPrefix] = {szLocalDir};
+}
+
+std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
+{
+    std::ifstream file(szPath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) return {};
+    
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    
+    std::vector<char> buffer(size);
+    if (file.read(buffer.data(), size))
+    {
+        return buffer;
+    }
+    return {};
+}
+
+std::string SimpleWebServer::GetMimeType(const std::string& szPath)
+{
+    std::string ext = std::filesystem::path(szPath).extension().string();
+    // Convert to lowercase
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    
+    if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
+    if (ext == ".png") return "image/png";
+    if (ext == ".gif") return "image/gif";
+    if (ext == ".html") return "text/html";
+    if (ext == ".js") return "text/javascript";
+    if (ext == ".css") return "text/css";
+    return "application/octet-stream";
 }
 
 /******************************************************************************
@@ -285,6 +330,7 @@ void SimpleWebServer::HandleClient(int nClientFD)
 
         // Create callback and HTML copy variables to use outside lock.
         RequestCallback fnCallback = nullptr;
+        std::string szStaticFileToServe;
         std::string szHtmlCopy;
 
         {
@@ -298,8 +344,45 @@ void SimpleWebServer::HandleClient(int nClientFD)
             }
             else
             {
-                // Otherwise, copy the HTML content.
-                szHtmlCopy = m_szHtmlContent;
+                for (const auto& pair : m_mStaticDirectories)
+                {
+                    // Check if the requested path starts with this prefix
+                    // e.g. Request "/detections/img.jpg" starts with "/detections"
+                    if (szPath.find(pair.first) == 0)
+                    {
+                        // It matches! Construct the local file path.
+                        // Remove prefix length from request path.
+                        std::string subPath = szPath.substr(pair.first.length());
+                        
+                        // Check if subPath is empty or only contains a slash (accessing directory directly)
+                        if (subPath.empty() || subPath == "/")
+                        {
+                            // Don't serve directory listings, just break
+                            break;
+                        }
+                        
+                        // Skip leading slash of subpath if present
+                        if (subPath[0] == '/')
+                        {
+                            subPath = subPath.substr(1);
+                        }
+                        
+                        // Combine with local dir.
+                        std::filesystem::path localPath = std::filesystem::path(pair.second.szLocalPath) / std::filesystem::path(subPath);
+                        
+                        if (std::filesystem::exists(localPath) && !std::filesystem::is_directory(localPath))
+                        {
+                            szStaticFileToServe = localPath.string();
+                        }
+                        break;
+                    }
+                }
+
+                // 3. Fallback to HTML
+                if (!fnCallback && szStaticFileToServe.empty())
+                {
+                    szHtmlCopy = m_szHtmlContent;
+                }
             }
         }
 
@@ -358,6 +441,46 @@ void SimpleWebServer::HandleClient(int nClientFD)
             std::string szHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(szHtmlCopy.size()) + "\r\nConnection: close\r\n\r\n";
             send(nClientFD, szHeader.c_str(), szHeader.size(), MSG_NOSIGNAL);
             send(nClientFD, szHtmlCopy.c_str(), szHtmlCopy.size(), MSG_NOSIGNAL);
+        }
+        // Check if we have a static file to serve
+        else if (!szStaticFileToServe.empty())
+        {
+            // Load the file
+            std::vector<char> vFileData = LoadFile(szStaticFileToServe);
+            if (!vFileData.empty())
+            {
+                // Get MIME type
+                std::string szMimeType = GetMimeType(szStaticFileToServe);
+                
+                // Send response header
+                std::string szHeader = "HTTP/1.1 200 OK\r\n"
+                                       "Content-Type: " + szMimeType + "\r\n"
+                                       "Access-Control-Allow-Origin: *\r\n"
+                                       "Content-Length: " + std::to_string(vFileData.size()) + "\r\n"
+                                       "Connection: close\r\n\r\n";
+                send(nClientFD, szHeader.c_str(), szHeader.size(), MSG_NOSIGNAL);
+                
+                // Send file data in chunks
+                size_t siRemaining = vFileData.size();
+                size_t siSent = 0;
+                while (siRemaining > 0 && m_bRunning)
+                {
+                    size_t siChunk = (siRemaining > 65536) ? 65536 : siRemaining;
+                    ssize_t result = send(nClientFD, vFileData.data() + siSent, siChunk, MSG_NOSIGNAL);
+                    if (result <= 0)
+                    {
+                        break;
+                    }
+                    siSent += result;
+                    siRemaining -= result;
+                }
+            }
+            else
+            {
+                // File exists but couldn't be loaded
+                std::string szResp = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+                send(nClientFD, szResp.c_str(), szResp.size(), MSG_NOSIGNAL);
+            }
         }
         // If neither, respond with 404.
         else

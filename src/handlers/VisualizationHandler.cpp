@@ -38,6 +38,11 @@ VisualizationHandler::VisualizationHandler(int nPort)
     // Start Web Server.
     m_pWebServer = std::make_unique<SimpleWebServer>(m_nPort);
 
+    // Serve the detections folder as static files from the current logging session
+    // This allows access via http://ip:port/detections/filename.png
+    std::string szDetectionsPath = logging::g_szLoggingOutputPath + "detections";
+    m_pWebServer->AddStaticDirectory("/detections", szDetectionsPath);
+
     // Register Asset Endpoints.
     m_pWebServer->RegisterEndpoint("/lib/three.js", std::bind(&VisualizationHandler::OnRequestLibThree, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/lib/orbit.js", std::bind(&VisualizationHandler::OnRequestLibOrbit, this, std::placeholders::_1));
@@ -49,6 +54,7 @@ VisualizationHandler::VisualizationHandler(int nPort)
     m_pWebServer->RegisterEndpoint("/api/planned_path", std::bind(&VisualizationHandler::OnRequestPlannedPath, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/waypoints", std::bind(&VisualizationHandler::OnRequestWaypoints, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/detections", std::bind(&VisualizationHandler::OnRequestDetections, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/api/detection_list", std::bind(&VisualizationHandler::OnRequestDetectionList, this, std::placeholders::_1));
 
     // Set main thread's max iteration rate.
     this->SetMainThreadIPSLimit(20);    // 20 Hz
@@ -721,6 +727,43 @@ std::vector<char> VisualizationHandler::OnRequestDetections(const std::string& s
     return vBuffer;
 }
 
+
+std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string& szQuery)
+{
+    (void) szQuery;
+    std::string szJson = "[";
+    std::string szDir  = logging::g_szLoggingOutputPath + "/detections/";
+
+    // Ensure the directory exists
+    if (std::filesystem::exists(szDir) && std::filesystem::is_directory(szDir))
+    {
+        bool bFirst = true;
+        // Iterate over files in the directory
+        for (const auto& entry : std::filesystem::directory_iterator(szDir))
+        {
+            if (entry.is_regular_file())
+            {
+                // Get filename
+                std::string szFilename = entry.path().filename().string();
+                
+                // Simple filter for image extensions
+                if (szFilename.ends_with(".png") || szFilename.ends_with(".jpg"))
+                {
+                    if (!bFirst) szJson += ",";
+                    // Append filename to JSON array
+                    szJson += "\"" + szFilename + "\"";
+                    bFirst = false;
+                }
+            }
+        }
+    }
+
+    szJson += "]";
+
+    // Convert string to vector
+    return std::vector<char>(szJson.begin(), szJson.end());
+}
+
 /******************************************************************************
  * @brief Handles map data requests from the web server.
  *
@@ -1262,6 +1305,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         setInterval(fetchPlannedPath, 2000); 
         setInterval(fetchWaypoints, 2000); 
         setInterval(fetchDetections, 1000); // Poll detections every second
+        setInterval(fetchDetectionsList, 5000);
         fetchMapSquare(0, 0);
     }
 
@@ -1299,6 +1343,14 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     async function fetchDetections() {
         try {
             const response = await fetch('/api/detections');
+            const buffer = await response.arrayBuffer();
+            updateDetections(buffer);
+        } catch(e) {}
+    }
+
+    async function fetchDetectionsList() {
+        try {
+            const response = await fetch('/api/detection_list');
             const buffer = await response.arrayBuffer();
             updateDetections(buffer);
         } catch(e) {}
