@@ -75,7 +75,7 @@ class DriveBoard
         float m_fMinDriveEffort;                               // The min power limit of the drive.
         float m_fMaxDriveEffort;                               // The max power limit of the drive.
         float m_fDriveEffortMultiplier;                        // The current drive effort multiplier. This is adjusted over RoveComm.
-        std::shared_mutex m_muDriveEffortMutex;                // Mutex used for changing the drive efforts.
+        mutable std::shared_mutex m_muDriveEffortMutex;                // Mutex used for changing the drive efforts.
         const float m_fMinSlope = constants::DRIVE_BOARD_MIN_SLOPE;
         const float m_fMaxSlope = constants::DRIVE_BOARD_MAX_SLOPE;
         const float m_fMinDamp  = constants::DRIVE_BOARD_MIN_DAMP;
