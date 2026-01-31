@@ -380,35 +380,67 @@ void SimpleWebServer::HandleClient(int nClientFD)
             }
             else
             {
-                for (const auto& pair : m_mStaticDirectories)
+                for (const std::pair<const std::string, StaticDir>& stPair : m_mStaticDirectories)
                 {
                     // Check if the requested path starts with this prefix
                     // e.g. Request "/detections/img.jpg" starts with "/detections"
-                    if (szPath.find(pair.first) == 0)
+                    if (szPath.find(stPair.first) == 0)
                     {
                         // Construct the local file path
                         // Remove prefix length from request path
-                        std::string subPath = szPath.substr(pair.first.length());
+                        std::string szSubPath = szPath.substr(stPair.first.length());
 
                         // Check if subPath is empty or only contains a slash (accessing directory directly)
-                        if (subPath.empty() || subPath == "/")
+                        if (szSubPath.empty() || szSubPath == "/")
                         {
                             // Don't serve directory listings, just break
                             break;
                         }
 
                         // Skip leading slash of subpath if present
-                        if (subPath[0] == '/')
+                        if (szSubPath[0] == '/')
                         {
-                            subPath = subPath.substr(1);
+                            szSubPath = szSubPath.substr(1);
+                        }
+
+                        // Security: Check for directory traversal attempts
+                        if (szSubPath.find("..") != std::string::npos)
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Path traversal attempt detected: {}", szPath);
+                            break;
                         }
 
                         // Combine with local dir.
-                        std::filesystem::path localPath = std::filesystem::path(pair.second.szLocalPath) / std::filesystem::path(subPath);
+                        std::filesystem::path szLocalPath = std::filesystem::path(stPair.second.szLocalPath) / std::filesystem::path(szSubPath);
 
-                        if (std::filesystem::exists(localPath) && !std::filesystem::is_directory(localPath))
+                        // Get canonical paths to prevent traversal attacks
+                        std::error_code stdErrorCode;
+                        std::filesystem::path szCanonicalBase = std::filesystem::canonical(stPair.second.szLocalPath, stdErrorCode);
+                        if (stdErrorCode)
                         {
-                            szStaticFileToServe = localPath.string();
+                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Failed to canonicalize base path: {}", stPair.second.szLocalPath);
+                            break;
+                        }
+
+                        std::filesystem::path szCanonicalPath = std::filesystem::canonical(szLocalPath, stdErrorCode);
+                        if (stdErrorCode)
+                        {
+                            // File doesn't exist or path is invalid
+                            break;
+                        }
+
+                        // Verify that the canonical path is still within the base directory
+                        std::pair<std::filesystem::path::iterator, std::filesystem::path::iterator> stMismatchResult =
+                            std::mismatch(szCanonicalBase.begin(), szCanonicalBase.end(), szCanonicalPath.begin());
+                        if (stMismatchResult.first != szCanonicalBase.end())
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Path traversal attempt blocked: {}", szPath);
+                            break;
+                        }
+
+                        if (std::filesystem::exists(szCanonicalPath) && !std::filesystem::is_directory(szCanonicalPath))
+                        {
+                            szStaticFileToServe = szCanonicalPath.string();
                         }
                         break;
                     }
