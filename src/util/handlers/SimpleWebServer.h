@@ -54,9 +54,12 @@ class SimpleWebServer
         std::string m_szHtmlContent;
         std::map<std::string, RequestCallback> m_mGetCallbacks;
         std::mutex m_muDataMutex;
-        struct StaticDir {
-            std::string szLocalPath;
+
+        struct StaticDir
+        {
+                std::string szLocalPath;
         };
+
         std::map<std::string, StaticDir> m_mStaticDirectories;
 
         // Thread Management.
@@ -73,7 +76,7 @@ class SimpleWebServer
         void AcceptLoop();
         void HandleClient(int nClientFD);
 
-
+        // File Utilities.
         std::vector<char> LoadFile(const std::string& szPath);
         std::string GetMimeType(const std::string& szPath);
 };

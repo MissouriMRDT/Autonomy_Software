@@ -144,6 +144,7 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
  *
  * @param eDetector - The detector to request the frame from.
  * @return cv::Mat - The frame with detection overlays.
+ *
  * @author Targed (ltklionel@gmail.com)
  * @date 2026-01-04
  ******************************************************************************/

@@ -8,13 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#include <opencv2/opencv.hpp>
-#include <filesystem>
 #include "VerifyingObjectState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
-#include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/TimeOperations.hpp"
+#include "../util/states/ObjectDetectionChecker.hpp"
+#include <filesystem>
+#include <opencv2/opencv.hpp>
 
 // #include "../util/states/ObjectDetectionChecker.hpp"
 
@@ -182,20 +182,24 @@ namespace statemachine
                 if (!cvSnapshot.empty())
                 {
                     std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
-                    if (!std::filesystem::exists(szLogDir)) {
+                    if (!std::filesystem::exists(szLogDir))
+                    {
                         std::filesystem::create_directories(szLogDir);
                     }
 
-                    // 2. Unique filename for the snapshot
-                    std::string szTimestamp = timeops::GetTimestamp(); 
-                    std::string szFilename = szLogDir + "object_" + szTimestamp + ".png";
+                    // Create a unique filename using the current timestamp
+                    std::string szTimestamp = timeops::GetTimestamp();
+                    std::string szFilename  = szLogDir + "object_" + szTimestamp + ".png";
 
-                    // 3. Save
+                    // Save the image to the disk
                     bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
 
-                    if (bSuccess) {
+                    if (bSuccess)
+                    {
                         LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Saved detection snapshot to {}", szFilename);
-                    } else {
+                    }
+                    else
+                    {
                         LOG_ERROR(logging::g_qSharedLogger, "VerifyingObjectState: Failed to write snapshot to disk.");
                     }
                 }

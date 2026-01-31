@@ -14,7 +14,7 @@
 /// \cond
 #include <algorithm>
 #include <cstring>
-#include <filesystem> 
+#include <filesystem>
 #include <fstream>
 #include <netinet/in.h>
 #include <sstream>
@@ -73,7 +73,7 @@ void SimpleWebServer::SetHtmlContent(const std::string& szHtml)
  * @brief Registers a GET endpoint with a callback function.
  *
  * @param szEndpoint - The endpoint to register.
- * @param callback - The callback function to execute when the endpoint is requested.
+ * @param fnCallback - The callback function to execute when the endpoint is requested.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2026-01-22
@@ -84,26 +84,47 @@ void SimpleWebServer::RegisterEndpoint(const std::string& szEndpoint, RequestCal
     m_mGetCallbacks[szEndpoint] = fnCallback;
 }
 
+/******************************************************************************
+ * @brief Adds a static directory to serve files from.
+ *
+ * @param szUrlPrefix - The URL prefix to register.
+ * @param szLocalDir - The local directory to serve files from.
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-30
+ ******************************************************************************/
 void SimpleWebServer::AddStaticDirectory(const std::string& szUrlPrefix, const std::string& szLocalDir)
 {
     std::lock_guard<std::mutex> lkLock(m_muDataMutex);
 
     // Ensure prefix starts with / and doesn't end with /
     std::string szPrefix = szUrlPrefix;
-    if (szPrefix.empty() || szPrefix[0] != '/') szPrefix = "/" + szPrefix;
-    if (szPrefix.length() > 1 && szPrefix.back() == '/') szPrefix.pop_back();
+    if (szPrefix.empty() || szPrefix[0] != '/')
+        szPrefix = "/" + szPrefix;
+    if (szPrefix.length() > 1 && szPrefix.back() == '/')
+        szPrefix.pop_back();
 
     m_mStaticDirectories[szPrefix] = {szLocalDir};
 }
 
+/******************************************************************************
+ * @brief Loads a file from disk into a byte vector.
+ *
+ * @param szPath - The path to the file.
+ * @return std::vector<char> - The file contents as a byte vector.
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-30
+ ******************************************************************************/
 std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
 {
     std::ifstream file(szPath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) return {};
-    
+    if (!file.is_open())
+        return {};
+
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
-    
+
     std::vector<char> buffer(size);
     if (file.read(buffer.data(), size))
     {
@@ -112,18 +133,33 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
     return {};
 }
 
+/******************************************************************************
+ * @brief Determines the MIME type based on the file extension.
+ *
+ * @param szPath - The path to the file.
+ * @return std::string - The MIME type as a string.
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-30
+ ******************************************************************************/
 std::string SimpleWebServer::GetMimeType(const std::string& szPath)
 {
     std::string ext = std::filesystem::path(szPath).extension().string();
     // Convert to lowercase
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-    
-    if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
-    if (ext == ".png") return "image/png";
-    if (ext == ".gif") return "image/gif";
-    if (ext == ".html") return "text/html";
-    if (ext == ".js") return "text/javascript";
-    if (ext == ".css") return "text/css";
+
+    if (ext == ".jpg" || ext == ".jpeg")
+        return "image/jpeg";
+    if (ext == ".png")
+        return "image/png";
+    if (ext == ".gif")
+        return "image/gif";
+    if (ext == ".html")
+        return "text/html";
+    if (ext == ".js")
+        return "text/javascript";
+    if (ext == ".css")
+        return "text/css";
     return "application/octet-stream";
 }
 
@@ -350,26 +386,26 @@ void SimpleWebServer::HandleClient(int nClientFD)
                     // e.g. Request "/detections/img.jpg" starts with "/detections"
                     if (szPath.find(pair.first) == 0)
                     {
-                        // It matches! Construct the local file path.
-                        // Remove prefix length from request path.
+                        // Construct the local file path
+                        // Remove prefix length from request path
                         std::string subPath = szPath.substr(pair.first.length());
-                        
+
                         // Check if subPath is empty or only contains a slash (accessing directory directly)
                         if (subPath.empty() || subPath == "/")
                         {
                             // Don't serve directory listings, just break
                             break;
                         }
-                        
+
                         // Skip leading slash of subpath if present
                         if (subPath[0] == '/')
                         {
                             subPath = subPath.substr(1);
                         }
-                        
+
                         // Combine with local dir.
                         std::filesystem::path localPath = std::filesystem::path(pair.second.szLocalPath) / std::filesystem::path(subPath);
-                        
+
                         if (std::filesystem::exists(localPath) && !std::filesystem::is_directory(localPath))
                         {
                             szStaticFileToServe = localPath.string();
@@ -378,7 +414,7 @@ void SimpleWebServer::HandleClient(int nClientFD)
                     }
                 }
 
-                // 3. Fallback to HTML
+                // Fallback to HTML
                 if (!fnCallback && szStaticFileToServe.empty())
                 {
                     szHtmlCopy = m_szHtmlContent;
@@ -451,18 +487,22 @@ void SimpleWebServer::HandleClient(int nClientFD)
             {
                 // Get MIME type
                 std::string szMimeType = GetMimeType(szStaticFileToServe);
-                
+
                 // Send response header
                 std::string szHeader = "HTTP/1.1 200 OK\r\n"
-                                       "Content-Type: " + szMimeType + "\r\n"
+                                       "Content-Type: " +
+                                       szMimeType +
+                                       "\r\n"
                                        "Access-Control-Allow-Origin: *\r\n"
-                                       "Content-Length: " + std::to_string(vFileData.size()) + "\r\n"
+                                       "Content-Length: " +
+                                       std::to_string(vFileData.size()) +
+                                       "\r\n"
                                        "Connection: close\r\n\r\n";
                 send(nClientFD, szHeader.c_str(), szHeader.size(), MSG_NOSIGNAL);
-                
+
                 // Send file data in chunks
                 size_t siRemaining = vFileData.size();
-                size_t siSent = 0;
+                size_t siSent      = 0;
                 while (siRemaining > 0 && m_bRunning)
                 {
                     size_t siChunk = (siRemaining > 65536) ? 65536 : siRemaining;

@@ -727,7 +727,15 @@ std::vector<char> VisualizationHandler::OnRequestDetections(const std::string& s
     return vBuffer;
 }
 
-
+/******************************************************************************
+ * @brief Handles detection list requests from the web server.
+ *
+ * @param szQuery - The query string from the request.
+ * @return std::vector<char> - The binary response data.
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-30
+ ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string& szQuery)
 {
     (void) szQuery;
@@ -745,11 +753,12 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
             {
                 // Get filename
                 std::string szFilename = entry.path().filename().string();
-                
+
                 // Simple filter for image extensions
                 if (szFilename.ends_with(".png") || szFilename.ends_with(".jpg"))
                 {
-                    if (!bFirst) szJson += ",";
+                    if (!bFirst)
+                        szJson += ",";
                     // Append filename to JSON array
                     szJson += "\"" + szFilename + "\"";
                     bFirst = false;
