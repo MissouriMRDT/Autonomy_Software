@@ -26,15 +26,6 @@
   </div>
 
   <div>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=resolved+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
-    </a>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=code+coverage&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
-    </a>
-  </div>
-
-  <div>
     <a href="https://app.codacy.com/gh/missourimrdt/autonomy_software/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade">
       <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-round" alt="codacy-ci" />
     </a>
@@ -52,12 +43,6 @@
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
       <img src="https://img.shields.io/badge/NVIDIA_JetPack_6-latest-orange" alt="jetpack-pkg" />
-    </a>
-  </div>
-
-  <div>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=active+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
     </a>
   </div>
 

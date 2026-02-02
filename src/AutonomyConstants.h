@@ -252,7 +252,18 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    extern const std::string LIDAR_HANDLER_DB_PATH;    // The path to the LiDAR database file.
+    extern const std::string LIDAR_HANDLER_DB_PATH;
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Visualization Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // LiDAR Data Handler.
+    extern const int VISUALIZER_WEBSERVER_PORT;
+    extern const std::string VISUALIZER_THREEJS_PATH;
+    extern const std::string VISUALIZER_ORBITCONTROLS_PATH;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -261,7 +272,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Global GeoPlanner
-    extern const double GEOPLANNER_TILE_SIZE;    // The size of each tile in the GeoPlanner.
+    extern const double GEOPLANNER_TILE_SIZE;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -339,9 +350,6 @@ namespace constants
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
     extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
-
-    // Avoidance State.
-    extern const double AVOIDANCE_STATE_MOTOR_POWER;
 
     ///////////////////////////////////////////////////////////////////////////
 
