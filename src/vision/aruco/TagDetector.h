@@ -147,9 +147,9 @@ class TagDetector : public AutonomyThread<void>
 
         std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFramesCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::shared_mutex m_muFrameCopyMutex;
-        std::shared_mutex m_muArucoDataCopyMutex;
+        mutable std::shared_mutex m_muPoolScheduleMutex;
+        mutable std::shared_mutex m_muFrameCopyMutex;
+        mutable std::shared_mutex m_muArucoDataCopyMutex;
 };
 
 #endif

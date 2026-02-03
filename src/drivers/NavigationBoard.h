@@ -71,12 +71,12 @@ class NavigationBoard
         double m_dHeadingAccuracy;                                          // Store current GPS heading accuracy in degrees.
         double m_dVelocity;                                                 // Store current GPS-based velocity.
         double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
-        std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
-        std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
-        std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
-        std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
-        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
-        std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
+        mutable std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
+        mutable std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
+        mutable std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
+        mutable std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
+        mutable std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
+        mutable std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
         bool m_bNavBoardOutOfDate;                                          // A boolean to store whether the GPS is out of date.
 
         /////////////////////////////////////////

@@ -137,7 +137,7 @@ class LiDARHandler
         sqlite3* m_pSQLDatabase;
         sqlite3_stmt* m_pSQLStatement;
         bool m_bIsDBOpen;
-        std::shared_mutex m_muQueryMutex;    // Mutex for thread-safe access to the database.
+        mutable std::shared_mutex m_muQueryMutex;    // Mutex for thread-safe access to the database.
 };
 
 #endif

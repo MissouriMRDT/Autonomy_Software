@@ -170,7 +170,7 @@ class SIMZEDCam : public ZEDCamera
         // Data from NavBoard.
 
         geoops::RoverPose m_stCurrentRoverPose;
-        std::shared_mutex m_muCurrentRoverPoseMutex;
+        mutable std::shared_mutex m_muCurrentRoverPoseMutex;
 
         // Mats for storing frames.
 
@@ -186,13 +186,13 @@ class SIMZEDCam : public ZEDCamera
 
         // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
 
-        std::shared_mutex m_muWebRTCRGBImageCopyMutex;
-        std::shared_mutex m_muWebRTCDepthImageCopyMutex;
+        mutable std::shared_mutex m_muWebRTCRGBImageCopyMutex;
+        mutable std::shared_mutex m_muWebRTCDepthImageCopyMutex;
 
         // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats in PoolLinearCode.
-        std::shared_mutex m_muPoseCopyMutex;
-        std::shared_mutex m_muGeoPoseCopyMutex;
-        std::shared_mutex m_muSensorsCopyMutex;
+        mutable std::shared_mutex m_muPoseCopyMutex;
+        mutable std::shared_mutex m_muGeoPoseCopyMutex;
+        mutable std::shared_mutex m_muSensorsCopyMutex;
 
         // Atomic flags for checking if data is queued.
 

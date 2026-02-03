@@ -88,11 +88,11 @@ class WaypointHandler
         /////////////////////////////////////////
 
         std::vector<geoops::Waypoint> m_vWaypointList;
-        std::shared_mutex m_muWaypointsMutex;
+        mutable std::shared_mutex m_muWaypointsMutex;
         std::unordered_map<std::string, std::vector<geoops::Waypoint>> m_umStoredPaths;
-        std::shared_mutex m_muPathMutex;
+        mutable std::shared_mutex m_muPathMutex;
         std::vector<geoops::Waypoint> m_vPermanentObstacles;
-        std::shared_mutex m_muObstaclesMutex;
+        mutable std::shared_mutex m_muObstaclesMutex;
 
         /////////////////////////////////////////
         // Declare private methods.

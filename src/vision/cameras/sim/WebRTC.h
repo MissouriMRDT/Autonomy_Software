@@ -87,7 +87,7 @@ class WebRTC
         AVPacket* m_pPacket;
         SwsContext* m_pSWSContext;
         AVPixelFormat m_eOutputPixelFormat;
-        std::shared_mutex m_muDecoderMutex;
+        mutable std::shared_mutex m_muDecoderMutex;
 
         // OpenCV Mat for storing the frame.
         cv::Mat m_cvFrame;

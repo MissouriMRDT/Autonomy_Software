@@ -173,8 +173,8 @@ class Camera : public AutonomyThread<void>
 
         // Queues and mutexes for scheduling and copying camera frames and data to other threads.
         std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::shared_mutex m_muFrameCopyMutex;
+        mutable std::shared_mutex m_muPoolScheduleMutex;
+        mutable std::shared_mutex m_muFrameCopyMutex;
 
         // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
         virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
