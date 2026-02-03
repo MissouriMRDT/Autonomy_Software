@@ -52,6 +52,8 @@ namespace statemachine
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
 
+        m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
+
         // Add the search and rover path layers to the plot.
         m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
@@ -83,6 +85,19 @@ namespace statemachine
         globals::g_pDriveBoard->SendStop();
     }
 
+    std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeltonPath)
+    {
+        std::vector<geoops::Waypoint> m_vSearchPath;
+        for (int i = 0; i < skeltonPath.size() - 1; i++)
+        {
+            std::vector<geoops::Waypoint> newPoints =
+                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, skeltonPath[i].GetUTMCoordinate(), skeltonPath[i + 1].GetUTMCoordinate(), 2.0, 240.0, false);
+            m_vSearchPath.insert(m_vSearchPath.end(), newPoints.begin(), newPoints.end());
+        }
+
+        return m_vSearchPath;
+    }
+
     /******************************************************************************
      * @brief Construct a new State object.
      *
@@ -96,12 +111,16 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized   = false;
-        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+        m_bInitialized       = false;
+        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
                                                                        constants::STUCK_CHECK_INTERVAL,
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
+        m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
+        m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
+                                                                                          constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
+                                                                                          constants::STANLEY_PREDICTION_HORIZON,
+                                                                                          constants::STANLEY_PREDICTION_TIME_STEP);
 
         // Start state.
         if (!m_bInitialized)
@@ -127,6 +146,12 @@ namespace statemachine
 
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+
+        // Place a dot on the stanley target index.
+        geoops::Waypoint stStanleyTargetCoordinate =
+            m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
+        m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
+        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
 
         /*
             The overall flow of this state is as follows.
@@ -270,6 +295,8 @@ namespace statemachine
             stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         }
 
+        // Use stanley to calculate drive move/powers.
+        controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
         // Drive to target waypoint.
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
                                                                                      stCurrRelToTarget.dStartRelativeBearing,
@@ -351,6 +378,8 @@ namespace statemachine
 
                         // Add the search and rover path layers to the plot.
                         m_pRoverPathPlot->AddDots(m_vSearchPath, "SnakeSearchPattern");
+                        // Set the path of the stanley controller.
+                        m_pStanleyController->SetReferencePath(m_vSearchPath);
                         break;
                     }
                     case SearchPatternType::eSnake:
