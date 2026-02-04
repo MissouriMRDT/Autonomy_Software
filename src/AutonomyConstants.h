@@ -40,6 +40,8 @@ namespace constants
     extern const std::string SIM_IP_ADDRESS;
     extern const uint SIM_WEBSOCKET_PORT;
     extern const uint SIM_WEBRTC_QP;
+    extern const std::string SIM_MAINCAM_NAME;
+    extern const std::string SIM_REARCAM_NAME;
 
     // Safety constants.
     extern const double BATTERY_MINIMUM_CELL_VOLTAGE;

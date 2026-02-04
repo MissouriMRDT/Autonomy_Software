@@ -613,6 +613,8 @@ rcond
 rdparty
 Rdtsc
 REACHEDGOAL
+rearcam
+REARCAM
 recvmmsg
 REELN
 Reproject
