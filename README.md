@@ -17,7 +17,7 @@
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/deploy_docker.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/deploy_docker.yml?branch=development&label=Docker&style=flat-round" alt="docker-ci" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/doxygen_generate.yml">
+    <a href="https://github.com/MissouriMRDT/RoveSoDocs/actions/workflows/deploy.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/RoveSoDocs/deploy.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
