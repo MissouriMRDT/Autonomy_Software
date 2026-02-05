@@ -78,7 +78,7 @@ Welcome to the **Autonomy Software** repository of the [Mars Rover Design Team (
 
 Here's the overall layout of the Autonomy Software codebase:
 
-![Autonomy_Software Codebase Structure](https://missourimrdt.github.io/Autonomy_Software/main_8cpp__incl.png)
+![Autonomy_Software Codebase Structure](https://docs.themrdt.org/autonomy/main_8cpp__incl.png)
 
 ### Directory Structure:
 
@@ -102,7 +102,7 @@ Here's the overall layout of the Autonomy Software codebase:
 
 Our documentation is automatically generated via [Doxygen](https://doxygen.nl/) on each commit to the `development` branch. Ensure you use the correct documentation templates to keep the documentation consistent.
 
-**📚 [Click here for full API documentation.](https://missourimrdt.github.io/Autonomy_Software/)**
+**📚 [Click here for full API documentation.](https://docs.themrdt.org/autonomy/)**
 
 ---
 
