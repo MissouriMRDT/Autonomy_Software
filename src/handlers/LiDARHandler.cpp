@@ -392,8 +392,7 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     const char* pSQL3      = R"(
         SELECT *
         FROM ProcessedLiDARPoints
-        WHERE
-        trav_score = 0.01
+        WHERE trav_score BETWEEN 0.009999 AND 0.010001
     )";
 
     sqlite3_stmt* sqlSTMT3 = nullptr;
@@ -413,7 +412,7 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
 
     if (nRC3 != SQLITE_DONE)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to modify traversal scores: {}", sqlite3_errmsg(m_pSQLDatabase));
         sqlite3_finalize(sqlSTMT3);
         return false;
     }
@@ -421,24 +420,20 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     // Finalize the statement.
     sqlite3_finalize(sqlSTMT3);
 
+    // NOTE: Actual modification statement
+
     // Prepare the SQL statements for inserting data.
-    // TODO: Experiment with the more circle-like combination of shapes vs execution time
     const char* pSQL      = R"(
         UPDATE ProcessedLiDARPoints
         SET trav_score = 0.01
-        WHERE
-        (
-            easting > ?
-            AND easting < ?
-            AND northing > ?
-            AND northing < ?
-        )
-        OR
-        (
-            easting > ?
-            AND easting < ?
-            AND northing > ?
-            AND northing < ?
+        WHERE id IN (
+            SELECT p.id
+            FROM ProcessedLiDARPoints_idx AS idx
+            JOIN ProcessedLiDARPoints AS p ON p.id = idx.id
+            WHERE
+                idx.min_x BETWEEN ? AND ?
+                AND idx.min_y BETWEEN ? AND ?
+                AND (p.easting - ?) * (p.easting - ?) + (p.northing - ?) * (p.northing - ?) <= ? * ?
         )
     )";
 
@@ -450,17 +445,18 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
         return false;
     }
 
-    double dH = dRadius * sin(2.0 / 6.0 * M_PI);
-    double dK = dRadius * cos(2.0 / 6.0 * M_PI);
-
-    sqlite3_bind_double(sqlSTMT, 1, stPoint.dEasting - dK);
-    sqlite3_bind_double(sqlSTMT, 2, stPoint.dEasting + dK);
-    sqlite3_bind_double(sqlSTMT, 3, stPoint.dNorthing - dH);
-    sqlite3_bind_double(sqlSTMT, 4, stPoint.dNorthing + dH);
-    sqlite3_bind_double(sqlSTMT, 5, stPoint.dEasting - dH);
-    sqlite3_bind_double(sqlSTMT, 6, stPoint.dEasting + dH);
-    sqlite3_bind_double(sqlSTMT, 7, stPoint.dNorthing - dK);
-    sqlite3_bind_double(sqlSTMT, 8, stPoint.dNorthing + dK);
+    // for rtree
+    sqlite3_bind_double(sqlSTMT, 1, stPoint.dEasting - dRadius);
+    sqlite3_bind_double(sqlSTMT, 2, stPoint.dEasting + dRadius);
+    sqlite3_bind_double(sqlSTMT, 3, stPoint.dNorthing - dRadius);
+    sqlite3_bind_double(sqlSTMT, 4, stPoint.dNorthing + dRadius);
+    // for distance check
+    sqlite3_bind_double(sqlSTMT, 5, stPoint.dEasting);
+    sqlite3_bind_double(sqlSTMT, 6, stPoint.dEasting);
+    sqlite3_bind_double(sqlSTMT, 7, stPoint.dNorthing);
+    sqlite3_bind_double(sqlSTMT, 8, stPoint.dNorthing);
+    sqlite3_bind_double(sqlSTMT, 9, dRadius);
+    sqlite3_bind_double(sqlSTMT, 10, dRadius);
 
     // Execute the statement.
     nRC = sqlite3_step(sqlSTMT);
@@ -474,63 +470,60 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     // Finalize the statement.
     sqlite3_finalize(sqlSTMT);
 
-    // NOTE: TEST. Logging amount of points in selected area
+    // NOTE: Just check for the pointsdadawadkjaw
+
+    int rowsUpdated = sqlite3_changes(m_pSQLDatabase);
+    LOG_INFO(logging::g_qSharedLogger, "Updated {} rows", rowsUpdated);
 
     // Prepare the SQL statements for inserting data.
-    // TODO: Experiment with the more circle-like combination of shapes vs execution time
-    const char* pSQL4      = R"(
-        SELECT * FROM ProcessedLiDARPoints
+    const char* pSQL5      = R"(
+        SELECT *
+        FROM ProcessedLiDARPoints_idx AS idx
+        JOIN ProcessedLiDARPoints AS p ON p.id = idx.id
         WHERE
-        (
-            easting > ?
-            AND easting < ?
-            AND northing > ?
-            AND northing < ?
-        )
-        OR
-        (
-            easting > ?
-            AND easting < ?
-            AND northing > ?
-            AND northing < ?
-        )
+            idx.min_x BETWEEN ? AND ?
+            AND idx.min_y BETWEEN ? AND ?
+            AND (p.easting - ?) * (p.easting - ?) + (p.northing - ?) * (p.northing - ?) <= ? * ?
     )";
 
-    sqlite3_stmt* sqlSTMT4 = nullptr;
-    int nRC4               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL4, -1, &sqlSTMT4, nullptr);
-    if (nRC4 != SQLITE_OK)
+    sqlite3_stmt* sqlSTMT5 = nullptr;
+    int nRC5               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL5, -1, &sqlSTMT5, nullptr);
+    if (nRC5 != SQLITE_OK)
     {
         LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
         return false;
     }
 
-    sqlite3_bind_double(sqlSTMT4, 1, stPoint.dEasting - dK);
-    sqlite3_bind_double(sqlSTMT4, 2, stPoint.dEasting + dK);
-    sqlite3_bind_double(sqlSTMT4, 3, stPoint.dNorthing - dH);
-    sqlite3_bind_double(sqlSTMT4, 4, stPoint.dNorthing + dH);
-    sqlite3_bind_double(sqlSTMT4, 5, stPoint.dEasting - dH);
-    sqlite3_bind_double(sqlSTMT4, 6, stPoint.dEasting + dH);
-    sqlite3_bind_double(sqlSTMT4, 7, stPoint.dNorthing - dK);
-    sqlite3_bind_double(sqlSTMT4, 8, stPoint.dNorthing + dK);
+    // NOTE: dRadius multiplied by 100 to pretend like this sql could actually find something (nothing happened)
+    // for rtree
+    sqlite3_bind_double(sqlSTMT5, 1, stPoint.dEasting - dRadius * 100);
+    sqlite3_bind_double(sqlSTMT5, 2, stPoint.dEasting + dRadius * 100);
+    sqlite3_bind_double(sqlSTMT5, 3, stPoint.dNorthing - dRadius * 100);
+    sqlite3_bind_double(sqlSTMT5, 4, stPoint.dNorthing + dRadius * 100);
+    // for distance check
+    sqlite3_bind_double(sqlSTMT5, 5, stPoint.dEasting);
+    sqlite3_bind_double(sqlSTMT5, 6, stPoint.dEasting);
+    sqlite3_bind_double(sqlSTMT5, 7, stPoint.dNorthing);
+    sqlite3_bind_double(sqlSTMT5, 8, stPoint.dNorthing);
+    sqlite3_bind_double(sqlSTMT5, 9, dRadius * 100);
+    sqlite3_bind_double(sqlSTMT5, 10, dRadius * 100);
 
     // Execute the statement.
     numZeros = 0;
-    while ((nRC4 = sqlite3_step(sqlSTMT4)) == SQLITE_ROW)
+    while ((nRC5 = sqlite3_step(sqlSTMT5)) == SQLITE_ROW)
     {
         ++numZeros;
     }
-    LOG_INFO(logging::g_qSharedLogger, "There are {} nodes in the target area = 0.01", numZeros);
-
-    nRC4 = sqlite3_step(sqlSTMT4);
-    if (nRC4 != SQLITE_DONE)
+    LOG_INFO(logging::g_qSharedLogger, "There are {} nodes in area (x - {})^2 + (y - {})^2 = {}^2", numZeros, stPoint.dEasting, stPoint.dNorthing, dRadius * 100);
+    if (nRC != SQLITE_DONE)
     {
         LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
-        sqlite3_finalize(sqlSTMT4);
+        sqlite3_finalize(sqlSTMT);
         return false;
     }
 
     // Finalize the statement.
-    sqlite3_finalize(sqlSTMT4);
+    sqlite3_finalize(sqlSTMT);
 
     // NOTE: TEST. Logging amt of points with trav_score 0.01 after area has been modified
 
@@ -538,8 +531,7 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     const char* pSQL2      = R"(
         SELECT *
         FROM ProcessedLiDARPoints
-        WHERE
-        trav_score = 0.01
+        WHERE trav_score BETWEEN 0.009999 AND 0.010001
     )";
 
     sqlite3_stmt* sqlSTMT2 = nullptr;
@@ -567,70 +559,5 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     // Finalize the statement.
     sqlite3_finalize(sqlSTMT2);
 
-    // // Prepare the SQL statements for inserting data.
-    // const char* pSQL            = R"(
-    //     INSERT INTO ProcessedLiDARPoints (easting, northing, altitude, zone, classification, normal_x, normal_y, normal_z, slope, rough, curvature, trav_score)
-    //     VALUES (?, ?, ?, ?, ?, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    // )";
-
-    // sqlite3_stmt* sqlInsertSTMT = nullptr;
-    // int nRC                     = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlInsertSTMT, nullptr);
-    // if (nRC != SQLITE_OK)
-    // {
-    //     LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
-    //     return false;
-    // }
-
-    // // Add a couple points around the circle
-    // double dPercentDist   = 0.90;
-    // double dOffsets[9][2] = {
-    //     {-dPercentDist / sqrt(2), dPercentDist / sqrt(2)},     // top-left
-    //     {0, dPercentDist},                                     // top-middle
-    //     {dPercentDist / sqrt(2), dPercentDist / sqrt(2)},      // top-right
-    //     {-dPercentDist, 0},                                    // middle-left
-    //     {0, 0},                                                // middle-middle
-    //     {dPercentDist, 0},                                     // middle-right
-    //     {-dPercentDist / sqrt(2), -dPercentDist / sqrt(2)},    // bottom-left
-    //     {0, -dPercentDist},                                    // bottom-middle
-    //     {dPercentDist / sqrt(2), -dPercentDist / sqrt(2)}      // middle-right
-    // };
-
-    // // Process the input waypoints into PointRow structures.
-    // std::vector<PointRow> vProcessedPoints;
-    // for (int i = 0; i < 9; ++i)
-    // {
-    //     PointRow point;
-    //     point.dEasting         = stWaypoint.GetUTMCoordinate().dEasting + dRadius * dOffset[i][0];
-    //     point.dNorthing        = stWaypoint.GetUTMCoordinate().dNorthing + dRadius * dOffset[i][1];
-    //     point.dAltitude        = stWaypoint.GetUTMCoordinate().dAltitude;
-    //     point.szZone           = std::to_string(stWaypoint.GetUTMCoordinate().nZone) + (stWaypoint.GetUTMCoordinate().bWithinNorthernHemisphere ? "N" : "S");
-    //     point.szClassification = "obstacle";
-    //     vProcessedPoints.push_back(point);
-    // }
-
-    // // Bind parameters for each point.
-    // for (const PointRow& point : vProcessedPoints)
-    // {
-    //     sqlite3_bind_double(sqlInsertSTMT, 1, point.dEasting);
-    //     sqlite3_bind_double(sqlInsertSTMT, 2, point.dNorthing);
-    //     sqlite3_bind_double(sqlInsertSTMT, 3, point.dAltitude);
-    //     sqlite3_bind_text(sqlInsertSTMT, 4, point.szZone.c_str(), -1, SQLITE_STATIC);
-    //     sqlite3_bind_text(sqlInsertSTMT, 5, point.szClassification.c_str(), -1, SQLITE_STATIC);
-
-    //     // Execute the statement.
-    //     nRC = sqlite3_step(sqlInsertSTMT);
-    //     if (nRC != SQLITE_DONE)
-    //     {
-    //         LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
-    //         sqlite3_finalize(sqlInsertSTMT);
-    //         return false;
-    //     }
-
-    //     // Reset the statement for the next iteration.
-    //     sqlite3_reset(sqlInsertSTMT);
-    // }
-
-    // // Finalize the statement.
-    // sqlite3_finalize(sqlInsertSTMT);
     return true;
 }
