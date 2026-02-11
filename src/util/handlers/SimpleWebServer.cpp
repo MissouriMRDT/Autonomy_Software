@@ -141,21 +141,37 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
 
     file.seekg(0, std::ios::beg);
 
-    std::vector<char> buffer(stdSize);
-    if (!file.read(buffer.data(), stdSize))
+    std::vector<char> vBuffer(stdSize);
+
+    // Read file in chunks to satisfy static analysis buffer boundary checks (CWE-120, CWE-20)
+    const std::streamsize stdChunkSize = 8192;    // 8KB chunks
+    std::streamsize stdTotalRead       = 0;
+
+    while (stdTotalRead < stdSize)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to read file {}", szPath);
-        return {};
+        std::streamsize stdToRead = std::min(stdChunkSize, stdSize - stdTotalRead);
+        if (!file.read(vBuffer.data() + stdTotalRead, stdToRead))
+        {
+            // Check if we hit EOF prematurely or encountered an error
+            if (file.eof() && file.gcount() > 0)
+            {
+                stdTotalRead += file.gcount();
+                break;
+            }
+            LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to read file {}", szPath);
+            return {};
+        }
+        stdTotalRead += stdToRead;
     }
 
     // Verify the actual number of bytes read matches expected size
-    if (file.gcount() != stdSize)
+    if (stdTotalRead != stdSize)
     {
-        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, file.gcount());
-        buffer.resize(file.gcount());
+        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, stdTotalRead);
+        vBuffer.resize(stdTotalRead);
     }
 
-    return buffer;
+    return vBuffer;
 }
 
 /******************************************************************************
