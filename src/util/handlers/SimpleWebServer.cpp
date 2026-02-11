@@ -141,41 +141,13 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
 
     file.seekg(0, std::ios::beg);
 
-    std::vector<char> vBuffer;
-    vBuffer.reserve(stdSize);
-
-    // Read file in chunks using temporary buffer to avoid pointer arithmetic in loop (CWE-120, CWE-20)
-    const std::streamsize stdChunkSize = 8192;    // 8KB chunks
-    std::vector<char> vChunkBuffer(stdChunkSize);
-    std::streamsize stdTotalRead = 0;
-
-    while (stdTotalRead < stdSize)
-    {
-        std::streamsize stdToRead = std::min(stdChunkSize, stdSize - stdTotalRead);
-
-        // Read into temporary chunk buffer
-        if (!file.read(vChunkBuffer.data(), stdToRead))
-        {
-            // Check if we hit EOF prematurely or encountered an error
-            if (file.eof() && file.gcount() > 0)
-            {
-                vBuffer.insert(vBuffer.end(), vChunkBuffer.begin(), vChunkBuffer.begin() + file.gcount());
-                stdTotalRead += file.gcount();
-                break;
-            }
-            LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to read file {}", szPath);
-            return {};
-        }
-
-        // Copy from chunk buffer to main buffer
-        vBuffer.insert(vBuffer.end(), vChunkBuffer.begin(), vChunkBuffer.begin() + stdToRead);
-        stdTotalRead += stdToRead;
-    }
+    // Use istreambuf_iterator to avoid explicit buffer read() calls in loop (CWE-120, CWE-20)
+    std::vector<char> vBuffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     // Verify the actual number of bytes read matches expected size
-    if (stdTotalRead != stdSize)
+    if (static_cast<std::streamsize>(vBuffer.size()) != stdSize)
     {
-        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, stdTotalRead);
+        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, vBuffer.size());
     }
 
     return vBuffer;
