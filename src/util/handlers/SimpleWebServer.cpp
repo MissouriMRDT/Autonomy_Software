@@ -122,15 +122,40 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
     if (!file.is_open())
         return {};
 
-    std::streamsize size = file.tellg();
+    std::streamsize stdSize = file.tellg();
+
+    // Validate file size to prevent buffer overflow (CWE-120, CWE-20)
+    if (stdSize < 0)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to get file size for {}", szPath);
+        return {};
+    }
+
+    // Prevent memory exhaustion from overly large files (100 MB limit)
+    const std::streamsize stdMaxFileSize = 100 * 1024 * 1024;
+    if (stdSize > stdMaxFileSize)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: File too large: {} ({} bytes)", szPath, stdSize);
+        return {};
+    }
+
     file.seekg(0, std::ios::beg);
 
-    std::vector<char> buffer(size);
-    if (file.read(buffer.data(), size))
+    std::vector<char> buffer(stdSize);
+    if (!file.read(buffer.data(), stdSize))
     {
-        return buffer;
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to read file {}", szPath);
+        return {};
     }
-    return {};
+
+    // Verify the actual number of bytes read matches expected size
+    if (file.gcount() != stdSize)
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, file.gcount());
+        buffer.resize(file.gcount());
+    }
+
+    return buffer;
 }
 
 /******************************************************************************
@@ -144,21 +169,21 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
  ******************************************************************************/
 std::string SimpleWebServer::GetMimeType(const std::string& szPath)
 {
-    std::string ext = std::filesystem::path(szPath).extension().string();
+    std::string szExt = std::filesystem::path(szPath).extension().string();
     // Convert to lowercase
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    std::transform(szExt.begin(), szExt.end(), szExt.begin(), ::tolower);
 
-    if (ext == ".jpg" || ext == ".jpeg")
+    if (szExt == ".jpg" || szExt == ".jpeg")
         return "image/jpeg";
-    if (ext == ".png")
+    if (szExt == ".png")
         return "image/png";
-    if (ext == ".gif")
+    if (szExt == ".gif")
         return "image/gif";
-    if (ext == ".html")
+    if (szExt == ".html")
         return "text/html";
-    if (ext == ".js")
+    if (szExt == ".js")
         return "text/javascript";
-    if (ext == ".css")
+    if (szExt == ".css")
         return "text/css";
     return "application/octet-stream";
 }
@@ -384,7 +409,7 @@ void SimpleWebServer::HandleClient(int nClientFD)
                 {
                     // Check if the requested path starts with this prefix
                     // e.g. Request "/detections/img.jpg" starts with "/detections"
-                    if (szPath.find(stPair.first) == 0)
+                    if (szPath.starts_with(stPair.first))
                     {
                         // Construct the local file path
                         // Remove prefix length from request path
