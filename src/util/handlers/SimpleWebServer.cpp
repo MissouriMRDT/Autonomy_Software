@@ -450,9 +450,12 @@ void SimpleWebServer::HandleClient(int nClientFD)
                         }
 
                         // Verify that the canonical path is still within the base directory
-                        std::pair<std::filesystem::path::iterator, std::filesystem::path::iterator> stMismatchResult =
-                            std::mismatch(szCanonicalBase.begin(), szCanonicalBase.end(), szCanonicalPath.begin());
-                        if (stMismatchResult.first != szCanonicalBase.end())
+                        // Check if canonical path starts with base path (avoid MISRA 12.3 comma operator in std::pair)
+                        std::string szCanonicalBaseStr = szCanonicalBase.string();
+                        std::string szCanonicalPathStr = szCanonicalPath.string();
+                        bool bPathWithinBase           = (szCanonicalPathStr.find(szCanonicalBaseStr) == 0);
+
+                        if (!bPathWithinBase)
                         {
                             LOG_WARNING(logging::g_qSharedLogger, "WebServer: Path traversal attempt blocked: {}", szPath);
                             break;
