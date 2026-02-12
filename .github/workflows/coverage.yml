@@ -67,7 +67,7 @@ jobs:
           if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -ENABLE_LIDAR_GEO_UTESTS=OFF -DBUILD_CODE_COVERAGE=ON -DBUILD_COVERAGE_WATCH=OFF -DBUILD_VERBOSE_MODE=ON
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF -DBUILD_CODE_COVERAGE=ON -DBUILD_COVERAGE_WATCH=OFF -DBUILD_VERBOSE_MODE=ON
           make -j8
 
       - name: Run Tests

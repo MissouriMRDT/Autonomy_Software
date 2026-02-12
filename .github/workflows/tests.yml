@@ -75,7 +75,7 @@ jobs:
 
           cd /opt/Autonomy_Software/
           rm -rf build && mkdir build && cd build
-          cmake -DBUILD_TESTS_MODE=ON -ENABLE_LIDAR_GEO_UTESTS=OFF ..
+          cmake -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF ..
           make -j8
 
           LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
@@ -152,7 +152,7 @@ jobs:
 
           cd /opt/Autonomy_Software/
           rm -rf build && mkdir build && cd build
-          cmake -DBUILD_TESTS_MODE=ON -ENABLE_LIDAR_GEO_UTESTS=OFF ..
+          cmake -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF ..
           make -j1
 
           LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
