@@ -122,15 +122,35 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
     if (!file.is_open())
         return {};
 
-    std::streamsize size = file.tellg();
+    std::streamsize stdSize = file.tellg();
+
+    // Validate file size to prevent buffer overflow (CWE-120, CWE-20)
+    if (stdSize < 0)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to get file size for {}", szPath);
+        return {};
+    }
+
+    // Prevent memory exhaustion from overly large files (100 MB limit)
+    const std::streamsize stdMaxFileSize = 100 * 1024 * 1024;
+    if (stdSize > stdMaxFileSize)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: File too large: {} ({} bytes)", szPath, stdSize);
+        return {};
+    }
+
     file.seekg(0, std::ios::beg);
 
-    std::vector<char> buffer(size);
-    if (file.read(buffer.data(), size))
+    // Use istreambuf_iterator to avoid explicit buffer read() calls in loop (CWE-120, CWE-20)
+    std::vector<char> vBuffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    // Verify the actual number of bytes read matches expected size
+    if (static_cast<std::streamsize>(vBuffer.size()) != stdSize)
     {
-        return buffer;
+        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, vBuffer.size());
     }
-    return {};
+
+    return vBuffer;
 }
 
 /******************************************************************************
@@ -144,21 +164,21 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
  ******************************************************************************/
 std::string SimpleWebServer::GetMimeType(const std::string& szPath)
 {
-    std::string ext = std::filesystem::path(szPath).extension().string();
+    std::string szExt = std::filesystem::path(szPath).extension().string();
     // Convert to lowercase
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    std::transform(szExt.begin(), szExt.end(), szExt.begin(), ::tolower);
 
-    if (ext == ".jpg" || ext == ".jpeg")
+    if (szExt == ".jpg" || szExt == ".jpeg")
         return "image/jpeg";
-    if (ext == ".png")
+    if (szExt == ".png")
         return "image/png";
-    if (ext == ".gif")
+    if (szExt == ".gif")
         return "image/gif";
-    if (ext == ".html")
+    if (szExt == ".html")
         return "text/html";
-    if (ext == ".js")
+    if (szExt == ".js")
         return "text/javascript";
-    if (ext == ".css")
+    if (szExt == ".css")
         return "text/css";
     return "application/octet-stream";
 }
@@ -384,7 +404,7 @@ void SimpleWebServer::HandleClient(int nClientFD)
                 {
                     // Check if the requested path starts with this prefix
                     // e.g. Request "/detections/img.jpg" starts with "/detections"
-                    if (szPath.find(stPair.first) == 0)
+                    if (szPath.starts_with(stPair.first))
                     {
                         // Construct the local file path
                         // Remove prefix length from request path
@@ -430,9 +450,12 @@ void SimpleWebServer::HandleClient(int nClientFD)
                         }
 
                         // Verify that the canonical path is still within the base directory
-                        std::pair<std::filesystem::path::iterator, std::filesystem::path::iterator> stMismatchResult =
-                            std::mismatch(szCanonicalBase.begin(), szCanonicalBase.end(), szCanonicalPath.begin());
-                        if (stMismatchResult.first != szCanonicalBase.end())
+                        // Check if canonical path starts with base path (avoid MISRA 12.3 comma operator in std::pair)
+                        std::string szCanonicalBaseStr = szCanonicalBase.string();
+                        std::string szCanonicalPathStr = szCanonicalPath.string();
+                        bool bPathWithinBase           = (szCanonicalPathStr.find(szCanonicalBaseStr) == 0);
+
+                        if (!bPathWithinBase)
                         {
                             LOG_WARNING(logging::g_qSharedLogger, "WebServer: Path traversal attempt blocked: {}", szPath);
                             break;

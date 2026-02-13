@@ -8,13 +8,13 @@
  * @copyright Copyright Mars Rover Design Team 2024 - All Rights Reserved
  ******************************************************************************/
 
-#include <opencv2/opencv.hpp>
-#include <filesystem>
 #include "VerifyingMarkerState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
-#include "../util/states/TagDetectionChecker.hpp"
 #include "../util/TimeOperations.hpp"
+#include "../util/states/TagDetectionChecker.hpp"
+#include <filesystem>
+#include <opencv2/opencv.hpp>
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -182,7 +182,6 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-
                 // Request the snapshot from the handler
                 cv::Mat cvSnapshot = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame();
 
@@ -190,20 +189,24 @@ namespace statemachine
                 {
                     // Ensure the directory exists
                     std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
-                    if (!std::filesystem::exists(szLogDir)) {
+                    if (!std::filesystem::exists(szLogDir))
+                    {
                         std::filesystem::create_directories(szLogDir);
                     }
 
                     // Create a unique filename using the current timestamp
-                    std::string szTimestamp = timeops::GetTimestamp(); 
-                    std::string szFilename = szLogDir + "marker_" + szTimestamp + ".png";
+                    std::string szTimestamp = timeops::GetTimestamp();
+                    std::string szFilename  = szLogDir + "marker_" + szTimestamp + ".png";
 
                     // Save the image to the disk
                     bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
 
-                    if (bSuccess) {
+                    if (bSuccess)
+                    {
                         LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Saved detection snapshot to {}", szFilename);
-                    } else {
+                    }
+                    else
+                    {
                         LOG_ERROR(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to write snapshot to disk.");
                     }
                 }
