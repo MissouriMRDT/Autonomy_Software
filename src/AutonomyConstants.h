@@ -189,7 +189,6 @@ namespace constants
     extern const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP;
     extern const bool ZED_MAINCAM_USE_GPU_MAT;
     extern const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH;
-    extern const bool ZED_MAINCAM_FUSION_MASTER;
     extern const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_MAINCAM_SERIAL;
 
@@ -204,7 +203,6 @@ namespace constants
     extern const bool ZED_REARCAM_EXPORT_SPATIAL_MAP;
     extern const bool ZED_REARCAM_USE_GPU_MAT;
     extern const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH;
-    extern const bool ZED_REARCAM_FUSION_MASTER;
     extern const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_REARCAM_SERIAL;
 

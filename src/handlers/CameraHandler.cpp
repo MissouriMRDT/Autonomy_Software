@@ -60,7 +60,6 @@ CameraHandler::CameraHandler()
                                               constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                                               constants::ZED_REARCAM_USE_GPU_MAT,
                                               constants::ZED_REARCAM_USE_HALF_PRECISION_DEPTH,
-                                              constants::ZED_REARCAM_FUSION_MASTER,
                                               constants::ZED_REARCAM_FRAME_RETRIEVAL_THREADS,
                                               constants::ZED_REARCAM_SERIAL);
 
