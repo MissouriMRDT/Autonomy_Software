@@ -321,8 +321,10 @@ namespace statemachine
     States SearchPatternState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState       = States::eSearchPattern;
-        bool bCompleteStateExit = true;
+        States eNextState = States::eSearchPattern;
+        // Get the current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+        bool bCompleteStateExit              = true;
 
         switch (eEvent)
         {
@@ -364,40 +366,25 @@ namespace statemachine
                     case SearchPatternType::eSpiral:
                     {
                         // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying snake...");
-                        // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateSnakeSearchPattern(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                   m_stSearchPatternCenter.dRadius * 2,
-                                                                                   m_stSearchPatternCenter.dRadius * 2,
-                                                                                   constants::SEARCH_ZIGZAG_SPACING,
-                                                                                   constants::SEARCH_SNAKE_SLITHERS);
-                        // Reset index counter.
-                        m_nSearchPathIdx = 0;
-                        // Update current search pattern
-                        m_eCurrentSearchPatternType = SearchPatternType::eSnake;
+                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying reverse spiral...");
+                        // Generate vertical reverse spiral pattern.
 
-                        // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "SnakeSearchPattern");
-                        // Set the path of the stanley controller.
-                        m_pStanleyController->SetReferencePath(m_vSearchPath);
-                        break;
-                    }
-                    case SearchPatternType::eSnake:
-                    {
-                        // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Snake search pattern failed, trying ZigZag...");
-                        // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                       m_stSearchPatternCenter.dRadius * 2,
-                                                                                       m_stSearchPatternCenter.dRadius * 2,
-                                                                                       constants::SEARCH_ZIGZAG_SPACING);
+                        m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+                                                                                       -constants::SEARCH_ANGULAR_STEP_DEGREES,
+                                                                                       m_stSearchPatternCenter.dRadius,
+                                                                                       stCurrentRoverPose.GetCompassHeading(),
+                                                                                       constants::SEARCH_SPIRAL_SPACING);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
+                        m_vSearchPath               = GeoPlanSearchPattern(m_vSearchPath);
+
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
+                        m_pRoverPathPlot->AddDots(m_vSearchPath, "ReverseSpiralSearchPattern");
+                        // Set the path of the stanley controller.
+                        m_pStanleyController->SetReferencePath(m_vSearchPath);
                         break;
                     }
                     case SearchPatternType::END:
