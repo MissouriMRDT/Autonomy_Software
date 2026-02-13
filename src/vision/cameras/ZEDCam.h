@@ -116,6 +116,11 @@ class ZEDCam : public ZEDCamera
         sl::MODEL m_slCameraModel;
         float m_fExpectedCameraHeightFromFloorTolerance;
 
+        // Track if we should turn on features during camera replug.
+        bool m_bEnablePositionalTrackingFlag;
+        bool m_bEnableSpatialMappingFlag;
+        bool m_bEnableObjectDetectionFlag;
+
         // Pose tracking offsets. (ZEDSDK is broken and can't handle large translations internally)
 
         double m_dPoseOffsetX;

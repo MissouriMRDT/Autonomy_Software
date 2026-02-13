@@ -64,12 +64,15 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_dPoseOffsetX  = 0.0;
-    m_dPoseOffsetY  = 0.0;
-    m_dPoseOffsetZ  = 0.0;
-    m_dPoseOffsetXO = 0.0;
-    m_dPoseOffsetYO = 0.0;
-    m_dPoseOffsetZO = 0.0;
+    m_dPoseOffsetX                  = 0.0;
+    m_dPoseOffsetY                  = 0.0;
+    m_dPoseOffsetZ                  = 0.0;
+    m_dPoseOffsetXO                 = 0.0;
+    m_dPoseOffsetYO                 = 0.0;
+    m_dPoseOffsetZO                 = 0.0;
+    m_bEnablePositionalTrackingFlag = false;
+    m_bEnableSpatialMappingFlag     = false;
+    m_bEnableObjectDetectionFlag    = false;
     // Initialize queued toggles.
     m_bNormalFramesQueued   = false;
     m_bDepthFramesQueued    = false;
@@ -272,7 +275,7 @@ void ZEDCam::ThreadedContinuousCode()
                     LOG_INFO(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been reconnected and reopened!", m_unCameraSerialNumber);
 
                     // Check if positional tracking was enabled.
-                    if (!m_slCamera.isPositionalTrackingEnabled())
+                    if (m_bEnablePositionalTrackingFlag)
                     {
                         slReturnCode = this->EnablePositionalTracking();
                     }
@@ -285,7 +288,7 @@ void ZEDCam::ThreadedContinuousCode()
                                   sl::toString(slReturnCode).get());
                     }
                     // Check if spatial mapping was enabled.
-                    if (m_slCamera.getSpatialMappingState() != sl::SPATIAL_MAPPING_STATE::OK)
+                    if (m_bEnableSpatialMappingFlag)
                     {
                         slReturnCode = this->EnableSpatialMapping();
                     }
@@ -298,7 +301,7 @@ void ZEDCam::ThreadedContinuousCode()
                                   sl::toString(slReturnCode).get());
                     }
                     // Check if object detection was enabled.
-                    if (!m_slCamera.isObjectDetectionEnabled())
+                    if (m_bEnableObjectDetectionFlag)
                     {
                         slReturnCode = this->EnableObjectDetection();
                     }
@@ -1510,6 +1513,9 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeigh
                   sl::toString(slReturnCode).get());
     }
 
+    // Set flag.
+    m_bEnablePositionalTrackingFlag = true;
+
     // Return error code.
     return slReturnCode;
 }
@@ -1527,6 +1533,8 @@ void ZEDCam::DisablePositionalTracking()
     std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     // Disable pose tracking.
     m_slCamera.disablePositionalTracking();
+    // Set flag.
+    m_bEnablePositionalTrackingFlag = false;
 }
 
 /******************************************************************************
@@ -1634,6 +1642,9 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
                   sl::toString(slReturnCode).get());
     }
 
+    // Set flag.
+    m_bEnableSpatialMappingFlag = true;
+
     // Return error code.
     return slReturnCode;
 }
@@ -1651,6 +1662,8 @@ void ZEDCam::DisableSpatialMapping()
     std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     // Disable spatial mapping.
     m_slCamera.disableSpatialMapping();
+    // Set flag.
+    m_bEnableSpatialMappingFlag = false;
 }
 
 /******************************************************************************
@@ -1686,6 +1699,9 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
                   sl::toString(slReturnCode).get());
     }
 
+    // Set flag.
+    m_bEnableObjectDetectionFlag = true;
+
     // Return error code.
     return slReturnCode;
 }
@@ -1703,6 +1719,8 @@ void ZEDCam::DisableObjectDetection()
     std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     // Disable object detection and tracking.
     m_slCamera.disableObjectDetection();
+    // Set flag.
+    m_bEnableObjectDetectionFlag = false;
 }
 
 /******************************************************************************
