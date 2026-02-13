@@ -95,9 +95,7 @@ namespace statemachine
         else
         {
             // Realign the ZED
-            globals::g_pStateMachineHandler->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam,
-                                                                geoops::ConvertGPSToUTM(globals::g_pNavigationBoard->GetGPSData()),
-                                                                globals::g_pNavigationBoard->GetHeading());
+            globals::g_pStateMachineHandler->RealignZEDHeading(globals::g_pNavigationBoard->GetHeading());
 
             // Create Average GPS Coordinate
             geoops::GPSCoordinate stAverage = geoops::GPSCoordinate();

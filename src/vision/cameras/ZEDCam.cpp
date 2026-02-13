@@ -48,7 +48,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                const float fMaxSenseDistance,
                const bool bMemTypeGPU,
                const bool bUseHalfDepthPrecision,
-               const bool bEnableFusionMaster,
                const int nNumFrameRetrievalThreads,
                const unsigned int unCameraSerialNumber) :
     ZEDCamera(nPropResolutionX,
@@ -59,7 +58,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
               bEnableRecordingFlag,
               bMemTypeGPU,
               bUseHalfDepthPrecision,
-              bEnableFusionMaster,
               nNumFrameRetrievalThreads,
               unCameraSerialNumber)
 {
@@ -77,7 +75,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_bDepthFramesQueued    = false;
     m_bPointCloudsQueued    = false;
     m_bPosesQueued          = false;
-    m_bGeoPosesQueued       = false;
     m_bFloorsQueued         = false;
     m_bObjectsQueued        = false;
     m_bBatchedObjectsQueued = false;
@@ -194,53 +191,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
                   sl::toString(slReturnCode).get());
     }
 
-    // Check if this camera should serve has the master Fusion instance.
-    if (bEnableFusionMaster)
-    {
-        // Setup Fusion params.
-        m_slFusionParams.coordinate_units  = constants::FUSION_MEASUREMENT_UNITS;
-        m_slFusionParams.coordinate_system = constants::FUSION_COORD_SYSTEM;
-        m_slFusionParams.verbose           = constants::FUSION_SDK_VERBOSE;
-        // Setup Fusion positional tracking parameters.
-        m_slFusionPoseTrackingParams.enable_GNSS_fusion = constants::FUSION_ENABLE_GNSS_FUSION;
-
-        // Initialize fusion instance for camera.
-        sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.init(m_slFusionParams);
-        // Check if fusion initialized properly.
-        if (slReturnCode == sl::FUSION_ERROR_CODE::SUCCESS)
-        {
-            // Enable odometry publishing for this ZED camera.
-            m_slCamera.startPublishing();
-            // Subscribe this camera to fusion instance.
-            slReturnCode = m_slFusionInstance.subscribe(sl::CameraIdentifier(m_unCameraSerialNumber));
-
-            // Check if this camera was successfully subscribed to the Fusion instance.
-            if (slReturnCode == sl::FUSION_ERROR_CODE::SUCCESS)
-            {
-                // Submit logger message.
-                LOG_DEBUG(logging::g_qSharedLogger, "Initialized FUSION instance for ZED camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
-            }
-            else
-            {
-                // Submit logger message.
-                LOG_DEBUG(logging::g_qSharedLogger,
-                          "Unable to subscribe to internal FUSION instance for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
-                          sl::toString(m_slCameraModel).get(),
-                          m_unCameraSerialNumber,
-                          sl::toString(slReturnCode).get());
-            }
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "Unable to initialize FUSION instance for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
-                      sl::toString(m_slCameraModel).get(),
-                      m_unCameraSerialNumber,
-                      sl::toString(slReturnCode).get());
-        }
-    }
-
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
 }
@@ -257,13 +207,6 @@ ZEDCam::~ZEDCam()
     // Stop threaded code.
     this->RequestStop();
     this->Join();
-
-    // Check if fusion master instance has been started for this camera.
-    if (m_bCameraIsFusionMaster)
-    {
-        // Close Fusion instance.
-        m_slFusionInstance.close();
-    }
 
     // Close the ZEDCam.
     m_slCamera.close();
@@ -327,17 +270,6 @@ void ZEDCam::ThreadedContinuousCode()
                 {
                     // Submit logger message.
                     LOG_INFO(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been reconnected and reopened!", m_unCameraSerialNumber);
-
-                    // Check if this camera is a fusion master.
-                    if (m_bCameraIsFusionMaster)
-                    {
-                        // Acquire write lock for camera object.
-                        std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
-                        // Enable odometry publishing for this ZED camera.
-                        m_slCamera.startPublishing();
-                        // Release lock.
-                        lkWriteCameraLock.unlock();
-                    }
 
                     // Check if positional tracking was enabled.
                     if (!m_slCamera.isPositionalTrackingEnabled())
@@ -407,28 +339,6 @@ void ZEDCam::ThreadedContinuousCode()
         sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
         // Release camera lock.
         lkWriteCameraLock.unlock();
-
-        // Check if this camera is the fusion master instance. Feed data to sl::Fusion.
-        if (m_bCameraIsFusionMaster)
-        {
-            // Acquire write lock.
-            std::unique_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-            // Call generalized process method of Fusion instance.
-            sl::FUSION_ERROR_CODE slReturnCode = m_slFusionInstance.process();
-            // Release lock.
-            lkFusionLock.unlock();
-
-            // Check if fusion data was processed correctly.
-            if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS && slReturnCode != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Unable to process fusion data for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
-                            sl::toString(m_slCameraModel).get(),
-                            m_unCameraSerialNumber,
-                            sl::toString(slReturnCode).get());
-            }
-        }
 
         // Check if new frame was computed successfully.
         if (slReturnCode == sl::ERROR_CODE::SUCCESS)
@@ -506,17 +416,8 @@ void ZEDCam::ThreadedContinuousCode()
                     // Create instance variable for storing the result of retrieving the pose.
                     sl::POSITIONAL_TRACKING_STATE slPoseTrackReturnCode;
 
-                    // Check if this camera has Fusion instance enabled.
-                    if (m_bCameraIsFusionMaster)
-                    {
-                        // Get tracking pose from Fusion.
-                        slPoseTrackReturnCode = m_slFusionInstance.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-                    }
-                    else
-                    {
-                        // Get normal vision tracking pose from camera.
-                        slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
-                    }
+                    // Get normal vision tracking pose from camera.
+                    slPoseTrackReturnCode = m_slCamera.getPosition(m_slCameraPose, sl::REFERENCE_FRAME::WORLD);
                     // Check that the regular frame was retrieved successfully.
                     if (slPoseTrackReturnCode != sl::POSITIONAL_TRACKING_STATE::OK)
                     {
@@ -526,23 +427,6 @@ void ZEDCam::ThreadedContinuousCode()
                                     sl::toString(m_slCameraModel).get(),
                                     m_unCameraSerialNumber,
                                     sl::toString(slPoseTrackReturnCode).get());
-                    }
-                }
-
-                // Check if geo poses have been requested.
-                if (m_bCameraIsFusionMaster && m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-                {
-                    // Get the fused geo pose from the camera.
-                    sl::GNSS_FUSION_STATUS slGeoPoseTrackReturnCode = m_slFusionInstance.getGeoPose(m_slFusionGeoPose);
-                    // Check that the geo pose was retrieved successfully.
-                    if (slGeoPoseTrackReturnCode != sl::GNSS_FUSION_STATUS::OK && slGeoPoseTrackReturnCode != sl::GNSS_FUSION_STATUS::CALIBRATION_IN_PROGRESS)
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger,
-                                    "Geo pose tracking state for stereo camera {} ({}) is suboptimal! sl::GNSS_FUSION_STATUS is: {}",
-                                    sl::toString(m_slCameraModel).get(),
-                                    m_unCameraSerialNumber,
-                                    sl::toString(slGeoPoseTrackReturnCode).get());
                     }
                 }
 
@@ -655,12 +539,11 @@ void ZEDCam::ThreadedContinuousCode()
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if any requests have been made.
     if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
-        !m_qGeoPoseCopySchedule.empty() || !m_qFloorCopySchedule.empty() || !m_qSensorsCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() ||
-        !m_qObjectBatchedDataCopySchedule.empty())
+        !m_qFloorCopySchedule.empty() || !m_qSensorsCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
     {
         // Add the length of all queues together to determine how many tasks need to be run.
         size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qGPUFrameCopySchedule.size() + m_qCustomBoxIngestSchedule.size() + m_qPoseCopySchedule.size() +
-                                    m_qGeoPoseCopySchedule.size() + m_qFloorCopySchedule.size() + m_qSensorsCopySchedule.size() + m_qObjectDataCopySchedule.size() +
+                                    m_qFloorCopySchedule.size() + m_qSensorsCopySchedule.size() + m_qObjectDataCopySchedule.size() +
                                     m_qObjectBatchedDataCopySchedule.size();
 
         // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
@@ -678,7 +561,6 @@ void ZEDCam::ThreadedContinuousCode()
             m_bDepthFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bPointCloudsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-            m_bGeoPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bFloorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bSensorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
@@ -850,33 +732,6 @@ void ZEDCam::PooledLinearCode()
     {
         // Release lock.
         lkPoseQueue.unlock();
-    }
-
-    /////////////////////////////
-    //  GeoPose queue.
-    /////////////////////////////
-    // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qGeoPoseCopySchedule.empty())
-    {
-        // Get pose container out of queue.
-        containers::DataFetchContainer<sl::GeoPose> stContainer = m_qGeoPoseCopySchedule.front();
-        // Pop out of queue.
-        m_qGeoPoseCopySchedule.pop();
-        // Release lock.
-        lkGeoPoseQueue.unlock();
-
-        // Copy pose.
-        *stContainer.pData = sl::GeoPose(m_slFusionGeoPose);
-
-        // Signal future that the data has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
-    }
-    else
-    {
-        // Release lock.
-        lkGeoPoseQueue.unlock();
     }
 
     /////////////////////////////
@@ -1293,69 +1148,6 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
 }
 
 /******************************************************************************
- * @brief Requests the current geo pose of the camera. This method should be used to retrieve ONLY the GNSS data from
- *      the ZEDSDK's Fusion module. Puts a GeoPose pointer into a queue so a copy of a GeoPose from the
- *      camera can be written to it. If positional tracking or fusion is disabled for this camera, then this method will return false
- *      and the sl::GeoPose may be uninitialized.
- *
- * @param slGeoPose - A reference to the sl::GeoPose object to copy the current geo pose to.
- * @return std::future<bool> - A future that should be waited on before the passed in sl::GeoPose is used.
- *                          Value will be true if geo pose was successfully retrieved.
- *
- * @note This camera must be a Fusion Master and the NavBoard must be giving accurate info to the camera for this to be functional.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-25
- ******************************************************************************/
-std::future<bool> ZEDCam::RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose)
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-    // Check if positional tracking has been enabled.
-    if (m_bCameraIsFusionMaster && m_slCamera.isPositionalTrackingEnabled())
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Assemble the data container.
-        containers::DataFetchContainer<sl::GeoPose> stContainer(slGeoPose);
-
-        // Acquire lock on frame copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
-        m_qGeoPoseCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if pose queue toggle has already been set.
-        if (!m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the pose queue is not empty.
-            m_bGeoPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Release lock.
-        lkCameraLock.unlock();
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to get ZED FUSION geo pose but positional tracking is not enabled and/or this camera was not initialized as a Fusion Master!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
  * @brief Requests the current floor plane of the camera relative to it's current pose.
  *      Puts a Plane pointer into a queue so a copy of the floor plane from the camera can be written to it.
  *      If positional tracking is not enabled, this method will return false and the sl::Plane may be uninitialized.
@@ -1686,265 +1478,6 @@ sl::ERROR_CODE ZEDCam::RebootCamera()
 }
 
 /******************************************************************************
- * @brief Give a UUID for another ZEDCam, subscribe that camera to this camera's Fusion instance.
- *      This will tell this camera's Fusion instance to start ingesting and fusing data from the other camera.
- *
- * @param slCameraUUID - The Camera unique identifier given by the other camera's PublishCameraToFusion() method.
- * @return sl::FUSION_ERROR_CODE - Whether or not the camera and fusion module has been successfully subscribed.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-26
- ******************************************************************************/
-sl::FUSION_ERROR_CODE ZEDCam::SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID)
-{
-    // Create instance variables.
-    sl::FUSION_ERROR_CODE slReturnCode = sl::FUSION_ERROR_CODE::MODULE_NOT_ENABLED;
-
-    // Check if this camera is a fusion master.
-    if (m_bCameraIsFusionMaster)
-    {
-        // Acquire write lock.
-        std::unique_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-        // Subscribe this camera to fusion instance.
-        slReturnCode = m_slFusionInstance.subscribe(slCameraUUID);
-        // Release lock.
-        lkFusionLock.unlock();
-    }
-
-    // Check if this camera was successfully subscribed to the Fusion instance.
-    if (slReturnCode == sl::FUSION_ERROR_CODE::SUCCESS)
-    {
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger,
-                  "Subscribed stereo camera with serial number {} to Fusion instance ran by stereo camera {} ({})!",
-                  slCameraUUID.sn,
-                  sl::toString(m_slCameraModel).get(),
-                  m_unCameraSerialNumber);
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger,
-                  "Unable to subscribe camera with serial number {} to FUSION instance for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
-                  slCameraUUID.sn,
-                  sl::toString(m_slCameraModel).get(),
-                  m_unCameraSerialNumber,
-                  sl::toString(slReturnCode).get());
-    }
-
-    // Return the sl::FUSION_ERROR_CODE status.
-    return slReturnCode;
-}
-
-/******************************************************************************
- * @brief Signal this camera to make its data available to the Fusion module and
- *      retrieve a UUID for this class's sl::Camera instance that can be used to
- *      subscribe an sl::Fusion instance to this camera later.
- *
- * @return sl::CameraIdentifier - A globally unique identifier generated from this camera's serial number.
- *
- * @note Just calling this method does not send data to the ZEDSDK's fusion module. It just enables the capability.
- *      The camera acting as the fusion master instance must be subscribed to this camera using the SubscribeFusionToCameraUUID()
- *      method and the returned UUID.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-26
- ******************************************************************************/
-sl::CameraIdentifier ZEDCam::PublishCameraToFusion()
-{
-    // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
-    // Make this cameras data available to the Fusion module if it is later subscribed.
-    m_slCamera.startPublishing();
-    // Release lock.
-    lkWriteCameraLock.unlock();
-
-    // Return a UUID for this camera. This is used by the camera running the master fusion instance to subscribe to the data being published.
-    return sl::CameraIdentifier(m_unCameraSerialNumber);
-}
-
-/******************************************************************************
- * @brief If this camera is the fusion instance master, this method can be used to ingest/process/fuse the current GNSS
- *      position of the camera with the ZEDSDK positional tracking. This allows the use of RequestGeoPose to get a
- *      high resolution and highly accurate GNSS/VIO camera pose.
- *
- * @param stNewGPSLocation - The current GPS location, this must be up-to-date or the realtime position of the camera in the GPS space.
- * @return sl::FUSION_ERROR_CODE - Return status from the ZEDSDK Fusion module.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-04-15
- ******************************************************************************/
-sl::FUSION_ERROR_CODE ZEDCam::IngestGPSDataToFusion(geoops::GPSCoordinate stNewGPSLocation)
-{
-    // Create instance variables.
-    sl::FUSION_ERROR_CODE slReturnCode = sl::FUSION_ERROR_CODE::FAILURE;
-
-    // Check if this camera is the fusion master.
-    if (m_bCameraIsFusionMaster)
-    {
-        // Acquire read lock.
-        std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
-        // Check if fusion positional tracking is enabled.
-        if (constants::FUSION_ENABLE_GNSS_FUSION && m_slCamera.isPositionalTrackingEnabled())
-        {
-            // Release lock.
-            lkCameraLock.unlock();
-
-            // Check if the GPS data from the NavBoard is recent.
-            if (stNewGPSLocation.dLatitude != m_stCurrentGPSBasedPosition.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSBasedPosition.dLongitude &&
-                stNewGPSLocation.d2DAccuracy != m_stCurrentGPSBasedPosition.d2DAccuracy && stNewGPSLocation.d3DAccuracy != m_stCurrentGPSBasedPosition.d3DAccuracy)
-            {
-                // Repack gps data int sl::GNSSData object.
-                sl::GNSSData slGNSSData = sl::GNSSData();
-                slGNSSData.setCoordinates(stNewGPSLocation.dLatitude, stNewGPSLocation.dLongitude, stNewGPSLocation.dAltitude, false);
-                // Position covariance matrix expects millimeters.
-                double dHorizontalAccuracy = stNewGPSLocation.d2DAccuracy * 1000;
-                double dVerticalAccuracy   = stNewGPSLocation.d3DAccuracy * 1000;
-                // Calculate the covariance matrix from the 2D and 3D accuracies.
-                slGNSSData.position_covariance = {dHorizontalAccuracy * dHorizontalAccuracy,
-                                                  0.0,
-                                                  0.0,
-                                                  0.0,
-                                                  dHorizontalAccuracy * dHorizontalAccuracy,
-                                                  0.0,
-                                                  0.0,
-                                                  0.0,
-                                                  dVerticalAccuracy * dVerticalAccuracy};
-
-                // Set GNSS timestamp from input GPSCoordinate data. sl::GNSSData expects time since epoch.
-                slGNSSData.ts = sl::Timestamp(std::chrono::time_point_cast<std::chrono::nanoseconds>(stNewGPSLocation.tmTimestamp).time_since_epoch().count());
-
-                // Get the GNSS fix type status from the given GPS coordinate.
-                switch (stNewGPSLocation.eCoordinateAccuracyFixType)
-                {
-                    case geoops::PositionFixType::eNoFix:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::SINGLE;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::NO_FIX;
-                        break;
-                    }
-                    case geoops::PositionFixType::eDeadReckoning:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::PPS;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::NO_FIX;
-                        break;
-                    }
-                    case geoops::PositionFixType::eFix2D:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::PPS;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_2D;
-                        break;
-                    }
-                    case geoops::PositionFixType::eFix3D:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FIX;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_3D;
-                        break;
-                    }
-                    case geoops::PositionFixType::eGNSSDeadReckoningCombined:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FIX;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_3D;
-                        break;
-                    }
-                    case geoops::PositionFixType::eTimeOnly:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FIX;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_3D;
-                        break;
-                    }
-                    default:
-                    {
-                        slGNSSData.gnss_status = sl::GNSS_STATUS::RTK_FIX;
-                        slGNSSData.gnss_mode   = sl::GNSS_MODE::FIX_3D;
-                        break;
-                    }
-                }
-                // Check if fix is based off of differential GPS calculations.
-                if (stNewGPSLocation.bIsDifferential)
-                {
-                    slGNSSData.gnss_status = sl::GNSS_STATUS::DGNSS;
-                }
-
-                // Acquire write lock.
-                std::unique_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-                // Publish GNSS data to fusion from the NavBoard.
-                slReturnCode = m_slFusionInstance.ingestGNSSData(slGNSSData);
-                // Release lock.
-                lkFusionLock.unlock();
-                // Check if the GNSS data was successfully ingested by the Fusion instance.
-                if (slReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
-                {
-                    // Covariance error.
-                    if (slReturnCode == sl::FUSION_ERROR_CODE::GNSS_DATA_COVARIANCE_MUST_VARY || slReturnCode == sl::FUSION_ERROR_CODE::INVALID_COVARIANCE)
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger,
-                                    "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE "
-                                    "is: {}({}). Current accuracy data is 2D: {}, 3D {}.",
-                                    sl::toString(m_slCameraModel).get(),
-                                    m_unCameraSerialNumber,
-                                    sl::toString(slReturnCode).get(),
-                                    static_cast<int>(slReturnCode),
-                                    stNewGPSLocation.d2DAccuracy,
-                                    stNewGPSLocation.d3DAccuracy);
-                    }
-                    else if (slReturnCode != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
-                    {
-                        // Submit logger message.
-                        LOG_WARNING(logging::g_qSharedLogger,
-                                    "Unable to ingest fusion GNSS data for camera {} ({})! sl::Fusion positional tracking may be inaccurate! sl::FUSION_ERROR_CODE "
-                                    "is: {}({})",
-                                    sl::toString(m_slCameraModel).get(),
-                                    m_unCameraSerialNumber,
-                                    sl::toString(slReturnCode).get(),
-                                    static_cast<int>(slReturnCode));
-                    }
-                }
-                else
-                {
-                    // Acquire write lock.
-                    std::shared_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-                    // Get the current status of the fusion positional tracking.
-                    sl::FusedPositionalTrackingStatus slFusionPoseTrackStatus = m_slFusionInstance.getFusedPositionalTrackingStatus();
-                    // Release lock.
-                    lkFusionLock.unlock();
-                    // Submit logger message. DEBUG log the current fused position tracking state.
-                    LOG_DEBUG(logging::g_qSharedLogger,
-                              "PoseTrack Fusion Status: {}, GNSS Fusion Status: {}, VIO SpatialMemory Status: {}",
-                              sl::toString(slFusionPoseTrackStatus.tracking_fusion_status).get(),
-                              sl::toString(slFusionPoseTrackStatus.gnss_fusion_status).get(),
-                              sl::toString(slFusionPoseTrackStatus.spatial_memory_status).get());
-                }
-
-                // Update current GPS position.
-                m_stCurrentGPSBasedPosition = stNewGPSLocation;
-            }
-        }
-        else
-        {
-            // Release lock.
-            lkCameraLock.unlock();
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "Cannot ingest GNSS data because camera {} ({}) does not have positional tracking enabled or constants::FUSION_ENABLE_GNSS_FUSION is false!",
-                      sl::toString(m_slCameraModel).get(),
-                      m_unCameraSerialNumber);
-        }
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Cannot ingest GNSS data because camera {} ({}) is not an sl::Fusion master!",
-                    sl::toString(m_slCameraModel).get(),
-                    m_unCameraSerialNumber);
-    }
-
-    return slReturnCode;
-}
-
-/******************************************************************************
  * @brief Enable the positional tracking functionality of the camera.
  *
  * @param fExpectedCameraHeightFromFloorTolerance - The expected height of the camera from the floor.
@@ -1976,27 +1509,6 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeigh
                   m_unCameraSerialNumber,
                   sl::toString(slReturnCode).get());
     }
-    // Check if fusion positional tracking should be enabled for this camera.
-    else if (m_bCameraIsFusionMaster)
-    {
-        // Acquire write lock.
-        std::unique_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-        // Enable fusion positional tracking.
-        sl::FUSION_ERROR_CODE slFusionReturnCode = m_slFusionInstance.enablePositionalTracking(m_slFusionPoseTrackingParams);
-        // Release lock.
-        lkFusionLock.unlock();
-
-        // Check if the fusion positional tracking was enabled successfully.
-        if (slFusionReturnCode != sl::FUSION_ERROR_CODE::SUCCESS)
-        {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "Failed to enable fusion positional tracking for camera {} ({})! sl::FUSION_ERROR_CODE is: {}",
-                      sl::toString(m_slCameraModel).get(),
-                      m_unCameraSerialNumber,
-                      sl::toString(slFusionReturnCode).get());
-        }
-    }
 
     // Return error code.
     return slReturnCode;
@@ -2011,16 +1523,6 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeigh
  ******************************************************************************/
 void ZEDCam::DisablePositionalTracking()
 {
-    // Check if fusion positional tracking should be enabled for this camera.
-    if (m_bCameraIsFusionMaster)
-    {
-        // Acquire write lock.
-        std::unique_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-        // Enable fusion positional tracking.
-        m_slFusionInstance.disablePositionalTracking();
-        // Release lock.
-        lkFusionLock.unlock();
-    }
     // Acquire write lock.
     std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     // Disable pose tracking.
@@ -2309,22 +1811,6 @@ sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
     // Acquire read lock.
     std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
     return m_slCamera.getPositionalTrackingStatus();
-}
-
-/******************************************************************************
- * @brief Accessor for the current positional tracking status of the fusion instance.
- *
- * @return sl::FusedPositionalTrackingStatus - The sl::FusedPositionalTrackingStatus struct storing
- *      information about the current VIO and GNSS fusion positional tracking state.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-04-22
- ******************************************************************************/
-sl::FusedPositionalTrackingStatus ZEDCam::GetFusedPositionalTrackingState()
-{
-    // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkFusionLock(m_muFusionMutex);
-    return m_slFusionInstance.getFusedPositionalTrackingStatus();
 }
 
 /******************************************************************************
