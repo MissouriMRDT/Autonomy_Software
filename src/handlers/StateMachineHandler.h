@@ -53,6 +53,7 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_mutex m_muEventMutex;
         std::atomic_bool m_bSwitchingStates;
         std::shared_ptr<ZEDCamera> m_pMainCam;
+        std::shared_ptr<ZEDCamera> m_pRearCam;
         geoops::GPSCoordinate m_stCurrentGPSLocation;
         double m_dZEDHeadingOffset;    // This is the offset that is applied to the ZED's heading to align it with the actual heading of the rover.
 

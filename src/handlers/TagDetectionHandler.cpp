@@ -16,7 +16,7 @@
  * @brief Construct a new TagDetectionHandler::TagDetectionHandler object.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 TagDetectionHandler::TagDetectionHandler()
@@ -38,10 +38,34 @@ TagDetectionHandler::TagDetectionHandler()
     if (constants::TAGDETECT_MAINCAM_ENABLE_TORCH)
     {
         // Attempt to init torch detection.
-        if (m_pTagDetectorMainCam->InitTorchDetection(constants::TAGDETECT_MAINCAM_TORCH_MODEL))
+        if (m_pTagDetectorMainCam->InitTorchDetection(constants::TAGDETECT_TORCH_MODEL))
         {
             // Set torch detection enabled.
             m_pTagDetectorMainCam->EnableTorchDetection(constants::TAGDETECT_MAINCAM_TORCH_CONFIDENCE, constants::TAGDETECT_MAINCAM_TORCH_NMS_THRESH);
+        }
+    }
+
+    // Initialize detector for rear ZEDCam.
+    m_pTagDetectorRearCam = std::make_shared<TagDetector>(globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam),
+                                                          constants::TAGDETECT_REARCAM_CORNER_REFINE_MAX_ITER,
+                                                          constants::TAGDETECT_REARCAM_CORNER_REFINE_METHOD,
+                                                          constants::TAGDETECT_REARCAM_MARKER_BORDER_BITS,
+                                                          constants::TAGDETECT_REARCAM_DETECT_INVERTED_MARKER,
+                                                          constants::TAGDETECT_REARCAM_USE_ARUCO3_DETECTION,
+                                                          constants::TAGDETECT_REARCAM_ENABLE_TRACKING,
+                                                          constants::TAGDETECT_REARCAM_MAX_FPS,
+                                                          constants::TAGDETECT_REARCAM_ENABLE_RECORDING,
+                                                          constants::TAGDETECT_REARCAM_DATA_RETRIEVAL_THREADS,
+                                                          constants::ZED_REARCAM_USE_GPU_MAT);
+
+    // Check if torch detection is enabled for rear ZEDCam.
+    if (constants::TAGDETECT_REARCAM_ENABLE_TORCH)
+    {
+        // Attempt to init torch detection.
+        if (m_pTagDetectorRearCam->InitTorchDetection(constants::TAGDETECT_TORCH_MODEL))
+        {
+            // Set torch detection enabled.
+            m_pTagDetectorRearCam->EnableTorchDetection(constants::TAGDETECT_REARCAM_TORCH_CONFIDENCE, constants::TAGDETECT_REARCAM_TORCH_NMS_THRESH);
         }
     }
 
@@ -66,13 +90,16 @@ TagDetectionHandler::~TagDetectionHandler()
  * @brief Signals all detectors to start their threads.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 void TagDetectionHandler::StartAllDetectors()
 {
     // Start ZED maincam detector.
     m_pTagDetectorMainCam->Start();
+
+    // Start ZED rearcam detector.
+    m_pTagDetectorRearCam->Start();
 }
 
 /******************************************************************************
@@ -92,7 +119,7 @@ void TagDetectionHandler::StartRecording()
  * @brief Signals all detectors to stop their threads.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 void TagDetectionHandler::StopAllDetectors()
@@ -101,9 +128,13 @@ void TagDetectionHandler::StopAllDetectors()
     m_pRecordingHandler->RequestStop();
     m_pRecordingHandler->Join();
 
-    // Stop ZED detectors.
+    // Stop main ZED detectors.
     m_pTagDetectorMainCam->RequestStop();
     m_pTagDetectorMainCam->Join();
+
+    // Stop rear ZED detectors.
+    m_pTagDetectorRearCam->RequestStop();
+    m_pTagDetectorRearCam->Join();
 }
 
 /******************************************************************************
@@ -126,7 +157,7 @@ void TagDetectionHandler::StopRecording()
  * @param eDetectorName - The name of the detector to retrieve. An enum defined in and specific to this class.
  * @return std::shared_ptr<TagDetector> - A pointer to the detector pertaining to the given name.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-07
  ******************************************************************************/
 std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eDetectorName)
@@ -135,6 +166,7 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
     switch (eDetectorName)
     {
         case TagDetectors::eHeadMainCam: return m_pTagDetectorMainCam; break;
+        case TagDetectors::eRearCam: return m_pTagDetectorRearCam; break;
         default: return m_pTagDetectorMainCam; break;
     }
 }

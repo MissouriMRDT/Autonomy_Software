@@ -41,6 +41,7 @@ StateMachineHandler::StateMachineHandler()
 
     // Initialize member variables.
     m_pMainCam          = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    m_pRearCam          = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
     m_dZEDHeadingOffset = 0.0;
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
@@ -261,10 +262,15 @@ void StateMachineHandler::ThreadedContinuousCode()
         if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
             globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH)
         {
-            // Realign the main ZED cameras pose with current GPS-based heading.
-            this->RealignZEDHeading(globals::g_pNavigationBoard->GetHeading());
+            // Update current GPS position.
+            m_stCurrentGPSLocation = stNewGPSLocation;
+            // Get current compass heading.
+            double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
+            // Realign the main ZED cameras pose with current GPS-based position and heading.
+            this->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
         }
     }
+}
 }
 
 /******************************************************************************

@@ -60,8 +60,29 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
               nNumFrameRetrievalThreads,
               unCameraSerialNumber)
 {
+    // Create instance variables.
+    std::string szWebsocketAddress = "";
+    std::string szFullStreamName   = "";
+
+    // Split the websocket URL from the stream name.
+    size_t siPos = szCameraPath.rfind('/');
+
+    // Ensure we found a slash and it's not just the protocol 'ws://'
+    if (siPos != std::string::npos && siPos > 6)
+    {
+        // Assign directly to your instance variables (this copies the data safely)
+        szWebsocketAddress = szCameraPath.substr(0, siPos);
+        szFullStreamName   = szCameraPath.substr(siPos + 1);
+
+        LOG_NOTICE(logging::g_qSharedLogger, "Address: {}, Identifier: {}", szWebsocketAddress, szFullStreamName);
+    }
+    else
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Invalid Camera Path: {}", szCameraPath);
+    }
+
     // Assign member variables.
-    m_szCameraPath              = szCameraPath;
+    m_szCameraPath              = szWebsocketAddress;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
 
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
@@ -71,8 +92,8 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream        = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontRGB");
-    m_pDepthImageStream = std::make_unique<WebRTC>(szCameraPath, "ZEDFrontDepthImage");
+    m_pRGBStream        = std::make_unique<WebRTC>(szWebsocketAddress, szFullStreamName + "RGB");
+    m_pDepthImageStream = std::make_unique<WebRTC>(szWebsocketAddress, szFullStreamName + "DepthImage");
 
     // Set callbacks for the WebRTC connections.
     this->SetCallbacks();

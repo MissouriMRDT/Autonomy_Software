@@ -21,7 +21,7 @@
  *      tensorflow model, the detectors are created and stored here.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-23
  ******************************************************************************/
 class ObjectDetectionHandler
@@ -32,6 +32,7 @@ class ObjectDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ObjectDetector> m_pObjectDetectorMainCam;
+        std::shared_ptr<ObjectDetector> m_pObjectDetectorRearCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
@@ -43,6 +44,7 @@ class ObjectDetectionHandler
         {
             OBJECTDETECTOR_START,
             eHeadMainCam,
+            eRearCam,
             OBJECTDETECTOR_END
         };
 

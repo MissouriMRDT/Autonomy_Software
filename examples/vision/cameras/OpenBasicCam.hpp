@@ -34,17 +34,14 @@
  ******************************************************************************/
 void RunExample()
 {
-    // Initialize and start handlers
-    globals::g_pCameraHandler = new CameraHandler();
-
-    // Get reference to camera.
-    std::shared_ptr<BasicCamera> ExampleBasicCam1 = globals::g_pCameraHandler->GetBasicCam(CameraHandler::BasicCamName::eHeadGroundCam);
+    // Initialize basic cam. 
+    std::shared_ptr<BasicCamera> ExampleBasicCam1 = std::make_unique<BasicCam>(0, 1280, 720, 60, PIXEL_FORMATS::eBGR, 0, 0, false);
     // Start basic cam.
     ExampleBasicCam1->Start();
 
     // Declare mats to store images in.
     cv::Mat cvNormalFrame1;
-    cv::Mat cvNormalFrame2;
+    cv::Mat cvNormalFrame;
 
     // Declare FPS counter.
     IPS FPS = IPS();
