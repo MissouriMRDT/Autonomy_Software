@@ -60,7 +60,11 @@ class DriveBoardTests : public TestingBase<DriveBoardTests>
          * @author Eli Byrd (edbgkk@mst.edu)
          * @date 2025-01-09
          ******************************************************************************/
-        void TestSetup() override { m_pDriveBoard = std::make_unique<DriveBoard>(); }
+        void TestSetup() override
+        {
+            // Initialize DriveBoard instance.
+            m_pDriveBoard = std::make_unique<DriveBoard>();
+        }
 
         /******************************************************************************
          * @brief Teardown the Drive Board Tests object.
@@ -133,7 +137,7 @@ TEST_F(DriveBoardTests, SendDrive_UpdatesDrivePowers)
     stPowers.dRightDrivePower = -0.5;
 
     m_pDriveBoard->SetMaxDriveEffort(1.0);
-    m_pDriveBoard->SendDrive(stPowers);
+    m_pDriveBoard->SendDrive(stPowers, false);
 
     // The output drive powers will changed depending on what the drive board effort limits are.
     diffdrive::DrivePowers stCurrentPowers = m_pDriveBoard->GetDrivePowers();
@@ -153,7 +157,7 @@ TEST_F(DriveBoardTests, SendStop_StopsTheDrive)
     stPowers.dLeftDrivePower  = 1.0;
     stPowers.dRightDrivePower = 1.0;
 
-    m_pDriveBoard->SendDrive(stPowers);
+    m_pDriveBoard->SendDrive(stPowers, false);
     m_pDriveBoard->SendStop();
 
     diffdrive::DrivePowers stCurrentPowers = m_pDriveBoard->GetDrivePowers();

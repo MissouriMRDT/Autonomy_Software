@@ -11,6 +11,7 @@
 #include "./AutonomyGlobals.h"
 #include "./AutonomyLogging.h"
 #include "./AutonomyNetworking.h"
+#include "./handlers/VisualizationHandler.h"
 #include "./util/states/ObjectDetectionChecker.hpp"
 #include "./util/states/TagDetectionChecker.hpp"
 
@@ -210,12 +211,13 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pWaypointHandler        = new WaypointHandler();
-        globals::g_pLiDARHandler           = new LiDARHandler();
-        globals::g_pCameraHandler          = new CameraHandler();
-        globals::g_pTagDetectionHandler    = new TagDetectionHandler();
-        globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
-        globals::g_pStateMachineHandler    = new StateMachineHandler();
+        globals::g_pWaypointHandler                 = new WaypointHandler();
+        globals::g_pLiDARHandler                    = new LiDARHandler();
+        globals::g_pCameraHandler                   = new CameraHandler();
+        globals::g_pTagDetectionHandler             = new TagDetectionHandler();
+        globals::g_pObjectDetectionHandler          = new ObjectDetectionHandler();
+        globals::g_pStateMachineHandler             = new StateMachineHandler();
+        VisualizationHandler* pVisualizationHandler = new VisualizationHandler(constants::VISUALIZER_WEBSERVER_PORT);
 
         // Initialize GeoPlanner.
         globals::g_pGeoPlanner = new pathplanners::GeoPlanner(constants::GEOPLANNER_TILE_SIZE);
@@ -233,10 +235,14 @@ int main()
         globals::g_pCameraHandler->StartAllCameras();
         globals::g_pTagDetectionHandler->StartAllDetectors();
         globals::g_pObjectDetectionHandler->StartAllDetectors();
-        // Enable Recording on Handlers.
+        // Enable recording on handlers.
         globals::g_pCameraHandler->StartRecording();
         globals::g_pTagDetectionHandler->StartRecording();
         globals::g_pObjectDetectionHandler->StartRecording();
+        // Now that cameras and detectors are configured start state machine.
+        globals::g_pStateMachineHandler->StartStateMachine();
+        // Start the visualization handler.
+        pVisualizationHandler->Start();
 
         /////////////////////////////////////////
         // Declare local variables used in main loop.
@@ -251,9 +257,6 @@ int main()
         std::shared_ptr<ObjectDetector> pRearObjectDetector =
             globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
         IPS IterPerSecond = IPS();
-
-        // Now that cameras and detectors are configured start state machine.
-        globals::g_pStateMachineHandler->StartStateMachine();
 
         // Create a vector of ints to store the FPS values for each thread.
         std::vector<uint32_t> vThreadFPSValues;
@@ -289,6 +292,7 @@ int main()
             szMainInfo += "RearTagDetector FPS: " + std::to_string(pRearTagDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RearObjectDetector FPS: " + std::to_string(pRearObjectDetector->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nVisualizer FPS: " + std::to_string(pVisualizationHandler->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
             szMainInfo += "\n--------[ State Machine Info ]--------\n";
@@ -525,6 +529,9 @@ int main()
         // Cleanup.
         /////////////////////////////////////////
 
+        // Export visualization data.
+        pVisualizationHandler->SaveVisualization(constants::LOGGING_OUTPUT_PATH_ABSOLUTE + logging::g_szProgramStartTimeString + "/visualization.html");
+
         // Check if ZED spatial map was enabled.
         if (pMainCam->GetSpatialMappingState() == sl::SPATIAL_MAPPING_STATE::OK)
         {
@@ -543,6 +550,9 @@ int main()
         globals::g_pObjectDetectionHandler->StopAllDetectors();
         globals::g_pTagDetectionHandler->StopAllDetectors();
         globals::g_pCameraHandler->StopAllCameras();
+        // Stop the visualization handler.
+        pVisualizationHandler->RequestStop();
+        pVisualizationHandler->Join();
 
         // Close the LiDAR database.
         globals::g_pLiDARHandler->CloseDB();
@@ -550,6 +560,7 @@ int main()
         // Cleanup GeoPlanner.
         delete globals::g_pGeoPlanner;
         // Cleanup handlers.
+        delete pVisualizationHandler;
         delete globals::g_pStateMachineHandler;
         delete globals::g_pObjectDetectionHandler;
         delete globals::g_pTagDetectionHandler;
@@ -558,6 +569,7 @@ int main()
         delete globals::g_pLiDARHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
         globals::g_pGeoPlanner             = nullptr;
+        pVisualizationHandler              = nullptr;
         globals::g_pStateMachineHandler    = nullptr;
         globals::g_pObjectDetectionHandler = nullptr;
         globals::g_pTagDetectionHandler    = nullptr;

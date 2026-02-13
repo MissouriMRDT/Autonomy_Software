@@ -39,10 +39,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
+
+      - name: Init only needed submodules (and block LiDAR)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Only allow these submodules to ever be touched
+          git config --local --unset-all submodule.active || true
+          git config --local --add submodule.active external/threadpool
+          git config --local --add submodule.active external/rovecomm
+
+          # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+          git config --local submodule.data/LiDAR.update none
+
+          git submodule sync --recursive
+          git submodule update --init --recursive external/threadpool external/rovecomm
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

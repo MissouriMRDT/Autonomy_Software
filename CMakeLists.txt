@@ -36,7 +36,7 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warni
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
+option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -49,6 +49,9 @@ option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 
 ## Enable or Disable Tests Mode
 option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
+
+## Allow LiDAR/GeoPlanner unit tests (can require special data/env)
+option(ENABLE_LIDAR_GEO_UTESTS "Enable unit tests in LidarHandler.cc and GeoPlanner.cc" OFF)
 
 ## Enable or Disable Examples Mode
 option(BUILD_EXAMPLES_MODE "Enable Examples Mode" OFF)
@@ -356,6 +359,13 @@ if (BUILD_TESTS_MODE)
     message("--   Current Timestamp: ${CURRENT_TIMESTAMP}")
 
     if (UnitTests_LEN GREATER 0)
+        if (NOT ENABLE_LIDAR_GEO_UTESTS)
+            message("--   [ ]: LiDAR/GeoPlanner Unit Tests: Disabled (LiDARHandler.cc, GeoPlanner.cc)")
+            list(FILTER UTests_SRC EXCLUDE REGEX ".*/(LiDARHandler|GeoPlanner)\\.cc$")
+        else()
+            message("--   [x]: LiDAR/GeoPlanner Unit Tests: Enabled")
+        endif()
+
         add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
 

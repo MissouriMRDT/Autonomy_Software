@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief The PathTracer class is used to trace the path of the rover and
- *    plot the path on a graph.
+ * plot the path on a graph.
  *
  * @file PathTracer.hpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -16,13 +16,14 @@
 
 /// \cond
 #include <chrono>
+#include <cmath>
 #include <matplot/matplot.h>
 
 /// \endcond
 
 /******************************************************************************
  * @brief Namespace containing all global type/structs that will be used project wide
- *      for logging.
+ * for logging.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -32,8 +33,8 @@ namespace logging
 {
     /******************************************************************************
      * @brief Namespace containing all global type/structs that will be used project wide
-     *      for graphing and plotting data with matplotlib. These graphing functions
-     *      are built to be as feature rich as possible while still being easy to use.
+     * for graphing and plotting data with matplotlib. These graphing functions
+     * are built to be as feature rich as possible while still being easy to use.
      *
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
@@ -43,7 +44,7 @@ namespace logging
     {
         /******************************************************************************
          * @brief The PathTracer class is used to trace the path of the rover and
-         *      plot the path on a graph.
+         * plot the path on a graph.
          *
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
@@ -120,47 +121,47 @@ namespace logging
                  *
                  * @param szLayerName - The alias name of the layer.
                  * @param szStyleString - The style of the layer. Default is "-o" which is a blue line with blue dots.
-                 *      Here are the full options for the style string:
-                 *          Line Styles:
-                 *              "-": Solid line
-                 *              "--": Dashed line
-                 *              "-.": Dash-dot line
-                 *              ":": Dotted line
-                 *              Marker Styles
-                 *              "+": Plus sign
-                 *              "o": Circle
-                 *              "*": Asterisk
-                 *              ".": Point
-                 *              "x": Cross
-                 *              "s" or "square": Square
-                 *              "d" or "diamond": Diamond
-                 *              "^": Upward-pointing triangle
-                 *              "v" or "V": Downward-pointing triangle
-                 *              ">": Custom marker (right arrow, ▶)
-                 *              "<": Custom marker (left arrow, ◀)
-                 *              "p" or "pentagram": Pentagram
-                 *              "h" or "hexagram": Hexagram
+                 * Here are the full options for the style string:
+                 * Line Styles:
+                 * "-": Solid line
+                 * "--": Dashed line
+                 * "-.": Dash-dot line
+                 * ":": Dotted line
+                 * Marker Styles
+                 * "+": Plus sign
+                 * "o": Circle
+                 * "*": Asterisk
+                 * ".": Point
+                 * "x": Cross
+                 * "s" or "square": Square
+                 * "d" or "diamond": Diamond
+                 * "^": Upward-pointing triangle
+                 * "v" or "V": Downward-pointing triangle
+                 * ">": Custom marker (right arrow, ▶)
+                 * "<": Custom marker (left arrow, ◀)
+                 * "p" or "pentagram": Pentagram
+                 * "h" or "hexagram": Hexagram
                  *
-                 *           Colors: (These colors can be used for line color, marker color, or marker face color. The letter corresponds to a color)
-                 *              "b": Blue
-                 *              "k": Black
-                 *              "r": Red
-                 *              "g": Green
-                 *              "y": Yellow
-                 *              "c": Cyan
-                 *              "m": Magenta
-                 *              "w": White
-                 *           Additional Options:
-                 *              "f" or "filled": Fills the marker's face (if the marker style supports it).
-                 *              Line width and marker size can be adjusted programmatically, not directly in the style string.
-                 *              Example Usage of Style Strings
-                 *              You can combine line styles, marker styles, and colors into a single string:
+                 * Colors: (These colors can be used for line color, marker color, or marker face color. The letter corresponds to a color)
+                 * "b": Blue
+                 * "k": Black
+                 * "r": Red
+                 * "g": Green
+                 * "y": Yellow
+                 * "c": Cyan
+                 * "m": Magenta
+                 * "w": White
+                 * Additional Options:
+                 * "f" or "filled": Fills the marker's face (if the marker style supports it).
+                 * Line width and marker size can be adjusted programmatically, not directly in the style string.
+                 * Example Usage of Style Strings
+                 * You can combine line styles, marker styles, and colors into a single string:
                  *
-                 *              "--o": Dashed line with circle markers.
-                 *              ":x": Dotted line with cross markers.
-                 *              "-r": Solid red line.
-                 *              "o": Circle markers with default line style (solid).
-                 *              "-om": Solid magenta line with circle markers.
+                 * "--o": Dashed line with circle markers.
+                 * ":x": Dotted line with cross markers.
+                 * "-r": Solid red line.
+                 * "o": Circle markers with default line style (solid).
+                 * "-om": Solid magenta line with circle markers.
                  * @return true - The layer was successfully created.
                  * @return false - The layer already exists and cannot be created.
                  *
@@ -190,15 +191,15 @@ namespace logging
                  *
                  * @param szLayerName - The alias name of the layer.
                  * @param szColorString - The color of the layer. The default is "blue".
-                 *          Here are the full options for the color string:
-                 *             "blue": Blue
-                 *             "black": Black
-                 *             "red": Red
-                 *             "green": Green
-                 *             "yellow": Yellow
-                 *             "cyan": Cyan
-                 *             "magenta": Magenta
-                 *             "white": White
+                 * Here are the full options for the color string:
+                 * "blue": Blue
+                 * "black": Black
+                 * "red": Red
+                 * "green": Green
+                 * "yellow": Yellow
+                 * "cyan": Cyan
+                 * "magenta": Magenta
+                 * "white": White
                  * @param bFillMarkerFace - Whether or not to fill the marker face. Default is true.
                  * @return true - The layer was successfully created.
                  * @return false - The layer already exists and cannot be created.
@@ -296,8 +297,8 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has a limit
-                 *      to the number of waypoints that can be added per second. Set the maximum
-                 *      number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per second. Set the maximum
+                 * number of waypoints per second to 0 for no limit.
                  *
                  * @param stWaypoint - The waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -315,6 +316,19 @@ namespace logging
                         return;
                     }
 
+                    // Check if point is significantly different from the last point to prevent zero-range errors.
+                    if (!m_umPathMap[szLayerName].empty())
+                    {
+                        std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
+                        double dDistSq                                   = std::pow(std::get<0>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dEasting, 2) +
+                                         std::pow(std::get<1>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dNorthing, 2);
+                        // Ignore updates smaller than 1 cm.
+                        if (dDistSq < 0.0001)
+                        {
+                            return;
+                        }
+                    }
+
                     // Add the waypoint to the path.
                     m_umPathMap[szLayerName].emplace_back(stWaypoint.GetUTMCoordinate().dEasting,
                                                           stWaypoint.GetUTMCoordinate().dNorthing,
@@ -326,8 +340,8 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has a limit
-                 *      to the number of waypoints that can be added per second. Set the maximum
-                 *      number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per second. Set the maximum
+                 * number of waypoints per second to 0 for no limit.
                  *
                  * @param stCoordinate - The coordinate of the waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -345,6 +359,18 @@ namespace logging
                         return;
                     }
 
+                    // Check if point is significantly different from the last point to prevent zero-range errors.
+                    if (!m_umPathMap[szLayerName].empty())
+                    {
+                        std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
+                        double dDistSq = std::pow(std::get<0>(stdLastPoint) - stCoordinate.dEasting, 2) + std::pow(std::get<1>(stdLastPoint) - stCoordinate.dNorthing, 2);
+                        // Ignore updates smaller than 1 cm.
+                        if (dDistSq < 0.0001)
+                        {
+                            return;
+                        }
+                    }
+
                     // Add the waypoint to the path.
                     m_umPathMap[szLayerName].emplace_back(stCoordinate.dEasting, stCoordinate.dNorthing, stCoordinate.dAltitude);
 
@@ -354,8 +380,8 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has a limit
-                 *      to the number of waypoints that can be added per second. Set the maximum
-                 *      number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per second. Set the maximum
+                 * number of waypoints per second to 0 for no limit.
                  *
                  * @param stCoordinate - The coordinate of the waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -376,6 +402,19 @@ namespace logging
                     // Create instance variables.
                     geoops::UTMCoordinate stUTMCoordinate = geoops::ConvertGPSToUTM(stCoordinate);
 
+                    // Check if point is significantly different from the last point to prevent zero-range errors.
+                    if (!m_umPathMap[szLayerName].empty())
+                    {
+                        std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
+                        double dDistSq =
+                            std::pow(std::get<0>(stdLastPoint) - stUTMCoordinate.dEasting, 2) + std::pow(std::get<1>(stdLastPoint) - stUTMCoordinate.dNorthing, 2);
+                        // Ignore updates smaller than 1 cm.
+                        if (dDistSq < 0.0001)
+                        {
+                            return;
+                        }
+                    }
+
                     // Add the waypoint to the path.
                     m_umPathMap[szLayerName].emplace_back(stUTMCoordinate.dEasting, stUTMCoordinate.dNorthing, stUTMCoordinate.dAltitude);
 
@@ -385,9 +424,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *      to the number of waypoints that can be added per call. But the
-                 *    number of waypoints that can be added per second is limited. Set the
-                 *    maximum number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per call. But the
+                 * number of waypoints that can be added per second is limited. Set the
+                 * maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param stWaypoints - The waypoints to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -419,9 +458,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *      to the number of waypoints that can be added per call. But the
-                 *    number of waypoints that can be added per second is limited. Set the
-                 *    maximum number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per call. But the
+                 * number of waypoints that can be added per second is limited. Set the
+                 * maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -451,9 +490,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint to the path and plot the path. This method has no limit
-                 *    to the number of waypoints that can be added per one call. But the
-                 *    number of waypoints that can be added per second is limited. Set the
-                 *    maximum number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per one call. But the
+                 * number of waypoints that can be added per second is limited. Set the
+                 * maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -484,8 +523,8 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint as a dot to the path. This method has a limit
-                 *      to the number of waypoints that can be added per second. Set the maximum
-                 *      number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per second. Set the maximum
+                 * number of waypoints per second to 0 for no limit.
                  *
                  * @param stWaypoint - The waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -527,8 +566,8 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint as a dot to the path. This method has a limit
-                 *     to the number of waypoints that can be added per second. Set the maximum
-                 *     number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per second. Set the maximum
+                 * number of waypoints per second to 0 for no limit.
                  *
                  * @param stCoordinate - The coordinate of the waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -556,8 +595,8 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint as a dot to the path. This method has a limit
-                 *     to the number of waypoints that can be added per second. Set the maximum
-                 *     number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per second. Set the maximum
+                 * number of waypoints per second to 0 for no limit.
                  *
                  * @param stCoordinate - The coordinate of the waypoint to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -588,9 +627,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint as a dot to the path. This method has no limit
-                 *    to the number of waypoints that can be added per one call. But the
-                 *    number of waypoints that can be added per second is limited. Set the
-                 *    maximum number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per one call. But the
+                 * number of waypoints that can be added per second is limited. Set the
+                 * maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param stWaypoints - The waypoints to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -636,9 +675,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint as a dot to the path. This method has no limit
-                 *   to the number of waypoints that can be added per one call. But the
-                 *   number of waypoints that can be added per second is limited. Set the
-                 *   maximum number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per one call. But the
+                 * number of waypoints that can be added per second is limited. Set the
+                 * maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -672,9 +711,9 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Add a waypoint as a dot to the path. This method has no limit
-                 *      to the number of waypoints that can be added per one call. But the
-                 *      number of waypoints that can be added per second is limited. Set the
-                 *      maximum number of waypoints per second to 0 for no limit.
+                 * to the number of waypoints that can be added per one call. But the
+                 * number of waypoints that can be added per second is limited. Set the
+                 * maximum number of waypoints per second to 0 for no limit.
                  *
                  * @param vCoordinates - The coordinates to add to the path.
                  * @param szLayerName - The name of the layer to add the waypoints to.
@@ -732,6 +771,7 @@ namespace logging
                 {
                     // Create instance variables.
                     std::vector<std::string> vLayerNames;
+                    bool bAnyLayerPlotted = false;
 
                     // Clear the plot.
                     m_mtRoverPathAxes->clear();
@@ -747,6 +787,7 @@ namespace logging
                         {
                             // Add the layer name to the vector.
                             vLayerNames.push_back(stdLayer.first);
+                            bAnyLayerPlotted = true;
 
                             // Check if we are in 3D mode.
                             if (m_bEnable3D)
@@ -793,6 +834,7 @@ namespace logging
                         {
                             // Add the layer name to the vector.
                             vLayerNames.push_back(stdLayer.first);
+                            bAnyLayerPlotted = true;
 
                             // Check if we are in 3D mode.
                             if (m_bEnable3D)
@@ -836,6 +878,13 @@ namespace logging
                         }
                     }
 
+                    // Check if anything was actually plotted.
+                    if (!bAnyLayerPlotted)
+                    {
+                        // If nothing was plotted then don't draw or save.
+                        return;
+                    }
+
                     // Update legend names.
                     m_mtRoverPathAxes->legend(vLayerNames);
                     matplot::legend_handle mtLegend = m_mtRoverPathAxes->legend();
@@ -857,11 +906,11 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Checks the unordered map of last update times for a given layer name
-                 *      and returns true if the time since the last update is greater than the
-                 *      maximum updates per second, then it updates the time in the map.
-                 *      If the layer name does not exist in the map then it returns false.
-                 *      If the given update time is 0, then it will just check if the layer name
-                 *      exists in the map.
+                 * and returns true if the time since the last update is greater than the
+                 * maximum updates per second, then it updates the time in the map.
+                 * If the layer name does not exist in the map then it returns false.
+                 * If the given update time is 0, then it will just check if the layer name
+                 * exists in the map.
                  *
                  * @param szLayerName - The name of the layer to check the update time for.
                  * @param unMaxUpdatesPerSecond - The maximum number of updates per second.
@@ -899,11 +948,11 @@ namespace logging
 
                 /******************************************************************************
                  * @brief Checks the unordered map of last update times for a given layer name
-                 *     and returns true if the time since the last update is greater than the
-                 *     maximum updates per second, then it updates the time in the map.
-                 *     If the layer name does not exist in the map then it returns false.
-                 *     If the given update time is 0, then it will just check if the layer name
-                 *     exists in the map.
+                 * and returns true if the time since the last update is greater than the
+                 * maximum updates per second, then it updates the time in the map.
+                 * If the layer name does not exist in the map then it returns false.
+                 * If the given update time is 0, then it will just check if the layer name
+                 * exists in the map.
                  *
                  * @param szLayerName - The name of the layer to check the update time for.
                  * @param unMaxUpdatesPerSecond - The maximum number of updates per second.

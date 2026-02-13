@@ -24,7 +24,7 @@ namespace statemachine
 {
     /******************************************************************************
      * @brief This method is called when the state is first started. It is used to
-     *        initialize the state.
+     * initialize the state.
      *
      *
      * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
@@ -53,7 +53,7 @@ namespace statemachine
 
     /******************************************************************************
      * @brief This method is called when the state is exited. It is used to clean up
-     *        the state.
+     * the state.
      *
      *
      * @author Eli Byrd (edbgkk@mst.edu)
@@ -126,9 +126,23 @@ namespace statemachine
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
 
-        // Check if both tag types are unseen.
-        static bool bAlreadyPrintedLost                            = false;
+        // Persistent variables to track target across frames
+        static double dHeadingSetPoint = 0.0;
+        static double dDistanceFromTag = 0.0;
+        static geoops::Waypoint stLastGeolocatedPosition;
+        static bool bHasLastGeolocatedPosition                     = false;
         static std::chrono::system_clock::time_point tLastSeenTime = std::chrono::system_clock::now();
+        static bool bAlreadyPrintedLost                            = false;
+        static bool bAlreadyPrintedVisualLostFallback              = false;
+
+        // Check for stale session data (if we re-entered this state after a long time).
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - tLastSeenTime).count() >
+            constants::APPROACH_MARKER_LOST_GIVE_UP_TIME + 5.0)
+        {
+            bHasLastGeolocatedPosition = false;
+        }
+
+        // Check if both tag types are unseen.
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
             std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
@@ -145,28 +159,34 @@ namespace statemachine
                     bAlreadyPrintedLost = true;
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ApproachingMarkerState: No tags detected.");
+                }
 
-                    // If either of the tags are good and have a valid geoposition, don't stop the drive, we can keep driving to it.
-                    if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
-                    {
-                        // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: OpenCV tag is geolocated.");
-                        return;
-                    }
-                    if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
-                    {
-                        // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Torch tag is geolocated.");
-                        return;
-                    }
+                // If we have a valid last known geolocated position, keep driving to it.
+                if (bHasLastGeolocatedPosition)
+                {
+                    // Calculate the geomeasurement to the last known position.
+                    geoops::GeoMeasurement stLastMeasurement =
+                        geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stLastGeolocatedPosition.GetUTMCoordinate());
 
-                    // Stop the drive.
+                    // Update setpoints to track the last known location.
+                    dHeadingSetPoint = stLastMeasurement.dStartRelativeBearing;
+                    dDistanceFromTag = stLastMeasurement.dDistanceMeters;
+
+                    if (!bAlreadyPrintedVisualLostFallback)
+                    {
+                        LOG_NOTICE(logging::g_qSharedLogger, "ApproachingMarkerState: Visual lost, driving to last known geolocated position.");
+                        bAlreadyPrintedVisualLostFallback = true;
+                    }
+                }
+                else
+                {
+                    // No valid history to fallback on, stop the drive.
                     globals::g_pDriveBoard->SendStop();
                     return;
                 }
             }
         }
-        else
+        else    // Tag Detected
         {
             // Submit logger message.
             if (bAlreadyPrintedLost)
@@ -176,51 +196,61 @@ namespace statemachine
 
             // Reset the last seen time if a tag is detected.
             tLastSeenTime = std::chrono::system_clock::now();
-            // Reset printed flag when tags are detected again
-            bAlreadyPrintedLost = false;
-        }
+            // Reset printed flags when tags are detected again
+            bAlreadyPrintedLost               = false;
+            bAlreadyPrintedVisualLostFallback = false;
 
-        // Create instance variables.
-        static double dHeadingSetPoint = 0.0;
-        static double dDistanceFromTag = 0.0;
-        // Check if we got a good OpenCV tag.
-        if (stBestArucoTag.nID != -1)
-        {
-            dDistanceFromTag = stBestArucoTag.dStraightLineDistance;
-            // Check if the tag has an absolute coordinate populated.
-            if (stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+            // Check if we got a good OpenCV tag.
+            if (stBestArucoTag.nID != -1)
             {
-                // Calculate the geomeasurement to the tag.
-                geoops::GeoMeasurement stTagMeasurement =
-                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate());
-                // Update static variables.
-                dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
-                // Add the most recent geolocated tag to the plot.
-                m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                dDistanceFromTag = stBestArucoTag.dStraightLineDistance;
+                // Check if the tag has an absolute coordinate populated.
+                if (stBestArucoTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                {
+                    // Calculate the geomeasurement to the tag.
+                    geoops::GeoMeasurement stTagMeasurement =
+                        geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate());
+                    // Update static variables.
+                    dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+
+                    // Save geolocated position for fallback.
+                    stLastGeolocatedPosition   = stBestArucoTag.stGeolocatedPosition;
+                    bHasLastGeolocatedPosition = true;
+
+                    // Add the most recent geolocated tag to the plot.
+                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+                else
+                {
+                    // Fallback to relative tracking (Current Heading + Yaw Angle).
+                    dHeadingSetPoint = numops::InputAngleModulus(stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+                }
             }
-            else
+            // Check if we got a good Torch tag.
+            else if (stBestTorchTag.dConfidence != 0.0)
             {
-                dHeadingSetPoint = numops::InputAngleModulus(stBestArucoTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
-            }
-        }
-        // Check if we got a good Torch tag.
-        else if (stBestTorchTag.dConfidence != 0.0)
-        {
-            dDistanceFromTag = stBestTorchTag.dStraightLineDistance;
-            // Check if the tag has an absolute coordinate populated.
-            if (stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
-            {
-                // Calculate the geomeasurement to the tag.
-                geoops::GeoMeasurement stTagMeasurement =
-                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate());
-                // Update static variables.
-                dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
-                // Add the most recent geolocated tag to the plot.
-                m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-            }
-            else
-            {
-                dHeadingSetPoint = numops::InputAngleModulus(stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+                dDistanceFromTag = stBestTorchTag.dStraightLineDistance;
+                // Check if the tag has an absolute coordinate populated.
+                if (stBestTorchTag.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN)
+                {
+                    // Calculate the geomeasurement to the tag.
+                    geoops::GeoMeasurement stTagMeasurement =
+                        geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate());
+                    // Update static variables.
+                    dHeadingSetPoint = stTagMeasurement.dStartRelativeBearing;
+
+                    // Save geolocated position for fallback.
+                    stLastGeolocatedPosition   = stBestTorchTag.stGeolocatedPosition;
+                    bHasLastGeolocatedPosition = true;
+
+                    // Add the most recent geolocated tag to the plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+                else
+                {
+                    // Fallback to relative tracking (Current Heading + Yaw Angle).
+                    dHeadingSetPoint = numops::InputAngleModulus(stBestTorchTag.dYawAngle + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
+                }
             }
         }
 
@@ -277,8 +307,9 @@ namespace statemachine
             }
 
             // Reset the tag heading and distance.
-            dHeadingSetPoint = 0.0;
-            dDistanceFromTag = 0.0;
+            dHeadingSetPoint           = 0.0;
+            dDistanceFromTag           = 0.0;
+            bHasLastGeolocatedPosition = false;
 
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
